@@ -13,11 +13,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.powsybl</groupId>
-    <artifactId>powsybl-loadflow</artifactId>
+    <artifactId>powsybl-open-loadflow</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 
-    <name>powsybl loadflow</name>
-    <description>PowSyBl loadflow prototype</description>
+    <name>powsybl open loadflow</name>
+    <description>An open source loadflow based on PowSyBl</description>
     <url>http://www.powsybl.org</url>
 
     <licenses>
@@ -28,9 +28,9 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:https://github.com/powsybl/powsybl-loadflow.git</connection>
-        <developerConnection>scm:git:https://github.com/powsybl/powsybl-loadflow.git</developerConnection>
-        <url>https://github.com/powsybl/powsybl-loadflow</url>
+        <connection>scm:git:https://github.com/powsybl/powsybl-open-loadflow.git</connection>
+        <developerConnection>scm:git:https://github.com/powsybl/powsybl-open-loadflow.git</developerConnection>
+        <url>https://github.com/powsybl/powsybl-open-loadflow</url>
     </scm>
 
     <developers>
