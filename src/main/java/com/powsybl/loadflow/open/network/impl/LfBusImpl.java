@@ -55,6 +55,8 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final List<Generator> generators = new ArrayList<>();
 
+    private final List<VscConverterStation> vscConverterStations = new ArrayList<>();
+
     private LfReactiveDiagram reactiveDiagram;
 
     public LfBusImpl(Bus bus, int num, double v, double angle) {
@@ -156,10 +158,9 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     void addVscConverterStation(VscConverterStation vscCs) {
-        HvdcLine line = vscCs.getHvdcLine();
-        double targetP = line.getConverterStation1() == vscCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER
-                ? line.getActivePowerSetpoint()
-                : -line.getActivePowerSetpoint();
+        vscConverterStations.add(vscCs);
+
+        double targetP = getHvdcLineTargetP(vscCs);
         generationTargetP += targetP;
         initialGenerationTargetP = generationTargetP;
         if (vscCs.isVoltageRegulatorOn()) {
@@ -171,6 +172,7 @@ public class LfBusImpl extends AbstractLfBus {
             initialGenerationTargetQ = generationTargetQ;
         }
 
+        HvdcLine line = vscCs.getHvdcLine();
         setActivePowerLimits(-line.getMaxP(), line.getMaxP());
 
         if (reactiveDiagram == null) {
@@ -178,6 +180,14 @@ public class LfBusImpl extends AbstractLfBus {
         } else {
             reactiveDiagram = LfReactiveDiagram.merge(reactiveDiagram, new LfReactiveDiagramImpl(vscCs.getReactiveLimits()));
         }
+    }
+
+    private static double getHvdcLineTargetP(VscConverterStation vscCs) {
+        HvdcLine line = vscCs.getHvdcLine();
+        return (line.getConverterStation1() == vscCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
+                || (line.getConverterStation2() == vscCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
+                ? -line.getActivePowerSetpoint()
+                : line.getActivePowerSetpoint();
     }
 
     void addShuntCompensator(ShuntCompensator sc) {
@@ -303,6 +313,12 @@ public class LfBusImpl extends AbstractLfBus {
                     generator.getTerminal().setQ(generationTargetQ / generators.size());
                 }
             }
+        }
+
+        for (VscConverterStation vscConverterStation : vscConverterStations) {
+            vscConverterStation.getTerminal()
+                    .setP(-getHvdcLineTargetP(vscConverterStation)) // because HVDC line does not participate to active power balance
+                    .setQ(Double.NaN);
         }
     }
 }

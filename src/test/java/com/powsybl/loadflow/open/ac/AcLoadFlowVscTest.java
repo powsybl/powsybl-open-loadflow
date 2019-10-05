@@ -147,7 +147,7 @@ public class AcLoadFlowVscTest {
                 .setNominalV(400)
                 .setR(0.1)
                 .setActivePowerSetpoint(50)
-                .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
+                .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
                 .setMaxP(500)
                 .add();
 
