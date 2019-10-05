@@ -88,7 +88,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
         LoadFlowAssert.assertReactivePowerEquals(-137.188, line2.getTerminal2());
 
         // check pv bus reactive power update
-        LoadFlowAssert.assertReactivePowerEquals(225.279, gen.getTerminal());
+        LoadFlowAssert.assertReactivePowerEquals(-225.279, gen.getTerminal());
     }
 
     @Test

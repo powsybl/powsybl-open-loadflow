@@ -134,15 +134,15 @@ public class AcloadFlowReactiveLimitsTest {
         parametersExt.setReactiveLimits(false);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        LoadFlowAssert.assertReactivePowerEquals(109.228, gen.getTerminal());
-        LoadFlowAssert.assertReactivePowerEquals(152.265, gen2.getTerminal());
+        LoadFlowAssert.assertReactivePowerEquals(-109.228, gen.getTerminal());
+        LoadFlowAssert.assertReactivePowerEquals(-152.265, gen2.getTerminal());
         LoadFlowAssert.assertReactivePowerEquals(-199.998, nhv2Nload.getTerminal2());
 
         parametersExt.setReactiveLimits(true);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        LoadFlowAssert.assertReactivePowerEquals(164.315, gen.getTerminal());
-        LoadFlowAssert.assertReactivePowerEquals(100, gen2.getTerminal()); // GEN is correctly limited to 100 MVar
+        LoadFlowAssert.assertReactivePowerEquals(-164.315, gen.getTerminal());
+        LoadFlowAssert.assertReactivePowerEquals(-100, gen2.getTerminal()); // GEN is correctly limited to 100 MVar
         LoadFlowAssert.assertReactivePowerEquals(100, ngen2Nhv1.getTerminal1());
         LoadFlowAssert.assertReactivePowerEquals(-200, nhv2Nload.getTerminal2());
     }
@@ -165,8 +165,8 @@ public class AcloadFlowReactiveLimitsTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        LoadFlowAssert.assertReactivePowerEquals(164.315, gen.getTerminal());
-        LoadFlowAssert.assertReactivePowerEquals(120, gen2.getTerminal());
+        LoadFlowAssert.assertReactivePowerEquals(-164.315, gen.getTerminal());
+        LoadFlowAssert.assertReactivePowerEquals(-120, gen2.getTerminal());
         LoadFlowAssert.assertReactivePowerEquals(100, ngen2Nhv1.getTerminal1());
     }
 }
