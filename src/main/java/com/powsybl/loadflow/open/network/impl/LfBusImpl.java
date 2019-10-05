@@ -15,6 +15,7 @@ import com.powsybl.loadflow.open.network.LfShunt;
 import com.powsybl.loadflow.open.network.PerUnit;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -56,6 +57,8 @@ public class LfBusImpl extends AbstractLfBus {
     private final List<Generator> generators = new ArrayList<>();
 
     private final List<VscConverterStation> vscConverterStations = new ArrayList<>();
+
+    private final List<Load> loads = new ArrayList<>();
 
     private LfReactiveDiagram reactiveDiagram;
 
@@ -105,6 +108,8 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     void addLoad(Load load) {
+        loads.add(load);
+
         this.loadTargetP += load.getP0();
         this.loadTargetQ += load.getQ0();
     }
@@ -303,14 +308,23 @@ public class LfBusImpl extends AbstractLfBus {
         }
 
         // update generator reactive power
+
+        // spread bus generation reactive power through generators that were initially under voltage control.
+        List<Generator> reactivePowerGenerators = generators.stream()
+                .filter(Generator::isVoltageRegulatorOn)
+                .collect(Collectors.toList());
+        if (reactivePowerGenerators.isEmpty()) { // in that case generation reactive power is equally spread though all generators
+            reactivePowerGenerators = generators;
+        }
         if (voltageControl) {
-            for (Generator generator : generators) {
-                generator.getTerminal().setQ(q / generators.size());
+            double generationQ = -q - loadTargetQ;
+            for (Generator generator : reactivePowerGenerators) {
+                generator.getTerminal().setQ(generationQ / reactivePowerGenerators.size());
             }
         } else {
             if (generationTargetQ != initialGenerationTargetQ) {
-                for (Generator generator : generators) {
-                    generator.getTerminal().setQ(generationTargetQ / generators.size());
+                for (Generator generator : reactivePowerGenerators) {
+                    generator.getTerminal().setQ(-generationTargetQ / reactivePowerGenerators.size());
                 }
             }
         }
@@ -319,6 +333,11 @@ public class LfBusImpl extends AbstractLfBus {
             vscConverterStation.getTerminal()
                     .setP(-getHvdcLineTargetP(vscConverterStation)) // because HVDC line does not participate to active power balance
                     .setQ(Double.NaN);
+        }
+
+        // update load power
+        for (Load load : loads) {
+            load.getTerminal().setP(load.getP0()).setQ(load.getQ0());
         }
     }
 }

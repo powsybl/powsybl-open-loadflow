@@ -67,7 +67,7 @@ public class DistributedSlackTest {
         LoadFlowAssert.assertActivePowerEquals(-245, g2.getTerminal());
         LoadFlowAssert.assertActivePowerEquals(-105, g3.getTerminal());
         LoadFlowAssert.assertActivePowerEquals(-135, g4.getTerminal());
-        LoadFlowAssert.assertReactivePowerEquals(-159.746, g1.getTerminal());
+        LoadFlowAssert.assertReactivePowerEquals(159.746, g1.getTerminal());
         Line l14 = network.getLine("l14");
         Line l24 = network.getLine("l24");
         Line l34 = network.getLine("l34");
