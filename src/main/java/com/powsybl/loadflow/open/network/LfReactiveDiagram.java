@@ -6,8 +6,6 @@
  */
 package com.powsybl.loadflow.open.network;
 
-import java.util.Objects;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -17,19 +15,5 @@ public interface LfReactiveDiagram {
 
     double getMaxQ(double p);
 
-    static LfReactiveDiagram merge(LfReactiveDiagram diagram1, LfReactiveDiagram diagram2) {
-        Objects.requireNonNull(diagram1);
-        Objects.requireNonNull(diagram2);
-        return new LfReactiveDiagram() {
-            @Override
-            public double getMinQ(double p) {
-                return diagram1.getMinQ(p) + diagram2.getMinQ(p);
-            }
-
-            @Override
-            public double getMaxQ(double p) {
-                return diagram1.getMaxQ(p) + diagram2.getMaxQ(p);
-            }
-        };
-    }
+    double getMaxRangeQ();
 }
