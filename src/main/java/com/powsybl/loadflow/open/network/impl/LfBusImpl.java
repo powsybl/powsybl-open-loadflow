@@ -310,14 +310,15 @@ public class LfBusImpl extends AbstractLfBus {
         return Optional.ofNullable(reactiveDiagram);
     }
 
-    private List<Generator> getGeneratorsToUpdateReactivePower() {
-        List<Generator> generatorsToUpdateReactivePower = generators.stream()
+    private List<Generator> getReactivePowerUpdateGenerators() {
+        // spread bus generation reactive power through generators that were initially under voltage control.
+        List<Generator> reactivePowerUpdateGenerators = generators.stream()
                 .filter(Generator::isVoltageRegulatorOn)
                 .collect(Collectors.toList());
-        if (generatorsToUpdateReactivePower.isEmpty()) { // in that case generation reactive power is equally spread though all generators
-            generatorsToUpdateReactivePower = generators;
+        if (reactivePowerUpdateGenerators.isEmpty()) { // in that case generation reactive power is equally spread though all generators
+            reactivePowerUpdateGenerators = generators;
         }
-        return generatorsToUpdateReactivePower;
+        return reactivePowerUpdateGenerators;
     }
 
     @Override
@@ -336,17 +337,16 @@ public class LfBusImpl extends AbstractLfBus {
 
         // update generator reactive power
 
-        // spread bus generation reactive power through generators that were initially under voltage control.
-        List<Generator> generatorsToUpdateReactivePower = getGeneratorsToUpdateReactivePower();
+        List<Generator> reactivePowerUpdateGenerators = getReactivePowerUpdateGenerators();
         if (voltageControl) {
             double generationQ = -q - loadTargetQ;
-            for (Generator generator : generatorsToUpdateReactivePower) {
-                generator.getTerminal().setQ(generationQ / generatorsToUpdateReactivePower.size());
+            for (Generator generator : reactivePowerUpdateGenerators) {
+                generator.getTerminal().setQ(generationQ / reactivePowerUpdateGenerators.size());
             }
         } else {
             if (generationTargetQ != initialGenerationTargetQ) {
-                for (Generator generator : generatorsToUpdateReactivePower) {
-                    generator.getTerminal().setQ(-generationTargetQ / generatorsToUpdateReactivePower.size());
+                for (Generator generator : reactivePowerUpdateGenerators) {
+                    generator.getTerminal().setQ(-generationTargetQ / reactivePowerUpdateGenerators.size());
                 }
             }
         }

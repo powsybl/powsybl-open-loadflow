@@ -57,13 +57,13 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
                     if (q < minQ) {
                         // switch PV -> PQ
                         switchPvPq(bus, context.getEquationSystem(), minQ);
-                        LOGGER.debug("Switch bus {} PV -> PQ, q={} < minQ={}", bus.getId(), q * PerUnit.SB, minQ * PerUnit.SB);
+                        LOGGER.trace("Switch bus {} PV -> PQ, q={} < minQ={}", bus.getId(), q * PerUnit.SB, minQ * PerUnit.SB);
                         pvToPqBuses.add(bus);
                         status = OuterLoopStatus.UNSTABLE;
                     } else if (q > maxQ) {
                         // switch PV -> PQ
                         switchPvPq(bus, context.getEquationSystem(), maxQ);
-                        LOGGER.debug("Switch bus {} PV -> PQ, q={} MVar > maxQ={}", bus.getId(), q * PerUnit.SB, maxQ * PerUnit.SB);
+                        LOGGER.trace("Switch bus {} PV -> PQ, q={} MVar > maxQ={}", bus.getId(), q * PerUnit.SB, maxQ * PerUnit.SB);
                         pvToPqBuses.add(bus);
                         status = OuterLoopStatus.UNSTABLE;
                     }
