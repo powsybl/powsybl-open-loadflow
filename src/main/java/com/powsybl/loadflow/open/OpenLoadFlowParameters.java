@@ -9,6 +9,8 @@ package com.powsybl.loadflow.open;
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.open.ac.nr.AcLoadFlowObserver;
+import com.powsybl.loadflow.open.network.MostMeshedSlackBusSelector;
+import com.powsybl.loadflow.open.network.SlackBusSelector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +21,7 @@ import java.util.Objects;
  */
 public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters> {
 
-    private SlackBusSelectionMode slackBusSelectionMode = SlackBusSelectionMode.MOST_MESHED;
+    private SlackBusSelector slackBusSelector = new MostMeshedSlackBusSelector();
 
     private boolean distributedSlack = false;
 
@@ -34,12 +36,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return "SimpleLoadFlowParameters";
     }
 
-    public SlackBusSelectionMode getSlackBusSelectionMode() {
-        return slackBusSelectionMode;
+    public SlackBusSelector getSlackBusSelector() {
+        return slackBusSelector;
     }
 
-    public OpenLoadFlowParameters setSlackBusSelectionMode(SlackBusSelectionMode slackBusSelectionMode) {
-        this.slackBusSelectionMode = Objects.requireNonNull(slackBusSelectionMode);
+    public OpenLoadFlowParameters setSlackBusSelector(SlackBusSelector slackBusSelector) {
+        this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         return this;
     }
 

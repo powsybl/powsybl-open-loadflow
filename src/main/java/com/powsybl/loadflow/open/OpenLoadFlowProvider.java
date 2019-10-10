@@ -111,7 +111,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
-            SlackBusSelector slackBusSelector = parametersExt.getSlackBusSelectionMode().getSelector();
+            SlackBusSelector slackBusSelector = parametersExt.getSlackBusSelector();
 
             VoltageInitializer voltageInitializer = getVoltageInitializer(parameters);
 
