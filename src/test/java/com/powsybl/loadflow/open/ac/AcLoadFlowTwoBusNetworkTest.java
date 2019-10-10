@@ -12,11 +12,11 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.loadflow.open.network.TwoBusNetworkFactory;
-import com.powsybl.loadflow.open.util.LoadFlowAssert;
 import com.powsybl.loadflow.open.OpenLoadFlowParameters;
 import com.powsybl.loadflow.open.OpenLoadFlowProvider;
-import com.powsybl.loadflow.open.SlackBusSelectionMode;
+import com.powsybl.loadflow.open.network.FirstSlackBusSelector;
+import com.powsybl.loadflow.open.network.TwoBusNetworkFactory;
+import com.powsybl.loadflow.open.util.LoadFlowAssert;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,7 +47,7 @@ public class AcLoadFlowTwoBusNetworkTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setSlackBusSelector(new FirstSlackBusSelector())
                 .setDistributedSlack(false);
         this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }

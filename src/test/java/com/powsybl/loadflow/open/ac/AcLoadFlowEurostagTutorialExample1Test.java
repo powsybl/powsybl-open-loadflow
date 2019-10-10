@@ -15,11 +15,11 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.loadflow.open.util.LoadFlowAssert;
 import com.powsybl.loadflow.open.OpenLoadFlowParameters;
 import com.powsybl.loadflow.open.OpenLoadFlowProvider;
-import com.powsybl.loadflow.open.SlackBusSelectionMode;
 import com.powsybl.loadflow.open.ac.nr.DefaultAcLoadFlowObserver;
+import com.powsybl.loadflow.open.network.FirstSlackBusSelector;
+import com.powsybl.loadflow.open.util.LoadFlowAssert;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import org.junit.Assert;
 import org.junit.Before;
@@ -59,7 +59,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
         parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setSlackBusSelector(new FirstSlackBusSelector())
                 .setDistributedSlack(false);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }

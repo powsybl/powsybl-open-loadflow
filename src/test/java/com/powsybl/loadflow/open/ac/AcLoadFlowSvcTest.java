@@ -10,10 +10,10 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.loadflow.open.util.LoadFlowAssert;
 import com.powsybl.loadflow.open.OpenLoadFlowParameters;
 import com.powsybl.loadflow.open.OpenLoadFlowProvider;
-import com.powsybl.loadflow.open.SlackBusSelectionMode;
+import com.powsybl.loadflow.open.network.MostMeshedSlackBusSelector;
+import com.powsybl.loadflow.open.util.LoadFlowAssert;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import org.junit.Before;
 import org.junit.Test;
@@ -114,7 +114,7 @@ public class AcLoadFlowSvcTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setSlackBusSelector(new MostMeshedSlackBusSelector())
                 .setDistributedSlack(false);
         this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
