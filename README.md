@@ -88,8 +88,8 @@ We can run the load flow with default parameters on the network:
 LoadFlow.run(network);
 ```
 
-State variables and power flow computed by the load flow are have been updated inside the network model and we can for instance 
-print on standard output voltage magnitude and angle:
+State variables and power flows computed by the load flow are have been updated inside the network model and we can for instance 
+print on standard output buses voltage magnitude and angle:
 
 ```java
 network.getBusView().getBusStream().forEach(b -> System.out.println(b.getId() + " " + b.getV() + " " + b.getAngle()));
