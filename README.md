@@ -30,7 +30,7 @@ AC Newtow-Raphson and linear DC calculation methods:
  - Fast and robust convergence, based on [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html) numerical solver.
  - Distributed slack (generation).
  - Generator active and reactive power limits (reactive capability curve).
- - 3 starting point mode: flat, warm and DC based.
+ - 3 starting point modes: flat, warm and DC based.
 
 Almost of the code is writen is Java. It only rely on native code for the [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html) 
 sparse linear solver. Linux, Windows and MacOS are supported.
