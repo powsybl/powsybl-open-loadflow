@@ -47,7 +47,7 @@
 
         <java.version>1.8</java.version>
 
-        <commonscompress.version>1.17</commonscompress.version>
+        <commonscompress.version>1.19</commonscompress.version>
         <commonsio.version>2.5</commonsio.version>
         <jafama.version>2.3.1</jafama.version>
         <junit.version>4.12</junit.version>
