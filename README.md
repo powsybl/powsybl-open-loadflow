@@ -32,7 +32,7 @@ AC Newtow-Raphson and linear DC calculation methods:
  - Generator active and reactive power limits (reactive capability curve).
  - 3 starting point modes: flat, warm and DC based.
 
-Almost of the code is writen is Java. It only rely on native code for the [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html) 
+Almost all of the code is written in Java. It only relies on native code for the [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html)
 sparse linear solver. Linux, Windows and MacOS are supported.
 
 ## Getting started
