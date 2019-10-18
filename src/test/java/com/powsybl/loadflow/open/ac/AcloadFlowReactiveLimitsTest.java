@@ -11,13 +11,13 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.open.network.LfGenerator;
 import com.powsybl.loadflow.open.util.LoadFlowAssert;
 import com.powsybl.loadflow.open.OpenLoadFlowParameters;
 import com.powsybl.loadflow.open.OpenLoadFlowProvider;
 import com.powsybl.loadflow.open.network.FirstSlackBusSelector;
 import com.powsybl.loadflow.open.network.LfBus;
 import com.powsybl.loadflow.open.network.LfNetwork;
-import com.powsybl.loadflow.open.network.LfReactiveDiagram;
 import com.powsybl.loadflow.open.network.impl.LfNetworks;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import org.junit.Before;
@@ -123,10 +123,9 @@ public class AcloadFlowReactiveLimitsTest {
         LfNetwork lfNetwork = lfNetworks.get(0);
         LfBus genBus = lfNetwork.getBus(0);
         assertEquals("VLGEN_0", genBus.getId());
-        LfReactiveDiagram diagram = genBus.getReactiveDiagram().orElse(null);
-        assertNotNull(diagram);
-        assertEquals(0, diagram.getMinQ(0), 0);
-        assertEquals(2.8, diagram.getMaxQ(0), 0);
+        LfGenerator gen = genBus.getGenerators().get(0);
+        assertEquals(0, gen.getMinQ(), 0);
+        assertEquals(2.8, gen.getMaxQ(), 0);
     }
 
     @Test

@@ -13,7 +13,6 @@ import com.powsybl.loadflow.open.equations.Equation;
 import com.powsybl.loadflow.open.equations.EquationSystem;
 import com.powsybl.loadflow.open.equations.EquationType;
 import com.powsybl.loadflow.open.network.LfBus;
-import com.powsybl.loadflow.open.network.LfReactiveDiagram;
 import com.powsybl.loadflow.open.network.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,29 +46,25 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
         List<LfBus> pvToPqBuses = new ArrayList<>();
         for (LfBus bus : context.getNetwork().getBuses()) {
-            LfReactiveDiagram diagram = bus.getReactiveDiagram().orElse(null);
-            if (diagram != null) {
-                if (bus.hasVoltageControl()) { // PV bus
-                    double p = bus.getGenerationTargetP();
-                    double q = bus.getQ() + bus.getLoadTargetQ();
-                    double minQ = diagram.getMinQ(p);
-                    double maxQ = diagram.getMaxQ(p);
-                    if (q < minQ) {
-                        // switch PV -> PQ
-                        switchPvPq(bus, context.getEquationSystem(), minQ);
-                        LOGGER.trace("Switch bus {} PV -> PQ, q={} < minQ={}", bus.getId(), q * PerUnit.SB, minQ * PerUnit.SB);
-                        pvToPqBuses.add(bus);
-                        status = OuterLoopStatus.UNSTABLE;
-                    } else if (q > maxQ) {
-                        // switch PV -> PQ
-                        switchPvPq(bus, context.getEquationSystem(), maxQ);
-                        LOGGER.trace("Switch bus {} PV -> PQ, q={} MVar > maxQ={}", bus.getId(), q * PerUnit.SB, maxQ * PerUnit.SB);
-                        pvToPqBuses.add(bus);
-                        status = OuterLoopStatus.UNSTABLE;
-                    }
-                } else { // PQ bus
-                    // TODO
+            if (bus.hasVoltageControl()) { // PV bus
+                double q = bus.getQ() + bus.getLoadTargetQ();
+                double minQ = bus.getMinQ();
+                double maxQ = bus.getMaxQ();
+                if (q < minQ) {
+                    // switch PV -> PQ
+                    switchPvPq(bus, context.getEquationSystem(), minQ);
+                    LOGGER.trace("Switch bus {} PV -> PQ, q={} < minQ={}", bus.getId(), q * PerUnit.SB, minQ * PerUnit.SB);
+                    pvToPqBuses.add(bus);
+                    status = OuterLoopStatus.UNSTABLE;
+                } else if (q > maxQ) {
+                    // switch PV -> PQ
+                    switchPvPq(bus, context.getEquationSystem(), maxQ);
+                    LOGGER.trace("Switch bus {} PV -> PQ, q={} MVar > maxQ={}", bus.getId(), q * PerUnit.SB, maxQ * PerUnit.SB);
+                    pvToPqBuses.add(bus);
+                    status = OuterLoopStatus.UNSTABLE;
                 }
+            } else { // PQ bus
+                // TODO
             }
         }
         if (!pvToPqBuses.isEmpty()) {

@@ -8,19 +8,27 @@ package com.powsybl.loadflow.open.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.loadflow.open.network.AbstractLfBus;
-import com.powsybl.loadflow.open.network.LfReactiveDiagram;
+import com.powsybl.loadflow.open.network.LfGenerator;
 import com.powsybl.loadflow.open.network.LfShunt;
 import com.powsybl.loadflow.open.network.PerUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.ToDoubleFunction;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class LfBusImpl extends AbstractLfBus {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfBusImpl.class);
+
+    private static final double REACTIVE_RANGE_THRESHOLD_PU = 1d / PerUnit.SB;
+    private static final double POWER_EPSILON_SI = 1e-4;
 
     private final Bus bus;
 
@@ -32,37 +40,21 @@ public class LfBusImpl extends AbstractLfBus {
 
     private double loadTargetQ = 0;
 
-    private double initialGenerationTargetP = 0;
-
-    private double generationTargetP = 0;
-
-    private double initialGenerationTargetQ = 0;
-
     private double generationTargetQ = 0;
-
-    private double minP = Double.NaN;
-
-    private double maxP = Double.NaN;
-
-    private double participationFactor = 0;
 
     private double targetV = Double.NaN;
 
     private int neighbors = 0;
 
+    private final List<LfGenerator> generators = new ArrayList<>();
+
     private final List<LfShunt> shunts = new ArrayList<>();
-
-    private final Map<Generator, Double> participatingGenerators = new HashMap<>();
-
-    private final List<Generator> generators = new ArrayList<>();
-
-    private final List<VscConverterStation> vscConverterStations = new ArrayList<>();
 
     private final List<Load> loads = new ArrayList<>();
 
-    private LfReactiveDiagram reactiveDiagram;
+    private final List<Battery> batteries = new ArrayList<>();
 
-    public LfBusImpl(Bus bus, int num, double v, double angle) {
+    protected LfBusImpl(Bus bus, int num, double v, double angle) {
         super(num, v, angle);
         this.bus = bus;
         nominalV = bus.getVoltageLevel().getNominalV();
@@ -88,111 +80,64 @@ public class LfBusImpl extends AbstractLfBus {
         this.voltageControl = voltageControl;
     }
 
-    private void checkTargetV(double targetV) {
+    private double checkTargetV(double targetV) {
         if (!Double.isNaN(this.targetV) && this.targetV != targetV) {
             throw new PowsyblException("Multiple generators connected to same bus with different target voltage");
         }
-    }
-
-    private void setActivePowerLimits(double minP, double maxP) {
-        if (Double.isNaN(this.minP)) {
-            this.minP = minP;
-        } else {
-            this.minP += minP;
-        }
-        if (Double.isNaN(this.maxP)) {
-            this.maxP = maxP;
-        } else {
-            this.maxP += maxP;
-        }
+        return targetV;
     }
 
     void addLoad(Load load) {
         loads.add(load);
-
         this.loadTargetP += load.getP0();
         this.loadTargetQ += load.getQ0();
     }
 
     void addBattery(Battery battery) {
+        batteries.add(battery);
         loadTargetP += battery.getP0();
         loadTargetQ += battery.getQ0();
-        setActivePowerLimits(battery.getMinP(), battery.getMaxP());
+    }
+
+    private boolean isValid(LfGenerator generator) {
+        if (generator.getMaxRangeQ() < REACTIVE_RANGE_THRESHOLD_PU) {
+            LOGGER.warn("Max reactive range of generator '{}' is too small, switch out of voltage regulation", generator.getId());
+            return false;
+        }
+        if (Math.abs(generator.getTargetP()) < POWER_EPSILON_SI && generator.getMinP() > POWER_EPSILON_SI) {
+            LOGGER.warn("Stopped generator '{}' (targetP={} MW, minP={} MW), switch out of voltage regulation",
+                    generator.getId(), generator.getTargetP(), generator.getMinP());
+            return false;
+        }
+        return true;
+    }
+
+    private void add(LfGenerator generator, boolean voltageControl, double targetV, double targetQ) {
+        generators.add(generator);
+        if (voltageControl && isValid(generator)) {
+            this.targetV = checkTargetV(targetV);
+            this.voltageControl = true;
+        } else {
+            generationTargetQ += targetQ;
+        }
     }
 
     void addGenerator(Generator generator) {
-        generators.add(generator);
-
-        generationTargetP += generator.getTargetP();
-        initialGenerationTargetP = generationTargetP;
-        if (generator.isVoltageRegulatorOn()) {
-            checkTargetV(generator.getTargetV());
-            targetV = generator.getTargetV();
-            voltageControl = true;
-        } else {
-            generationTargetQ += generator.getTargetQ();
-            initialGenerationTargetQ = generationTargetQ;
-        }
-        setActivePowerLimits(generator.getMinP(), generator.getMaxP());
-
-        if (reactiveDiagram == null) {
-            reactiveDiagram = new LfReactiveDiagramImpl(generator.getReactiveLimits());
-        } else {
-            reactiveDiagram = LfReactiveDiagram.merge(reactiveDiagram, new LfReactiveDiagramImpl(generator.getReactiveLimits()));
-        }
-
-        // get participation factor from extension
-        if (Math.abs(generator.getTargetP()) > 0) {
-            ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
-            if (activePowerControl != null && activePowerControl.isParticipate() && activePowerControl.getDroop() != 0) {
-                double f = generator.getMaxP() / activePowerControl.getDroop();
-                participationFactor += f;
-                participatingGenerators.put(generator, f);
-            }
-        }
+        add(new LfGeneratorImpl(generator), generator.isVoltageRegulatorOn(), generator.getTargetV(),
+                generator.getTargetQ());
     }
 
     void addStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
-        if (staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
-            checkTargetV(staticVarCompensator.getVoltageSetPoint());
-            targetV = staticVarCompensator.getVoltageSetPoint();
-            voltageControl = true;
-        } else if (staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.REACTIVE_POWER) {
-            throw new UnsupportedOperationException("SVC with reactive power regulation not supported");
+        if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
+            add(new LfStaticVarCompensatorImpl(staticVarCompensator),
+                    staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE,
+                    staticVarCompensator.getVoltageSetPoint(), staticVarCompensator.getReactivePowerSetPoint());
         }
     }
 
     void addVscConverterStation(VscConverterStation vscCs) {
-        vscConverterStations.add(vscCs);
-
-        double targetP = getHvdcLineTargetP(vscCs);
-        generationTargetP += targetP;
-        initialGenerationTargetP = generationTargetP;
-        if (vscCs.isVoltageRegulatorOn()) {
-            checkTargetV(vscCs.getVoltageSetpoint());
-            targetV = vscCs.getVoltageSetpoint();
-            voltageControl = true;
-        } else {
-            generationTargetQ += vscCs.getReactivePowerSetpoint();
-            initialGenerationTargetQ = generationTargetQ;
-        }
-
-        HvdcLine line = vscCs.getHvdcLine();
-        setActivePowerLimits(-line.getMaxP(), line.getMaxP());
-
-        if (reactiveDiagram == null) {
-            reactiveDiagram = new LfReactiveDiagramImpl(vscCs.getReactiveLimits());
-        } else {
-            reactiveDiagram = LfReactiveDiagram.merge(reactiveDiagram, new LfReactiveDiagramImpl(vscCs.getReactiveLimits()));
-        }
-    }
-
-    private static double getHvdcLineTargetP(VscConverterStation vscCs) {
-        HvdcLine line = vscCs.getHvdcLine();
-        return (line.getConverterStation1() == vscCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
-                || (line.getConverterStation2() == vscCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
-                ? -line.getActivePowerSetpoint()
-                : line.getActivePowerSetpoint();
+        add(new LfVscConverterStationImpl(vscCs), vscCs.isVoltageRegulatorOn(), vscCs.getVoltageSetpoint(),
+                vscCs.getReactivePowerSetpoint());
     }
 
     void addShuntCompensator(ShuntCompensator sc) {
@@ -201,12 +146,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public double getGenerationTargetP() {
-        return generationTargetP / PerUnit.SB;
-    }
-
-    @Override
-    public void setGenerationTargetP(double generationTargetP) {
-        this.generationTargetP = generationTargetP * PerUnit.SB;
+        return generators.stream().mapToDouble(LfGenerator::getTargetP).sum();
     }
 
     @Override
@@ -229,19 +169,21 @@ public class LfBusImpl extends AbstractLfBus {
         return loadTargetQ / PerUnit.SB;
     }
 
-    @Override
-    public double getMinP() {
-        return minP / PerUnit.SB;
+    private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
+        return generators.stream()
+                .mapToDouble(generator -> generator.hasVoltageControl() ? limitQ.applyAsDouble(generator)
+                                                                        : generator.getTargetQ())
+                .sum();
     }
 
     @Override
-    public double getMaxP() {
-        return maxP / PerUnit.SB;
+    public double getMinQ() {
+        return getLimitQ(LfGenerator::getMinQ);
     }
 
     @Override
-    public double getParticipationFactor() {
-        return participationFactor;
+    public double getMaxQ() {
+        return getLimitQ(LfGenerator::getMaxQ);
     }
 
     @Override
@@ -289,55 +231,44 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
-    public Optional<LfReactiveDiagram> getReactiveDiagram() {
-        return Optional.ofNullable(reactiveDiagram);
+    public List<LfGenerator> getGenerators() {
+        return generators;
+    }
+
+    private void updateGeneratorsState(double q) {
+        double qToDispatch = q / PerUnit.SB;
+        List<LfGenerator> generatorsThatControlVoltage = new ArrayList<>();
+        for (LfGenerator generator : generators) {
+            if (generator.hasVoltageControl()) {
+                generatorsThatControlVoltage.add(generator);
+            } else {
+                qToDispatch -= generator.getTargetQ();
+            }
+        }
+        for (LfGenerator generator : generatorsThatControlVoltage) {
+            generator.setQ(qToDispatch / generatorsThatControlVoltage.size());
+        }
     }
 
     @Override
     public void updateState() {
         bus.setV(v).setAngle(angle);
 
-        // update generator active power proportionally to the participation factor
-        if (generationTargetP != initialGenerationTargetP) {
-            for (Map.Entry<Generator, Double> e : participatingGenerators.entrySet()) {
-                Generator generator = e.getKey();
-                double generatorParticipationFactor = e.getValue();
-                double newTargetP = generator.getTargetP() + (generationTargetP - initialGenerationTargetP) * generatorParticipationFactor / participationFactor;
-                generator.getTerminal().setP(-newTargetP);
-            }
-        }
-
         // update generator reactive power
-
-        // spread bus generation reactive power through generators that were initially under voltage control.
-        List<Generator> reactivePowerGenerators = generators.stream()
-                .filter(Generator::isVoltageRegulatorOn)
-                .collect(Collectors.toList());
-        if (reactivePowerGenerators.isEmpty()) { // in that case generation reactive power is equally spread though all generators
-            reactivePowerGenerators = generators;
-        }
-        if (voltageControl) {
-            double generationQ = -q - loadTargetQ;
-            for (Generator generator : reactivePowerGenerators) {
-                generator.getTerminal().setQ(generationQ / reactivePowerGenerators.size());
-            }
-        } else {
-            if (generationTargetQ != initialGenerationTargetQ) {
-                for (Generator generator : reactivePowerGenerators) {
-                    generator.getTerminal().setQ(-generationTargetQ / reactivePowerGenerators.size());
-                }
-            }
-        }
-
-        for (VscConverterStation vscConverterStation : vscConverterStations) {
-            vscConverterStation.getTerminal()
-                    .setP(-getHvdcLineTargetP(vscConverterStation)) // because HVDC line does not participate to active power balance
-                    .setQ(Double.NaN);
-        }
+        updateGeneratorsState(voltageControl ? q : generationTargetQ);
 
         // update load power
         for (Load load : loads) {
-            load.getTerminal().setP(load.getP0()).setQ(load.getQ0());
+            load.getTerminal()
+                    .setP(load.getP0())
+                    .setQ(load.getQ0());
+        }
+
+        // update battery power
+        for (Battery battery : batteries) {
+            battery.getTerminal()
+                    .setP(battery.getP0())
+                    .setQ(battery.getQ0());
         }
     }
 }

@@ -7,7 +7,6 @@
 package com.powsybl.loadflow.open.network;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -36,19 +35,15 @@ public interface LfBus {
 
     double getGenerationTargetP();
 
-    void setGenerationTargetP(double generationTargetP);
-
     double getGenerationTargetQ();
 
     void setGenerationTargetQ(double generationTargetQ);
 
     double getTargetV();
 
-    double getMinP();
+    double getMinQ();
 
-    double getMaxP();
-
-    double getParticipationFactor();
+    double getMaxQ();
 
     double getV();
 
@@ -68,9 +63,9 @@ public interface LfBus {
      */
     double getNominalV();
 
-    List<LfShunt> getShunts();
+    List<LfGenerator> getGenerators();
 
-    Optional<LfReactiveDiagram> getReactiveDiagram();
+    List<LfShunt> getShunts();
 
     int getNeighbors();
 
