@@ -66,11 +66,11 @@ public class LfNetwork {
         return slackBus;
     }
 
-    public void updateState() {
+    public void updateState(boolean reactiveLimits) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         for (LfBus bus : buses) {
-            bus.updateState();
+            bus.updateState(reactiveLimits);
             for (LfGenerator generator : bus.getGenerators()) {
                 generator.updateState();
             }

@@ -19,7 +19,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     protected double targetP;
 
-    protected double q = Double.NaN;
+    protected double calculatedQ = Double.NaN;
 
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
@@ -40,14 +40,14 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public double getMinQ() {
         return getReactiveLimits()
-                .map(limits -> limits.getMinQ(targetP * PerUnit.SB) / PerUnit.SB)
+                .map(limits -> limits.getMinQ(targetP) / PerUnit.SB)
                 .orElse(-Double.MAX_VALUE);
     }
 
     @Override
     public double getMaxQ() {
         return getReactiveLimits()
-                .map(limits -> limits.getMaxQ(targetP * PerUnit.SB) / PerUnit.SB)
+                .map(limits -> limits.getMaxQ(targetP) / PerUnit.SB)
                 .orElse(Double.MAX_VALUE);
     }
 
@@ -83,12 +83,12 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     }
 
     @Override
-    public double getQ() {
-        return q / PerUnit.SB;
+    public double getCalculatedQ() {
+        return calculatedQ / PerUnit.SB;
     }
 
     @Override
-    public void setQ(double q) {
-        this.q = q * PerUnit.SB;
+    public void setCalculatedQ(double calculatedQ) {
+        this.calculatedQ = calculatedQ * PerUnit.SB;
     }
 }

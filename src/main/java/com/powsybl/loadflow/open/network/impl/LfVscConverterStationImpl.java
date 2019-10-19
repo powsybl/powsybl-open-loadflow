@@ -79,6 +79,6 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator {
     public void updateState() {
         station.getTerminal()
                 .setP(-targetP)
-                .setQ(Double.isNaN(q) ? -station.getReactivePowerSetpoint() : -q);
+                .setQ(Double.isNaN(calculatedQ) ? -station.getReactivePowerSetpoint() : -calculatedQ);
     }
 }

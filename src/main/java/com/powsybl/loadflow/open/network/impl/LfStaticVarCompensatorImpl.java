@@ -70,6 +70,6 @@ public class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     public void updateState() {
         svc.getTerminal()
                 .setP(0)
-                .setQ(Double.isNaN(q) ? -svc.getReactivePowerSetPoint() : -q);
+                .setQ(Double.isNaN(calculatedQ) ? -svc.getReactivePowerSetPoint() : -calculatedQ);
     }
 }

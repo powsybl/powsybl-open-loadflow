@@ -60,9 +60,9 @@ public class AcloadFlowEngine {
             for (LfBus bus : network.getBuses()) {
                 if (bus.hasVoltageControl()) {
                     Equation q = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
-                    bus.setQ(q.eval());
+                    bus.setCalculatedQ(q.eval());
                 } else {
-                    bus.setQ(Double.NaN);
+                    bus.setCalculatedQ(Double.NaN);
                 }
             }
 

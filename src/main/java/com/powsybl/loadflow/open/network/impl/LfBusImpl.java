@@ -15,9 +15,7 @@ import com.powsybl.loadflow.open.network.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.ToDoubleFunction;
 
 /**
@@ -29,6 +27,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     private static final double REACTIVE_RANGE_THRESHOLD_PU = 1d / PerUnit.SB;
     private static final double POWER_EPSILON_SI = 1e-4;
+    private static final double Q_DISPATH_EPSILON = 1e-3;
 
     private final Bus bus;
 
@@ -235,9 +234,30 @@ public class LfBusImpl extends AbstractLfBus {
         return generators;
     }
 
-    private void updateGeneratorsState(double q) {
-        double qToDispatch = q / PerUnit.SB;
-        List<LfGenerator> generatorsThatControlVoltage = new ArrayList<>();
+    private double dispatchQ(List<LfGenerator> generatorsThatControlVoltage, boolean reactiveLimits, double qToDispatch) {
+        double residueQ = 0;
+        Iterator<LfGenerator> itG = generatorsThatControlVoltage.iterator();
+        while (itG.hasNext()) {
+            LfGenerator generator = itG.next();
+            double calculatedQ = qToDispatch / generatorsThatControlVoltage.size();
+            if (reactiveLimits && calculatedQ < generator.getMinQ()) {
+                generator.setCalculatedQ(generator.getCalculatedQ() + generator.getMinQ());
+                residueQ += calculatedQ - generator.getMinQ();
+                itG.remove();
+            } else if (reactiveLimits && calculatedQ > generator.getMaxQ()) {
+                generator.setCalculatedQ(generator.getCalculatedQ() + generator.getMaxQ());
+                residueQ += calculatedQ - generator.getMaxQ();
+                itG.remove();
+            } else {
+                generator.setCalculatedQ(generator.getCalculatedQ() + calculatedQ);
+            }
+        }
+        return residueQ;
+    }
+
+    private void updateGeneratorsState(double generationQ, boolean reactiveLimits) {
+        double qToDispatch = generationQ / PerUnit.SB;
+        List<LfGenerator> generatorsThatControlVoltage = new LinkedList<>();
         for (LfGenerator generator : generators) {
             if (generator.hasVoltageControl()) {
                 generatorsThatControlVoltage.add(generator);
@@ -245,17 +265,21 @@ public class LfBusImpl extends AbstractLfBus {
                 qToDispatch -= generator.getTargetQ();
             }
         }
+
         for (LfGenerator generator : generatorsThatControlVoltage) {
-            generator.setQ(qToDispatch / generatorsThatControlVoltage.size());
+            generator.setCalculatedQ(0);
+        }
+        while (!generatorsThatControlVoltage.isEmpty() && Math.abs(qToDispatch) > Q_DISPATH_EPSILON) {
+            qToDispatch = dispatchQ(generatorsThatControlVoltage, reactiveLimits, qToDispatch);
         }
     }
 
     @Override
-    public void updateState() {
+    public void updateState(boolean reactiveLimits) {
         bus.setV(v).setAngle(angle);
 
         // update generator reactive power
-        updateGeneratorsState(voltageControl ? q : generationTargetQ);
+        updateGeneratorsState(voltageControl ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
 
         // update load power
         for (Load load : loads) {

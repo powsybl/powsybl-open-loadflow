@@ -33,9 +33,9 @@ public interface LfGenerator {
 
     double getParticipationFactor();
 
-    double getQ();
+    double getCalculatedQ();
 
-    void setQ(double q);
+    void setCalculatedQ(double calculatedQ);
 
     void updateState();
 }

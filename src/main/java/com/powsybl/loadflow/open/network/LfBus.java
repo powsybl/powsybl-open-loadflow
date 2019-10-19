@@ -53,9 +53,9 @@ public interface LfBus {
 
     void setAngle(double angle);
 
-    double getQ();
+    double getCalculatedQ();
 
-    void setQ(double q);
+    void setCalculatedQ(double calculatedQ);
 
     /**
      * Get nominal voltage in Kv.
@@ -69,5 +69,5 @@ public interface LfBus {
 
     int getNeighbors();
 
-    void updateState();
+    void updateState(boolean reactiveLimits);
 }

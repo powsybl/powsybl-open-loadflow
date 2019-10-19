@@ -47,7 +47,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         List<LfBus> pvToPqBuses = new ArrayList<>();
         for (LfBus bus : context.getNetwork().getBuses()) {
             if (bus.hasVoltageControl()) { // PV bus
-                double q = bus.getQ() + bus.getLoadTargetQ();
+                double q = bus.getCalculatedQ() + bus.getLoadTargetQ();
                 double minQ = bus.getMinQ();
                 double maxQ = bus.getMaxQ();
                 if (q < minQ) {

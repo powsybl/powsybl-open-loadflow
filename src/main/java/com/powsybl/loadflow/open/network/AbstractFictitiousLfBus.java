@@ -79,7 +79,7 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     }
 
     @Override
-    public void updateState() {
+    public void updateState(boolean reactiveLimits) {
         // nothing to update
     }
 }

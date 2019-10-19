@@ -86,6 +86,6 @@ public class LfGeneratorImpl extends AbstractLfGenerator {
     public void updateState() {
         generator.getTerminal()
                 .setP(-targetP)
-                .setQ(Double.isNaN(q) ? -generator.getTargetQ() : -q);
+                .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ);
     }
 }
