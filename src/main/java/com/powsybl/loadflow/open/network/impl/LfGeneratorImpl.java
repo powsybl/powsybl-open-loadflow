@@ -18,13 +18,13 @@ import java.util.Optional;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfGeneratorImpl extends AbstractLfGenerator {
+public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private final Generator generator;
 
     private final double participationFactor;
 
-    protected LfGeneratorImpl(Generator generator) {
+    private LfGeneratorImpl(Generator generator) {
         super(generator.getTargetP());
         this.generator = generator;
         participationFactor = getParticipationFactor(generator);

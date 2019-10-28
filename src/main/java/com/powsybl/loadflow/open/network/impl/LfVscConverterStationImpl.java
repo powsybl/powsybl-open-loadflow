@@ -18,11 +18,11 @@ import java.util.Optional;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfVscConverterStationImpl extends AbstractLfGenerator {
+public final class LfVscConverterStationImpl extends AbstractLfGenerator {
 
     private final VscConverterStation station;
 
-    protected LfVscConverterStationImpl(VscConverterStation station) {
+    private LfVscConverterStationImpl(VscConverterStation station) {
         super(getHvdcLineTargetP(station));
         this.station = station;
     }

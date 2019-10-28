@@ -122,20 +122,20 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     void addGenerator(Generator generator) {
-        add(new LfGeneratorImpl(generator), generator.isVoltageRegulatorOn(), generator.getTargetV(),
+        add(LfGeneratorImpl.create(generator), generator.isVoltageRegulatorOn(), generator.getTargetV(),
                 generator.getTargetQ());
     }
 
     void addStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
-            add(new LfStaticVarCompensatorImpl(staticVarCompensator),
+            add(LfStaticVarCompensatorImpl.create(staticVarCompensator),
                     staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE,
                     staticVarCompensator.getVoltageSetPoint(), staticVarCompensator.getReactivePowerSetPoint());
         }
     }
 
     void addVscConverterStation(VscConverterStation vscCs) {
-        add(new LfVscConverterStationImpl(vscCs), vscCs.isVoltageRegulatorOn(), vscCs.getVoltageSetpoint(),
+        add(LfVscConverterStationImpl.create(vscCs), vscCs.isVoltageRegulatorOn(), vscCs.getVoltageSetpoint(),
                 vscCs.getReactivePowerSetpoint());
     }
 

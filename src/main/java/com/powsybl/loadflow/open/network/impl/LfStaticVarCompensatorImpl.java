@@ -17,11 +17,11 @@ import java.util.Optional;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
+public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     private final StaticVarCompensator svc;
 
-    protected LfStaticVarCompensatorImpl(StaticVarCompensator svc) {
+    private LfStaticVarCompensatorImpl(StaticVarCompensator svc) {
         super(0);
         this.svc = svc;
     }
