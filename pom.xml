@@ -82,7 +82,7 @@
             **/generated/**/*
         </sonar.exclusions>
 
-        <powsyblcore.version>3.0.0-SNAPSHOT</powsyblcore.version>
+        <powsyblcore.version>3.0.0</powsyblcore.version>
     </properties>
 
     <build>
