@@ -149,7 +149,7 @@ public class AcLoadFlowSvcTest {
         LoadFlowAssert.assertReactivePowerEquals(615.582, l1.getTerminal1());
         LoadFlowAssert.assertActivePowerEquals(-101, l1.getTerminal2());
         LoadFlowAssert.assertReactivePowerEquals(-607.897, l1.getTerminal2());
-        assertTrue(Double.isNaN(svc1.getTerminal().getP()));
-        assertTrue(Double.isNaN(svc1.getTerminal().getQ()));
+        LoadFlowAssert.assertActivePowerEquals(0, svc1.getTerminal());
+        LoadFlowAssert.assertReactivePowerEquals(457.896, svc1.getTerminal());
     }
 }

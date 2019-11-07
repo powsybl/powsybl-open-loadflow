@@ -8,7 +8,6 @@ package com.powsybl.loadflow.open.network;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -45,11 +44,6 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     }
 
     @Override
-    public void setGenerationTargetP(double generationTargetP) {
-        throw new IllegalStateException("Cannot change fictitious bus generation");
-    }
-
-    @Override
     public double getGenerationTargetQ() {
         return 0;
     }
@@ -60,23 +54,18 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     }
 
     @Override
-    public double getMinP() {
-        return Double.NaN;
-    }
-
-    @Override
-    public double getMaxP() {
-        return Double.NaN;
-    }
-
-    @Override
-    public double getParticipationFactor() {
-        return 0;
-    }
-
-    @Override
     public double getTargetV() {
         return Double.NaN;
+    }
+
+    @Override
+    public double getMinQ() {
+        return -Double.MAX_VALUE;
+    }
+
+    @Override
+    public double getMaxQ() {
+        return Double.MAX_VALUE;
     }
 
     @Override
@@ -85,12 +74,12 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     }
 
     @Override
-    public Optional<LfReactiveDiagram> getReactiveDiagram() {
-        return Optional.empty();
+    public List<LfGenerator> getGenerators() {
+        return Collections.emptyList();
     }
 
     @Override
-    public void updateState() {
+    public void updateState(boolean reactiveLimits) {
         // nothing to update
     }
 }

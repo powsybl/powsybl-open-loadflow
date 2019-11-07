@@ -66,11 +66,14 @@ public class LfNetwork {
         return slackBus;
     }
 
-    public void updateState() {
+    public void updateState(boolean reactiveLimits) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         for (LfBus bus : buses) {
-            bus.updateState();
+            bus.updateState(reactiveLimits);
+            for (LfGenerator generator : bus.getGenerators()) {
+                generator.updateState();
+            }
             for (LfShunt shunt : bus.getShunts()) {
                 shunt.updateState();
             }
@@ -91,12 +94,9 @@ public class LfNetwork {
         }
     }
 
-    public void writeJson(LfBus bus, JsonGenerator jsonGenerator) throws IOException {
+    private void writeJson(LfBus bus, JsonGenerator jsonGenerator) throws IOException {
         jsonGenerator.writeStringField("id", bus.getId());
         jsonGenerator.writeNumberField("num", bus.getNum());
-        if (bus.getGenerationTargetP() != 0) {
-            jsonGenerator.writeNumberField("generationTargetP", bus.getGenerationTargetP());
-        }
         if (bus.getGenerationTargetQ() != 0) {
             jsonGenerator.writeNumberField("generationTargetQ", bus.getGenerationTargetQ());
         }
@@ -105,12 +105,6 @@ public class LfNetwork {
         }
         if (bus.getLoadTargetQ() != 0) {
             jsonGenerator.writeNumberField("loadTargetQ", bus.getLoadTargetQ());
-        }
-        if (!Double.isNaN(bus.getMinP())) {
-            jsonGenerator.writeNumberField("minP", bus.getMinP());
-        }
-        if (!Double.isNaN(bus.getMaxP())) {
-            jsonGenerator.writeNumberField("maxP", bus.getMaxP());
         }
         if (!Double.isNaN(bus.getTargetV())) {
             jsonGenerator.writeNumberField("targetV", bus.getTargetV());
@@ -123,7 +117,7 @@ public class LfNetwork {
         }
     }
 
-    public void writeJson(LfBranch branch, JsonGenerator jsonGenerator) throws IOException {
+    private void writeJson(LfBranch branch, JsonGenerator jsonGenerator) throws IOException {
         LfBus bus1 = branch.getBus1();
         LfBus bus2 = branch.getBus2();
         if (bus1 != null) {
@@ -161,8 +155,18 @@ public class LfNetwork {
         }
     }
 
-    public void writeJson(LfShunt shunt, JsonGenerator jsonGenerator) throws IOException {
+    private void writeJson(LfShunt shunt, JsonGenerator jsonGenerator) throws IOException {
         jsonGenerator.writeNumberField("b", shunt.getB());
+    }
+
+    private void writeJson(LfGenerator generator, JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeNumberField("targetP", generator.getTargetP());
+        if (!Double.isNaN(generator.getTargetQ())) {
+            jsonGenerator.writeNumberField("targetQ", generator.getTargetQ());
+        }
+        jsonGenerator.writeBooleanField("voltageControl", generator.hasVoltageControl());
+        jsonGenerator.writeNumberField("minP", generator.getMinP());
+        jsonGenerator.writeNumberField("maxP", generator.getMaxP());
     }
 
     public void writeJson(Writer writer) {
@@ -187,6 +191,20 @@ public class LfNetwork {
                         jsonGenerator.writeStartObject();
 
                         writeJson(shunt, jsonGenerator);
+
+                        jsonGenerator.writeEndObject();
+                    }
+                    jsonGenerator.writeEndArray();
+                }
+
+                List<LfGenerator> generators = bus.getGenerators();
+                if (!generators.isEmpty()) {
+                    jsonGenerator.writeFieldName("generators");
+                    jsonGenerator.writeStartArray();
+                    for (LfGenerator generator : generators) {
+                        jsonGenerator.writeStartObject();
+
+                        writeJson(generator, jsonGenerator);
 
                         jsonGenerator.writeEndObject();
                     }

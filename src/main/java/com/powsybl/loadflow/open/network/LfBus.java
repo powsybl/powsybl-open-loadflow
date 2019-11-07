@@ -7,7 +7,6 @@
 package com.powsybl.loadflow.open.network;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -36,19 +35,15 @@ public interface LfBus {
 
     double getGenerationTargetP();
 
-    void setGenerationTargetP(double generationTargetP);
-
     double getGenerationTargetQ();
 
     void setGenerationTargetQ(double generationTargetQ);
 
     double getTargetV();
 
-    double getMinP();
+    double getMinQ();
 
-    double getMaxP();
-
-    double getParticipationFactor();
+    double getMaxQ();
 
     double getV();
 
@@ -58,9 +53,9 @@ public interface LfBus {
 
     void setAngle(double angle);
 
-    double getQ();
+    double getCalculatedQ();
 
-    void setQ(double q);
+    void setCalculatedQ(double calculatedQ);
 
     /**
      * Get nominal voltage in Kv.
@@ -68,11 +63,11 @@ public interface LfBus {
      */
     double getNominalV();
 
-    List<LfShunt> getShunts();
+    List<LfGenerator> getGenerators();
 
-    Optional<LfReactiveDiagram> getReactiveDiagram();
+    List<LfShunt> getShunts();
 
     int getNeighbors();
 
-    void updateState();
+    void updateState(boolean reactiveLimits);
 }

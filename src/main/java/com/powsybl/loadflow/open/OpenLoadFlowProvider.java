@@ -136,7 +136,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
             // update network state
             LfNetworks.resetState(network);
-            lfNetwork.updateState();
+            lfNetwork.updateState(parametersExt.hasReactiveLimits());
 
             return new LoadFlowResultImpl(result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED, createMetrics(result), null);
         });
@@ -165,7 +165,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     .run();
 
             LfNetworks.resetState(network);
-            lfNetwork.updateState();
+            lfNetwork.updateState(false);
 
             return new LoadFlowResultImpl(status, Collections.emptyMap(), null);
         });
