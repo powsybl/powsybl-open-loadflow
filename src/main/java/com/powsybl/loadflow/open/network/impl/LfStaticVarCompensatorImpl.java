@@ -57,6 +57,11 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     }
 
     @Override
+    public boolean isParticipating() {
+        return false;
+    }
+
+    @Override
     public double getParticipationFactor() {
         return 0;
     }

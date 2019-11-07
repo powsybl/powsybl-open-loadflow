@@ -54,8 +54,8 @@ public class DistributedSlackOuterLoop implements OuterLoop {
         return network.getBuses()
                 .stream()
                 .flatMap(bus -> bus.getGenerators().stream())
+                .filter(generator -> generator.isParticipating() && generator.getParticipationFactor() != 0)
                 .map(generator -> new ParticipatingGenerator(generator, generator.getParticipationFactor()))
-                .filter(participatingGenerator -> participatingGenerator.factor != 0)
                 .collect(Collectors.toList());
     }
 

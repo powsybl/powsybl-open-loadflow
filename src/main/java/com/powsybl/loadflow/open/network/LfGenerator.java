@@ -31,6 +31,8 @@ public interface LfGenerator {
 
     double getMaxRangeQ();
 
+    boolean isParticipating();
+
     double getParticipationFactor();
 
     double getCalculatedQ();

@@ -66,6 +66,11 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     }
 
     @Override
+    public boolean isParticipating() {
+        return false;
+    }
+
+    @Override
     public double getParticipationFactor() {
         return 0;
     }

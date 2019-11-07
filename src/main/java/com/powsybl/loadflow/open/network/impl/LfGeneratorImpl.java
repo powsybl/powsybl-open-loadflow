@@ -22,29 +22,32 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private final Generator generator;
 
-    private final double participationFactor;
+    private boolean participating;
+
+    private double participationFactor;
 
     private LfGeneratorImpl(Generator generator) {
         super(generator.getTargetP());
         this.generator = generator;
-        participationFactor = getParticipationFactor(generator);
+        participating = true;
+        participationFactor = 4; // why not
+        // get participation factor from extension
+        if (Math.abs(generator.getTargetP()) > 0) {
+            ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
+            if (activePowerControl != null) {
+                participating = activePowerControl.isParticipate() && activePowerControl.getDroop() != 0;
+                if (activePowerControl.getDroop() != 0) {
+                    participationFactor = generator.getMaxP() / activePowerControl.getDroop();
+                }
+            }
+        } else {
+            participating = false;
+        }
     }
 
     public static LfGeneratorImpl create(Generator generator) {
         Objects.requireNonNull(generator);
         return new LfGeneratorImpl(generator);
-    }
-
-    private static double getParticipationFactor(Generator generator) {
-        double participationFactor = 0;
-        // get participation factor from extension
-        if (Math.abs(generator.getTargetP()) > 0) {
-            ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
-            if (activePowerControl != null && activePowerControl.isParticipate() && activePowerControl.getDroop() != 0) {
-                participationFactor = generator.getMaxP() / activePowerControl.getDroop();
-            }
-        }
-        return participationFactor;
     }
 
     @Override
@@ -75,6 +78,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
         return Optional.of(generator.getReactiveLimits());
+    }
+
+    @Override
+    public boolean isParticipating() {
+        return participating;
     }
 
     @Override
