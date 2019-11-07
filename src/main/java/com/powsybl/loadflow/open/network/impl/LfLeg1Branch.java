@@ -31,7 +31,6 @@ public class LfLeg1Branch extends AbstractFictitiousBranch {
     }
 
     public static LfLeg1Branch create(LfBus bus1, LfBus bus0, ThreeWindingsTransformer.Leg1 leg1) {
-        Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(leg1);
         return new LfLeg1Branch(bus1, bus0, leg1);

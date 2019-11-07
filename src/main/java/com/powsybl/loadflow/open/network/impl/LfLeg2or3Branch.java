@@ -30,7 +30,6 @@ public class LfLeg2or3Branch extends AbstractFictitiousBranch {
     }
 
     public static LfLeg2or3Branch create(LfBus bus2or3, LfBus bus0, ThreeWindingsTransformer t3wt, ThreeWindingsTransformer.Leg2or3 leg2or3) {
-        Objects.requireNonNull(bus2or3);
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(t3wt);
         Objects.requireNonNull(leg2or3);
