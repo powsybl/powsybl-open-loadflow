@@ -31,8 +31,6 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v1
-        with:
-          fetch-depth: 1
 
       - name: Set up JDK 1.8
         uses: actions/setup-java@v1
@@ -41,9 +39,7 @@ jobs:
 
       - name: Run SonarCloud analyse
         run: >
-          mvn --batch-mode -Pjacoco clean
-          org.jacoco:jacoco-maven-plugin:prepare-agent package
-          org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+          mvn --batch-mode -Pjacoco clean sonar:sonar
           -DskipTests
           -Dsonar.host.url=https://sonarcloud.io
           -Dsonar.organization=powsybl-ci-github
