@@ -40,8 +40,14 @@ jobs:
           java-version: 1.8
 
       - name: Run SonarCloud analyse
-        run:
-          mvn --batch-mode -Pjacoco clean package sonar:sonar -Dsonar.host.url=https://sonarcloud.io -Dsonar.organization=powsybl-ci-github -Dsonar.projectKey=com.powsybl:powsybl-open-loadflow
+        run: >
+          mvn --batch-mode -Pjacoco clean
+          org.jacoco:jacoco-maven-plugin:prepare-agent package
+          org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+          -DskipTests
+          -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.organization=powsybl-ci-github
+          -Dsonar.projectKey=com.powsybl:powsybl-open-loadflow
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
