@@ -1,5 +1,5 @@
 # Maven projects
-target
+target/
 
 # IntelliJ
 /.idea
