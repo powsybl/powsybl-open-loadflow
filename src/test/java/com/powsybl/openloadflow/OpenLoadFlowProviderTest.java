@@ -21,7 +21,7 @@ public class OpenLoadFlowProviderTest {
     @Test
     public void test() {
         LoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(new DenseMatrixFactory());
-        assertEquals("OpenLoadflow", loadFlowProvider.getName());
+        assertEquals("OpenLoadFlow", loadFlowProvider.getName());
         assertEquals(new PowsyblCoreVersion().getMavenProjectVersion(), loadFlowProvider.getVersion());
     }
 }
