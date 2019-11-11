@@ -10,7 +10,9 @@ import com.powsybl.commons.AbstractConverterTest;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.network.impl.LfNetworks;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,12 +20,24 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class LfNetworkTest extends AbstractConverterTest {
+
+    @Override
+    @BeforeEach
+    public void setUp() throws IOException {
+        super.setUp();
+    }
+
+    @Override
+    @AfterEach
+    public void tearDown() throws IOException {
+        super.tearDown();
+    }
 
     @Test
     public void test() throws IOException {

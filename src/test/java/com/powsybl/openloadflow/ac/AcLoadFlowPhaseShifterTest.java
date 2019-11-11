@@ -7,20 +7,23 @@
 
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Line;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.math.matrix.DenseMatrixFactory;
-import org.junit.Before;
-import org.junit.Test;
+import com.powsybl.openloadflow.network.FirstSlackBusSelector;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertTrue;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -38,7 +41,7 @@ public class AcLoadFlowPhaseShifterTest {
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         network = PhaseShifterTestCaseFactory.create();
         bus1 = network.getBusBreakerView().getBus("B1");
@@ -64,20 +67,20 @@ public class AcLoadFlowPhaseShifterTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
-        LoadFlowAssert.assertVoltageEquals(400, bus1);
-        LoadFlowAssert.assertAngleEquals(0, bus1);
-        LoadFlowAssert.assertVoltageEquals(385.698, bus2);
-        LoadFlowAssert.assertAngleEquals(-3.679569, bus2);
-        LoadFlowAssert.assertVoltageEquals(392.648, bus3);
-        LoadFlowAssert.assertAngleEquals(-1.806254, bus3);
-        LoadFlowAssert.assertActivePowerEquals(50.089, line1.getTerminal1());
-        LoadFlowAssert.assertReactivePowerEquals(29.192, line1.getTerminal1());
-        LoadFlowAssert.assertActivePowerEquals(-50.005, line1.getTerminal2());
-        LoadFlowAssert.assertReactivePowerEquals(-24.991, line1.getTerminal2());
-        LoadFlowAssert.assertActivePowerEquals(50.048, line2.getTerminal1());
-        LoadFlowAssert.assertReactivePowerEquals(27.097, line2.getTerminal1());
-        LoadFlowAssert.assertActivePowerEquals(-50.006, line2.getTerminal2());
-        LoadFlowAssert.assertReactivePowerEquals(-24.996, line2.getTerminal2());
+        assertVoltageEquals(400, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(385.698, bus2);
+        assertAngleEquals(-3.679569, bus2);
+        assertVoltageEquals(392.648, bus3);
+        assertAngleEquals(-1.806254, bus3);
+        assertActivePowerEquals(50.089, line1.getTerminal1());
+        assertReactivePowerEquals(29.192, line1.getTerminal1());
+        assertActivePowerEquals(-50.005, line1.getTerminal2());
+        assertReactivePowerEquals(-24.991, line1.getTerminal2());
+        assertActivePowerEquals(50.048, line2.getTerminal1());
+        assertReactivePowerEquals(27.097, line2.getTerminal1());
+        assertActivePowerEquals(-50.006, line2.getTerminal2());
+        assertReactivePowerEquals(-24.996, line2.getTerminal2());
     }
 
     @Test
@@ -87,19 +90,19 @@ public class AcLoadFlowPhaseShifterTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
-        LoadFlowAssert.assertVoltageEquals(400, bus1);
-        LoadFlowAssert.assertAngleEquals(0, bus1);
-        LoadFlowAssert.assertVoltageEquals(385.296, bus2);
-        LoadFlowAssert.assertAngleEquals(-1.186517, bus2);
-        LoadFlowAssert.assertVoltageEquals(392.076, bus3);
-        LoadFlowAssert.assertAngleEquals(1.964715, bus3);
-        LoadFlowAssert.assertActivePowerEquals(16.541, line1.getTerminal1());
-        LoadFlowAssert.assertReactivePowerEquals(29.241, line1.getTerminal1());
-        LoadFlowAssert.assertActivePowerEquals(-16.513, line1.getTerminal2());
-        LoadFlowAssert.assertReactivePowerEquals(-27.831, line1.getTerminal2());
-        LoadFlowAssert.assertActivePowerEquals(83.587, line2.getTerminal1());
-        LoadFlowAssert.assertReactivePowerEquals(27.195, line2.getTerminal1());
-        LoadFlowAssert.assertActivePowerEquals(-83.487, line2.getTerminal2());
-        LoadFlowAssert.assertReactivePowerEquals(-22.169, line2.getTerminal2());
+        assertVoltageEquals(400, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(385.296, bus2);
+        assertAngleEquals(-1.186517, bus2);
+        assertVoltageEquals(392.076, bus3);
+        assertAngleEquals(1.964715, bus3);
+        assertActivePowerEquals(16.541, line1.getTerminal1());
+        assertReactivePowerEquals(29.241, line1.getTerminal1());
+        assertActivePowerEquals(-16.513, line1.getTerminal2());
+        assertReactivePowerEquals(-27.831, line1.getTerminal2());
+        assertActivePowerEquals(83.587, line2.getTerminal1());
+        assertReactivePowerEquals(27.195, line2.getTerminal1());
+        assertActivePowerEquals(-83.487, line2.getTerminal2());
+        assertReactivePowerEquals(-22.169, line2.getTerminal2());
     }
 }

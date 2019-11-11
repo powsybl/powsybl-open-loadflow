@@ -10,15 +10,15 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
-import com.powsybl.math.matrix.DenseMatrixFactory;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertTrue;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * VSC test case.
@@ -154,7 +154,7 @@ public class AcLoadFlowVscTest {
         return network;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -170,14 +170,14 @@ public class AcLoadFlowVscTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
-        LoadFlowAssert.assertVoltageEquals(390, bus1);
-        LoadFlowAssert.assertAngleEquals(0, bus1);
-        LoadFlowAssert.assertVoltageEquals(385, bus2);
-        LoadFlowAssert.assertAngleEquals(0.117617, bus2);
+        assertVoltageEquals(390, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(385, bus2);
+        assertAngleEquals(0.117617, bus2);
 
-        LoadFlowAssert.assertActivePowerEquals(102.563, l12.getTerminal1());
-        LoadFlowAssert.assertReactivePowerEquals(615.917, l12.getTerminal1());
-        LoadFlowAssert.assertActivePowerEquals(-100, l12.getTerminal2());
-        LoadFlowAssert.assertReactivePowerEquals(-608.228, l12.getTerminal2());
+        assertActivePowerEquals(102.563, l12.getTerminal1());
+        assertReactivePowerEquals(615.917, l12.getTerminal1());
+        assertActivePowerEquals(-100, l12.getTerminal2());
+        assertReactivePowerEquals(-608.228, l12.getTerminal2());
     }
 }

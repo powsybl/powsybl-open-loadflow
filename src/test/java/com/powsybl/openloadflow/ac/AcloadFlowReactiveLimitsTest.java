@@ -11,21 +11,22 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfNetworks;
-import com.powsybl.math.matrix.DenseMatrixFactory;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -105,7 +106,7 @@ public class AcloadFlowReactiveLimitsTest {
         load.setP0(699.838);
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -133,17 +134,17 @@ public class AcloadFlowReactiveLimitsTest {
         parametersExt.setReactiveLimits(false);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        LoadFlowAssert.assertReactivePowerEquals(-109.228, gen.getTerminal());
-        LoadFlowAssert.assertReactivePowerEquals(-152.265, gen2.getTerminal());
-        LoadFlowAssert.assertReactivePowerEquals(-199.998, nhv2Nload.getTerminal2());
+        assertReactivePowerEquals(-109.228, gen.getTerminal());
+        assertReactivePowerEquals(-152.265, gen2.getTerminal());
+        assertReactivePowerEquals(-199.998, nhv2Nload.getTerminal2());
 
         parametersExt.setReactiveLimits(true);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        LoadFlowAssert.assertReactivePowerEquals(-164.315, gen.getTerminal());
-        LoadFlowAssert.assertReactivePowerEquals(-100, gen2.getTerminal()); // GEN is correctly limited to 100 MVar
-        LoadFlowAssert.assertReactivePowerEquals(100, ngen2Nhv1.getTerminal1());
-        LoadFlowAssert.assertReactivePowerEquals(-200, nhv2Nload.getTerminal2());
+        assertReactivePowerEquals(-164.315, gen.getTerminal());
+        assertReactivePowerEquals(-100, gen2.getTerminal()); // GEN is correctly limited to 100 MVar
+        assertReactivePowerEquals(100, ngen2Nhv1.getTerminal1());
+        assertReactivePowerEquals(-200, nhv2Nload.getTerminal2());
     }
 
     @Test
@@ -164,8 +165,8 @@ public class AcloadFlowReactiveLimitsTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        LoadFlowAssert.assertReactivePowerEquals(-164.315, gen.getTerminal());
-        LoadFlowAssert.assertReactivePowerEquals(-120, gen2.getTerminal());
-        LoadFlowAssert.assertReactivePowerEquals(100, ngen2Nhv1.getTerminal1());
+        assertReactivePowerEquals(-164.315, gen.getTerminal());
+        assertReactivePowerEquals(-120, gen2.getTerminal());
+        assertReactivePowerEquals(100, ngen2Nhv1.getTerminal1());
     }
 }

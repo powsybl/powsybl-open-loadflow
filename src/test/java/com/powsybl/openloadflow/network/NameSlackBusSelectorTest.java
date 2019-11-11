@@ -10,25 +10,20 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.network.impl.LfNetworks;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.CoreMatchers.isA;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class NameSlackBusSelectorTest {
 
-    @Rule
-    public final ExpectedException exception = ExpectedException.none();
-
     private Network network;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         network = EurostagTutorialExample1Factory.create();
     }
@@ -43,8 +38,8 @@ public class NameSlackBusSelectorTest {
 
     @Test
     public void errorTest() {
-        exception.expect(isA(PowsyblException.class));
-        exception.expectMessage("Slack bus '???' not found");
-        LfNetworks.create(network, new NameSlackBusSelector("???"));
+        assertThrows(PowsyblException.class,
+            () -> LfNetworks.create(network, new NameSlackBusSelector("???")),
+            "Slack bus '???' not found");
     }
 }
