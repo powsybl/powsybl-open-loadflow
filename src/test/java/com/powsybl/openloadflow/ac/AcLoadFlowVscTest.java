@@ -161,7 +161,8 @@ public class AcLoadFlowVscTest {
         parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new MostMeshedSlackBusSelector())
-                .setDistributedSlack(false);
+                .setDistributedSlack(false)
+                .setReactiveLimits(false);
         this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
