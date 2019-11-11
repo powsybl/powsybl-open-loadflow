@@ -43,7 +43,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
                 participationFactor = generator.getMaxP() / activePowerControl.getDroop();
             }
         }
-        if (Math.abs(generator.getTargetP()) < 0) {
+        if (generator.getTargetP() < 0) {
             LOGGER.warn("Discard generator '{}' from active power control because targetP ({}) <= 0",
                     generator.getId(), generator.getTargetP());
             participating = false;
