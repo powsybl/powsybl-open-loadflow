@@ -48,7 +48,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OpenLoadFlowProvider.class);
 
-    private static final String NAME = "OpenLoadflow";
+    private static final String NAME = "OpenLoadFlow";
 
     private final MatrixFactory matrixFactory;
 
