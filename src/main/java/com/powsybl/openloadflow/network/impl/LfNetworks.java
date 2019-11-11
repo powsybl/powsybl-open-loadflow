@@ -79,6 +79,10 @@ public final class LfNetworks {
 
                 @Override
                 public void visitGenerator(Generator generator) {
+                    if (!Objects.equals(generator.getRegulatingTerminal().getBusView().getBus().getId(),
+                            generator.getTerminal().getBusView().getBus().getId())) {
+                        throw new PowsyblException("Generator remote voltage control is not yet supported");
+                    }
                     lfBus.addGenerator(generator);
                     generatorCount[0]++;
                 }
@@ -115,7 +119,7 @@ public final class LfNetworks {
                             lfBus.addVscConverterStation((VscConverterStation) converterStation);
                             break;
                         case LCC:
-                            throw new UnsupportedOperationException("TODO: LCC");
+                            throw new UnsupportedOperationException("LCC converter station is not yet supported");
                         default:
                             throw new IllegalStateException("Unknown HVDC converter station type: " + converterStation.getHvdcType());
                     }
