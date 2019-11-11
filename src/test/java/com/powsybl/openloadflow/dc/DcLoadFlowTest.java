@@ -13,17 +13,17 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.math.matrix.DenseMatrixFactory;
-import org.junit.Before;
-import org.junit.Test;
+import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.usefultoys.slf4j.LoggerFactory;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Sylvain Leclerc <sylvain.leclerc at rte-france.com>
@@ -36,7 +36,7 @@ public class DcLoadFlowTest {
 
     private LoadFlow.Runner loadFlowRunner;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         parameters = new LoadFlowParameters();
         parameters.addExtension(OpenLoadFlowParameters.class, new OpenLoadFlowParameters()

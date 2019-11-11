@@ -10,15 +10,16 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
-import com.powsybl.math.matrix.DenseMatrixFactory;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertTrue;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -95,7 +96,7 @@ public class AcLoadFlowDanglingLineTest {
         return network;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -111,11 +112,11 @@ public class AcLoadFlowDanglingLineTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
-        LoadFlowAssert.assertVoltageEquals(390, bus1);
-        LoadFlowAssert.assertAngleEquals(0, bus1);
-        LoadFlowAssert.assertVoltageEquals(388.582864, bus2);
-        LoadFlowAssert.assertAngleEquals(-0.058277, bus2);
-        LoadFlowAssert.assertActivePowerEquals(101.302, dl1.getTerminal());
+        assertVoltageEquals(390, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(388.582864, bus2);
+        assertAngleEquals(-0.058277, bus2);
+        assertActivePowerEquals(101.302, dl1.getTerminal());
         LoadFlowAssert.assertReactivePowerEquals(149.763, dl1.getTerminal());
     }
 }

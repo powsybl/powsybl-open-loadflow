@@ -12,17 +12,17 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
-import com.powsybl.math.matrix.DenseMatrixFactory;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -37,7 +37,7 @@ public class AcLoadFlowTwoBusNetworkTest {
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         network = TwoBusNetworkFactory.create();
         bus1 = network.getBusBreakerView().getBus("b1");
@@ -57,14 +57,14 @@ public class AcLoadFlowTwoBusNetworkTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
-        LoadFlowAssert.assertVoltageEquals(1, bus1);
-        LoadFlowAssert.assertAngleEquals(0, bus1);
-        LoadFlowAssert.assertVoltageEquals(0.855, bus2);
-        LoadFlowAssert.assertAngleEquals(-13.520904, bus2);
-        LoadFlowAssert.assertActivePowerEquals(2, line1.getTerminal1());
-        LoadFlowAssert.assertReactivePowerEquals(1.683, line1.getTerminal1());
-        LoadFlowAssert.assertActivePowerEquals(-2, line1.getTerminal2());
-        LoadFlowAssert.assertReactivePowerEquals(-1, line1.getTerminal2());
+        assertVoltageEquals(1, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(0.855, bus2);
+        assertAngleEquals(-13.520904, bus2);
+        assertActivePowerEquals(2, line1.getTerminal1());
+        assertReactivePowerEquals(1.683, line1.getTerminal1());
+        assertActivePowerEquals(-2, line1.getTerminal2());
+        assertReactivePowerEquals(-1, line1.getTerminal2());
     }
 
     @Test
@@ -90,13 +90,13 @@ public class AcLoadFlowTwoBusNetworkTest {
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        LoadFlowAssert.assertVoltageEquals(1, bus1);
-        LoadFlowAssert.assertAngleEquals(0, bus1);
-        LoadFlowAssert.assertVoltageEquals(0.784, bus2);
-        LoadFlowAssert.assertAngleEquals(-22.455747, bus2);
-        LoadFlowAssert.assertActivePowerEquals(2.996, line1.getTerminal1());
-        LoadFlowAssert.assertReactivePowerEquals(2.750, line1.getTerminal1());
-        LoadFlowAssert.assertActivePowerEquals(-2.996, line1.getTerminal2());
-        LoadFlowAssert.assertReactivePowerEquals(-1.096, line1.getTerminal2());
+        assertVoltageEquals(1, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(0.784, bus2);
+        assertAngleEquals(-22.455747, bus2);
+        assertActivePowerEquals(2.996, line1.getTerminal1());
+        assertReactivePowerEquals(2.750, line1.getTerminal1());
+        assertActivePowerEquals(-2.996, line1.getTerminal2());
+        assertReactivePowerEquals(-1.096, line1.getTerminal2());
     }
 }

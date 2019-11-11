@@ -14,21 +14,21 @@ import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfNetworkImplTest extends AbstractLoadFlowNetworkFactory {
+public class LfNetworksTest extends AbstractLoadFlowNetworkFactory {
 
     private Network network;
 
     private Generator g;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         network = Network.create("test", "code");
         Bus b = createBus(network, "b", 380);

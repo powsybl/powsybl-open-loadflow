@@ -10,15 +10,16 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
-import com.powsybl.math.matrix.DenseMatrixFactory;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertTrue;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Three windings transformer test case.
@@ -137,7 +138,7 @@ public class AcLoadFlow3wtTest {
         return network;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -153,11 +154,11 @@ public class AcLoadFlow3wtTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
-        LoadFlowAssert.assertVoltageEquals(405, bus1);
+        assertVoltageEquals(405, bus1);
         LoadFlowAssert.assertAngleEquals(2.720264, bus1);
-        LoadFlowAssert.assertVoltageEquals(235.132, bus2);
+        assertVoltageEquals(235.132, bus2);
         LoadFlowAssert.assertAngleEquals(0.462642, bus2);
-        LoadFlowAssert.assertVoltageEquals(20.834, bus3);
+        assertVoltageEquals(20.834, bus3);
         LoadFlowAssert.assertAngleEquals(0, bus3);
     }
 }
