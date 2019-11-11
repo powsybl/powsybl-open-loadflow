@@ -52,7 +52,8 @@ public class DistributedSlackTest {
         parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new MostMeshedSlackBusSelector())
-                .setDistributedSlack(true);
+                .setDistributedSlack(true)
+                .setReactiveLimits(false);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 

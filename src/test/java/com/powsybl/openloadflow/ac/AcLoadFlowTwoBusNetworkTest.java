@@ -48,7 +48,8 @@ public class AcLoadFlowTwoBusNetworkTest {
         parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new FirstSlackBusSelector())
-                .setDistributedSlack(false);
+                .setDistributedSlack(false)
+                .setReactiveLimits(false);
         this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 

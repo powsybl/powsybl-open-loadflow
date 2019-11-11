@@ -60,7 +60,8 @@ public class AcLoadFlowEurostagTutorialExample1Test {
         parameters = new LoadFlowParameters();
         parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new FirstSlackBusSelector())
-                .setDistributedSlack(false);
+                .setDistributedSlack(false)
+                .setReactiveLimits(false);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 

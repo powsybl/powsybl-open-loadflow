@@ -23,9 +23,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private SlackBusSelector slackBusSelector = new MostMeshedSlackBusSelector();
 
-    private boolean distributedSlack = false;
+    private boolean distributedSlack = true;
 
-    private boolean reactiveLimits = false;
+    private boolean reactiveLimits = true;
 
     private boolean dc = false;
 
