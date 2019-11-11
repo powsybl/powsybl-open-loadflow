@@ -93,7 +93,7 @@ public class DistributedSlackOuterLoop implements OuterLoop {
                 throw new PowsyblException("Failed to distribute slack bus active power mismatch, "
                         + remainingMismatch * PerUnit.SB + " MW remains");
             } else {
-                LOGGER.debug("Slack bus active power ({} MW) distributed in {} iterations",
+                LOGGER.info("Slack bus active power ({} MW) distributed in {} iterations",
                         slackBusActivePowerMismatch * PerUnit.SB, iteration);
             }
 

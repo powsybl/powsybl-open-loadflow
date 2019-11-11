@@ -11,6 +11,8 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.openloadflow.network.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.PerUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -19,6 +21,8 @@ import java.util.Optional;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public final class LfGeneratorImpl extends AbstractLfGenerator {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfGeneratorImpl.class);
 
     private final Generator generator;
 
@@ -32,15 +36,21 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         participating = true;
         participationFactor = 4; // why not
         // get participation factor from extension
-        if (Math.abs(generator.getTargetP()) > 0) {
-            ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
-            if (activePowerControl != null) {
-                participating = activePowerControl.isParticipate() && activePowerControl.getDroop() != 0;
-                if (activePowerControl.getDroop() != 0) {
-                    participationFactor = generator.getMaxP() / activePowerControl.getDroop();
-                }
+        ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
+        if (activePowerControl != null) {
+            participating = activePowerControl.isParticipate() && activePowerControl.getDroop() != 0;
+            if (activePowerControl.getDroop() != 0) {
+                participationFactor = generator.getMaxP() / activePowerControl.getDroop();
             }
-        } else {
+        }
+        if (Math.abs(generator.getTargetP()) < 0) {
+            LOGGER.warn("Discard generator '{}' from active power control because targetP ({}) <= 0",
+                    generator.getId(), generator.getTargetP());
+            participating = false;
+        }
+        if (generator.getTargetP() > generator.getMaxP()) {
+            LOGGER.warn("Discard generator '{}' from active power control because targetP ({}) > maxP ({})",
+                    generator.getId(), generator.getTargetP(), generator.getMaxP());
             participating = false;
         }
     }

@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
@@ -42,12 +43,20 @@ public class LfNetwork {
         if (buses.isEmpty()) {
             throw new IllegalArgumentException("Empty bus list");
         }
-        this.branches = Objects.requireNonNull(branches);
-        Objects.requireNonNull(slackBusSelector);
+        this.branches = Objects.requireNonNull(branches).stream()
+            .filter(branch -> {
+                boolean connectedToSameBus = branch.getBus1() == branch.getBus2();
+                if (connectedToSameBus) {
+                    LOGGER.warn("Discard branch '{}' because connected to same bus at both ends", branch.getId());
+                }
+                return !connectedToSameBus;
+            }).collect(Collectors.toList());
+        LOGGER.info("Network has {} buses and {} branches", this.buses.size(), this.branches.size());
 
+        Objects.requireNonNull(slackBusSelector);
         slackBus = slackBusSelector.select(this.buses);
         slackBus.setSlack(true);
-        LOGGER.info("Selected slack bus (class={}): {}", slackBusSelector.getClass().getSimpleName(), slackBus.getId());
+        LOGGER.info("Selected slack bus: {}", slackBus.getId());
     }
 
     public List<LfBranch> getBranches() {

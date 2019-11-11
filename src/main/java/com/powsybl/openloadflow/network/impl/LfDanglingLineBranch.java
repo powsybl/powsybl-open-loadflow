@@ -32,6 +32,11 @@ public class LfDanglingLineBranch extends AbstractFictitiousBranch {
         this.danglingLine = danglingLine;
     }
 
+    @Override
+    public String getId() {
+        return danglingLine.getId();
+    }
+
     public static LfDanglingLineBranch create(DanglingLine danglingLine, LfBus bus1, LfBus bus2) {
         Objects.requireNonNull(danglingLine);
         Objects.requireNonNull(bus1);

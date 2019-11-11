@@ -28,10 +28,7 @@ import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.equations.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.VoltageInitializer;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworks;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
@@ -107,6 +104,22 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return parametersExt;
     }
 
+    private static void logBalance(LfNetwork network) {
+        double activeGeneration = 0;
+        double reactiveGeneration = 0;
+        double activeLoad = 0;
+        double reactiveLoad = 0;
+        for (LfBus b : network.getBuses()) {
+            activeGeneration += b.getGenerationTargetP() * PerUnit.SB;
+            reactiveGeneration += b.getGenerationTargetQ() * PerUnit.SB;
+            activeLoad += b.getLoadTargetP() * PerUnit.SB;
+            reactiveLoad += b.getLoadTargetQ() * PerUnit.SB;
+        }
+
+        LOGGER.info("Active generation={} Mw, active load={} Mw, reactive generation={} MVar, reactive load={} MVar",
+                activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
+    }
+
     private CompletableFuture<LoadFlowResult> runAc(Network network, String workingStateId, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
@@ -116,6 +129,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             VoltageInitializer voltageInitializer = getVoltageInitializer(parameters);
 
             NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
+
+            LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
+            LOGGER.info("Voltage level initializer: {}", voltageInitializer.getClass().getSimpleName());
+            LOGGER.info("Distributed slack: {}", parametersExt.isDistributedSlack());
+            LOGGER.info("Reactive limits: {}", parametersExt.hasReactiveLimits());
 
             List<OuterLoop> outerLoops = new ArrayList<>();
             if (parametersExt.isDistributedSlack()) {
@@ -130,6 +148,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             // only process main (largest) connected component
             LfNetwork lfNetwork = lfNetworks.get(0);
 
+            logBalance(lfNetwork);
+
             AcLoadFlowResult result = new AcloadFlowEngine(lfNetwork, voltageInitializer, stoppingCriteria, outerLoops,
                     matrixFactory, getObserver(parametersExt))
                     .run();
@@ -142,24 +162,13 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         });
     }
 
-    private static void balance(LfNetwork network) {
-        double activeGeneration = 0;
-        double activeLoad = 0;
-        for (LfBus b : network.getBuses()) {
-            activeGeneration += b.getGenerationTargetP();
-            activeLoad += b.getLoadTargetP();
-        }
-
-        LOGGER.info("Active generation={} Mw, active load={} Mw", Math.round(activeGeneration), Math.round(activeLoad));
-    }
-
     private CompletableFuture<LoadFlowResult> runDc(Network network, String workingStateId) {
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
             LfNetwork lfNetwork = LfNetworks.create(network, new FirstSlackBusSelector()).get(0);
 
-            balance(lfNetwork);
+            logBalance(lfNetwork);
 
             boolean status = new DcLoadFlowEngine(lfNetwork, matrixFactory)
                     .run();
