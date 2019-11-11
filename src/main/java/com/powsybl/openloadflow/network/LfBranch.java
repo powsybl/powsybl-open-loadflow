@@ -13,6 +13,8 @@ import com.powsybl.openloadflow.util.Evaluable;
  */
 public interface LfBranch {
 
+    String getId();
+
     LfBus getBus1();
 
     LfBus getBus2();

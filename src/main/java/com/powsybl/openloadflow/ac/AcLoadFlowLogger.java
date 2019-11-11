@@ -29,11 +29,6 @@ public class AcLoadFlowLogger extends DefaultAcLoadFlowObserver {
     }
 
     @Override
-    public void beforeVoltageInitializerPreparation(Class<?> voltageInitializerClass) {
-        LOGGER.info("Voltage level initializer: {}", voltageInitializerClass.getSimpleName());
-    }
-
-    @Override
     public void beginIteration(int iteration) {
         LOGGER.debug("Start iteration {}", iteration);
     }

@@ -68,7 +68,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             }
         }
         if (!pvToPqBuses.isEmpty()) {
-            LOGGER.debug("{} buses switched PV -> PQ", pvToPqBuses.size());
+            LOGGER.info("{} buses switched PV -> PQ", pvToPqBuses.size());
         }
         return status;
     }

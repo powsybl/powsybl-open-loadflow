@@ -19,21 +19,29 @@ import java.util.Objects;
  */
 public class LfLeg2or3Branch extends AbstractFictitiousBranch {
 
+    private final ThreeWindingsTransformer twt;
+
     private final ThreeWindingsTransformer.Leg2or3 leg2or3;
 
-    protected LfLeg2or3Branch(LfBus bus2or3, LfBus bus0, ThreeWindingsTransformer t3wt, ThreeWindingsTransformer.Leg2or3 leg2or3) {
+    protected LfLeg2or3Branch(LfBus bus2or3, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg2or3 leg2or3) {
         super(bus2or3, bus0, new PiModel(leg2or3.getR(), leg2or3.getX())
-                                .setR1(Transformers.getRatio2or3(t3wt, leg2or3)),
+                                .setR1(Transformers.getRatio2or3(twt, leg2or3)),
                 leg2or3.getTerminal().getVoltageLevel().getNominalV(),
-                t3wt.getLeg1().getTerminal().getVoltageLevel().getNominalV());
+                twt.getLeg1().getTerminal().getVoltageLevel().getNominalV());
+        this.twt = twt;
         this.leg2or3 = leg2or3;
     }
 
-    public static LfLeg2or3Branch create(LfBus bus2or3, LfBus bus0, ThreeWindingsTransformer t3wt, ThreeWindingsTransformer.Leg2or3 leg2or3) {
+    public static LfLeg2or3Branch create(LfBus bus2or3, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg2or3 leg2or3) {
         Objects.requireNonNull(bus0);
-        Objects.requireNonNull(t3wt);
+        Objects.requireNonNull(twt);
         Objects.requireNonNull(leg2or3);
-        return new LfLeg2or3Branch(bus2or3, bus0, t3wt, leg2or3);
+        return new LfLeg2or3Branch(bus2or3, bus0, twt, leg2or3);
+    }
+
+    @Override
+    public String getId() {
+        return twt.getId() + " leg 2 or 3";
     }
 
     @Override

@@ -64,6 +64,11 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
+    public String getId() {
+        return branch.getId();
+    }
+
+    @Override
     public void setP1(Evaluable p1) {
         this.p1 = Objects.requireNonNull(p1);
     }

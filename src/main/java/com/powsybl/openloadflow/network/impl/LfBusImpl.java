@@ -98,22 +98,21 @@ public class LfBusImpl extends AbstractLfBus {
         loadTargetQ += battery.getQ0();
     }
 
-    private boolean isValid(LfGenerator generator) {
-        if (generator.getMaxRangeQ() < REACTIVE_RANGE_THRESHOLD_PU) {
-            LOGGER.warn("Max reactive range of generator '{}' is too small, switch out of voltage regulation", generator.getId());
-            return false;
-        }
-        if (Math.abs(generator.getTargetP()) < POWER_EPSILON_SI && generator.getMinP() > POWER_EPSILON_SI) {
-            LOGGER.warn("Stopped generator '{}' (targetP={} MW, minP={} MW), switch out of voltage regulation",
-                    generator.getId(), generator.getTargetP(), generator.getMinP());
-            return false;
-        }
-        return true;
-    }
-
     private void add(LfGenerator generator, boolean voltageControl, double targetV, double targetQ) {
         generators.add(generator);
-        if (voltageControl && isValid(generator)) {
+        boolean voltageControl2 = voltageControl;
+        double maxRangeQ = generator.getMaxRangeQ();
+        if (maxRangeQ < REACTIVE_RANGE_THRESHOLD_PU) {
+            LOGGER.warn("Discard generator '{}' from voltage control because max reactive range ({}) is too small",
+                    generator.getId(), maxRangeQ);
+            voltageControl2 = false;
+        }
+        if (Math.abs(generator.getTargetP()) < POWER_EPSILON_SI && generator.getMinP() > POWER_EPSILON_SI) {
+            LOGGER.warn("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)",
+                    generator.getId(), generator.getTargetP(), generator.getMinP());
+            voltageControl2 = false;
+        }
+        if (voltageControl2) {
             this.targetV = checkTargetV(targetV);
             this.voltageControl = true;
         } else {
