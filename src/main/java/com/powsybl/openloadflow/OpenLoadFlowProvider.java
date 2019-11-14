@@ -133,13 +133,13 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
             LOGGER.info("Voltage level initializer: {}", voltageInitializer.getClass().getSimpleName());
             LOGGER.info("Distributed slack: {}", parametersExt.isDistributedSlack());
-            LOGGER.info("Reactive limits: {}", parametersExt.hasReactiveLimits());
+            LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
 
             List<OuterLoop> outerLoops = new ArrayList<>();
             if (parametersExt.isDistributedSlack()) {
                 outerLoops.add(new DistributedSlackOuterLoop());
             }
-            if (parametersExt.hasReactiveLimits()) {
+            if (!parameters.isNoGeneratorReactiveLimits()) {
                 outerLoops.add(new ReactiveLimitsOuterLoop());
             }
 
@@ -156,7 +156,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
             // update network state
             LfNetworks.resetState(network);
-            lfNetwork.updateState(parametersExt.hasReactiveLimits());
+            lfNetwork.updateState(!parameters.isNoGeneratorReactiveLimits());
 
             return new LoadFlowResultImpl(result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED, createMetrics(result), null);
         });

@@ -25,8 +25,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean distributedSlack = true;
 
-    private boolean reactiveLimits = true;
-
     private boolean dc = false;
 
     private final List<AcLoadFlowObserver> additionalObservers = new ArrayList<>();
@@ -51,15 +49,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setDistributedSlack(boolean distributedSlack) {
         this.distributedSlack = distributedSlack;
-        return this;
-    }
-
-    public boolean hasReactiveLimits() {
-        return reactiveLimits;
-    }
-
-    public OpenLoadFlowParameters setReactiveLimits(boolean reactiveLimits) {
-        this.reactiveLimits = reactiveLimits;
         return this;
     }
 
