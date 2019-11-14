@@ -25,7 +25,7 @@ jobs:
       - name: Run SonarCloud analysis
         if: matrix.os == 'ubuntu-latest'
         run: >
-          mvn --batch-mode -Pjacoco sonar:sonar
+          mvn --batch-mode -Pjacoco package sonar:sonar
           -Dsonar.host.url=https://sonarcloud.io
           -Dsonar.organization=powsybl-ci-github
           -Dsonar.projectKey=com.powsybl:powsybl-open-loadflow
