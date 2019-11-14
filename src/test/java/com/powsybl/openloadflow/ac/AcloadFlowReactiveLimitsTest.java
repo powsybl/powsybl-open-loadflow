@@ -111,9 +111,9 @@ public class AcloadFlowReactiveLimitsTest {
         createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
+        parameters.setNoGeneratorReactiveLimits(false);
         parametersExt = new OpenLoadFlowParameters()
-                .setDistributedSlack(false)
-                .setReactiveLimits(true);
+                .setDistributedSlack(false);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
@@ -131,14 +131,14 @@ public class AcloadFlowReactiveLimitsTest {
 
     @Test
     public void test() {
-        parametersExt.setReactiveLimits(false);
+        parameters.setNoGeneratorReactiveLimits(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertReactivePowerEquals(-109.228, gen.getTerminal());
         assertReactivePowerEquals(-152.265, gen2.getTerminal());
         assertReactivePowerEquals(-199.998, nhv2Nload.getTerminal2());
 
-        parametersExt.setReactiveLimits(true);
+        parameters.setNoGeneratorReactiveLimits(false);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertReactivePowerEquals(-164.315, gen.getTerminal());

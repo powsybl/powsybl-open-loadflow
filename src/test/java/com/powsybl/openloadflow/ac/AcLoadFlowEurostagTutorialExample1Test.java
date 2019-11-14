@@ -58,10 +58,10 @@ public class AcLoadFlowEurostagTutorialExample1Test {
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
+        parameters.setNoGeneratorReactiveLimits(true);
         parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new FirstSlackBusSelector())
-                .setDistributedSlack(false)
-                .setReactiveLimits(false);
+                .setDistributedSlack(false);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 

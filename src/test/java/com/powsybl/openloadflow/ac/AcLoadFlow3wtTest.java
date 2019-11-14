@@ -143,10 +143,10 @@ public class AcLoadFlow3wtTest {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
+        parameters.setNoGeneratorReactiveLimits(true);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new MostMeshedSlackBusSelector())
-                .setDistributedSlack(false)
-                .setReactiveLimits(false);
+                .setDistributedSlack(false);
         this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
