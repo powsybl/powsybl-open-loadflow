@@ -24,7 +24,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfGeneratorImpl.class);
 
-    private static final int DEFAULT_DROOP = 4; // why not
+    private static final double DEFAULT_DROOP = 4; // why not
 
     private final Generator generator;
 
