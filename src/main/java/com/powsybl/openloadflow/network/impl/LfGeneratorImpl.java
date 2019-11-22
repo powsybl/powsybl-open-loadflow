@@ -24,6 +24,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfGeneratorImpl.class);
 
+    private static final double DEFAULT_DROOP = 4; // why not
+
     private final Generator generator;
 
     private boolean participating;
@@ -34,16 +36,17 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         super(generator.getTargetP());
         this.generator = generator;
         participating = true;
-        participationFactor = 4; // why not
+        double droop = DEFAULT_DROOP;
         // get participation factor from extension
         ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
             participating = activePowerControl.isParticipate() && activePowerControl.getDroop() != 0;
             if (activePowerControl.getDroop() != 0) {
-                participationFactor = generator.getMaxP() / activePowerControl.getDroop();
+                droop = activePowerControl.getDroop();
             }
         }
-        if (generator.getTargetP() < 0) {
+        participationFactor = generator.getMaxP() / droop;
+        if (generator.getTargetP() <= 0) {
             LOGGER.warn("Discard generator '{}' from active power control because targetP ({}) <= 0",
                     generator.getId(), generator.getTargetP());
             participating = false;
