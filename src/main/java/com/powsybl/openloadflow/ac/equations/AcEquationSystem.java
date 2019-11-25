@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.equations.BusPhaseEquationTerm;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationType;
@@ -36,6 +37,9 @@ public final class AcEquationSystem {
         EquationSystem equationSystem = new EquationSystem(network);
 
         for (LfBus bus : network.getBuses()) {
+            if (bus.getRemoteControlBus().isPresent()) {
+                throw new PowsyblException("Generator remote voltage control is not yet supported: " + bus.getId());
+            }
             if (bus.isSlack()) {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_PHI).addTerm(new BusPhaseEquationTerm(bus, variableSet));
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);

@@ -79,11 +79,13 @@ public final class LfNetworks {
 
                 @Override
                 public void visitGenerator(Generator generator) {
-                    if (!Objects.equals(generator.getRegulatingTerminal().getBusView().getBus().getId(),
-                            generator.getTerminal().getBusView().getBus().getId())) {
-                        throw new PowsyblException("Generator remote voltage control is not yet supported");
+                    LfBus remoteControlBus = null;
+                    String controlledBusId = generator.getRegulatingTerminal().getBusView().getBus().getId();
+                    String connectedBusId = generator.getTerminal().getBusView().getBus().getId();
+                    if (!Objects.equals(controlledBusId, connectedBusId)) {
+                        remoteControlBus = lfBuses.get(creationContext.busIdToNum.get(controlledBusId));
                     }
-                    lfBus.addGenerator(generator);
+                    lfBus.addGenerator(generator, remoteControlBus);
                     generatorCount[0]++;
                 }
 

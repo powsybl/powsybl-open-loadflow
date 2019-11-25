@@ -8,15 +8,13 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.network.AbstractLfBus;
-import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.LfShunt;
-import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ToDoubleFunction;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -42,6 +40,8 @@ public class LfBusImpl extends AbstractLfBus {
     private double generationTargetQ = 0;
 
     private double targetV = Double.NaN;
+
+    private LfBus remoteControlBus;
 
     private int neighbors = 0;
 
@@ -79,6 +79,11 @@ public class LfBusImpl extends AbstractLfBus {
         this.voltageControl = voltageControl;
     }
 
+    @Override
+    public Optional<LfBus> getRemoteControlBus() {
+        return Optional.ofNullable(remoteControlBus);
+    }
+
     private double checkTargetV(double targetV) {
         if (!Double.isNaN(this.targetV) && this.targetV != targetV) {
             throw new PowsyblException("Multiple generators connected to same bus with different target voltage");
@@ -98,7 +103,7 @@ public class LfBusImpl extends AbstractLfBus {
         loadTargetQ += battery.getQ0();
     }
 
-    private void add(LfGenerator generator, boolean voltageControl, double targetV, double targetQ) {
+    private void add(LfGenerator generator, boolean voltageControl, double targetV, LfBus remoteControlBus, double targetQ) {
         generators.add(generator);
         boolean voltageControl2 = voltageControl;
         double maxRangeQ = generator.getMaxRangeQ();
@@ -115,27 +120,37 @@ public class LfBusImpl extends AbstractLfBus {
         if (voltageControl2) {
             this.targetV = checkTargetV(targetV);
             this.voltageControl = true;
+            // check that remote control bus is still the same
+            int oldRemoteControlBus = this.remoteControlBus != null ? this.remoteControlBus.getNum() : -1;
+            int newRemoteControlBus = remoteControlBus != null ? remoteControlBus.getNum() : -1;
+            if (newRemoteControlBus != oldRemoteControlBus) {
+                throw new PowsyblException("Generators (" + generators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "))
+                        + ") are connected to the same bus, they must control the same bus");
+            }
+            if (this.remoteControlBus == null && remoteControlBus != null) {
+                this.remoteControlBus = remoteControlBus;
+            }
         } else {
             generationTargetQ += targetQ;
         }
     }
 
-    void addGenerator(Generator generator) {
+    void addGenerator(Generator generator, LfBus remoteControlBus) {
         add(LfGeneratorImpl.create(generator), generator.isVoltageRegulatorOn(), generator.getTargetV(),
-                generator.getTargetQ());
+                remoteControlBus, generator.getTargetQ());
     }
 
     void addStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
             add(LfStaticVarCompensatorImpl.create(staticVarCompensator),
                     staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE,
-                    staticVarCompensator.getVoltageSetPoint(), staticVarCompensator.getReactivePowerSetPoint());
+                    staticVarCompensator.getVoltageSetPoint(), null, staticVarCompensator.getReactivePowerSetPoint());
         }
     }
 
     void addVscConverterStation(VscConverterStation vscCs) {
         add(LfVscConverterStationImpl.create(vscCs), vscCs.isVoltageRegulatorOn(), vscCs.getVoltageSetpoint(),
-                vscCs.getReactivePowerSetpoint());
+                null, vscCs.getReactivePowerSetpoint());
     }
 
     void addShuntCompensator(ShuntCompensator sc) {
