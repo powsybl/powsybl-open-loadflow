@@ -18,6 +18,8 @@ public interface LfBus {
 
     int getNum();
 
+    boolean isFictitious();
+
     boolean isSlack();
 
     void setSlack(boolean slack);
