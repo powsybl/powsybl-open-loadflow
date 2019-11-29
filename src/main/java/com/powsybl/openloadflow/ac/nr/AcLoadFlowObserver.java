@@ -37,7 +37,9 @@ public interface AcLoadFlowObserver {
 
     void beginIteration(int iteration);
 
-    void norm(double norm);
+    void beforeStoppingCriteriaEvaluation(double[] mismatch, EquationSystem equationSystem, int iteration);
+
+    void afterStoppingCriteriaEvaluation(double norm, int iteration);
 
     void beforeEquationsUpdate(int iteration);
 
@@ -45,7 +47,7 @@ public interface AcLoadFlowObserver {
 
     void beforeEquationVectorUpdate(int iteration);
 
-    void afterEquationVectorUpdate(EquationSystem equationSystem, int iteration);
+    void afterEquationVectorUpdate(double[] fx, EquationSystem equationSystem, int iteration);
 
     void beforeJacobianBuild(int iteration);
 

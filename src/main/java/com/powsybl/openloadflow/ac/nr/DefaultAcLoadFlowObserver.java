@@ -50,7 +50,12 @@ public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
     }
 
     @Override
-    public void norm(double norm) {
+    public void beforeStoppingCriteriaEvaluation(double[] mismatch, EquationSystem equationSystem, int iteration) {
+        // empty
+    }
+
+    @Override
+    public void afterStoppingCriteriaEvaluation(double norm, int iteration) {
         // empty
     }
 
@@ -70,7 +75,7 @@ public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
     }
 
     @Override
-    public void afterEquationVectorUpdate(EquationSystem equationSystem, int iteration) {
+    public void afterEquationVectorUpdate(double[] fx, EquationSystem equationSystem, int iteration) {
         // empty
     }
 

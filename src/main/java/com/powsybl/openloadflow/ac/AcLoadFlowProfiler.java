@@ -76,7 +76,7 @@ public class AcLoadFlowProfiler extends DefaultAcLoadFlowObserver {
     }
 
     @Override
-    public void afterEquationVectorUpdate(EquationSystem equationSystem, int iteration) {
+    public void afterEquationVectorUpdate(double[] fx, EquationSystem equationSystem, int iteration) {
         stopwatch.stop();
         LOGGER.debug(Markers.PERFORMANCE_MARKER, "Equation vector updated at iteration {} in {} ms", iteration, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
