@@ -70,6 +70,11 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
+    public boolean isFictitious() {
+        return false;
+    }
+
+    @Override
     public boolean hasVoltageControl() {
         return voltageControl;
     }

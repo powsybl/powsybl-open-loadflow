@@ -156,10 +156,10 @@ public class AcLoadFlow3wtTest {
         assertTrue(result.isOk());
 
         assertVoltageEquals(405, bus1);
-        LoadFlowAssert.assertAngleEquals(2.720264, bus1);
+        LoadFlowAssert.assertAngleEquals(0, bus1);
         assertVoltageEquals(235.132, bus2);
-        LoadFlowAssert.assertAngleEquals(0.462642, bus2);
+        LoadFlowAssert.assertAngleEquals(-2.259241, bus2);
         assertVoltageEquals(20.834, bus3);
-        LoadFlowAssert.assertAngleEquals(0, bus3);
+        LoadFlowAssert.assertAngleEquals(-2.721885, bus3);
     }
 }
