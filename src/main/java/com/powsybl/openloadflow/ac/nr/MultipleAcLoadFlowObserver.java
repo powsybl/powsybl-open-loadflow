@@ -59,8 +59,13 @@ public class MultipleAcLoadFlowObserver implements AcLoadFlowObserver {
     }
 
     @Override
-    public void norm(double norm) {
-        observers.forEach(o -> o.norm(norm));
+    public void beforeStoppingCriteriaEvaluation(double[] mismatch, EquationSystem equationSystem, int iteration) {
+        observers.forEach(o -> o.beforeStoppingCriteriaEvaluation(mismatch, equationSystem, iteration));
+    }
+
+    @Override
+    public void afterStoppingCriteriaEvaluation(double norm, int iteration) {
+        observers.forEach(o -> o.afterStoppingCriteriaEvaluation(norm, iteration));
     }
 
     @Override
@@ -79,8 +84,8 @@ public class MultipleAcLoadFlowObserver implements AcLoadFlowObserver {
     }
 
     @Override
-    public void afterEquationVectorUpdate(EquationSystem equationSystem, int iteration) {
-        observers.forEach(o -> o.afterEquationVectorUpdate(equationSystem, iteration));
+    public void afterEquationVectorUpdate(double[] fx, EquationSystem equationSystem, int iteration) {
+        observers.forEach(o -> o.afterEquationVectorUpdate(fx, equationSystem, iteration));
     }
 
     @Override

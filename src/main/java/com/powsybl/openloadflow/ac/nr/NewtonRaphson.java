@@ -100,13 +100,16 @@ public class NewtonRaphson implements AutoCloseable {
 
             equationSystem.updateEquationVector(fx);
 
-            observer.afterEquationVectorUpdate(equationSystem, iteration);
+            observer.afterEquationVectorUpdate(fx, equationSystem, iteration);
 
             Vectors.minus(fx, targets);
 
             // test stopping criteria and log norm(fx)
+            observer.beforeStoppingCriteriaEvaluation(fx, equationSystem, iteration);
+
             NewtonRaphsonStoppingCriteria.TestResult testResult = stoppingCriteria.test(fx);
-            observer.norm(testResult.getNorm());
+
+            observer.afterStoppingCriteriaEvaluation(testResult.getNorm(), iteration);
 
             if (testResult.isStop()) {
                 return NewtonRaphsonStatus.CONVERGED;
@@ -155,7 +158,7 @@ public class NewtonRaphson implements AutoCloseable {
 
         double[] fx = equationSystem.createEquationVector();
 
-        observer.afterEquationVectorUpdate(equationSystem, iteration);
+        observer.afterEquationVectorUpdate(fx, equationSystem, iteration);
 
         Vectors.minus(fx, targets);
 

@@ -34,19 +34,26 @@ public class AcLoadFlowLogger extends DefaultAcLoadFlowObserver {
     }
 
     @Override
-    public void norm(double norm) {
+    public void beforeStoppingCriteriaEvaluation(double[] mismatch, EquationSystem equationSystem, int iteration) {
+        logLargestMismatches(mismatch, equationSystem, 5);
+    }
+
+    @Override
+    public void afterStoppingCriteriaEvaluation(double norm, int iteration) {
         LOGGER.debug("|f(x)|={}", norm);
     }
 
-    public void logLargestMismatches(double[] fx, EquationSystem equationSystem, int count) {
-        Map<Equation, Double> mismatches = new HashMap<>(equationSystem.getSortedEquationsToSolve().size());
-        for (Equation equation : equationSystem.getSortedEquationsToSolve()) {
-            mismatches.put(equation, fx[equation.getRow()]);
+    public void logLargestMismatches(double[] mismatch, EquationSystem equationSystem, int count) {
+        if (LOGGER.isTraceEnabled()) {
+            Map<Equation, Double> mismatchByEquation = new HashMap<>(equationSystem.getSortedEquationsToSolve().size());
+            for (Equation equation : equationSystem.getSortedEquationsToSolve()) {
+                mismatchByEquation.put(equation, mismatch[equation.getRow()]);
+            }
+            mismatchByEquation.entrySet().stream()
+                    .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))
+                    .sorted(Comparator.comparingDouble((Map.Entry<Equation, Double> e) -> Math.abs(e.getValue())).reversed())
+                    .limit(count)
+                    .forEach(e -> LOGGER.trace("Mismatch for {}: {}", e.getKey(), e.getValue()));
         }
-        mismatches.entrySet().stream()
-                .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))
-                .sorted(Comparator.comparingDouble((Map.Entry<Equation, Double> e) -> Math.abs(e.getValue())).reversed())
-                .limit(count)
-                .forEach(e -> LOGGER.trace("Mismatch for {}: {}", e.getKey(), e.getValue()));
     }
 }
