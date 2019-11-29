@@ -17,28 +17,34 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfLeg1Branch extends AbstractFictitiousBranch {
+public class LfLegBranch extends AbstractFictitiousBranch {
 
     private final ThreeWindingsTransformer twt;
 
-    protected LfLeg1Branch(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt) {
-        super(bus1, bus0, new PiModel(twt.getLeg1().getR(), twt.getLeg1().getX())
-                            .setG2(twt.getLeg1().getG())
-                            .setB2(twt.getLeg1().getB()),
-                twt.getLeg1().getTerminal().getVoltageLevel().getNominalV(),
-                twt.getLeg1().getTerminal().getVoltageLevel().getNominalV());
+    private final ThreeWindingsTransformer.Leg leg;
+
+    protected LfLegBranch(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
+        super(bus1, bus0, new PiModel(leg.getR(), leg.getX())
+                            .setR1(Transformers.getRatioLeg(twt, leg))
+                            .setG2(leg.getG())
+                            .setB2(leg.getB()),
+                leg.getTerminal().getVoltageLevel().getNominalV(),
+                twt.getRatedU0()); // Star bus.
+
         this.twt = twt;
+        this.leg = leg;
     }
 
-    public static LfLeg1Branch create(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt) {
+    public static LfLegBranch create(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(twt);
-        return new LfLeg1Branch(bus1, bus0, twt);
+        Objects.requireNonNull(leg);
+        return new LfLegBranch(bus1, bus0, twt, leg);
     }
 
     @Override
     public String getId() {
-        return twt.getId() + " leg1";
+        return twt.getId() + " leg";
     }
 
     @Override
