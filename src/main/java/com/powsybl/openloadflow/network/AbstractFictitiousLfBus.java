@@ -19,6 +19,11 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     }
 
     @Override
+    public boolean isFictitious() {
+        return true;
+    }
+
+    @Override
     public boolean hasVoltageControl() {
         return false;
     }
