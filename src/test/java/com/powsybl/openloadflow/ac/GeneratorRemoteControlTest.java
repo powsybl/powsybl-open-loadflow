@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -18,12 +17,14 @@ import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.concurrent.CompletionException;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class VoltageRemoteControlTest extends AbstractLoadFlowNetworkFactory {
+public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     private Network network;
     private LoadFlow.Runner loadFlowRunner;
@@ -31,7 +32,7 @@ public class VoltageRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     @Before
     public void setUp() {
-        network = Network.create("voltage-remote-control-test", "code");
+        network = Network.create("generator-remote-control-test", "code");
         Substation s = network.newSubstation()
                 .setId("s")
                 .add();
@@ -170,7 +171,6 @@ public class VoltageRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     public void test() {
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
+        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
     }
 }

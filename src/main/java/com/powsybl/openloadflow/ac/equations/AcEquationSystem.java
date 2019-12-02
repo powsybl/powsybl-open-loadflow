@@ -37,15 +37,17 @@ public final class AcEquationSystem {
         EquationSystem equationSystem = new EquationSystem(network);
 
         for (LfBus bus : network.getBuses()) {
-            if (bus.getRemoteControlBus().isPresent()) {
-                throw new PowsyblException("Generator remote voltage control is not yet supported: " + bus.getId());
-            }
             if (bus.isSlack()) {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_PHI).addTerm(new BusPhaseEquationTerm(bus, variableSet));
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
             if (bus.hasVoltageControl()) {
-                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+                LfBus remoteControlBus = bus.getRemoteControlBus().orElse(null);
+                if (remoteControlBus != null) {
+                    throw new PowsyblException("Generator remote voltage control is not yet supported: " + bus.getId());
+                } else {
+                    equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+                }
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
             }
             for (LfShunt shunt : bus.getShunts()) {

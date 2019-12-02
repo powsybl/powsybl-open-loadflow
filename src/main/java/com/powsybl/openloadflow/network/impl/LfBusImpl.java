@@ -89,6 +89,16 @@ public class LfBusImpl extends AbstractLfBus {
         return Optional.ofNullable(remoteControlBus);
     }
 
+    public void setRemoteControlBus(LfBus remoteControlBus) {
+        Objects.requireNonNull(remoteControlBus);
+        // check that remote control bus is still the same
+        if (this.remoteControlBus != null && this.remoteControlBus.getNum() != remoteControlBus.getNum()) {
+            throw new PowsyblException("Generators " + generators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "))
+                    + " connected to bus '" + getId() + "' must control the voltage of the same bus");
+        }
+        this.remoteControlBus = remoteControlBus;
+    }
+
     private double checkTargetV(double targetV) {
         if (!Double.isNaN(this.targetV) && this.targetV != targetV) {
             throw new PowsyblException("Multiple generators connected to same bus with different target voltage");
@@ -108,7 +118,7 @@ public class LfBusImpl extends AbstractLfBus {
         loadTargetQ += battery.getQ0();
     }
 
-    private void add(LfGenerator generator, boolean voltageControl, double targetV, LfBus remoteControlBus, double targetQ) {
+    private void add(LfGenerator generator, boolean voltageControl, double targetV, double targetQ) {
         generators.add(generator);
         boolean voltageControl2 = voltageControl;
         double maxRangeQ = generator.getMaxRangeQ();
@@ -125,37 +135,27 @@ public class LfBusImpl extends AbstractLfBus {
         if (voltageControl2) {
             this.targetV = checkTargetV(targetV);
             this.voltageControl = true;
-            // check that remote control bus is still the same
-            int oldRemoteControlBus = this.remoteControlBus != null ? this.remoteControlBus.getNum() : -1;
-            int newRemoteControlBus = remoteControlBus != null ? remoteControlBus.getNum() : -1;
-            if (newRemoteControlBus != oldRemoteControlBus) {
-                throw new PowsyblException("Generators (" + generators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "))
-                        + ") are connected to the same bus, they must control the same bus");
-            }
-            if (this.remoteControlBus == null && remoteControlBus != null) {
-                this.remoteControlBus = remoteControlBus;
-            }
         } else {
             generationTargetQ += targetQ;
         }
     }
 
-    void addGenerator(Generator generator, LfBus remoteControlBus) {
+    void addGenerator(Generator generator) {
         add(LfGeneratorImpl.create(generator), generator.isVoltageRegulatorOn(), generator.getTargetV(),
-                remoteControlBus, generator.getTargetQ());
+                generator.getTargetQ());
     }
 
     void addStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
             add(LfStaticVarCompensatorImpl.create(staticVarCompensator),
                     staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE,
-                    staticVarCompensator.getVoltageSetPoint(), null, staticVarCompensator.getReactivePowerSetPoint());
+                    staticVarCompensator.getVoltageSetPoint(), staticVarCompensator.getReactivePowerSetPoint());
         }
     }
 
     void addVscConverterStation(VscConverterStation vscCs) {
         add(LfVscConverterStationImpl.create(vscCs), vscCs.isVoltageRegulatorOn(), vscCs.getVoltageSetpoint(),
-                null, vscCs.getReactivePowerSetpoint());
+                vscCs.getReactivePowerSetpoint());
     }
 
     void addShuntCompensator(ShuntCompensator sc) {
