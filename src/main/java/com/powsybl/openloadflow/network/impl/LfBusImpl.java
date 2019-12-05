@@ -194,15 +194,6 @@ public class LfBusImpl extends AbstractLfBus {
         return targetV / nominalV;
     }
 
-    void addNeighbor() {
-        neighbors++;
-    }
-
-    @Override
-    public int getNeighbors() {
-        return neighbors;
-    }
-
     @Override
     public double getV() {
         return v / nominalV;
