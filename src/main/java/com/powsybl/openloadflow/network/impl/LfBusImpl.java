@@ -41,9 +41,9 @@ public class LfBusImpl extends AbstractLfBus {
 
     private double targetV = Double.NaN;
 
-    private LfBus remoteControlBus;
+    private LfBus remoteControlTarget;
 
-    private int neighbors = 0;
+    private final List<LfBus> remoteControlSources = new ArrayList<>();
 
     private final List<LfGenerator> generators = new ArrayList<>();
 
@@ -85,18 +85,29 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
-    public Optional<LfBus> getRemoteControlBus() {
-        return Optional.ofNullable(remoteControlBus);
+    public Optional<LfBus> getRemoteControlTarget() {
+        return Optional.ofNullable(remoteControlTarget);
     }
 
-    public void setRemoteControlBus(LfBus remoteControlBus) {
-        Objects.requireNonNull(remoteControlBus);
+    public void setRemoteControlTarget(LfBusImpl remoteControlTarget) {
+        Objects.requireNonNull(remoteControlTarget);
         // check that remote control bus is still the same
-        if (this.remoteControlBus != null && this.remoteControlBus.getNum() != remoteControlBus.getNum()) {
+        if (this.remoteControlTarget != null && this.remoteControlTarget.getNum() != remoteControlTarget.getNum()) {
             throw new PowsyblException("Generators " + generators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "))
                     + " connected to bus '" + getId() + "' must control the voltage of the same bus");
         }
-        this.remoteControlBus = remoteControlBus;
+        this.remoteControlTarget = remoteControlTarget;
+        remoteControlTarget.addRemoteControlSource(this);
+    }
+
+    @Override
+    public List<LfBus> getRemoteControlSources() {
+        return remoteControlSources;
+    }
+
+    public void addRemoteControlSource(LfBus remoteControlSource) {
+        Objects.requireNonNull(remoteControlSource);
+        remoteControlSources.add(remoteControlSource);
     }
 
     private double checkTargetV(double targetV) {
@@ -207,15 +218,6 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public double getTargetV() {
         return targetV / nominalV;
-    }
-
-    void addNeighbor() {
-        neighbors++;
-    }
-
-    @Override
-    public int getNeighbors() {
-        return neighbors;
     }
 
     @Override

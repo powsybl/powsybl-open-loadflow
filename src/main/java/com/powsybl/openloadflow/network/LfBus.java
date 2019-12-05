@@ -28,7 +28,9 @@ public interface LfBus {
 
     void setVoltageControl(boolean voltageControl);
 
-    Optional<LfBus> getRemoteControlBus();
+    Optional<LfBus> getRemoteControlTarget();
+
+    List<LfBus> getRemoteControlSources();
 
     double getTargetP();
 
@@ -72,7 +74,9 @@ public interface LfBus {
 
     List<LfShunt> getShunts();
 
-    int getNeighbors();
+    List<LfBranch> getBranches();
+
+    void addBranch(LfBranch branch);
 
     void updateState(boolean reactiveLimits);
 }

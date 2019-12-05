@@ -6,16 +6,13 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.commons.PowsyblException;
-import com.powsybl.openloadflow.equations.BusPhaseEquationTerm;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationType;
-import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfShunt;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -41,14 +38,36 @@ public final class AcEquationSystem {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_PHI).addTerm(new BusPhaseEquationTerm(bus, variableSet));
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
-            if (bus.hasVoltageControl()) {
-                LfBus remoteControlBus = bus.getRemoteControlBus().orElse(null);
-                if (remoteControlBus != null) {
-                    throw new PowsyblException("Generator remote voltage control is not yet supported: " + bus.getId());
-                } else {
-                    equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
-                }
+            if (bus.hasVoltageControl() && !bus.getRemoteControlTarget().isPresent()) {
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
+            }
+            List<LfBus> sources = bus.getRemoteControlSources();
+            if (!sources.isEmpty()) {
+                // voltage control equation at remote control target bus
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_REMOTE_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+
+                for (LfBus source : sources) {
+                    // deactivate reactive equation for all remote voltage source bus (where the generator is connected)
+                    equationSystem.createEquation(source.getNum(), EquationType.BUS_Q).setActive(false);
+                }
+
+                // N is the number of source bus: create N-1 equation to link the reactive equations together
+                // 0 = q0 + qi
+                LfBus source0 = sources.get(0);
+                for (int i = 1; i < sources.size(); i++) {
+                    LfBus source = sources.get(i);
+
+                    Equation zeroEq = equationSystem.createEquation(source.getNum(), EquationType.ZERO);
+                    for (LfBranch branch : source0.getBranches()) {
+                        LfBus otherBus = branch.getBus1() == source0 ? branch.getBus2() : branch.getBus1();
+                        zeroEq.addTerm(new ClosedBranchSide1ReactiveFlowEquationTerm(branch, source0, otherBus, variableSet));
+                    }
+                    for (LfBranch branch : source.getBranches()) {
+                        LfBus otherBus = branch.getBus1() == source ? branch.getBus2() : branch.getBus1();
+                        zeroEq.addTerm(EquationTerm.minus(new ClosedBranchSide1ReactiveFlowEquationTerm(branch, source, otherBus, variableSet)));
+                    }
+                }
             }
             for (LfShunt shunt : bus.getShunts()) {
                 ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, network, variableSet);

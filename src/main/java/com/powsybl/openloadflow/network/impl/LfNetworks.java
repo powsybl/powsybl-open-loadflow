@@ -55,12 +55,6 @@ public final class LfNetworks {
 
                 private void visitBranch(Branch branch) {
                     creationContext.branchSet.add(branch);
-                    // add to neighbors if connected at both sides
-                    Bus bus1 = branch.getTerminal1().getBusView().getBus();
-                    Bus bus2 = branch.getTerminal2().getBusView().getBus();
-                    if (bus1 != null && bus2 != null) {
-                        lfBus.addNeighbor();
-                    }
                 }
 
                 @Override
@@ -142,7 +136,7 @@ public final class LfNetworks {
             LfBusImpl lfBus = e.getKey();
             String remoteControlBusId = e.getValue();
             LfBus remoteControlBus = lfBuses.get(creationContext.busIdToNum.get(remoteControlBusId));
-            lfBus.setRemoteControlBus(remoteControlBus);
+            lfBus.setRemoteControlTarget((LfBusImpl) remoteControlBus);
         }
 
         return lfBuses;
@@ -171,6 +165,16 @@ public final class LfNetworks {
             lfBranches.add(LfLeg1Branch.create(lfBus1, lfBus0, t3wt));
             lfBranches.add(LfLeg2or3Branch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2()));
             lfBranches.add(LfLeg2or3Branch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3()));
+        }
+
+        // create bus -> branches link
+        for (LfBranch branch : lfBranches) {
+            if (branch.getBus1() != null) {
+                branch.getBus1().addBranch(branch);
+            }
+            if (branch.getBus2() != null) {
+                branch.getBus2().addBranch(branch);
+            }
         }
 
         return lfBranches;

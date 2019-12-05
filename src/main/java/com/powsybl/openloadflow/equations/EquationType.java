@@ -13,5 +13,7 @@ public enum EquationType {
     BUS_P,
     BUS_Q,
     BUS_V,
-    BUS_PHI
+    BUS_REMOTE_V,
+    BUS_PHI,
+    ZERO,
 }

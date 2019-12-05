@@ -97,7 +97,15 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 targets[row] = network.getBus(num).getTargetV();
                 break;
 
+            case BUS_REMOTE_V:
+                targets[row] = network.getBus(num).getRemoteControlSources().get(0).getTargetV();
+                break;
+
             case BUS_PHI:
+                targets[row] = 0;
+                break;
+
+            case ZERO:
                 targets[row] = 0;
                 break;
 

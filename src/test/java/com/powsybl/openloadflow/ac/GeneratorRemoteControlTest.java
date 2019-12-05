@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -17,9 +18,7 @@ import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.concurrent.CompletionException;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -171,6 +170,10 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     public void test() {
-        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        for (Bus bus : network.getBusView().getBuses()) {
+            System.out.println(bus.getId() + " " + bus.getV());
+        }
     }
 }

@@ -25,7 +25,7 @@ public class MostMeshedSlackBusSelector implements SlackBusSelector {
         // select non fictitious and most meshed bus among buses with highest nominal voltage
         return buses.stream()
                 .filter(bus -> !bus.isFictitious() && bus.getNominalV() == maxNominalV)
-                .max(Comparator.comparingInt(LfBus::getNeighbors))
+                .max(Comparator.comparingInt(bus -> bus.getBranches().size()))
                 .orElseThrow(AssertionError::new);
     }
 }
