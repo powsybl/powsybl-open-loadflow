@@ -8,6 +8,8 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.List;
 
 /**
@@ -56,4 +58,6 @@ public interface EquationTerm extends Evaluable {
      * @return value of part of the partial derivative that has to be moved to right hand side
      */
     double rhs(Variable variable);
+
+    void write(Writer writer) throws IOException;
 }

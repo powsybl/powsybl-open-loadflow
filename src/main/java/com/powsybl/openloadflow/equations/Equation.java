@@ -9,7 +9,10 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -160,6 +163,19 @@ public class Equation implements Evaluable, Comparable<Equation> {
             c = type.ordinal() - o.type.ordinal();
         }
         return c;
+    }
+
+    public void write(Writer writer) throws IOException {
+        writer.write(type.getSymbol());
+        writer.append(Integer.toString(num));
+        writer.append(" = ");
+        for (Iterator<EquationTerm> it = terms.iterator(); it.hasNext();) {
+            EquationTerm term = it.next();
+            term.write(writer);
+            if (it.hasNext()) {
+                writer.write(" + ");
+            }
+        }
     }
 
     @Override

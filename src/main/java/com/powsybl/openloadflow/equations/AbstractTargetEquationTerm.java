@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Collections;
 import java.util.List;
 
@@ -50,5 +52,10 @@ public abstract class AbstractTargetEquationTerm implements EquationTerm {
     @Override
     public double rhs(Variable variable) {
         return 0;
+    }
+
+    @Override
+    public void write(Writer writer) throws IOException {
+        variables.get(0).write(writer);
     }
 }
