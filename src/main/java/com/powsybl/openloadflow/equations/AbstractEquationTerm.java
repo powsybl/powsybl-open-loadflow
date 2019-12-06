@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Iterator;
 
 /**
@@ -16,15 +18,16 @@ public abstract class AbstractEquationTerm implements EquationTerm {
     protected abstract String getName();
 
     @Override
-    public void print(StringBuilder builder) {
-        builder.append(getName()).append("(");
+    public void write(Writer writer) throws IOException {
+        writer.write(getName());
+        writer.write("(");
         for (Iterator<Variable> it = getVariables().iterator(); it.hasNext();) {
             Variable variable = it.next();
-            variable.print(builder);
+            variable.write(writer);
             if (it.hasNext()) {
-                builder.append(", ");
+                writer.write(", ");
             }
         }
-        builder.append(")");
+        writer.write(")");
     }
 }

@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -98,15 +100,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 targets[row] = network.getBus(num).getTargetV();
                 break;
 
-            case BUS_REMOTE_V:
-                targets[row] = network.getBus(num).getRemoteControlSources().get(0).getTargetV();
-                break;
-
             case BUS_PHI:
-                targets[row] = 0;
-                break;
-
-            case ZERO:
                 targets[row] = 0;
                 break;
 
@@ -171,15 +165,15 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return c;
     }
 
-    public void print(StringBuilder builder) {
-        builder.append(type.getSymbol())
-                .append(num)
-                .append(" = ");
+    public void write(Writer writer) throws IOException {
+        writer.write(type.getSymbol());
+        writer.append(Integer.toString(num));
+        writer.append(" = ");
         for (Iterator<EquationTerm> it = terms.iterator(); it.hasNext();) {
             EquationTerm term = it.next();
-            term.print(builder);
+            term.write(writer);
             if (it.hasNext()) {
-                builder.append(" + ");
+                writer.write(" + ");
             }
         }
     }
