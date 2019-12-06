@@ -15,9 +15,11 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -26,10 +28,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     private Network network;
+    private Bus b1;
+    private Bus b2;
+    private Bus b3;
+    private Bus b4;
+    private Generator g1;
+    private Generator g2;
+    private Generator g3;
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         network = Network.create("generator-remote-control-test", "code");
         Substation s = network.newSubstation()
@@ -40,7 +49,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setNominalV(20)
                 .setTopologyKind(TopologyKind.BUS_BREAKER)
                 .add();
-        Bus b1 = vl1.getBusBreakerView().newBus()
+        b1 = vl1.getBusBreakerView().newBus()
                 .setId("b1")
                 .add();
         VoltageLevel vl2 = s.newVoltageLevel()
@@ -48,7 +57,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setNominalV(20)
                 .setTopologyKind(TopologyKind.BUS_BREAKER)
                 .add();
-        Bus b2 = vl2.getBusBreakerView().newBus()
+        b2 = vl2.getBusBreakerView().newBus()
                 .setId("b2")
                 .add();
         VoltageLevel vl3 = s.newVoltageLevel()
@@ -56,7 +65,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setNominalV(20)
                 .setTopologyKind(TopologyKind.BUS_BREAKER)
                 .add();
-        Bus b3 = vl3.getBusBreakerView().newBus()
+        b3 = vl3.getBusBreakerView().newBus()
                 .setId("b3")
                 .add();
         VoltageLevel vl4 = s.newVoltageLevel()
@@ -64,17 +73,17 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setNominalV(400)
                 .setTopologyKind(TopologyKind.BUS_BREAKER)
                 .add();
-        Bus b4 = vl4.getBusBreakerView().newBus()
+        b4 = vl4.getBusBreakerView().newBus()
                 .setId("b4")
                 .add();
         Load l4 = vl4.newLoad()
                 .setId("l4")
                 .setBus("b4")
                 .setConnectableBus("b4")
-                .setP0(300)
+                .setP0(299.6)
                 .setQ0(200)
                 .add();
-        Generator g1 = b1.getVoltageLevel()
+        g1 = b1.getVoltageLevel()
                 .newGenerator()
                 .setId("g1")
                 .setBus("b1")
@@ -83,11 +92,11 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(387.2)
+                .setTargetV(413.4) // 22 413.4
                 .setVoltageRegulatorOn(true)
                 .setRegulatingTerminal(l4.getTerminal())
                 .add();
-        Generator g2 = b2.getVoltageLevel()
+        g2 = b2.getVoltageLevel()
                 .newGenerator()
                 .setId("g2")
                 .setBus("b2")
@@ -96,11 +105,11 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(387.2)
+                .setTargetV(413.4)
                 .setVoltageRegulatorOn(true)
                 .setRegulatingTerminal(l4.getTerminal())
                 .add();
-        Generator g3 = b3.getVoltageLevel()
+        g3 = b3.getVoltageLevel()
                 .newGenerator()
                 .setId("g3")
                 .setBus("b3")
@@ -109,7 +118,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(387.2)
+                .setTargetV(413.4)
                 .setVoltageRegulatorOn(true)
                 .setRegulatingTerminal(l4.getTerminal())
                 .add();
@@ -123,8 +132,8 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
                 .setRatedU2(399)
-                .setR(0.01)
-                .setX(3)
+                .setR(1)
+                .setX(30)
                 .setG(0)
                 .setB(0)
                 .add();
@@ -138,8 +147,8 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.2)
                 .setRatedU2(398)
-                .setR(0.01)
-                .setX(3.6)
+                .setR(1)
+                .setX(36)
                 .setG(0)
                 .setB(0)
                 .add();
@@ -153,8 +162,8 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(21.3)
                 .setRatedU2(397)
-                .setR(0.02)
-                .setX(5)
+                .setR(2)
+                .setX(50)
                 .setG(0)
                 .setB(0)
                 .add();
@@ -172,14 +181,12 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     public void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        for (Bus bus : network.getBusView().getBuses()) {
-            System.out.println(bus.getId() + " " + bus.getV() + " " + bus.getAngle());
-        }
-        for (TwoWindingsTransformer twt : network.getTwoWindingsTransformers()) {
-            System.out.println(twt.getId() + " " + twt.getTerminal1().getP()
-                    + " " + twt.getTerminal1().getQ()
-                    + " " + twt.getTerminal2().getP()
-                    + " " + twt.getTerminal2().getQ());
-        }
+        assertVoltageEquals(21.506559, b1);
+        assertVoltageEquals(21.293879, b2);
+        assertVoltageEquals(22.641227, b3);
+        assertVoltageEquals(413.4, b4);
+        assertReactivePowerEquals(-69.925, g1.getTerminal());
+        assertReactivePowerEquals(-69.925, g2.getTerminal());
+        assertReactivePowerEquals(-69.925, g2.getTerminal());
     }
 }

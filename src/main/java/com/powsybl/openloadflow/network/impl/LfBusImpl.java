@@ -217,7 +217,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public double getTargetV() {
-        return targetV / nominalV;
+        return targetV / (remoteControlTarget != null ? remoteControlTarget.getNominalV() : nominalV);
     }
 
     @Override
