@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.openloadflow.network.LfNetwork;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -179,5 +181,12 @@ public class EquationSystem {
         Objects.requireNonNull(equation);
         Objects.requireNonNull(eventType);
         listeners.forEach(listener -> listener.equationListChanged(equation, eventType));
+    }
+
+    public void write(Writer writer) throws IOException {
+        for (Equation equation : getSortedEquationsToSolve()) {
+            equation.write(writer);
+            writer.write(System.lineSeparator());
+        }
     }
 }

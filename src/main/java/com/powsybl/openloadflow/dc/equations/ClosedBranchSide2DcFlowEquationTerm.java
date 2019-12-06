@@ -66,4 +66,9 @@ public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBra
         }
         return 0;
     }
+
+    @Override
+    protected String getName() {
+        return "dc_p_2";
+    }
 }

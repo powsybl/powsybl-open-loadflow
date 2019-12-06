@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Objects;
 
 /**
@@ -108,6 +110,11 @@ public class Variable implements Comparable<Variable> {
             c = type.ordinal() - o.type.ordinal();
         }
         return c;
+    }
+
+    public void write(Writer writer) throws IOException {
+        writer.write(type.getSymbol());
+        writer.write(Integer.toString(num));
     }
 
     @Override

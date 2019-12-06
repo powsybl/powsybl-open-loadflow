@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.dc.equations;
 
 import com.google.common.collect.ImmutableList;
-import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.AbstractEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.equations.VariableType;
@@ -20,7 +20,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractClosedBranchDcFlowEquationTerm implements EquationTerm {
+public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEquationTerm {
 
     protected final LfBranch branch;
 

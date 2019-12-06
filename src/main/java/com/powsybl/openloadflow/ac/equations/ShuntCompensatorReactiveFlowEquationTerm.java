@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.Variable;
-import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.equations.VariableType;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfShunt;
@@ -21,7 +18,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class ShuntCompensatorReactiveFlowEquationTerm implements EquationTerm {
+public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractEquationTerm {
 
     private final Variable vVar;
 
@@ -80,5 +77,10 @@ public class ShuntCompensatorReactiveFlowEquationTerm implements EquationTerm {
     @Override
     public double rhs(Variable variable) {
         return 0;
+    }
+
+    @Override
+    protected String getName() {
+        return "ac_q_shunt";
     }
 }
