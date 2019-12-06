@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * An equation term, i.e part of the equation sum.
@@ -18,6 +19,55 @@ import java.util.List;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public interface EquationTerm extends Evaluable {
+
+    class MinusEquationTerm implements EquationTerm {
+
+        private final EquationTerm term;
+
+        MinusEquationTerm(EquationTerm term) {
+            this.term = Objects.requireNonNull(term);
+        }
+
+        @Override
+        public List<Variable> getVariables() {
+            return term.getVariables();
+        }
+
+        @Override
+        public void update(double[] x) {
+            term.update(x);
+        }
+
+        @Override
+        public double eval() {
+            return -term.eval();
+        }
+
+        @Override
+        public double der(Variable variable) {
+            return -term.der(variable);
+        }
+
+        @Override
+        public boolean hasRhs() {
+            return term.hasRhs();
+        }
+
+        @Override
+        public double rhs(Variable variable) {
+            return -term.rhs(variable);
+        }
+
+        @Override
+        public void write(Writer writer) throws IOException {
+            writer.write("-");
+            term.write(writer);
+        }
+    }
+
+    static EquationTerm minus(EquationTerm term) {
+        return new MinusEquationTerm(term);
+    }
 
     /**
      * Get the list of variable this equation term depends on.
