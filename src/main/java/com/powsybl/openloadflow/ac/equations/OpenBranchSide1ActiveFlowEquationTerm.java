@@ -52,4 +52,9 @@ public class OpenBranchSide1ActiveFlowEquationTerm extends AbstractOpenBranchAcF
             throw new IllegalStateException("Unknown variable: " + variable);
         }
     }
+
+    @Override
+    protected String getName() {
+        return "ac_p_open_1";
+    }
 }

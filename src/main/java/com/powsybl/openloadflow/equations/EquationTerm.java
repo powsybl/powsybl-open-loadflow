@@ -55,6 +55,12 @@ public interface EquationTerm extends Evaluable {
         public double rhs(Variable variable) {
             return -term.rhs(variable);
         }
+
+        @Override
+        public void print(StringBuilder builder) {
+            builder.append("-");
+            term.print(builder);
+        }
     }
 
     static EquationTerm minus(EquationTerm term) {
@@ -100,4 +106,6 @@ public interface EquationTerm extends Evaluable {
      * @return value of part of the partial derivative that has to be moved to right hand side
      */
     double rhs(Variable variable);
+
+    void print(StringBuilder builder);
 }

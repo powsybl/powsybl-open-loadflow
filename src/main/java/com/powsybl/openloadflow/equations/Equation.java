@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -168,6 +169,19 @@ public class Equation implements Evaluable, Comparable<Equation> {
             c = type.ordinal() - o.type.ordinal();
         }
         return c;
+    }
+
+    public void print(StringBuilder builder) {
+        builder.append(type.getSymbol())
+                .append(num)
+                .append(" = ");
+        for (Iterator<EquationTerm> it = terms.iterator(); it.hasNext();) {
+            EquationTerm term = it.next();
+            term.print(builder);
+            if (it.hasNext()) {
+                builder.append(" + ");
+            }
+        }
     }
 
     @Override

@@ -51,4 +51,9 @@ public abstract class AbstractTargetEquationTerm implements EquationTerm {
     public double rhs(Variable variable) {
         return 0;
     }
+
+    @Override
+    public void print(StringBuilder builder) {
+        variables.get(0).print(builder);
+    }
 }

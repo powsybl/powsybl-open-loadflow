@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.AbstractEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.network.LfBranch;
 import net.jafama.FastMath;
@@ -16,7 +16,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-abstract class AbstractBranchAcFlowEquationTerm implements EquationTerm {
+abstract class AbstractBranchAcFlowEquationTerm extends AbstractEquationTerm {
 
     protected final LfBranch branch;
 

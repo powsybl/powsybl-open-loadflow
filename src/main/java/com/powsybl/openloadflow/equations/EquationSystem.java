@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.openloadflow.network.LfNetwork;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.io.PrintStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -179,5 +180,18 @@ public class EquationSystem {
         Objects.requireNonNull(equation);
         Objects.requireNonNull(eventType);
         listeners.forEach(listener -> listener.equationListChanged(equation, eventType));
+    }
+
+    public void print(PrintStream out) {
+        StringBuilder builder = new StringBuilder();
+        print(builder);
+        out.print(builder.toString());
+    }
+
+    public void print(StringBuilder builder) {
+        for (Equation equation : getSortedEquationsToSolve()) {
+            equation.print(builder);
+            builder.append(System.lineSeparator());
+        }
     }
 }

@@ -110,6 +110,10 @@ public class Variable implements Comparable<Variable> {
         return c;
     }
 
+    public void print(StringBuilder builder) {
+        builder.append(type.getSymbol()).append(num);
+    }
+
     @Override
     public String toString() {
         return "Variable(num=" + num + ", type=" + type + ", column=" + column + ")";

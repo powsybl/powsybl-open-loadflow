@@ -164,7 +164,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         parameters.setNoGeneratorReactiveLimits(true);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new MostMeshedSlackBusSelector())
-                .setDistributedSlack(true);
+                .setDistributedSlack(false);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
@@ -173,7 +173,13 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         for (Bus bus : network.getBusView().getBuses()) {
-            System.out.println(bus.getId() + " " + bus.getV());
+            System.out.println(bus.getId() + " " + bus.getV() + " " + bus.getAngle());
+        }
+        for (TwoWindingsTransformer twt : network.getTwoWindingsTransformers()) {
+            System.out.println(twt.getId() + " " + twt.getTerminal1().getP()
+                    + " " + twt.getTerminal1().getQ()
+                    + " " + twt.getTerminal2().getP()
+                    + " " + twt.getTerminal2().getQ());
         }
     }
 }
