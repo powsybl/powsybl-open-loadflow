@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -57,7 +58,10 @@ public final class AcEquationSystem {
     }
 
     private static void createRemoteVoltageEquations(LfBus bus, List<LfBus> sourceBuses, EquationSystem equationSystem, VariableSet variableSet) {
-        // TODO check voltage target consistency
+        // check voltage target consistency
+        if (sourceBuses.stream().mapToDouble(LfBus::getTargetV).distinct().count() != 1) {
+            throw new PowsyblException("Inconsistent target voltage at bus " + bus.getId());
+        }
 
         // create voltage equation at remote control target bus
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_REMOTE_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
