@@ -10,10 +10,7 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.nr.*;
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationType;
-import com.powsybl.openloadflow.equations.VoltageInitializer;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Markers;
@@ -43,14 +40,18 @@ public class AcloadFlowEngine {
 
     private final AcLoadFlowObserver observer;
 
+    boolean generatorVoltageRemoteControl;
+
     public AcloadFlowEngine(LfNetwork network, VoltageInitializer voltageInitializer, NewtonRaphsonStoppingCriteria stoppingCriteria,
-                            List<OuterLoop> outerLoops, MatrixFactory matrixFactory, AcLoadFlowObserver observer) {
+                            List<OuterLoop> outerLoops, MatrixFactory matrixFactory, AcLoadFlowObserver observer,
+                            boolean generatorVoltageRemoteControl) {
         this.network = Objects.requireNonNull(network);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
         this.outerLoops = Objects.requireNonNull(outerLoops);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.observer = Objects.requireNonNull(observer);
+        this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
     }
 
     private void updatePvBusesReactivePower(NewtonRaphsonResult lastNrResult, EquationSystem equationSystem) {
@@ -75,7 +76,7 @@ public class AcloadFlowEngine {
 
         observer.beforeEquationSystemCreation();
 
-        EquationSystem equationSystem = AcEquationSystem.create(network);
+        EquationSystem equationSystem = AcEquationSystem.create(network, new VariableSet(), generatorVoltageRemoteControl);
 
         observer.afterEquationSystemCreation();
 

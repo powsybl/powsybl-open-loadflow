@@ -151,7 +151,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             logBalance(lfNetwork);
 
             AcLoadFlowResult result = new AcloadFlowEngine(lfNetwork, voltageInitializer, stoppingCriteria, outerLoops,
-                    matrixFactory, getObserver(parametersExt))
+                    matrixFactory, getObserver(parametersExt), parametersExt.hasGeneratorVoltageRemoteControl())
                     .run();
 
             // update network state

@@ -176,7 +176,8 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         parameters.setNoGeneratorReactiveLimits(true);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new MostMeshedSlackBusSelector())
-                .setDistributedSlack(false);
+                .setDistributedSlack(false)
+                .setGeneratorVoltageRemoteControl(true);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 

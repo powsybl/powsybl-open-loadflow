@@ -26,23 +26,26 @@ public final class AcEquationSystem {
     }
 
     public static EquationSystem create(LfNetwork network) {
-        return create(network, new VariableSet());
+        return create(network, new VariableSet(), false);
     }
 
-    private static void createBusEquations(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem) {
+    private static void createBusEquations(LfNetwork network, VariableSet variableSet, boolean generatorVoltageRemoteControl,
+                                           EquationSystem equationSystem) {
         for (LfBus bus : network.getBuses()) {
             if (bus.isSlack()) {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_PHI).addTerm(new BusPhaseEquationTerm(bus, variableSet));
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
-            if (bus.hasVoltageControl() && !bus.getRemoteControlTargetBus().isPresent()) {
+            if (bus.hasVoltageControl() && !(generatorVoltageRemoteControl && bus.getRemoteControlTargetBus().isPresent())) {
                 createLocalVoltageEquation(variableSet, equationSystem, bus);
             }
-            List<LfBus> sourceBuses = bus.getRemoteControlSourceBuses().stream()
-                    .filter(LfBus::hasVoltageControl)
-                    .collect(Collectors.toList());
-            if (!sourceBuses.isEmpty()) {
-                createRemoteVoltageEquations(bus, sourceBuses, equationSystem, variableSet);
+            if (generatorVoltageRemoteControl) {
+                List<LfBus> sourceBuses = bus.getRemoteControlSourceBuses().stream()
+                        .filter(LfBus::hasVoltageControl)
+                        .collect(Collectors.toList());
+                if (!sourceBuses.isEmpty()) {
+                    createRemoteVoltageEquations(bus, sourceBuses, equationSystem, variableSet);
+                }
             }
             for (LfShunt shunt : bus.getShunts()) {
                 ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, network, variableSet);
@@ -127,13 +130,13 @@ public final class AcEquationSystem {
         }
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean generatorVoltageRemoteControl) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(variableSet);
 
         EquationSystem equationSystem = new EquationSystem(network);
 
-        createBusEquations(network, variableSet, equationSystem);
+        createBusEquations(network, variableSet, generatorVoltageRemoteControl, equationSystem);
         createBranchEquations(network, variableSet, equationSystem);
 
         return equationSystem;
