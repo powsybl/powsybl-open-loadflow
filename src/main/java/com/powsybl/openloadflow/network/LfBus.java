@@ -28,9 +28,9 @@ public interface LfBus {
 
     void setVoltageControl(boolean voltageControl);
 
-    Optional<LfBus> getRemoteControlTarget();
+    Optional<LfBus> getRemoteControlTargetBus();
 
-    List<LfBus> getRemoteControlSources();
+    List<LfBus> getRemoteControlSourceBuses();
 
     double getTargetP();
 

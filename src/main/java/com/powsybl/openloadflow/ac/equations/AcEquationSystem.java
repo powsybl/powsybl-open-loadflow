@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.network.LfShunt;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -33,13 +34,14 @@ public final class AcEquationSystem {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_PHI).addTerm(new BusPhaseEquationTerm(bus, variableSet));
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
-            if (bus.hasVoltageControl() && !bus.getRemoteControlTarget().isPresent()) {
-                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
-                equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
+            if (bus.hasVoltageControl() && !bus.getRemoteControlTargetBus().isPresent()) {
+                createLocalVoltageEquation(variableSet, equationSystem, bus);
             }
-            List<LfBus> sources = bus.getRemoteControlSources();
-            if (!sources.isEmpty()) {
-                createRemoteVoltageEquations(bus, sources, equationSystem, variableSet);
+            List<LfBus> sourceBuses = bus.getRemoteControlSourceBuses().stream()
+                    .filter(LfBus::hasVoltageControl)
+                    .collect(Collectors.toList());
+            if (!sourceBuses.isEmpty()) {
+                createRemoteVoltageEquations(bus, sourceBuses, equationSystem, variableSet);
             }
             for (LfShunt shunt : bus.getShunts()) {
                 ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, network, variableSet);
@@ -49,29 +51,39 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createRemoteVoltageEquations(LfBus bus, List<LfBus> sources, EquationSystem equationSystem, VariableSet variableSet) {
+    private static void createLocalVoltageEquation(VariableSet variableSet, EquationSystem equationSystem, LfBus bus) {
+        equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+        equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
+    }
+
+    private static void createRemoteVoltageEquations(LfBus bus, List<LfBus> sourceBuses, EquationSystem equationSystem, VariableSet variableSet) {
+        // TODO check voltage target consistency
+
         // create voltage equation at remote control target bus
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_REMOTE_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
 
-        for (LfBus source : sources) {
+        for (LfBus sourceBus : sourceBuses) {
             // deactivate reactive equation for all remote voltage source bus (where the generator is connected)
-            equationSystem.createEquation(source.getNum(), EquationType.BUS_Q).setActive(false);
+            equationSystem.createEquation(sourceBus.getNum(), EquationType.BUS_Q).setActive(false);
         }
 
         // create (number of source bus) - 1 equation to link the reactive equations together
-        LfBus source0 = sources.get(0);
-        for (int i = 1; i < sources.size(); i++) {
-            LfBus source = sources.get(i);
+        LfBus firstSourceBus = sourceBuses.get(0);
+        for (int i = 1; i < sourceBuses.size(); i++) {
+            LfBus sourceBus = sourceBuses.get(i);
 
             // 0 = q0 + qi
-            Equation zeroEq = equationSystem.createEquation(source.getNum(), EquationType.ZERO);
-            for (LfBranch branch : source0.getBranches()) {
-                LfBus otherBus = branch.getBus1() == source0 ? branch.getBus2() : branch.getBus1();
-                zeroEq.addTerm(new ClosedBranchSide1ReactiveFlowEquationTerm(branch, source0, otherBus, variableSet));
+            Equation zero = equationSystem.createEquation(sourceBus.getNum(), EquationType.ZERO);
+            for (LfBranch branch : firstSourceBus.getBranches()) {
+                LfBus otherSideBus = branch.getBus1() == firstSourceBus ? branch.getBus2() : branch.getBus1();
+                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, firstSourceBus, otherSideBus, variableSet);
+                zero.addTerm(q);
             }
-            for (LfBranch branch : source.getBranches()) {
-                LfBus otherBus = branch.getBus1() == source ? branch.getBus2() : branch.getBus1();
-                zeroEq.addTerm(EquationTerm.minus(new ClosedBranchSide1ReactiveFlowEquationTerm(branch, source, otherBus, variableSet)));
+            for (LfBranch branch : sourceBus.getBranches()) {
+                LfBus otherSideBus = branch.getBus1() == sourceBus ? branch.getBus2() : branch.getBus1();
+                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, sourceBus, otherSideBus, variableSet);
+                EquationTerm minusQ = EquationTerm.minus(q);
+                zero.addTerm(minusQ);
             }
         }
     }

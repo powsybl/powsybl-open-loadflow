@@ -46,7 +46,7 @@ public final class LfNetworks {
     private static List<LfBus> createBuses(List<Bus> buses, CreationContext creationContext) {
         List<LfBus> lfBuses = new ArrayList<>(buses.size());
         int[] generatorCount = new int[1];
-        Map<LfBusImpl, String> generatorRemoteControlBusId = new HashMap<>();
+        Map<LfBusImpl, String> generatorRemoteControlTargetBusId = new HashMap<>();
 
         for (Bus bus : buses) {
             LfBusImpl lfBus = addLfBus(bus, lfBuses, creationContext.busIdToNum);
@@ -79,9 +79,9 @@ public final class LfNetworks {
                     String controlBusId = generator.getRegulatingTerminal().getBusView().getBus().getId();
                     String connectedBusId = generator.getTerminal().getBusView().getBus().getId();
                     if (!Objects.equals(controlBusId, connectedBusId)) {
-                        // remote control bus will be set later because control bus might not have
-                        // been yet converted
-                        generatorRemoteControlBusId.put(lfBus, controlBusId);
+                        // remote control target bus will be set later because target bus might not have
+                        // been yet created
+                        generatorRemoteControlTargetBusId.put(lfBus, controlBusId);
                     }
 
                     generatorCount[0]++;
@@ -131,12 +131,12 @@ public final class LfNetworks {
             throw new PowsyblException("Connected component without any regulating generator");
         }
 
-        // set generators remote control bus
-        for (Map.Entry<LfBusImpl, String> e : generatorRemoteControlBusId.entrySet()) {
-            LfBusImpl lfBus = e.getKey();
-            String remoteControlBusId = e.getValue();
-            LfBus remoteControlBus = lfBuses.get(creationContext.busIdToNum.get(remoteControlBusId));
-            lfBus.setRemoteControlTarget((LfBusImpl) remoteControlBus);
+        // set generators remote control target bus
+        for (Map.Entry<LfBusImpl, String> e : generatorRemoteControlTargetBusId.entrySet()) {
+            LfBusImpl generatorBus = e.getKey();
+            String remoteControlTargetBusId = e.getValue();
+            LfBus remoteControlTargetBus = lfBuses.get(creationContext.busIdToNum.get(remoteControlTargetBusId));
+            generatorBus.setRemoteControlTargetBus((LfBusImpl) remoteControlTargetBus);
         }
 
         return lfBuses;

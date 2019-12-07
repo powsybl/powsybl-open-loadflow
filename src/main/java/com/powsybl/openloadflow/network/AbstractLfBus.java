@@ -40,7 +40,7 @@ public abstract class AbstractLfBus implements LfBus {
     }
 
     @Override
-    public Optional<LfBus> getRemoteControlTarget() {
+    public Optional<LfBus> getRemoteControlTargetBus() {
         return Optional.empty();
     }
 

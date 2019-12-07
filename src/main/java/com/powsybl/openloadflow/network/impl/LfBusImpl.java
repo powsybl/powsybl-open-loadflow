@@ -41,9 +41,9 @@ public class LfBusImpl extends AbstractLfBus {
 
     private double targetV = Double.NaN;
 
-    private LfBus remoteControlTarget;
+    private LfBus remoteControlTargetBus;
 
-    private final List<LfBus> remoteControlSources = new ArrayList<>();
+    private final List<LfBus> remoteControlSourceBuses = new ArrayList<>();
 
     private final List<LfGenerator> generators = new ArrayList<>();
 
@@ -85,29 +85,29 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
-    public Optional<LfBus> getRemoteControlTarget() {
-        return Optional.ofNullable(remoteControlTarget);
+    public Optional<LfBus> getRemoteControlTargetBus() {
+        return Optional.ofNullable(remoteControlTargetBus);
     }
 
-    public void setRemoteControlTarget(LfBusImpl remoteControlTarget) {
-        Objects.requireNonNull(remoteControlTarget);
+    public void setRemoteControlTargetBus(LfBusImpl remoteControlTargetBus) {
+        Objects.requireNonNull(remoteControlTargetBus);
         // check that remote control bus is still the same
-        if (this.remoteControlTarget != null && this.remoteControlTarget.getNum() != remoteControlTarget.getNum()) {
+        if (this.remoteControlTargetBus != null && this.remoteControlTargetBus.getNum() != remoteControlTargetBus.getNum()) {
             throw new PowsyblException("Generators " + generators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "))
                     + " connected to bus '" + getId() + "' must control the voltage of the same bus");
         }
-        this.remoteControlTarget = remoteControlTarget;
-        remoteControlTarget.addRemoteControlSource(this);
+        this.remoteControlTargetBus = remoteControlTargetBus;
+        remoteControlTargetBus.addRemoteControlSource(this);
     }
 
     @Override
-    public List<LfBus> getRemoteControlSources() {
-        return remoteControlSources;
+    public List<LfBus> getRemoteControlSourceBuses() {
+        return remoteControlSourceBuses;
     }
 
     public void addRemoteControlSource(LfBus remoteControlSource) {
         Objects.requireNonNull(remoteControlSource);
-        remoteControlSources.add(remoteControlSource);
+        remoteControlSourceBuses.add(remoteControlSource);
     }
 
     private double checkTargetV(double targetV) {
@@ -217,7 +217,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public double getTargetV() {
-        return targetV / (remoteControlTarget != null ? remoteControlTarget.getNominalV() : nominalV);
+        return targetV / (remoteControlTargetBus != null ? remoteControlTargetBus.getNominalV() : nominalV);
     }
 
     @Override
