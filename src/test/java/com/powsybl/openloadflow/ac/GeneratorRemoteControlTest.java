@@ -178,7 +178,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void test() {
+    public void testWith3Generators() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(21.506559, b1);
@@ -187,6 +187,20 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertVoltageEquals(413.4, b4);
         assertReactivePowerEquals(-69.925, g1.getTerminal());
         assertReactivePowerEquals(-69.925, g2.getTerminal());
-        assertReactivePowerEquals(-69.925, g2.getTerminal());
+        assertReactivePowerEquals(-69.925, g3.getTerminal());
+    }
+
+    @Test
+    public void testWith2Generators() {
+        g3.setTargetQ(10).setVoltageRegulatorOn(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(21.616159, b1);
+        assertVoltageEquals(21.423099, b2);
+        assertVoltageEquals(22.261066, b3);
+        assertVoltageEquals(413.4, b4);
+        assertReactivePowerEquals(-100.189, g1.getTerminal());
+        assertReactivePowerEquals(-100.189, g2.getTerminal());
+        assertReactivePowerEquals(-10, g3.getTerminal());
     }
 }
