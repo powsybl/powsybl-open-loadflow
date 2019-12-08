@@ -41,6 +41,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     private Generator g3;
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
     public void setUp() {
@@ -175,7 +176,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
         parameters.setNoGeneratorReactiveLimits(true);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+        parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new MostMeshedSlackBusSelector())
                 .setDistributedSlack(false)
                 .setGeneratorVoltageRemoteControl(true);
@@ -229,5 +230,11 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(-100.189, g1.getTerminal());
         assertReactivePowerEquals(-100.189, g2.getTerminal());
         assertReactivePowerEquals(-10, g3.getTerminal());
+    }
+
+    @Test
+    public void testGeneratorVoltageRemoteControlNotActivated() {
+        parametersExt.setGeneratorVoltageRemoteControl(false);
+        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
     }
 }

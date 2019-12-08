@@ -35,6 +35,9 @@ public final class AcEquationSystem {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_PHI).addTerm(new BusPhaseEquationTerm(bus, variableSet));
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
+            if (!generatorVoltageRemoteControl && bus.getRemoteControlTargetBus().isPresent()) {
+                throw new PowsyblException("Generator remote voltage control support is not activated");
+            }
             if (bus.hasVoltageControl() && !(generatorVoltageRemoteControl && bus.getRemoteControlTargetBus().isPresent())) {
                 createLocalVoltageEquation(variableSet, equationSystem, bus);
             }
