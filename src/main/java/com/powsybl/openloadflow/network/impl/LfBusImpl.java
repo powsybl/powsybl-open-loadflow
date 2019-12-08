@@ -25,7 +25,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     private static final double REACTIVE_RANGE_THRESHOLD_PU = 1d / PerUnit.SB;
     private static final double POWER_EPSILON_SI = 1e-4;
-    private static final double Q_DISPATH_EPSILON = 1e-3;
+    private static final double Q_DISPATCH_EPSILON = 1e-3;
 
     private final Bus bus;
 
@@ -108,6 +108,11 @@ public class LfBusImpl extends AbstractLfBus {
     public void addRemoteControlSource(LfBus remoteControlSource) {
         Objects.requireNonNull(remoteControlSource);
         remoteControlSourceBuses.add(remoteControlSource);
+    }
+
+    @Override
+    public OptionalDouble getRemoteControlReactiveKey() {
+        return OptionalDouble.empty();
     }
 
     private double checkTargetV(double targetV) {
@@ -290,7 +295,7 @@ public class LfBusImpl extends AbstractLfBus {
         for (LfGenerator generator : generatorsThatControlVoltage) {
             generator.setCalculatedQ(0);
         }
-        while (!generatorsThatControlVoltage.isEmpty() && Math.abs(qToDispatch) > Q_DISPATH_EPSILON) {
+        while (!generatorsThatControlVoltage.isEmpty() && Math.abs(qToDispatch) > Q_DISPATCH_EPSILON) {
             qToDispatch = dispatchQ(generatorsThatControlVoltage, reactiveLimits, qToDispatch);
         }
     }

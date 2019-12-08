@@ -115,6 +115,13 @@ public class LfNetwork {
         if (bus.getLoadTargetQ() != 0) {
             jsonGenerator.writeNumberField("loadTargetQ", bus.getLoadTargetQ());
         }
+        bus.getRemoteControlTargetBus().ifPresent(lfBus -> {
+            try {
+                jsonGenerator.writeNumberField("remoteControlTargetBus", lfBus.getNum());
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
         if (!Double.isNaN(bus.getTargetV())) {
             jsonGenerator.writeNumberField("targetV", bus.getTargetV());
         }

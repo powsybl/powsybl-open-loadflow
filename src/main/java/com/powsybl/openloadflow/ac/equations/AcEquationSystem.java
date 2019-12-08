@@ -13,6 +13,8 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfShunt;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -69,6 +71,8 @@ public final class AcEquationSystem {
         // create voltage equation at remote control target bus
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_REMOTE_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
 
+        List<Double> qKeys = createReactiveKeys(sourceBuses);
+
         for (LfBus sourceBus : sourceBuses) {
             // deactivate reactive equation for all remote voltage source bus (where the generator is connected)
             equationSystem.createEquation(sourceBus.getNum(), EquationType.BUS_Q).setActive(false);
@@ -78,8 +82,9 @@ public final class AcEquationSystem {
         LfBus firstSourceBus = sourceBuses.get(0);
         for (int i = 1; i < sourceBuses.size(); i++) {
             LfBus sourceBus = sourceBuses.get(i);
+            double c = qKeys.get(i) / qKeys.get(0);
 
-            // 0 = q0 + qi
+            // 0 = q0 + c * qi
             Equation zero = equationSystem.createEquation(sourceBus.getNum(), EquationType.ZERO);
             for (LfBranch branch : firstSourceBus.getBranches()) {
                 LfBus otherSideBus = branch.getBus1() == firstSourceBus ? branch.getBus2() : branch.getBus1();
@@ -89,10 +94,24 @@ public final class AcEquationSystem {
             for (LfBranch branch : sourceBus.getBranches()) {
                 LfBus otherSideBus = branch.getBus1() == sourceBus ? branch.getBus2() : branch.getBus1();
                 EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, sourceBus, otherSideBus, variableSet);
-                EquationTerm minusQ = EquationTerm.minus(q);
+                EquationTerm minusQ = EquationTerm.multiply(q, -c);
                 zero.addTerm(minusQ);
             }
         }
+    }
+
+    private static List<Double> createReactiveKeys(List<LfBus> sourceBuses) {
+        List<Double> qKeys = new ArrayList<>(sourceBuses.size());
+        for (LfBus sourceBus : sourceBuses) {
+            double qKey = sourceBus.getRemoteControlReactiveKey().orElse(Double.NaN);
+            if (Double.isNaN(qKey)) {
+                // in case of one missing key, we fallback to same reactive power for all buses
+                return Collections.nCopies(sourceBuses.size(), 1d);
+            } else {
+                qKeys.add(qKey);
+            }
+        }
+        return qKeys;
     }
 
     private static void createBranchEquations(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem) {

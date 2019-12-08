@@ -20,12 +20,15 @@ import java.util.Objects;
  */
 public interface EquationTerm extends Evaluable {
 
-    class MinusEquationTerm implements EquationTerm {
+    class MultiplyByScalarEquationTerm implements EquationTerm {
 
         private final EquationTerm term;
 
-        MinusEquationTerm(EquationTerm term) {
+        private final double scalar;
+
+        MultiplyByScalarEquationTerm(EquationTerm term, double scalar) {
             this.term = Objects.requireNonNull(term);
+            this.scalar = scalar;
         }
 
         @Override
@@ -60,13 +63,14 @@ public interface EquationTerm extends Evaluable {
 
         @Override
         public void write(Writer writer) throws IOException {
-            writer.write("-");
+            writer.write(Double.toString(scalar));
+            writer.write(" * ");
             term.write(writer);
         }
     }
 
-    static EquationTerm minus(EquationTerm term) {
-        return new MinusEquationTerm(term);
+    static EquationTerm multiply(EquationTerm term, double scalar) {
+        return new MultiplyByScalarEquationTerm(term, scalar);
     }
 
     /**

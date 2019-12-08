@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.OptionalDouble;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -36,6 +37,11 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     @Override
     public List<LfBus> getRemoteControlSourceBuses() {
         return Collections.emptyList();
+    }
+
+    @Override
+    public OptionalDouble getRemoteControlReactiveKey() {
+        return OptionalDouble.empty();
     }
 
     @Override
