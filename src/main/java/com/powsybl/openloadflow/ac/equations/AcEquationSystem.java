@@ -29,12 +29,7 @@ public final class AcEquationSystem {
         return create(network, new VariableSet());
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
-        Objects.requireNonNull(network);
-        Objects.requireNonNull(variableSet);
-
-        EquationSystem equationSystem = new EquationSystem(network);
-
+    private static void createBusEquations(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem) {
         for (LfBus bus : network.getBuses()) {
             if (bus.isSlack()) {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_PHI).addTerm(new BusPhaseEquationTerm(bus, variableSet));
@@ -50,7 +45,9 @@ public final class AcEquationSystem {
                 shunt.setQ(q);
             }
         }
+    }
 
+    private static void createBranchEquations(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem) {
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
@@ -83,6 +80,16 @@ public final class AcEquationSystem {
                 branch.setQ2(q2);
             }
         }
+    }
+
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(variableSet);
+
+        EquationSystem equationSystem = new EquationSystem(network);
+
+        createBusEquations(network, variableSet, equationSystem);
+        createBranchEquations(network, variableSet, equationSystem);
 
         return equationSystem;
     }
