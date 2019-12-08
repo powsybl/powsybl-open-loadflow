@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.ReactiveCapabilityCurve;
 import com.powsybl.iidm.network.ReactiveLimits;
 
 import java.util.Optional;
+import java.util.OptionalDouble;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -33,6 +34,11 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public void setTargetP(double targetP) {
         this.targetP = targetP * PerUnit.SB;
+    }
+
+    @Override
+    public OptionalDouble getRemoteControlReactiveKey() {
+        return OptionalDouble.empty();
     }
 
     protected abstract Optional<ReactiveLimits> getReactiveLimits();

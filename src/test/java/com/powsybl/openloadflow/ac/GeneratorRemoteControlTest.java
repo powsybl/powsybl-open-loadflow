@@ -196,19 +196,19 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void testWith3GeneratorsAndDifferentReactivePercent() {
+    public void testWith3GeneratorsAndCoordinatedReactiveControlExtensions() {
         g1.addExtension(CoordinatedReactiveControl.class, new CoordinatedReactiveControl(g1, 60));
         g2.addExtension(CoordinatedReactiveControl.class, new CoordinatedReactiveControl(g2, 30));
         g3.addExtension(CoordinatedReactiveControl.class, new CoordinatedReactiveControl(g3, 10));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(21.506559, b1);
-        assertVoltageEquals(21.293879, b2);
-        assertVoltageEquals(22.641227, b3);
+        assertVoltageEquals(21.709276, b1);
+        assertVoltageEquals(21.264396, b2);
+        assertVoltageEquals(22.331965, b3);
         assertVoltageEquals(413.4, b4);
-        assertReactivePowerEquals(-69.925, g1.getTerminal());
-        assertReactivePowerEquals(-69.925, g2.getTerminal());
-        assertReactivePowerEquals(-69.925, g3.getTerminal());
+        assertReactivePowerEquals(-126.14, g1.getTerminal());
+        assertReactivePowerEquals(-63.07, g2.getTerminal());
+        assertReactivePowerEquals(-21.023, g3.getTerminal());
     }
 
     @Test

@@ -110,11 +110,6 @@ public class LfBusImpl extends AbstractLfBus {
         remoteControlSourceBuses.add(remoteControlSource);
     }
 
-    @Override
-    public OptionalDouble getRemoteControlReactiveKey() {
-        return OptionalDouble.empty();
-    }
-
     private double checkTargetV(double targetV) {
         if (!Double.isNaN(this.targetV) && this.targetV != targetV) {
             throw new PowsyblException("Multiple generators connected to same bus with different target voltage");

@@ -43,12 +43,12 @@ public interface EquationTerm extends Evaluable {
 
         @Override
         public double eval() {
-            return -term.eval();
+            return scalar * term.eval();
         }
 
         @Override
         public double der(Variable variable) {
-            return -term.der(variable);
+            return scalar * term.der(variable);
         }
 
         @Override
@@ -58,7 +58,7 @@ public interface EquationTerm extends Evaluable {
 
         @Override
         public double rhs(Variable variable) {
-            return -term.rhs(variable);
+            return scalar * term.rhs(variable);
         }
 
         @Override

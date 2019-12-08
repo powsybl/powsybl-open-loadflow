@@ -8,10 +8,7 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.equations.*;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfShunt;
+import com.powsybl.openloadflow.network.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -82,7 +79,7 @@ public final class AcEquationSystem {
         LfBus firstSourceBus = sourceBuses.get(0);
         for (int i = 1; i < sourceBuses.size(); i++) {
             LfBus sourceBus = sourceBuses.get(i);
-            double c = qKeys.get(i) / qKeys.get(0);
+            double c = qKeys.get(0) / qKeys.get(i);
 
             // 0 = q0 + c * qi
             Equation zero = equationSystem.createEquation(sourceBus.getNum(), EquationType.ZERO);
@@ -103,13 +100,17 @@ public final class AcEquationSystem {
     private static List<Double> createReactiveKeys(List<LfBus> sourceBuses) {
         List<Double> qKeys = new ArrayList<>(sourceBuses.size());
         for (LfBus sourceBus : sourceBuses) {
-            double qKey = sourceBus.getRemoteControlReactiveKey().orElse(Double.NaN);
-            if (Double.isNaN(qKey)) {
-                // in case of one missing key, we fallback to same reactive power for all buses
-                return Collections.nCopies(sourceBuses.size(), 1d);
-            } else {
-                qKeys.add(qKey);
+            double qKeySum = 0;
+            for (LfGenerator generator : sourceBus.getGenerators()) {
+                double qKey = generator.getRemoteControlReactiveKey().orElse(Double.NaN);
+                if (Double.isNaN(qKey)) {
+                    // in case of one missing key, we fallback to same reactive power for all buses
+                    return Collections.nCopies(sourceBuses.size(), 1d);
+                } else {
+                    qKeySum += qKey;
+                }
             }
+            qKeys.add(qKeySum);
         }
         return qKeys;
     }

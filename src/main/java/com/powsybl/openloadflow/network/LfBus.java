@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.network;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.OptionalDouble;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -32,8 +31,6 @@ public interface LfBus {
     Optional<LfBus> getRemoteControlTargetBus();
 
     List<LfBus> getRemoteControlSourceBuses();
-
-    OptionalDouble getRemoteControlReactiveKey();
 
     double getTargetP();
 
