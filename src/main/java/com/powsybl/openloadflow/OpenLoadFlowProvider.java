@@ -134,6 +134,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info("Voltage level initializer: {}", voltageInitializer.getClass().getSimpleName());
             LOGGER.info("Distributed slack: {}", parametersExt.isDistributedSlack());
             LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
+            LOGGER.info("Generator voltage remote control: {}", parametersExt.hasGeneratorVoltageRemoteControl());
 
             List<OuterLoop> outerLoops = new ArrayList<>();
             if (parametersExt.isDistributedSlack()) {

@@ -51,7 +51,9 @@ public class LfNetwork {
                 }
                 return !connectedToSameBus;
             }).collect(Collectors.toList());
-        LOGGER.info("Network has {} buses and {} branches", this.buses.size(), this.branches.size());
+        long busesWithVoltageRemoteControl = this.buses.stream().filter(bus -> bus.hasVoltageControl() && bus.getRemoteControlTargetBus().isPresent()).count();
+        LOGGER.info("Network has {} buses ({} with voltage remote control) and {} branches", this.buses.size(),
+                busesWithVoltageRemoteControl, this.branches.size());
 
         Objects.requireNonNull(slackBusSelector);
         slackBus = slackBusSelector.select(this.buses);
