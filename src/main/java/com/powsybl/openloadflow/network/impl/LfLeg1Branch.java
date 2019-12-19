@@ -17,17 +17,14 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfLeg1Branch extends AbstractFictitiousBranch {
-
-    private final ThreeWindingsTransformer twt;
+public class LfLeg1Branch extends AbstractFictitiousBranch<ThreeWindingsTransformer> {
 
     protected LfLeg1Branch(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt) {
-        super(bus1, bus0, new PiModel(twt.getLeg1().getR(), twt.getLeg1().getX())
+        super(twt, bus1, bus0, new PiModel(twt.getLeg1().getR(), twt.getLeg1().getX())
                             .setG2(twt.getLeg1().getG())
                             .setB2(twt.getLeg1().getB()),
                 twt.getLeg1().getTerminal().getVoltageLevel().getNominalV(),
                 twt.getLeg1().getTerminal().getVoltageLevel().getNominalV());
-        this.twt = twt;
     }
 
     public static LfLeg1Branch create(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt) {
@@ -38,12 +35,12 @@ public class LfLeg1Branch extends AbstractFictitiousBranch {
 
     @Override
     public String getId() {
-        return twt.getId() + " leg1";
+        return branch.getId() + " leg1";
     }
 
     @Override
     public void updateState() {
-        twt.getLeg1().getTerminal().setP(p.eval() * PerUnit.SB);
-        twt.getLeg1().getTerminal().setQ(q.eval() * PerUnit.SB);
+        branch.getLeg1().getTerminal().setP(p.eval() * PerUnit.SB);
+        branch.getLeg1().getTerminal().setQ(q.eval() * PerUnit.SB);
     }
 }
