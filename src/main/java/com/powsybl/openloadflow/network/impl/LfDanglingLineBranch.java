@@ -17,24 +17,16 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfDanglingLineBranch extends AbstractFictitiousBranch {
-
-    private final DanglingLine danglingLine;
+public class LfDanglingLineBranch extends AbstractFictitiousBranch<DanglingLine> {
 
     protected LfDanglingLineBranch(DanglingLine danglingLine, LfBus bus1, LfBus bus2) {
-        super(bus1, bus2, new PiModel(danglingLine.getR(), danglingLine.getX())
+        super(danglingLine, bus1, bus2, new PiModel(danglingLine.getR(), danglingLine.getX())
                             .setG1(danglingLine.getG() / 2)
                             .setG2(danglingLine.getG() / 2)
                             .setB1(danglingLine.getB() / 2)
                             .setB2(danglingLine.getB() / 2),
                 danglingLine.getTerminal().getVoltageLevel().getNominalV(),
                 danglingLine.getTerminal().getVoltageLevel().getNominalV());
-        this.danglingLine = danglingLine;
-    }
-
-    @Override
-    public String getId() {
-        return danglingLine.getId();
     }
 
     public static LfDanglingLineBranch create(DanglingLine danglingLine, LfBus bus1, LfBus bus2) {
@@ -46,7 +38,7 @@ public class LfDanglingLineBranch extends AbstractFictitiousBranch {
 
     @Override
     public void updateState() {
-        danglingLine.getTerminal().setP(p.eval() * PerUnit.SB);
-        danglingLine.getTerminal().setQ(q.eval() * PerUnit.SB);
+        branch.getTerminal().setP(p.eval() * PerUnit.SB);
+        branch.getTerminal().setQ(q.eval() * PerUnit.SB);
     }
 }
