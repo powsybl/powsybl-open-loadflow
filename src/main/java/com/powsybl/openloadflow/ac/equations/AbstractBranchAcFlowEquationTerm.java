@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac.equations;
 import com.powsybl.openloadflow.equations.AbstractEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.PiModel;
 import net.jafama.FastMath;
 
 import java.util.Objects;
@@ -30,19 +31,24 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractEquationTerm {
     protected final double ksi;
     protected final double sinKsi;
     protected final double cosKsi;
+    protected final double a1;
+    protected final double a2;
 
     protected AbstractBranchAcFlowEquationTerm(LfBranch branch) {
         this.branch = Objects.requireNonNull(branch);
-        r1 = this.branch.r1();
-        r2 = this.branch.r2();
-        b1 = this.branch.b1();
-        b2 = this.branch.b2();
-        g1 = this.branch.g1();
-        g2 = this.branch.g2();
-        y = this.branch.y();
-        ksi = this.branch.ksi();
+        PiModel piModel = this.branch.getPiModel().orElseThrow(() -> new IllegalArgumentException("Pi model is absent"));
+        r1 = piModel.getR1();
+        r2 = piModel.getR2();
+        b1 = piModel.getB1();
+        b2 = piModel.getB2();
+        g1 = piModel.getG1();
+        g2 = piModel.getG2();
+        y = piModel.getY();
+        ksi = piModel.getKsi();
         sinKsi = FastMath.sin(ksi);
         cosKsi = FastMath.cos(ksi);
+        a1 = piModel.getA1();
+        a2 = piModel.getA2();
     }
 
     @Override

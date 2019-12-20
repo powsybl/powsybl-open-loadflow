@@ -19,21 +19,25 @@ import java.util.Objects;
  */
 public class LfDanglingLineBranch extends AbstractFictitiousBranch<DanglingLine> {
 
-    protected LfDanglingLineBranch(DanglingLine danglingLine, LfBus bus1, LfBus bus2) {
-        super(danglingLine, bus1, bus2, new PiModel(danglingLine.getR(), danglingLine.getX())
-                            .setG1(danglingLine.getG() / 2)
-                            .setG2(danglingLine.getG() / 2)
-                            .setB1(danglingLine.getB() / 2)
-                            .setB2(danglingLine.getB() / 2),
-                danglingLine.getTerminal().getVoltageLevel().getNominalV(),
-                danglingLine.getTerminal().getVoltageLevel().getNominalV());
+    protected LfDanglingLineBranch(DanglingLine danglingLine, LfBus bus1, LfBus bus2, PiModel piModel) {
+        super(danglingLine, bus1, bus2, piModel);
     }
 
     public static LfDanglingLineBranch create(DanglingLine danglingLine, LfBus bus1, LfBus bus2) {
         Objects.requireNonNull(danglingLine);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
-        return new LfDanglingLineBranch(danglingLine, bus1, bus2);
+        double nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
+        double zb = nominalV * nominalV / PerUnit.SB;
+        PiModel piModel = null;
+        if (danglingLine.getR() != 0 || danglingLine.getX() != 0) {
+            piModel = new PiModel(danglingLine.getR() / zb, danglingLine.getX() / zb)
+                    .setG1(danglingLine.getG() * zb / 2)
+                    .setG2(danglingLine.getG() * zb / 2)
+                    .setB1(danglingLine.getB() * zb / 2)
+                    .setB2(danglingLine.getB() * zb / 2);
+        }
+        return new LfDanglingLineBranch(danglingLine, bus1, bus2, piModel);
     }
 
     @Override

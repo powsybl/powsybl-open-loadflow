@@ -135,32 +135,38 @@ public class LfNetwork {
         if (bus2 != null) {
             jsonGenerator.writeNumberField("num2", bus2.getNum());
         }
-        jsonGenerator.writeNumberField("x", branch.x());
-        jsonGenerator.writeNumberField("y", branch.y());
-        jsonGenerator.writeNumberField("ksi", branch.ksi());
-        if (branch.g1() != 0) {
-            jsonGenerator.writeNumberField("g1", branch.g1());
-        }
-        if (branch.g2() != 0) {
-            jsonGenerator.writeNumberField("g2", branch.g2());
-        }
-        if (branch.b1() != 0) {
-            jsonGenerator.writeNumberField("b1", branch.b1());
-        }
-        if (branch.b2() != 0) {
-            jsonGenerator.writeNumberField("b2", branch.b2());
-        }
-        if (branch.r1() != 1) {
-            jsonGenerator.writeNumberField("r1", branch.r1());
-        }
-        if (branch.r2() != 1) {
-            jsonGenerator.writeNumberField("r2", branch.r2());
-        }
-        if (branch.a1() != 0) {
-            jsonGenerator.writeNumberField("a1", branch.a1());
-        }
-        if (branch.a2() != 0) {
-            jsonGenerator.writeNumberField("a2", branch.a2());
+        PiModel piModel = branch.getPiModel().orElse(null);
+        if (piModel != null) {
+            jsonGenerator.writeFieldName("piModel");
+            jsonGenerator.writeStartObject();
+            jsonGenerator.writeNumberField("x", piModel.getX());
+            jsonGenerator.writeNumberField("y", piModel.getY());
+            jsonGenerator.writeNumberField("ksi", piModel.getKsi());
+            if (piModel.getG1() != 0) {
+                jsonGenerator.writeNumberField("g1", piModel.getG1());
+            }
+            if (piModel.getG2() != 0) {
+                jsonGenerator.writeNumberField("g2", piModel.getG2());
+            }
+            if (piModel.getB1() != 0) {
+                jsonGenerator.writeNumberField("b1", piModel.getB1());
+            }
+            if (piModel.getB2() != 0) {
+                jsonGenerator.writeNumberField("b2", piModel.getB2());
+            }
+            if (piModel.getR1() != 1) {
+                jsonGenerator.writeNumberField("r1", piModel.getR1());
+            }
+            if (piModel.getR2() != 1) {
+                jsonGenerator.writeNumberField("r2", piModel.getR2());
+            }
+            if (piModel.getA1() != 0) {
+                jsonGenerator.writeNumberField("a1", piModel.getA1());
+            }
+            if (piModel.getA2() != 0) {
+                jsonGenerator.writeNumberField("a2", piModel.getA2());
+            }
+            jsonGenerator.writeEndObject();
         }
     }
 

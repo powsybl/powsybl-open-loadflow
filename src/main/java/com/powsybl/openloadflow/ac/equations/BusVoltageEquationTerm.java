@@ -18,7 +18,7 @@ import java.util.Objects;
  */
 public class BusVoltageEquationTerm extends AbstractTargetEquationTerm {
 
-    public BusVoltageEquationTerm(LfBus bus, VariableSet context) {
-        super(Objects.requireNonNull(bus).getNum(), VariableType.BUS_V, context);
+    public BusVoltageEquationTerm(LfBus bus, VariableSet variableSet) {
+        super(Objects.requireNonNull(bus).getNum(), VariableType.BUS_V, variableSet);
     }
 }

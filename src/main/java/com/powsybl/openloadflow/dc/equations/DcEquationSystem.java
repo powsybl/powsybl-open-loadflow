@@ -40,17 +40,24 @@ public final class DcEquationSystem {
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            if (bus1 != null && bus2 != null) {
-                ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, variableSet);
-                ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet);
-                equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
-                equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
-                branch.setP1(p1);
-                branch.setP2(p2);
-            } else if (bus1 != null) {
-                branch.setP1(EvaluableConstants.ZERO);
-            } else if (bus2 != null) {
-                branch.setP2(EvaluableConstants.ZERO);
+            if (branch.getPiModel().isPresent()) {
+                if (bus1 != null && bus2 != null) {
+                    ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, variableSet);
+                    ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet);
+                    equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
+                    equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
+                    branch.setP1(p1);
+                    branch.setP2(p2);
+                } else if (bus1 != null) {
+                    branch.setP1(EvaluableConstants.ZERO);
+                } else if (bus2 != null) {
+                    branch.setP2(EvaluableConstants.ZERO);
+                }
+            } else {
+                // non impedant branch
+                if (bus1 != null && bus2 != null) {
+                    throw new UnsupportedOperationException("Non impedant branch not yet supported: " + branch.getId());
+                }
             }
         }
 

@@ -148,9 +148,9 @@ public final class LfNetworks {
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfBuses, creationContext.busIdToNum);
             LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfBuses, creationContext.busIdToNum);
             LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfBuses, creationContext.busIdToNum);
-            lfBranches.add(LfLeg1Branch.create(lfBus1, lfBus0, t3wt));
-            lfBranches.add(LfLeg2or3Branch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2()));
-            lfBranches.add(LfLeg2or3Branch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3()));
+            lfBranches.add(LfLeg1Branch.create(t3wt, lfBus1, lfBus0));
+            lfBranches.add(LfLeg2or3Branch.create(t3wt, lfBus2, lfBus0, t3wt.getLeg2()));
+            lfBranches.add(LfLeg2or3Branch.create(t3wt, lfBus3, lfBus0, t3wt.getLeg3()));
         }
 
         // create bus -> branches link

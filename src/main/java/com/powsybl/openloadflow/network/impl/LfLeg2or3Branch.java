@@ -21,19 +21,24 @@ public class LfLeg2or3Branch extends AbstractFictitiousBranch<ThreeWindingsTrans
 
     private final ThreeWindingsTransformer.Leg2or3 leg2or3;
 
-    protected LfLeg2or3Branch(LfBus bus2or3, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg2or3 leg2or3) {
-        super(twt, bus2or3, bus0, new PiModel(leg2or3.getR(), leg2or3.getX())
-                                .setR1(Transformers.getRatio2or3(twt, leg2or3)),
-                leg2or3.getTerminal().getVoltageLevel().getNominalV(),
-                twt.getLeg1().getTerminal().getVoltageLevel().getNominalV());
+    protected LfLeg2or3Branch(ThreeWindingsTransformer twt, LfBus bus2or3, LfBus bus0, ThreeWindingsTransformer.Leg2or3 leg2or3, PiModel piModel) {
+        super(twt, bus2or3, bus0, piModel);
         this.leg2or3 = leg2or3;
     }
 
-    public static LfLeg2or3Branch create(LfBus bus2or3, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg2or3 leg2or3) {
+    public static LfLeg2or3Branch create(ThreeWindingsTransformer twt, LfBus bus2or3, LfBus bus0, ThreeWindingsTransformer.Leg2or3 leg2or3) {
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(twt);
         Objects.requireNonNull(leg2or3);
-        return new LfLeg2or3Branch(bus2or3, bus0, twt, leg2or3);
+        double nominalV1 = leg2or3.getTerminal().getVoltageLevel().getNominalV();
+        double nominalV2 = twt.getLeg1().getTerminal().getVoltageLevel().getNominalV();
+        double zb = nominalV2 * nominalV2 / PerUnit.SB;
+        PiModel piModel = null;
+        if (leg2or3.getR() != 0 || leg2or3.getX() != 0) {
+            piModel = new PiModel(leg2or3.getR() / zb, leg2or3.getX() / zb)
+                    .setR1(Transformers.getRatio2or3(twt, leg2or3) / nominalV2 * nominalV1);
+        }
+        return new LfLeg2or3Branch(twt, bus2or3, bus0, leg2or3, piModel);
     }
 
     @Override

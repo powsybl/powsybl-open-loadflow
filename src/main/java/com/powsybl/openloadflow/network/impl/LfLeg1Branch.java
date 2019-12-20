@@ -19,18 +19,23 @@ import java.util.Objects;
  */
 public class LfLeg1Branch extends AbstractFictitiousBranch<ThreeWindingsTransformer> {
 
-    protected LfLeg1Branch(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt) {
-        super(twt, bus1, bus0, new PiModel(twt.getLeg1().getR(), twt.getLeg1().getX())
-                            .setG2(twt.getLeg1().getG())
-                            .setB2(twt.getLeg1().getB()),
-                twt.getLeg1().getTerminal().getVoltageLevel().getNominalV(),
-                twt.getLeg1().getTerminal().getVoltageLevel().getNominalV());
+    protected LfLeg1Branch(ThreeWindingsTransformer twt, LfBus bus1, LfBus bus0, PiModel piModel) {
+        super(twt, bus1, bus0, piModel);
     }
 
-    public static LfLeg1Branch create(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt) {
+    public static LfLeg1Branch create(ThreeWindingsTransformer twt, LfBus bus1, LfBus bus0) {
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(twt);
-        return new LfLeg1Branch(bus1, bus0, twt);
+        double nominalV = twt.getLeg1().getTerminal().getVoltageLevel().getNominalV();
+        double zb = nominalV * nominalV / PerUnit.SB;
+        ThreeWindingsTransformer.Leg1 leg1 = twt.getLeg1();
+        PiModel piModel = null;
+        if (leg1.getR() != 0 || leg1.getX() != 0) {
+            piModel = new PiModel(leg1.getR() / zb, leg1.getX() / zb)
+                    .setG2(leg1.getG() * zb)
+                    .setB2(leg1.getB() * zb);
+        }
+        return new LfLeg1Branch(twt, bus1, bus0, piModel);
     }
 
     @Override

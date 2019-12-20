@@ -22,8 +22,8 @@ public abstract class AbstractFictitiousBranch<T extends Identifiable> extends A
 
     protected Evaluable q = NAN;
 
-    protected AbstractFictitiousBranch(T branch, LfBus bus1, LfBus bus2, PiModel piModel, double nominalV1, double nominalV2) {
-        super(branch, bus1, bus2, piModel, nominalV1, nominalV2);
+    protected AbstractFictitiousBranch(T branch, LfBus bus1, LfBus bus2, PiModel piModel) {
+        super(branch, bus1, bus2, piModel);
     }
 
     @Override
