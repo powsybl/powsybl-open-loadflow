@@ -27,16 +27,16 @@ public final class DcEquationSystem {
         return create(network, new VariableSet());
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
-        EquationSystem equationSystem = new EquationSystem(network);
-
+    private static void createBusEquations(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem) {
         for (LfBus bus : network.getBuses()) {
             if (bus.isSlack()) {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_PHI).addTerm(new BusPhaseEquationTerm(bus, variableSet));
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
         }
+    }
 
+    private static void createBranchEquations(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem) {
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
@@ -60,6 +60,13 @@ public final class DcEquationSystem {
                 }
             }
         }
+    }
+
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
+        EquationSystem equationSystem = new EquationSystem(network);
+
+        createBusEquations(network, variableSet, equationSystem);
+        createBranchEquations(network, variableSet, equationSystem);
 
         return equationSystem;
     }
