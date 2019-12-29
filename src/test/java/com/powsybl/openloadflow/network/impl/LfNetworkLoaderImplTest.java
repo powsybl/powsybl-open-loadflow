@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfNetworksTest extends AbstractLoadFlowNetworkFactory {
+public class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
     private Network network;
 
@@ -40,7 +40,7 @@ public class LfNetworksTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     public void initialTest() {
-        LfNetwork lfNetwork = LfNetworks.create(network, new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
         LfGenerator lfGenerator = lfNetwork.getBus(0).getGenerators().get(0);
         assertEquals("g", lfGenerator.getId());
         assertTrue(lfGenerator.isParticipating());
@@ -50,7 +50,7 @@ public class LfNetworksTest extends AbstractLoadFlowNetworkFactory {
     public void generatorNegativeActivePowerTargetTest() {
         // targetP < 0, generator is discarded from active power control
         g.setTargetP(-10);
-        LfNetwork lfNetwork = LfNetworks.create(network, new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
         assertFalse(lfNetwork.getBus(0).getGenerators().get(0).isParticipating());
     }
 
@@ -59,7 +59,7 @@ public class LfNetworksTest extends AbstractLoadFlowNetworkFactory {
         // targetP > maxP, generator is discarded from active power control
         g.setTargetP(10);
         g.setMaxP(5);
-        LfNetwork lfNetwork = LfNetworks.create(network, new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
         assertFalse(lfNetwork.getBus(0).getGenerators().get(0).isParticipating());
     }
 
@@ -78,7 +78,7 @@ public class LfNetworksTest extends AbstractLoadFlowNetworkFactory {
                 .setMaxQ(7.00000001)
                 .endPoint()
                 .add();
-        LfNetwork lfNetwork = LfNetworks.create(network, new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
         assertFalse(lfNetwork.getBus(0).hasVoltageControl());
     }
 
@@ -87,7 +87,7 @@ public class LfNetworksTest extends AbstractLoadFlowNetworkFactory {
         // targetP is zero and minP > 0, meansn generator is not started and cannot control voltage
         g.setTargetP(0);
         g.setMinP(1);
-        LfNetwork lfNetwork = LfNetworks.create(network, new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
         assertFalse(lfNetwork.getBus(0).hasVoltageControl());
     }
 }
