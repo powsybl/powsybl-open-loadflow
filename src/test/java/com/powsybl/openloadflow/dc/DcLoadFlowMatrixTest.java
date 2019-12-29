@@ -17,7 +17,7 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.impl.LfNetworks;
+import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.usefultoys.slf4j.LoggerFactory;
@@ -50,7 +50,7 @@ public class DcLoadFlowMatrixTest {
 
         logNetwork(network);
 
-        LfNetwork lfNetwork = LfNetworks.create(network, new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
 
         VariableSet variableSet = new VariableSet();
         EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, variableSet);
@@ -112,7 +112,7 @@ public class DcLoadFlowMatrixTest {
         assertEquals(-0.11239308112163815d, dx[2], 1E-14d);
         assertEquals(-0.2202418845341654d, dx[3], 1E-14d);
 
-        LfNetworks.resetState(network);
+        Networks.resetState(network);
         equationSystem.updateNetwork(dx);
 
         logNetwork(network);
@@ -120,7 +120,7 @@ public class DcLoadFlowMatrixTest {
         network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
         network.getLine("NHV1_NHV2_1").getTerminal2().disconnect();
 
-        lfNetwork = LfNetworks.create(network, new FirstSlackBusSelector()).get(0);
+        lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
 
         equationSystem = DcEquationSystem.create(lfNetwork, variableSet);
 
@@ -131,7 +131,7 @@ public class DcLoadFlowMatrixTest {
             lu.solve(dx);
         }
 
-        LfNetworks.resetState(network);
+        Networks.resetState(network);
         equationSystem.updateNetwork(dx);
 
         logNetwork(network);

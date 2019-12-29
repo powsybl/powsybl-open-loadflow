@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.commons.AbstractConverterTest;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.openloadflow.network.impl.LfNetworks;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,7 +50,7 @@ public class LfNetworkTest extends AbstractConverterTest {
                 .setCurrentSectionCount(1)
                 .add();
 
-        List<LfNetwork> lfNetworks = LfNetworks.create(network, new MostMeshedSlackBusSelector());
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         Path file = fileSystem.getPath("/work/n.json");
         lfNetworks.get(0).writeJson(file);
