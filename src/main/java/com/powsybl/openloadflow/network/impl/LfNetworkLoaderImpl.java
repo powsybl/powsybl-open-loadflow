@@ -69,11 +69,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
                 @Override
                 public void visitGenerator(Generator generator) {
+                    double scaleV = 1;
                     if (!Objects.equals(generator.getRegulatingTerminal().getBusView().getBus().getId(),
                             generator.getTerminal().getBusView().getBus().getId())) {
-                        throw new PowsyblException("Generator remote voltage control is not yet supported");
+                        double previousTargetV = generator.getTargetV();
+                        double remoteNominalV = generator.getRegulatingTerminal().getVoltageLevel().getNominalV();
+                        double localNominalV = generator.getTerminal().getVoltageLevel().getNominalV();
+                        scaleV = localNominalV / remoteNominalV;
+                        LOGGER.warn("Generator remote voltage control is not yet supported. The voltage target of generator "
+                                + generator.getId() + " with remote control is rescaled from " + previousTargetV + " to "
+                                + previousTargetV * scaleV);
                     }
-                    lfBus.addGenerator(generator);
+                    lfBus.addGenerator(generator, scaleV);
                     generatorCount[0]++;
                 }
 
