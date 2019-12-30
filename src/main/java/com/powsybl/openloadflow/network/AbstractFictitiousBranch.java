@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
@@ -15,14 +16,14 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractFictitiousBranch extends AbstractLfBranch {
+public abstract class AbstractFictitiousBranch<T extends Identifiable> extends AbstractLfBranch<T> {
 
     protected Evaluable p = NAN;
 
     protected Evaluable q = NAN;
 
-    protected AbstractFictitiousBranch(LfBus bus1, LfBus bus2, PiModel piModel, double nominalV1, double nominalV2) {
-        super(bus1, bus2, piModel, nominalV1, nominalV2);
+    protected AbstractFictitiousBranch(T branch, LfBus bus1, LfBus bus2, PiModel piModel, double nominalV1, double nominalV2) {
+        super(branch, bus1, bus2, piModel, nominalV1, nominalV2);
     }
 
     @Override

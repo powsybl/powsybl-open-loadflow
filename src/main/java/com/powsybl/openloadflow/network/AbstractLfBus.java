@@ -6,6 +6,10 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -20,6 +24,8 @@ public abstract class AbstractLfBus implements LfBus {
     protected double angle;
 
     protected double calculatedQ = Double.NaN;
+
+    protected final List<LfBranch> branches = new ArrayList<>();
 
     protected AbstractLfBus(int num, double v, double angle) {
         this.num = num;
@@ -80,5 +86,15 @@ public abstract class AbstractLfBus implements LfBus {
     @Override
     public void setCalculatedQ(double calculatedQ) {
         this.calculatedQ = calculatedQ * PerUnit.SB;
+    }
+
+    @Override
+    public List<LfBranch> getBranches() {
+        return branches;
+    }
+
+    @Override
+    public void addBranch(LfBranch branch) {
+        branches.add(Objects.requireNonNull(branch));
     }
 }

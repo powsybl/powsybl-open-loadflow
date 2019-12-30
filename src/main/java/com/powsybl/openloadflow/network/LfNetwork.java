@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.PowsyblException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.ServiceLoader;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -240,5 +242,32 @@ public class LfNetwork {
             throw new UncheckedIOException(e);
         }
     }
-}
 
+    public void logBalance() {
+        double activeGeneration = 0;
+        double reactiveGeneration = 0;
+        double activeLoad = 0;
+        double reactiveLoad = 0;
+        for (LfBus b : buses) {
+            activeGeneration += b.getGenerationTargetP() * PerUnit.SB;
+            reactiveGeneration += b.getGenerationTargetQ() * PerUnit.SB;
+            activeLoad += b.getLoadTargetP() * PerUnit.SB;
+            reactiveLoad += b.getLoadTargetQ() * PerUnit.SB;
+        }
+
+        LOGGER.info("Active generation={} Mw, active load={} Mw, reactive generation={} MVar, reactive load={} MVar",
+                activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
+    }
+
+    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(slackBusSelector);
+        for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
+            List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector).orElse(null);
+            if (lfNetworks != null) {
+                return lfNetworks;
+            }
+        }
+        throw new PowsyblException("Cannot importer network of type: " + network.getClass().getName());
+    }
+}

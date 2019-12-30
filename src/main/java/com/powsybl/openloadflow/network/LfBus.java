@@ -17,6 +17,8 @@ public interface LfBus {
 
     int getNum();
 
+    boolean isFictitious();
+
     boolean isSlack();
 
     void setSlack(boolean slack);
@@ -67,7 +69,9 @@ public interface LfBus {
 
     List<LfShunt> getShunts();
 
-    int getNeighbors();
+    List<LfBranch> getBranches();
+
+    void addBranch(LfBranch branch);
 
     void updateState(boolean reactiveLimits);
 }

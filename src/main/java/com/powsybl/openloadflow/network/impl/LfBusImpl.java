@@ -27,7 +27,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     private static final double REACTIVE_RANGE_THRESHOLD_PU = 1d / PerUnit.SB;
     private static final double POWER_EPSILON_SI = 1e-4;
-    private static final double Q_DISPATH_EPSILON = 1e-3;
+    private static final double Q_DISPATCH_EPSILON = 1e-3;
 
     private final Bus bus;
 
@@ -42,8 +42,6 @@ public class LfBusImpl extends AbstractLfBus {
     private double generationTargetQ = 0;
 
     private double targetV = Double.NaN;
-
-    private int neighbors = 0;
 
     private final List<LfGenerator> generators = new ArrayList<>();
 
@@ -67,6 +65,11 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public String getId() {
         return bus.getId();
+    }
+
+    @Override
+    public boolean isFictitious() {
+        return false;
     }
 
     @Override
@@ -189,15 +192,6 @@ public class LfBusImpl extends AbstractLfBus {
         return targetV / nominalV;
     }
 
-    void addNeighbor() {
-        neighbors++;
-    }
-
-    @Override
-    public int getNeighbors() {
-        return neighbors;
-    }
-
     @Override
     public double getV() {
         return v / nominalV;
@@ -268,7 +262,7 @@ public class LfBusImpl extends AbstractLfBus {
         for (LfGenerator generator : generatorsThatControlVoltage) {
             generator.setCalculatedQ(0);
         }
-        while (!generatorsThatControlVoltage.isEmpty() && Math.abs(qToDispatch) > Q_DISPATH_EPSILON) {
+        while (!generatorsThatControlVoltage.isEmpty() && Math.abs(qToDispatch) > Q_DISPATCH_EPSILON) {
             qToDispatch = dispatchQ(generatorsThatControlVoltage, reactiveLimits, qToDispatch);
         }
     }

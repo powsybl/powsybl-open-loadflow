@@ -10,8 +10,18 @@ package com.powsybl.openloadflow.equations;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public enum EquationType {
-    BUS_P,
-    BUS_Q,
-    BUS_V,
-    BUS_PHI
+    BUS_P("p"),
+    BUS_Q("q"),
+    BUS_V("v"),
+    BUS_PHI("\u03C6");
+
+    private final String symbol;
+
+    EquationType(String symbol) {
+        this.symbol = symbol;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
 }
