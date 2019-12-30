@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowProfiler;
 import com.powsybl.openloadflow.ac.DistributedSlackOuterLoop;
 import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.ac.nr.*;
+import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
@@ -129,9 +130,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 outerLoops.add(new ReactiveLimitsOuterLoop());
             }
 
-            AcLoadFlowResult result = new AcloadFlowEngine(network, slackBusSelector, voltageInitializer, stoppingCriteria,
-                                                           outerLoops, matrixFactory, getObserver(parametersExt),
-                                                           parametersExt.hasGeneratorVoltageRemoteControl())
+            AcLoadFlowParameters acParameters = new AcLoadFlowParameters(slackBusSelector, voltageInitializer, stoppingCriteria,
+                                                                         outerLoops, matrixFactory, getObserver(parametersExt),
+                                                                         parametersExt.hasGeneratorVoltageRemoteControl());
+
+            AcLoadFlowResult result = new AcloadFlowEngine(network, acParameters)
                     .run();
 
             // update network state

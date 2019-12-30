@@ -231,10 +231,4 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(-100.189, g2.getTerminal());
         assertReactivePowerEquals(-10, g3.getTerminal());
     }
-
-    @Test
-    public void testGeneratorVoltageRemoteControlNotActivated() {
-        parametersExt.setGeneratorVoltageRemoteControl(false);
-        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-    }
 }
