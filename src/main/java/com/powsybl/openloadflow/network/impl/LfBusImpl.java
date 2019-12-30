@@ -151,8 +151,8 @@ public class LfBusImpl extends AbstractLfBus {
         }
     }
 
-    void addGenerator(Generator generator) {
-        add(LfGeneratorImpl.create(generator), generator.isVoltageRegulatorOn(), generator.getTargetV(),
+    void addGenerator(Generator generator, double scaleV) {
+        add(LfGeneratorImpl.create(generator), generator.isVoltageRegulatorOn(), generator.getTargetV() * scaleV,
                 generator.getTargetQ());
     }
 

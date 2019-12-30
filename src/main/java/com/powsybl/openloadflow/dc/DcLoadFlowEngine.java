@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
+import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Markers;
 import com.powsybl.math.matrix.LUDecomposition;
@@ -19,6 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -29,17 +32,27 @@ public class DcLoadFlowEngine {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DcLoadFlowEngine.class);
 
-    private final LfNetwork network;
+    private final List<LfNetwork> networks;
 
     private final MatrixFactory matrixFactory;
 
     public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory) {
-        this.network = Objects.requireNonNull(network);
+        this.networks = Collections.singletonList(network);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
     }
 
-    public boolean run() {
+    public DcLoadFlowEngine(Object network, MatrixFactory matrixFactory) {
+        this.networks = LfNetwork.load(network, new FirstSlackBusSelector());
+        this.matrixFactory = Objects.requireNonNull(matrixFactory);
+    }
+
+    public DcLoadFlowResult run() {
         Stopwatch stopwatch = Stopwatch.createStarted();
+
+        // only process main (largest) connected component
+        LfNetwork network = networks.get(0);
+
+        network.logBalance();
 
         EquationSystem equationSystem = DcEquationSystem.create(network);
 
@@ -52,14 +65,14 @@ public class DcLoadFlowEngine {
         try {
             double[] dx = Arrays.copyOf(targets, targets.length);
 
-            boolean status;
+            boolean ok;
             try {
                 LUDecomposition lu = j.decomposeLU();
                 lu.solve(dx);
-                status = true;
+                ok = true;
             } catch (Exception e) {
-                status = false;
-                LOGGER.error("Failed to solve linear system for DC load flow.", e);
+                ok = false;
+                LOGGER.error("Failed to solve linear system for DC load flow", e);
             }
 
             equationSystem.updateEquations(dx);
@@ -68,9 +81,9 @@ public class DcLoadFlowEngine {
             stopwatch.stop();
             LOGGER.debug(Markers.PERFORMANCE_MARKER, "Dc loadflow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-            LOGGER.info("Dc loadflow complete (status={})", status);
+            LOGGER.info("Dc loadflow complete (ok={})", ok);
 
-            return status;
+            return new DcLoadFlowResult(networks, ok);
         } finally {
             j.cleanLU();
         }

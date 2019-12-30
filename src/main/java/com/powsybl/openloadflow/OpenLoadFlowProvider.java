@@ -25,11 +25,12 @@ import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
+import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.equations.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.VoltageInitializer;
-import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.LfNetworks;
+import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,22 +105,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return parametersExt;
     }
 
-    private static void logBalance(LfNetwork network) {
-        double activeGeneration = 0;
-        double reactiveGeneration = 0;
-        double activeLoad = 0;
-        double reactiveLoad = 0;
-        for (LfBus b : network.getBuses()) {
-            activeGeneration += b.getGenerationTargetP() * PerUnit.SB;
-            reactiveGeneration += b.getGenerationTargetQ() * PerUnit.SB;
-            activeLoad += b.getLoadTargetP() * PerUnit.SB;
-            reactiveLoad += b.getLoadTargetQ() * PerUnit.SB;
-        }
-
-        LOGGER.info("Active generation={} Mw, active load={} Mw, reactive generation={} MVar, reactive load={} MVar",
-                activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
-    }
-
     private CompletableFuture<LoadFlowResult> runAc(Network network, String workingStateId, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
@@ -144,20 +129,14 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 outerLoops.add(new ReactiveLimitsOuterLoop());
             }
 
-            List<LfNetwork> lfNetworks = LfNetworks.create(network, slackBusSelector);
-
-            // only process main (largest) connected component
-            LfNetwork lfNetwork = lfNetworks.get(0);
-
-            logBalance(lfNetwork);
-
-            AcLoadFlowResult result = new AcloadFlowEngine(lfNetwork, voltageInitializer, stoppingCriteria, outerLoops,
-                    matrixFactory, getObserver(parametersExt), parametersExt.hasGeneratorVoltageRemoteControl())
+            AcLoadFlowResult result = new AcloadFlowEngine(network, slackBusSelector, voltageInitializer, stoppingCriteria,
+                                                           outerLoops, matrixFactory, getObserver(parametersExt),
+                                                           parametersExt.hasGeneratorVoltageRemoteControl())
                     .run();
 
             // update network state
-            LfNetworks.resetState(network);
-            lfNetwork.updateState(!parameters.isNoGeneratorReactiveLimits());
+            Networks.resetState(network);
+            result.getNetworks().get(0).updateState(!parameters.isNoGeneratorReactiveLimits());
 
             return new LoadFlowResultImpl(result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED, createMetrics(result), null);
         });
@@ -167,17 +146,13 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
-            LfNetwork lfNetwork = LfNetworks.create(network, new FirstSlackBusSelector()).get(0);
-
-            logBalance(lfNetwork);
-
-            boolean status = new DcLoadFlowEngine(lfNetwork, matrixFactory)
+            DcLoadFlowResult result = new DcLoadFlowEngine(network, matrixFactory)
                     .run();
 
-            LfNetworks.resetState(network);
-            lfNetwork.updateState(false);
+            Networks.resetState(network);
+            result.getNetworks().get(0).updateState(false);
 
-            return new LoadFlowResultImpl(status, Collections.emptyMap(), null);
+            return new LoadFlowResultImpl(result.isOk(), Collections.emptyMap(), null);
         });
     }
 

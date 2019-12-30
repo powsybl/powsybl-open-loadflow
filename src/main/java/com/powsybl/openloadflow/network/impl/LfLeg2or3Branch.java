@@ -17,18 +17,15 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfLeg2or3Branch extends AbstractFictitiousBranch {
-
-    private final ThreeWindingsTransformer twt;
+public class LfLeg2or3Branch extends AbstractFictitiousBranch<ThreeWindingsTransformer> {
 
     private final ThreeWindingsTransformer.Leg2or3 leg2or3;
 
     protected LfLeg2or3Branch(LfBus bus2or3, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg2or3 leg2or3) {
-        super(bus2or3, bus0, new PiModel(leg2or3.getR(), leg2or3.getX())
+        super(twt, bus2or3, bus0, new PiModel(leg2or3.getR(), leg2or3.getX())
                                 .setR1(Transformers.getRatio2or3(twt, leg2or3)),
                 leg2or3.getTerminal().getVoltageLevel().getNominalV(),
                 twt.getLeg1().getTerminal().getVoltageLevel().getNominalV());
-        this.twt = twt;
         this.leg2or3 = leg2or3;
     }
 
@@ -41,7 +38,7 @@ public class LfLeg2or3Branch extends AbstractFictitiousBranch {
 
     @Override
     public String getId() {
-        return twt.getId() + " leg 2 or 3";
+        return branch.getId() + " leg 2 or 3";
     }
 
     @Override

@@ -6,13 +6,11 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,9 +23,10 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public final class LfNetworks {
+@AutoService(LfNetworkLoader.class)
+public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LfNetworks.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfNetworkLoaderImpl.class);
 
     private static class CreationContext {
 
@@ -38,9 +37,6 @@ public final class LfNetworks {
         private final Set<ThreeWindingsTransformer> t3wtSet = new LinkedHashSet<>();
 
         private final Map<String, Integer> busIdToNum = new HashMap<>();
-    }
-
-    private LfNetworks() {
     }
 
     private static List<LfBus> createBuses(List<Bus> buses, CreationContext creationContext) {
@@ -74,16 +70,24 @@ public final class LfNetworks {
 
                 @Override
                 public void visitGenerator(Generator generator) {
-                    lfBus.addGenerator(generator);
-
-                    String controlBusId = generator.getRegulatingTerminal().getBusView().getBus().getId();
-                    String connectedBusId = generator.getTerminal().getBusView().getBus().getId();
-                    if (!Objects.equals(controlBusId, connectedBusId)) {
-                        // remote control target bus will be set later because target bus might not have
-                        // been yet created
-                        generatorRemoteControlTargetBusId.put(lfBus, controlBusId);
+                    double scaleV = 1;
+                    if (!Objects.equals(generator.getRegulatingTerminal().getBusView().getBus().getId(),
+                            generator.getTerminal().getBusView().getBus().getId())) {
+                        if () {
+                            // remote control target bus will be set later because target bus might not have
+                            // been yet created
+                            generatorRemoteControlTargetBusId.put(lfBus, controlBusId);
+                        } else {
+                            double previousTargetV = generator.getTargetV();
+                            double remoteNominalV = generator.getRegulatingTerminal().getVoltageLevel().getNominalV();
+                            double localNominalV = generator.getTerminal().getVoltageLevel().getNominalV();
+                            scaleV = localNominalV / remoteNominalV;
+                            LOGGER.warn("Generator remote voltage control is not yet supported. The voltage target of generator "
+                                    + generator.getId() + " with remote control is rescaled from " + previousTargetV + " to "
+                                    + previousTargetV * scaleV);
+                        }
                     }
-
+                    lfBus.addGenerator(generator, scaleV);
                     generatorCount[0]++;
                 }
 
@@ -220,50 +224,33 @@ public final class LfNetworks {
         return new LfNetwork(lfBuses, lfBranches, slackBusSelector);
     }
 
-    public static List<LfNetwork> create(Network network, SlackBusSelector slackBusSelector) {
+    @Override
+    public Optional<List<LfNetwork>> load(Object network, SlackBusSelector slackBusSelector) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(slackBusSelector);
 
-        Stopwatch stopwatch = Stopwatch.createStarted();
+        if (network instanceof Network) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
 
-        Map<Integer, List<Bus>> buseByCc = new TreeMap<>();
-        for (Bus bus : network.getBusView().getBuses()) {
-            Component cc = bus.getConnectedComponent();
-            if (cc != null) {
-                buseByCc.computeIfAbsent(cc.getNum(), k -> new ArrayList<>()).add(bus);
+            Map<Integer, List<Bus>> buseByCc = new TreeMap<>();
+            for (Bus bus : ((Network) network).getBusView().getBuses()) {
+                Component cc = bus.getConnectedComponent();
+                if (cc != null) {
+                    buseByCc.computeIfAbsent(cc.getNum(), k -> new ArrayList<>()).add(bus);
+                }
             }
+
+            List<LfNetwork> lfNetworks = buseByCc.entrySet().stream()
+                    .filter(e -> e.getKey() == ComponentConstants.MAIN_NUM)
+                    .map(e -> create(e.getValue(), slackBusSelector))
+                    .collect(Collectors.toList());
+
+            stopwatch.stop();
+            LOGGER.debug(PERFORMANCE_MARKER, "LF networks created in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+
+            return Optional.of(lfNetworks);
         }
 
-        List<LfNetwork> lfNetworks = buseByCc.entrySet().stream()
-                .filter(e -> e.getKey() == ComponentConstants.MAIN_NUM)
-                .map(e -> create(e.getValue(), slackBusSelector))
-                .collect(Collectors.toList());
-
-        stopwatch.stop();
-        LOGGER.debug(PERFORMANCE_MARKER, "LF networks created in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
-
-        return lfNetworks;
+        return Optional.empty();
     }
-
-    public static void resetState(Network network) {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-
-        for (Bus b : network.getBusView().getBuses()) {
-            b.setV(Double.NaN);
-            b.setAngle(Double.NaN);
-        }
-        for (ShuntCompensator sc : network.getShuntCompensators()) {
-            sc.getTerminal().setQ(Double.NaN);
-        }
-        for (Branch b : network.getBranches()) {
-            b.getTerminal1().setP(Double.NaN);
-            b.getTerminal1().setQ(Double.NaN);
-            b.getTerminal2().setP(Double.NaN);
-            b.getTerminal2().setQ(Double.NaN);
-        }
-
-        stopwatch.stop();
-        LOGGER.debug(PERFORMANCE_MARKER, "IIDM network reset done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
-    }
-
 }
