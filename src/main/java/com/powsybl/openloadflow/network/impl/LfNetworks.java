@@ -81,7 +81,13 @@ public final class LfNetworks {
                 public void visitGenerator(Generator generator) {
                     if (!Objects.equals(generator.getRegulatingTerminal().getBusView().getBus().getId(),
                             generator.getTerminal().getBusView().getBus().getId())) {
-                        throw new PowsyblException("Generator remote voltage control is not yet supported");
+                        double previousTargetV = generator.getTargetV();
+                        double remoteNominalV = generator.getRegulatingTerminal().getVoltageLevel().getNominalV();
+                        double localNominalV = generator.getTerminal().getVoltageLevel().getNominalV();
+                        generator.setTargetV((generator.getTargetV() * localNominalV) / remoteNominalV);
+                        LOGGER.warn("Generator remote voltage control is not yet supported. The voltage target of generator "
+                                + generator.getId() + " with remote control is rescaled from " + previousTargetV + " to "
+                                + generator.getTargetV());
                     }
                     lfBus.addGenerator(generator);
                     generatorCount[0]++;
