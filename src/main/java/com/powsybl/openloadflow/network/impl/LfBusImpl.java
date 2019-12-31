@@ -133,12 +133,12 @@ public class LfBusImpl extends AbstractLfBus {
         generators.add(generator);
         boolean voltageControl2 = voltageControl;
         double maxRangeQ = generator.getMaxRangeQ();
-        if (maxRangeQ < REACTIVE_RANGE_THRESHOLD_PU) {
+        if (voltageControl && maxRangeQ < REACTIVE_RANGE_THRESHOLD_PU) {
             LOGGER.warn("Discard generator '{}' from voltage control because max reactive range ({}) is too small",
                     generator.getId(), maxRangeQ);
             voltageControl2 = false;
         }
-        if (Math.abs(generator.getTargetP()) < POWER_EPSILON_SI && generator.getMinP() > POWER_EPSILON_SI) {
+        if (voltageControl && Math.abs(generator.getTargetP()) < POWER_EPSILON_SI && generator.getMinP() > POWER_EPSILON_SI) {
             LOGGER.warn("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)",
                     generator.getId(), generator.getTargetP(), generator.getMinP());
             voltageControl2 = false;
