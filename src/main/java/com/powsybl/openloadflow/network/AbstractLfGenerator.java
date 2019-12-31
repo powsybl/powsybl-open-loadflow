@@ -65,8 +65,8 @@ public abstract class AbstractLfGenerator implements LfGenerator {
                         } else {
                             maxRangeQ = Math.max(maxRangeQ, point.getMaxQ() - point.getMinQ());
                         }
-                        maxRangeQ = maxRangeQ / PerUnit.SB;
                     }
+                    maxRangeQ = maxRangeQ / PerUnit.SB;
                     break;
 
                 case MIN_MAX:
