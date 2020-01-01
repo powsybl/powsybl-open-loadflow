@@ -66,7 +66,6 @@ public abstract class AbstractLfGenerator implements LfGenerator {
                             maxRangeQ = Math.max(maxRangeQ, point.getMaxQ() - point.getMinQ());
                         }
                     }
-                    maxRangeQ = maxRangeQ / PerUnit.SB;
                     break;
 
                 case MIN_MAX:
@@ -77,7 +76,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
                 default:
                     throw new IllegalStateException("Unknown reactive limits kind: " + reactiveLimits.getKind());
             }
-            return maxRangeQ;
+            return maxRangeQ / PerUnit.SB;
         } else {
             return Double.MAX_VALUE;
         }

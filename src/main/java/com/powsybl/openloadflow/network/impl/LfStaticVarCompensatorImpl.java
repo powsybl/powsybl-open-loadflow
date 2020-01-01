@@ -29,10 +29,9 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
         super(0);
         this.svc = svc;
         double nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
-        double zb = nominalV * nominalV / PerUnit.SB;
         // min and  max reactive limit are calculated at nominal voltage
-        double minQ = svc.getBmin() * zb;
-        double maxQ = svc.getBmax() * zb;
+        double minQ = svc.getBmin() * nominalV * nominalV;
+        double maxQ = svc.getBmax() * nominalV * nominalV;
         reactiveLimits = new MinMaxReactiveLimits() {
 
             @Override
