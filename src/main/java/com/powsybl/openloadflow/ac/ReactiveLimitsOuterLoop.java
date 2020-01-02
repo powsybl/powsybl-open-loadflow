@@ -33,7 +33,11 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
     }
 
     private void switchPvPq(LfBus bus, EquationSystem equationSystem, double newGenerationTargetQ) {
-        Equation vEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
+        LfBus remoteControltargetBus = bus.getRemoteControlTargetBus().orElse(null);
+        if (remoteControltargetBus != null && remoteControltargetBus.getRemoteControlSourceBuses().size() > 1) {
+            throw new UnsupportedOperationException("Switch PV -> PQ not implemented for voltage remote control with multiple generators");
+        }
+        Equation vEq = equationSystem.createEquation(remoteControltargetBus != null ? remoteControltargetBus.getNum() : bus.getNum(), EquationType.BUS_V);
         Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
         vEq.setActive(false);
         qEq.setActive(true);
