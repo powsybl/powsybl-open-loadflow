@@ -89,8 +89,8 @@ public class AcLoadFlowSvcTest {
                 .setConnectableBus("b2")
                 .setBus("b2")
                 .setRegulationMode(StaticVarCompensator.RegulationMode.OFF)
-                .setBmin(0)
-                .setBmax(10)
+                .setBmin(-0.008)
+                .setBmax(0.008)
                 .add();
         l1 = network.newLine()
                 .setId("l1")
@@ -113,11 +113,11 @@ public class AcLoadFlowSvcTest {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
-        parameters.setNoGeneratorReactiveLimits(true);
+        parameters.setNoGeneratorReactiveLimits(false);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new MostMeshedSlackBusSelector())
                 .setDistributedSlack(false);
-        this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
     @Test
@@ -152,5 +152,15 @@ public class AcLoadFlowSvcTest {
         assertReactivePowerEquals(-607.897, l1.getTerminal2());
         assertActivePowerEquals(0, svc1.getTerminal());
         assertReactivePowerEquals(457.896, svc1.getTerminal());
+    }
+
+    @Test
+    public void shouldReachReactiveMaxLimit() {
+        svc1.setBmin(-0.002)
+                .setVoltageSetPoint(385)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(320, svc1.getTerminal()); // min reactive limit has been correctly reached
     }
 }
