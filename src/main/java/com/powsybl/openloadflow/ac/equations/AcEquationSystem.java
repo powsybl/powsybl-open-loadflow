@@ -9,9 +9,10 @@ package com.powsybl.openloadflow.ac.equations;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -20,6 +21,8 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public final class AcEquationSystem {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AcEquationSystem.class);
 
     private AcEquationSystem() {
     }
@@ -71,7 +74,7 @@ public final class AcEquationSystem {
         // create voltage equation at remote control target bus
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
 
-        List<Double> qKeys = createReactiveKeys(sourceBuses);
+        double[] qKeys = createReactiveKeys(sourceBuses);
 
         for (LfBus sourceBus : sourceBuses) {
             // deactivate reactive equation for all remote voltage source bus (where the generator is connected)
@@ -82,7 +85,7 @@ public final class AcEquationSystem {
         LfBus firstSourceBus = sourceBuses.get(0);
         for (int i = 1; i < sourceBuses.size(); i++) {
             LfBus sourceBus = sourceBuses.get(i);
-            double c = qKeys.get(0) / qKeys.get(i);
+            double c = qKeys[0] / qKeys[i];
 
             // 0 = q0 + c * qi
             Equation zero = equationSystem.createEquation(sourceBus.getNum(), EquationType.ZERO);
@@ -100,20 +103,28 @@ public final class AcEquationSystem {
         }
     }
 
-    private static List<Double> createReactiveKeys(List<LfBus> sourceBuses) {
-        List<Double> qKeys = new ArrayList<>(sourceBuses.size());
-        for (LfBus sourceBus : sourceBuses) {
-            double qKeySum = 0;
+    private static double[] createReactiveKeysFallBack(int n) {
+        double[] qKeys = new double[n];
+        Arrays.fill(qKeys, 1d);
+        return qKeys;
+    }
+
+    private static double[] createReactiveKeys(List<LfBus> sourceBuses) {
+        double[] qKeys = new double[sourceBuses.size()];
+        for (int i = 0; i < sourceBuses.size(); i++) {
+            LfBus sourceBus = sourceBuses.get(i);
             for (LfGenerator generator : sourceBus.getGenerators()) {
                 double qKey = generator.getRemoteControlReactiveKey().orElse(Double.NaN);
-                if (Double.isNaN(qKey)) {
+                if (Double.isNaN(qKey) || qKey == 0) {
+                    if (qKey == 0) {
+                        LOGGER.error("Generator '{}' remote control reactive key value is zero", generator.getId());
+                    }
                     // in case of one missing key, we fallback to same reactive power for all buses
-                    return Collections.nCopies(sourceBuses.size(), 1d);
+                    return createReactiveKeysFallBack(sourceBuses.size());
                 } else {
-                    qKeySum += qKey;
+                    qKeys[i] += qKey;
                 }
             }
-            qKeys.add(qKeySum);
         }
         return qKeys;
     }
