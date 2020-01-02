@@ -98,16 +98,17 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case BUS_V:
-                targets[row] = network.getBus(num).getTargetV();
-                break;
-
-            case BUS_REMOTE_V:
-                targets[row] = network.getBus(num).getRemoteControlSourceBuses()
-                        .stream()
-                        .filter(LfBus::hasVoltageControl)
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalStateException("None of the remote control source buses have voltage control on"))
-                        .getTargetV();
+                LfBus bus = network.getBus(num);
+                if (bus.getRemoteControlSourceBuses().isEmpty()) {
+                    targets[row] = bus.getTargetV();
+                } else {
+                    targets[row] = bus.getRemoteControlSourceBuses()
+                            .stream()
+                            .filter(LfBus::hasVoltageControl)
+                            .findFirst()
+                            .orElseThrow(() -> new IllegalStateException("None of the remote control source buses have voltage control on"))
+                            .getTargetV();
+                }
                 break;
 
             case BUS_PHI:

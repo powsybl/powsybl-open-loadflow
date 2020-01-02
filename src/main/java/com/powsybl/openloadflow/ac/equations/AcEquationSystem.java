@@ -69,7 +69,7 @@ public final class AcEquationSystem {
         }
 
         // create voltage equation at remote control target bus
-        equationSystem.createEquation(bus.getNum(), EquationType.BUS_REMOTE_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+        equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
 
         List<Double> qKeys = createReactiveKeys(sourceBuses);
 

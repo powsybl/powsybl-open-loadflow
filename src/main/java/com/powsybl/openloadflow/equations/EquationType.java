@@ -13,7 +13,6 @@ public enum EquationType {
     BUS_P("p"),
     BUS_Q("q"),
     BUS_V("v"),
-    BUS_REMOTE_V("v"),
     BUS_PHI("\u03C6"),
     ZERO("z");
 
