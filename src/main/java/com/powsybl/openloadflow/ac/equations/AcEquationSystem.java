@@ -52,11 +52,15 @@ public final class AcEquationSystem {
                     createRemoteVoltageEquations(bus, sourceBuses, equationSystem, variableSet);
                 }
             }
-            for (LfShunt shunt : bus.getShunts()) {
-                ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, network, variableSet);
-                equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
-                shunt.setQ(q);
-            }
+            createShuntEquations(network, variableSet, equationSystem, bus);
+        }
+    }
+
+    private static void createShuntEquations(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem, LfBus bus) {
+        for (LfShunt shunt : bus.getShunts()) {
+            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, network, variableSet);
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
+            shunt.setQ(q);
         }
     }
 
