@@ -53,7 +53,19 @@ public class LfNetwork {
                 }
                 return !connectedToSameBus;
             }).collect(Collectors.toList());
-        LOGGER.info("Network has {} buses and {} branches", this.buses.size(), this.branches.size());
+
+        int remoteControlSources = 0;
+        int remoteControlTargets = 0;
+        for (LfBus bus : buses) {
+            if (bus.getRemoteControlTargetBus().isPresent()) {
+                remoteControlSources++;
+            }
+            if (!bus.getRemoteControlSourceBuses().isEmpty()) {
+                remoteControlTargets++;
+            }
+        }
+        LOGGER.info("Network has {} buses (voltage remote control: {} sources, {} targets) and {} branches",
+                this.buses.size(), remoteControlSources, remoteControlTargets, this.branches.size());
 
         Objects.requireNonNull(slackBusSelector);
         slackBus = slackBusSelector.select(this.buses);
@@ -117,6 +129,13 @@ public class LfNetwork {
         if (bus.getLoadTargetQ() != 0) {
             jsonGenerator.writeNumberField("loadTargetQ", bus.getLoadTargetQ());
         }
+        bus.getRemoteControlTargetBus().ifPresent(lfBus -> {
+            try {
+                jsonGenerator.writeNumberField("remoteControlTargetBus", lfBus.getNum());
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
         if (!Double.isNaN(bus.getTargetV())) {
             jsonGenerator.writeNumberField("targetV", bus.getTargetV());
         }
@@ -260,10 +279,14 @@ public class LfNetwork {
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
+        return load(network, slackBusSelector, false);
+    }
+
+    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(slackBusSelector);
         for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
-            List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector).orElse(null);
+            List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, generatorVoltageRemoteControl).orElse(null);
             if (lfNetworks != null) {
                 return lfNetworks;
             }

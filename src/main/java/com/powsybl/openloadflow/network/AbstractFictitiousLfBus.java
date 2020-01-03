@@ -34,6 +34,11 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     }
 
     @Override
+    public List<LfBus> getRemoteControlSourceBuses() {
+        return Collections.emptyList();
+    }
+
+    @Override
     public double getLoadTargetP() {
         return 0;
     }

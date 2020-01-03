@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
+import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.openloadflow.network.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.PerUnit;
 import org.slf4j.Logger;
@@ -16,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalDouble;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -71,6 +73,15 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     @Override
     public boolean hasVoltageControl() {
         return generator.isVoltageRegulatorOn();
+    }
+
+    @Override
+    public OptionalDouble getRemoteControlReactiveKey() {
+        CoordinatedReactiveControl coordinatedReactiveControl = generator.getExtension(CoordinatedReactiveControl.class);
+        if (coordinatedReactiveControl == null) {
+            return OptionalDouble.empty();
+        }
+        return OptionalDouble.of(coordinatedReactiveControl.getQPercent());
     }
 
     @Override

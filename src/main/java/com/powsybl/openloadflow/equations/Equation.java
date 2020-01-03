@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
 
@@ -97,10 +98,24 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case BUS_V:
-                targets[row] = network.getBus(num).getTargetV();
+                LfBus bus = network.getBus(num);
+                if (bus.getRemoteControlSourceBuses().isEmpty()) {
+                    targets[row] = bus.getTargetV();
+                } else {
+                    targets[row] = bus.getRemoteControlSourceBuses()
+                            .stream()
+                            .filter(LfBus::hasVoltageControl)
+                            .findFirst()
+                            .orElseThrow(() -> new IllegalStateException("None of the remote control source buses have voltage control on"))
+                            .getTargetV();
+                }
                 break;
 
             case BUS_PHI:
+                targets[row] = 0;
+                break;
+
+            case ZERO:
                 targets[row] = 0;
                 break;
 

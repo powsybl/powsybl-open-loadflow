@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -36,6 +37,11 @@ public abstract class AbstractLfBus implements LfBus {
     @Override
     public int getNum() {
         return num;
+    }
+
+    @Override
+    public Optional<LfBus> getRemoteControlTargetBus() {
+        return Optional.empty();
     }
 
     @Override
