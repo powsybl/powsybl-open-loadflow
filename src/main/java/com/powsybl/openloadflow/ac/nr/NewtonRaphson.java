@@ -47,6 +47,7 @@ public class NewtonRaphson implements AutoCloseable {
         equationSystem.addListener((equation, eventType) -> {
             switch (eventType) {
                 case EQUATION_CREATED:
+                case EQUATION_REMOVED:
                 case EQUATION_ACTIVATED:
                 case EQUATION_DEACTIVATED:
                     j = null;

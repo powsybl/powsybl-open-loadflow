@@ -6,12 +6,14 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationType;
+import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PerUnit;
 import org.slf4j.Logger;
@@ -32,17 +34,18 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         return "Reactive limits";
     }
 
-    private void switchPvPq(LfBus bus, EquationSystem equationSystem, double newGenerationTargetQ) {
-        LfBus remoteControltargetBus = bus.getRemoteControlTargetBus().orElse(null);
-        if (remoteControltargetBus != null && remoteControltargetBus.getRemoteControlSourceBuses().size() > 1) {
-            throw new UnsupportedOperationException("Switch PV -> PQ not implemented for voltage remote control with multiple generators");
-        }
-        Equation vEq = equationSystem.createEquation(remoteControltargetBus != null ? remoteControltargetBus.getNum() : bus.getNum(), EquationType.BUS_V);
-        Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
-        vEq.setActive(false);
-        qEq.setActive(true);
+    private void switchPvPq(LfBus bus, EquationSystem equationSystem, VariableSet variableSet, double newGenerationTargetQ) {
         bus.setGenerationTargetQ(newGenerationTargetQ);
         bus.setVoltageControl(false);
+        LfBus remoteControltargetBus = bus.getRemoteControlTargetBus().orElse(null);
+        if (remoteControltargetBus != null) {
+            AcEquationSystem.createRemoteVoltageEquations(remoteControltargetBus, equationSystem, variableSet);
+        } else {
+            Equation vEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
+            vEq.setActive(false);
+            Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
+            qEq.setActive(true);
+        }
     }
 
     @Override
@@ -56,13 +59,13 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
                 double maxQ = bus.getMaxQ();
                 if (q < minQ) {
                     // switch PV -> PQ
-                    switchPvPq(bus, context.getEquationSystem(), minQ);
+                    switchPvPq(bus, context.getEquationSystem(), context.getVariableSet(), minQ);
                     LOGGER.trace("Switch bus {} PV -> PQ, q={} < minQ={}", bus.getId(), q * PerUnit.SB, minQ * PerUnit.SB);
                     pvToPqBuses.add(bus);
                     status = OuterLoopStatus.UNSTABLE;
                 } else if (q > maxQ) {
                     // switch PV -> PQ
-                    switchPvPq(bus, context.getEquationSystem(), maxQ);
+                    switchPvPq(bus, context.getEquationSystem(), context.getVariableSet(), maxQ);
                     LOGGER.trace("Switch bus {} PV -> PQ, q={} MVar > maxQ={}", bus.getId(), q * PerUnit.SB, maxQ * PerUnit.SB);
                     pvToPqBuses.add(bus);
                     status = OuterLoopStatus.UNSTABLE;
