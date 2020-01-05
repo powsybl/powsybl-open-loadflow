@@ -231,4 +231,22 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(-100.189, g2.getTerminal());
         assertReactivePowerEquals(-10, g3.getTerminal());
     }
+
+    @Test
+    public void testWith3GeneratorsAndFirstGeneratorToLimit() {
+        parameters.setNoGeneratorReactiveLimits(false);
+        g1.newMinMaxReactiveLimits()
+                .setMinQ(-50)
+                .setMaxQ(50)
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(21.433794, b1);
+        assertVoltageEquals(21.337233, b2);
+        assertVoltageEquals(22.704157, b3);
+        assertVoltageEquals(413.4, b4);
+        assertReactivePowerEquals(-50, g1.getTerminal()); // generator 1 has been correctly limited to -50 MVar
+        assertReactivePowerEquals(-80.038, g2.getTerminal());
+        assertReactivePowerEquals(-80.038, g3.getTerminal());
+    }
 }
