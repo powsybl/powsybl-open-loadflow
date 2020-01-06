@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -17,6 +18,8 @@ public interface LfBus {
 
     int getNum();
 
+    boolean isFictitious();
+
     boolean isSlack();
 
     void setSlack(boolean slack);
@@ -24,6 +27,10 @@ public interface LfBus {
     boolean hasVoltageControl();
 
     void setVoltageControl(boolean voltageControl);
+
+    Optional<LfBus> getRemoteControlTargetBus();
+
+    List<LfBus> getRemoteControlSourceBuses();
 
     double getTargetP();
 
@@ -67,7 +74,9 @@ public interface LfBus {
 
     List<LfShunt> getShunts();
 
-    int getNeighbors();
+    List<LfBranch> getBranches();
+
+    void addBranch(LfBranch branch);
 
     void updateState(boolean reactiveLimits);
 }

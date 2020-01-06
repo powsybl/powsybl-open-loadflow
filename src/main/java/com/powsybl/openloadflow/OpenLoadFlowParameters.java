@@ -27,6 +27,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean dc = false;
 
+    private boolean generatorVoltageRemoteControl = false;
+
     private final List<AcLoadFlowObserver> additionalObservers = new ArrayList<>();
 
     @Override
@@ -58,6 +60,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setDc(boolean dc) {
         this.dc = dc;
+        return this;
+    }
+
+    public boolean hasGeneratorVoltageRemoteControl() {
+        return generatorVoltageRemoteControl;
+    }
+
+    public OpenLoadFlowParameters setGeneratorVoltageRemoteControl(boolean generatorVoltageRemoteControl) {
+        this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
         return this;
     }
 

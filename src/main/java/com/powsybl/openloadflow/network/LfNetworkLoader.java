@@ -4,22 +4,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.equations;
+package com.powsybl.openloadflow.network;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public enum VariableType {
-    BUS_V("v"),
-    BUS_PHI("\u03C6");
+public interface LfNetworkLoader {
 
-    private final String symbol;
-
-    VariableType(String symbol) {
-        this.symbol = symbol;
-    }
-
-    public String getSymbol() {
-        return symbol;
-    }
+    Optional<List<LfNetwork>> load(Object network, SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl);
 }

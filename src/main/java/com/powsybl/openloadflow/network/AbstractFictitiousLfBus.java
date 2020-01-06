@@ -19,6 +19,11 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     }
 
     @Override
+    public boolean isFictitious() {
+        return true;
+    }
+
+    @Override
     public boolean hasVoltageControl() {
         return false;
     }
@@ -26,6 +31,11 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     @Override
     public void setVoltageControl(boolean voltageControl) {
         throw new IllegalStateException("Cannot change fictitious bus voltage control status");
+    }
+
+    @Override
+    public List<LfBus> getRemoteControlSourceBuses() {
+        return Collections.emptyList();
     }
 
     @Override

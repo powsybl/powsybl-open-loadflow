@@ -6,10 +6,14 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -94,10 +98,24 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case BUS_V:
-                targets[row] = network.getBus(num).getTargetV();
+                LfBus bus = network.getBus(num);
+                if (bus.getRemoteControlSourceBuses().isEmpty()) {
+                    targets[row] = bus.getTargetV();
+                } else {
+                    targets[row] = bus.getRemoteControlSourceBuses()
+                            .stream()
+                            .filter(LfBus::hasVoltageControl)
+                            .findFirst()
+                            .orElseThrow(() -> new IllegalStateException("None of the remote control source buses have voltage control on"))
+                            .getTargetV();
+                }
                 break;
 
             case BUS_PHI:
+                targets[row] = 0;
+                break;
+
+            case ZERO:
                 targets[row] = 0;
                 break;
 
@@ -160,6 +178,19 @@ public class Equation implements Evaluable, Comparable<Equation> {
             c = type.ordinal() - o.type.ordinal();
         }
         return c;
+    }
+
+    public void write(Writer writer) throws IOException {
+        writer.write(type.getSymbol());
+        writer.append(Integer.toString(num));
+        writer.append(" = ");
+        for (Iterator<EquationTerm> it = terms.iterator(); it.hasNext();) {
+            EquationTerm term = it.next();
+            term.write(writer);
+            if (it.hasNext()) {
+                writer.write(" + ");
+            }
+        }
     }
 
     @Override

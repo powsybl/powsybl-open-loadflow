@@ -24,7 +24,7 @@ public class LfLegBranch extends AbstractFictitiousBranch {
     private final ThreeWindingsTransformer.Leg leg;
 
     protected LfLegBranch(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
-        super(bus1, bus0, new PiModel(leg.getR(), leg.getX())
+        super(twt, bus1, bus0, new PiModel(leg.getR(), leg.getX())
                             .setR1(Transformers.getRatioLeg(twt, leg))
                             .setG2(leg.getG())
                             .setB2(leg.getB()),
@@ -44,12 +44,12 @@ public class LfLegBranch extends AbstractFictitiousBranch {
 
     @Override
     public String getId() {
-        return twt.getId() + " leg";
+        return branch.getId() + " leg";
     }
 
     @Override
     public void updateState() {
-        twt.getLeg1().getTerminal().setP(p.eval() * PerUnit.SB);
-        twt.getLeg1().getTerminal().setQ(q.eval() * PerUnit.SB);
+        branch.getLeg1().getTerminal().setP(p.eval() * PerUnit.SB);
+        branch.getLeg1().getTerminal().setQ(q.eval() * PerUnit.SB);
     }
 }

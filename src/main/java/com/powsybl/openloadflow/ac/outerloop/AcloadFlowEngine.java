@@ -7,13 +7,15 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.google.common.base.Stopwatch;
-import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
-import com.powsybl.openloadflow.ac.nr.*;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationType;
-import com.powsybl.openloadflow.equations.VoltageInitializer;
+import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Markers;
@@ -31,31 +33,18 @@ public class AcloadFlowEngine {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AcloadFlowEngine.class);
 
-    private final LfNetwork network;
+    private final List<LfNetwork> networks;
 
-    private final VoltageInitializer voltageInitializer;
+    private final AcLoadFlowParameters parameters;
 
-    private final NewtonRaphsonStoppingCriteria stoppingCriteria;
-
-    private final List<OuterLoop> outerLoops;
-
-    private final MatrixFactory matrixFactory;
-
-    private final AcLoadFlowObserver observer;
-
-    public AcloadFlowEngine(LfNetwork network, VoltageInitializer voltageInitializer, NewtonRaphsonStoppingCriteria stoppingCriteria,
-                            List<OuterLoop> outerLoops, MatrixFactory matrixFactory, AcLoadFlowObserver observer) {
-        this.network = Objects.requireNonNull(network);
-        this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
-        this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
-        this.outerLoops = Objects.requireNonNull(outerLoops);
-        this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        this.observer = Objects.requireNonNull(observer);
+    public AcloadFlowEngine(Object network, AcLoadFlowParameters parameters) {
+        this.parameters = Objects.requireNonNull(parameters);
+        networks = LfNetwork.load(network, parameters.getSlackBusSelector(), parameters.isGeneratorVoltageRemoteControl());
     }
 
-    private void updatePvBusesReactivePower(NewtonRaphsonResult lastNrResult, EquationSystem equationSystem) {
+    private void updatePvBusesReactivePower(NewtonRaphsonResult lastNrResult, LfNetwork network, EquationSystem equationSystem) {
         if (lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
-            observer.beforePvBusesReactivePowerUpdate();
+            parameters.getObserver().beforePvBusesReactivePowerUpdate();
 
             for (LfBus bus : network.getBuses()) {
                 if (bus.hasVoltageControl()) {
@@ -66,51 +55,56 @@ public class AcloadFlowEngine {
                 }
             }
 
-            observer.afterPvBusesReactivePowerUpdate();
+            parameters.getObserver().afterPvBusesReactivePowerUpdate();
         }
     }
 
     public AcLoadFlowResult run() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        observer.beforeEquationSystemCreation();
+        // only process main (largest) connected component
+        LfNetwork network = networks.get(0);
 
-        EquationSystem equationSystem = AcEquationSystem.create(network);
+        network.logBalance();
 
-        observer.afterEquationSystemCreation();
+        parameters.getObserver().beforeEquationSystemCreation();
+
+        EquationSystem equationSystem = AcEquationSystem.create(network, new VariableSet(), parameters.isGeneratorVoltageRemoteControl());
+
+        parameters.getObserver().afterEquationSystemCreation();
 
         NewtonRaphsonResult lastNrResult;
         int outerLoopIteration = 0;
-        try (NewtonRaphson newtonRaphson = new NewtonRaphson(network, matrixFactory, observer, equationSystem, stoppingCriteria)) {
+        try (NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getMatrixFactory(), parameters.getObserver(), equationSystem, parameters.getStoppingCriteria())) {
 
-            NewtonRaphsonParameters nrParameters = new NewtonRaphsonParameters().setVoltageInitializer(voltageInitializer);
+            NewtonRaphsonParameters nrParameters = new NewtonRaphsonParameters().setVoltageInitializer(parameters.getVoltageInitializer());
 
             // initial Newton-Raphson
             lastNrResult = newtonRaphson.run(nrParameters);
 
-            updatePvBusesReactivePower(lastNrResult, equationSystem);
+            updatePvBusesReactivePower(lastNrResult, network, equationSystem);
 
             // for each outer loop re-run Newton-Raphson until stabilization
             // outer loops are nested: inner most loop first in the list, outer mosy loop last
-            for (OuterLoop outerLoop : outerLoops) {
+            for (OuterLoop outerLoop : parameters.getOuterLoops()) {
                 OuterLoopStatus outerLoopStatus;
                 do {
-                    observer.beforeOuterLoopStatusCheck(outerLoopIteration, outerLoop.getName());
+                    parameters.getObserver().beforeOuterLoopStatusCheck(outerLoopIteration, outerLoop.getName());
 
                     // check outer loop status
                     outerLoopStatus = outerLoop.check(new OuterLoopContext(outerLoopIteration, network, equationSystem, lastNrResult));
 
-                    observer.afterOuterLoopStatusCheck(outerLoopIteration, outerLoop.getName(), outerLoopStatus == OuterLoopStatus.STABLE);
+                    parameters.getObserver().afterOuterLoopStatusCheck(outerLoopIteration, outerLoop.getName(), outerLoopStatus == OuterLoopStatus.STABLE);
 
                     if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
-                        observer.beforeOuterLoopBody(outerLoopIteration, outerLoop.getName());
+                        parameters.getObserver().beforeOuterLoopBody(outerLoopIteration, outerLoop.getName());
 
                         // if not yet stable, restart Newton-Raphson
                         lastNrResult = newtonRaphson.run(nrParameters);
 
-                        observer.afterOuterLoopBody(outerLoopIteration, outerLoop.getName());
+                        parameters.getObserver().afterOuterLoopBody(outerLoopIteration, outerLoop.getName());
 
-                        updatePvBusesReactivePower(lastNrResult, equationSystem);
+                        updatePvBusesReactivePower(lastNrResult, network, equationSystem);
 
                         outerLoopIteration++;
                     }
@@ -125,7 +119,7 @@ public class AcloadFlowEngine {
 
         LOGGER.debug(Markers.PERFORMANCE_MARKER, "Ac loadflow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-        AcLoadFlowResult result = new AcLoadFlowResult(outerLoopIterations, nrIterations, lastNrResult.getStatus(), lastNrResult.getSlackBusActivePowerMismatch());
+        AcLoadFlowResult result = new AcLoadFlowResult(networks, outerLoopIterations, nrIterations, lastNrResult.getStatus(), lastNrResult.getSlackBusActivePowerMismatch());
 
         LOGGER.info("Ac loadflow complete (result={})", result);
 

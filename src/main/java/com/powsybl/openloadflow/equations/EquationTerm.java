@@ -8,7 +8,10 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * An equation term, i.e part of the equation sum.
@@ -16,6 +19,59 @@ import java.util.List;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public interface EquationTerm extends Evaluable {
+
+    class MultiplyByScalarEquationTerm implements EquationTerm {
+
+        private final EquationTerm term;
+
+        private final double scalar;
+
+        MultiplyByScalarEquationTerm(EquationTerm term, double scalar) {
+            this.term = Objects.requireNonNull(term);
+            this.scalar = scalar;
+        }
+
+        @Override
+        public List<Variable> getVariables() {
+            return term.getVariables();
+        }
+
+        @Override
+        public void update(double[] x) {
+            term.update(x);
+        }
+
+        @Override
+        public double eval() {
+            return scalar * term.eval();
+        }
+
+        @Override
+        public double der(Variable variable) {
+            return scalar * term.der(variable);
+        }
+
+        @Override
+        public boolean hasRhs() {
+            return term.hasRhs();
+        }
+
+        @Override
+        public double rhs(Variable variable) {
+            return scalar * term.rhs(variable);
+        }
+
+        @Override
+        public void write(Writer writer) throws IOException {
+            writer.write(Double.toString(scalar));
+            writer.write(" * ");
+            term.write(writer);
+        }
+    }
+
+    static EquationTerm multiply(EquationTerm term, double scalar) {
+        return new MultiplyByScalarEquationTerm(term, scalar);
+    }
 
     /**
      * Get the list of variable this equation term depends on.
@@ -56,4 +112,6 @@ public interface EquationTerm extends Evaluable {
      * @return value of part of the partial derivative that has to be moved to right hand side
      */
     double rhs(Variable variable);
+
+    void write(Writer writer) throws IOException;
 }

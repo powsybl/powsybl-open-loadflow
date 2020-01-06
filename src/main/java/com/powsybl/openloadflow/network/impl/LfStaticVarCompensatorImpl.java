@@ -6,7 +6,9 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.iidm.network.MinMaxReactiveLimits;
 import com.powsybl.iidm.network.ReactiveLimits;
+import com.powsybl.iidm.network.ReactiveLimitsKind;
 import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.openloadflow.network.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.PerUnit;
@@ -21,9 +23,42 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     private final StaticVarCompensator svc;
 
+    private final ReactiveLimits reactiveLimits;
+
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc) {
         super(0);
         this.svc = svc;
+        double nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
+        // min and  max reactive limit are calculated at nominal voltage
+        double minQ = svc.getBmin() * nominalV * nominalV;
+        double maxQ = svc.getBmax() * nominalV * nominalV;
+        reactiveLimits = new MinMaxReactiveLimits() {
+
+            @Override
+            public double getMinQ() {
+                return minQ;
+            }
+
+            @Override
+            public double getMaxQ() {
+                return maxQ;
+            }
+
+            @Override
+            public ReactiveLimitsKind getKind() {
+                return ReactiveLimitsKind.MIN_MAX;
+            }
+
+            @Override
+            public double getMinQ(double p) {
+                return getMinQ();
+            }
+
+            @Override
+            public double getMaxQ(double p) {
+                return getMaxQ();
+            }
+        };
     }
 
     public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc) {
@@ -68,7 +103,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
-        return Optional.empty();
+        return Optional.of(reactiveLimits);
     }
 
     @Override

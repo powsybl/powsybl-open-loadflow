@@ -70,4 +70,9 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
             throw new IllegalStateException("Unknown variable: " + variable);
         }
     }
+
+    @Override
+    protected String getName() {
+        return "ac_q_closed_1";
+    }
 }

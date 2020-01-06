@@ -8,15 +8,13 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.network.AbstractLfBus;
-import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.LfShunt;
-import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ToDoubleFunction;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -27,7 +25,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     private static final double REACTIVE_RANGE_THRESHOLD_PU = 1d / PerUnit.SB;
     private static final double POWER_EPSILON_SI = 1e-4;
-    private static final double Q_DISPATH_EPSILON = 1e-3;
+    private static final double Q_DISPATCH_EPSILON = 1e-3;
 
     private final Bus bus;
 
@@ -43,7 +41,9 @@ public class LfBusImpl extends AbstractLfBus {
 
     private double targetV = Double.NaN;
 
-    private int neighbors = 0;
+    private LfBus remoteControlTargetBus;
+
+    private final List<LfBus> remoteControlSourceBuses = new ArrayList<>();
 
     private final List<LfGenerator> generators = new ArrayList<>();
 
@@ -70,6 +70,11 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
+    public boolean isFictitious() {
+        return false;
+    }
+
+    @Override
     public boolean hasVoltageControl() {
         return voltageControl;
     }
@@ -77,6 +82,32 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public void setVoltageControl(boolean voltageControl) {
         this.voltageControl = voltageControl;
+    }
+
+    @Override
+    public Optional<LfBus> getRemoteControlTargetBus() {
+        return Optional.ofNullable(remoteControlTargetBus);
+    }
+
+    public void setRemoteControlTargetBus(LfBusImpl remoteControlTargetBus) {
+        Objects.requireNonNull(remoteControlTargetBus);
+        // check that remote control bus is still the same
+        if (this.remoteControlTargetBus != null && this.remoteControlTargetBus.getNum() != remoteControlTargetBus.getNum()) {
+            throw new PowsyblException("Generators " + generators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "))
+                    + " connected to bus '" + getId() + "' must control the voltage of the same bus");
+        }
+        this.remoteControlTargetBus = remoteControlTargetBus;
+        remoteControlTargetBus.addRemoteControlSource(this);
+    }
+
+    @Override
+    public List<LfBus> getRemoteControlSourceBuses() {
+        return remoteControlSourceBuses;
+    }
+
+    public void addRemoteControlSource(LfBus remoteControlSource) {
+        Objects.requireNonNull(remoteControlSource);
+        remoteControlSourceBuses.add(remoteControlSource);
     }
 
     private double checkTargetV(double targetV) {
@@ -102,12 +133,12 @@ public class LfBusImpl extends AbstractLfBus {
         generators.add(generator);
         boolean voltageControl2 = voltageControl;
         double maxRangeQ = generator.getMaxRangeQ();
-        if (maxRangeQ < REACTIVE_RANGE_THRESHOLD_PU) {
+        if (voltageControl && maxRangeQ < REACTIVE_RANGE_THRESHOLD_PU) {
             LOGGER.warn("Discard generator '{}' from voltage control because max reactive range ({}) is too small",
                     generator.getId(), maxRangeQ);
             voltageControl2 = false;
         }
-        if (Math.abs(generator.getTargetP()) < POWER_EPSILON_SI && generator.getMinP() > POWER_EPSILON_SI) {
+        if (voltageControl && Math.abs(generator.getTargetP()) < POWER_EPSILON_SI && generator.getMinP() > POWER_EPSILON_SI) {
             LOGGER.warn("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)",
                     generator.getId(), generator.getTargetP(), generator.getMinP());
             voltageControl2 = false;
@@ -120,8 +151,8 @@ public class LfBusImpl extends AbstractLfBus {
         }
     }
 
-    void addGenerator(Generator generator) {
-        add(LfGeneratorImpl.create(generator), generator.isVoltageRegulatorOn(), generator.getTargetV(),
+    void addGenerator(Generator generator, double scaleV) {
+        add(LfGeneratorImpl.create(generator), generator.isVoltageRegulatorOn(), generator.getTargetV() * scaleV,
                 generator.getTargetQ());
     }
 
@@ -186,16 +217,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public double getTargetV() {
-        return targetV / nominalV;
-    }
-
-    void addNeighbor() {
-        neighbors++;
-    }
-
-    @Override
-    public int getNeighbors() {
-        return neighbors;
+        return targetV / (remoteControlTargetBus != null ? remoteControlTargetBus.getNominalV() : nominalV);
     }
 
     @Override
@@ -268,7 +290,7 @@ public class LfBusImpl extends AbstractLfBus {
         for (LfGenerator generator : generatorsThatControlVoltage) {
             generator.setCalculatedQ(0);
         }
-        while (!generatorsThatControlVoltage.isEmpty() && Math.abs(qToDispatch) > Q_DISPATH_EPSILON) {
+        while (!generatorsThatControlVoltage.isEmpty() && Math.abs(qToDispatch) > Q_DISPATCH_EPSILON) {
             qToDispatch = dispatchQ(generatorsThatControlVoltage, reactiveLimits, qToDispatch);
         }
     }

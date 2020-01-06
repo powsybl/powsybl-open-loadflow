@@ -30,9 +30,4 @@ public class LfStarBus extends AbstractFictitiousLfBus {
     public double getNominalV() {
         return t3wt.getLeg1().getTerminal().getVoltageLevel().getNominalV();
     }
-
-    @Override
-    public int getNeighbors() {
-        return 3;
-    }
 }

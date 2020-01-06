@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.PowsyblException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.ServiceLoader;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -51,7 +53,19 @@ public class LfNetwork {
                 }
                 return !connectedToSameBus;
             }).collect(Collectors.toList());
-        LOGGER.info("Network has {} buses and {} branches", this.buses.size(), this.branches.size());
+
+        int remoteControlSources = 0;
+        int remoteControlTargets = 0;
+        for (LfBus bus : buses) {
+            if (bus.getRemoteControlTargetBus().isPresent()) {
+                remoteControlSources++;
+            }
+            if (!bus.getRemoteControlSourceBuses().isEmpty()) {
+                remoteControlTargets++;
+            }
+        }
+        LOGGER.info("Network has {} buses (voltage remote control: {} sources, {} targets) and {} branches",
+                this.buses.size(), remoteControlSources, remoteControlTargets, this.branches.size());
 
         Objects.requireNonNull(slackBusSelector);
         slackBus = slackBusSelector.select(this.buses);
@@ -115,6 +129,13 @@ public class LfNetwork {
         if (bus.getLoadTargetQ() != 0) {
             jsonGenerator.writeNumberField("loadTargetQ", bus.getLoadTargetQ());
         }
+        bus.getRemoteControlTargetBus().ifPresent(lfBus -> {
+            try {
+                jsonGenerator.writeNumberField("remoteControlTargetBus", lfBus.getNum());
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
         if (!Double.isNaN(bus.getTargetV())) {
             jsonGenerator.writeNumberField("targetV", bus.getTargetV());
         }
@@ -240,5 +261,36 @@ public class LfNetwork {
             throw new UncheckedIOException(e);
         }
     }
-}
 
+    public void logBalance() {
+        double activeGeneration = 0;
+        double reactiveGeneration = 0;
+        double activeLoad = 0;
+        double reactiveLoad = 0;
+        for (LfBus b : buses) {
+            activeGeneration += b.getGenerationTargetP() * PerUnit.SB;
+            reactiveGeneration += b.getGenerationTargetQ() * PerUnit.SB;
+            activeLoad += b.getLoadTargetP() * PerUnit.SB;
+            reactiveLoad += b.getLoadTargetQ() * PerUnit.SB;
+        }
+
+        LOGGER.info("Active generation={} Mw, active load={} Mw, reactive generation={} MVar, reactive load={} MVar",
+                activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
+    }
+
+    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
+        return load(network, slackBusSelector, false);
+    }
+
+    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(slackBusSelector);
+        for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
+            List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, generatorVoltageRemoteControl).orElse(null);
+            if (lfNetworks != null) {
+                return lfNetworks;
+            }
+        }
+        throw new PowsyblException("Cannot importer network of type: " + network.getClass().getName());
+    }
+}

@@ -58,6 +58,7 @@
         <slf4jtoys.version>1.6.2</slf4jtoys.version>
 
         <maven.antrun.version>1.8</maven.antrun.version>
+        <maven.buildnumber.version>1.4</maven.buildnumber.version>
         <maven.checkstyle.version>3.0.0</maven.checkstyle.version>
         <maven.clean.version>3.1.0</maven.clean.version>
         <maven.compiler.version>3.8.0</maven.compiler.version>
@@ -76,6 +77,7 @@
         <maven.site.version>3.7.1</maven.site.version>
         <maven.source.version>3.0.1</maven.source.version>
         <maven.surefire.version>2.22.0</maven.surefire.version>
+        <maven.templating.version>1.0.0</maven.templating.version>
         <maven.versions.version>2.7</maven.versions.version>
 
         <sonar.exclusions>
@@ -89,12 +91,43 @@
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+                <version>${maven.buildnumber.version}</version>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>create</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <doCheck>false</doCheck>
+                    <doUpdate>false</doUpdate>
+                    <revisionOnScmFailure>UNKNOWN_BUILD</revisionOnScmFailure>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
                 <version>${maven.findbugs.version}</version>
                 <configuration>
                     <findbugsXmlOutput>true</findbugsXmlOutput>
                     <xmlOutput>true</xmlOutput>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>templating-maven-plugin</artifactId>
+                <version>${maven.templating.version}</version>
+                <executions>
+                    <execution>
+                        <id>filter-src</id>
+                        <goals>
+                            <goal>filter-sources</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
