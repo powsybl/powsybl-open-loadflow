@@ -17,9 +17,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfLegBranch extends AbstractFictitiousBranch {
-
-    private final ThreeWindingsTransformer twt;
+public class LfLegBranch extends AbstractFictitiousBranch<ThreeWindingsTransformer> {
 
     private final ThreeWindingsTransformer.Leg leg;
 
@@ -30,8 +28,6 @@ public class LfLegBranch extends AbstractFictitiousBranch {
                             .setB2(leg.getB()),
                 leg.getTerminal().getVoltageLevel().getNominalV(),
                 twt.getRatedU0()); // Star bus.
-
-        this.twt = twt;
         this.leg = leg;
     }
 
@@ -49,7 +45,7 @@ public class LfLegBranch extends AbstractFictitiousBranch {
 
     @Override
     public void updateState() {
-        branch.getLeg1().getTerminal().setP(p.eval() * PerUnit.SB);
-        branch.getLeg1().getTerminal().setQ(q.eval() * PerUnit.SB);
+        leg.getTerminal().setP(p.eval() * PerUnit.SB);
+        leg.getTerminal().setQ(q.eval() * PerUnit.SB);
     }
 }
