@@ -1,5 +1,13 @@
 [
 {
+  "name":"com.sun.xml.internal.stream.XMLInputFactoryImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"ch.qos.logback.classic.encoder.PatternLayoutEncoder",
   "allPublicMethods":true,
   "methods":[{"name":"<init>","parameterTypes":[] }]
