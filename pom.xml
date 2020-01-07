@@ -358,6 +358,66 @@
                 </repository>
             </distributionManagement>
         </profile>
+        <profile>
+            <id>distribution</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>${project.groupId}</groupId>
+                        <artifactId>powsybl-itools-packager-maven-plugin</artifactId>
+                        <version>${powsyblcore.version}</version>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>package-zip</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <packageName>open-loadflow</packageName>
+                            <javaXmx>8G</javaXmx>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+            <dependencies>
+                <dependency>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                    <version>${logback.version}</version>
+                    <scope>runtime</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>log4j-over-slf4j</artifactId>
+                    <version>${slf4j.version}</version>
+                    <scope>runtime</scope>
+                </dependency>
+
+                <dependency>
+                    <groupId>com.powsybl</groupId>
+                    <artifactId>powsybl-config-classic</artifactId>
+                    <version>${powsyblcore.version}</version>
+                    <scope>runtime</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.powsybl</groupId>
+                    <artifactId>powsybl-iidm-impl</artifactId>
+                    <version>${powsyblcore.version}</version>
+                    <scope>runtime</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.powsybl</groupId>
+                    <artifactId>powsybl-iidm-xml-converter</artifactId>
+                    <version>${powsyblcore.version}</version>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
+        </profile>
     </profiles>
 
     <dependencyManagement>

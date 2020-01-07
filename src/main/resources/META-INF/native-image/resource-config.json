@@ -1,0 +1,16 @@
+{
+  "resources":[
+    {"pattern":"META-INF/services/com.powsybl.commons.config.PlatformConfigProvider"}, 
+    {"pattern":"META-INF/services/com.powsybl.commons.extensions.ExtensionXmlSerializer"}, 
+    {"pattern":"META-INF/services/com.powsybl.iidm.export.Exporter"}, 
+    {"pattern":"META-INF/services/com.powsybl.iidm.import_.Importer"}, 
+    {"pattern":"META-INF/services/com.powsybl.iidm.network.NetworkFactoryService"}, 
+    {"pattern":"META-INF/services/com.powsybl.loadflow.LoadFlowProvider"}, 
+    {"pattern":"META-INF/services/com.powsybl.openloadflow.network.LfNetworkLoader"}, 
+    {"pattern":"META-INF/services/com.powsybl.tools.Tool"}, 
+    {"pattern":"natives/linux_64/libmath.so"}, 
+    {"pattern":"org/joda/time/tz/data/Europe/Paris"}, 
+    {"pattern":"org/joda/time/tz/data/ZoneInfoMap"}, 
+    {"pattern":"org/slf4j/impl/StaticLoggerBinder.class"}
+  ]
+}
