@@ -32,12 +32,12 @@ public final class Transformers {
     }
 
     /**
-     * Get ratio on leg 2 ou 3.
+     * Get ratio of a three windings transformer leg.
      */
-    public static double getRatio2or3(ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg2or3 leg2or3) {
-        double rho = twt.getLeg1().getRatedU() / leg2or3.getRatedU();
-        if (leg2or3.getRatioTapChanger() != null) {
-            rho *= leg2or3.getRatioTapChanger().getCurrentStep().getRho();
+    public static double getRatioLeg(ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
+        double rho = twt.getRatedU0() / leg.getRatedU();
+        if (leg.getRatioTapChanger() != null) {
+            rho *= leg.getRatioTapChanger().getCurrentStep().getRho();
         }
         return rho;
     }
