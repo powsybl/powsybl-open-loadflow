@@ -69,8 +69,8 @@ public final class AcEquationSystem {
 
     public static void createRemoteVoltageEquations(LfBus bus, EquationSystem equationSystem, VariableSet variableSet) {
         for (LfBus sourceBus : bus.getRemoteControlSourceBuses()) {
-            // deactivate reactive equation for all remote voltage source bus (where the generator is connected) that do
-            // not control voltage
+            // In case of a voltage remote control active, the reactive equation is disabled at each source bus
+            // In case of a bus (with remote voltage control) initially PQ or switching from PV to PQ, the reactive equation is enabled
             equationSystem.createEquation(sourceBus.getNum(), EquationType.BUS_Q).setActive(!sourceBus.hasVoltageControl());
 
             // cleanup reactive power distribution equations
