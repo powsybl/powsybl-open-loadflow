@@ -69,7 +69,7 @@
         <maven.findbugs.version>3.0.5</maven.findbugs.version>
         <maven.gpg.version>1.6</maven.gpg.version>
         <maven.install.version>2.5.2</maven.install.version>
-        <maven.jacoco.version>0.8.1</maven.jacoco.version>
+        <maven.jacoco.version>0.8.2</maven.jacoco.version>
         <maven.jar.version>3.1.0</maven.jar.version>
         <maven.javadoc.version>3.0.1</maven.javadoc.version>
         <maven.plugin.version>3.5.2</maven.plugin.version>
@@ -84,7 +84,7 @@
             **/generated/**/*
         </sonar.exclusions>
 
-        <powsyblcore.version>3.0.0</powsyblcore.version>
+        <powsyblcore.version>3.1.0</powsyblcore.version>
     </properties>
 
     <build>
@@ -230,6 +230,13 @@
                                 <id>prepare-agent</id>
                                 <goals>
                                     <goal>prepare-agent</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>report</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>report</goal>
                                 </goals>
                             </execution>
                         </executions>
