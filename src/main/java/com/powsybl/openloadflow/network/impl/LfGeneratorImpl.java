@@ -10,7 +10,6 @@ import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
-import com.powsybl.openloadflow.network.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

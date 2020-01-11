@@ -17,17 +17,21 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfLegBranch extends AbstractFictitiousBranch<ThreeWindingsTransformer> {
+public class LfLegBranch extends AbstractFictitiousBranch {
+
+    private final ThreeWindingsTransformer twt;
 
     private final ThreeWindingsTransformer.Leg leg;
 
     protected LfLegBranch(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
-        super(twt, bus1, bus0, new PiModel(leg.getR(), leg.getX())
+        super(bus1, bus0, new PiModel(leg.getR(), leg.getX())
                             .setR1(Transformers.getRatioLeg(twt, leg))
                             .setG2(leg.getG())
                             .setB2(leg.getB()),
+                twt.getId(),
                 leg.getTerminal().getVoltageLevel().getNominalV(),
                 twt.getRatedU0()); // Star bus.
+        this.twt = twt;
         this.leg = leg;
     }
 
@@ -38,9 +42,19 @@ public class LfLegBranch extends AbstractFictitiousBranch<ThreeWindingsTransform
         return new LfLegBranch(bus1, bus0, twt, leg);
     }
 
+    private int getLegNum() {
+        if (leg == twt.getLeg1()) {
+            return 1;
+        } else if (leg == twt.getLeg2()) {
+            return 2;
+        } else {
+            return 3;
+        }
+    }
+
     @Override
     public String getId() {
-        return branch.getId() + " leg";
+        return twt.getId() + "_leg_" + getLegNum();
     }
 
     @Override
