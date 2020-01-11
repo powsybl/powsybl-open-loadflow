@@ -53,15 +53,15 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final List<Battery> batteries = new ArrayList<>();
 
-    protected LfBusImpl(Bus bus, int num, double v, double angle) {
-        super(num, v, angle);
+    protected LfBusImpl(Bus bus, double v, double angle) {
+        super(v, angle);
         this.bus = bus;
         nominalV = bus.getVoltageLevel().getNominalV();
     }
 
-    public static LfBusImpl create(Bus bus, int num) {
+    public static LfBusImpl create(Bus bus) {
         Objects.requireNonNull(bus);
-        return new LfBusImpl(bus, num, bus.getV(), bus.getAngle());
+        return new LfBusImpl(bus, bus.getV(), bus.getAngle());
     }
 
     @Override

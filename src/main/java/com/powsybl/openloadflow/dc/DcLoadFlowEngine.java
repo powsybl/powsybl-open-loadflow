@@ -52,8 +52,6 @@ public class DcLoadFlowEngine {
         // only process main (largest) connected component
         LfNetwork network = networks.get(0);
 
-        network.logBalance();
-
         EquationSystem equationSystem = DcEquationSystem.create(network);
 
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
