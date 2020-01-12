@@ -31,7 +31,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetworkLoaderImpl.class);
 
-    private static class CreationContext {
+    private static class LoadingContext {
 
         private final Set<Branch> branchSet = new LinkedHashSet<>();
 
@@ -41,7 +41,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     private static void createBuses(List<Bus> buses, boolean generatorVoltageRemoteControl, LfNetwork lfNetwork,
-                                    CreationContext creationContext) {
+                                    LoadingContext loadingContext, LfNetworkLoadingReport report) {
         int[] generatorCount = new int[1];
         Map<LfBusImpl, String> generatorRemoteControlTargetBusId = new HashMap<>();
 
@@ -52,7 +52,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
 
                 private void visitBranch(Branch branch) {
-                    creationContext.branchSet.add(branch);
+                    loadingContext.branchSet.add(branch);
                 }
 
                 @Override
@@ -67,7 +67,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
                 @Override
                 public void visitThreeWindingsTransformer(ThreeWindingsTransformer transformer, ThreeWindingsTransformer.Side side) {
-                    creationContext.t3wtSet.add(transformer);
+                    loadingContext.t3wtSet.add(transformer);
                 }
 
                 @Override
@@ -90,7 +90,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                                     + previousTargetV * scaleV);
                         }
                     }
-                    lfBus.addGenerator(generator, scaleV);
+                    lfBus.addGenerator(generator, scaleV, report);
                     generatorCount[0]++;
                 }
 
@@ -106,12 +106,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
                 @Override
                 public void visitDanglingLine(DanglingLine danglingLine) {
-                    creationContext.danglingLines.add(danglingLine);
+                    loadingContext.danglingLines.add(danglingLine);
                 }
 
                 @Override
                 public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
-                    lfBus.addStaticVarCompensator(staticVarCompensator);
+                    lfBus.addStaticVarCompensator(staticVarCompensator, report);
                 }
 
                 @Override
@@ -123,7 +123,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 public void visitHvdcConverterStation(HvdcConverterStation<?> converterStation) {
                     switch (converterStation.getHvdcType()) {
                         case VSC:
-                            lfBus.addVscConverterStation((VscConverterStation) converterStation);
+                            lfBus.addVscConverterStation((VscConverterStation) converterStation, report);
                             break;
                         case LCC:
                             throw new UnsupportedOperationException("LCC converter station is not yet supported");
@@ -147,21 +147,21 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void createBranches(LfNetwork lfNetwork, CreationContext creationContext) {
-        for (Branch branch : creationContext.branchSet) {
+    private static void createBranches(LfNetwork lfNetwork, LoadingContext loadingContext) {
+        for (Branch branch : loadingContext.branchSet) {
             LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork);
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork);
             lfNetwork.addBranch(LfBranchImpl.create(branch, lfBus1, lfBus2));
         }
 
-        for (DanglingLine danglingLine : creationContext.danglingLines) {
+        for (DanglingLine danglingLine : loadingContext.danglingLines) {
             LfDanglingLineBus lfBus2 = new LfDanglingLineBus(danglingLine);
             lfNetwork.addBus(lfBus2);
             LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork);
             lfNetwork.addBranch(LfDanglingLineBranch.create(danglingLine, lfBus1, lfBus2));
         }
 
-        for (ThreeWindingsTransformer t3wt : creationContext.t3wtSet) {
+        for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
             LfStarBus lfBus0 = new LfStarBus(t3wt);
             lfNetwork.addBus(lfBus0);
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork);
@@ -180,9 +180,30 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static LfNetwork create(List<Bus> buses, SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl) {
         LfNetwork lfNetwork = new LfNetwork(slackBusSelector);
-        CreationContext creationContext = new CreationContext();
-        createBuses(buses, generatorVoltageRemoteControl, lfNetwork, creationContext);
-        createBranches(lfNetwork, creationContext);
+
+        LoadingContext loadingContext = new LoadingContext();
+        LfNetworkLoadingReport report = new LfNetworkLoadingReport();
+
+        createBuses(buses, generatorVoltageRemoteControl, lfNetwork, loadingContext, report);
+        createBranches(lfNetwork, loadingContext);
+
+        if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
+            LOGGER.warn("{} generators have been discarded from voltage control because not started",
+                    report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
+        }
+        if (report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall > 0) {
+            LOGGER.warn("{} generators have been discarded from voltage control because of a too small max reactive range",
+                    report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
+        }
+        if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero > 0) {
+            LOGGER.warn("{} generators have been discarded from active power control because of a targetP <= 0",
+                    report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero);
+        }
+        if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP > 0) {
+            LOGGER.warn("{} generators have been discarded from active power control because of a targetP > maxP",
+                    report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP);
+        }
+
         return lfNetwork;
     }
 

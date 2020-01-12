@@ -33,7 +33,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double participationFactor;
 
-    private LfGeneratorImpl(Generator generator) {
+    private LfGeneratorImpl(Generator generator, LfNetworkLoadingReport report) {
         super(generator.getTargetP());
         this.generator = generator;
         participating = true;
@@ -48,20 +48,23 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
         participationFactor = generator.getMaxP() / droop;
         if (generator.getTargetP() <= 0) {
-            LOGGER.warn("Discard generator '{}' from active power control because targetP ({}) <= 0",
+            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) <= 0",
                     generator.getId(), generator.getTargetP());
+            report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero++;
             participating = false;
         }
         if (generator.getTargetP() > generator.getMaxP()) {
-            LOGGER.warn("Discard generator '{}' from active power control because targetP ({}) > maxP ({})",
+            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) > maxP ({})",
                     generator.getId(), generator.getTargetP(), generator.getMaxP());
+            report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP++;
             participating = false;
         }
     }
 
-    public static LfGeneratorImpl create(Generator generator) {
+    public static LfGeneratorImpl create(Generator generator, LfNetworkLoadingReport report) {
         Objects.requireNonNull(generator);
-        return new LfGeneratorImpl(generator);
+        Objects.requireNonNull(report);
+        return new LfGeneratorImpl(generator, report);
     }
 
     @Override
