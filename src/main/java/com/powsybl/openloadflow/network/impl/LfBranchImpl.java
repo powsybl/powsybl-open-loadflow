@@ -23,7 +23,9 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfBranchImpl extends AbstractLfBranch<Branch> {
+public class LfBranchImpl extends AbstractLfBranch {
+
+    private final Branch branch;
 
     private Evaluable p1 = NAN;
 
@@ -34,7 +36,8 @@ public class LfBranchImpl extends AbstractLfBranch<Branch> {
     private Evaluable q2 = NAN;
 
     protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, Branch branch) {
-        super(branch, bus1, bus2, piModel, branch.getTerminal1().getVoltageLevel().getNominalV(), branch.getTerminal2().getVoltageLevel().getNominalV());
+        super(bus1, bus2, piModel, branch.getId(), branch.getTerminal1().getVoltageLevel().getNominalV(), branch.getTerminal2().getVoltageLevel().getNominalV());
+        this.branch = branch;
     }
 
     public static LfBranchImpl create(Branch branch, LfBus bus1, LfBus bus2) {
@@ -58,6 +61,11 @@ public class LfBranchImpl extends AbstractLfBranch<Branch> {
             throw new PowsyblException("Unsupported type of branch for flow equations for branch: " + branch.getId());
         }
         return new LfBranchImpl(bus1, bus2, piModel, branch);
+    }
+
+    @Override
+    public String getId() {
+        return branch.getId();
     }
 
     @Override

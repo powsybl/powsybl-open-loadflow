@@ -65,8 +65,6 @@ public class AcloadFlowEngine {
         // only process main (largest) connected component
         LfNetwork network = networks.get(0);
 
-        network.logBalance();
-
         parameters.getObserver().beforeEquationSystemCreation();
 
         EquationSystem equationSystem = AcEquationSystem.create(network, new VariableSet(), parameters.isGeneratorVoltageRemoteControl());

@@ -10,7 +10,10 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkLoader;
+import com.powsybl.openloadflow.network.SlackBusSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,29 +31,28 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetworkLoaderImpl.class);
 
-    private static class CreationContext {
+    private static class LoadingContext {
 
         private final Set<Branch> branchSet = new LinkedHashSet<>();
 
         private final List<DanglingLine> danglingLines = new ArrayList<>();
 
         private final Set<ThreeWindingsTransformer> t3wtSet = new LinkedHashSet<>();
-
-        private final Map<String, Integer> busIdToNum = new HashMap<>();
     }
 
-    private static List<LfBus> createBuses(List<Bus> buses, boolean generatorVoltageRemoteControl, CreationContext creationContext) {
-        List<LfBus> lfBuses = new ArrayList<>(buses.size());
+    private static void createBuses(List<Bus> buses, boolean generatorVoltageRemoteControl, LfNetwork lfNetwork,
+                                    LoadingContext loadingContext, LfNetworkLoadingReport report) {
         int[] generatorCount = new int[1];
         Map<LfBusImpl, String> generatorRemoteControlTargetBusId = new HashMap<>();
 
         for (Bus bus : buses) {
-            LfBusImpl lfBus = addLfBus(bus, lfBuses, creationContext.busIdToNum);
+            LfBusImpl lfBus = LfBusImpl.create(bus);
+            lfNetwork.addBus(lfBus);
 
             bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
 
                 private void visitBranch(Branch branch) {
-                    creationContext.branchSet.add(branch);
+                    loadingContext.branchSet.add(branch);
                 }
 
                 @Override
@@ -65,7 +67,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
                 @Override
                 public void visitThreeWindingsTransformer(ThreeWindingsTransformer transformer, ThreeWindingsTransformer.Side side) {
-                    creationContext.t3wtSet.add(transformer);
+                    loadingContext.t3wtSet.add(transformer);
                 }
 
                 @Override
@@ -83,12 +85,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                             double remoteNominalV = generator.getRegulatingTerminal().getVoltageLevel().getNominalV();
                             double localNominalV = generator.getTerminal().getVoltageLevel().getNominalV();
                             scaleV = localNominalV / remoteNominalV;
-                            LOGGER.warn("Generator remote voltage control is not yet supported. The voltage target of generator "
-                                    + generator.getId() + " with remote control is rescaled from " + previousTargetV + " to "
-                                    + previousTargetV * scaleV);
+                            LOGGER.warn("Generator remote voltage control is not yet supported. The voltage target of " +
+                                            "generator {} with remote control is rescaled from {} to {}",
+                                    generator.getId(), previousTargetV, previousTargetV * scaleV);
                         }
                     }
-                    lfBus.addGenerator(generator, scaleV);
+                    lfBus.addGenerator(generator, scaleV, report);
                     generatorCount[0]++;
                 }
 
@@ -104,12 +106,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
                 @Override
                 public void visitDanglingLine(DanglingLine danglingLine) {
-                    creationContext.danglingLines.add(danglingLine);
+                    loadingContext.danglingLines.add(danglingLine);
                 }
 
                 @Override
                 public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
-                    lfBus.addStaticVarCompensator(staticVarCompensator);
+                    lfBus.addStaticVarCompensator(staticVarCompensator, report);
                 }
 
                 @Override
@@ -121,7 +123,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 public void visitHvdcConverterStation(HvdcConverterStation<?> converterStation) {
                     switch (converterStation.getHvdcType()) {
                         case VSC:
-                            lfBus.addVscConverterStation((VscConverterStation) converterStation);
+                            lfBus.addVscConverterStation((VscConverterStation) converterStation, report);
                             break;
                         case LCC:
                             throw new UnsupportedOperationException("LCC converter station is not yet supported");
@@ -140,89 +142,69 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         for (Map.Entry<LfBusImpl, String> e : generatorRemoteControlTargetBusId.entrySet()) {
             LfBusImpl generatorBus = e.getKey();
             String remoteControlTargetBusId = e.getValue();
-            LfBus remoteControlTargetBus = lfBuses.get(creationContext.busIdToNum.get(remoteControlTargetBusId));
+            LfBus remoteControlTargetBus = lfNetwork.getBusById(remoteControlTargetBusId);
             generatorBus.setRemoteControlTargetBus((LfBusImpl) remoteControlTargetBus);
         }
-
-        return lfBuses;
     }
 
-    private static List<LfBranch> createBranches(List<LfBus> lfBuses, CreationContext creationContext) {
-        List<LfBranch> lfBranches = new ArrayList<>();
-
-        for (Branch branch : creationContext.branchSet) {
-            LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfBuses, creationContext.busIdToNum);
-            LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfBuses, creationContext.busIdToNum);
-            lfBranches.add(LfBranchImpl.create(branch, lfBus1, lfBus2));
+    private static void createBranches(LfNetwork lfNetwork, LoadingContext loadingContext) {
+        for (Branch branch : loadingContext.branchSet) {
+            LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork);
+            LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork);
+            lfNetwork.addBranch(LfBranchImpl.create(branch, lfBus1, lfBus2));
         }
 
-        for (DanglingLine danglingLine : creationContext.danglingLines) {
-            LfDanglingLineBus lfBus2 = addLfBus(danglingLine, lfBuses, creationContext.busIdToNum);
-            LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfBuses, creationContext.busIdToNum);
-            lfBranches.add(LfDanglingLineBranch.create(danglingLine, lfBus1, lfBus2));
+        for (DanglingLine danglingLine : loadingContext.danglingLines) {
+            LfDanglingLineBus lfBus2 = new LfDanglingLineBus(danglingLine);
+            lfNetwork.addBus(lfBus2);
+            LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork);
+            lfNetwork.addBranch(LfDanglingLineBranch.create(danglingLine, lfBus1, lfBus2));
         }
 
-        for (ThreeWindingsTransformer t3wt : creationContext.t3wtSet) {
-            LfStarBus lfBus0 = addLfBus(t3wt, lfBuses, creationContext.busIdToNum);
-            LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfBuses, creationContext.busIdToNum);
-            LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfBuses, creationContext.busIdToNum);
-            LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfBuses, creationContext.busIdToNum);
-            lfBranches.add(LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1()));
-            lfBranches.add(LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2()));
-            lfBranches.add(LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3()));
+        for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
+            LfStarBus lfBus0 = new LfStarBus(t3wt);
+            lfNetwork.addBus(lfBus0);
+            LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork);
+            LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork);
+            LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork);
+            lfNetwork.addBranch(LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1()));
+            lfNetwork.addBranch(LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2()));
+            lfNetwork.addBranch(LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3()));
         }
-
-        // create bus -> branches link
-        for (LfBranch branch : lfBranches) {
-            if (branch.getBus1() != null) {
-                branch.getBus1().addBranch(branch);
-            }
-            if (branch.getBus2() != null) {
-                branch.getBus2().addBranch(branch);
-            }
-        }
-
-        return lfBranches;
     }
 
-    private static LfBus getLfBus(Terminal terminal, List<LfBus> lfBuses, Map<String, Integer> busIdToNum) {
+    private static LfBus getLfBus(Terminal terminal, LfNetwork lfNetwork) {
         Bus bus = terminal.getBusView().getBus();
-        if (bus != null) {
-            int num = busIdToNum.get(bus.getId());
-            return lfBuses.get(num);
-        }
-        return null;
-    }
-
-    private static LfBusImpl addLfBus(Bus bus, List<LfBus> lfBuses, Map<String, Integer> busIdToNum) {
-        int busNum = lfBuses.size();
-        LfBusImpl lfBus = LfBusImpl.create(bus, busNum);
-        busIdToNum.put(bus.getId(), busNum);
-        lfBuses.add(lfBus);
-        return lfBus;
-    }
-
-    private static LfDanglingLineBus addLfBus(DanglingLine danglingLine, List<LfBus> lfBuses, Map<String, Integer> busIdToNum) {
-        int busNum = lfBuses.size();
-        LfDanglingLineBus lfBus = new LfDanglingLineBus(danglingLine, busNum);
-        busIdToNum.put(lfBus.getId(), busNum);
-        lfBuses.add(lfBus);
-        return lfBus;
-    }
-
-    private static LfStarBus addLfBus(ThreeWindingsTransformer t3wt, List<LfBus> lfBuses, Map<String, Integer> busIdToNum) {
-        int busNum = lfBuses.size();
-        LfStarBus lfBus = new LfStarBus(t3wt, busNum);
-        busIdToNum.put(lfBus.getId(), busNum);
-        lfBuses.add(lfBus);
-        return lfBus;
+        return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
     private static LfNetwork create(List<Bus> buses, SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl) {
-        CreationContext creationContext = new CreationContext();
-        List<LfBus> lfBuses = createBuses(buses, generatorVoltageRemoteControl, creationContext);
-        List<LfBranch> lfBranches = createBranches(lfBuses, creationContext);
-        return new LfNetwork(lfBuses, lfBranches, slackBusSelector);
+        LfNetwork lfNetwork = new LfNetwork(slackBusSelector);
+
+        LoadingContext loadingContext = new LoadingContext();
+        LfNetworkLoadingReport report = new LfNetworkLoadingReport();
+
+        createBuses(buses, generatorVoltageRemoteControl, lfNetwork, loadingContext, report);
+        createBranches(lfNetwork, loadingContext);
+
+        if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
+            LOGGER.warn("{} generators have been discarded from voltage control because not started",
+                    report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
+        }
+        if (report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall > 0) {
+            LOGGER.warn("{} generators have been discarded from voltage control because of a too small max reactive range",
+                    report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
+        }
+        if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero > 0) {
+            LOGGER.warn("{} generators have been discarded from active power control because of a targetP <= 0",
+                    report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero);
+        }
+        if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP > 0) {
+            LOGGER.warn("{} generators have been discarded from active power control because of a targetP > maxP",
+                    report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP);
+        }
+
+        return lfNetwork;
     }
 
     @Override

@@ -53,15 +53,15 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final List<Battery> batteries = new ArrayList<>();
 
-    protected LfBusImpl(Bus bus, int num, double v, double angle) {
-        super(num, v, angle);
+    protected LfBusImpl(Bus bus, double v, double angle) {
+        super(v, angle);
         this.bus = bus;
         nominalV = bus.getVoltageLevel().getNominalV();
     }
 
-    public static LfBusImpl create(Bus bus, int num) {
+    public static LfBusImpl create(Bus bus) {
         Objects.requireNonNull(bus);
-        return new LfBusImpl(bus, num, bus.getV(), bus.getAngle());
+        return new LfBusImpl(bus, bus.getV(), bus.getAngle());
     }
 
     @Override
@@ -129,18 +129,21 @@ public class LfBusImpl extends AbstractLfBus {
         loadTargetQ += battery.getQ0();
     }
 
-    private void add(LfGenerator generator, boolean voltageControl, double targetV, double targetQ) {
+    private void add(LfGenerator generator, boolean voltageControl, double targetV, double targetQ,
+                     LfNetworkLoadingReport report) {
         generators.add(generator);
         boolean voltageControl2 = voltageControl;
         double maxRangeQ = generator.getMaxRangeQ();
         if (voltageControl && maxRangeQ < REACTIVE_RANGE_THRESHOLD_PU) {
-            LOGGER.warn("Discard generator '{}' from voltage control because max reactive range ({}) is too small",
+            LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small",
                     generator.getId(), maxRangeQ);
+            report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
             voltageControl2 = false;
         }
         if (voltageControl && Math.abs(generator.getTargetP()) < POWER_EPSILON_SI && generator.getMinP() > POWER_EPSILON_SI) {
-            LOGGER.warn("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)",
+            LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)",
                     generator.getId(), generator.getTargetP(), generator.getMinP());
+            report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
             voltageControl2 = false;
         }
         if (voltageControl2) {
@@ -151,22 +154,23 @@ public class LfBusImpl extends AbstractLfBus {
         }
     }
 
-    void addGenerator(Generator generator, double scaleV) {
-        add(LfGeneratorImpl.create(generator), generator.isVoltageRegulatorOn(), generator.getTargetV() * scaleV,
-                generator.getTargetQ());
+    void addGenerator(Generator generator, double scaleV, LfNetworkLoadingReport report) {
+        add(LfGeneratorImpl.create(generator, report), generator.isVoltageRegulatorOn(), generator.getTargetV() * scaleV,
+                generator.getTargetQ(), report);
     }
 
-    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
+    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, LfNetworkLoadingReport report) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
             add(LfStaticVarCompensatorImpl.create(staticVarCompensator),
                     staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE,
-                    staticVarCompensator.getVoltageSetPoint(), staticVarCompensator.getReactivePowerSetPoint());
+                    staticVarCompensator.getVoltageSetPoint(), staticVarCompensator.getReactivePowerSetPoint(),
+                    report);
         }
     }
 
-    void addVscConverterStation(VscConverterStation vscCs) {
+    void addVscConverterStation(VscConverterStation vscCs, LfNetworkLoadingReport report) {
         add(LfVscConverterStationImpl.create(vscCs), vscCs.isVoltageRegulatorOn(), vscCs.getVoltageSetpoint(),
-                vscCs.getReactivePowerSetpoint());
+                vscCs.getReactivePowerSetpoint(), report);
     }
 
     void addShuntCompensator(ShuntCompensator sc) {

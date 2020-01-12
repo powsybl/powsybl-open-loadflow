@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.Identifiable;
 import net.jafama.FastMath;
 
 import java.util.Objects;
@@ -14,9 +13,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractLfBranch<T extends Identifiable> implements LfBranch {
-
-    protected final T branch;
+public abstract class AbstractLfBranch implements LfBranch {
 
     private final LfBus bus1;
 
@@ -35,11 +32,11 @@ public abstract class AbstractLfBranch<T extends Identifiable> implements LfBran
     private final double y;
     private final double ksi;
 
-    protected AbstractLfBranch(T branch, LfBus bus1, LfBus bus2, PiModel piModel, double nominalV1, double nominalV2) {
-        this.branch = Objects.requireNonNull(branch);
+    protected AbstractLfBranch(LfBus bus1, LfBus bus2, PiModel piModel, String branchId, double nominalV1, double nominalV2) {
         this.bus1 = bus1;
         this.bus2 = bus2;
         Objects.requireNonNull(piModel);
+        Objects.requireNonNull(branchId);
 
         zb = nominalV2 * nominalV2 / PerUnit.SB;
         x = piModel.getX() / zb;
@@ -51,16 +48,11 @@ public abstract class AbstractLfBranch<T extends Identifiable> implements LfBran
         a1 = piModel.getA1();
 
         if (piModel.getR() == 0 && piModel.getX() == 0) {
-            throw new IllegalArgumentException("Non impedant branch not supported: " + branch.getId());
+            throw new IllegalArgumentException("Non impedant branch not supported: " + branchId);
         }
         double z = FastMath.hypot(piModel.getR(), piModel.getX()) / zb;
         y = 1 / z;
         ksi = FastMath.atan2(piModel.getR(), piModel.getX());
-    }
-
-    @Override
-    public String getId() {
-        return branch.getId();
     }
 
     @Override

@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.VscConverterStation;
-import com.powsybl.openloadflow.network.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.PerUnit;
 
 import java.util.Objects;

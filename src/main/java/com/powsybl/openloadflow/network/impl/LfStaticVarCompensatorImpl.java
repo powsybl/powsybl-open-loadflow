@@ -10,7 +10,6 @@ import com.powsybl.iidm.network.MinMaxReactiveLimits;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.ReactiveLimitsKind;
 import com.powsybl.iidm.network.StaticVarCompensator;
-import com.powsybl.openloadflow.network.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.PerUnit;
 
 import java.util.Objects;
