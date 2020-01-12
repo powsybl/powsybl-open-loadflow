@@ -19,8 +19,7 @@ public class LfDanglingLineBus extends AbstractFictitiousLfBus {
 
     private final DanglingLine danglingLine;
 
-    public LfDanglingLineBus(DanglingLine danglingLine, int num) {
-        super(num);
+    public LfDanglingLineBus(DanglingLine danglingLine) {
         this.danglingLine = Objects.requireNonNull(danglingLine);
     }
 

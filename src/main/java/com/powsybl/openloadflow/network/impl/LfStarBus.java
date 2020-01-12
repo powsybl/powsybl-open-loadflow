@@ -16,8 +16,7 @@ public class LfStarBus extends AbstractFictitiousLfBus {
 
     private final ThreeWindingsTransformer t3wt;
 
-    public LfStarBus(ThreeWindingsTransformer t3wt, int num) {
-        super(num);
+    public LfStarBus(ThreeWindingsTransformer t3wt) {
         this.t3wt = t3wt;
     }
 

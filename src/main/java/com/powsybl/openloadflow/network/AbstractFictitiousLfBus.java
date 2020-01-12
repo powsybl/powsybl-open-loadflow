@@ -14,8 +14,8 @@ import java.util.List;
  */
 public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
 
-    protected AbstractFictitiousLfBus(int num) {
-        super(num, Double.NaN, Double.NaN);
+    protected AbstractFictitiousLfBus() {
+        super(Double.NaN, Double.NaN);
     }
 
     @Override

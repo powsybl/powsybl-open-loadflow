@@ -19,11 +19,8 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Objects;
-import java.util.ServiceLoader;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
@@ -34,65 +31,84 @@ public class LfNetwork {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
-    private final List<LfBus> buses;
+    private final SlackBusSelector slackBusSelector;
 
-    private final List<LfBranch> branches;
+    private final Map<String, LfBus> busesById = new LinkedHashMap<>();
 
-    private final LfBus slackBus;
+    private List<LfBus> busesByIndex;
 
-    public LfNetwork(List<LfBus> buses, List<LfBranch> branches, SlackBusSelector slackBusSelector) {
-        this.buses = Objects.requireNonNull(buses);
-        if (buses.isEmpty()) {
-            throw new IllegalArgumentException("Empty bus list");
-        }
-        this.branches = Objects.requireNonNull(branches).stream()
-            .filter(branch -> {
-                boolean connectedToSameBus = branch.getBus1() == branch.getBus2();
-                if (connectedToSameBus) {
-                    LOGGER.warn("Discard branch '{}' because connected to same bus at both ends", branch.getId());
-                }
-                return !connectedToSameBus;
-            }).collect(Collectors.toList());
+    private LfBus slackBus;
 
-        int remoteControlSources = 0;
-        int remoteControlTargets = 0;
-        for (LfBus bus : buses) {
-            if (bus.getRemoteControlTargetBus().isPresent()) {
-                remoteControlSources++;
+    private final List<LfBranch> branches = new ArrayList<>();
+
+    public LfNetwork(SlackBusSelector slackBusSelector) {
+        this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
+    }
+
+    private void updateCache() {
+        if (busesByIndex == null) {
+            busesByIndex = new ArrayList<>(busesById.values());
+            for (int i = 0; i < busesByIndex.size(); i++) {
+                busesByIndex.get(i).setNum(i);
             }
-            if (!bus.getRemoteControlSourceBuses().isEmpty()) {
-                remoteControlTargets++;
-            }
+            slackBus = slackBusSelector.select(busesByIndex);
+            slackBus.setSlack(true);
+            LOGGER.info("Selected slack bus: {}", slackBus.getId());
         }
-        LOGGER.info("Network has {} buses (voltage remote control: {} sources, {} targets) and {} branches",
-                this.buses.size(), remoteControlSources, remoteControlTargets, this.branches.size());
+    }
 
-        Objects.requireNonNull(slackBusSelector);
-        slackBus = slackBusSelector.select(this.buses);
-        slackBus.setSlack(true);
-        LOGGER.info("Selected slack bus: {}", slackBus.getId());
+    private void invalidateCache() {
+        busesByIndex = null;
+        slackBus = null;
+    }
+
+    public void addBranch(LfBranch branch) {
+        Objects.requireNonNull(branch);
+        branches.add(branch);
+
+        // create bus -> branches link
+        if (branch.getBus1() != null) {
+            branch.getBus1().addBranch(branch);
+        }
+        if (branch.getBus2() != null) {
+            branch.getBus2().addBranch(branch);
+        }
     }
 
     public List<LfBranch> getBranches() {
         return branches;
     }
 
+    public void addBus(LfBus bus) {
+        Objects.requireNonNull(bus);
+        busesById.put(bus.getId(), bus);
+        invalidateCache();
+    }
+
     public List<LfBus> getBuses() {
-        return buses;
+        updateCache();
+        return busesByIndex;
+    }
+
+    public LfBus getBusById(String id) {
+        Objects.requireNonNull(id);
+        return busesById.get(id);
     }
 
     public LfBus getBus(int num) {
-        return buses.get(num);
+        updateCache();
+        return busesByIndex.get(num);
     }
 
     public LfBus getSlackBus() {
+        updateCache();
         return slackBus;
     }
 
     public void updateState(boolean reactiveLimits) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        for (LfBus bus : buses) {
+        for (LfBus bus : busesById.values()) {
             bus.updateState(reactiveLimits);
             for (LfGenerator generator : bus.getGenerators()) {
                 generator.updateState();
@@ -110,6 +126,7 @@ public class LfNetwork {
     }
 
     public void writeJson(Path file) {
+        updateCache();
         try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
             writeJson(writer);
         } catch (IOException e) {
@@ -208,7 +225,7 @@ public class LfNetwork {
 
             jsonGenerator.writeFieldName("buses");
             jsonGenerator.writeStartArray();
-            for (LfBus bus : buses) {
+            for (LfBus bus : busesById.values()) {
                 jsonGenerator.writeStartObject();
 
                 writeJson(bus, jsonGenerator);
@@ -262,12 +279,27 @@ public class LfNetwork {
         }
     }
 
+    private void logSize() {
+        int remoteControlSources = 0;
+        int remoteControlTargets = 0;
+        for (LfBus bus : busesById.values()) {
+            if (bus.getRemoteControlTargetBus().isPresent()) {
+                remoteControlSources++;
+            }
+            if (!bus.getRemoteControlSourceBuses().isEmpty()) {
+                remoteControlTargets++;
+            }
+        }
+        LOGGER.info("Network has {} buses (voltage remote control: {} sources, {} targets) and {} branches",
+                busesById.values().size(), remoteControlSources, remoteControlTargets, branches.size());
+    }
+
     public void logBalance() {
         double activeGeneration = 0;
         double reactiveGeneration = 0;
         double activeLoad = 0;
         double reactiveLoad = 0;
-        for (LfBus b : buses) {
+        for (LfBus b : busesById.values()) {
             activeGeneration += b.getGenerationTargetP() * PerUnit.SB;
             reactiveGeneration += b.getGenerationTargetQ() * PerUnit.SB;
             activeLoad += b.getLoadTargetP() * PerUnit.SB;
@@ -276,6 +308,16 @@ public class LfNetwork {
 
         LOGGER.info("Active generation={} Mw, active load={} Mw, reactive generation={} MVar, reactive load={} MVar",
                 activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
+    }
+
+    public void fix() {
+        branches.removeIf(branch -> {
+            boolean connectedToSameBus = branch.getBus1() == branch.getBus2();
+            if (connectedToSameBus) {
+                LOGGER.warn("Discard branch '{}' because connected to same bus at both ends", branch.getId());
+            }
+            return connectedToSameBus;
+        });
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
@@ -288,6 +330,10 @@ public class LfNetwork {
         for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
             List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, generatorVoltageRemoteControl).orElse(null);
             if (lfNetworks != null) {
+                LfNetwork lfNetwork = lfNetworks.get(0); // main component
+                lfNetwork.fix();
+                lfNetwork.logSize();
+                lfNetwork.logBalance();
                 return lfNetworks;
             }
         }
