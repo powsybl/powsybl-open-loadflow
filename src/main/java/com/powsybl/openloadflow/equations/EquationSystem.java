@@ -101,6 +101,20 @@ public class EquationSystem {
         return equation;
     }
 
+    public boolean equationExits(int num, EquationType type) {
+        Pair<Integer, EquationType> p = Pair.of(num, type);
+        return equations.containsKey(p);
+    }
+
+    public Equation removeEquation(int num, EquationType type) {
+        Pair<Integer, EquationType> p = Pair.of(num, type);
+        Equation equation = equations.remove(p);
+        if (equation != null) {
+            notifyListeners(equation, EquationEventType.EQUATION_REMOVED);
+        }
+        return equation;
+    }
+
     private Equation addEquation(Pair<Integer, EquationType> p) {
         Equation equation = new Equation(p.getLeft(), p.getRight(), EquationSystem.this);
         equations.put(p, equation);

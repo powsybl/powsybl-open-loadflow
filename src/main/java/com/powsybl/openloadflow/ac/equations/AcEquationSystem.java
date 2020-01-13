@@ -41,15 +41,13 @@ public final class AcEquationSystem {
             if (!generatorVoltageRemoteControl && bus.getRemoteControlTargetBus().isPresent()) {
                 throw new PowsyblException("Generator remote voltage control support is not activated");
             }
-            if (bus.hasVoltageControl() && !(generatorVoltageRemoteControl && bus.getRemoteControlTargetBus().isPresent())) {
-                createLocalVoltageEquation(variableSet, equationSystem, bus);
-            }
             if (generatorVoltageRemoteControl) {
-                List<LfBus> sourceBuses = bus.getRemoteControlSourceBuses().stream()
-                        .filter(LfBus::hasVoltageControl)
-                        .collect(Collectors.toList());
-                if (!sourceBuses.isEmpty()) {
-                    createRemoteVoltageEquations(bus, sourceBuses, equationSystem, variableSet);
+                if (!bus.getRemoteControlSourceBuses().isEmpty()) {
+                    createRemoteVoltageEquations(bus, equationSystem, variableSet);
+                }
+            } else {
+                if (bus.hasVoltageControl()) {
+                    createLocalVoltageEquation(variableSet, equationSystem, bus);
                 }
             }
             createShuntEquations(network, variableSet, equationSystem, bus);
@@ -69,26 +67,46 @@ public final class AcEquationSystem {
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
     }
 
-    private static void createRemoteVoltageEquations(LfBus bus, List<LfBus> sourceBuses, EquationSystem equationSystem, VariableSet variableSet) {
-        // check voltage target consistency
-        if (sourceBuses.stream().mapToDouble(LfBus::getTargetV).distinct().count() != 1) {
-            throw new PowsyblException("Inconsistent target voltage at bus " + bus.getId());
+    public static void createRemoteVoltageEquations(LfBus bus, EquationSystem equationSystem, VariableSet variableSet) {
+        for (LfBus sourceBus : bus.getRemoteControlSourceBuses()) {
+            // In case of a voltage remote control active, the reactive equation is disabled at each source bus
+            // In case of a bus (with remote voltage control) initially PQ or switching from PV to PQ, the reactive equation is enabled
+            equationSystem.createEquation(sourceBus.getNum(), EquationType.BUS_Q).setActive(!sourceBus.hasVoltageControl());
+
+            // cleanup reactive power distribution equations
+            equationSystem.removeEquation(sourceBus.getNum(), EquationType.ZERO);
         }
 
-        // create voltage equation at remote control target bus
-        equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+        List<LfBus> sourceBusesControllingVoltage = bus.getRemoteControlSourceBuses().stream()
+                .filter(LfBus::hasVoltageControl)
+                .collect(Collectors.toList());
+        if (sourceBusesControllingVoltage.isEmpty()) {
+            equationSystem.removeEquation(bus.getNum(), EquationType.BUS_V);
+        } else {
+            // check voltage target consistency
+            if (sourceBusesControllingVoltage.stream().mapToDouble(LfBus::getTargetV).distinct().count() != 1) {
+                throw new PowsyblException("Inconsistent target voltage at bus " + bus.getId());
+            }
 
-        double[] qKeys = createReactiveKeys(sourceBuses);
+            // create voltage equation at remote control target bus
+            if (!equationSystem.equationExits(bus.getNum(), EquationType.BUS_V)) {
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+            }
 
-        for (LfBus sourceBus : sourceBuses) {
-            // deactivate reactive equation for all remote voltage source bus (where the generator is connected)
-            equationSystem.createEquation(sourceBus.getNum(), EquationType.BUS_Q).setActive(false);
+            // create reactive power distribution equations at remote control sources buses (except one)
+            createReactivePowerDistributionEquations(equationSystem, variableSet, sourceBusesControllingVoltage);
         }
+    }
 
-        // create (number of source bus) - 1 equation to link the reactive equations together
-        LfBus firstSourceBus = sourceBuses.get(0);
-        for (int i = 1; i < sourceBuses.size(); i++) {
-            LfBus sourceBus = sourceBuses.get(i);
+    private static void createReactivePowerDistributionEquations(EquationSystem equationSystem, VariableSet variableSet, List<LfBus> sourceBusesControllingVoltage) {
+        double[] qKeys = createReactiveKeys(sourceBusesControllingVoltage);
+
+        // we choose first source bus as reference one for reactive power
+        LfBus firstSourceBus = sourceBusesControllingVoltage.get(0);
+
+        // create a reactive power distribution equation for all the other source buses
+        for (int i = 1; i < sourceBusesControllingVoltage.size(); i++) {
+            LfBus sourceBus = sourceBusesControllingVoltage.get(i);
             double c = qKeys[0] / qKeys[i];
 
             // 0 = q0 + c * qi

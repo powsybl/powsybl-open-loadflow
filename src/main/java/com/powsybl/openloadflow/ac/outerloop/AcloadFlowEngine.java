@@ -67,7 +67,8 @@ public class AcloadFlowEngine {
 
         parameters.getObserver().beforeEquationSystemCreation();
 
-        EquationSystem equationSystem = AcEquationSystem.create(network, new VariableSet(), parameters.isGeneratorVoltageRemoteControl());
+        VariableSet variableSet = new VariableSet();
+        EquationSystem equationSystem = AcEquationSystem.create(network, variableSet, parameters.isGeneratorVoltageRemoteControl());
 
         parameters.getObserver().afterEquationSystemCreation();
 
@@ -90,7 +91,7 @@ public class AcloadFlowEngine {
                     parameters.getObserver().beforeOuterLoopStatusCheck(outerLoopIteration, outerLoop.getName());
 
                     // check outer loop status
-                    outerLoopStatus = outerLoop.check(new OuterLoopContext(outerLoopIteration, network, equationSystem, lastNrResult));
+                    outerLoopStatus = outerLoop.check(new OuterLoopContext(outerLoopIteration, network, equationSystem, variableSet, lastNrResult));
 
                     parameters.getObserver().afterOuterLoopStatusCheck(outerLoopIteration, outerLoop.getName(), outerLoopStatus == OuterLoopStatus.STABLE);
 
