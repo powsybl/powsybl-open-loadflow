@@ -93,3 +93,14 @@ print on standard output buses voltage magnitude and angle:
 ```java
 network.getBusView().getBusStream().forEach(b -> System.out.println(b.getId() + " " + b.getV() + " " + b.getAngle()));
 ```
+## Contributing to PowSyBl Open Load Flow
+
+PowSyBl Open Load Flow could support more features. The following list is not exhaustive and is an invitation to collaborate:  
+- Distributed slack on loads;
+- A distributed slack that can be configured by country;
+- A better treatment of non and low impedance lines. A good way to deal with this kind of lines is to merge the buses;
+- Computation on all connected components;
+- Operational limits management;
+- Increase the voltage regulation: only generators are regulating at that stage. Static var compensators, shunts and ratio tap changers can regulated too (local and remote). We want to model these regulations in outer loops.
+
+
