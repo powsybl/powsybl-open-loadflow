@@ -31,17 +31,17 @@ public final class AcEquationSystem {
         return create(network, new VariableSet(), false);
     }
 
-    private static void createBusEquations(LfNetwork network, VariableSet variableSet, boolean generatorVoltageRemoteControl,
+    private static void createBusEquations(LfNetwork network, VariableSet variableSet, boolean voltageRemoteControl,
                                            EquationSystem equationSystem) {
         for (LfBus bus : network.getBuses()) {
             if (bus.isSlack()) {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_PHI).addTerm(new BusPhaseEquationTerm(bus, variableSet));
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
-            if (!generatorVoltageRemoteControl && bus.getRemoteControlTargetBus().isPresent()) {
-                throw new PowsyblException("Generator remote voltage control support is not activated");
+            if (!voltageRemoteControl && bus.getRemoteControlTargetBus().isPresent()) {
+                throw new PowsyblException("Remote voltage control support is not activated");
             }
-            if (generatorVoltageRemoteControl) {
+            if (voltageRemoteControl) {
                 if (!bus.getRemoteControlSourceBuses().isEmpty()) {
                     createRemoteVoltageEquations(bus, equationSystem, variableSet);
                 }
@@ -186,13 +186,13 @@ public final class AcEquationSystem {
         }
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean generatorVoltageRemoteControl) {
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean voltageRemoteControl) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(variableSet);
 
         EquationSystem equationSystem = new EquationSystem(network);
 
-        createBusEquations(network, variableSet, generatorVoltageRemoteControl, equationSystem);
+        createBusEquations(network, variableSet, voltageRemoteControl, equationSystem);
         createBranchEquations(network, variableSet, equationSystem);
 
         return equationSystem;

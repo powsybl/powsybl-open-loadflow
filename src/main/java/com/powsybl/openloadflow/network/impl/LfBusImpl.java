@@ -159,11 +159,11 @@ public class LfBusImpl extends AbstractLfBus {
                 generator.getTargetQ(), report);
     }
 
-    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, LfNetworkLoadingReport report) {
+    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, double scaleV, LfNetworkLoadingReport report) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
             add(LfStaticVarCompensatorImpl.create(staticVarCompensator),
                     staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE,
-                    staticVarCompensator.getVoltageSetPoint(), staticVarCompensator.getReactivePowerSetPoint(),
+                    staticVarCompensator.getVoltageSetPoint() * scaleV, staticVarCompensator.getReactivePowerSetPoint(),
                     report);
         }
     }
