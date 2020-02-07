@@ -18,7 +18,7 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -161,5 +161,11 @@ public class AcLoadFlow3wtTest {
         LoadFlowAssert.assertAngleEquals(-2.259241, bus2);
         assertVoltageEquals(20.834, bus3);
         LoadFlowAssert.assertAngleEquals(-2.721885, bus3);
+        assertActivePowerEquals(161.095, twt.getLeg1().getTerminal());
+        assertReactivePowerEquals(81.884, twt.getLeg1().getTerminal());
+        assertActivePowerEquals(-161, twt.getLeg2().getTerminal());
+        assertReactivePowerEquals(-74, twt.getLeg2().getTerminal());
+        assertActivePowerEquals(0, twt.getLeg3().getTerminal());
+        assertReactivePowerEquals(0, twt.getLeg3().getTerminal());
     }
 }
