@@ -14,7 +14,6 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -117,7 +116,7 @@ public class AcLoadFlowDanglingLineTest {
         assertAngleEquals(0.058104, bus1);
         assertVoltageEquals(388.582864, bus2);
         assertAngleEquals(0, bus2);
-        assertActivePowerEquals(101.302, dl1.getTerminal());
-        LoadFlowAssert.assertReactivePowerEquals(149.763, dl1.getTerminal());
+        assertActivePowerEquals(101, dl1.getTerminal());
+        assertReactivePowerEquals(150, dl1.getTerminal());
     }
 }

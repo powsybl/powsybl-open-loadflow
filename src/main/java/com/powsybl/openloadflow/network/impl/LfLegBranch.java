@@ -7,27 +7,34 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
-import com.powsybl.openloadflow.network.AbstractFictitiousBranch;
+import com.powsybl.openloadflow.network.AbstractLfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
+
+import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfLegBranch extends AbstractFictitiousBranch {
+public class LfLegBranch extends AbstractLfBranch {
 
     private final ThreeWindingsTransformer twt;
 
     private final ThreeWindingsTransformer.Leg leg;
 
+    private Evaluable p = NAN;
+
+    private Evaluable q = NAN;
+
     protected LfLegBranch(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
         super(bus1, bus0, new PiModel(leg.getR(), leg.getX())
                             .setR1(Transformers.getRatioLeg(twt, leg))
-                            .setG2(leg.getG())
-                            .setB2(leg.getB()),
+                            .setG1(leg.getG())
+                            .setB1(leg.getB()),
                 twt.getId(),
                 leg.getTerminal().getVoltageLevel().getNominalV(),
                 twt.getRatedU0()); // Star bus.
@@ -55,6 +62,26 @@ public class LfLegBranch extends AbstractFictitiousBranch {
     @Override
     public String getId() {
         return twt.getId() + "_leg_" + getLegNum();
+    }
+
+    @Override
+    public void setP1(Evaluable p1) {
+        this.p = Objects.requireNonNull(p1);
+    }
+
+    @Override
+    public void setP2(Evaluable p2) {
+        // nothing to do
+    }
+
+    @Override
+    public void setQ1(Evaluable q1) {
+        this.q = Objects.requireNonNull(q1);
+    }
+
+    @Override
+    public void setQ2(Evaluable q2) {
+        // nothing to do
     }
 
     @Override
