@@ -101,11 +101,6 @@ public class EquationSystem {
         return equation;
     }
 
-    public boolean equationExits(int num, EquationType type) {
-        Pair<Integer, EquationType> p = Pair.of(num, type);
-        return equations.containsKey(p);
-    }
-
     public Equation removeEquation(int num, EquationType type) {
         Pair<Integer, EquationType> p = Pair.of(num, type);
         Equation equation = equations.remove(p);

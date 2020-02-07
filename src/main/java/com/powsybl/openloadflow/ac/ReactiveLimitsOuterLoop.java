@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -37,14 +38,30 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
     private void switchPvPq(LfBus bus, EquationSystem equationSystem, VariableSet variableSet, double newGenerationTargetQ) {
         bus.setGenerationTargetQ(newGenerationTargetQ);
         bus.setVoltageControl(false);
+
+        Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
+        qEq.setActive(true);
+
         LfBus remoteControltargetBus = bus.getRemoteControlTargetBus().orElse(null);
         if (remoteControltargetBus != null) {
-            AcEquationSystem.createRemoteVoltageEquations(remoteControltargetBus, equationSystem, variableSet);
+            // target bus only control voltage if one of the source bus has voltage control on
+            List<LfBus> sourceBusesControllingVoltage = remoteControltargetBus.getRemoteControlSourceBuses().stream()
+                    .filter(LfBus::hasVoltageControl)
+                    .collect(Collectors.toList());
+            equationSystem.createEquation(remoteControltargetBus.getNum(), EquationType.BUS_V).setActive(!sourceBusesControllingVoltage.isEmpty());
+
+            // clean reactive power distribution equations
+            for (LfBus remoteControlSourceBus : remoteControltargetBus.getRemoteControlSourceBuses()) {
+                equationSystem.removeEquation(remoteControlSourceBus.getNum(), EquationType.ZERO);
+            }
+
+            // create reactive power equations on source buses controlling voltage
+            if (!sourceBusesControllingVoltage.isEmpty()) {
+                AcEquationSystem.createReactivePowerDistributionEquations(equationSystem, variableSet, sourceBusesControllingVoltage);
+            }
         } else {
             Equation vEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
             vEq.setActive(false);
-            Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
-            qEq.setActive(true);
         }
     }
 
