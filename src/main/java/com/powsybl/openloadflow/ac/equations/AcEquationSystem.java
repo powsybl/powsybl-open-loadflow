@@ -78,10 +78,11 @@ public final class AcEquationSystem {
             if (sourceBusesControllingVoltage.stream().mapToDouble(LfBus::getTargetV).distinct().count() != 1) {
                 throw new PowsyblException("Inconsistent target voltage at bus " + bus.getId());
             }
+
+            // create reactive power distribution equations at remote control sources buses (except one)
+            createReactivePowerDistributionEquations(equationSystem, variableSet, sourceBusesControllingVoltage);
         }
 
-        // create reactive power distribution equations at remote control sources buses (except one)
-        createReactivePowerDistributionEquations(equationSystem, variableSet, sourceBusesControllingVoltage);
     }
 
     public static void createReactivePowerDistributionEquations(EquationSystem equationSystem, VariableSet variableSet,
