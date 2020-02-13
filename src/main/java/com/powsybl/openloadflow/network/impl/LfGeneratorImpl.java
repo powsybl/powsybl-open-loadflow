@@ -64,6 +64,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         if (generator.getMaxP() > PLAUSIBLE_ACTIVE_POWER_LIMIT) {
             LOGGER.trace("Discard generator '{}' from active power control because maxP ({}) > {}} MW",
                     generator.getId(), generator.getMaxP(), PLAUSIBLE_ACTIVE_POWER_LIMIT);
+            report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
             participating = false;
         }
     }

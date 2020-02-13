@@ -18,4 +18,6 @@ class LfNetworkLoadingReport {
     int generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero = 0;
 
     int generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP = 0;
+
+    int generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible = 0;
 }
