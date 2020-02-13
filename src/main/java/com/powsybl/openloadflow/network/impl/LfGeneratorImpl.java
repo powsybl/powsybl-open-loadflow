@@ -59,6 +59,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP++;
             participating = false;
         }
+        if (generator.getMaxP() > Double.MAX_VALUE) {
+            LOGGER.trace("Discard generator '{}' from active power control because maxP ({}) > Infinity",
+                    generator.getId(), generator.getMaxP());
+            participating = false;
+        }
     }
 
     public static LfGeneratorImpl create(Generator generator, LfNetworkLoadingReport report) {
