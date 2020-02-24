@@ -209,6 +209,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             LOGGER.warn("{} generators have been discarded from active power control because of a targetP > maxP",
                     report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP);
         }
+        if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible > 0) {
+            LOGGER.warn("{} generators have been discarded from active power control because of maxP not plausible",
+                    report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
+        }
 
         return lfNetwork;
     }

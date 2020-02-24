@@ -27,6 +27,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private static final double DEFAULT_DROOP = 4; // why not
 
+    private static final int PLAUSIBLE_ACTIVE_POWER_LIMIT = 10000;
+
     private final Generator generator;
 
     private boolean participating;
@@ -57,6 +59,12 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) > maxP ({})",
                     generator.getId(), generator.getTargetP(), generator.getMaxP());
             report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP++;
+            participating = false;
+        }
+        if (generator.getMaxP() > PLAUSIBLE_ACTIVE_POWER_LIMIT) {
+            LOGGER.trace("Discard generator '{}' from active power control because maxP ({}) > {}} MW",
+                    generator.getId(), generator.getMaxP(), PLAUSIBLE_ACTIVE_POWER_LIMIT);
+            report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
             participating = false;
         }
     }
