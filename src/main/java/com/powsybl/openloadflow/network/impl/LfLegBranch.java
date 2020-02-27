@@ -31,10 +31,11 @@ public class LfLegBranch extends AbstractLfBranch {
     private Evaluable q = NAN;
 
     protected LfLegBranch(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
-        super(bus1, bus0, new PiModel(leg.getR(), leg.getX())
-                            .setR1(Transformers.getRatioLeg(twt, leg))
-                            .setG1(leg.getG())
-                            .setB1(leg.getB()),
+        super(bus1, bus0, new PiModel(Transformers.getR(leg), Transformers.getX(leg))
+                        .setG1(Transformers.getG1(leg))
+                        .setB1(Transformers.getB1(leg))
+                        .setR1(Transformers.getRatioLeg(twt, leg))
+                        .setA1(Transformers.getAngleLeg(leg)),
                 twt.getId(),
                 leg.getTerminal().getVoltageLevel().getNominalV(),
                 twt.getRatedU0()); // Star bus.
