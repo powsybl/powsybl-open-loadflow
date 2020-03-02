@@ -34,6 +34,9 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEqu
 
     protected AbstractClosedBranchDcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet) {
         this.branch = Objects.requireNonNull(branch);
+        if (branch.x() == 0) {
+            throw new IllegalArgumentException("Branch '" + branch.getId() + "' has reactance equal to zero");
+        }
         ph1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_PHI);
         variables = ImmutableList.of(ph1Var, ph2Var);
