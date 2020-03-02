@@ -10,7 +10,7 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.EnergySource;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.extensions.ActivePowerControl;
+import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 
 /**
  * <p>4 bus test network adapted to distributed slack bus:</p>
@@ -37,7 +37,10 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
                 .setTargetV(400)
                 .setVoltageRegulatorOn(true)
                 .add();
-        g1.addExtension(ActivePowerControl.class, new ActivePowerControl<>(g1, true, 4));
+        g1.newExtension(ActivePowerControlAdder.class)
+                .withParticipate(true)
+                .withDroop(4)
+                .add();
         Generator g2 = b2.getVoltageLevel()
                 .newGenerator()
                 .setId("g2")
@@ -50,7 +53,10 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
                 .setTargetQ(300)
                 .setVoltageRegulatorOn(false)
                 .add();
-        g2.addExtension(ActivePowerControl.class, new ActivePowerControl<>(g2, true, 2));
+        g2.newExtension(ActivePowerControlAdder.class)
+                .withParticipate(true)
+                .withDroop(2)
+                .add();
         Generator g3 = b3.getVoltageLevel()
                 .newGenerator()
                 .setId("g3")
@@ -63,7 +69,10 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
                 .setTargetQ(130)
                 .setVoltageRegulatorOn(false)
                 .add();
-        g3.addExtension(ActivePowerControl.class, new ActivePowerControl<>(g3, true, 3));
+        g3.newExtension(ActivePowerControlAdder.class)
+                .withParticipate(true)
+                .withDroop(3)
+                .add();
         Generator g4 = b3.getVoltageLevel()
                 .newGenerator()
                 .setId("g4")
@@ -76,7 +85,10 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
                 .setTargetQ(130)
                 .setVoltageRegulatorOn(false)
                 .add();
-        g4.addExtension(ActivePowerControl.class, new ActivePowerControl<>(g4, true, 1));
+        g4.newExtension(ActivePowerControlAdder.class)
+                .withParticipate(true)
+                .withDroop(1)
+                .add();
         createLoad(b4, "l1", 600, 400);
         createLine(network, b1, b4, "l14", 0.1f);
         createLine(network, b2, b4, "l24", 0.15f);
