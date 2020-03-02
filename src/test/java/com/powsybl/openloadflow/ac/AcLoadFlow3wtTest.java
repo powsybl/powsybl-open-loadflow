@@ -206,7 +206,7 @@ public class AcLoadFlow3wtTest {
                 .setAlpha(0)
                 .endStep()
                 .add();
-        // create a transformer in // between bus 1 / bus2
+        // create a transformer between bus 1 / bus2 in parallel of leg1 / leg2
         TwoWindingsTransformer twtParallel = s.newTwoWindingsTransformer()
                 .setId("2wt")
                 .setVoltageLevel1("vl1")
