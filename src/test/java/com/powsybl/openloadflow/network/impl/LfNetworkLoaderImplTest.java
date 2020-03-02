@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.extensions.ActivePowerControl;
+import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfGenerator;
@@ -35,7 +35,10 @@ public class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         Bus b2 = createBus(network, "b2", 380);
         createLine(network, b, b2, "l", 1);
         g = createGenerator(b, "g", 10, 400);
-        g.addExtension(ActivePowerControl.class, new ActivePowerControl<>(g, true, 30));
+        g.newExtension(ActivePowerControlAdder.class)
+                .withParticipate(true)
+                .withDroop(30)
+                .add();
     }
 
     @Test
