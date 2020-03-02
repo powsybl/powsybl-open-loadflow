@@ -324,11 +324,11 @@ public class LfNetwork {
         return load(network, slackBusSelector, false);
     }
 
-    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl) {
+    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, boolean voltageRemoteControl) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(slackBusSelector);
         for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
-            List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, generatorVoltageRemoteControl).orElse(null);
+            List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, voltageRemoteControl).orElse(null);
             if (lfNetworks != null) {
                 LfNetwork lfNetwork = lfNetworks.get(0); // main component
                 lfNetwork.fix();

@@ -40,10 +40,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         private final Set<ThreeWindingsTransformer> t3wtSet = new LinkedHashSet<>();
     }
 
-    private static void createBuses(List<Bus> buses, boolean generatorVoltageRemoteControl, LfNetwork lfNetwork,
+    private static void createBuses(List<Bus> buses, boolean voltageRemoteControl, LfNetwork lfNetwork,
                                     LoadingContext loadingContext, LfNetworkLoadingReport report) {
         int[] generatorCount = new int[1];
-        Map<LfBusImpl, String> generatorRemoteControlTargetBusId = new HashMap<>();
+        Map<LfBusImpl, String> voltageRemoteControlTargetBusId = new HashMap<>();
 
         for (Bus bus : buses) {
             LfBusImpl lfBus = LfBusImpl.create(bus);
@@ -70,26 +70,30 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                     loadingContext.t3wtSet.add(transformer);
                 }
 
-                @Override
-                public void visitGenerator(Generator generator) {
+                private double checkVoltageRemoteControl(Injection injection, Terminal regulatingTerminal, double previousTargetV) {
                     double scaleV = 1;
-                    String controlBusId = generator.getRegulatingTerminal().getBusView().getBus().getId();
-                    String connectedBusId = generator.getTerminal().getBusView().getBus().getId();
+                    String controlBusId = regulatingTerminal.getBusView().getBus().getId();
+                    String connectedBusId = injection.getTerminal().getBusView().getBus().getId();
                     if (!Objects.equals(controlBusId, connectedBusId)) {
-                        if (generatorVoltageRemoteControl) {
+                        if (voltageRemoteControl) {
                             // remote control target bus will be set later because target bus might not have
                             // been yet created
-                            generatorRemoteControlTargetBusId.put(lfBus, controlBusId);
+                            voltageRemoteControlTargetBusId.put(lfBus, controlBusId);
                         } else {
-                            double previousTargetV = generator.getTargetV();
-                            double remoteNominalV = generator.getRegulatingTerminal().getVoltageLevel().getNominalV();
-                            double localNominalV = generator.getTerminal().getVoltageLevel().getNominalV();
+                            double remoteNominalV = regulatingTerminal.getVoltageLevel().getNominalV();
+                            double localNominalV = injection.getTerminal().getVoltageLevel().getNominalV();
                             scaleV = localNominalV / remoteNominalV;
-                            LOGGER.warn("Generator remote voltage control is not yet supported. The voltage target of " +
-                                            "generator {} with remote control is rescaled from {} to {}",
-                                    generator.getId(), previousTargetV, previousTargetV * scaleV);
+                            LOGGER.warn("Remote voltage control is not yet supported. The voltage target of " +
+                                            "{} ({}) with remote control is rescaled from {} to {}",
+                                    injection.getId(), injection.getType(), previousTargetV, previousTargetV * scaleV);
                         }
                     }
+                    return scaleV;
+                }
+
+                @Override
+                public void visitGenerator(Generator generator) {
+                    double scaleV = checkVoltageRemoteControl(generator, generator.getRegulatingTerminal(), generator.getTargetV());
                     lfBus.addGenerator(generator, scaleV, report);
                     generatorCount[0]++;
                 }
@@ -111,7 +115,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
                 @Override
                 public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
-                    lfBus.addStaticVarCompensator(staticVarCompensator, report);
+                    double scaleV = checkVoltageRemoteControl(staticVarCompensator, staticVarCompensator.getRegulatingTerminal(),
+                            staticVarCompensator.getVoltageSetPoint());
+                    lfBus.addStaticVarCompensator(staticVarCompensator, scaleV, report);
                 }
 
                 @Override
@@ -138,12 +144,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             throw new PowsyblException("Connected component without any regulating generator");
         }
 
-        // set generators remote control target bus
-        for (Map.Entry<LfBusImpl, String> e : generatorRemoteControlTargetBusId.entrySet()) {
-            LfBusImpl generatorBus = e.getKey();
-            String remoteControlTargetBusId = e.getValue();
-            LfBus remoteControlTargetBus = lfNetwork.getBusById(remoteControlTargetBusId);
-            generatorBus.setRemoteControlTargetBus((LfBusImpl) remoteControlTargetBus);
+        // set voltage remote control target bus
+        for (Map.Entry<LfBusImpl, String> e : voltageRemoteControlTargetBusId.entrySet()) {
+            LfBusImpl sourceBus = e.getKey();
+            String targetBusId = e.getValue();
+            LfBus targetBus = lfNetwork.getBusById(targetBusId);
+            sourceBus.setRemoteControlTargetBus((LfBusImpl) targetBus);
         }
     }
 
@@ -178,13 +184,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private static LfNetwork create(List<Bus> buses, SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl) {
+    private static LfNetwork create(List<Bus> buses, SlackBusSelector slackBusSelector, boolean voltageRemoteControl) {
         LfNetwork lfNetwork = new LfNetwork(slackBusSelector);
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
 
-        createBuses(buses, generatorVoltageRemoteControl, lfNetwork, loadingContext, report);
+        createBuses(buses, voltageRemoteControl, lfNetwork, loadingContext, report);
         createBranches(lfNetwork, loadingContext);
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
@@ -212,7 +218,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     @Override
-    public Optional<List<LfNetwork>> load(Object network, SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl) {
+    public Optional<List<LfNetwork>> load(Object network, SlackBusSelector slackBusSelector, boolean voltageRemoteControl) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(slackBusSelector);
 
@@ -229,7 +235,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
             List<LfNetwork> lfNetworks = buseByCc.entrySet().stream()
                     .filter(e -> e.getKey() == ComponentConstants.MAIN_NUM)
-                    .map(e -> create(e.getValue(), slackBusSelector, generatorVoltageRemoteControl))
+                    .map(e -> create(e.getValue(), slackBusSelector, voltageRemoteControl))
                     .collect(Collectors.toList());
 
             stopwatch.stop();

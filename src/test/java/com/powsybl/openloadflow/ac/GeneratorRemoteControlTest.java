@@ -179,7 +179,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new MostMeshedSlackBusSelector())
                 .setDistributedSlack(false)
-                .setGeneratorVoltageRemoteControl(true);
+                .setVoltageRemoteControl(true);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 

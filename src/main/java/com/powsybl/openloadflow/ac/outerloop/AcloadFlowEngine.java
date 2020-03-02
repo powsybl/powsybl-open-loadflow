@@ -39,7 +39,7 @@ public class AcloadFlowEngine {
 
     public AcloadFlowEngine(Object network, AcLoadFlowParameters parameters) {
         this.parameters = Objects.requireNonNull(parameters);
-        networks = LfNetwork.load(network, parameters.getSlackBusSelector(), parameters.isGeneratorVoltageRemoteControl());
+        networks = LfNetwork.load(network, parameters.getSlackBusSelector(), parameters.isVoltageRemoteControl());
     }
 
     private void updatePvBusesReactivePower(NewtonRaphsonResult lastNrResult, LfNetwork network, EquationSystem equationSystem) {
@@ -68,7 +68,7 @@ public class AcloadFlowEngine {
         parameters.getObserver().beforeEquationSystemCreation();
 
         VariableSet variableSet = new VariableSet();
-        EquationSystem equationSystem = AcEquationSystem.create(network, variableSet, parameters.isGeneratorVoltageRemoteControl());
+        EquationSystem equationSystem = AcEquationSystem.create(network, variableSet, parameters.isVoltageRemoteControl());
 
         parameters.getObserver().afterEquationSystemCreation();
 
