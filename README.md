@@ -97,6 +97,7 @@ network.getBusView().getBusStream().forEach(b -> System.out.println(b.getId() + 
 
 PowSyBl Open Load Flow could support more features. The following list is not exhaustive and is an invitation to collaborate:  
 - Distributed slack on loads;
+- The possibility for an initial PV bus that has switched to PQ bus to go back to PV node. 
 - A distributed slack that can be configured by country;
 - A better treatment of non and low impedance lines. A good way to deal with this kind of lines is to merge the buses;
 - Computation on all connected components;

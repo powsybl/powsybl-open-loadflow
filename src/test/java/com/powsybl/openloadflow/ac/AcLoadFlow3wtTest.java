@@ -38,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class AcLoadFlow3wtTest {
 
     private Network network;
+    private Substation s;
     private Bus bus1;
     private Bus bus2;
     private Bus bus3;
@@ -50,7 +51,7 @@ public class AcLoadFlow3wtTest {
     private Network createNetwork() {
         Network network = Network.create("vsc", "test");
 
-        Substation s = network.newSubstation()
+        s = network.newSubstation()
                 .setId("s")
                 .add();
         VoltageLevel vl1 = s.newVoltageLevel()
@@ -167,5 +168,70 @@ public class AcLoadFlow3wtTest {
         assertReactivePowerEquals(-74, twt.getLeg2().getTerminal());
         assertActivePowerEquals(0, twt.getLeg3().getTerminal());
         assertReactivePowerEquals(0, twt.getLeg3().getTerminal());
+    }
+
+    @Test
+    public void testWithRatioTapChangers() {
+        // create a ratio tap changer on leg 1 and check that voltages on leg 2 and 3 have changed compare to previous
+        // test
+        twt.getLeg1().newRatioTapChanger()
+                .setLoadTapChangingCapabilities(false)
+                .setTapPosition(0)
+                .beginStep()
+                    .setR(5)
+                    .setX(10)
+                    .setG(0)
+                    .setB(0)
+                    .setRho(0.9)
+                .endStep()
+            .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(405, bus1);
+        assertVoltageEquals(209.886, bus2);
+        assertVoltageEquals(18.582, bus3);
+    }
+
+    @Test
+    public void testWithPhaseTapChangers() {
+        // create a phase tap changer at leg 2 with a zero phase shifting
+        PhaseTapChanger ptc = twt.getLeg2().newPhaseTapChanger()
+                .setTapPosition(0)
+                .beginStep()
+                .setR(0)
+                .setX(0)
+                .setG(0)
+                .setB(0)
+                .setRho(1)
+                .setAlpha(0)
+                .endStep()
+                .add();
+        // create a transformer between bus 1 / bus2 in parallel of leg1 / leg2
+        TwoWindingsTransformer twtParallel = s.newTwoWindingsTransformer()
+                .setId("2wt")
+                .setVoltageLevel1("vl1")
+                .setBus1("b1")
+                .setConnectableBus1("b1")
+                .setVoltageLevel2("vl2")
+                .setBus2("b2")
+                .setConnectableBus2("b2")
+                .setRatedU1(390)
+                .setRatedU2(220)
+                .setR(4)
+                .setX(80)
+                .setG(0)
+                .setB(0)
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(21.97, twtParallel.getTerminal1());
+        assertActivePowerEquals(-139.088, twt.getLeg2().getTerminal());
+
+        // set the phase shifting to 10 degree and check active flow change
+        ptc.getStep(0).setAlpha(10);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(121.691, twtParallel.getTerminal1());
+        assertActivePowerEquals(-40.451, twt.getLeg2().getTerminal());
     }
 }
