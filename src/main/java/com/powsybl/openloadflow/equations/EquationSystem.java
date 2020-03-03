@@ -92,6 +92,10 @@ public class EquationSystem {
         addListener(equationCache);
     }
 
+    LfNetwork getNetwork() {
+        return network;
+    }
+
     public Equation createEquation(int num, EquationType type) {
         Pair<Integer, EquationType> p = Pair.of(num, type);
         Equation equation = equations.get(p);
