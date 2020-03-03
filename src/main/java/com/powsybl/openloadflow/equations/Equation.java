@@ -12,10 +12,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -195,6 +192,8 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     @Override
     public String toString() {
-        return "Equation(num=" + num + ",busId=" + equationSystem.getNetwork().getBus(num).getId() + ",type=" + type + ", row=" + row + ")";
+        return Optional.ofNullable(equationSystem.getNetwork().getBus(num))
+                .map(bus -> "Equation(num=" + num + ", busId=" + bus.getId() + ", type=" + type + ", row=" + row + ")")
+                .orElse("Equation(num=" + num + ", type=" + type + ", row=" + row + ")");
     }
 }

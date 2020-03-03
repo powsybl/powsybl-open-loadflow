@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.equations;
 
 import com.google.common.testing.EqualsTester;
+import com.powsybl.openloadflow.network.LfNetwork;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -20,6 +21,9 @@ public class EquationTest {
     @Test
     public void testEquals() {
         EquationSystem equationSystem = Mockito.mock(EquationSystem.class);
+        LfNetwork network = Mockito.mock(LfNetwork.class);
+        Mockito.when(network.getBus(Mockito.anyInt())).thenReturn(null);
+        Mockito.when(equationSystem.getNetwork()).thenReturn(network);
         new EqualsTester()
                 .addEqualityGroup(new Equation(0, EquationType.BUS_P, equationSystem), new Equation(0, EquationType.BUS_P, equationSystem))
                 .addEqualityGroup(new Equation(1, EquationType.BUS_Q, equationSystem), new Equation(1, EquationType.BUS_Q, equationSystem))
@@ -29,6 +33,9 @@ public class EquationTest {
     @Test
     public void testToString() {
         EquationSystem equationSystem = Mockito.mock(EquationSystem.class);
+        LfNetwork network = Mockito.mock(LfNetwork.class);
+        Mockito.when(network.getBus(Mockito.anyInt())).thenReturn(null);
+        Mockito.when(equationSystem.getNetwork()).thenReturn(network);
         assertEquals("Equation(num=0, type=BUS_P, row=-1)", new Equation(0, EquationType.BUS_P, equationSystem).toString());
     }
 }
