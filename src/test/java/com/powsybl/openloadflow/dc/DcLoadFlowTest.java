@@ -22,8 +22,9 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.usefultoys.slf4j.LoggerFactory;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.concurrent.CompletionException;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Sylvain Leclerc <sylvain.leclerc at rte-france.com>
@@ -149,5 +150,12 @@ public class DcLoadFlowTest {
         assertEquals(-81.5, l2.getTerminal2().getP(), 0.01);
         assertEquals(81.5, ps1.getTerminal1().getP(), 0.01);
         assertEquals(-81.5, ps1.getTerminal2().getP(), 0.01);
+    }
+
+    @Test
+    public void reactanceEqualToZeroTest() {
+        Network network = FourBusNetworkFactory.create();
+        network.getLine("l14").setR(0.00001).setX(0);
+        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
     }
 }
