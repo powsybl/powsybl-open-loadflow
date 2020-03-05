@@ -32,18 +32,18 @@ public class AcLoadFlowParameters {
 
     private final AcLoadFlowObserver observer;
 
-    private final boolean generatorVoltageRemoteControl;
+    private final boolean voltageRemoteControl;
 
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
-                                MatrixFactory matrixFactory, AcLoadFlowObserver observer, boolean generatorVoltageRemoteControl) {
+                                MatrixFactory matrixFactory, AcLoadFlowObserver observer, boolean voltageRemoteControl) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
         this.outerLoops = Objects.requireNonNull(outerLoops);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.observer = Objects.requireNonNull(observer);
-        this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
+        this.voltageRemoteControl = voltageRemoteControl;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -70,7 +70,7 @@ public class AcLoadFlowParameters {
         return observer;
     }
 
-    public boolean isGeneratorVoltageRemoteControl() {
-        return generatorVoltageRemoteControl;
+    public boolean isVoltageRemoteControl() {
+        return voltageRemoteControl;
     }
 }

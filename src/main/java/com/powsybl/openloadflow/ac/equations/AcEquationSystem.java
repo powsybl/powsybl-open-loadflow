@@ -31,7 +31,7 @@ public final class AcEquationSystem {
         return create(network, new VariableSet(), false);
     }
 
-    private static void createBusEquations(LfNetwork network, VariableSet variableSet, boolean generatorVoltageRemoteControl,
+    private static void createBusEquations(LfNetwork network, VariableSet variableSet, boolean voltageRemoteControl,
                                            EquationSystem equationSystem) {
         for (LfBus bus : network.getBuses()) {
             if (bus.isSlack()) {
@@ -40,14 +40,14 @@ public final class AcEquationSystem {
             }
 
             if (bus.hasVoltageControl()) {
-                if (!generatorVoltageRemoteControl || !bus.getRemoteControlTargetBus().isPresent()) {
+                if (!voltageRemoteControl || !bus.getRemoteControlTargetBus().isPresent()) {
                     equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
                 }
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
             }
 
             // in case of voltage remote control set target equations
-            if (generatorVoltageRemoteControl && !bus.getRemoteControlSourceBuses().isEmpty()) {
+            if (voltageRemoteControl && !bus.getRemoteControlSourceBuses().isEmpty()) {
                 createTargetBusEquations(bus, equationSystem, variableSet);
             }
 
@@ -174,13 +174,13 @@ public final class AcEquationSystem {
         }
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean generatorVoltageRemoteControl) {
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean voltageRemoteControl) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(variableSet);
 
         EquationSystem equationSystem = new EquationSystem(network);
 
-        createBusEquations(network, variableSet, generatorVoltageRemoteControl, equationSystem);
+        createBusEquations(network, variableSet, voltageRemoteControl, equationSystem);
         createBranchEquations(network, variableSet, equationSystem);
 
         return equationSystem;
