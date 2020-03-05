@@ -195,6 +195,21 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     @Override
     public String toString() {
-        return "Equation(num=" + num + ", type=" + type + ", row=" + row + ")";
+        StringBuilder builder = new StringBuilder("Equation(num=")
+                .append(num);
+        switch (type) {
+            case BUS_P:
+            case BUS_Q:
+            case BUS_V:
+            case BUS_PHI:
+                LfBus bus = equationSystem.getNetwork().getBus(num);
+                builder.append(", busId=").append(bus.getId());
+                break;
+            case ZERO:
+                break;
+        }
+        builder.append(", type=").append(type)
+                .append(", row=").append(row).append(")");
+        return builder.toString();
     }
 }
