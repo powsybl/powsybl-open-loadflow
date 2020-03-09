@@ -15,9 +15,10 @@
     <parent>
         <groupId>com.powsybl</groupId>
         <artifactId>powsybl-parent</artifactId>
-        <version>1</version>
+        <version>3</version>
         <relativePath/>
     </parent>
+
     <artifactId>powsybl-open-loadflow</artifactId>
     <version>0.3.0-SNAPSHOT</version>
 
