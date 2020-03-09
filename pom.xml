@@ -19,7 +19,7 @@
         <relativePath/>
     </parent>
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.3.0-SNAPSHOT</version>
 
     <name>powsybl open loadflow</name>
     <description>An open source loadflow based on PowSyBl</description>
