@@ -29,6 +29,7 @@ AC Newtow-Raphson and linear DC calculation methods:
  - Fast and robust convergence, based on [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html) numerical solver.
  - Distributed slack (generation).
  - Generator active and reactive power limits (reactive capability curve).
+ - Generator and static var compensator voltage remote control.
  - 3 starting point modes: flat, warm and DC based.
 
 Almost all of the code is written in Java. It only relies on native code for the [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html)
@@ -36,41 +37,36 @@ sparse linear solver. Linux, Windows and MacOS are supported.
 
 ## Getting started
 
-Running a load flow with PowSyBl Open Load Flow is easy. First let's start loading a CGMES network. We first add a few Maven 
-dependencies to respectively have access to network model, CGMES importer, PowSyBl platform configuration and simple logging 
+Running a load flow with PowSyBl Open Load Flow is easy. First let's start loading a IEEE 14 bus network. We first add a few Maven 
+dependencies to respectively have access to network model, IEEE test networks, PowSyBl platform configuration and simple logging 
 capabilities:
 
 ```xml
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-iidm-impl</artifactId>
-    <version>3.0.0</version>
+    <version>3.2.0</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
-    <artifactId>powsybl-cgmes-conversion</artifactId>
-    <version>3.0.0</version>
+    <artifactId>powsybl-ieee-cdf-converter</artifactId>
+    <version>3.2.0</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-config-classic</artifactId>
-    <version>3.0.0</version>
-</dependency>
-<dependency>
-    <groupId>com.powsybl</groupId>
-    <artifactId>powsybl-triple-store-impl-rdf4j</artifactId>
-    <version>3.0.0</version>
+    <version>3.2.0</version>
 </dependency>
 <dependency>
     <groupId>org.slf4j</groupId>
     <artifactId>slf4j-simple</artifactId>
-    <version>1.7.28</version>
+    <version>1.7.30</version>
 </dependency>
 ```
 
-We are now able to load the CGMES network:
+We are now able to load the IEEE 14 bus:
  ```java
-Network network = Importers.loadNetwork("<path to the zip>");
+Network network = IeeeCdfNetworkFactory.create14();
  ```
 
 After adding a last Maven dependency on Open Load Flow implementation:
@@ -78,7 +74,7 @@ After adding a last Maven dependency on Open Load Flow implementation:
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -95,13 +91,11 @@ network.getBusView().getBusStream().forEach(b -> System.out.println(b.getId() + 
 ```
 ## Contributing to PowSyBl Open Load Flow
 
-PowSyBl Open Load Flow could support more features. The following list is not exhaustive and is an invitation to collaborate:  
+PowSyBl Open Load Flow could support more features. The following list is not exhaustive and is an invitation to collaborate:
 - Distributed slack on loads;
 - The possibility for an initial PV bus that has switched to PQ bus to go back to PV node. 
 - A distributed slack that can be configured by country;
 - A better treatment of non and low impedance lines. A good way to deal with this kind of lines is to merge the buses;
 - Computation on all connected components;
 - Operational limits management;
-- Increase the voltage regulation: only generators are regulating at that stage. Static var compensators, shunts and ratio tap changers can regulated too (local and remote). We want to model these regulations in outer loops.
-
-
+- Improve the voltage regulation: only generators and static var compensators are regulating at that stage. Shunts and ratio tap changers can regulate too (local and remote). We want to model these regulations in outer loops.
