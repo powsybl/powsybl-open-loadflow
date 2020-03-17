@@ -44,6 +44,21 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     }
 
     @Override
+    public void setLoadTargetP(double loadTargetQ) {
+        throw new IllegalStateException("Cannot change fictitious bus load");
+    }
+
+    @Override
+    public boolean isParticipating() {
+        return false;
+    }
+
+    @Override
+    public double getParticipationFactor() {
+        return 0;
+    }
+
+    @Override
     public double getLoadTargetQ() {
         return 0;
     }

@@ -24,9 +24,9 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DistributedSlackOuterLoop implements OuterLoop {
+public class DistributedGenerationSlackOuterLoop implements OuterLoop {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOuterLoop.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DistributedGenerationSlackOuterLoop.class);
 
     /**
      * Slack active power residue epsilon: 10^-5 in p.u => 10^-3 in Mw

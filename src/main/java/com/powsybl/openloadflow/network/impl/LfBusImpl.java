@@ -35,6 +35,10 @@ public class LfBusImpl extends AbstractLfBus {
 
     private double loadTargetP = 0;
 
+    private boolean participating = true;
+
+    private double participationFactor = 0;
+
     private double loadTargetQ = 0;
 
     private double generationTargetQ = 0;
@@ -121,6 +125,8 @@ public class LfBusImpl extends AbstractLfBus {
         loads.add(load);
         this.loadTargetP += load.getP0();
         this.loadTargetQ += load.getQ0();
+        this.participating = true;
+        this.participationFactor = this.loadTargetP;
     }
 
     void addBattery(Battery battery) {
@@ -195,6 +201,21 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public double getLoadTargetP() {
         return loadTargetP / PerUnit.SB;
+    }
+
+    @Override
+    public void setLoadTargetP(double loadTargetP) {
+        this.loadTargetP = loadTargetP * PerUnit.SB;
+    }
+
+    @Override
+    public boolean isParticipating() {
+        return participating;
+    }
+
+    @Override
+    public double getParticipationFactor() {
+        return participationFactor;
     }
 
     @Override

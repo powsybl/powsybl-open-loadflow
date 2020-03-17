@@ -40,6 +40,12 @@ public interface LfBus {
 
     double getLoadTargetP();
 
+    void setLoadTargetP(double loadTargetP);
+
+    boolean isParticipating();
+
+    double getParticipationFactor();
+
     double getLoadTargetQ();
 
     double getGenerationTargetP();
