@@ -120,14 +120,14 @@ public class DistributedLoadSlackOuterLoop implements OuterLoop {
 
             double targetP = load.getLoadTargetP();
 
-            double newTargetP = targetP + remainingMismatch * factor;
+            double newTargetP = targetP - remainingMismatch * factor;
 
             // We stop when the load produces power.
-            if (remainingMismatch < 0 && newTargetP <= 0) {
+/*            if (remainingMismatch < 0 && newTargetP <= 0) {
                 newTargetP = 0;
                 loadsAtMin++;
                 it.remove();
-            }
+            }*/
 
             if (newTargetP != targetP) {
                 if (LOGGER.isTraceEnabled()) {
@@ -136,13 +136,13 @@ public class DistributedLoadSlackOuterLoop implements OuterLoop {
                 }
 
                 load.setLoadTargetP(newTargetP);
-                done += newTargetP - targetP;
+                done += targetP - newTargetP;
                 modifiedBuses++;
             }
         }
 
         LOGGER.debug("{} MW / {} MW distributed at iteration {} to {} loads ({} at min consumption)",
-                done * PerUnit.SB, remainingMismatch * PerUnit.SB, iteration, modifiedBuses, loadsAtMin);
+                done * PerUnit.SB, - remainingMismatch * PerUnit.SB, iteration, modifiedBuses, loadsAtMin);
 
         return done;
     }
