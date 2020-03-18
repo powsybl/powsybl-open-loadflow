@@ -25,11 +25,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean distributedSlack = true;
 
-    private BalanceType balanceType = BalanceType.PROPORTIONAL_TO_GENERATION_P; // Default slack distribution on generators.
+    private BalanceType balanceType = BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX; // Default slack distribution on generators.
 
     public enum BalanceType {
-        PROPORTIONAL_TO_GENERATION_P,
-        // PROPORTIONAL_TO_GENERATION_P_MAX, Not implemented yet.
+        PROPORTIONAL_TO_GENERATION_P, // Not implemented yet.
+        PROPORTIONAL_TO_GENERATION_P_MAX,
         PROPORTIONAL_TO_LOAD,
     }
 

@@ -49,12 +49,7 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     }
 
     @Override
-    public boolean isParticipating() {
-        return false;
-    }
-
-    @Override
-    public double getParticipationFactor() {
+    public int getLoadCount() {
         return 0;
     }
 

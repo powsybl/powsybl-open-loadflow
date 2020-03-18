@@ -42,9 +42,7 @@ public interface LfBus {
 
     void setLoadTargetP(double loadTargetP);
 
-    boolean isParticipating();
-
-    double getParticipationFactor();
+    int getLoadCount();
 
     double getLoadTargetQ();
 

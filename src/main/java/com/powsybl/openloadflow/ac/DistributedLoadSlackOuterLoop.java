@@ -47,14 +47,14 @@ public class DistributedLoadSlackOuterLoop implements OuterLoop {
 
     @Override
     public String getName() {
-        return "Distributed slack";
+        return "Distributed slack on loads";
     }
 
     private static List<ParticipatingLoad> getParticipatingLoads(LfNetwork network) {
         return network.getBuses()
                 .stream()
-                .filter(bus -> bus.getLoadTargetP() > 0 && bus.isParticipating())
-                .map(bus -> new ParticipatingLoad(bus, bus.getParticipationFactor()))
+                .filter(bus -> bus.getLoadCount() > 0 && bus.getLoadTargetP() > 0)
+                .map(bus -> new ParticipatingLoad(bus, bus.getLoadTargetP()))
                 .collect(Collectors.toList());
     }
 
@@ -123,11 +123,11 @@ public class DistributedLoadSlackOuterLoop implements OuterLoop {
             double newTargetP = targetP - remainingMismatch * factor;
 
             // We stop when the load produces power.
-/*            if (remainingMismatch < 0 && newTargetP <= 0) {
+            if (newTargetP <= 0) {
                 newTargetP = 0;
                 loadsAtMin++;
                 it.remove();
-            }*/
+            }
 
             if (newTargetP != targetP) {
                 if (LOGGER.isTraceEnabled()) {
@@ -142,7 +142,7 @@ public class DistributedLoadSlackOuterLoop implements OuterLoop {
         }
 
         LOGGER.debug("{} MW / {} MW distributed at iteration {} to {} loads ({} at min consumption)",
-                done * PerUnit.SB, - remainingMismatch * PerUnit.SB, iteration, modifiedBuses, loadsAtMin);
+                done * PerUnit.SB, -remainingMismatch * PerUnit.SB, iteration, modifiedBuses, loadsAtMin);
 
         return done;
     }

@@ -122,10 +122,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
             List<OuterLoop> outerLoops = new ArrayList<>();
             if (parametersExt.isDistributedSlack()) {
-                if (parametersExt.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P) {
-                    outerLoops.add(new DistributedGenerationSlackOuterLoop());
-                } else if (parametersExt.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
-                    outerLoops.add(new DistributedLoadSlackOuterLoop());
+                switch (parametersExt.getBalanceType()) {
+                    case PROPORTIONAL_TO_GENERATION_P_MAX:
+                        outerLoops.add(new DistributedGenerationSlackOuterLoop());
+                        break;
+                    case PROPORTIONAL_TO_LOAD:
+                        outerLoops.add(new DistributedLoadSlackOuterLoop());
+                        break;
+                    case PROPORTIONAL_TO_GENERATION_P: // to be implemented.
+                        throw new UnsupportedOperationException("Unsupported balance type mode: " + parametersExt.getBalanceType());
+                    default:
+                        throw new UnsupportedOperationException("Unsupported balance type mode: " + parametersExt.getBalanceType());
                 }
             }
             if (!parameters.isNoGeneratorReactiveLimits()) {

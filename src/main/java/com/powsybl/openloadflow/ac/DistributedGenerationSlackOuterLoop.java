@@ -47,7 +47,7 @@ public class DistributedGenerationSlackOuterLoop implements OuterLoop {
 
     @Override
     public String getName() {
-        return "Distributed slack";
+        return "Distributed slack on generators";
     }
 
     private static List<ParticipatingGenerator> getParticipatingGenerators(LfNetwork network) {
