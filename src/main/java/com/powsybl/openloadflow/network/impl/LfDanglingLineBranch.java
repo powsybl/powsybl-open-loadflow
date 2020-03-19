@@ -28,15 +28,8 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
 
     private Evaluable q = NAN;
 
-    protected LfDanglingLineBranch(DanglingLine danglingLine, LfBus bus1, LfBus bus2) {
-        super(bus1, bus2, new PiModel(danglingLine.getR(), danglingLine.getX())
-                            .setG1(danglingLine.getG() / 2)
-                            .setG2(danglingLine.getG() / 2)
-                            .setB1(danglingLine.getB() / 2)
-                            .setB2(danglingLine.getB() / 2),
-                danglingLine.getId(),
-                danglingLine.getTerminal().getVoltageLevel().getNominalV(),
-                danglingLine.getTerminal().getVoltageLevel().getNominalV());
+    protected LfDanglingLineBranch(LfBus bus1, LfBus bus2, PiModel piModel, DanglingLine danglingLine) {
+        super(bus1, bus2, piModel);
         this.danglingLine = danglingLine;
     }
 
@@ -44,7 +37,16 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
         Objects.requireNonNull(danglingLine);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
-        return new LfDanglingLineBranch(danglingLine, bus1, bus2);
+        double nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
+        double zb = nominalV * nominalV / PerUnit.SB;
+        PiModel piModel = new PiModel()
+                .setR(danglingLine.getR() / zb)
+                .setX(danglingLine.getX() / zb)
+                .setG1(danglingLine.getG() / 2 * zb)
+                .setG2(danglingLine.getG() / 2 * zb)
+                .setB1(danglingLine.getB() / 2 * zb)
+                .setB2(danglingLine.getB() / 2 * zb);
+        return new LfDanglingLineBranch(bus1, bus2, piModel, danglingLine);
     }
 
     @Override

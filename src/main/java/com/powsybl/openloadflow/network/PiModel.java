@@ -6,13 +6,15 @@
  */
 package com.powsybl.openloadflow.network;
 
+import net.jafama.FastMath;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class PiModel {
 
-    private final double r;
-    private final double x;
+    private double r = 0;
+    private double x = 0;
     private double g1 = 0;
     private double b1 = 0;
     private double g2 = 0;
@@ -20,17 +22,30 @@ public class PiModel {
     private double r1 = 1;
     private double a1 = 0;
 
-    public PiModel(double r, double x) {
-        this.r = r;
-        this.x = x;
-    }
-
     public double getR() {
         return r;
     }
 
+    public PiModel setR(double r) {
+        this.r = r;
+        return this;
+    }
+
     public double getX() {
         return x;
+    }
+
+    public PiModel setX(double x) {
+        this.x = x;
+        return this;
+    }
+
+    public double getZ() {
+        return FastMath.hypot(r, x);
+    }
+
+    public double getKsi() {
+        return FastMath.atan2(r, x);
     }
 
     public double getG1() {
@@ -78,6 +93,10 @@ public class PiModel {
         return this;
     }
 
+    public double getR2() {
+        return 1;
+    }
+
     public double getA1() {
         return a1;
     }
@@ -85,5 +104,9 @@ public class PiModel {
     public PiModel setA1(double a1) {
         this.a1 = a1;
         return this;
+    }
+
+    public double getA2() {
+        return 0;
     }
 }

@@ -36,26 +36,33 @@ public class LfBranchImpl extends AbstractLfBranch {
     private Evaluable q2 = NAN;
 
     protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, Branch branch) {
-        super(bus1, bus2, piModel, branch.getId(), branch.getTerminal1().getVoltageLevel().getNominalV(), branch.getTerminal2().getVoltageLevel().getNominalV());
+        super(bus1, bus2, piModel);
         this.branch = branch;
     }
 
     public static LfBranchImpl create(Branch branch, LfBus bus1, LfBus bus2) {
         Objects.requireNonNull(branch);
+        double nominalV1 = branch.getTerminal1().getVoltageLevel().getNominalV();
+        double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
+        double zb = nominalV2 * nominalV2 / PerUnit.SB;
         PiModel piModel;
         if (branch instanceof Line) {
             Line line = (Line) branch;
-            piModel = new PiModel(line.getR(), line.getX())
-                    .setG1(line.getG1())
-                    .setG2(line.getG2())
-                    .setB1(line.getB1())
-                    .setB2(line.getB2());
+            piModel = new PiModel()
+                    .setR(line.getR() / zb)
+                    .setX(line.getX() / zb)
+                    .setG1(line.getG1() * zb)
+                    .setG2(line.getG2() * zb)
+                    .setB1(line.getB1() * zb)
+                    .setB2(line.getB2() * zb);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-            piModel = new PiModel(Transformers.getR(twt), Transformers.getX(twt))
-                    .setG1(Transformers.getG1(twt))
-                    .setB1(Transformers.getB1(twt))
-                    .setR1(Transformers.getRatio(twt))
+            piModel = new PiModel()
+                    .setR(Transformers.getR(twt) / zb)
+                    .setX(Transformers.getX(twt) / zb)
+                    .setG1(Transformers.getG1(twt) * zb)
+                    .setB1(Transformers.getB1(twt) * zb)
+                    .setR1(Transformers.getRatio(twt) / nominalV2 * nominalV1)
                     .setA1(Transformers.getAngle(twt));
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations for branch: " + branch.getId());
