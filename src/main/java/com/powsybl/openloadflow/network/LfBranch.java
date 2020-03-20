@@ -27,27 +27,7 @@ public interface LfBranch {
 
     void setQ2(Evaluable q2);
 
-    double x();
-
-    double y();
-
-    double ksi();
-
-    double g1();
-
-    double g2();
-
-    double b1();
-
-    double b2();
-
-    double r1();
-
-    double r2();
-
-    double a1();
-
-    double a2();
+    PiModel getPiModel();
 
     void updateState();
 }

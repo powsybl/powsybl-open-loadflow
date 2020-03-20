@@ -30,15 +30,8 @@ public class LfLegBranch extends AbstractLfBranch {
 
     private Evaluable q = NAN;
 
-    protected LfLegBranch(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
-        super(bus1, bus0, new PiModel(Transformers.getR(leg), Transformers.getX(leg))
-                        .setG1(Transformers.getG1(leg))
-                        .setB1(Transformers.getB1(leg))
-                        .setR1(Transformers.getRatioLeg(twt, leg))
-                        .setA1(Transformers.getAngleLeg(leg)),
-                twt.getId(),
-                leg.getTerminal().getVoltageLevel().getNominalV(),
-                twt.getRatedU0()); // Star bus.
+    protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
+        super(bus1, bus0, piModel);
         this.twt = twt;
         this.leg = leg;
     }
@@ -47,7 +40,17 @@ public class LfLegBranch extends AbstractLfBranch {
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(twt);
         Objects.requireNonNull(leg);
-        return new LfLegBranch(bus1, bus0, twt, leg);
+        double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
+        double nominalV2 = twt.getRatedU0();
+        double zb = nominalV2 * nominalV2 / PerUnit.SB;
+        PiModel piModel = new PiModel()
+                .setR(Transformers.getR(leg) / zb)
+                .setX(Transformers.getX(leg) / zb)
+                .setG1(Transformers.getG1(leg) * zb)
+                .setB1(Transformers.getB1(leg) * zb)
+                .setR1(Transformers.getRatioLeg(twt, leg) / nominalV2 * nominalV1)
+                .setA1(Transformers.getAngleLeg(leg));
+        return new LfLegBranch(bus1, bus0, piModel, twt, leg);
     }
 
     private int getLegNum() {

@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.PiModel;
 
 import java.util.List;
 import java.util.Objects;
@@ -32,15 +33,22 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEqu
 
     protected final double power;
 
+    protected final double a1;
+
+    protected final double a2;
+
     protected AbstractClosedBranchDcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet) {
         this.branch = Objects.requireNonNull(branch);
-        if (branch.x() == 0) {
+        PiModel piModel = branch.getPiModel();
+        if (piModel.getX() == 0) {
             throw new IllegalArgumentException("Branch '" + branch.getId() + "' has reactance equal to zero");
         }
         ph1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_PHI);
         variables = ImmutableList.of(ph1Var, ph2Var);
-        power =  1 / this.branch.x() * this.branch.r1() * this.branch.r2();
+        power =  1 / piModel.getX() * piModel.getR1() * piModel.getR2();
+        a1 = piModel.getA1();
+        a2 = piModel.getA2();
     }
 
     @Override
