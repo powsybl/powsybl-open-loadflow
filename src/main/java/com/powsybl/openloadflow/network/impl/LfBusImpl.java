@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +27,7 @@ public class LfBusImpl extends AbstractLfBus {
     private static final double REACTIVE_RANGE_THRESHOLD_PU = 1d / PerUnit.SB;
     private static final double POWER_EPSILON_SI = 1e-4;
     private static final double Q_DISPATCH_EPSILON = 1e-3;
+    private static final double TARGET_V_EPSILON = 1e-2;
 
     private final Bus bus;
 
@@ -93,9 +95,36 @@ public class LfBusImpl extends AbstractLfBus {
         Objects.requireNonNull(remoteControlTargetBus);
         // check that remote control bus is still the same
         if (this.remoteControlTargetBus != null && this.remoteControlTargetBus.getNum() != remoteControlTargetBus.getNum()) {
-            throw new PowsyblException("Generators " + generators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "))
+            throw new PowsyblException("Generators " + getGeneratorIds()
                     + " connected to bus '" + getId() + "' must control the voltage of the same bus");
         }
+
+        if (voltageControl) {
+            // check target voltage consistency between local and remote control
+            if (remoteControlTargetBus.hasVoltageControl()) { // target bus has local voltage control
+                double localTargetV = remoteControlTargetBus.getTargetV() * remoteControlTargetBus.getNominalV();
+                if (FastMath.abs(this.targetV - localTargetV) > TARGET_V_EPSILON) {
+                    throw new PowsyblException("Voltage control target bus '" + remoteControlTargetBus.getId()
+                            + "' of bus '" + getId() + "' has also a local voltage control with a different value: "
+                            + localTargetV + " and " + this.targetV);
+                }
+            }
+
+            // check that if target voltage is consistent with other already existing source buses
+            List<LfBus> otherRemoteControlSourceBuses = remoteControlTargetBus.getRemoteControlSourceBuses();
+            if (!otherRemoteControlSourceBuses.isEmpty()) {
+                // just need to control first bus that control voltage
+                otherRemoteControlSourceBuses.stream().filter(LfBus::hasVoltageControl).findFirst().ifPresent(otherRemoteControlSourceBus -> {
+                    double otherRemoteTargetV = otherRemoteControlSourceBus.getTargetV() * remoteControlTargetBus.getNominalV();
+                    if (FastMath.abs(otherRemoteTargetV - this.targetV) > TARGET_V_EPSILON) {
+                        throw new PowsyblException("Bus '" + getId() + "' control voltage of target bus '" + remoteControlTargetBus.getId()
+                                + "' which is already controlled by at least the bus '" + otherRemoteControlSourceBus.getId()
+                                + "' with a different target voltage: " + otherRemoteTargetV + " and " + this.targetV);
+                    }
+                });
+            }
+        }
+
         this.remoteControlTargetBus = remoteControlTargetBus;
         remoteControlTargetBus.addRemoteControlSource(this);
     }
@@ -111,10 +140,15 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     private double checkTargetV(double targetV) {
-        if (!Double.isNaN(this.targetV) && this.targetV != targetV) {
-            throw new PowsyblException("Multiple generators connected to same bus with different target voltage");
+        if (!Double.isNaN(this.targetV) && FastMath.abs(this.targetV - targetV) > TARGET_V_EPSILON) {
+            throw new PowsyblException("Generators " + getGeneratorIds() + " are connected to the same local bus '" + getId()
+                    + "' with a different target voltages: " + targetV + " and " + this.targetV);
         }
         return targetV;
+    }
+
+    private List<String> getGeneratorIds() {
+        return generators.stream().map(LfGenerator::getId).collect(Collectors.toList());
     }
 
     void addLoad(Load load) {

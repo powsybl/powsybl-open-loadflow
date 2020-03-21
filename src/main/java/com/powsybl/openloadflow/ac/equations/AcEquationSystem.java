@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
@@ -74,15 +73,9 @@ public final class AcEquationSystem {
         if (sourceBusesControllingVoltage.isEmpty()) {
             vEq.setActive(false);
         } else {
-            // check voltage target consistency
-            if (sourceBusesControllingVoltage.stream().mapToDouble(LfBus::getTargetV).distinct().count() != 1) {
-                throw new PowsyblException("Inconsistent target voltage at bus " + bus.getId());
-            }
-
             // create reactive power distribution equations at remote control sources buses (except one)
             createReactivePowerDistributionEquations(equationSystem, variableSet, sourceBusesControllingVoltage);
         }
-
     }
 
     public static void createReactivePowerDistributionEquations(EquationSystem equationSystem, VariableSet variableSet,
