@@ -112,7 +112,8 @@ public class LfBusImpl extends AbstractLfBus {
 
     private double checkTargetV(double targetV) {
         if (!Double.isNaN(this.targetV) && this.targetV != targetV) {
-            throw new PowsyblException("Multiple generators connected to same bus with different target voltage");
+            throw new PowsyblException("Multiple generators connected to same bus with different target voltage: "
+                    + targetV +  " != " + this.targetV);
         }
         return targetV;
     }

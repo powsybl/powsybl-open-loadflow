@@ -52,7 +52,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
             // clean reactive power distribution equations
             for (LfBus remoteControlSourceBus : remoteControltargetBus.getRemoteControlSourceBuses()) {
-                equationSystem.removeEquation(remoteControlSourceBus.getNum(), EquationType.ZERO);
+                equationSystem.removeEquation(remoteControlSourceBus.getNum(), EquationType.ZERO_Q);
             }
 
             // create reactive power equations on source buses controlling voltage

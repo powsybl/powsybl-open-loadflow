@@ -318,6 +318,14 @@ public class LfNetwork {
             }
             return connectedToSameBus;
         });
+
+        int i = 0;
+        for (LfBranch branch : branches) {
+            if (branch.getPiModel().getZ() == 0) {
+                LOGGER.warn("NON IMP BRANCH " + branch.getId());
+            }
+            branch.setNum(i);
+        }
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {

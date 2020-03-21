@@ -115,7 +115,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 targets[row] = 0;
                 break;
 
-            case ZERO:
+            case ZERO_Q:
+            case ZERO_V:
+            case ZERO_PHI:
                 targets[row] = 0;
                 break;
 
@@ -205,7 +207,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 LfBus bus = equationSystem.getNetwork().getBus(num);
                 builder.append(", busId=").append(bus.getId());
                 break;
-            case ZERO:
+            case ZERO_Q:
+            case ZERO_V:
+            case ZERO_PHI:
                 break;
         }
         builder.append(", type=").append(type)

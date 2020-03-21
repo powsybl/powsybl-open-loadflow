@@ -62,6 +62,11 @@ public class Variable implements Comparable<Variable> {
                 x[column] = Math.toRadians(initializer.getAngle(bus));
                 break;
 
+            case DUMMY_P:
+            case DUMMY_Q:
+                x[column] = 0;
+                break;
+
             default:
                 throw new IllegalStateException("Unknown variable type "  + type);
         }
@@ -77,6 +82,11 @@ public class Variable implements Comparable<Variable> {
 
             case BUS_PHI:
                 network.getBus(num).setAngle(Math.toDegrees(x[column]));
+                break;
+
+            case DUMMY_P:
+            case DUMMY_Q:
+                // nothing to do
                 break;
 
             default:

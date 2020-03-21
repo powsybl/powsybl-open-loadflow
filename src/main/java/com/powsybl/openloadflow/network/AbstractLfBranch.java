@@ -13,6 +13,8 @@ import java.util.Objects;
  */
 public abstract class AbstractLfBranch implements LfBranch {
 
+    private int num = -1;
+
     private final LfBus bus1;
 
     private final LfBus bus2;
@@ -23,6 +25,16 @@ public abstract class AbstractLfBranch implements LfBranch {
         this.bus1 = bus1;
         this.bus2 = bus2;
         this.piModel = Objects.requireNonNull(piModel);
+    }
+
+    @Override
+    public int getNum() {
+        return num;
+    }
+
+    @Override
+    public void setNum(int num) {
+        this.num = num;
     }
 
     @Override
