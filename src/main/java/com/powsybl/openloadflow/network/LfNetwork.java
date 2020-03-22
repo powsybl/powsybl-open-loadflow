@@ -19,7 +19,6 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -331,7 +330,6 @@ public class LfNetwork {
                 LfNetwork lfNetwork = lfNetworks.get(0); // main component
                 lfNetwork.logSize();
                 lfNetwork.logBalance();
-                lfNetwork.writeJson(Paths.get("/tmp/toto2.json"));
                 return lfNetworks;
             }
         }
