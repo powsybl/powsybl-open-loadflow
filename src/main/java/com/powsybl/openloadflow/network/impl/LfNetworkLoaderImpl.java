@@ -43,7 +43,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     private static void createBuses(List<Bus> buses, boolean voltageRemoteControl, LfNetwork lfNetwork,
                                     LoadingContext loadingContext, LfNetworkLoadingReport report) {
         int[] generatorCount = new int[1];
-        Map<LfBusImpl, String> voltageRemoteControlTargetBusId = new HashMap<>();
+        Map<LfBusImpl, String> voltageRemoteControlTargetBusId = new LinkedHashMap<>();
 
         for (Bus bus : buses) {
             LfBusImpl lfBus = LfBusImpl.create(bus);
