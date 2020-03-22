@@ -16,7 +16,7 @@ public enum EquationType {
     BUS_PHI("\u03C6"),
     ZERO_Q("z"),
     ZERO_V("zv"),
-    ZERO_PHI("zφ");
+    ZERO_PHI("z\u03C6");
 
     private final String symbol;
 
