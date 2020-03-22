@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.io.IOException;
@@ -52,14 +51,13 @@ public class Variable implements Comparable<Variable> {
         Objects.requireNonNull(initializer);
         Objects.requireNonNull(network);
         Objects.requireNonNull(x);
-        LfBus bus = network.getBus(num);
         switch (type) {
             case BUS_V:
-                x[column] = initializer.getMagnitude(bus);
+                x[column] = initializer.getMagnitude(network.getBus(num));
                 break;
 
             case BUS_PHI:
-                x[column] = Math.toRadians(initializer.getAngle(bus));
+                x[column] = Math.toRadians(initializer.getAngle(network.getBus(num)));
                 break;
 
             case DUMMY_P:

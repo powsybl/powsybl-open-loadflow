@@ -24,9 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
-    
+
     private LoadFlow.Runner loadFlowRunner;
-    
+
     @BeforeEach
     void setUp() {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -42,7 +42,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLoad(b3, "l1", 1.99, 1);
         createLine(network, b1, b2, "l12", 0.1);
         createLine(network, b2, b3, "l23", 0); // non impedant branch
-        
+
         LoadFlowResult result = loadFlowRunner.run(network);
         assertTrue(result.isOk());
         assertVoltageEquals(1, b1);

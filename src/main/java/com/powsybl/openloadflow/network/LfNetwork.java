@@ -19,6 +19,7 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -64,6 +65,7 @@ public class LfNetwork {
 
     public void addBranch(LfBranch branch) {
         Objects.requireNonNull(branch);
+        branch.setNum(branches.size());
         branches.add(branch);
 
         // create bus -> branches link
@@ -165,6 +167,8 @@ public class LfNetwork {
     }
 
     private void writeJson(LfBranch branch, JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeStringField("id", branch.getId());
+        jsonGenerator.writeNumberField("num", branch.getNum());
         LfBus bus1 = branch.getBus1();
         LfBus bus2 = branch.getBus2();
         if (bus1 != null) {
@@ -310,24 +314,6 @@ public class LfNetwork {
                 activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
-    public void fix() {
-        branches.removeIf(branch -> {
-            boolean connectedToSameBus = branch.getBus1() == branch.getBus2();
-            if (connectedToSameBus) {
-                LOGGER.warn("Discard branch '{}' because connected to same bus at both ends", branch.getId());
-            }
-            return connectedToSameBus;
-        });
-
-        int i = 0;
-        for (LfBranch branch : branches) {
-            if (branch.getPiModel().getZ() == 0) {
-                LOGGER.warn("NON IMP BRANCH " + branch.getId());
-            }
-            branch.setNum(i);
-        }
-    }
-
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
         return load(network, slackBusSelector, false);
     }
@@ -339,9 +325,9 @@ public class LfNetwork {
             List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, voltageRemoteControl).orElse(null);
             if (lfNetworks != null) {
                 LfNetwork lfNetwork = lfNetworks.get(0); // main component
-                lfNetwork.fix();
                 lfNetwork.logSize();
                 lfNetwork.logBalance();
+                lfNetwork.writeJson(Paths.get("/tmp/toto2.json"));
                 return lfNetworks;
             }
         }

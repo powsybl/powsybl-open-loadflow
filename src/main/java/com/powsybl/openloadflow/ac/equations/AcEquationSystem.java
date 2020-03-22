@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.OutputStreamWriter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -135,7 +134,6 @@ public final class AcEquationSystem {
 
     private static void createNonImpedantBranch(VariableSet variableSet, EquationSystem equationSystem,
                                                 LfBranch branch, LfBus bus1, LfBus bus2) {
-        System.out.println("PROUT " + branch.getId());
         boolean hasV1 = equationSystem.hasEquation(bus1.getNum(), EquationType.BUS_V);
         boolean hasV2 = equationSystem.hasEquation(bus2.getNum(), EquationType.BUS_V);
         if (!(hasV1 && hasV2)) {
@@ -154,7 +152,7 @@ public final class AcEquationSystem {
 
         boolean hasPhi1 = equationSystem.hasEquation(bus1.getNum(), EquationType.BUS_PHI);
         boolean hasPhi2 = equationSystem.hasEquation(bus2.getNum(), EquationType.BUS_PHI);
-        if ((hasPhi1 && !hasPhi2) || (!hasPhi1 && hasPhi2) || (!hasPhi1 && !hasPhi2)) {
+        if (!(hasPhi1 && hasPhi2)) {
             equationSystem.createEquation(bus2.getNum(), EquationType.ZERO_PHI)
                     .addTerm(new BusPhaseEquationTerm(bus1, variableSet))
                     .addTerm(EquationTerm.multiply(new BusPhaseEquationTerm(bus2, variableSet), -1));
@@ -164,8 +162,6 @@ public final class AcEquationSystem {
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P)
                     .addTerm(EquationTerm.multiply(new DummyActivePowerEquationTerm(branch, variableSet), -1));
         } else {
-            System.out.println(bus1.getId() + " " + hasPhi1);
-            System.out.println(bus2.getId() + " " + hasPhi2);
             throw new IllegalStateException("Cannot happen because only there is one slack bus per model");
         }
     }
@@ -220,8 +216,6 @@ public final class AcEquationSystem {
 
         createBusEquations(network, variableSet, voltageRemoteControl, equationSystem);
         createBranchEquations(network, variableSet, equationSystem);
-
-  //      equationSystem.write(new OutputStreamWriter(System.out));
 
         return equationSystem;
     }
