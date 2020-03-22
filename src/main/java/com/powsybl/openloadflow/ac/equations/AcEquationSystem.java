@@ -137,10 +137,16 @@ public final class AcEquationSystem {
         boolean hasV1 = equationSystem.hasEquation(bus1.getNum(), EquationType.BUS_V);
         boolean hasV2 = equationSystem.hasEquation(bus2.getNum(), EquationType.BUS_V);
         if (!(hasV1 && hasV2)) {
-            equationSystem.createEquation(bus2.getNum(), EquationType.ZERO_V)
+            // create voltage magnitude coupling equation
+            // 0 = v1 - v2 * rho
+            PiModel piModel = branch.getPiModel();
+            double rho = piModel.getR2() / piModel.getR1();
+            equationSystem.createEquation(branch.getNum(), EquationType.ZERO_V)
                     .addTerm(new BusVoltageEquationTerm(bus1, variableSet))
-                    .addTerm(EquationTerm.multiply(new BusVoltageEquationTerm(bus2, variableSet), -1));
+                    .addTerm(EquationTerm.multiply(new BusVoltageEquationTerm(bus2, variableSet), -1 * rho));
 
+            // add a dummy reactive power variable to both sides of the non impedant branch and with an opposite sign
+            // to ensure we have the same number of equation and variables
             equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q)
                     .addTerm(new DummyReactivePowerEquationTerm(branch, variableSet));
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q)
@@ -153,10 +159,14 @@ public final class AcEquationSystem {
         boolean hasPhi1 = equationSystem.hasEquation(bus1.getNum(), EquationType.BUS_PHI);
         boolean hasPhi2 = equationSystem.hasEquation(bus2.getNum(), EquationType.BUS_PHI);
         if (!(hasPhi1 && hasPhi2)) {
-            equationSystem.createEquation(bus2.getNum(), EquationType.ZERO_PHI)
+            // create voltage angle coupling equation
+            // alpha = phi1 - phi2
+            equationSystem.createEquation(branch.getNum(), EquationType.ZERO_PHI)
                     .addTerm(new BusPhaseEquationTerm(bus1, variableSet))
                     .addTerm(EquationTerm.multiply(new BusPhaseEquationTerm(bus2, variableSet), -1));
 
+            // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
+            // to ensure we have the same number of equation and variables
             equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P)
                     .addTerm(new DummyActivePowerEquationTerm(branch, variableSet));
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P)

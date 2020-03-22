@@ -34,7 +34,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     public void threeBusesTest() {
-        Network network = Network.create("3-buses-with-non-impedant-branch", "code");
+        Network network = Network.create("ThreeBusesWithNonImpedantLine", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
         Bus b3 = createBus(network, "b3");
@@ -55,7 +55,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     public void fourBusesTest() {
-        Network network = Network.create("4 buses-with-non-impedant-branch", "code");
+        Network network = Network.create("FourBusesWithNonImpedantLine", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
         Bus b3 = createBus(network, "b3");
@@ -76,5 +76,26 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertAngleEquals(0, b2);
         assertAngleEquals(0, b3);
         assertAngleEquals(-7.248787, b4);
+    }
+
+    @Test
+    public void threeBusesAndNonImpTransfoTest() {
+        Network network = Network.create("ThreeBusesWithNonImpedantTransfo", "code");
+        Bus b1 = createBus(network, "s", "b1");
+        Bus b2 = createBus(network, "s", "b2");
+        Bus b3 = createBus(network, "s", "b3");
+        createGenerator(b1, "g1", 2, 1);
+        createLoad(b3, "l1", 1.99, 1);
+        createLine(network, b1, b2, "l12", 0.1);
+        createTransformer(network, "s", b2, b3, "l23", 0, 1.1); // non impedant branch
+
+        LoadFlowResult result = loadFlowRunner.run(network);
+        assertTrue(result.isOk());
+        assertVoltageEquals(1, b1);
+        assertVoltageEquals(0.858, b2);
+        assertVoltageEquals(0.944, b3);
+        assertAngleEquals(13.36967, b1);
+        assertAngleEquals(0, b2);
+        assertAngleEquals(0, b3);
     }
 }

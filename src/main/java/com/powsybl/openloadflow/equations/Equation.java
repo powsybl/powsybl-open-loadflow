@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
@@ -117,8 +118,12 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
             case ZERO_Q:
             case ZERO_V:
-            case ZERO_PHI:
                 targets[row] = 0;
+                break;
+
+            case ZERO_PHI:
+                PiModel piModel = network.getBranch(num).getPiModel();
+                targets[row] = piModel.getA2() - piModel.getA1();
                 break;
 
             default:

@@ -81,6 +81,10 @@ public class LfNetwork {
         return branches;
     }
 
+    public LfBranch getBranch(int num) {
+        return branches.get(num);
+    }
+
     public void addBus(LfBus bus) {
         Objects.requireNonNull(bus);
         busesById.put(bus.getId(), bus);
