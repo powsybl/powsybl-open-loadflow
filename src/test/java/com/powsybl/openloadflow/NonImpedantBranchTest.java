@@ -4,14 +4,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac;
+package com.powsybl.openloadflow;
 
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,9 +27,16 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 
     private LoadFlow.Runner loadFlowRunner;
 
+    private LoadFlowParameters parameters;
+
+    private OpenLoadFlowParameters parametersExt;
+
     @BeforeEach
     void setUp() {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters();
+        parametersExt = new OpenLoadFlowParameters();
+        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
     @Test
@@ -43,7 +50,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b1, b2, "l12", 0.1);
         createLine(network, b2, b3, "l23", 0); // non impedant branch
 
-        LoadFlowResult result = loadFlowRunner.run(network);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(1, b1);
         assertVoltageEquals(0.858, b2);
@@ -51,6 +58,16 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertAngleEquals(13.36967, b1);
         assertAngleEquals(0, b2);
         assertAngleEquals(0, b3);
+
+        parametersExt.setDc(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertTrue(Double.isNaN(b1.getV()));
+        assertTrue(Double.isNaN(b2.getV()));
+        assertTrue(Double.isNaN(b3.getV()));
+        assertAngleEquals(0, b1);
+        assertAngleEquals(-11.40186, b2);
+        assertAngleEquals(-11.40186, b3);
     }
 
     @Test
@@ -76,6 +93,18 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertAngleEquals(0, b2);
         assertAngleEquals(0, b3);
         assertAngleEquals(-7.248787, b4);
+
+        parametersExt.setDc(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertTrue(Double.isNaN(b1.getV()));
+        assertTrue(Double.isNaN(b2.getV()));
+        assertTrue(Double.isNaN(b3.getV()));
+        assertTrue(Double.isNaN(b4.getV()));
+        assertAngleEquals(0, b1);
+        assertAngleEquals(-5.70093, b2);
+        assertAngleEquals(-5.70093, b3);
+        assertAngleEquals(-11.40186, b4);
     }
 
     @Test

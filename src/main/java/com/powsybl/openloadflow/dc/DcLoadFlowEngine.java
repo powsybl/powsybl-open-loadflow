@@ -7,15 +7,16 @@
 package com.powsybl.openloadflow.dc;
 
 import com.google.common.base.Stopwatch;
+import com.powsybl.math.matrix.LUDecomposition;
+import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Markers;
-import com.powsybl.math.matrix.LUDecomposition;
-import com.powsybl.math.matrix.MatrixFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,6 +76,11 @@ public class DcLoadFlowEngine {
 
             equationSystem.updateEquations(dx);
             equationSystem.updateNetwork(dx);
+
+            // set all calculated voltages to NaN
+            for (LfBus bus : network.getBuses()) {
+                bus.setV(Double.NaN);
+            }
 
             stopwatch.stop();
             LOGGER.debug(Markers.PERFORMANCE_MARKER, "Dc loadflow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));

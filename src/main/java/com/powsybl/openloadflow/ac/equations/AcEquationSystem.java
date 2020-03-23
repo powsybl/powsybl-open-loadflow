@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
@@ -156,24 +157,8 @@ public final class AcEquationSystem {
             // target v are equals.
         }
 
-        boolean hasPhi1 = equationSystem.hasEquation(bus1.getNum(), EquationType.BUS_PHI);
-        boolean hasPhi2 = equationSystem.hasEquation(bus2.getNum(), EquationType.BUS_PHI);
-        if (!(hasPhi1 && hasPhi2)) {
-            // create voltage angle coupling equation
-            // alpha = phi1 - phi2
-            equationSystem.createEquation(branch.getNum(), EquationType.ZERO_PHI)
-                    .addTerm(new BusPhaseEquationTerm(bus1, variableSet))
-                    .addTerm(EquationTerm.multiply(new BusPhaseEquationTerm(bus2, variableSet), -1));
-
-            // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
-            // to ensure we have the same number of equation and variables
-            equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P)
-                    .addTerm(new DummyActivePowerEquationTerm(branch, variableSet));
-            equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P)
-                    .addTerm(EquationTerm.multiply(new DummyActivePowerEquationTerm(branch, variableSet), -1));
-        } else {
-            throw new IllegalStateException("Cannot happen because only there is one slack bus per model");
-        }
+        // voltage angle coupling equation creation is shared with DC loadflow
+        DcEquationSystem.createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
     }
 
     private static void createBranchEquations(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem) {
