@@ -53,7 +53,7 @@ public class DcLoadFlowMatrixTest {
         LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
 
         VariableSet variableSet = new VariableSet();
-        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, variableSet);
+        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, variableSet, 0);
 
         for (LfBus b : lfNetwork.getBuses()) {
             equationSystem.createEquation(b.getNum(), EquationType.BUS_P);
@@ -122,7 +122,7 @@ public class DcLoadFlowMatrixTest {
 
         lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
 
-        equationSystem = DcEquationSystem.create(lfNetwork, variableSet);
+        equationSystem = DcEquationSystem.create(lfNetwork, variableSet, 0);
 
         j = JacobianMatrix.create(equationSystem, matrixFactory).getMatrix();
 

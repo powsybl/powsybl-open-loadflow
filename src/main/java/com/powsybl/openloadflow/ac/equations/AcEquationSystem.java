@@ -28,7 +28,7 @@ public final class AcEquationSystem {
     }
 
     public static EquationSystem create(LfNetwork network) {
-        return create(network, new VariableSet(), false);
+        return create(network, new VariableSet(), false, 0);
     }
 
     private static void createBusEquations(LfNetwork network, VariableSet variableSet, boolean voltageRemoteControl,
@@ -161,12 +161,13 @@ public final class AcEquationSystem {
         DcEquationSystem.createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
     }
 
-    private static void createBranchEquations(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem) {
+    private static void createBranchEquations(LfNetwork network, VariableSet variableSet, double lowImpedanceThreshold,
+                                              EquationSystem equationSystem) {
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             PiModel piModel = branch.getPiModel();
-            if (piModel.getZ() == 0) {
+            if (piModel.getZ() <= lowImpedanceThreshold) {
                 if (bus1 != null && bus2 != null) {
                     createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
                 }
@@ -203,14 +204,15 @@ public final class AcEquationSystem {
         }
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean voltageRemoteControl) {
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean voltageRemoteControl,
+                                        double lowImpedanceThreshold) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(variableSet);
 
         EquationSystem equationSystem = new EquationSystem(network);
 
         createBusEquations(network, variableSet, voltageRemoteControl, equationSystem);
-        createBranchEquations(network, variableSet, equationSystem);
+        createBranchEquations(network, variableSet, lowImpedanceThreshold, equationSystem);
 
         return equationSystem;
     }

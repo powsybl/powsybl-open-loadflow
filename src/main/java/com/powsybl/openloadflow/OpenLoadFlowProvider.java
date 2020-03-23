@@ -132,7 +132,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
             AcLoadFlowParameters acParameters = new AcLoadFlowParameters(slackBusSelector, voltageInitializer, stoppingCriteria,
                                                                          outerLoops, matrixFactory, getObserver(parametersExt),
-                                                                         parametersExt.hasVoltageRemoteControl());
+                                                                         parametersExt.hasVoltageRemoteControl(),
+                                                                         parametersExt.getLowImpedanceThreshold());
 
             AcLoadFlowResult result = new AcloadFlowEngine(network, acParameters)
                     .run();
@@ -145,12 +146,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         });
     }
 
-    private CompletableFuture<LoadFlowResult> runDc(Network network, String workingStateId) {
+    private CompletableFuture<LoadFlowResult> runDc(Network network, String workingStateId, OpenLoadFlowParameters parametersExt) {
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
             DcLoadFlowResult result = new DcLoadFlowEngine(network, matrixFactory)
-                    .run();
+                    .run(parametersExt.getLowImpedanceThreshold());
 
             Networks.resetState(network);
             result.getNetworks().get(0).updateState(false);
@@ -166,7 +167,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         OpenLoadFlowParameters parametersExt = getParametersExt(parameters);
 
-        return parametersExt.isDc() ? runDc(network, workingVariantId)
+        return parametersExt.isDc() ? runDc(network, workingVariantId, parametersExt)
                 : runAc(network, workingVariantId, parameters, parametersExt);
     }
 }

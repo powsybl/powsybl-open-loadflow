@@ -15,7 +15,7 @@ import com.powsybl.math.matrix.MatrixFactory;
  */
 public interface VoltageInitializer {
 
-    void prepare(LfNetwork network, MatrixFactory matrixFactory);
+    void prepare(LfNetwork network, MatrixFactory matrixFactory, double lowImpedanceThreshold);
 
     double getMagnitude(LfBus bus);
 

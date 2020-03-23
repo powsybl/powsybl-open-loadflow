@@ -16,7 +16,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 public class UniformValueVoltageInitializer implements VoltageInitializer {
 
     @Override
-    public void prepare(LfNetwork network, MatrixFactory matrixFactory) {
+    public void prepare(LfNetwork network, MatrixFactory matrixFactory, double lowImpedanceThreshold) {
         // nothing to do
     }
 

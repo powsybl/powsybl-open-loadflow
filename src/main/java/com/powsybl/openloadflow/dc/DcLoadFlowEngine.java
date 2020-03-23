@@ -47,13 +47,13 @@ public class DcLoadFlowEngine {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
     }
 
-    public DcLoadFlowResult run() {
+    public DcLoadFlowResult run(double lowImpedanceThreshold) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         // only process main (largest) connected component
         LfNetwork network = networks.get(0);
 
-        EquationSystem equationSystem = DcEquationSystem.create(network);
+        EquationSystem equationSystem = DcEquationSystem.create(network, lowImpedanceThreshold);
 
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
 

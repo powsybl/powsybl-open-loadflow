@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.util.EvaluableConstants;
+import net.jafama.FastMath;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -22,8 +23,8 @@ public final class DcEquationSystem {
     private DcEquationSystem() {
     }
 
-    public static EquationSystem create(LfNetwork network) {
-        return create(network, new VariableSet());
+    public static EquationSystem create(LfNetwork network, double lowImpedanceThreshold) {
+        return create(network, new VariableSet(), lowImpedanceThreshold);
     }
 
     public static void createNonImpedantBranch(VariableSet variableSet, EquationSystem equationSystem,
@@ -48,7 +49,7 @@ public final class DcEquationSystem {
         }
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet, double lowImpedanceThreshold) {
         EquationSystem equationSystem = new EquationSystem(network);
 
         for (LfBus bus : network.getBuses()) {
@@ -62,7 +63,7 @@ public final class DcEquationSystem {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             PiModel piModel = branch.getPiModel();
-            if (piModel.getX() == 0) {
+            if (FastMath.abs(piModel.getX()) <= lowImpedanceThreshold) {
                 if (bus1 != null && bus2 != null) {
                     createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
                 }

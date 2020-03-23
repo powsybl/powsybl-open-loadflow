@@ -22,6 +22,17 @@ public class NewtonRaphsonParameters {
 
     private VoltageInitializer voltageInitializer = new UniformValueVoltageInitializer();
 
+    private double lowImpedanceThreshold = 0;
+
+    public double getLowImpedanceThreshold() {
+        return lowImpedanceThreshold;
+    }
+
+    public NewtonRaphsonParameters setLowImpedanceThreshold(double lowImpedanceThreshold) {
+        this.lowImpedanceThreshold = lowImpedanceThreshold;
+        return this;
+    }
+
     public int getMaxIteration() {
         return maxIteration;
     }
