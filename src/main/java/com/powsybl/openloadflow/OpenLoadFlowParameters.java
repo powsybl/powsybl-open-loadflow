@@ -29,8 +29,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean voltageRemoteControl = false;
 
-    private double lowImpedanceThreshold = Math.pow(10, -8); // in per unit
-
     private final List<AcLoadFlowObserver> additionalObservers = new ArrayList<>();
 
     @Override
@@ -71,18 +69,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setVoltageRemoteControl(boolean voltageRemoteControl) {
         this.voltageRemoteControl = voltageRemoteControl;
-        return this;
-    }
-
-    public double getLowImpedanceThreshold() {
-        return lowImpedanceThreshold;
-    }
-
-    public OpenLoadFlowParameters setLowImpedanceThreshold(double lowImpedanceThreshold) {
-        if (lowImpedanceThreshold < 0) {
-            throw new IllegalArgumentException("Invalid low impedance threshold: " + lowImpedanceThreshold);
-        }
-        this.lowImpedanceThreshold = lowImpedanceThreshold;
         return this;
     }
 

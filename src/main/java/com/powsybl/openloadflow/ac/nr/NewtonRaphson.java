@@ -141,7 +141,7 @@ public class NewtonRaphson implements AutoCloseable {
 
         observer.beforeVoltageInitializerPreparation(voltageInitializer.getClass());
 
-        voltageInitializer.prepare(network, matrixFactory, parameters.getLowImpedanceThreshold());
+        voltageInitializer.prepare(network, matrixFactory);
 
         observer.afterVoltageInitializerPreparation();
 

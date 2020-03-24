@@ -34,12 +34,9 @@ public class AcLoadFlowParameters {
 
     private final boolean voltageRemoteControl;
 
-    private final double lowImpedanceThreshold;
-
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
-                                MatrixFactory matrixFactory, AcLoadFlowObserver observer, boolean voltageRemoteControl,
-                                double lowImpedanceThreshold) {
+                                MatrixFactory matrixFactory, AcLoadFlowObserver observer, boolean voltageRemoteControl) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -47,7 +44,6 @@ public class AcLoadFlowParameters {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.observer = Objects.requireNonNull(observer);
         this.voltageRemoteControl = voltageRemoteControl;
-        this.lowImpedanceThreshold = lowImpedanceThreshold;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -76,9 +72,5 @@ public class AcLoadFlowParameters {
 
     public boolean isVoltageRemoteControl() {
         return voltageRemoteControl;
-    }
-
-    public double getLowImpedanceThreshold() {
-        return lowImpedanceThreshold;
     }
 }

@@ -19,8 +19,8 @@ import com.powsybl.math.matrix.MatrixFactory;
 public class DcValueVoltageInitializer implements VoltageInitializer {
 
     @Override
-    public void prepare(LfNetwork network, MatrixFactory matrixFactory, double lowImpedanceThreshold) {
-        if (!new DcLoadFlowEngine(network, matrixFactory).run(lowImpedanceThreshold).isOk()) {
+    public void prepare(LfNetwork network, MatrixFactory matrixFactory) {
+        if (!new DcLoadFlowEngine(network, matrixFactory).run().isOk()) {
             throw new PowsyblException("DC loadflow failed, impossible to initialize voltage angle from DC values");
         }
     }

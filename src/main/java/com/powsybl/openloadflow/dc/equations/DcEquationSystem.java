@@ -20,11 +20,13 @@ import net.jafama.FastMath;
  */
 public final class DcEquationSystem {
 
+    public static final double LOW_IMPEDANCE_THRESHOLD = Math.pow(10, -8); // in per unit
+
     private DcEquationSystem() {
     }
 
-    public static EquationSystem create(LfNetwork network, double lowImpedanceThreshold) {
-        return create(network, new VariableSet(), lowImpedanceThreshold);
+    public static EquationSystem create(LfNetwork network) {
+        return create(network, new VariableSet());
     }
 
     public static void createNonImpedantBranch(VariableSet variableSet, EquationSystem equationSystem,
@@ -49,7 +51,7 @@ public final class DcEquationSystem {
         }
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet, double lowImpedanceThreshold) {
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
         EquationSystem equationSystem = new EquationSystem(network);
 
         for (LfBus bus : network.getBuses()) {
@@ -63,7 +65,7 @@ public final class DcEquationSystem {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             PiModel piModel = branch.getPiModel();
-            if (FastMath.abs(piModel.getX()) <= lowImpedanceThreshold) {
+            if (FastMath.abs(piModel.getX()) <= LOW_IMPEDANCE_THRESHOLD) {
                 if (bus1 != null && bus2 != null) {
                     createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
                 }

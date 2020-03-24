@@ -68,8 +68,7 @@ public class AcloadFlowEngine {
         parameters.getObserver().beforeEquationSystemCreation();
 
         VariableSet variableSet = new VariableSet();
-        EquationSystem equationSystem = AcEquationSystem.create(network, variableSet, parameters.isVoltageRemoteControl(),
-                                                                parameters.getLowImpedanceThreshold());
+        EquationSystem equationSystem = AcEquationSystem.create(network, variableSet, parameters.isVoltageRemoteControl());
 
         parameters.getObserver().afterEquationSystemCreation();
 
@@ -77,9 +76,7 @@ public class AcloadFlowEngine {
         int outerLoopIteration = 0;
         try (NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getMatrixFactory(), parameters.getObserver(), equationSystem, parameters.getStoppingCriteria())) {
 
-            NewtonRaphsonParameters nrParameters = new NewtonRaphsonParameters()
-                    .setLowImpedanceThreshold(parameters.getLowImpedanceThreshold())
-                    .setVoltageInitializer(parameters.getVoltageInitializer());
+            NewtonRaphsonParameters nrParameters = new NewtonRaphsonParameters().setVoltageInitializer(parameters.getVoltageInitializer());
 
             // initial Newton-Raphson
             lastNrResult = newtonRaphson.run(nrParameters);

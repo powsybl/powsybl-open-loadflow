@@ -132,8 +132,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
             AcLoadFlowParameters acParameters = new AcLoadFlowParameters(slackBusSelector, voltageInitializer, stoppingCriteria,
                                                                          outerLoops, matrixFactory, getObserver(parametersExt),
-                                                                         parametersExt.hasVoltageRemoteControl(),
-                                                                         parametersExt.getLowImpedanceThreshold());
+                                                                         parametersExt.hasVoltageRemoteControl());
 
             AcLoadFlowResult result = new AcloadFlowEngine(network, acParameters)
                     .run();
@@ -151,7 +150,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
             DcLoadFlowResult result = new DcLoadFlowEngine(network, matrixFactory)
-                    .run(parametersExt.getLowImpedanceThreshold());
+                    .run();
 
             Networks.resetState(network);
             result.getNetworks().get(0).updateState(false);

@@ -98,7 +98,7 @@ public class EquationSystemTest {
     @Test
     public void writeDcSystemTest() throws IOException {
         LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector()).get(0);
-        EquationSystem equationSystem = DcEquationSystem.create(network, 0);
+        EquationSystem equationSystem = DcEquationSystem.create(network);
         try (StringWriter writer = new StringWriter()) {
             equationSystem.write(writer);
             writer.flush();

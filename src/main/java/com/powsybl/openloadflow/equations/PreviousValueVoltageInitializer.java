@@ -16,7 +16,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 public class PreviousValueVoltageInitializer implements VoltageInitializer {
 
     @Override
-    public void prepare(LfNetwork network, MatrixFactory matrixFactory, double lowImpedanceThreshold) {
+    public void prepare(LfNetwork network, MatrixFactory matrixFactory) {
         // nothing to do
     }
 
