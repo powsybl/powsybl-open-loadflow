@@ -145,7 +145,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         });
     }
 
-    private CompletableFuture<LoadFlowResult> runDc(Network network, String workingStateId, OpenLoadFlowParameters parametersExt) {
+    private CompletableFuture<LoadFlowResult> runDc(Network network, String workingStateId) {
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
@@ -166,7 +166,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         OpenLoadFlowParameters parametersExt = getParametersExt(parameters);
 
-        return parametersExt.isDc() ? runDc(network, workingVariantId, parametersExt)
+        return parametersExt.isDc() ? runDc(network, workingVariantId)
                 : runAc(network, workingVariantId, parameters, parametersExt);
     }
 }
