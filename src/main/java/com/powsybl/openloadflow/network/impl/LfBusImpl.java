@@ -35,6 +35,8 @@ public class LfBusImpl extends AbstractLfBus {
 
     private double loadTargetP = 0;
 
+    private double previousLoadTargetP = 0;
+
     private int loadCount = 0;
 
     private double loadTargetQ = 0;
@@ -202,7 +204,11 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public void setLoadTargetP(double loadTargetP) {
+        this.previousLoadTargetP = this.loadTargetP;
         this.loadTargetP = loadTargetP * PerUnit.SB;
+        for (Load load : loads) {
+            load.setP0(load.getP0() * this.loadTargetP / this.previousLoadTargetP);
+        }
     }
 
     @Override
