@@ -151,7 +151,7 @@ public class LfNetwork {
         if (bus.getLoadTargetQ() != 0) {
             jsonGenerator.writeNumberField("loadTargetQ", bus.getLoadTargetQ());
         }
-        bus.getRemoteControlTargetBus().ifPresent(lfBus -> {
+        bus.getControlledBus().ifPresent(lfBus -> {
             try {
                 jsonGenerator.writeNumberField("remoteControlTargetBus", lfBus.getNum());
             } catch (IOException e) {
@@ -287,18 +287,18 @@ public class LfNetwork {
     }
 
     private void logSize() {
-        int remoteControlSources = 0;
-        int remoteControlTargets = 0;
+        int controlledBusCount = 0;
+        int controllerBusCount = 0;
         for (LfBus bus : busesById.values()) {
-            if (bus.getRemoteControlTargetBus().isPresent()) {
-                remoteControlSources++;
+            if (bus.getControlledBus().isPresent()) {
+                controlledBusCount++;
             }
-            if (!bus.getRemoteControlSourceBuses().isEmpty()) {
-                remoteControlTargets++;
+            if (!bus.getControllerBuses().isEmpty()) {
+                controllerBusCount++;
             }
         }
-        LOGGER.info("Network has {} buses (voltage remote control: {} sources, {} targets) and {} branches",
-                busesById.values().size(), remoteControlSources, remoteControlTargets, branches.size());
+        LOGGER.info("Network has {} buses (voltage remote control: {} controllers, {} controlled) and {} branches",
+                busesById.values().size(), controlledBusCount, controllerBusCount, branches.size());
     }
 
     public void logBalance() {

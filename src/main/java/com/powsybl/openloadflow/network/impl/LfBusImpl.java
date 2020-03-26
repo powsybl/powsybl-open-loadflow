@@ -43,9 +43,9 @@ public class LfBusImpl extends AbstractLfBus {
 
     private double targetV = Double.NaN;
 
-    private LfBus remoteControlTargetBus;
+    private LfBus controlledBus;
 
-    private final List<LfBus> remoteControlSourceBuses = new ArrayList<>();
+    private final List<LfBus> controlledBuses = new ArrayList<>();
 
     private final List<LfGenerator> generators = new ArrayList<>();
 
@@ -87,61 +87,64 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
-    public Optional<LfBus> getRemoteControlTargetBus() {
-        return Optional.ofNullable(remoteControlTargetBus);
+    public Optional<LfBus> getControlledBus() {
+        return Optional.ofNullable(controlledBus);
     }
 
-    public void setRemoteControlTargetBus(LfBusImpl remoteControlTargetBus) {
-        Objects.requireNonNull(remoteControlTargetBus);
+    public void setControlledBus(LfBusImpl controlledBus) {
+        Objects.requireNonNull(controlledBus);
         // check that remote control bus is still the same
-        if (this.remoteControlTargetBus != null && this.remoteControlTargetBus.getNum() != remoteControlTargetBus.getNum()) {
+        if (this.controlledBus != null && this.controlledBus.getNum() != controlledBus.getNum()) {
             throw new PowsyblException("Generators " + getGeneratorIds()
                     + " connected to bus '" + getId() + "' must control the voltage of the same bus");
         }
 
         if (voltageControl) {
             // check target voltage consistency between local and remote control
-            if (remoteControlTargetBus.hasVoltageControl()) { // target bus has local voltage control
-                double localTargetV = remoteControlTargetBus.getTargetV() * remoteControlTargetBus.getNominalV();
+            if (controlledBus.hasVoltageControl()) { // controlled bus has also local voltage control
+                double localTargetV = controlledBus.getTargetV() * controlledBus.getNominalV();
                 if (FastMath.abs(this.targetV - localTargetV) > TARGET_V_EPSILON) {
-                    throw new PowsyblException("Voltage control target bus '" + remoteControlTargetBus.getId()
-                            + "' of bus '" + getId() + "' has also a local voltage control with a different value: "
+                    throw new PowsyblException("Bus '" + controlledBus.getId()
+                            + "' controlled by bus '" + getId() + "' has also a local voltage control with a different value: "
                             + localTargetV + " and " + this.targetV);
                 }
             }
 
-            // check that if target voltage is consistent with other already existing source buses
-            List<LfBus> otherRemoteControlSourceBuses = remoteControlTargetBus.getRemoteControlSourceBuses();
-            if (!otherRemoteControlSourceBuses.isEmpty()) {
-                // just need to control first bus that control voltage
-                otherRemoteControlSourceBuses.stream().filter(LfBus::hasVoltageControl).findFirst().ifPresent(otherRemoteControlSourceBus -> {
-                    double otherRemoteTargetV = otherRemoteControlSourceBus.getTargetV() * remoteControlTargetBus.getNominalV();
-                    if (FastMath.abs(otherRemoteTargetV - this.targetV) > TARGET_V_EPSILON) {
-                        throw new PowsyblException("Bus '" + getId() + "' control voltage of target bus '" + remoteControlTargetBus.getId()
-                                + "' which is already controlled by at least the bus '" + otherRemoteControlSourceBus.getId()
-                                + "' with a different target voltage: " + otherRemoteTargetV + " and " + this.targetV);
-                    }
-                });
+            // check that if target voltage is consistent with other already existing controller buses
+            List<LfBus> otherControllerBuses = controlledBus.getControllerBuses();
+            if (!otherControllerBuses.isEmpty()) {
+                // just need to check first bus that control voltage
+                otherControllerBuses.stream()
+                        .filter(LfBus::hasVoltageControl)
+                        .findFirst()
+                        .ifPresent(otherControllerBus -> {
+                            double otherTargetV = otherControllerBus.getTargetV() * controlledBus.getNominalV();
+                            if (FastMath.abs(otherTargetV - this.targetV) > TARGET_V_EPSILON) {
+                                throw new PowsyblException("Bus '" + getId() + "' control voltage of bus '" + controlledBus.getId()
+                                        + "' which is already controlled by at least the bus '" + otherControllerBus.getId()
+                                        + "' with a different target voltage: " + otherTargetV + " and " + this.targetV);
+                            }
+                        });
             }
         }
 
-        this.remoteControlTargetBus = remoteControlTargetBus;
-        remoteControlTargetBus.addRemoteControlSource(this);
+        this.controlledBus = controlledBus;
+        controlledBus.addControlledBus(this);
     }
 
     @Override
-    public List<LfBus> getRemoteControlSourceBuses() {
-        return remoteControlSourceBuses;
+    public List<LfBus> getControllerBuses() {
+        return controlledBuses;
     }
 
-    public void addRemoteControlSource(LfBus remoteControlSource) {
-        Objects.requireNonNull(remoteControlSource);
-        remoteControlSourceBuses.add(remoteControlSource);
+    public void addControlledBus(LfBus controlledBus) {
+        Objects.requireNonNull(controlledBus);
+        controlledBuses.add(controlledBus);
     }
 
     private double checkTargetV(double targetV) {
         if (!Double.isNaN(this.targetV) && FastMath.abs(this.targetV - targetV) > TARGET_V_EPSILON) {
-            throw new PowsyblException("Generators " + getGeneratorIds() + " are connected to the same local bus '" + getId()
+            throw new PowsyblException("Generators " + getGeneratorIds() + " are connected to the same bus '" + getId()
                     + "' with a different target voltages: " + targetV + " and " + this.targetV);
         }
         return targetV;
@@ -255,7 +258,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public double getTargetV() {
-        return targetV / (remoteControlTargetBus != null ? remoteControlTargetBus.getNominalV() : nominalV);
+        return targetV / (controlledBus != null ? controlledBus.getNominalV() : nominalV);
     }
 
     @Override

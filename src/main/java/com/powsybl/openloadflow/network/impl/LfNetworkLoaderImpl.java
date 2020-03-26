@@ -40,7 +40,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     private static void createBuses(List<Bus> buses, boolean voltageRemoteControl, LfNetwork lfNetwork,
                                     LoadingContext loadingContext, LfNetworkLoadingReport report) {
         int[] generatorCount = new int[1];
-        Map<LfBusImpl, String> voltageRemoteControlTargetBusId = new LinkedHashMap<>();
+        Map<LfBusImpl, String> controllerBusToControlledBusId = new LinkedHashMap<>();
 
         for (Bus bus : buses) {
             LfBusImpl lfBus = LfBusImpl.create(bus);
@@ -69,13 +69,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
                 private double checkVoltageRemoteControl(Injection injection, Terminal regulatingTerminal, double previousTargetV) {
                     double scaleV = 1;
-                    String controlBusId = regulatingTerminal.getBusView().getBus().getId();
+                    String controlledBusId = regulatingTerminal.getBusView().getBus().getId();
                     String connectedBusId = injection.getTerminal().getBusView().getBus().getId();
-                    if (!Objects.equals(controlBusId, connectedBusId)) {
+                    if (!Objects.equals(controlledBusId, connectedBusId)) {
                         if (voltageRemoteControl) {
-                            // remote control target bus will be set later because target bus might not have
+                            // controller to controlled bus link will be set later because controlled bus might not have
                             // been yet created
-                            voltageRemoteControlTargetBusId.put(lfBus, controlBusId);
+                            controllerBusToControlledBusId.put(lfBus, controlledBusId);
                         } else {
                             double remoteNominalV = regulatingTerminal.getVoltageLevel().getNominalV();
                             double localNominalV = injection.getTerminal().getVoltageLevel().getNominalV();
@@ -141,12 +141,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             throw new PowsyblException("Connected component without any regulating generator");
         }
 
-        // set voltage remote control target bus
-        for (Map.Entry<LfBusImpl, String> e : voltageRemoteControlTargetBusId.entrySet()) {
-            LfBusImpl sourceBus = e.getKey();
-            String targetBusId = e.getValue();
-            LfBus targetBus = lfNetwork.getBusById(targetBusId);
-            sourceBus.setRemoteControlTargetBus((LfBusImpl) targetBus);
+        // set controller -> controlled link
+        for (Map.Entry<LfBusImpl, String> e : controllerBusToControlledBusId.entrySet()) {
+            LfBusImpl controllerBus = e.getKey();
+            String controlledBusId = e.getValue();
+            LfBus controlledBus = lfNetwork.getBusById(controlledBusId);
+            controllerBus.setControlledBus((LfBusImpl) controlledBus);
         }
     }
 

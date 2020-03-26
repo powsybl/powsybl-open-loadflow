@@ -40,15 +40,16 @@ public final class AcEquationSystem {
             }
 
             if (bus.hasVoltageControl()) {
-                if (!voltageRemoteControl || !bus.getRemoteControlTargetBus().isPresent()) {
+                // local voltage control
+                if (!voltageRemoteControl || !bus.getControlledBus().isPresent()) {
                     equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
                 }
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
             }
 
-            // in case of voltage remote control set target equations
-            if (voltageRemoteControl && !bus.getRemoteControlSourceBuses().isEmpty()) {
-                createTargetBusEquations(bus, equationSystem, variableSet);
+            // in case voltage remote control is activated, set voltage equation on this controlled bus
+            if (voltageRemoteControl && !bus.getControllerBuses().isEmpty()) {
+                createVoltageControlledBusEquations(bus, equationSystem, variableSet);
             }
 
             createShuntEquations(network, variableSet, equationSystem, bus);
@@ -63,44 +64,44 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createTargetBusEquations(LfBus bus, EquationSystem equationSystem, VariableSet variableSet) {
-        // create voltage equation at remote control target bus
+    private static void createVoltageControlledBusEquations(LfBus bus, EquationSystem equationSystem, VariableSet variableSet) {
+        // create voltage equation at voltage controlled bus
         Equation vEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V)
                 .addTerm(new BusVoltageEquationTerm(bus, variableSet));
 
-        List<LfBus> sourceBusesControllingVoltage = bus.getRemoteControlSourceBuses().stream()
+        List<LfBus> controllerBuses = bus.getControllerBuses().stream()
                 .filter(LfBus::hasVoltageControl)
                 .collect(Collectors.toList());
-        if (sourceBusesControllingVoltage.isEmpty()) {
+        if (controllerBuses.isEmpty()) {
             vEq.setActive(false);
         } else {
-            // create reactive power distribution equations at remote control sources buses (except one)
-            createReactivePowerDistributionEquations(equationSystem, variableSet, sourceBusesControllingVoltage);
+            // create reactive power distribution equations at voltage controller buses (except one)
+            createReactivePowerDistributionEquations(equationSystem, variableSet, controllerBuses);
         }
     }
 
     public static void createReactivePowerDistributionEquations(EquationSystem equationSystem, VariableSet variableSet,
-                                                                List<LfBus> sourceBusesControllingVoltage) {
-        double[] qKeys = createReactiveKeys(sourceBusesControllingVoltage);
+                                                                List<LfBus> controllerBuses) {
+        double[] qKeys = createReactiveKeys(controllerBuses);
 
-        // we choose first source bus as reference one for reactive power
-        LfBus firstSourceBus = sourceBusesControllingVoltage.get(0);
+        // we choose first controller bus as reference for reactive power
+        LfBus firstControllerBus = controllerBuses.get(0);
 
-        // create a reactive power distribution equation for all the other source buses
-        for (int i = 1; i < sourceBusesControllingVoltage.size(); i++) {
-            LfBus sourceBus = sourceBusesControllingVoltage.get(i);
+        // create a reactive power distribution equation for all the other controller buses
+        for (int i = 1; i < controllerBuses.size(); i++) {
+            LfBus controllerBus = controllerBuses.get(i);
             double c = qKeys[0] / qKeys[i];
 
             // 0 = q0 + c * qi
-            Equation zero = equationSystem.createEquation(sourceBus.getNum(), EquationType.ZERO_Q);
-            for (LfBranch branch : firstSourceBus.getBranches()) {
-                LfBus otherSideBus = branch.getBus1() == firstSourceBus ? branch.getBus2() : branch.getBus1();
-                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, firstSourceBus, otherSideBus, variableSet);
+            Equation zero = equationSystem.createEquation(controllerBus.getNum(), EquationType.ZERO_Q);
+            for (LfBranch branch : firstControllerBus.getBranches()) {
+                LfBus otherSideBus = branch.getBus1() == firstControllerBus ? branch.getBus2() : branch.getBus1();
+                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, firstControllerBus, otherSideBus, variableSet);
                 zero.addTerm(q);
             }
-            for (LfBranch branch : sourceBus.getBranches()) {
-                LfBus otherSideBus = branch.getBus1() == sourceBus ? branch.getBus2() : branch.getBus1();
-                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, sourceBus, otherSideBus, variableSet);
+            for (LfBranch branch : controllerBus.getBranches()) {
+                LfBus otherSideBus = branch.getBus1() == controllerBus ? branch.getBus2() : branch.getBus1();
+                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet);
                 EquationTerm minusQ = EquationTerm.multiply(q, -c);
                 zero.addTerm(minusQ);
             }
@@ -113,18 +114,18 @@ public final class AcEquationSystem {
         return qKeys;
     }
 
-    private static double[] createReactiveKeys(List<LfBus> sourceBuses) {
-        double[] qKeys = new double[sourceBuses.size()];
-        for (int i = 0; i < sourceBuses.size(); i++) {
-            LfBus sourceBus = sourceBuses.get(i);
-            for (LfGenerator generator : sourceBus.getGenerators()) {
+    private static double[] createReactiveKeys(List<LfBus> controllerBuses) {
+        double[] qKeys = new double[controllerBuses.size()];
+        for (int i = 0; i < controllerBuses.size(); i++) {
+            LfBus controllerBus = controllerBuses.get(i);
+            for (LfGenerator generator : controllerBus.getGenerators()) {
                 double qKey = generator.getRemoteControlReactiveKey().orElse(Double.NaN);
                 if (Double.isNaN(qKey) || qKey == 0) {
                     if (qKey == 0) {
                         LOGGER.error("Generator '{}' remote control reactive key value is zero", generator.getId());
                     }
                     // in case of one missing key, we fallback to same reactive power for all buses
-                    return createReactiveKeysFallBack(sourceBuses.size());
+                    return createReactiveKeysFallBack(controllerBuses.size());
                 } else {
                     qKeys[i] += qKey;
                 }

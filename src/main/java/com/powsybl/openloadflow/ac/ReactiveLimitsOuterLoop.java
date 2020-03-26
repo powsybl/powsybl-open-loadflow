@@ -42,22 +42,20 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
         qEq.setActive(true);
 
-        LfBus remoteControltargetBus = bus.getRemoteControlTargetBus().orElse(null);
-        if (remoteControltargetBus != null) {
-            // target bus only control voltage if one of the source bus has voltage control on
-            List<LfBus> sourceBusesControllingVoltage = remoteControltargetBus.getRemoteControlSourceBuses().stream()
+        LfBus controlledBus = bus.getControlledBus().orElse(null);
+        if (controlledBus != null) {
+            // clean reactive power distribution equations
+            controlledBus.getControllerBuses().forEach(b -> equationSystem.removeEquation(b.getNum(), EquationType.ZERO_Q));
+
+            // controlled bus has a voltage equation only if one of the controller bus has voltage control on
+            List<LfBus> controllerBusesWithVoltageControlOn = controlledBus.getControllerBuses().stream()
                     .filter(LfBus::hasVoltageControl)
                     .collect(Collectors.toList());
-            equationSystem.createEquation(remoteControltargetBus.getNum(), EquationType.BUS_V).setActive(!sourceBusesControllingVoltage.isEmpty());
+            equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
 
-            // clean reactive power distribution equations
-            for (LfBus remoteControlSourceBus : remoteControltargetBus.getRemoteControlSourceBuses()) {
-                equationSystem.removeEquation(remoteControlSourceBus.getNum(), EquationType.ZERO_Q);
-            }
-
-            // create reactive power equations on source buses controlling voltage
-            if (!sourceBusesControllingVoltage.isEmpty()) {
-                AcEquationSystem.createReactivePowerDistributionEquations(equationSystem, variableSet, sourceBusesControllingVoltage);
+            // create reactive power equations on controller buses that have voltage control on
+            if (!controllerBusesWithVoltageControlOn.isEmpty()) {
+                AcEquationSystem.createReactivePowerDistributionEquations(equationSystem, variableSet, controllerBusesWithVoltageControlOn);
             }
         } else {
             Equation vEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);

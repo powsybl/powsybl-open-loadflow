@@ -90,7 +90,7 @@ public class GeneratorTargetVoltageInconsistencyTest {
                 .add();
 
         PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new FirstSlackBusSelector()));
-        assertEquals("Generators [g1, g2] are connected to the same local bus 'vl1_0' with a different target voltages: 412.0 and 413.0", exception.getMessage());
+        assertEquals("Generators [g1, g2] are connected to the same bus 'vl1_0' with a different target voltages: 412.0 and 413.0", exception.getMessage());
     }
 
     @Test
@@ -190,7 +190,7 @@ public class GeneratorTargetVoltageInconsistencyTest {
                 .add();
 
         PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new FirstSlackBusSelector(), true));
-        assertEquals("Bus 'vl2_0' control voltage of target bus 'vl3_0' which is already controlled by at least the bus 'vl1_0' with a different target voltage: 413.0 and 412.0", exception.getMessage());
+        assertEquals("Bus 'vl2_0' control voltage of bus 'vl3_0' which is already controlled by at least the bus 'vl1_0' with a different target voltage: 413.0 and 412.0", exception.getMessage());
     }
 
     @Test
@@ -290,6 +290,6 @@ public class GeneratorTargetVoltageInconsistencyTest {
                 .add();
 
         PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new FirstSlackBusSelector(), true));
-        assertEquals("Voltage control target bus 'vl2_0' of bus 'vl1_0' has also a local voltage control with a different value: 413.0 and 412.0", exception.getMessage());
+        assertEquals("Bus 'vl2_0' controlled by bus 'vl1_0' has also a local voltage control with a different value: 413.0 and 412.0", exception.getMessage());
     }
 }
