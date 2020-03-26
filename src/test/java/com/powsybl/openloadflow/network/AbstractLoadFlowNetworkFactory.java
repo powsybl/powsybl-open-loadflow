@@ -18,10 +18,21 @@ public abstract class AbstractLoadFlowNetworkFactory {
     }
 
     protected static Bus createBus(Network network, String id, double nominalV) {
-        Substation s = network.newSubstation()
-                .setId(id + "_s")
-                .setCountry(Country.FR)
-                .add();
+        return createBus(network, id + "_s", id, nominalV);
+    }
+
+    protected static Bus createBus(Network network, String substationId, String id) {
+        return createBus(network, substationId, id, 1);
+    }
+
+    protected static Bus createBus(Network network, String substationId, String id, double nominalV) {
+        Substation s = network.getSubstation(substationId);
+        if (s == null) {
+            s = network.newSubstation()
+                    .setId(substationId)
+                    .setCountry(Country.FR)
+                    .add();
+        }
         VoltageLevel vl = s.newVoltageLevel()
                 .setId(id + "_vl")
                 .setNominalV(nominalV)
@@ -84,6 +95,24 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .setG2(0)
                 .setB1(0)
                 .setB2(0)
+                .add();
+    }
+
+    protected static TwoWindingsTransformer createTransformer(Network network, String substationId, Bus b1, Bus b2, String id, double x, double rho) {
+        return network.getSubstation(substationId).newTwoWindingsTransformer()
+                .setId(id)
+                .setVoltageLevel1(b1.getVoltageLevel().getId())
+                .setBus1(b1.getId())
+                .setConnectableBus1(b1.getId())
+                .setVoltageLevel2(b2.getVoltageLevel().getId())
+                .setBus2(b2.getId())
+                .setConnectableBus2(b2.getId())
+                .setRatedU1(1)
+                .setRatedU2(rho)
+                .setR(0)
+                .setX(x)
+                .setG(0)
+                .setB(0)
                 .add();
     }
 }

@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
@@ -92,7 +93,7 @@ public final class AcEquationSystem {
             double c = qKeys[0] / qKeys[i];
 
             // 0 = q0 + c * qi
-            Equation zero = equationSystem.createEquation(controllerBus.getNum(), EquationType.ZERO);
+            Equation zero = equationSystem.createEquation(controllerBus.getNum(), EquationType.ZERO_Q);
             for (LfBranch branch : firstControllerBus.getBranches()) {
                 LfBus otherSideBus = branch.getBus1() == firstControllerBus ? branch.getBus2() : branch.getBus1();
                 EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, firstControllerBus, otherSideBus, variableSet);
@@ -133,37 +134,72 @@ public final class AcEquationSystem {
         return qKeys;
     }
 
+    private static void createNonImpedantBranch(VariableSet variableSet, EquationSystem equationSystem,
+                                                LfBranch branch, LfBus bus1, LfBus bus2) {
+        boolean hasV1 = equationSystem.hasEquation(bus1.getNum(), EquationType.BUS_V);
+        boolean hasV2 = equationSystem.hasEquation(bus2.getNum(), EquationType.BUS_V);
+        if (!(hasV1 && hasV2)) {
+            // create voltage magnitude coupling equation
+            // 0 = v1 - v2 * rho
+            PiModel piModel = branch.getPiModel();
+            double rho = piModel.getR2() / piModel.getR1();
+            equationSystem.createEquation(branch.getNum(), EquationType.ZERO_V)
+                    .addTerm(new BusVoltageEquationTerm(bus1, variableSet))
+                    .addTerm(EquationTerm.multiply(new BusVoltageEquationTerm(bus2, variableSet), -1 * rho));
+
+            // add a dummy reactive power variable to both sides of the non impedant branch and with an opposite sign
+            // to ensure we have the same number of equation and variables
+            equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q)
+                    .addTerm(new DummyReactivePowerEquationTerm(branch, variableSet));
+            equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q)
+                    .addTerm(EquationTerm.multiply(new DummyReactivePowerEquationTerm(branch, variableSet), -1));
+        } else {
+            // nothing to do in case of v1 and v2 are found, we just have to ensure
+            // target v are equals.
+        }
+
+        // voltage angle coupling equation creation is shared with DC loadflow
+        DcEquationSystem.createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
+    }
+
     private static void createBranchEquations(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem) {
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            if (bus1 != null && bus2 != null) {
-                ClosedBranchSide1ActiveFlowEquationTerm p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet);
-                ClosedBranchSide1ReactiveFlowEquationTerm q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet);
-                ClosedBranchSide2ActiveFlowEquationTerm p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet);
-                ClosedBranchSide2ReactiveFlowEquationTerm q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet);
-                equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
-                equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q).addTerm(q1);
-                equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
-                equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
-                branch.setP1(p1);
-                branch.setQ1(q1);
-                branch.setP2(p2);
-                branch.setQ2(q2);
-            } else if (bus1 != null) {
-                OpenBranchSide2ActiveFlowEquationTerm p1 = new OpenBranchSide2ActiveFlowEquationTerm(branch, bus1, variableSet);
-                OpenBranchSide2ReactiveFlowEquationTerm q1 = new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus1, variableSet);
-                equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
-                equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q).addTerm(q1);
-                branch.setP1(p1);
-                branch.setQ1(q1);
-            } else if (bus2 != null) {
-                OpenBranchSide1ActiveFlowEquationTerm p2 = new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, variableSet);
-                OpenBranchSide1ReactiveFlowEquationTerm q2 = new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, variableSet);
-                equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
-                equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
-                branch.setP2(p2);
-                branch.setQ2(q2);
+            PiModel piModel = branch.getPiModel();
+            if (piModel.getZ() <= DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
+                if (bus1 != null && bus2 != null) {
+                    createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
+                }
+            } else {
+                if (bus1 != null && bus2 != null) {
+                    ClosedBranchSide1ActiveFlowEquationTerm p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet);
+                    ClosedBranchSide1ReactiveFlowEquationTerm q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet);
+                    ClosedBranchSide2ActiveFlowEquationTerm p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet);
+                    ClosedBranchSide2ReactiveFlowEquationTerm q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet);
+                    equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
+                    equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q).addTerm(q1);
+                    equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
+                    equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
+                    branch.setP1(p1);
+                    branch.setQ1(q1);
+                    branch.setP2(p2);
+                    branch.setQ2(q2);
+                } else if (bus1 != null) {
+                    OpenBranchSide2ActiveFlowEquationTerm p1 = new OpenBranchSide2ActiveFlowEquationTerm(branch, bus1, variableSet);
+                    OpenBranchSide2ReactiveFlowEquationTerm q1 = new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus1, variableSet);
+                    equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
+                    equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q).addTerm(q1);
+                    branch.setP1(p1);
+                    branch.setQ1(q1);
+                } else if (bus2 != null) {
+                    OpenBranchSide1ActiveFlowEquationTerm p2 = new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, variableSet);
+                    OpenBranchSide1ReactiveFlowEquationTerm q2 = new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, variableSet);
+                    equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
+                    equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
+                    branch.setP2(p2);
+                    branch.setQ2(q2);
+                }
             }
         }
     }

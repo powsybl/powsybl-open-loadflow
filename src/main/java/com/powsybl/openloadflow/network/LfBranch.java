@@ -15,6 +15,10 @@ public interface LfBranch {
 
     String getId();
 
+    int getNum();
+
+    void setNum(int num);
+
     LfBus getBus1();
 
     LfBus getBus2();

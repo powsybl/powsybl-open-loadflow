@@ -45,7 +45,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         LfBus controlledBus = bus.getControlledBus().orElse(null);
         if (controlledBus != null) {
             // clean reactive power distribution equations
-            controlledBus.getControllerBuses().forEach(b -> equationSystem.removeEquation(b.getNum(), EquationType.ZERO));
+            controlledBus.getControllerBuses().forEach(b -> equationSystem.removeEquation(b.getNum(), EquationType.ZERO_Q));
 
             // controlled bus has a voltage equation only if one of the controller bus has voltage control on
             List<LfBus> controllerBusesWithVoltageControlOn = controlledBus.getControllerBuses().stream()
