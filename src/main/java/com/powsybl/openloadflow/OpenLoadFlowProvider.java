@@ -132,7 +132,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     case PROPORTIONAL_TO_GENERATION_P: // to be implemented.
                         throw new UnsupportedOperationException("Unsupported balance type mode: " + parametersExt.getBalanceType());
                     default:
-                        throw new UnsupportedOperationException("Unsupported balance type mode: " + parametersExt.getBalanceType());
+                        throw new UnsupportedOperationException("Unknown balance type mode: " + parametersExt.getBalanceType());
                 }
             }
             if (!parameters.isNoGeneratorReactiveLimits()) {
