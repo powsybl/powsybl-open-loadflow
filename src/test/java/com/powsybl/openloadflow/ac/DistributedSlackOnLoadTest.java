@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class DistributedLoadSlackTest {
+public class DistributedSlackOnLoadTest {
 
     private Network network;
     private Load l1;
@@ -59,12 +59,6 @@ public class DistributedLoadSlackTest {
         Line l14 = network.getLine("l14");
         Line l24 = network.getLine("l24");
         Line l34 = network.getLine("l34");
-        System.out.println(l14.getTerminal1().getP());
-        System.out.println(l14.getTerminal2().getP());
-        System.out.println(l24.getTerminal1().getP());
-        System.out.println(l24.getTerminal2().getP());
-        System.out.println(l34.getTerminal1().getP());
-        System.out.println(l34.getTerminal2().getP());
         assertActivePowerEquals(31.034, l1.getTerminal());
         assertActivePowerEquals(62.069, l2.getTerminal());
         assertActivePowerEquals(51.724, l3.getTerminal());
@@ -76,5 +70,4 @@ public class DistributedLoadSlackTest {
         assertActivePowerEquals(-51.724, l34.getTerminal1());
         assertActivePowerEquals(51.724, l34.getTerminal2());
     }
-
 }

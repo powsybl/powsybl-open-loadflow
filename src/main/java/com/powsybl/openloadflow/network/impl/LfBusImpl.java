@@ -35,9 +35,9 @@ public class LfBusImpl extends AbstractLfBus {
 
     private boolean voltageControl = false;
 
-    private double loadTargetP = 0;
+    private double initialLoadTargetP = 0;
 
-    private double previousLoadTargetP = 0;
+    private double loadTargetP = 0;
 
     private int loadCount = 0;
 
@@ -160,13 +160,15 @@ public class LfBusImpl extends AbstractLfBus {
 
     void addLoad(Load load) {
         loads.add(load);
-        this.loadTargetP += load.getP0();
-        this.loadTargetQ += load.getQ0();
-        this.loadCount++;
+        initialLoadTargetP = load.getP0();
+        loadTargetP += load.getP0();
+        loadTargetQ += load.getQ0();
+        loadCount++;
     }
 
     void addBattery(Battery battery) {
         batteries.add(battery);
+        initialLoadTargetP += battery.getP0();
         loadTargetP += battery.getP0();
         loadTargetQ += battery.getQ0();
     }
@@ -241,11 +243,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public void setLoadTargetP(double loadTargetP) {
-        this.previousLoadTargetP = this.loadTargetP;
         this.loadTargetP = loadTargetP * PerUnit.SB;
-        for (Load load : loads) {
-            load.setP0(load.getP0() * this.loadTargetP / this.previousLoadTargetP);
-        }
     }
 
     @Override
@@ -363,6 +361,9 @@ public class LfBusImpl extends AbstractLfBus {
 
         // update load power
         for (Load load : loads) {
+            if (initialLoadTargetP != 0) {
+                load.setP0(load.getP0() * loadTargetP / initialLoadTargetP);
+            }
             load.getTerminal()
                     .setP(load.getP0())
                     .setQ(load.getQ0());
@@ -370,6 +371,9 @@ public class LfBusImpl extends AbstractLfBus {
 
         // update battery power
         for (Battery battery : batteries) {
+            if (initialLoadTargetP != 0) {
+                battery.setP0(battery.getP0() * loadTargetP / initialLoadTargetP);
+            }
             battery.getTerminal()
                     .setP(battery.getP0())
                     .setQ(battery.getQ0());
