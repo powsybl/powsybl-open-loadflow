@@ -154,7 +154,7 @@ public final class AcEquationSystem {
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q)
                     .addTerm(EquationTerm.multiply(new DummyReactivePowerEquationTerm(branch, variableSet), -1));
         } else {
-            // nothing to do in case of v1 and v2 are not found, we just have to ensure
+            // nothing to do in case of v1 and v2 are found, we just have to ensure
             // target v are equals.
         }
 
