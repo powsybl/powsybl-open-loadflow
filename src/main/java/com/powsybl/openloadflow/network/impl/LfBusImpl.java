@@ -171,6 +171,7 @@ public class LfBusImpl extends AbstractLfBus {
         initialLoadTargetP += battery.getP0();
         loadTargetP += battery.getP0();
         loadTargetQ += battery.getQ0();
+        loadCount++;
     }
 
     private void add(LfGenerator generator, boolean voltageControl, double targetV, double targetQ,
@@ -248,7 +249,8 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public int getLoadCount() {
-        return loadCount; }
+        return loadCount;
+    }
 
     @Override
     public double getLoadTargetQ() {
