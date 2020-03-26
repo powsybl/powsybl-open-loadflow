@@ -99,14 +99,14 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
             case BUS_V:
                 LfBus bus = network.getBus(num);
-                if (bus.getRemoteControlSourceBuses().isEmpty()) {
+                if (bus.getControllerBuses().isEmpty()) {
                     targets[row] = bus.getTargetV();
                 } else {
-                    targets[row] = bus.getRemoteControlSourceBuses()
+                    targets[row] = bus.getControllerBuses()
                             .stream()
                             .filter(LfBus::hasVoltageControl)
                             .findFirst()
-                            .orElseThrow(() -> new IllegalStateException("None of the remote control source buses have voltage control on"))
+                            .orElseThrow(() -> new IllegalStateException("None of the controller buses has voltage control on"))
                             .getTargetV();
                 }
                 break;
