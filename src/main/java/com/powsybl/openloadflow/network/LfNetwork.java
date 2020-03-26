@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
+import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +31,8 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 public class LfNetwork {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
+
+    private static final double TARGET_VOLTAGE_EPSILON = Math.pow(10, -6);
 
     private final SlackBusSelector slackBusSelector;
 
@@ -317,6 +320,23 @@ public class LfNetwork {
                 activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
+    private static void validate(LfNetwork network) {
+        for (LfBranch branch : network.getBranches()) {
+            PiModel piModel = branch.getPiModel();
+            if (piModel.getZ() == 0) {
+                LfBus bus1 = branch.getBus1();
+                LfBus bus2 = branch.getBus2();
+                // ensure target voltages are consistent
+                if (bus1 != null && bus2 != null && bus1.hasVoltageControl() && bus2.hasVoltageControl()
+                        && FastMath.abs((bus1.getTargetV() / bus2.getTargetV()) - piModel.getR1() / piModel.getR2()) > TARGET_VOLTAGE_EPSILON) {
+                    throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
+                            + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
+                            + bus1.getTargetV() + " and " + bus2.getTargetV());
+                }
+            }
+        }
+    }
+
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
         return load(network, slackBusSelector, false);
     }
@@ -328,6 +348,7 @@ public class LfNetwork {
             List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, voltageRemoteControl).orElse(null);
             if (lfNetworks != null) {
                 LfNetwork lfNetwork = lfNetworks.get(0); // main component
+                validate(lfNetwork);
                 lfNetwork.logSize();
                 lfNetwork.logBalance();
                 return lfNetworks;
