@@ -10,10 +10,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkLoader;
-import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +40,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     private static void createBuses(List<Bus> buses, boolean voltageRemoteControl, LfNetwork lfNetwork,
                                     LoadingContext loadingContext, LfNetworkLoadingReport report) {
         int[] generatorCount = new int[1];
-        Map<LfBusImpl, String> voltageRemoteControlTargetBusId = new HashMap<>();
+        Map<LfBusImpl, String> controllerBusToControlledBusId = new LinkedHashMap<>();
 
         for (Bus bus : buses) {
             LfBusImpl lfBus = LfBusImpl.create(bus);
@@ -72,13 +69,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
                 private double checkVoltageRemoteControl(Injection injection, Terminal regulatingTerminal, double previousTargetV) {
                     double scaleV = 1;
-                    String controlBusId = regulatingTerminal.getBusView().getBus().getId();
+                    String controlledBusId = regulatingTerminal.getBusView().getBus().getId();
                     String connectedBusId = injection.getTerminal().getBusView().getBus().getId();
-                    if (!Objects.equals(controlBusId, connectedBusId)) {
+                    if (!Objects.equals(controlledBusId, connectedBusId)) {
                         if (voltageRemoteControl) {
-                            // remote control target bus will be set later because target bus might not have
+                            // controller to controlled bus link will be set later because controlled bus might not have
                             // been yet created
-                            voltageRemoteControlTargetBusId.put(lfBus, controlBusId);
+                            controllerBusToControlledBusId.put(lfBus, controlledBusId);
                         } else {
                             double remoteNominalV = regulatingTerminal.getVoltageLevel().getNominalV();
                             double localNominalV = injection.getTerminal().getVoltageLevel().getNominalV();
@@ -144,27 +141,41 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             throw new PowsyblException("Connected component without any regulating generator");
         }
 
-        // set voltage remote control target bus
-        for (Map.Entry<LfBusImpl, String> e : voltageRemoteControlTargetBusId.entrySet()) {
-            LfBusImpl sourceBus = e.getKey();
-            String targetBusId = e.getValue();
-            LfBus targetBus = lfNetwork.getBusById(targetBusId);
-            sourceBus.setRemoteControlTargetBus((LfBusImpl) targetBus);
+        // set controller -> controlled link
+        for (Map.Entry<LfBusImpl, String> e : controllerBusToControlledBusId.entrySet()) {
+            LfBusImpl controllerBus = e.getKey();
+            String controlledBusId = e.getValue();
+            LfBus controlledBus = lfNetwork.getBusById(controlledBusId);
+            controllerBus.setControlledBus((LfBusImpl) controlledBus);
         }
     }
 
-    private static void createBranches(LfNetwork lfNetwork, LoadingContext loadingContext) {
+    private static void addBranch(LfNetwork lfNetwork, LfBranch lfBranch, LfNetworkLoadingReport report) {
+        boolean connectedToSameBus = lfBranch.getBus1() == lfBranch.getBus2();
+        if (connectedToSameBus) {
+            LOGGER.trace("Discard branch '{}' because connected to same bus at both ends", lfBranch.getId());
+            report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds++;
+        } else {
+            if (lfBranch.getPiModel().getZ() == 0) {
+                LOGGER.trace("Branch {} is non impedant", lfBranch.getId());
+                report.nonImpedantBranches++;
+            }
+            lfNetwork.addBranch(lfBranch);
+        }
+    }
+
+    private static void createBranches(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkLoadingReport report) {
         for (Branch branch : loadingContext.branchSet) {
             LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork);
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork);
-            lfNetwork.addBranch(LfBranchImpl.create(branch, lfBus1, lfBus2));
+            addBranch(lfNetwork, LfBranchImpl.create(branch, lfBus1, lfBus2), report);
         }
 
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
             LfDanglingLineBus lfBus2 = new LfDanglingLineBus(danglingLine);
             lfNetwork.addBus(lfBus2);
             LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork);
-            lfNetwork.addBranch(LfDanglingLineBranch.create(danglingLine, lfBus1, lfBus2));
+            addBranch(lfNetwork, LfDanglingLineBranch.create(danglingLine, lfBus1, lfBus2), report);
         }
 
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
@@ -173,9 +184,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork);
             LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork);
             LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork);
-            lfNetwork.addBranch(LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1()));
-            lfNetwork.addBranch(LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2()));
-            lfNetwork.addBranch(LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3()));
+            addBranch(lfNetwork, LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1()), report);
+            addBranch(lfNetwork, LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2()), report);
+            addBranch(lfNetwork, LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3()), report);
         }
     }
 
@@ -191,7 +202,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
 
         createBuses(buses, voltageRemoteControl, lfNetwork, loadingContext, report);
-        createBranches(lfNetwork, loadingContext);
+        createBranches(lfNetwork, loadingContext, report);
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             LOGGER.warn("{} generators have been discarded from voltage control because not started",
@@ -212,6 +223,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible > 0) {
             LOGGER.warn("{} generators have been discarded from active power control because of maxP not plausible",
                     report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
+        }
+        if (report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds > 0) {
+            LOGGER.warn("{} branches have been discarded because connected to same bus at both ends",
+                    report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds);
+        }
+        if (report.nonImpedantBranches > 0) {
+            LOGGER.warn("{} branches are non impedant", report.nonImpedantBranches);
         }
 
         return lfNetwork;

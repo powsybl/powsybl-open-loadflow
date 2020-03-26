@@ -11,7 +11,9 @@ package com.powsybl.openloadflow.equations;
  */
 public enum VariableType {
     BUS_V("v"),
-    BUS_PHI("\u03C6");
+    BUS_PHI("\u03C6"),
+    DUMMY_P("dummy_p"),
+    DUMMY_Q("dummy_q");
 
     private final String symbol;
 

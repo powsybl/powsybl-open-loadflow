@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.PiModel;
 
 import java.util.List;
 import java.util.Objects;
@@ -44,8 +45,9 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         ph1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_PHI);
         variables = ImmutableList.of(v1Var, v2Var, ph1Var, ph2Var);
-        a1 = this.branch.a1();
-        a2 = this.branch.a2();
+        PiModel piModel = branch.getPiModel();
+        a1 = piModel.getA1();
+        a2 = piModel.getA2();
     }
 
     @Override
