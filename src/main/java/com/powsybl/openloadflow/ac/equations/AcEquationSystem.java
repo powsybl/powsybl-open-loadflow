@@ -46,7 +46,7 @@ public final class AcEquationSystem {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
             }
 
-            // in case of voltage remote control set target equations
+            // in case voltage remote control is activated, set voltage equation on this controlled bus
             if (voltageRemoteControl && !bus.getControllerBuses().isEmpty()) {
                 createVoltageControlledBusEquations(bus, equationSystem, variableSet);
             }
