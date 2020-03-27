@@ -35,6 +35,8 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
     private static final Comparator<PvToPqBus> BY_TARGET_P_COMPARISON = Comparator.comparingDouble(pvToPqBus -> -pvToPqBus.bus.getTargetP());
 
+    private static final Comparator<PvToPqBus> BY_ID_COMPARISON = Comparator.comparing(pvToPqBus -> pvToPqBus.bus.getId());
+
     @Override
     public String getName() {
         return "Reactive limits";
@@ -120,7 +122,9 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
                 // keep one bus PV, the strongest one which is one at the highest nominal level and highest active power
                 // target
                 PvToPqBus strongestPvToPqBus = pvToPqBuses.stream()
-                        .min(BY_NOMINAL_V_COMPARISON.thenComparing(BY_TARGET_P_COMPARISON))
+                        .min(BY_NOMINAL_V_COMPARISON
+                                .thenComparing(BY_TARGET_P_COMPARISON)
+                                .thenComparing(BY_ID_COMPARISON)) // for stability of the sort
                         .orElseThrow(IllegalStateException::new);
                 pvToPqBuses.remove(strongestPvToPqBus);
                 remainingPvBusCount++;
