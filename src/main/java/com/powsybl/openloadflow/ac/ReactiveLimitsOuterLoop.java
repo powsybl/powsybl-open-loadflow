@@ -31,11 +31,11 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReactiveLimitsOuterLoop.class);
 
-    private static final Comparator<PvToPqBus> BY_NOMINAL_V_COMPARISON = Comparator.comparingDouble(pvToPqBus -> -pvToPqBus.bus.getNominalV());
+    private static final Comparator<PvToPqBus> BY_NOMINAL_V_COMPARATOR = Comparator.comparingDouble(pvToPqBus -> -pvToPqBus.bus.getNominalV());
 
-    private static final Comparator<PvToPqBus> BY_TARGET_P_COMPARISON = Comparator.comparingDouble(pvToPqBus -> -pvToPqBus.bus.getTargetP());
+    private static final Comparator<PvToPqBus> BY_TARGET_P_COMPARATOR = Comparator.comparingDouble(pvToPqBus -> -pvToPqBus.bus.getTargetP());
 
-    private static final Comparator<PvToPqBus> BY_ID_COMPARISON = Comparator.comparing(pvToPqBus -> pvToPqBus.bus.getId());
+    private static final Comparator<PvToPqBus> BY_ID_COMPARATOR = Comparator.comparing(pvToPqBus -> pvToPqBus.bus.getId());
 
     @Override
     public String getName() {
@@ -122,9 +122,9 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
                 // keep one bus PV, the strongest one which is one at the highest nominal level and highest active power
                 // target
                 PvToPqBus strongestPvToPqBus = pvToPqBuses.stream()
-                        .min(BY_NOMINAL_V_COMPARISON
-                                .thenComparing(BY_TARGET_P_COMPARISON)
-                                .thenComparing(BY_ID_COMPARISON)) // for stability of the sort
+                        .min(BY_NOMINAL_V_COMPARATOR
+                                .thenComparing(BY_TARGET_P_COMPARATOR)
+                                .thenComparing(BY_ID_COMPARATOR)) // for stability of the sort
                         .orElseThrow(IllegalStateException::new);
                 pvToPqBuses.remove(strongestPvToPqBus);
                 remainingPvBusCount++;
