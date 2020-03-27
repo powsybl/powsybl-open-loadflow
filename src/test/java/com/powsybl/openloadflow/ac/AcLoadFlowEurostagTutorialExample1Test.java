@@ -198,6 +198,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
                 .newLinearModel()
                     .setbPerSection(3.25 * Math.pow(10, -3))
                     .setMaximumSectionCount(1)
+                    .add()
                 .add();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
