@@ -53,6 +53,8 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final List<Battery> batteries = new ArrayList<>();
 
+    private final List<LccConverterStation> lccCss = new ArrayList<>();
+
     protected LfBusImpl(Bus bus, double v, double angle) {
         super(v, angle);
         this.bus = bus;
@@ -127,6 +129,18 @@ public class LfBusImpl extends AbstractLfBus {
         batteries.add(battery);
         loadTargetP += battery.getP0();
         loadTargetQ += battery.getQ0();
+    }
+
+    void addLccConverterStation(LccConverterStation lccCs) {
+        lccCss.add(lccCs);
+        HvdcLine line = lccCs.getHvdcLine();
+        double p = (line.getConverterStation1() == lccCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
+                || (line.getConverterStation2() == lccCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
+                ? -line.getActivePowerSetpoint()
+                : line.getActivePowerSetpoint();
+        double q = 0; // TODO fix.
+        loadTargetP += p * (1 + lccCs.getPowerFactor());
+        loadTargetQ += q;
     }
 
     private void add(LfGenerator generator, boolean voltageControl, double targetV, double targetQ,
@@ -318,6 +332,19 @@ public class LfBusImpl extends AbstractLfBus {
             battery.getTerminal()
                     .setP(battery.getP0())
                     .setQ(battery.getQ0());
+        }
+
+        // update lcc converter station power
+        for (LccConverterStation lccCs : lccCss) {
+            HvdcLine line = lccCs.getHvdcLine();
+            double p = (line.getConverterStation1() == lccCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
+                    || (line.getConverterStation2() == lccCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
+                    ? -line.getActivePowerSetpoint()
+                    : line.getActivePowerSetpoint();
+            double q = 0; // TODO fix.
+            lccCs.getTerminal()
+                    .setP(p * (1 + lccCs.getPowerFactor()))
+                    .setQ(q); // TODO fix.
         }
     }
 }
