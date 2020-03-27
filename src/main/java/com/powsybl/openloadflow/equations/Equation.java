@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
@@ -99,14 +100,14 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
             case BUS_V:
                 LfBus bus = network.getBus(num);
-                if (bus.getRemoteControlSourceBuses().isEmpty()) {
+                if (bus.getControllerBuses().isEmpty()) {
                     targets[row] = bus.getTargetV();
                 } else {
-                    targets[row] = bus.getRemoteControlSourceBuses()
+                    targets[row] = bus.getControllerBuses()
                             .stream()
                             .filter(LfBus::hasVoltageControl)
                             .findFirst()
-                            .orElseThrow(() -> new IllegalStateException("None of the remote control source buses have voltage control on"))
+                            .orElseThrow(() -> new IllegalStateException("None of the controller buses has voltage control on"))
                             .getTargetV();
                 }
                 break;
@@ -115,8 +116,14 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 targets[row] = 0;
                 break;
 
-            case ZERO:
+            case ZERO_Q:
+            case ZERO_V:
                 targets[row] = 0;
+                break;
+
+            case ZERO_PHI:
+                PiModel piModel = network.getBranch(num).getPiModel();
+                targets[row] = piModel.getA2() - piModel.getA1();
                 break;
 
             default:
@@ -205,7 +212,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 LfBus bus = equationSystem.getNetwork().getBus(num);
                 builder.append(", busId=").append(bus.getId());
                 break;
-            case ZERO:
+            case ZERO_Q:
+            case ZERO_V:
+            case ZERO_PHI:
                 break;
         }
         builder.append(", type=").append(type)

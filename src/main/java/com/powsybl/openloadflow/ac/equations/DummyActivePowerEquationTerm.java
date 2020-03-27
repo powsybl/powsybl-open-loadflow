@@ -9,16 +9,16 @@ package com.powsybl.openloadflow.ac.equations;
 import com.powsybl.openloadflow.equations.AbstractTargetEquationTerm;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.equations.VariableType;
-import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfBranch;
 
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class BusVoltageEquationTerm extends AbstractTargetEquationTerm {
+public class DummyActivePowerEquationTerm extends AbstractTargetEquationTerm {
 
-    public BusVoltageEquationTerm(LfBus bus, VariableSet variableSet) {
-        super(Objects.requireNonNull(bus).getNum(), VariableType.BUS_V, variableSet);
+    public DummyActivePowerEquationTerm(LfBranch branch, VariableSet variableSet) {
+        super(Objects.requireNonNull(branch).getNum(), VariableType.DUMMY_P, variableSet);
     }
 }

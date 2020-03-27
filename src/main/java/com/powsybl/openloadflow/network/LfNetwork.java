@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
+import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +31,8 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 public class LfNetwork {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
+
+    private static final double TARGET_VOLTAGE_EPSILON = Math.pow(10, -6);
 
     private final SlackBusSelector slackBusSelector;
 
@@ -64,6 +67,7 @@ public class LfNetwork {
 
     public void addBranch(LfBranch branch) {
         Objects.requireNonNull(branch);
+        branch.setNum(branches.size());
         branches.add(branch);
 
         // create bus -> branches link
@@ -77,6 +81,10 @@ public class LfNetwork {
 
     public List<LfBranch> getBranches() {
         return branches;
+    }
+
+    public LfBranch getBranch(int num) {
+        return branches.get(num);
     }
 
     public void addBus(LfBus bus) {
@@ -146,7 +154,7 @@ public class LfNetwork {
         if (bus.getLoadTargetQ() != 0) {
             jsonGenerator.writeNumberField("loadTargetQ", bus.getLoadTargetQ());
         }
-        bus.getRemoteControlTargetBus().ifPresent(lfBus -> {
+        bus.getControlledBus().ifPresent(lfBus -> {
             try {
                 jsonGenerator.writeNumberField("remoteControlTargetBus", lfBus.getNum());
             } catch (IOException e) {
@@ -165,6 +173,8 @@ public class LfNetwork {
     }
 
     private void writeJson(LfBranch branch, JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeStringField("id", branch.getId());
+        jsonGenerator.writeNumberField("num", branch.getNum());
         LfBus bus1 = branch.getBus1();
         LfBus bus2 = branch.getBus2();
         if (bus1 != null) {
@@ -280,18 +290,18 @@ public class LfNetwork {
     }
 
     private void logSize() {
-        int remoteControlSources = 0;
-        int remoteControlTargets = 0;
+        int controlledBusCount = 0;
+        int controllerBusCount = 0;
         for (LfBus bus : busesById.values()) {
-            if (bus.getRemoteControlTargetBus().isPresent()) {
-                remoteControlSources++;
+            if (bus.getControlledBus().isPresent()) {
+                controlledBusCount++;
             }
-            if (!bus.getRemoteControlSourceBuses().isEmpty()) {
-                remoteControlTargets++;
+            if (!bus.getControllerBuses().isEmpty()) {
+                controllerBusCount++;
             }
         }
-        LOGGER.info("Network has {} buses (voltage remote control: {} sources, {} targets) and {} branches",
-                busesById.values().size(), remoteControlSources, remoteControlTargets, branches.size());
+        LOGGER.info("Network has {} buses (voltage remote control: {} controllers, {} controlled) and {} branches",
+                busesById.values().size(), controlledBusCount, controllerBusCount, branches.size());
     }
 
     public void logBalance() {
@@ -310,14 +320,21 @@ public class LfNetwork {
                 activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
-    public void fix() {
-        branches.removeIf(branch -> {
-            boolean connectedToSameBus = branch.getBus1() == branch.getBus2();
-            if (connectedToSameBus) {
-                LOGGER.warn("Discard branch '{}' because connected to same bus at both ends", branch.getId());
+    private static void validate(LfNetwork network) {
+        for (LfBranch branch : network.getBranches()) {
+            PiModel piModel = branch.getPiModel();
+            if (piModel.getZ() == 0) {
+                LfBus bus1 = branch.getBus1();
+                LfBus bus2 = branch.getBus2();
+                // ensure target voltages are consistent
+                if (bus1 != null && bus2 != null && bus1.hasVoltageControl() && bus2.hasVoltageControl()
+                        && FastMath.abs((bus1.getTargetV() / bus2.getTargetV()) - piModel.getR1() / piModel.getR2()) > TARGET_VOLTAGE_EPSILON) {
+                    throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
+                            + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
+                            + bus1.getTargetV() + " and " + bus2.getTargetV());
+                }
             }
-            return connectedToSameBus;
-        });
+        }
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
@@ -331,7 +348,7 @@ public class LfNetwork {
             List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, voltageRemoteControl).orElse(null);
             if (lfNetworks != null) {
                 LfNetwork lfNetwork = lfNetworks.get(0); // main component
-                lfNetwork.fix();
+                validate(lfNetwork);
                 lfNetwork.logSize();
                 lfNetwork.logBalance();
                 return lfNetworks;
