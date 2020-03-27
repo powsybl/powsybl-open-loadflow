@@ -32,6 +32,7 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     }
 
     private static double getHvdcLineTargetP(VscConverterStation vscCs) {
+
         HvdcLine line = vscCs.getHvdcLine();
         return (line.getConverterStation1() == vscCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
                 || (line.getConverterStation2() == vscCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)

@@ -45,9 +45,10 @@ public class LfNetworkTest extends AbstractConverterTest {
                 .setId("SC")
                 .setBus("NLOAD")
                 .setConnectableBus("NLOAD")
-                .setbPerSection(3.25 * Math.pow(10, -3))
-                .setMaximumSectionCount(1)
                 .setCurrentSectionCount(1)
+                .newLinearModel()
+                    .setbPerSection(3.25 * Math.pow(10, -3))
+                    .setMaximumSectionCount(1)
                 .add();
 
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());

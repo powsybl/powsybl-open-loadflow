@@ -101,9 +101,10 @@ public class AcLoadFlow3wtTest {
                 .setId("sc3")
                 .setConnectableBus("b3")
                 .setBus("b3")
-                .setbPerSection(-0.16)
-                .setMaximumSectionCount(1)
                 .setCurrentSectionCount(0)
+                .newLinearModel()
+                    .setbPerSection(-0.16)
+                    .setMaximumSectionCount(1)
                 .add();
 
         twt = s.newThreeWindingsTransformer()
