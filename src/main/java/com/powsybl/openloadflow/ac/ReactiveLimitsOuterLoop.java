@@ -94,7 +94,8 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
     }
 
     private void switchPvPq(List<PvToPqBus> pvToPqBuses, EquationSystem equationSystem, VariableSet variableSet, int remainingPvBusCount) {
-        if (remainingPvBusCount == 0) {
+        int modifiedRemainingPvBusCount = remainingPvBusCount;
+        if (modifiedRemainingPvBusCount == 0) {
             // keep one bus PV, the strongest one which is one at the highest nominal level and highest active power
             // target
             PvToPqBus strongestPvToPqBus = pvToPqBuses.stream()
@@ -103,7 +104,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
                             .thenComparing(BY_ID_COMPARATOR)) // for stability of the sort
                     .orElseThrow(IllegalStateException::new);
             pvToPqBuses.remove(strongestPvToPqBus);
-            remainingPvBusCount++;
+            modifiedRemainingPvBusCount++;
             LOGGER.warn("All PV buses should switch PQ, strongest one '{}' will stay PV", strongestPvToPqBus.bus.getId());
         }
 
@@ -114,7 +115,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
                     pvToPqBus.limitDirection == ReactiveLimitDirection.MAX ? "max" : "min", pvToPqBus.qLimit * PerUnit.SB);
         }
 
-        LOGGER.info("{} buses switched PV -> PQ ({} bus remains PV}", pvToPqBuses.size(), remainingPvBusCount);
+        LOGGER.info("{} buses switched PV -> PQ ({} bus remains PV}", pvToPqBuses.size(), modifiedRemainingPvBusCount);
     }
 
     @Override
