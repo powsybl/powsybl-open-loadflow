@@ -160,7 +160,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     void addLoad(Load load) {
         loads.add(load);
-        initialLoadTargetP = load.getP0();
+        initialLoadTargetP += load.getP0();
         loadTargetP += load.getP0();
         loadTargetQ += load.getQ0();
         loadCount++;
