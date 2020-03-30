@@ -93,7 +93,9 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         }
     }
 
-    private void switchPvPq(List<PvToPqBus> pvToPqBuses, EquationSystem equationSystem, VariableSet variableSet, int remainingPvBusCount) {
+    private OuterLoopStatus switchPvPq(List<PvToPqBus> pvToPqBuses, EquationSystem equationSystem, VariableSet variableSet, int remainingPvBusCount) {
+        OuterLoopStatus status = OuterLoopStatus.STABLE;
+
         int modifiedRemainingPvBusCount = remainingPvBusCount;
         if (modifiedRemainingPvBusCount == 0) {
             // keep one bus PV, the strongest one which is one at the highest nominal level and highest active power
@@ -108,20 +110,24 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             LOGGER.warn("All PV buses should switch PQ, strongest one '{}' will stay PV", strongestPvToPqBus.bus.getId());
         }
 
-        for (PvToPqBus pvToPqBus : pvToPqBuses) {
-            // switch PV -> PQ
-            switchPvPq(pvToPqBus.bus, equationSystem, variableSet, pvToPqBus.qLimit);
-            LOGGER.trace("Switch bus {} PV -> PQ, q={} < {}Q={}", pvToPqBus.bus.getId(), pvToPqBus.q * PerUnit.SB,
-                    pvToPqBus.limitDirection == ReactiveLimitDirection.MAX ? "max" : "min", pvToPqBus.qLimit * PerUnit.SB);
+        if (!pvToPqBuses.isEmpty()) {
+            status = OuterLoopStatus.UNSTABLE;
+
+            for (PvToPqBus pvToPqBus : pvToPqBuses) {
+                // switch PV -> PQ
+                switchPvPq(pvToPqBus.bus, equationSystem, variableSet, pvToPqBus.qLimit);
+                LOGGER.trace("Switch bus {} PV -> PQ, q={} < {}Q={}", pvToPqBus.bus.getId(), pvToPqBus.q * PerUnit.SB,
+                        pvToPqBus.limitDirection == ReactiveLimitDirection.MAX ? "max" : "min", pvToPqBus.qLimit * PerUnit.SB);
+            }
         }
 
         LOGGER.info("{} buses switched PV -> PQ ({} bus remains PV}", pvToPqBuses.size(), modifiedRemainingPvBusCount);
+
+        return status;
     }
 
     @Override
     public OuterLoopStatus check(OuterLoopContext context) {
-        OuterLoopStatus status = OuterLoopStatus.STABLE;
-
         List<PvToPqBus> pvToPqBuses = new ArrayList<>();
         int remainingPvBusCount = 0;
         for (LfBus bus : context.getNetwork().getBuses()) {
@@ -143,10 +149,9 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         }
 
         if (!pvToPqBuses.isEmpty()) {
-            switchPvPq(pvToPqBuses, context.getEquationSystem(), context.getVariableSet(), remainingPvBusCount);
-            status = OuterLoopStatus.UNSTABLE;
+            return switchPvPq(pvToPqBuses, context.getEquationSystem(), context.getVariableSet(), remainingPvBusCount);
         }
 
-        return status;
+        return OuterLoopStatus.STABLE;
     }
 }
