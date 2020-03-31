@@ -31,7 +31,11 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReactiveLimitsOuterLoop.class);
 
-    private static final Comparator<PvToPqBus> BY_NOMINAL_V_COMPARATOR = Comparator.comparingDouble(pvToPqBus -> -pvToPqBus.bus.getNominalV());
+    private static final Comparator<PvToPqBus> BY_NOMINAL_V_COMPARATOR = Comparator.comparingDouble(pvToPqBus -> {
+        LfBus bus = pvToPqBus.bus;
+        LfBus controlledBus = bus.getControlledBus().orElse(null);
+        return controlledBus == null ? -bus.getNominalV() : -controlledBus.getNominalV();
+    });
 
     private static final Comparator<PvToPqBus> BY_TARGET_P_COMPARATOR = Comparator.comparingDouble(pvToPqBus -> -pvToPqBus.bus.getTargetP());
 
