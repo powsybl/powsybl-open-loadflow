@@ -94,7 +94,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 public void visitGenerator(Generator generator) {
                     double scaleV = checkVoltageRemoteControl(generator, generator.getRegulatingTerminal(), generator.getTargetV());
                     lfBus.addGenerator(generator, scaleV, report);
-                    voltagecontrollerCount[0]++;
+                    if (generator.isVoltageRegulatorOn()) {
+                        voltagecontrollerCount[0]++;
+                    }
                 }
 
                 @Override
