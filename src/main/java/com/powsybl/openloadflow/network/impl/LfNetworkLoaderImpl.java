@@ -45,104 +45,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         Map<LfBusImpl, String> controllerBusToControlledBusId = new LinkedHashMap<>();
 
         for (Bus bus : buses) {
-            LfBusImpl lfBus = LfBusImpl.create(bus);
+            LfBusImpl lfBus = createBus(bus, voltageRemoteControl, loadingContext, report, voltageControllerCount, controllerBusToControlledBusId);
             lfNetwork.addBus(lfBus);
-
-            bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
-
-                private void visitBranch(Branch branch) {
-                    loadingContext.branchSet.add(branch);
-                }
-
-                @Override
-                public void visitLine(Line line, Branch.Side side) {
-                    visitBranch(line);
-                }
-
-                @Override
-                public void visitTwoWindingsTransformer(TwoWindingsTransformer transformer, Branch.Side side) {
-                    visitBranch(transformer);
-                }
-
-                @Override
-                public void visitThreeWindingsTransformer(ThreeWindingsTransformer transformer, ThreeWindingsTransformer.Side side) {
-                    loadingContext.t3wtSet.add(transformer);
-                }
-
-                private double checkVoltageRemoteControl(Injection injection, Terminal regulatingTerminal, double previousTargetV) {
-                    double scaleV = 1;
-                    String controlledBusId = regulatingTerminal.getBusView().getBus().getId();
-                    String connectedBusId = injection.getTerminal().getBusView().getBus().getId();
-                    if (!Objects.equals(controlledBusId, connectedBusId)) {
-                        if (voltageRemoteControl) {
-                            // controller to controlled bus link will be set later because controlled bus might not have
-                            // been yet created
-                            controllerBusToControlledBusId.put(lfBus, controlledBusId);
-                        } else {
-                            double remoteNominalV = regulatingTerminal.getVoltageLevel().getNominalV();
-                            double localNominalV = injection.getTerminal().getVoltageLevel().getNominalV();
-                            scaleV = localNominalV / remoteNominalV;
-                            LOGGER.warn("Remote voltage control is not yet supported. The voltage target of " +
-                                            "{} ({}) with remote control is rescaled from {} to {}",
-                                    injection.getId(), injection.getType(), previousTargetV, previousTargetV * scaleV);
-                        }
-                    }
-                    return scaleV;
-                }
-
-                @Override
-                public void visitGenerator(Generator generator) {
-                    double scaleV = checkVoltageRemoteControl(generator, generator.getRegulatingTerminal(), generator.getTargetV());
-                    lfBus.addGenerator(generator, scaleV, report);
-                    if (generator.isVoltageRegulatorOn()) {
-                        voltageControllerCount[0]++;
-                    }
-                }
-
-                @Override
-                public void visitLoad(Load load) {
-                    lfBus.addLoad(load);
-                }
-
-                @Override
-                public void visitShuntCompensator(ShuntCompensator sc) {
-                    lfBus.addShuntCompensator(sc);
-                }
-
-                @Override
-                public void visitDanglingLine(DanglingLine danglingLine) {
-                    loadingContext.danglingLines.add(danglingLine);
-                }
-
-                @Override
-                public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
-                    double scaleV = checkVoltageRemoteControl(staticVarCompensator, staticVarCompensator.getRegulatingTerminal(),
-                            staticVarCompensator.getVoltageSetPoint());
-                    lfBus.addStaticVarCompensator(staticVarCompensator, scaleV, report);
-                }
-
-                @Override
-                public void visitBattery(Battery battery) {
-                    lfBus.addBattery(battery);
-                }
-
-                @Override
-                public void visitHvdcConverterStation(HvdcConverterStation<?> converterStation) {
-                    switch (converterStation.getHvdcType()) {
-                        case VSC:
-                            VscConverterStation vscConverterStation = (VscConverterStation) converterStation;
-                            lfBus.addVscConverterStation(vscConverterStation, report);
-                            if (vscConverterStation.isVoltageRegulatorOn()) {
-                                voltageControllerCount[0]++;
-                            }
-                            break;
-                        case LCC:
-                            throw new UnsupportedOperationException("LCC converter station is not yet supported");
-                        default:
-                            throw new IllegalStateException("Unknown HVDC converter station type: " + converterStation.getHvdcType());
-                    }
-                }
-            });
         }
 
         if (voltageControllerCount[0] == 0) {
@@ -156,6 +60,109 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             LfBus controlledBus = lfNetwork.getBusById(controlledBusId);
             controllerBus.setControlledBus((LfBusImpl) controlledBus);
         }
+    }
+
+    private static LfBusImpl createBus(Bus bus, boolean voltageRemoteControl, LoadingContext loadingContext, LfNetworkLoadingReport report,
+                                       int[] voltageControllerCount, Map<LfBusImpl, String> controllerBusToControlledBusId) {
+        LfBusImpl lfBus = LfBusImpl.create(bus);
+
+        bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
+
+            private void visitBranch(Branch branch) {
+                loadingContext.branchSet.add(branch);
+            }
+
+            @Override
+            public void visitLine(Line line, Branch.Side side) {
+                visitBranch(line);
+            }
+
+            @Override
+            public void visitTwoWindingsTransformer(TwoWindingsTransformer transformer, Branch.Side side) {
+                visitBranch(transformer);
+            }
+
+            @Override
+            public void visitThreeWindingsTransformer(ThreeWindingsTransformer transformer, ThreeWindingsTransformer.Side side) {
+                loadingContext.t3wtSet.add(transformer);
+            }
+
+            private double checkVoltageRemoteControl(Injection injection, Terminal regulatingTerminal, double previousTargetV) {
+                double scaleV = 1;
+                String controlledBusId = regulatingTerminal.getBusView().getBus().getId();
+                String connectedBusId = injection.getTerminal().getBusView().getBus().getId();
+                if (!Objects.equals(controlledBusId, connectedBusId)) {
+                    if (voltageRemoteControl) {
+                        // controller to controlled bus link will be set later because controlled bus might not have
+                        // been yet created
+                        controllerBusToControlledBusId.put(lfBus, controlledBusId);
+                    } else {
+                        double remoteNominalV = regulatingTerminal.getVoltageLevel().getNominalV();
+                        double localNominalV = injection.getTerminal().getVoltageLevel().getNominalV();
+                        scaleV = localNominalV / remoteNominalV;
+                        LOGGER.warn("Remote voltage control is not yet supported. The voltage target of " +
+                                        "{} ({}) with remote control is rescaled from {} to {}",
+                                injection.getId(), injection.getType(), previousTargetV, previousTargetV * scaleV);
+                    }
+                }
+                return scaleV;
+            }
+
+            @Override
+            public void visitGenerator(Generator generator) {
+                double scaleV = checkVoltageRemoteControl(generator, generator.getRegulatingTerminal(), generator.getTargetV());
+                lfBus.addGenerator(generator, scaleV, report);
+                if (generator.isVoltageRegulatorOn()) {
+                    voltageControllerCount[0]++;
+                }
+            }
+
+            @Override
+            public void visitLoad(Load load) {
+                lfBus.addLoad(load);
+            }
+
+            @Override
+            public void visitShuntCompensator(ShuntCompensator sc) {
+                lfBus.addShuntCompensator(sc);
+            }
+
+            @Override
+            public void visitDanglingLine(DanglingLine danglingLine) {
+                loadingContext.danglingLines.add(danglingLine);
+            }
+
+            @Override
+            public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
+                double scaleV = checkVoltageRemoteControl(staticVarCompensator, staticVarCompensator.getRegulatingTerminal(),
+                        staticVarCompensator.getVoltageSetPoint());
+                lfBus.addStaticVarCompensator(staticVarCompensator, scaleV, report);
+            }
+
+            @Override
+            public void visitBattery(Battery battery) {
+                lfBus.addBattery(battery);
+            }
+
+            @Override
+            public void visitHvdcConverterStation(HvdcConverterStation<?> converterStation) {
+                switch (converterStation.getHvdcType()) {
+                    case VSC:
+                        VscConverterStation vscConverterStation = (VscConverterStation) converterStation;
+                        lfBus.addVscConverterStation(vscConverterStation, report);
+                        if (vscConverterStation.isVoltageRegulatorOn()) {
+                            voltageControllerCount[0]++;
+                        }
+                        break;
+                    case LCC:
+                        throw new UnsupportedOperationException("LCC converter station is not yet supported");
+                    default:
+                        throw new IllegalStateException("Unknown HVDC converter station type: " + converterStation.getHvdcType());
+                }
+            }
+        });
+
+        return lfBus;
     }
 
     private static void addBranch(LfNetwork lfNetwork, LfBranch lfBranch, LfNetworkLoadingReport report) {
