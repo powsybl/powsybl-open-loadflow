@@ -34,6 +34,8 @@ public class LfNetwork {
 
     private static final double TARGET_VOLTAGE_EPSILON = Math.pow(10, -6);
 
+    private final int num;
+
     private final SlackBusSelector slackBusSelector;
 
     private final Map<String, LfBus> busesById = new LinkedHashMap<>();
@@ -44,8 +46,13 @@ public class LfNetwork {
 
     private final List<LfBranch> branches = new ArrayList<>();
 
-    public LfNetwork(SlackBusSelector slackBusSelector) {
+    public LfNetwork(int num, SlackBusSelector slackBusSelector) {
+        this.num = num;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
+    }
+
+    public int getNum() {
+        return num;
     }
 
     private void updateCache() {
@@ -300,8 +307,8 @@ public class LfNetwork {
                 controllerBusCount++;
             }
         }
-        LOGGER.info("Network has {} buses (voltage remote control: {} controllers, {} controlled) and {} branches",
-                busesById.values().size(), controlledBusCount, controllerBusCount, branches.size());
+        LOGGER.info("Network {} has {} buses (voltage remote control: {} controllers, {} controlled) and {} branches",
+                num, busesById.values().size(), controlledBusCount, controllerBusCount, branches.size());
     }
 
     public void logBalance() {
@@ -316,8 +323,8 @@ public class LfNetwork {
             reactiveLoad += b.getLoadTargetQ() * PerUnit.SB;
         }
 
-        LOGGER.info("Active generation={} Mw, active load={} Mw, reactive generation={} MVar, reactive load={} MVar",
-                activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
+        LOGGER.info("Network {} balance: active generation={} Mw, active load={} Mw, reactive generation={} MVar, reactive load={} MVar",
+                num, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
     private static void validate(LfNetwork network) {
@@ -347,10 +354,11 @@ public class LfNetwork {
         for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
             List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, voltageRemoteControl).orElse(null);
             if (lfNetworks != null) {
-                LfNetwork lfNetwork = lfNetworks.get(0); // main component
-                validate(lfNetwork);
-                lfNetwork.logSize();
-                lfNetwork.logBalance();
+                for (LfNetwork lfNetwork : lfNetworks) {
+                    validate(lfNetwork);
+                    lfNetwork.logSize();
+                    lfNetwork.logBalance();
+                }
                 return lfNetworks;
             }
         }

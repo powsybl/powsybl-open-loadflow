@@ -36,6 +36,7 @@ public class AcLoadFlowVscTest {
     private Bus bus1;
     private Bus bus2;
     private Bus bus3;
+    private Generator g1;
     private Line l12;
     private VscConverterStation cs2;
     private VscConverterStation cs3;
@@ -59,7 +60,7 @@ public class AcLoadFlowVscTest {
         bus1 = vl1.getBusBreakerView().newBus()
                 .setId("b1")
                 .add();
-        vl1.newGenerator()
+        g1 = vl1.newGenerator()
                 .setId("g1")
                 .setConnectableBus("b1")
                 .setBus("b1")
@@ -175,6 +176,17 @@ public class AcLoadFlowVscTest {
         assertAngleEquals(0, bus1);
         assertVoltageEquals(385, bus2);
         assertAngleEquals(0.117617, bus2);
+        assertVoltageEquals(383, bus3);
+        assertAngleEquals(0, bus3);
+
+        assertActivePowerEquals(-102.56, g1.getTerminal());
+        assertReactivePowerEquals(-615.917, g1.getTerminal());
+
+        assertActivePowerEquals(50.0, cs2.getTerminal());
+        assertReactivePowerEquals(598.227, cs2.getTerminal());
+
+        assertActivePowerEquals(-50.0, cs3.getTerminal());
+        assertReactivePowerEquals(-10.0, cs3.getTerminal());
 
         assertActivePowerEquals(102.563, l12.getTerminal1());
         assertReactivePowerEquals(615.917, l12.getTerminal1());

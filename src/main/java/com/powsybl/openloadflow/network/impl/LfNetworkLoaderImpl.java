@@ -11,6 +11,8 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +41,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static void createBuses(List<Bus> buses, boolean voltageRemoteControl, LfNetwork lfNetwork,
                                     LoadingContext loadingContext, LfNetworkLoadingReport report) {
-        int[] generatorCount = new int[1];
+        int[] voltagecontrollerCount = new int[1];
         Map<LfBusImpl, String> controllerBusToControlledBusId = new LinkedHashMap<>();
 
         for (Bus bus : buses) {
@@ -92,7 +94,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 public void visitGenerator(Generator generator) {
                     double scaleV = checkVoltageRemoteControl(generator, generator.getRegulatingTerminal(), generator.getTargetV());
                     lfBus.addGenerator(generator, scaleV, report);
-                    generatorCount[0]++;
+                    voltagecontrollerCount[0]++;
                 }
 
                 @Override
@@ -126,7 +128,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 public void visitHvdcConverterStation(HvdcConverterStation<?> converterStation) {
                     switch (converterStation.getHvdcType()) {
                         case VSC:
-                            lfBus.addVscConverterStation((VscConverterStation) converterStation, report);
+                            VscConverterStation vscConverterStation = (VscConverterStation) converterStation;
+                            lfBus.addVscConverterStation(vscConverterStation, report);
+                            if (vscConverterStation.isVoltageRegulatorOn()) {
+                                voltagecontrollerCount[0]++;
+                            }
                             break;
                         case LCC:
                             throw new UnsupportedOperationException("LCC converter station is not yet supported");
@@ -137,8 +143,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             });
         }
 
-        if (generatorCount[0] == 0) {
-            throw new PowsyblException("Connected component without any regulating generator");
+        if (voltagecontrollerCount[0] == 0) {
+            throw new PowsyblException("Component without any voltage control");
         }
 
         // set controller -> controlled link
@@ -195,8 +201,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private static LfNetwork create(List<Bus> buses, SlackBusSelector slackBusSelector, boolean voltageRemoteControl) {
-        LfNetwork lfNetwork = new LfNetwork(slackBusSelector);
+    private static LfNetwork create(MutableInt num, List<Bus> buses, SlackBusSelector slackBusSelector, boolean voltageRemoteControl) {
+        LfNetwork lfNetwork = new LfNetwork(num.getValue(), slackBusSelector);
+        num.increment();
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
@@ -243,17 +250,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         if (network instanceof Network) {
             Stopwatch stopwatch = Stopwatch.createStarted();
 
-            Map<Integer, List<Bus>> buseByCc = new TreeMap<>();
+            Map<Pair<Integer, Integer>, List<Bus>> buseByCc = new TreeMap<>();
             for (Bus bus : ((Network) network).getBusView().getBuses()) {
                 Component cc = bus.getConnectedComponent();
-                if (cc != null) {
-                    buseByCc.computeIfAbsent(cc.getNum(), k -> new ArrayList<>()).add(bus);
+                Component sc = bus.getSynchronousComponent();
+                if (cc != null && sc != null) {
+                    buseByCc.computeIfAbsent(Pair.of(cc.getNum(), sc.getNum()), k -> new ArrayList<>()).add(bus);
                 }
             }
 
+            MutableInt num = new MutableInt(0);
             List<LfNetwork> lfNetworks = buseByCc.entrySet().stream()
-                    .filter(e -> e.getKey() == ComponentConstants.MAIN_NUM)
-                    .map(e -> create(e.getValue(), slackBusSelector, voltageRemoteControl))
+                    .filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
+                    .map(e -> create(num, e.getValue(), slackBusSelector, voltageRemoteControl))
                     .collect(Collectors.toList());
 
             stopwatch.stop();
