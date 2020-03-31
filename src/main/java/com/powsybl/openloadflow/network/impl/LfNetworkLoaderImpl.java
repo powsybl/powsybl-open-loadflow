@@ -41,7 +41,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static void createBuses(List<Bus> buses, boolean voltageRemoteControl, LfNetwork lfNetwork,
                                     LoadingContext loadingContext, LfNetworkLoadingReport report) {
-        int[] voltagecontrollerCount = new int[1];
+        int[] voltageControllerCount = new int[1];
         Map<LfBusImpl, String> controllerBusToControlledBusId = new LinkedHashMap<>();
 
         for (Bus bus : buses) {
@@ -95,7 +95,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                     double scaleV = checkVoltageRemoteControl(generator, generator.getRegulatingTerminal(), generator.getTargetV());
                     lfBus.addGenerator(generator, scaleV, report);
                     if (generator.isVoltageRegulatorOn()) {
-                        voltagecontrollerCount[0]++;
+                        voltageControllerCount[0]++;
                     }
                 }
 
@@ -133,7 +133,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                             VscConverterStation vscConverterStation = (VscConverterStation) converterStation;
                             lfBus.addVscConverterStation(vscConverterStation, report);
                             if (vscConverterStation.isVoltageRegulatorOn()) {
-                                voltagecontrollerCount[0]++;
+                                voltageControllerCount[0]++;
                             }
                             break;
                         case LCC:
@@ -145,7 +145,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             });
         }
 
-        if (voltagecontrollerCount[0] == 0) {
+        if (voltageControllerCount[0] == 0) {
             throw new PowsyblException("Component without any voltage control");
         }
 
