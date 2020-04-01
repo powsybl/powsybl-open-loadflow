@@ -146,12 +146,12 @@ public class AcloadFlowEngine {
         int nrIterations = runningContext.lastNrResult.getIteration();
         int outerLoopIterations = runningContext.outerLoopIteration + 1;
 
-        LOGGER.debug(Markers.PERFORMANCE_MARKER, "Ac loadflow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        LOGGER.debug(Markers.PERFORMANCE_MARKER, "Ac loadflow ran on network {} in {} ms", network.getNum(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
         AcLoadFlowResult result = new AcLoadFlowResult(network, outerLoopIterations, nrIterations, runningContext.lastNrResult.getStatus(),
                 runningContext.lastNrResult.getSlackBusActivePowerMismatch());
 
-        LOGGER.info("Ac loadflow complete (result={})", result);
+        LOGGER.info("Ac loadflow complete on network {} (result={})", network.getNum(), result);
 
         return result;
     }

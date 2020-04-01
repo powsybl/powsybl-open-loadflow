@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -39,8 +38,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         private final Set<ThreeWindingsTransformer> t3wtSet = new LinkedHashSet<>();
     }
 
-    private static void createBuses(List<Bus> buses, boolean voltageRemoteControl, LfNetwork lfNetwork,
-                                    LoadingContext loadingContext, LfNetworkLoadingReport report) {
+    private static boolean createBuses(List<Bus> buses, boolean voltageRemoteControl, LfNetwork lfNetwork,
+                                       LoadingContext loadingContext, LfNetworkLoadingReport report) {
         int[] voltageControllerCount = new int[1];
         Map<LfBusImpl, String> controllerBusToControlledBusId = new LinkedHashMap<>();
 
@@ -50,7 +49,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
 
         if (voltageControllerCount[0] == 0) {
-            throw new PowsyblException("Component without any voltage control");
+            return false;
         }
 
         // set controller -> controlled link
@@ -60,6 +59,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             LfBus controlledBus = lfNetwork.getBusById(controlledBusId);
             controllerBus.setControlledBus((LfBusImpl) controlledBus);
         }
+
+        return true;
     }
 
     private static LfBusImpl createBus(Bus bus, boolean voltageRemoteControl, LoadingContext loadingContext, LfNetworkLoadingReport report,
@@ -87,34 +88,31 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 loadingContext.t3wtSet.add(transformer);
             }
 
-                private double checkVoltageRemoteControl(Injection injection, Terminal regulatingTerminal, double previousTargetV) {
-                    double scaleV = 1;
-                    Bus controlledBus = regulatingTerminal.getBusView().getBus();
-                    Bus connectedBus = injection.getTerminal().getBusView().getBus();
-                    if (controlledBus == null) {
-                        return scaleV;
-                    }
-                    if (connectedBus == null) {
-                        return scaleV;
-                    }
-                    String controlledBusId = controlledBus.getId();
-                    String connectedBusId = connectedBus.getId();
-                    if (!Objects.equals(controlledBusId, connectedBusId)) {
-                        if (voltageRemoteControl) {
-                            // controller to controlled bus link will be set later because controlled bus might not have
-                            // been yet created
-                            controllerBusToControlledBusId.put(lfBus, controlledBusId);
-                        } else {
-                            double remoteNominalV = regulatingTerminal.getVoltageLevel().getNominalV();
-                            double localNominalV = injection.getTerminal().getVoltageLevel().getNominalV();
-                            scaleV = localNominalV / remoteNominalV;
-                            LOGGER.warn("Remote voltage control is not yet supported. The voltage target of " +
-                                            "{} ({}) with remote control is rescaled from {} to {}",
-                                    injection.getId(), injection.getType(), previousTargetV, previousTargetV * scaleV);
-                        }
-                    }
+            private double checkVoltageRemoteControl(Injection injection, Terminal regulatingTerminal, double previousTargetV) {
+                double scaleV = 1;
+                Bus controlledBus = regulatingTerminal.getBusView().getBus();
+                Bus connectedBus = injection.getTerminal().getBusView().getBus();
+                if (controlledBus == null || connectedBus == null) {
                     return scaleV;
                 }
+                String controlledBusId = controlledBus.getId();
+                String connectedBusId = connectedBus.getId();
+                if (!Objects.equals(controlledBusId, connectedBusId)) {
+                    if (voltageRemoteControl) {
+                        // controller to controlled bus link will be set later because controlled bus might not have
+                        // been yet created
+                        controllerBusToControlledBusId.put(lfBus, controlledBusId);
+                    } else {
+                        double remoteNominalV = regulatingTerminal.getVoltageLevel().getNominalV();
+                        double localNominalV = injection.getTerminal().getVoltageLevel().getNominalV();
+                        scaleV = localNominalV / remoteNominalV;
+                        LOGGER.warn("Remote voltage control is not yet supported. The voltage target of " +
+                                        "{} ({}) with remote control is rescaled from {} to {}",
+                                injection.getId(), injection.getType(), previousTargetV, previousTargetV * scaleV);
+                    }
+                }
+                return scaleV;
+            }
 
             @Override
             public void visitGenerator(Generator generator) {
@@ -225,7 +223,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
 
-        createBuses(buses, voltageRemoteControl, lfNetwork, loadingContext, report);
+        boolean ok = createBuses(buses, voltageRemoteControl, lfNetwork, loadingContext, report);
+        if (!ok) {
+            LOGGER.warn("Skipping network {} because there is no equipment to control voltage", num);
+            return null;
+        }
         createBranches(lfNetwork, loadingContext, report);
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
@@ -280,6 +282,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             List<LfNetwork> lfNetworks = buseByCc.entrySet().stream()
                     .filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
                     .map(e -> create(num, e.getValue(), slackBusSelector, voltageRemoteControl))
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
             stopwatch.stop();
