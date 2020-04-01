@@ -69,8 +69,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
                 private double checkVoltageRemoteControl(Injection injection, Terminal regulatingTerminal, double previousTargetV) {
                     double scaleV = 1;
-                    String controlledBusId = regulatingTerminal.getBusView().getBus().getId();
-                    String connectedBusId = injection.getTerminal().getBusView().getBus().getId();
+                    Bus controlledBus = regulatingTerminal.getBusView().getBus();
+                    Bus connectedBus = injection.getTerminal().getBusView().getBus();
+                    if (controlledBus == null) {
+                        return scaleV;
+                    }
+                    if (connectedBus == null) {
+                        return scaleV;
+                    }
+                    String controlledBusId = controlledBus.getId();
+                    String connectedBusId = connectedBus.getId();
                     if (!Objects.equals(controlledBusId, connectedBusId)) {
                         if (voltageRemoteControl) {
                             // controller to controlled bus link will be set later because controlled bus might not have
