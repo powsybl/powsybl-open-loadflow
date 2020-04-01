@@ -171,13 +171,13 @@ public class LfBusImpl extends AbstractLfBus {
     void addLccConverterStation(LccConverterStation lccCs) {
         lccCss.add(lccCs);
         HvdcLine line = lccCs.getHvdcLine();
-        double p = (line.getConverterStation1() == lccCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
+        double p1 = (line.getConverterStation1() == lccCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
                 || (line.getConverterStation2() == lccCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
                 ? line.getActivePowerSetpoint()
                 : -line.getActivePowerSetpoint();
-        double p1 = p * (1 + lccCs.getLossFactor()); // A LCC station has active losses.
-        double q = Math.abs(p1 * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
-        loadTargetP += p1;
+        double p = p1 * (1 + lccCs.getLossFactor()); // A LCC station has active losses.
+        double q = Math.abs(p * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
+        loadTargetP += p;
         loadTargetQ += q;
     }
 
@@ -375,14 +375,15 @@ public class LfBusImpl extends AbstractLfBus {
         // update lcc converter station power
         for (LccConverterStation lccCs : lccCss) {
             HvdcLine line = lccCs.getHvdcLine();
-            double p = (line.getConverterStation1() == lccCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
+            double p1 = (line.getConverterStation1() == lccCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
                     || (line.getConverterStation2() == lccCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
-                    ? -line.getActivePowerSetpoint()
-                    : line.getActivePowerSetpoint();
-            double q = 0; // TODO fix.
+                    ? line.getActivePowerSetpoint()
+                    : -line.getActivePowerSetpoint();
+            double p = p1 * (1 + lccCs.getLossFactor());
+            double q = Math.abs(p* Math.tan(Math.acos(lccCs.getPowerFactor())));
             lccCs.getTerminal()
-                    .setP(p * (1 + lccCs.getPowerFactor()))
-                    .setQ(q); // TODO fix.
+                    .setP(p)
+                    .setQ(q);
         }
     }
 }
