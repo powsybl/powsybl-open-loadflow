@@ -87,26 +87,34 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 loadingContext.t3wtSet.add(transformer);
             }
 
-            private double checkVoltageRemoteControl(Injection injection, Terminal regulatingTerminal, double previousTargetV) {
-                double scaleV = 1;
-                String controlledBusId = regulatingTerminal.getBusView().getBus().getId();
-                String connectedBusId = injection.getTerminal().getBusView().getBus().getId();
-                if (!Objects.equals(controlledBusId, connectedBusId)) {
-                    if (voltageRemoteControl) {
-                        // controller to controlled bus link will be set later because controlled bus might not have
-                        // been yet created
-                        controllerBusToControlledBusId.put(lfBus, controlledBusId);
-                    } else {
-                        double remoteNominalV = regulatingTerminal.getVoltageLevel().getNominalV();
-                        double localNominalV = injection.getTerminal().getVoltageLevel().getNominalV();
-                        scaleV = localNominalV / remoteNominalV;
-                        LOGGER.warn("Remote voltage control is not yet supported. The voltage target of " +
-                                        "{} ({}) with remote control is rescaled from {} to {}",
-                                injection.getId(), injection.getType(), previousTargetV, previousTargetV * scaleV);
+                private double checkVoltageRemoteControl(Injection injection, Terminal regulatingTerminal, double previousTargetV) {
+                    double scaleV = 1;
+                    Bus controlledBus = regulatingTerminal.getBusView().getBus();
+                    Bus connectedBus = injection.getTerminal().getBusView().getBus();
+                    if (controlledBus == null) {
+                        return scaleV;
                     }
+                    if (connectedBus == null) {
+                        return scaleV;
+                    }
+                    String controlledBusId = controlledBus.getId();
+                    String connectedBusId = connectedBus.getId();
+                    if (!Objects.equals(controlledBusId, connectedBusId)) {
+                        if (voltageRemoteControl) {
+                            // controller to controlled bus link will be set later because controlled bus might not have
+                            // been yet created
+                            controllerBusToControlledBusId.put(lfBus, controlledBusId);
+                        } else {
+                            double remoteNominalV = regulatingTerminal.getVoltageLevel().getNominalV();
+                            double localNominalV = injection.getTerminal().getVoltageLevel().getNominalV();
+                            scaleV = localNominalV / remoteNominalV;
+                            LOGGER.warn("Remote voltage control is not yet supported. The voltage target of " +
+                                            "{} ({}) with remote control is rescaled from {} to {}",
+                                    injection.getId(), injection.getType(), previousTargetV, previousTargetV * scaleV);
+                        }
+                    }
+                    return scaleV;
                 }
-                return scaleV;
-            }
 
             @Override
             public void visitGenerator(Generator generator) {
