@@ -176,7 +176,7 @@ public class LfBusImpl extends AbstractLfBus {
                 ? line.getActivePowerSetpoint()
                 : -line.getActivePowerSetpoint();
         double p1 = p * (1 + lccCs.getLossFactor()); // A LCC station has active losses.
-        double q = Math.abs(p * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
+        double q = Math.abs(p1 * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
         loadTargetP += p1;
         loadTargetQ += q;
     }
