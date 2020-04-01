@@ -38,8 +38,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         private final Set<ThreeWindingsTransformer> t3wtSet = new LinkedHashSet<>();
     }
 
-    private static boolean createBuses(List<Bus> buses, boolean voltageRemoteControl, LfNetwork lfNetwork,
-                                       LoadingContext loadingContext, LfNetworkLoadingReport report) {
+    private static void createBuses(List<Bus> buses, boolean voltageRemoteControl, LfNetwork lfNetwork,
+                                    LoadingContext loadingContext, LfNetworkLoadingReport report) {
         int[] voltageControllerCount = new int[1];
         Map<LfBusImpl, String> controllerBusToControlledBusId = new LinkedHashMap<>();
 
@@ -49,7 +49,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
 
         if (voltageControllerCount[0] == 0) {
-            return false;
+            LOGGER.error("Network {} has no equipment to control voltage", lfNetwork.getNum());
         }
 
         // set controller -> controlled link
@@ -59,8 +59,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             LfBus controlledBus = lfNetwork.getBusById(controlledBusId);
             controllerBus.setControlledBus((LfBusImpl) controlledBus);
         }
-
-        return true;
     }
 
     private static LfBusImpl createBus(Bus bus, boolean voltageRemoteControl, LoadingContext loadingContext, LfNetworkLoadingReport report,
@@ -223,11 +221,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
 
-        boolean ok = createBuses(buses, voltageRemoteControl, lfNetwork, loadingContext, report);
-        if (!ok) {
-            LOGGER.warn("Skipping network {} because there is no equipment to control voltage", num);
-            return null;
-        }
+        createBuses(buses, voltageRemoteControl, lfNetwork, loadingContext, report);
         createBranches(lfNetwork, loadingContext, report);
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
