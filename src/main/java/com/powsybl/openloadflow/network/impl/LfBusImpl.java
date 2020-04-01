@@ -173,10 +173,11 @@ public class LfBusImpl extends AbstractLfBus {
         HvdcLine line = lccCs.getHvdcLine();
         double p = (line.getConverterStation1() == lccCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
                 || (line.getConverterStation2() == lccCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
-                ? -line.getActivePowerSetpoint()
-                : line.getActivePowerSetpoint();
-        double q = 0; // TODO fix.
-        loadTargetP += p * (1 + lccCs.getPowerFactor());
+                ? line.getActivePowerSetpoint()
+                : -line.getActivePowerSetpoint();
+        double p1 = p * (1 + lccCs.getLossFactor()); // A LCC station has active losses.
+        double q = Math.abs(p * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
+        loadTargetP += p1;
         loadTargetQ += q;
     }
 
