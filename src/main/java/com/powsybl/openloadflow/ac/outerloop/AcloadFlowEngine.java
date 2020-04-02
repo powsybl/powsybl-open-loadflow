@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -97,11 +98,10 @@ public class AcloadFlowEngine {
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE);
     }
 
-    public AcLoadFlowResult run() {
+    private AcLoadFlowResult run(LfNetwork network) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        // only process main (largest) connected component
-        LfNetwork network = networks.get(0);
+        LOGGER.info("Start Ac loadflow on network {}", network.getNum());
 
         parameters.getObserver().beforeEquationSystemCreation();
 
@@ -146,13 +146,17 @@ public class AcloadFlowEngine {
         int nrIterations = runningContext.lastNrResult.getIteration();
         int outerLoopIterations = runningContext.outerLoopIteration + 1;
 
-        LOGGER.debug(Markers.PERFORMANCE_MARKER, "Ac loadflow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        LOGGER.debug(Markers.PERFORMANCE_MARKER, "Ac loadflow ran on network {} in {} ms", network.getNum(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-        AcLoadFlowResult result = new AcLoadFlowResult(networks, outerLoopIterations, nrIterations, runningContext.lastNrResult.getStatus(),
+        AcLoadFlowResult result = new AcLoadFlowResult(network, outerLoopIterations, nrIterations, runningContext.lastNrResult.getStatus(),
                 runningContext.lastNrResult.getSlackBusActivePowerMismatch());
 
-        LOGGER.info("Ac loadflow complete (result={})", result);
+        LOGGER.info("Ac loadflow complete on network {} (result={})", network.getNum(), result);
 
         return result;
+    }
+
+    public List<AcLoadFlowResult> run() {
+        return networks.stream().map(this::run).collect(Collectors.toList());
     }
 }
