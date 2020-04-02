@@ -36,10 +36,7 @@ import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -81,8 +78,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     private static ImmutableMap<String, String> createMetrics(AcLoadFlowResult result) {
-        return ImmutableMap.of("iterations", Integer.toString(result.getNewtonRaphsonIterations()),
-                "status", result.getNewtonRaphsonStatus().name());
+        String prefix = "network_" + result.getNetwork().getNum() + "_";
+        return ImmutableMap.of(prefix + "iterations", Integer.toString(result.getNewtonRaphsonIterations()),
+                               prefix + "status", result.getNewtonRaphsonStatus().name());
     }
 
     private static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters) {
@@ -134,14 +132,23 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                          outerLoops, matrixFactory, getObserver(parametersExt),
                                                                          parametersExt.hasVoltageRemoteControl());
 
-            AcLoadFlowResult result = new AcloadFlowEngine(network, acParameters)
+            List<AcLoadFlowResult> results = new AcloadFlowEngine(network, acParameters)
                     .run();
 
-            // update network state
             Networks.resetState(network);
-            result.getNetworks().get(0).updateState(!parameters.isNoGeneratorReactiveLimits());
 
-            return new LoadFlowResultImpl(result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED, createMetrics(result), null);
+            boolean ok = false;
+            Map<String, String> metrics = new HashMap<>();
+            for (AcLoadFlowResult result : results) {
+                // update network state
+                result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits());
+
+                // consider ok if one of the component converged
+                ok |= result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
+                metrics.putAll(createMetrics(result));
+            }
+
+            return new LoadFlowResultImpl(ok, metrics, null);
         });
     }
 
