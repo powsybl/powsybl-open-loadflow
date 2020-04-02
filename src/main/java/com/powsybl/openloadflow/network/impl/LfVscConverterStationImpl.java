@@ -33,10 +33,17 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
 
     private static double getHvdcLineTargetP(VscConverterStation vscCs) {
         HvdcLine line = vscCs.getHvdcLine();
-        return (line.getConverterStation1() == vscCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
-                || (line.getConverterStation2() == vscCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
-                ? -line.getActivePowerSetpoint()
-                : line.getActivePowerSetpoint();
+        // If the VSC converter station is at side 1:
+        // If line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER then the active set point is positive.
+        // As the VSC converter station is at side 1, it means that it is rectifier: targetP should be negative.
+        // If line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER then the active set point is negative.
+        // As the VSC converter station is at side 1, it means that it is inverter: targetP should be positive.
+        // If the VSC converter station is at side 2:
+        // If line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER then the active set point is positive.
+        // As the VSC converter station is at side 2, it means that it is inverter: targetP should be positive.
+        // If line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER then the active set point is negative.
+        // As the VSC converter station is at side 2, it means that it is rectifier: targetP should be negative.
+        return line.getConverterStation1() == vscCs ? line.getActivePowerSetpoint() : -line.getActivePowerSetpoint();
     }
 
     @Override
