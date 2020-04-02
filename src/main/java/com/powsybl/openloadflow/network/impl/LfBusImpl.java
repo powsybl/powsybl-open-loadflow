@@ -380,7 +380,7 @@ public class LfBusImpl extends AbstractLfBus {
                     ? -line.getActivePowerSetpoint()
                     : line.getActivePowerSetpoint();
             double p = p1 * (1 + lccCs.getLossFactor());
-            double q = Math.abs(p* Math.tan(Math.acos(lccCs.getPowerFactor())));
+            double q = Math.abs(p * Math.tan(Math.acos(lccCs.getPowerFactor())));
             lccCs.getTerminal()
                     .setP(p)
                     .setQ(q);
