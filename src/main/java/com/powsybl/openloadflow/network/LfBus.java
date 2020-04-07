@@ -26,6 +26,8 @@ public interface LfBus {
 
     void setSlack(boolean slack);
 
+    boolean hasVoltageControlCapability();
+
     boolean hasVoltageControl();
 
     void setVoltageControl(boolean voltageControl);
