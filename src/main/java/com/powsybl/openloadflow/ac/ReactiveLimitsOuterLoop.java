@@ -126,7 +126,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             for (PvToPqBus pvToPqBus : pvToPqBuses) {
                 // switch PV -> PQ
                 switchPvPq(pvToPqBus.bus, equationSystem, variableSet, pvToPqBus.qLimit);
-                LOGGER.trace("Switch bus {} PV -> PQ, q={} < {}Q={}", pvToPqBus.bus.getId(), pvToPqBus.q * PerUnit.SB,
+                LOGGER.trace("Switch bus '{}' PV -> PQ, q={} < {}Q={}", pvToPqBus.bus.getId(), pvToPqBus.q * PerUnit.SB,
                         pvToPqBus.limitDirection == ReactiveLimitDirection.MAX ? "max" : "min", pvToPqBus.qLimit * PerUnit.SB);
             }
         }
@@ -134,6 +134,42 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         LOGGER.info("{} buses switched PV -> PQ ({} bus remains PV}", pvToPqBuses.size(), modifiedRemainingPvBusCount);
 
         return done;
+    }
+
+    private static final class PqToPvBus {
+
+        private final LfBus bus;
+
+        private final ReactiveLimitDirection limitDirection;
+
+        private PqToPvBus(LfBus bus, ReactiveLimitDirection limitDirection) {
+            this.bus = bus;
+            this.limitDirection = limitDirection;
+        }
+    }
+
+    private void switchPqPv(List<PqToPvBus> pqToPvBuses, EquationSystem equationSystem, VariableSet variableSet) {
+        for (PqToPvBus pqToPvBus : pqToPvBuses) {
+            LfBus bus = pqToPvBus.bus;
+
+            switchPqPv(bus, equationSystem, variableSet);
+
+            if (LOGGER.isTraceEnabled()) {
+                String limitLabel;
+                String comparisonOp;
+                if (pqToPvBus.limitDirection == ReactiveLimitDirection.MAX) {
+                    limitLabel = "max";
+                    comparisonOp = ">";
+                } else {
+                    limitLabel = "min";
+                    comparisonOp = "<";
+                }
+                LOGGER.trace("Switch bus '{}' PQ -> PV, q={}Q and v={} {} targetV={}", bus.getId(), limitLabel, bus.getV(),
+                        comparisonOp, bus.getTargetV());
+            }
+        }
+
+        LOGGER.info("{} buses switched PQ -> PV", pqToPvBuses.size());
     }
 
     private void switchPqPv(LfBus bus, EquationSystem equationSystem, VariableSet variableSet) {
@@ -149,16 +185,6 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             Equation vEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
             vEq.setActive(true);
         }
-
-        LOGGER.trace("Switch bus {} PQ -> PV",bus.getId());
-    }
-
-    private void switchPqPv(List<LfBus> pqToPvBuses, EquationSystem equationSystem, VariableSet variableSet) {
-        for (LfBus bus : pqToPvBuses) {
-            switchPqPv(bus, equationSystem, variableSet);
-        }
-
-        LOGGER.info("{} buses switched PQ -> PV", pqToPvBuses.size());
     }
 
     @Override
@@ -166,7 +192,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         List<PvToPqBus> pvToPqBuses = new ArrayList<>();
-        List<LfBus> pqToPvBuses = new ArrayList<>();
+        List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         int remainingPvBusCount = 0;
         for (LfBus bus : context.getNetwork().getBuses()) {
             double minQ = bus.getMinQ();
@@ -183,10 +209,13 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
                 }
             } else { // PQ bus
                 double q = bus.getGenerationTargetQ();
-                if (bus.hasVoltageControlCapability()
-                        && ((Math.abs(q - maxQ) < Q_EPS && bus.getV() > bus.getTargetV()) // bus produce too much reactive power
-                            || (Math.abs(q - minQ) < Q_EPS && bus.getV() < bus.getTargetV()))) { // bus absorb too much reactive power
-                    pqToPvBuses.add(bus);
+                if (bus.hasVoltageControlCapability()) {
+                    if (Math.abs(q - maxQ) < Q_EPS && bus.getV() > bus.getTargetV()) { // bus produce too much reactive power
+                        pqToPvBuses.add(new PqToPvBus(bus, ReactiveLimitDirection.MAX));
+                    }
+                    if (Math.abs(q - minQ) < Q_EPS && bus.getV() < bus.getTargetV()) { // bus absorb too much reactive power
+                        pqToPvBuses.add(new PqToPvBus(bus, ReactiveLimitDirection.MIN));
+                    }
                 }
             }
         }
