@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.equations.EquationType;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PerUnit;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -138,11 +139,6 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         return done;
     }
 
-    /**
-     * A bus can be switched PQ to PV in 2 cases:
-     *  - if Q is equal to Qmin and V is less than targetV: it means that the PQ bus can be unlocked in order to increase the reactive power and reach its targetV.
-     *  - if Q is equal to Qmax and V is greater than targetV: it means that the PQ bus can be unlocked in order to decrease the reactive power and reach its target V.
-     */
     private void switchPqPv(LfBus bus, EquationSystem equationSystem, VariableSet variableSet) {
         bus.setVoltageControl(true);
 
@@ -205,40 +201,57 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         return pqPvSwitchCount > 0;
     }
 
+    /**
+     * A bus PV bus can be switched to PQ in 2 case:
+     *  - if Q equals Qmax
+     *  - if Q equals Qmin
+     */
+    private void checkPvBus(LfBus bus, List<PvToPqBus> pvToPqBuses, MutableInt remainingPvBusCount) {
+        double minQ = bus.getMinQ();
+        double maxQ = bus.getMaxQ();
+        double q = bus.getCalculatedQ() + bus.getLoadTargetQ();
+        if (q < minQ) {
+            pvToPqBuses.add(new PvToPqBus(bus, q, minQ, ReactiveLimitDirection.MIN));
+        } else if (q > maxQ) {
+            pvToPqBuses.add(new PvToPqBus(bus, q, maxQ, ReactiveLimitDirection.MAX));
+        } else {
+            remainingPvBusCount.increment();
+        }
+    }
+
+    /**
+     * A PQ bus can be switched to PV in 2 cases:
+     *  - if Q is equal to Qmin and V is less than targetV: it means that the PQ bus can be unlocked in order to increase the reactive power and reach its targetV.
+     *  - if Q is equal to Qmax and V is greater than targetV: it means that the PQ bus can be unlocked in order to decrease the reactive power and reach its target V.
+     */
+    private void checkPqBus(LfBus bus, List<PqToPvBus> pqToPvBuses) {
+        double minQ = bus.getMinQ();
+        double maxQ = bus.getMaxQ();
+        double q = bus.getGenerationTargetQ();
+        if (Math.abs(q - maxQ) < Q_EPS && bus.getV() > bus.getTargetV()) { // bus produce too much reactive power
+            pqToPvBuses.add(new PqToPvBus(bus, ReactiveLimitDirection.MAX));
+        }
+        if (Math.abs(q - minQ) < Q_EPS && bus.getV() < bus.getTargetV()) { // bus absorb too much reactive power
+            pqToPvBuses.add(new PqToPvBus(bus, ReactiveLimitDirection.MIN));
+        }
+    }
+
     @Override
     public OuterLoopStatus check(OuterLoopContext context) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         List<PvToPqBus> pvToPqBuses = new ArrayList<>();
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
-        int remainingPvBusCount = 0;
+        MutableInt remainingPvBusCount = new MutableInt();
         for (LfBus bus : context.getNetwork().getBuses()) {
-            double minQ = bus.getMinQ();
-            double maxQ = bus.getMaxQ();
-            if (bus.hasVoltageControl()) { // PV bus
-                double q = bus.getCalculatedQ() + bus.getLoadTargetQ();
-                if (q < minQ) {
-                    pvToPqBuses.add(new PvToPqBus(bus, q, minQ, ReactiveLimitDirection.MIN));
-                } else if (q > maxQ) {
-                    // switch PV -> PQ
-                    pvToPqBuses.add(new PvToPqBus(bus, q, maxQ, ReactiveLimitDirection.MAX));
-                } else {
-                    remainingPvBusCount++;
-                }
-            } else { // PQ bus
-                double q = bus.getGenerationTargetQ();
-                if (bus.hasVoltageControlCapability()) {
-                    if (Math.abs(q - maxQ) < Q_EPS && bus.getV() > bus.getTargetV()) { // bus produce too much reactive power
-                        pqToPvBuses.add(new PqToPvBus(bus, ReactiveLimitDirection.MAX));
-                    }
-                    if (Math.abs(q - minQ) < Q_EPS && bus.getV() < bus.getTargetV()) { // bus absorb too much reactive power
-                        pqToPvBuses.add(new PqToPvBus(bus, ReactiveLimitDirection.MIN));
-                    }
-                }
+            if (bus.hasVoltageControl()) {
+                checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
+            } else if (bus.hasVoltageControlCapability()) {
+                checkPqBus(bus, pqToPvBuses);
             }
         }
 
-        if (!pvToPqBuses.isEmpty() && switchPvPq(pvToPqBuses, context.getEquationSystem(), context.getVariableSet(), remainingPvBusCount)) {
+        if (!pvToPqBuses.isEmpty() && switchPvPq(pvToPqBuses, context.getEquationSystem(), context.getVariableSet(), remainingPvBusCount.intValue())) {
             status = OuterLoopStatus.UNSTABLE;
         }
         if (!pqToPvBuses.isEmpty() && switchPqPv(pqToPvBuses, context.getEquationSystem(), context.getVariableSet())) {
