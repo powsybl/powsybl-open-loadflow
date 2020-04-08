@@ -203,8 +203,8 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
     /**
      * A bus PV bus can be switched to PQ in 2 cases:
-     *  - if Q equals Qmax
-     *  - if Q equals Qmin
+     *  - if Q equals to Qmax
+     *  - if Q equals to Qmin
      */
     private void checkPvBus(LfBus bus, List<PvToPqBus> pvToPqBuses, MutableInt remainingPvBusCount) {
         double minQ = bus.getMinQ();
