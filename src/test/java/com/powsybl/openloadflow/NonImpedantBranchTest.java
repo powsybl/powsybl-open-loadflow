@@ -7,7 +7,9 @@
 package com.powsybl.openloadflow;
 
 import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -18,8 +20,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CompletionException;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -50,7 +51,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createGenerator(b1, "g1", 2, 1);
         createLoad(b3, "l1", 1.99, 1);
         createLine(network, b1, b2, "l12", 0.1);
-        createLine(network, b2, b3, "l23", 0); // non impedant branch
+        Line l23 = createLine(network, b2, b3, "l23", 0); // non impedant branch
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -60,6 +61,11 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertAngleEquals(13.36967, b1);
         assertAngleEquals(0, b2);
         assertAngleEquals(0, b3);
+
+        assertActivePowerEquals(1.99, l23.getTerminal1());
+        assertActivePowerEquals(-1.99, l23.getTerminal2());
+        assertReactivePowerEquals(1, l23.getTerminal1());
+        assertReactivePowerEquals(-1, l23.getTerminal2());
 
         parametersExt.setDc(true);
         result = loadFlowRunner.run(network, parameters);
@@ -118,7 +124,13 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createGenerator(b1, "g1", 2, 1);
         createLoad(b3, "l1", 1.99, 1);
         createLine(network, b1, b2, "l12", 0.1);
-        createTransformer(network, "s", b2, b3, "l23", 0, 1.1); // non impedant branch
+        TwoWindingsTransformer l23 = createTransformer(network, "s", b2, b3, "l23", 0, 1.1); // non impedant branch
+
+        // TODO: low impedance transformer flow calculation not yet supported
+        assertTrue(Double.isNaN(l23.getTerminal1().getP()));
+        assertTrue(Double.isNaN(l23.getTerminal2().getP()));
+        assertTrue(Double.isNaN(l23.getTerminal1().getQ()));
+        assertTrue(Double.isNaN(l23.getTerminal2().getQ()));
 
         LoadFlowResult result = loadFlowRunner.run(network);
         assertTrue(result.isOk());

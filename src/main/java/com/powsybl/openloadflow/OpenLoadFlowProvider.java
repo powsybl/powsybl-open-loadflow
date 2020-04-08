@@ -14,6 +14,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowResultImpl;
+import com.powsybl.loadflow.resultscompletion.z0flows.Z0FlowsCompletion;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.ac.AcLoadFlowLogger;
@@ -27,9 +28,11 @@ import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.VoltageInitializer;
+import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.tools.PowsyblCoreVersion;
@@ -147,6 +150,15 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 ok |= result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
                 metrics.putAll(createMetrics(result));
             }
+
+            // zero or low impedance flow computation
+            new Z0FlowsCompletion(network, line -> {
+                // to be consistent with low impedance criteria used in DcEquationSystem and AcEquationSystem
+                double nominalV = line.getTerminal1().getVoltageLevel().getNominalV();
+                double zb = nominalV * nominalV / PerUnit.SB;
+                double z = Math.hypot(line.getR(), line.getX());
+                return z / zb <= DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
+            }).complete();
 
             return new LoadFlowResultImpl(ok, metrics, null);
         });
