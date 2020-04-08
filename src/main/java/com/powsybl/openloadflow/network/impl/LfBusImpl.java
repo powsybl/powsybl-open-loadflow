@@ -204,21 +204,21 @@ public class LfBusImpl extends AbstractLfBus {
     private void add(LfGenerator generator, boolean voltageControl, double targetV, double targetQ,
                      LfNetworkLoadingReport report) {
         generators.add(generator);
-        boolean fixedVoltageControl = voltageControl;
+        boolean modifiedVoltageControl = voltageControl;
         double maxRangeQ = generator.getMaxRangeQ();
         if (voltageControl && maxRangeQ < REACTIVE_RANGE_THRESHOLD_PU) {
             LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small",
                     generator.getId(), maxRangeQ);
             report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
-            fixedVoltageControl = false;
+            modifiedVoltageControl = false;
         }
         if (voltageControl && Math.abs(generator.getTargetP()) < POWER_EPSILON_SI && generator.getMinP() > POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)",
                     generator.getId(), generator.getTargetP(), generator.getMinP());
             report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
-            fixedVoltageControl = false;
+            modifiedVoltageControl = false;
         }
-        if (fixedVoltageControl) {
+        if (modifiedVoltageControl) {
             this.targetV = checkTargetV(targetV);
             this.voltageControl = true;
             this.voltageControlCapacility = true;

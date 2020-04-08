@@ -138,6 +138,11 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         return done;
     }
 
+    /**
+     * A bus can be switched PQ to PV in 2 cases:
+     *  - if Q is equal to Qmin and V is less than targetV: it means that the PQ bus can be unlocked in order to increase the reactive power and reach its targetV.
+     *  - if Q is equal to Qmax and V is greater than targetV: it means that the PQ bus can be unlocked in order to decrease the reactive power and reach its target V.
+     */
     private void switchPqPv(LfBus bus, EquationSystem equationSystem, VariableSet variableSet) {
         bus.setVoltageControl(true);
 
