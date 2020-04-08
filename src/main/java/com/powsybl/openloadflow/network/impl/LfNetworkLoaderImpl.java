@@ -159,7 +159,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                         }
                         break;
                     case LCC:
-                        throw new UnsupportedOperationException("LCC converter station is not yet supported");
+                        lfBus.addLccConverterStation((LccConverterStation) converterStation);
+                        break;
                     default:
                         throw new IllegalStateException("Unknown HVDC converter station type: " + converterStation.getHvdcType());
                 }
