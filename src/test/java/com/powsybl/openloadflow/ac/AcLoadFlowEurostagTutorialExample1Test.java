@@ -69,7 +69,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
     public void baseCaseTest() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertEquals("3", result.getMetrics().get("iterations"));
+        assertEquals("3", result.getMetrics().get("network_0_iterations"));
 
         assertVoltageEquals(24.5, genBus);
         assertAngleEquals(0, genBus);
@@ -108,7 +108,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
         });
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertEquals("3", result.getMetrics().get("iterations"));
+        assertEquals("3", result.getMetrics().get("network_0_iterations"));
         assertTrue(stateVectorInitialized[0]);
     }
 

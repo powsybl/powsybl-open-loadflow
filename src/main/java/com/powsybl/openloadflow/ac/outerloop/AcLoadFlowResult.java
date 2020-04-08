@@ -6,11 +6,10 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PerUnit;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -18,7 +17,7 @@ import java.util.Objects;
  */
 public class AcLoadFlowResult {
 
-    private final List<LfNetwork> networks;
+    private final LfNetwork network;
 
     private final int outerLoopIterations;
 
@@ -28,17 +27,17 @@ public class AcLoadFlowResult {
 
     private final double slackBusActivePowerMismatch;
 
-    public AcLoadFlowResult(List<LfNetwork> networks, int outerLoopIterations, int newtonRaphsonIterations, NewtonRaphsonStatus newtonRaphsonStatus,
+    public AcLoadFlowResult(LfNetwork network, int outerLoopIterations, int newtonRaphsonIterations, NewtonRaphsonStatus newtonRaphsonStatus,
                             double slackBusActivePowerMismatch) {
-        this.networks = Objects.requireNonNull(networks);
+        this.network = Objects.requireNonNull(network);
         this.outerLoopIterations = outerLoopIterations;
         this.newtonRaphsonIterations = newtonRaphsonIterations;
         this.newtonRaphsonStatus = newtonRaphsonStatus;
         this.slackBusActivePowerMismatch = slackBusActivePowerMismatch;
     }
 
-    public List<LfNetwork> getNetworks() {
-        return networks;
+    public LfNetwork getNetwork() {
+        return network;
     }
 
     public int getOuterLoopIterations() {
