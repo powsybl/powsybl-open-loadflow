@@ -202,7 +202,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
     }
 
     /**
-     * A bus PV bus can be switched to PQ in 2 case:
+     * A bus PV bus can be switched to PQ in 2 cases:
      *  - if Q equals Qmax
      *  - if Q equals Qmin
      */
