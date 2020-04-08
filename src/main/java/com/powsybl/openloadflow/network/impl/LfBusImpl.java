@@ -59,6 +59,8 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final List<Battery> batteries = new ArrayList<>();
 
+    private final List<LccConverterStation> lccCss = new ArrayList<>();
+
     protected LfBusImpl(Bus bus, double v, double angle) {
         super(v, angle);
         this.bus = bus;
@@ -181,6 +183,22 @@ public class LfBusImpl extends AbstractLfBus {
         batteries.add(battery);
         loadTargetP += battery.getP0();
         loadTargetQ += battery.getQ0();
+    }
+
+    void addLccConverterStation(LccConverterStation lccCs) {
+        lccCss.add(lccCs);
+        HvdcLine line = lccCs.getHvdcLine();
+        // The active power setpoint is always positive.
+        // If the converter station is at side 1 and is rectifier, p should be positive.
+        // If the converter station is at side 1 and is inverter, p should be negative.
+        // If the converter station is at side 2 and is rectifier, p should be positive.
+        // If the converter station is at side 2 and is inverter, p should be negative.
+        boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(lccCs);
+        double p = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
+                (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor()); // A LCC station has active losses.
+        double q = Math.abs(p * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
+        loadTargetP += p;
+        loadTargetQ += q;
     }
 
     private void add(LfGenerator generator, boolean voltageControl, double targetV, double targetQ,
@@ -373,6 +391,18 @@ public class LfBusImpl extends AbstractLfBus {
             battery.getTerminal()
                     .setP(battery.getP0())
                     .setQ(battery.getQ0());
+        }
+
+        // update lcc converter station power
+        for (LccConverterStation lccCs : lccCss) {
+            boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(lccCs);
+            HvdcLine line = lccCs.getHvdcLine();
+            double p = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
+                    (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor()); // A LCC station has active losses.
+            double q = Math.abs(p * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
+            lccCs.getTerminal()
+                    .setP(p)
+                    .setQ(q);
         }
     }
 }
