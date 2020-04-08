@@ -37,6 +37,8 @@ public class LfBusImpl extends AbstractLfBus {
 
     private boolean voltageControl = false;
 
+    private int voltageControlSwitchOffCount = 0;
+
     private double loadTargetP = 0;
 
     private double loadTargetQ = 0;
@@ -90,7 +92,15 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public void setVoltageControl(boolean voltageControl) {
+        if (this.voltageControl && !voltageControl) {
+            voltageControlSwitchOffCount++;
+        }
         this.voltageControl = voltageControl;
+    }
+
+    @Override
+    public int getVoltageControlSwitchOffCount() {
+        return voltageControlSwitchOffCount;
     }
 
     @Override

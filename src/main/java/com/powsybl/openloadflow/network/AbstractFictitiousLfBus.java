@@ -39,6 +39,11 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     }
 
     @Override
+    public int getVoltageControlSwitchOffCount() {
+        return 0;
+    }
+
+    @Override
     public List<LfBus> getControllerBuses() {
         return Collections.emptyList();
     }

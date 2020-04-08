@@ -43,6 +43,8 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
     private static final Comparator<PvToPqBus> BY_ID_COMPARATOR = Comparator.comparing(pvToPqBus -> pvToPqBus.bus.getId());
 
+    private static final int MAX_SWITCH_PQ_PV = 2;
+
     @Override
     public String getName() {
         return "Reactive limits";
@@ -136,42 +138,6 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         return done;
     }
 
-    private static final class PqToPvBus {
-
-        private final LfBus bus;
-
-        private final ReactiveLimitDirection limitDirection;
-
-        private PqToPvBus(LfBus bus, ReactiveLimitDirection limitDirection) {
-            this.bus = bus;
-            this.limitDirection = limitDirection;
-        }
-    }
-
-    private void switchPqPv(List<PqToPvBus> pqToPvBuses, EquationSystem equationSystem, VariableSet variableSet) {
-        for (PqToPvBus pqToPvBus : pqToPvBuses) {
-            LfBus bus = pqToPvBus.bus;
-
-            switchPqPv(bus, equationSystem, variableSet);
-
-            if (LOGGER.isTraceEnabled()) {
-                String limitLabel;
-                String comparisonOp;
-                if (pqToPvBus.limitDirection == ReactiveLimitDirection.MAX) {
-                    limitLabel = "max";
-                    comparisonOp = ">";
-                } else {
-                    limitLabel = "min";
-                    comparisonOp = "<";
-                }
-                LOGGER.trace("Switch bus '{}' PQ -> PV, q={}Q and v={} {} targetV={}", bus.getId(), limitLabel, bus.getV(),
-                        comparisonOp, bus.getTargetV());
-            }
-        }
-
-        LOGGER.info("{} buses switched PQ -> PV", pqToPvBuses.size());
-    }
-
     private void switchPqPv(LfBus bus, EquationSystem equationSystem, VariableSet variableSet) {
         bus.setVoltageControl(true);
 
@@ -185,6 +151,53 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             Equation vEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
             vEq.setActive(true);
         }
+    }
+
+    private static final class PqToPvBus {
+
+        private final LfBus bus;
+
+        private final ReactiveLimitDirection limitDirection;
+
+        private PqToPvBus(LfBus bus, ReactiveLimitDirection limitDirection) {
+            this.bus = bus;
+            this.limitDirection = limitDirection;
+        }
+    }
+
+    private boolean switchPqPv(List<PqToPvBus> pqToPvBuses, EquationSystem equationSystem, VariableSet variableSet) {
+        int pqPvSwitchCount = 0;
+
+        for (PqToPvBus pqToPvBus : pqToPvBuses) {
+            LfBus bus = pqToPvBus.bus;
+
+            if (bus.getVoltageControlSwitchOffCount() >= MAX_SWITCH_PQ_PV) {
+                LOGGER.trace("Bus '{}' blocked PQ as it has reach its max number of PQ -> PV switch ({})",
+                        bus.getId(), bus.getVoltageControlSwitchOffCount());
+            } else {
+                switchPqPv(bus, equationSystem, variableSet);
+                pqPvSwitchCount++;
+
+                if (LOGGER.isTraceEnabled()) {
+                    String limitLabel;
+                    String comparisonOp;
+                    if (pqToPvBus.limitDirection == ReactiveLimitDirection.MAX) {
+                        limitLabel = "max";
+                        comparisonOp = ">";
+                    } else {
+                        limitLabel = "min";
+                        comparisonOp = "<";
+                    }
+                    LOGGER.trace("Switch bus '{}' PQ -> PV, q={}Q and v={} {} targetV={}", bus.getId(), limitLabel, bus.getV(),
+                            comparisonOp, bus.getTargetV());
+                }
+            }
+        }
+
+        LOGGER.info("{} buses switched PQ -> PV ({} buses blocked PQ because have reach max number of switch)",
+                pqPvSwitchCount, pqToPvBuses.size() - pqPvSwitchCount);
+
+        return pqPvSwitchCount > 0;
     }
 
     @Override
@@ -223,8 +236,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         if (!pvToPqBuses.isEmpty() && switchPvPq(pvToPqBuses, context.getEquationSystem(), context.getVariableSet(), remainingPvBusCount)) {
             status = OuterLoopStatus.UNSTABLE;
         }
-        if (!pqToPvBuses.isEmpty()) {
-            switchPqPv(pqToPvBuses, context.getEquationSystem(), context.getVariableSet());
+        if (!pqToPvBuses.isEmpty() && switchPqPv(pqToPvBuses, context.getEquationSystem(), context.getVariableSet())) {
             status = OuterLoopStatus.UNSTABLE;
         }
 

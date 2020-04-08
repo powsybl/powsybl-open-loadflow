@@ -17,7 +17,6 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CompletionException;
@@ -234,7 +233,6 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    @Disabled
     public void testWith3GeneratorsAndFirstGeneratorToLimit() {
         parameters.setNoGeneratorReactiveLimits(false);
         g1.newMinMaxReactiveLimits()
