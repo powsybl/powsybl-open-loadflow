@@ -176,8 +176,7 @@ public class LfBusImpl extends AbstractLfBus {
         // If the converter station is at side 1 and is inverter, p should be negative.
         // If the converter station is at side 2 and is rectifier, p should be positive.
         // If the converter station is at side 2 and is inverter, p should be negative.
-        boolean isConverterStationRectifier = (line.getConverterStation1() == lccCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
-                || (line.getConverterStation2() == lccCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER);
+        boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(lccCs);
         double p = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
                 (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor()); // A LCC station has active losses.
         double q = Math.abs(p * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
@@ -378,9 +377,8 @@ public class LfBusImpl extends AbstractLfBus {
 
         // update lcc converter station power
         for (LccConverterStation lccCs : lccCss) {
+            boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(lccCs);
             HvdcLine line = lccCs.getHvdcLine();
-            boolean isConverterStationRectifier = (line.getConverterStation1() == lccCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
-                    || (line.getConverterStation2() == lccCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER);
             double p = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
                     (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor()); // A LCC station has active losses.
             double q = Math.abs(p * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
