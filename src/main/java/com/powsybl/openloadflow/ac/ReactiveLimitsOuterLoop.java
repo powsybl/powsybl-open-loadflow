@@ -128,8 +128,16 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             for (PvToPqBus pvToPqBus : pvToPqBuses) {
                 // switch PV -> PQ
                 switchPvPq(pvToPqBus.bus, equationSystem, variableSet, pvToPqBus.qLimit);
-                LOGGER.trace("Switch bus '{}' PV -> PQ, q={} < {}Q={}", pvToPqBus.bus.getId(), pvToPqBus.q * PerUnit.SB,
-                        pvToPqBus.limitDirection == ReactiveLimitDirection.MAX ? "max" : "min", pvToPqBus.qLimit * PerUnit.SB);
+
+                if (LOGGER.isTraceEnabled()) {
+                    if (pvToPqBus.limitDirection == ReactiveLimitDirection.MAX) {
+                        LOGGER.trace("Switch bus '{}' PV -> PQ, q={} > maxQ={}", pvToPqBus.bus.getId(), pvToPqBus.q * PerUnit.SB,
+                                pvToPqBus.qLimit * PerUnit.SB);
+                    } else {
+                        LOGGER.trace("Switch bus '{}' PV -> PQ, q={} < minQ={}", pvToPqBus.bus.getId(), pvToPqBus.q * PerUnit.SB,
+                                pvToPqBus.qLimit * PerUnit.SB);
+                    }
+                }
             }
         }
 
@@ -179,17 +187,13 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
                 pqPvSwitchCount++;
 
                 if (LOGGER.isTraceEnabled()) {
-                    String limitLabel;
-                    String comparisonOp;
                     if (pqToPvBus.limitDirection == ReactiveLimitDirection.MAX) {
-                        limitLabel = "max";
-                        comparisonOp = ">";
+                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=maxQ and v={} > targetV={}", bus.getId(), bus.getV(),
+                                bus.getTargetV());
                     } else {
-                        limitLabel = "min";
-                        comparisonOp = "<";
+                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=minQ and v={} < targetV={}", bus.getId(), bus.getV(),
+                                bus.getTargetV());
                     }
-                    LOGGER.trace("Switch bus '{}' PQ -> PV, q={}Q and v={} {} targetV={}", bus.getId(), limitLabel, bus.getV(),
-                            comparisonOp, bus.getTargetV());
                 }
             }
         }
