@@ -33,7 +33,11 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final double nominalV;
 
+    private boolean voltageControlCapacility = false;
+
     private boolean voltageControl = false;
+
+    private int voltageControlSwitchOffCount = 0;
 
     private double loadTargetP = 0;
 
@@ -79,13 +83,26 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
+    public boolean hasVoltageControlCapability() {
+        return voltageControlCapacility;
+    }
+
+    @Override
     public boolean hasVoltageControl() {
         return voltageControl;
     }
 
     @Override
     public void setVoltageControl(boolean voltageControl) {
+        if (this.voltageControl && !voltageControl) {
+            voltageControlSwitchOffCount++;
+        }
         this.voltageControl = voltageControl;
+    }
+
+    @Override
+    public int getVoltageControlSwitchOffCount() {
+        return voltageControlSwitchOffCount;
     }
 
     @Override
@@ -187,23 +204,24 @@ public class LfBusImpl extends AbstractLfBus {
     private void add(LfGenerator generator, boolean voltageControl, double targetV, double targetQ,
                      LfNetworkLoadingReport report) {
         generators.add(generator);
-        boolean voltageControl2 = voltageControl;
+        boolean modifiedVoltageControl = voltageControl;
         double maxRangeQ = generator.getMaxRangeQ();
         if (voltageControl && maxRangeQ < REACTIVE_RANGE_THRESHOLD_PU) {
             LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small",
                     generator.getId(), maxRangeQ);
             report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
-            voltageControl2 = false;
+            modifiedVoltageControl = false;
         }
         if (voltageControl && Math.abs(generator.getTargetP()) < POWER_EPSILON_SI && generator.getMinP() > POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)",
                     generator.getId(), generator.getTargetP(), generator.getMinP());
             report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
-            voltageControl2 = false;
+            modifiedVoltageControl = false;
         }
-        if (voltageControl2) {
+        if (modifiedVoltageControl) {
             this.targetV = checkTargetV(targetV);
             this.voltageControl = true;
+            this.voltageControlCapacility = true;
         } else {
             generationTargetQ += targetQ;
         }
