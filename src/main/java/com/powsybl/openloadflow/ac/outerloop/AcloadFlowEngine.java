@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -59,11 +60,48 @@ public class AcloadFlowEngine {
         }
     }
 
-    public AcLoadFlowResult run() {
+    private static class OuterLoopRunningContext {
+
+        private NewtonRaphsonResult lastNrResult;
+
+        private int outerLoopIteration = 0;
+    }
+
+    private void runOuterLoop(OuterLoop outerLoop, LfNetwork network, EquationSystem equationSystem, VariableSet variableSet,
+                              NewtonRaphson newtonRaphson, NewtonRaphsonParameters nrParameters, OuterLoopRunningContext runningContext) {
+        // for each outer loop re-run Newton-Raphson until stabilization
+        OuterLoopStatus outerLoopStatus;
+        do {
+            parameters.getObserver().beforeOuterLoopStatusCheck(runningContext.outerLoopIteration, outerLoop.getName());
+
+            // check outer loop status
+            outerLoopStatus = outerLoop.check(new OuterLoopContext(runningContext.outerLoopIteration, network, equationSystem, variableSet, runningContext.lastNrResult));
+
+            parameters.getObserver().afterOuterLoopStatusCheck(runningContext.outerLoopIteration, outerLoop.getName(), outerLoopStatus == OuterLoopStatus.STABLE);
+
+            if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
+                parameters.getObserver().beforeOuterLoopBody(runningContext.outerLoopIteration, outerLoop.getName());
+
+                // if not yet stable, restart Newton-Raphson
+                runningContext.lastNrResult = newtonRaphson.run(nrParameters);
+                if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED) {
+                    return;
+                }
+
+                parameters.getObserver().afterOuterLoopBody(runningContext.outerLoopIteration, outerLoop.getName());
+
+                // update PV buses reactive power some outer loops might need this information
+                updatePvBusesReactivePower(runningContext.lastNrResult, network, equationSystem);
+
+                runningContext.outerLoopIteration++;
+            }
+        } while (outerLoopStatus == OuterLoopStatus.UNSTABLE);
+    }
+
+    private AcLoadFlowResult run(LfNetwork network) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        // only process main (largest) connected component
-        LfNetwork network = networks.get(0);
+        LOGGER.info("Start Ac loadflow on network {}", network.getNum());
 
         parameters.getObserver().beforeEquationSystemCreation();
 
@@ -72,56 +110,53 @@ public class AcloadFlowEngine {
 
         parameters.getObserver().afterEquationSystemCreation();
 
-        NewtonRaphsonResult lastNrResult;
-        int outerLoopIteration = 0;
+        OuterLoopRunningContext runningContext = new OuterLoopRunningContext();
         try (NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getMatrixFactory(), parameters.getObserver(), equationSystem, parameters.getStoppingCriteria())) {
 
             NewtonRaphsonParameters nrParameters = new NewtonRaphsonParameters().setVoltageInitializer(parameters.getVoltageInitializer());
 
-            // initial Newton-Raphson
-            lastNrResult = newtonRaphson.run(nrParameters);
+            // run initial Newton-Raphson
+            runningContext.lastNrResult = newtonRaphson.run(nrParameters);
 
-            updatePvBusesReactivePower(lastNrResult, network, equationSystem);
+            // continue with outer loops only if initial Newton-Raphson succeed
+            if (runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
+                updatePvBusesReactivePower(runningContext.lastNrResult, network, equationSystem);
 
-            // for each outer loop re-run Newton-Raphson until stabilization
-            // outer loops are nested: inner most loop first in the list, outer mosy loop last
-            for (OuterLoop outerLoop : parameters.getOuterLoops()) {
-                OuterLoopStatus outerLoopStatus;
+                // re-run all outer loops until Newton-Raphson failed or no more Newton-Raphson iterations are needed
+                int oldIterationCount;
                 do {
-                    parameters.getObserver().beforeOuterLoopStatusCheck(outerLoopIteration, outerLoop.getName());
+                    oldIterationCount = runningContext.lastNrResult.getIteration();
 
-                    // check outer loop status
-                    outerLoopStatus = outerLoop.check(new OuterLoopContext(outerLoopIteration, network, equationSystem, variableSet, lastNrResult));
+                    // outer loops are nested: inner most loop first in the list, outer most loop last
+                    for (OuterLoop outerLoop : parameters.getOuterLoops()) {
+                        runOuterLoop(outerLoop, network, equationSystem, variableSet, newtonRaphson, nrParameters, runningContext);
 
-                    parameters.getObserver().afterOuterLoopStatusCheck(outerLoopIteration, outerLoop.getName(), outerLoopStatus == OuterLoopStatus.STABLE);
-
-                    if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
-                        parameters.getObserver().beforeOuterLoopBody(outerLoopIteration, outerLoop.getName());
-
-                        // if not yet stable, restart Newton-Raphson
-                        lastNrResult = newtonRaphson.run(nrParameters);
-
-                        parameters.getObserver().afterOuterLoopBody(outerLoopIteration, outerLoop.getName());
-
-                        updatePvBusesReactivePower(lastNrResult, network, equationSystem);
-
-                        outerLoopIteration++;
+                        // continue with next outer loop only if last Newton-Raphson succeed
+                        if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED) {
+                            break;
+                        }
                     }
-                } while (outerLoopStatus == OuterLoopStatus.UNSTABLE);
+                } while (runningContext.lastNrResult.getIteration() > oldIterationCount
+                        && runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED);
             }
         }
 
         stopwatch.stop();
 
-        int nrIterations = lastNrResult.getIteration();
-        int outerLoopIterations = outerLoopIteration + 1;
+        int nrIterations = runningContext.lastNrResult.getIteration();
+        int outerLoopIterations = runningContext.outerLoopIteration + 1;
 
-        LOGGER.debug(Markers.PERFORMANCE_MARKER, "Ac loadflow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        LOGGER.debug(Markers.PERFORMANCE_MARKER, "Ac loadflow ran on network {} in {} ms", network.getNum(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-        AcLoadFlowResult result = new AcLoadFlowResult(networks, outerLoopIterations, nrIterations, lastNrResult.getStatus(), lastNrResult.getSlackBusActivePowerMismatch());
+        AcLoadFlowResult result = new AcLoadFlowResult(network, outerLoopIterations, nrIterations, runningContext.lastNrResult.getStatus(),
+                runningContext.lastNrResult.getSlackBusActivePowerMismatch());
 
-        LOGGER.info("Ac loadflow complete (result={})", result);
+        LOGGER.info("Ac loadflow complete on network {} (result={})", network.getNum(), result);
 
         return result;
+    }
+
+    public List<AcLoadFlowResult> run() {
+        return networks.stream().map(this::run).collect(Collectors.toList());
     }
 }
