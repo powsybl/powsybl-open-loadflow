@@ -7,13 +7,11 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
-import com.powsybl.openloadflow.network.AbstractLfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.PerUnit;
-import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -86,6 +84,11 @@ public class LfLegBranch extends AbstractLfBranch {
     @Override
     public void setQ2(Evaluable q2) {
         // nothing to do
+    }
+
+    @Override
+    public Optional<PhaseControl> getPhaseControl() {
+        return Optional.empty();
     }
 
     @Override

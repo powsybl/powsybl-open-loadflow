@@ -27,11 +27,7 @@ public final class AcEquationSystem {
     private AcEquationSystem() {
     }
 
-    public static EquationSystem create(LfNetwork network) {
-        return create(network, new VariableSet(), false);
-    }
-
-    private static void createBusEquations(LfNetwork network, VariableSet variableSet, boolean voltageRemoteControl,
+    private static void createBusEquations(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters,
                                            EquationSystem equationSystem) {
         for (LfBus bus : network.getBuses()) {
             if (bus.isSlack()) {
@@ -41,14 +37,14 @@ public final class AcEquationSystem {
 
             if (bus.hasVoltageControl()) {
                 // local voltage control
-                if (!voltageRemoteControl || !bus.getControlledBus().isPresent()) {
+                if (!creationParameters.isVoltageRemoteControl() || !bus.getControlledBus().isPresent()) {
                     equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
                 }
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
             }
 
             // in case voltage remote control is activated, set voltage equation on this controlled bus
-            if (voltageRemoteControl && !bus.getControllerBuses().isEmpty()) {
+            if (creationParameters.isVoltageRemoteControl() && !bus.getControllerBuses().isEmpty()) {
                 createVoltageControlledBusEquations(bus, equationSystem, variableSet);
             }
 
@@ -204,13 +200,21 @@ public final class AcEquationSystem {
         }
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean voltageRemoteControl) {
+    public static EquationSystem create(LfNetwork network) {
+        return create(network, new VariableSet());
+    }
+
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
+        return create(network, variableSet, new AcEquationSystemCreationParameters(false, false));
+    }
+
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(variableSet);
 
         EquationSystem equationSystem = new EquationSystem(network);
 
-        createBusEquations(network, variableSet, voltageRemoteControl, equationSystem);
+        createBusEquations(network, variableSet, creationParameters, equationSystem);
         createBranchEquations(network, variableSet, equationSystem);
 
         return equationSystem;

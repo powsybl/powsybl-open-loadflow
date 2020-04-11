@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
+import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
@@ -106,7 +107,9 @@ public class AcloadFlowEngine {
         parameters.getObserver().beforeEquationSystemCreation();
 
         VariableSet variableSet = new VariableSet();
-        EquationSystem equationSystem = AcEquationSystem.create(network, variableSet, parameters.isVoltageRemoteControl());
+        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(parameters.isVoltageRemoteControl(),
+                                                                                                       parameters.isPhaseControl());
+        EquationSystem equationSystem = AcEquationSystem.create(network, variableSet, creationParameters);
 
         parameters.getObserver().afterEquationSystemCreation();
 

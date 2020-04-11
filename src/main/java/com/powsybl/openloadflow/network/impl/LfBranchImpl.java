@@ -9,14 +9,13 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Line;
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
-import com.powsybl.openloadflow.network.AbstractLfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.PerUnit;
-import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -24,6 +23,8 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class LfBranchImpl extends AbstractLfBranch {
+
+    private PhaseControl phaseControl;
 
     private final Branch branch;
 
@@ -35,8 +36,9 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private Evaluable q2 = NAN;
 
-    protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, Branch branch) {
+    protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, PhaseControl phaseControl, Branch branch) {
         super(bus1, bus2, piModel);
+        this.phaseControl = phaseControl;
         this.branch = branch;
     }
 
@@ -46,6 +48,7 @@ public class LfBranchImpl extends AbstractLfBranch {
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
         double zb = nominalV2 * nominalV2 / PerUnit.SB;
         PiModel piModel;
+        PhaseControl phaseControl = null;
         if (branch instanceof Line) {
             Line line = (Line) branch;
             piModel = new PiModel()
@@ -64,10 +67,22 @@ public class LfBranchImpl extends AbstractLfBranch {
                     .setB1(Transformers.getB1(twt) * zb)
                     .setR1(Transformers.getRatio(twt) / nominalV2 * nominalV1)
                     .setA1(Transformers.getAngle(twt));
+
+            PhaseTapChanger ptc = twt.getPhaseTapChanger();
+            if (ptc != null) {
+                if (ptc.isRegulating()) {
+                    PhaseTapChanger.RegulationMode regulationMode = ptc.getRegulationMode();
+                    if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
+                        phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, ptc.getRegulationValue(), PhaseControl.Unit.A);
+                    } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                        phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, ptc.getRegulationValue(), PhaseControl.Unit.MW);
+                    }
+                }
+            }
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations for branch: " + branch.getId());
         }
-        return new LfBranchImpl(bus1, bus2, piModel, branch);
+        return new LfBranchImpl(bus1, bus2, piModel, phaseControl, branch);
     }
 
     @Override
@@ -93,6 +108,11 @@ public class LfBranchImpl extends AbstractLfBranch {
     @Override
     public void setQ2(Evaluable q2) {
         this.q2 = Objects.requireNonNull(q2);
+    }
+
+    @Override
+    public Optional<PhaseControl> getPhaseControl() {
+        return Optional.ofNullable(phaseControl);
     }
 
     @Override

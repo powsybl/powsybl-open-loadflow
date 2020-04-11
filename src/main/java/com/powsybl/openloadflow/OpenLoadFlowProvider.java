@@ -119,6 +119,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info("Distributed slack: {}", parametersExt.isDistributedSlack());
             LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
             LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
+            LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
 
             List<OuterLoop> outerLoops = new ArrayList<>();
             if (parametersExt.isDistributedSlack()) {
@@ -130,7 +131,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
             AcLoadFlowParameters acParameters = new AcLoadFlowParameters(slackBusSelector, voltageInitializer, stoppingCriteria,
                                                                          outerLoops, matrixFactory, getObserver(parametersExt),
-                                                                         parametersExt.hasVoltageRemoteControl());
+                                                                         parametersExt.hasVoltageRemoteControl(),
+                                                                         parameters.isPhaseShifterRegulationOn());
 
             List<AcLoadFlowResult> results = new AcloadFlowEngine(network, acParameters)
                     .run();
@@ -174,6 +176,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         OpenLoadFlowParameters parametersExt = getParametersExt(parameters);
 
         return parametersExt.isDc() ? runDc(network, workingVariantId)
-                : runAc(network, workingVariantId, parameters, parametersExt);
+                                    : runAc(network, workingVariantId, parameters, parametersExt);
     }
 }
