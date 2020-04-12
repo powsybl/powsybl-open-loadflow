@@ -73,14 +73,14 @@ public class LfBranchImpl extends AbstractLfBranch {
                 if (ptc.isRegulating()) {
                     PhaseTapChanger.RegulationMode regulationMode = ptc.getRegulationMode();
                     if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
-                        phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, ptc.getRegulationValue(), PhaseControl.Unit.A);
+                        phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A);
                     } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
-                        phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, ptc.getRegulationValue(), PhaseControl.Unit.MW);
+                        phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW);
                     }
                 }
             }
         } else {
-            throw new PowsyblException("Unsupported type of branch for flow equations for branch: " + branch.getId());
+            throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }
         return new LfBranchImpl(bus1, bus2, piModel, phaseControl, branch);
     }

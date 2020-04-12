@@ -29,8 +29,13 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
 
     private double dp1dph2;
 
-    public ClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet) {
-        super(branch, bus1, bus2, variableSet);
+    private double dp1da1;
+
+    private double dp1da2;
+
+    public ClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
+                                                   boolean deriveA) {
+        super(branch, bus1, bus2, variableSet, deriveA);
     }
 
     @Override
@@ -48,6 +53,12 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         dp1dv2 = -y * r1 * r2 * v1 * sinTheta;
         dp1dph1 = y * r1 * r2 * v1 * v2 * cosTheta;
         dp1dph2 = -y * r1 * r2 * v1 * v2 * cosTheta;
+        if (a1Var != null) {
+            // TODO
+        }
+        if (a2Var != null) {
+            // TODO
+        }
     }
 
     @Override
@@ -66,6 +77,10 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
             return dp1dph1;
         } else if (variable.equals(ph2Var)) {
             return dp1dph2;
+        } else if (variable.equals(a1Var)) {
+            return dp1da1;
+        } else if (variable.equals(a2Var)) {
+            return dp1da2;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

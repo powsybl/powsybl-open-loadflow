@@ -89,15 +89,18 @@ public final class AcEquationSystem {
             double c = qKeys[0] / qKeys[i];
 
             // 0 = q0 + c * qi
+            AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false); // TODO could not be the right parameters
             Equation zero = equationSystem.createEquation(controllerBus.getNum(), EquationType.ZERO_Q);
             for (LfBranch branch : firstControllerBus.getBranches()) {
                 LfBus otherSideBus = branch.getBus1() == firstControllerBus ? branch.getBus2() : branch.getBus1();
-                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, firstControllerBus, otherSideBus, variableSet);
+                boolean deriveA = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, firstControllerBus, otherSideBus, variableSet, deriveA);
                 zero.addTerm(q);
             }
             for (LfBranch branch : controllerBus.getBranches()) {
                 LfBus otherSideBus = branch.getBus1() == controllerBus ? branch.getBus2() : branch.getBus1();
-                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet);
+                boolean deriveA = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA);
                 EquationTerm minusQ = EquationTerm.multiply(q, -c);
                 zero.addTerm(minusQ);
             }
@@ -158,7 +161,8 @@ public final class AcEquationSystem {
         DcEquationSystem.createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
     }
 
-    private static void createBranchEquations(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem) {
+    private static void createBranchEquations(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters,
+                                              EquationSystem equationSystem) {
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
@@ -169,10 +173,11 @@ public final class AcEquationSystem {
                 }
             } else {
                 if (bus1 != null && bus2 != null) {
-                    ClosedBranchSide1ActiveFlowEquationTerm p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet);
-                    ClosedBranchSide1ReactiveFlowEquationTerm q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet);
-                    ClosedBranchSide2ActiveFlowEquationTerm p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet);
-                    ClosedBranchSide2ReactiveFlowEquationTerm q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet);
+                    boolean deriveA = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+                    ClosedBranchSide1ActiveFlowEquationTerm p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA);
+                    ClosedBranchSide1ReactiveFlowEquationTerm q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA);
+                    ClosedBranchSide2ActiveFlowEquationTerm p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA);
+                    ClosedBranchSide2ReactiveFlowEquationTerm q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA);
                     equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
                     equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q).addTerm(q1);
                     equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
@@ -215,7 +220,7 @@ public final class AcEquationSystem {
         EquationSystem equationSystem = new EquationSystem(network);
 
         createBusEquations(network, variableSet, creationParameters, equationSystem);
-        createBranchEquations(network, variableSet, equationSystem);
+        createBranchEquations(network, variableSet, creationParameters, equationSystem);
 
         return equationSystem;
     }

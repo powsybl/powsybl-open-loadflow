@@ -61,7 +61,7 @@ public class AcloadFlowEngine {
         }
     }
 
-    private static class OuterLoopRunningContext {
+    private static class RunningContext {
 
         private NewtonRaphsonResult lastNrResult;
 
@@ -69,7 +69,7 @@ public class AcloadFlowEngine {
     }
 
     private void runOuterLoop(OuterLoop outerLoop, LfNetwork network, EquationSystem equationSystem, VariableSet variableSet,
-                              NewtonRaphson newtonRaphson, NewtonRaphsonParameters nrParameters, OuterLoopRunningContext runningContext) {
+                              NewtonRaphson newtonRaphson, NewtonRaphsonParameters nrParameters, RunningContext runningContext) {
         // for each outer loop re-run Newton-Raphson until stabilization
         OuterLoopStatus outerLoopStatus;
         do {
@@ -113,7 +113,7 @@ public class AcloadFlowEngine {
 
         parameters.getObserver().afterEquationSystemCreation();
 
-        OuterLoopRunningContext runningContext = new OuterLoopRunningContext();
+        RunningContext runningContext = new RunningContext();
         try (NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getMatrixFactory(), parameters.getObserver(), equationSystem, parameters.getStoppingCriteria())) {
 
             NewtonRaphsonParameters nrParameters = new NewtonRaphsonParameters().setVoltageInitializer(parameters.getVoltageInitializer());

@@ -59,7 +59,7 @@ public class PerUnitTest {
         Mockito.doReturn(0d).when(piModel).getA1();
         Mockito.doReturn(0d).when(piModel).getA2();
 
-        ClosedBranchSide1ActiveFlowEquationTerm p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet);
+        ClosedBranchSide1ActiveFlowEquationTerm p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, false);
         double[] x = new double[4];
         x[0] = 405 / vb;
         x[1] = 0.045;

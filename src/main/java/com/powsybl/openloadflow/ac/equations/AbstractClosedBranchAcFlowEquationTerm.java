@@ -30,13 +30,18 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected final Variable ph2Var;
 
+    protected Variable a1Var;
+
+    protected Variable a2Var;
+
     protected final List<Variable> variables;
 
     protected final double a1;
 
     protected final double a2;
 
-    protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet) {
+    protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
+                                                     boolean deriveA) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
@@ -44,7 +49,13 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         v2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_V);
         ph1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_PHI);
-        variables = ImmutableList.of(v1Var, v2Var, ph1Var, ph2Var);
+        if (deriveA) {
+            a1Var = variableSet.getVariable(branch.getNum(), VariableType.BRANCH_ALPHA1);
+            a2Var = variableSet.getVariable(branch.getNum(), VariableType.BRANCH_ALPHA2);
+            variables = ImmutableList.of(v1Var, v2Var, ph1Var, ph2Var, a1Var, a2Var);
+        } else {
+            variables = ImmutableList.of(v1Var, v2Var, ph1Var, ph2Var);
+        }
         PiModel piModel = branch.getPiModel();
         a1 = piModel.getA1();
         a2 = piModel.getA2();

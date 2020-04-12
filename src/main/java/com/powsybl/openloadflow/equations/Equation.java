@@ -6,10 +6,8 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
@@ -89,7 +87,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return terms;
     }
 
-    private static double getTargetV(LfBus bus) {
+    private static double getBusTargetV(LfBus bus) {
         Objects.requireNonNull(bus);
         if (bus.getControllerBuses().isEmpty()) {
             return bus.getTargetV();
@@ -98,15 +96,26 @@ public class Equation implements Evaluable, Comparable<Equation> {
                     .stream()
                     .filter(LfBus::hasVoltageControl)
                     .findFirst()
-                    .orElseThrow(() -> new IllegalStateException("None of the controller buses has voltage control on"))
+                    .orElseThrow(() -> new IllegalStateException("None of the controller buses of bus '" + bus.getId()
+                            + "'has voltage control on"))
                     .getTargetV();
         }
     }
 
-    private static double getPhi(LfBranch branch) {
+    private static double getBranchPhi(LfBranch branch) {
         Objects.requireNonNull(branch);
         PiModel piModel = branch.getPiModel();
         return piModel.getA2() - piModel.getA1();
+    }
+
+    private static double getBranchTarget(LfBranch branch, PhaseControl.Unit unit) {
+        Objects.requireNonNull(branch);
+        PhaseControl phaseControl = branch.getPhaseControl()
+                .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no phase control"));
+        if (phaseControl.getUnit() != unit) {
+            throw new PowsyblException("Branch '" + branch.getId() + "' has not a target in " + unit);
+        }
+        return phaseControl.getTargetValue();
     }
 
     void initTarget(LfNetwork network, double[] targets) {
@@ -120,7 +129,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case BUS_V:
-                targets[row] = getTargetV(network.getBus(num));
+                targets[row] = getBusTargetV(network.getBus(num));
                 break;
 
             case BUS_PHI:
@@ -128,9 +137,11 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case BRANCH_P:
+                targets[row] = getBranchTarget(network.getBranch(num), PhaseControl.Unit.MW);
                 break;
 
             case BRANCH_I:
+                targets[row] = getBranchTarget(network.getBranch(num), PhaseControl.Unit.A);
                 break;
 
             case ZERO_Q:
@@ -139,11 +150,11 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case ZERO_PHI:
-                targets[row] = getPhi(network.getBranch(num));
+                targets[row] = getBranchPhi(network.getBranch(num));
                 break;
 
             default:
-                throw new IllegalStateException("Unknown state variable type "  + type);
+                throw new IllegalStateException("Unknown state variable type: "  + type);
         }
 
         for (EquationTerm term : terms) {
