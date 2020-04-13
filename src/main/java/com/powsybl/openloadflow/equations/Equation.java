@@ -102,7 +102,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
         }
     }
 
-    private static double getBranchPhi(LfBranch branch) {
+    private static double getBranchA(LfBranch branch) {
         Objects.requireNonNull(branch);
         PiModel piModel = branch.getPiModel();
         return piModel.getA2() - piModel.getA1();
@@ -150,7 +150,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case ZERO_PHI:
-                targets[row] = getBranchPhi(network.getBranch(num));
+                targets[row] = getBranchA(network.getBranch(num));
                 break;
 
             default:
@@ -238,6 +238,11 @@ public class Equation implements Evaluable, Comparable<Equation> {
             case BUS_PHI:
                 LfBus bus = equationSystem.getNetwork().getBus(num);
                 builder.append(", busId=").append(bus.getId());
+                break;
+            case BRANCH_P:
+            case BRANCH_I:
+                LfBranch branch = equationSystem.getNetwork().getBranch(num);
+                builder.append(", branchId=").append(branch.getId());
                 break;
             case ZERO_Q:
             case ZERO_V:
