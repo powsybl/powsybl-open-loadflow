@@ -69,14 +69,12 @@ public class LfBranchImpl extends AbstractLfBranch {
                     .setA1(Transformers.getAngle(twt));
 
             PhaseTapChanger ptc = twt.getPhaseTapChanger();
-            if (ptc != null) {
-                if (ptc.isRegulating()) {
-                    PhaseTapChanger.RegulationMode regulationMode = ptc.getRegulationMode();
-                    if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
-                        phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A);
-                    } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
-                        phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW);
-                    }
+            if (ptc != null && ptc.isRegulating()) {
+                PhaseTapChanger.RegulationMode regulationMode = ptc.getRegulationMode();
+                if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
+                    phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A);
+                } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                    phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW);
                 }
             }
         } else {
