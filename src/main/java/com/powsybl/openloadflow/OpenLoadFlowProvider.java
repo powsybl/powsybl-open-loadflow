@@ -174,6 +174,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         OpenLoadFlowParameters parametersExt = getParametersExt(parameters);
 
         return parametersExt.isDc() ? runDc(network, workingVariantId)
-                : runAc(network, workingVariantId, parameters, parametersExt);
+                                    : runAc(network, workingVariantId, parameters, parametersExt);
     }
 }

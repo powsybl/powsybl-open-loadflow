@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
+import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
@@ -60,7 +61,7 @@ public class AcloadFlowEngine {
         }
     }
 
-    private static class OuterLoopRunningContext {
+    private static class RunningContext {
 
         private NewtonRaphsonResult lastNrResult;
 
@@ -68,7 +69,7 @@ public class AcloadFlowEngine {
     }
 
     private void runOuterLoop(OuterLoop outerLoop, LfNetwork network, EquationSystem equationSystem, VariableSet variableSet,
-                              NewtonRaphson newtonRaphson, NewtonRaphsonParameters nrParameters, OuterLoopRunningContext runningContext) {
+                              NewtonRaphson newtonRaphson, NewtonRaphsonParameters nrParameters, RunningContext runningContext) {
         // for each outer loop re-run Newton-Raphson until stabilization
         OuterLoopStatus outerLoopStatus;
         do {
@@ -106,11 +107,12 @@ public class AcloadFlowEngine {
         parameters.getObserver().beforeEquationSystemCreation();
 
         VariableSet variableSet = new VariableSet();
-        EquationSystem equationSystem = AcEquationSystem.create(network, variableSet, parameters.isVoltageRemoteControl());
+        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(parameters.isVoltageRemoteControl());
+        EquationSystem equationSystem = AcEquationSystem.create(network, variableSet, creationParameters);
 
         parameters.getObserver().afterEquationSystemCreation();
 
-        OuterLoopRunningContext runningContext = new OuterLoopRunningContext();
+        RunningContext runningContext = new RunningContext();
         try (NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getMatrixFactory(), parameters.getObserver(), equationSystem, parameters.getStoppingCriteria())) {
 
             NewtonRaphsonParameters nrParameters = new NewtonRaphsonParameters().setVoltageInitializer(parameters.getVoltageInitializer());
