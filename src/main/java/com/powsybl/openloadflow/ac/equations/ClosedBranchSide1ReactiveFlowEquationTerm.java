@@ -31,8 +31,6 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
 
     private double dq1da1;
 
-    private double dq1da2;
-
     public ClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
                                                      boolean deriveA) {
         super(branch, bus1, bus2, variableSet, deriveA);
@@ -56,9 +54,6 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
         if (a1Var != null) {
             dq1da1 = dq1dph1;
         }
-        if (a2Var != null) {
-            dq1da2 = dq1dph2;
-        }
     }
 
     @Override
@@ -79,8 +74,6 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
             return dq1dph2;
         } else if (variable.equals(a1Var)) {
             return dq1da1;
-        } else if (variable.equals(a2Var)) {
-            return dq1da2;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

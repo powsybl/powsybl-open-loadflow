@@ -32,8 +32,6 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected Variable a1Var;
 
-    protected Variable a2Var;
-
     protected final List<Variable> variables;
 
     protected final double a1;
@@ -51,8 +49,7 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         ph2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_PHI);
         if (deriveA) {
             a1Var = variableSet.getVariable(branch.getNum(), VariableType.BRANCH_ALPHA1);
-//            a2Var = variableSet.getVariable(branch.getNum(), VariableType.BRANCH_ALPHA2);
-            variables = ImmutableList.of(v1Var, v2Var, ph1Var, ph2Var, a1Var /*, a2Var */);
+            variables = ImmutableList.of(v1Var, v2Var, ph1Var, ph2Var, a1Var);
         } else {
             variables = ImmutableList.of(v1Var, v2Var, ph1Var, ph2Var);
         }

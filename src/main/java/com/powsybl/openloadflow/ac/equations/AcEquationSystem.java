@@ -196,7 +196,7 @@ public final class AcEquationSystem {
 
                     if (creationParameters.isPhaseControl()) {
                         PhaseControl phaseControl = branch.getPhaseControl().orElse(null);
-                        if (phaseControl != null) {
+                        if (phaseControl != null && phaseControl.getMode() == PhaseControl.Mode.CONTROLLER) {
                             equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_P)
                                     .addTerm(p1);
                         }
