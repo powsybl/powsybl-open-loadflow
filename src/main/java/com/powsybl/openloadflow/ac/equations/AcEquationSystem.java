@@ -216,6 +216,7 @@ public final class AcEquationSystem {
     public static EquationSystem create(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(variableSet);
+        Objects.requireNonNull(creationParameters);
 
         EquationSystem equationSystem = new EquationSystem(network);
 
