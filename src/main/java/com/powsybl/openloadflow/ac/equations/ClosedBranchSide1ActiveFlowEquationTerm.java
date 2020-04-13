@@ -52,12 +52,12 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         dp1dv1 = r1 * (2 * g1 * r1 * v1 + 2 * y * r1 * v1 * sinKsi - y * r2 * v2 * sinTheta);
         dp1dv2 = -y * r1 * r2 * v1 * sinTheta;
         dp1dph1 = y * r1 * r2 * v1 * v2 * cosTheta;
-        dp1dph2 = -y * r1 * r2 * v1 * v2 * cosTheta;
+        dp1dph2 = -dp1dph1;
         if (a1Var != null) {
-            dp1da1 = r1 * r2 * v1 * v2 * y * FastMath.cos(theta);
+            dp1da1 = dp1dph1;
         }
         if (a2Var != null) {
-            dp1da2 = -r1 * r2 * v1 * v2 * y * FastMath.cos(theta);
+            dp1da2 = dp1dph2;
         }
     }
 
