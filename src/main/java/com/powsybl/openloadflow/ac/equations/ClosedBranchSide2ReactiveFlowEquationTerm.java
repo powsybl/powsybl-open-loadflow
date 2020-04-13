@@ -54,10 +54,10 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
         dq2dph1 = y * r1 * r2 * v1 * v2 * sinTheta;
         dq2dph2 = -y * r1 * r2 * v1 * v2 * sinTheta;
         if (a1Var != null) {
-            // TODO
+            dq2da1 = r1 * r2 * v1 * v2 * y * FastMath.sin(theta);
         }
         if (a2Var != null) {
-            // TODO
+            dq2da2 = -r1 * r2 * v1 * v2 * y * FastMath.sin(theta);
         }
     }
 
