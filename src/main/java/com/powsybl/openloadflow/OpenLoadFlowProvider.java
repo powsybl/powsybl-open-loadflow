@@ -122,7 +122,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             if (parametersExt.isDistributedSlack()) {
                 outerLoops.add(new DistributedSlackOuterLoop());
             }
-            if (parameters.isNoGeneratorReactiveLimits()) {
+            if (parameters.isPhaseShifterRegulationOn()) {
                 outerLoops.add(new PhaseControlOuterLoop());
             }
             if (!parameters.isNoGeneratorReactiveLimits()) {
