@@ -26,7 +26,16 @@ public interface LfBus {
 
     void setSlack(boolean slack);
 
+    boolean hasVoltageControlCapability();
+
     boolean hasVoltageControl();
+
+    /**
+     * Get the number of time, voltage control status has be set from true to false.
+     *
+     * @return the number of time, voltage control status has be set from true to false
+     */
+    int getVoltageControlSwitchOffCount();
 
     void setVoltageControl(boolean voltageControl);
 
