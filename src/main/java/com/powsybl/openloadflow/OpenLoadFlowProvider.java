@@ -16,10 +16,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.ac.AcLoadFlowLogger;
-import com.powsybl.openloadflow.ac.AcLoadFlowProfiler;
-import com.powsybl.openloadflow.ac.DistributedSlackOuterLoop;
-import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
+import com.powsybl.openloadflow.ac.*;
 import com.powsybl.openloadflow.ac.nr.*;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
@@ -117,12 +114,24 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
             LOGGER.info("Voltage level initializer: {}", voltageInitializer.getClass().getSimpleName());
             LOGGER.info("Distributed slack: {}", parametersExt.isDistributedSlack());
+            LOGGER.info("Balance type: {}", parametersExt.getBalanceType());
             LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
             LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
 
             List<OuterLoop> outerLoops = new ArrayList<>();
             if (parametersExt.isDistributedSlack()) {
-                outerLoops.add(new DistributedSlackOuterLoop());
+                switch (parametersExt.getBalanceType()) {
+                    case PROPORTIONAL_TO_GENERATION_P_MAX:
+                        outerLoops.add(new DistributedSlackOnGenerationOuterLoop());
+                        break;
+                    case PROPORTIONAL_TO_LOAD:
+                        outerLoops.add(new DistributedSlackOnLoadOuterLoop());
+                        break;
+                    case PROPORTIONAL_TO_GENERATION_P: // to be implemented.
+                        throw new UnsupportedOperationException("Unsupported balance type mode: " + parametersExt.getBalanceType());
+                    default:
+                        throw new UnsupportedOperationException("Unknown balance type mode: " + parametersExt.getBalanceType());
+                }
             }
             if (!parameters.isNoGeneratorReactiveLimits()) {
                 outerLoops.add(new ReactiveLimitsOuterLoop());

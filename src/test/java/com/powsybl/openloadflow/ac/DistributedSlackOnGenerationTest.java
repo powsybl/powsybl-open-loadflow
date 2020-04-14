@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DistributedSlackTest {
+public class DistributedSlackOnGenerationTest {
 
     private Network network;
     private Generator g1;
