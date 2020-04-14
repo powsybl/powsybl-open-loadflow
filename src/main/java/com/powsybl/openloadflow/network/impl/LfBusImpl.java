@@ -37,9 +37,9 @@ public class LfBusImpl extends AbstractLfBus {
 
     private boolean voltageControl = false;
 
-    private double initialLoadTarget = 0;
-  
     private int voltageControlSwitchOffCount = 0;
+
+    private double initialLoadTargetP = 0;
 
     private double loadTargetP = 0;
 
