@@ -207,9 +207,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
         if (o == this) {
             return 0;
         }
-        int c = num - o.num;
+        int c = type.ordinal() - o.type.ordinal();
         if (c == 0) {
-            c = type.ordinal() - o.type.ordinal();
+            c = num - o.num;
         }
         return c;
     }
