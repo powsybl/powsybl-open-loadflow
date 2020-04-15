@@ -110,10 +110,11 @@ public class Variable implements Comparable<Variable> {
         if (obj == this) {
             return true;
         }
-        if (obj instanceof Variable) {
-            return compareTo((Variable) obj) == 0;
+        if (!(obj instanceof Variable)) {
+            return false;
         }
-        return false;
+        Variable other = (Variable) obj;
+        return num == other.num && type == other.type;
     }
 
     @Override
@@ -121,9 +122,9 @@ public class Variable implements Comparable<Variable> {
         if (o == this) {
             return 0;
         }
-        int c = type.ordinal() - o.type.ordinal();
+        int c = num - o.num;
         if (c == 0) {
-            c = num - o.num;
+            c = type.ordinal() - o.type.ordinal();
         }
         return c;
     }
