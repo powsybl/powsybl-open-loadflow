@@ -43,7 +43,7 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         double v2 = x[v2Var.getColumn()];
         double ph1 = x[ph1Var.getColumn()];
         double ph2 = x[ph2Var.getColumn()];
-        double theta = ksi + a1 - a2 + ph1 - ph2;
+        double theta = ksi + (a1Var != null ? x[a1Var.getColumn()] : a1) - a2 + ph1 - ph2;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
         p2 = r2 * v2 * (g2 * r2 * v2 - y * r1 * v1 * sinTheta + y * r2 * v2 * sinKsi);

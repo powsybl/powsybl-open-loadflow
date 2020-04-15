@@ -43,7 +43,7 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
         double v2 = x[v2Var.getColumn()];
         double ph1 = x[ph1Var.getColumn()];
         double ph2 = x[ph2Var.getColumn()];
-        double theta = ksi - a1 + a2 - ph1 + ph2;
+        double theta = ksi - (a1Var != null ? x[a1Var.getColumn()] : a1) + a2 - ph1 + ph2;
         double cosTheta = FastMath.cos(theta);
         double sinTheta = FastMath.sin(theta);
         q1 = r1 * v1 * (-b1 * r1 * v1 + y * r1 * v1 * cosKsi - y * r2 * v2 * cosTheta);

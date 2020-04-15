@@ -17,7 +17,6 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -106,7 +105,6 @@ public class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
-    @Disabled
     public void flowControlTest() {
         parameters.setPhaseShifterRegulationOn(true);
         ps1.getPhaseTapChanger()
@@ -116,6 +114,6 @@ public class AcLoadFlowPhaseShifterTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertActivePowerEquals(83, line2.getTerminal1());
+        assertActivePowerEquals(82.9, line2.getTerminal1());
     }
 }
