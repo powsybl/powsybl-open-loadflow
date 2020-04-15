@@ -196,11 +196,10 @@ public class Equation implements Evaluable, Comparable<Equation> {
         if (obj == this) {
             return true;
         }
-        if (!(obj instanceof Equation)) {
-            return false;
+        if (obj instanceof Equation) {
+            return compareTo((Equation) obj) == 0;
         }
-        Equation other = (Equation) obj;
-        return num == other.num && type == other.type;
+        return false;
     }
 
     @Override

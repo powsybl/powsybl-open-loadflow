@@ -110,11 +110,10 @@ public class Variable implements Comparable<Variable> {
         if (obj == this) {
             return true;
         }
-        if (!(obj instanceof Variable)) {
-            return false;
+        if (obj instanceof Variable) {
+            return compareTo((Variable) obj) == 0;
         }
-        Variable other = (Variable) obj;
-        return num == other.num && type == other.type;
+        return false;
     }
 
     @Override
