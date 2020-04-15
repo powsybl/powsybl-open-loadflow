@@ -114,13 +114,25 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
             LOGGER.info("Voltage level initializer: {}", voltageInitializer.getClass().getSimpleName());
             LOGGER.info("Distributed slack: {}", parametersExt.isDistributedSlack());
+            LOGGER.info("Balance type: {}", parametersExt.getBalanceType());
             LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
             LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
             LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
 
             List<OuterLoop> outerLoops = new ArrayList<>();
             if (parametersExt.isDistributedSlack()) {
-                outerLoops.add(new DistributedSlackOuterLoop());
+                switch (parametersExt.getBalanceType()) {
+                    case PROPORTIONAL_TO_GENERATION_P_MAX:
+                        outerLoops.add(new DistributedSlackOnGenerationOuterLoop());
+                        break;
+                    case PROPORTIONAL_TO_LOAD:
+                        outerLoops.add(new DistributedSlackOnLoadOuterLoop());
+                        break;
+                    case PROPORTIONAL_TO_GENERATION_P: // to be implemented.
+                        throw new UnsupportedOperationException("Unsupported balance type mode: " + parametersExt.getBalanceType());
+                    default:
+                        throw new UnsupportedOperationException("Unknown balance type mode: " + parametersExt.getBalanceType());
+                }
             }
             if (parameters.isPhaseShifterRegulationOn()) {
                 outerLoops.add(new PhaseControlOuterLoop());
