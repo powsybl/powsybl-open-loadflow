@@ -46,6 +46,10 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"java.lang.Object",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"javax.management.ObjectName"
 }
 ]
