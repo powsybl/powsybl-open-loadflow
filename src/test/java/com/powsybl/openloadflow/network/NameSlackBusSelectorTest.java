@@ -38,7 +38,7 @@ public class NameSlackBusSelectorTest {
     @Test
     public void errorTest() {
         assertThrows(PowsyblException.class,
-            () -> LfNetwork.load(network, new NameSlackBusSelector("???")),
+            () -> LfNetwork.load(network, new NameSlackBusSelector("???")).get(0).getSlackBus(),
             "Slack bus '???' not found");
     }
 }

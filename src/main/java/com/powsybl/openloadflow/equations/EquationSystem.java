@@ -92,11 +92,29 @@ public class EquationSystem {
         addListener(equationCache);
     }
 
+    LfNetwork getNetwork() {
+        return network;
+    }
+
     public Equation createEquation(int num, EquationType type) {
         Pair<Integer, EquationType> p = Pair.of(num, type);
         Equation equation = equations.get(p);
         if (equation == null) {
             equation = addEquation(p);
+        }
+        return equation;
+    }
+
+    public boolean hasEquation(int num, EquationType type) {
+        Pair<Integer, EquationType> p = Pair.of(num, type);
+        return equations.containsKey(p);
+    }
+
+    public Equation removeEquation(int num, EquationType type) {
+        Pair<Integer, EquationType> p = Pair.of(num, type);
+        Equation equation = equations.remove(p);
+        if (equation != null) {
+            notifyListeners(equation, EquationEventType.EQUATION_REMOVED);
         }
         return equation;
     }

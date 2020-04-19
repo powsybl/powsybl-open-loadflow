@@ -25,9 +25,17 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean distributedSlack = true;
 
+    private BalanceType balanceType = BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX; // Default slack distribution on generators.
+
+    public enum BalanceType {
+        PROPORTIONAL_TO_GENERATION_P, // Not implemented yet.
+        PROPORTIONAL_TO_GENERATION_P_MAX,
+        PROPORTIONAL_TO_LOAD,
+    }
+
     private boolean dc = false;
 
-    private boolean generatorVoltageRemoteControl = false;
+    private boolean voltageRemoteControl = false;
 
     private final List<AcLoadFlowObserver> additionalObservers = new ArrayList<>();
 
@@ -54,6 +62,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public OpenLoadFlowParameters setBalanceType(BalanceType balanceType) {
+        this.balanceType = Objects.requireNonNull(balanceType);
+        return this;
+    }
+
+    public BalanceType getBalanceType() {
+        return balanceType; }
+
     public boolean isDc() {
         return dc;
     }
@@ -63,12 +79,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public boolean hasGeneratorVoltageRemoteControl() {
-        return generatorVoltageRemoteControl;
+    public boolean hasVoltageRemoteControl() {
+        return voltageRemoteControl;
     }
 
-    public OpenLoadFlowParameters setGeneratorVoltageRemoteControl(boolean generatorVoltageRemoteControl) {
-        this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
+    public OpenLoadFlowParameters setVoltageRemoteControl(boolean voltageRemoteControl) {
+        this.voltageRemoteControl = voltageRemoteControl;
         return this;
     }
 

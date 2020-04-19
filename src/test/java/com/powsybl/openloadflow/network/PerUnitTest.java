@@ -40,20 +40,24 @@ public class PerUnitTest {
         variableSet.getVariable(1, VariableType.BUS_PHI).setColumn(3);
 
         LfBranch branch = Mockito.mock(LfBranch.class, new RuntimeExceptionAnswer());
+        PiModel piModel = Mockito.mock(PiModel.class, new RuntimeExceptionAnswer());
         LfBus bus1 = Mockito.mock(LfBus.class, new RuntimeExceptionAnswer());
         LfBus bus2 = Mockito.mock(LfBus.class, new RuntimeExceptionAnswer());
+        Mockito.doReturn(piModel).when(branch).getPiModel();
         Mockito.doReturn(0).when(bus1).getNum();
         Mockito.doReturn(1).when(bus2).getNum();
-        Mockito.doReturn(1d).when(branch).r1();
-        Mockito.doReturn(1d).when(branch).r2();
-        Mockito.doReturn(324 * Math.pow(10, -6) * zb).when(branch).b1();
-        Mockito.doReturn(186 * Math.pow(10, -6) * zb).when(branch).b2();
-        Mockito.doReturn(111 * Math.pow(10, -6) * zb).when(branch).g1();
-        Mockito.doReturn(222 * Math.pow(10, -6) * zb).when(branch).g2();
-        Mockito.doReturn(zb / Math.hypot(0.1, 3)).when(branch).y();
-        Mockito.doReturn(Math.atan2(0.1, 3)).when(branch).ksi();
-        Mockito.doReturn(0d).when(branch).a1();
-        Mockito.doReturn(0d).when(branch).a2();
+        Mockito.doReturn(1d).when(piModel).getR1();
+        Mockito.doReturn(1d).when(piModel).getR2();
+        Mockito.doReturn(324 * Math.pow(10, -6) * zb).when(piModel).getB1();
+        Mockito.doReturn(186 * Math.pow(10, -6) * zb).when(piModel).getB2();
+        Mockito.doReturn(111 * Math.pow(10, -6) * zb).when(piModel).getG1();
+        Mockito.doReturn(222 * Math.pow(10, -6) * zb).when(piModel).getG2();
+        Mockito.doReturn(0.1 / zb).when(piModel).getR();
+        Mockito.doReturn(3 / zb).when(piModel).getX();
+        Mockito.doReturn(Math.hypot(0.1, 3) / zb).when(piModel).getZ();
+        Mockito.doReturn(Math.atan2(0.1, 3)).when(piModel).getKsi();
+        Mockito.doReturn(0d).when(piModel).getA1();
+        Mockito.doReturn(0d).when(piModel).getA2();
 
         ClosedBranchSide1ActiveFlowEquationTerm p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet);
         double[] x = new double[4];

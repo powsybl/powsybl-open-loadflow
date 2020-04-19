@@ -18,25 +18,40 @@ public interface LfBus {
 
     int getNum();
 
+    void setNum(int num);
+
     boolean isFictitious();
 
     boolean isSlack();
 
     void setSlack(boolean slack);
 
+    boolean hasVoltageControlCapability();
+
     boolean hasVoltageControl();
+
+    /**
+     * Get the number of time, voltage control status has be set from true to false.
+     *
+     * @return the number of time, voltage control status has be set from true to false
+     */
+    int getVoltageControlSwitchOffCount();
 
     void setVoltageControl(boolean voltageControl);
 
-    Optional<LfBus> getRemoteControlTargetBus();
+    Optional<LfBus> getControlledBus();
 
-    List<LfBus> getRemoteControlSourceBuses();
+    List<LfBus> getControllerBuses();
 
     double getTargetP();
 
     double getTargetQ();
 
     double getLoadTargetP();
+
+    void setLoadTargetP(double loadTargetP);
+
+    int getLoadCount();
 
     double getLoadTargetQ();
 

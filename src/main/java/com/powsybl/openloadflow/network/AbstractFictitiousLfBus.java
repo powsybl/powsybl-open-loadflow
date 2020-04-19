@@ -14,13 +14,18 @@ import java.util.List;
  */
 public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
 
-    protected AbstractFictitiousLfBus(int num) {
-        super(num, Double.NaN, Double.NaN);
+    protected AbstractFictitiousLfBus() {
+        super(Double.NaN, Double.NaN);
     }
 
     @Override
     public boolean isFictitious() {
         return true;
+    }
+
+    @Override
+    public boolean hasVoltageControlCapability() {
+        return false;
     }
 
     @Override
@@ -34,12 +39,27 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     }
 
     @Override
-    public List<LfBus> getRemoteControlSourceBuses() {
+    public int getVoltageControlSwitchOffCount() {
+        return 0;
+    }
+
+    @Override
+    public List<LfBus> getControllerBuses() {
         return Collections.emptyList();
     }
 
     @Override
     public double getLoadTargetP() {
+        return 0;
+    }
+
+    @Override
+    public void setLoadTargetP(double loadTargetQ) {
+        throw new IllegalStateException("Cannot change fictitious bus load");
+    }
+
+    @Override
+    public int getLoadCount() {
         return 0;
     }
 

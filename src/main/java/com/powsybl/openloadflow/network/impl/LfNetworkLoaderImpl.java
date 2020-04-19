@@ -8,9 +8,10 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,222 +29,255 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetworkLoaderImpl.class);
 
-    private static class CreationContext {
+    private static class LoadingContext {
 
         private final Set<Branch> branchSet = new LinkedHashSet<>();
 
         private final List<DanglingLine> danglingLines = new ArrayList<>();
 
         private final Set<ThreeWindingsTransformer> t3wtSet = new LinkedHashSet<>();
-
-        private final Map<String, Integer> busIdToNum = new HashMap<>();
     }
 
-    private static List<LfBus> createBuses(List<Bus> buses, boolean generatorVoltageRemoteControl, CreationContext creationContext) {
-        List<LfBus> lfBuses = new ArrayList<>(buses.size());
-        int[] generatorCount = new int[1];
-        Map<LfBusImpl, String> generatorRemoteControlTargetBusId = new HashMap<>();
+    private static void createBuses(List<Bus> buses, boolean voltageRemoteControl, LfNetwork lfNetwork,
+                                    LoadingContext loadingContext, LfNetworkLoadingReport report) {
+        int[] voltageControllerCount = new int[1];
+        Map<LfBusImpl, String> controllerBusToControlledBusId = new LinkedHashMap<>();
 
         for (Bus bus : buses) {
-            LfBusImpl lfBus = addLfBus(bus, lfBuses, creationContext.busIdToNum);
+            LfBusImpl lfBus = createBus(bus, voltageRemoteControl, loadingContext, report, voltageControllerCount, controllerBusToControlledBusId);
+            lfNetwork.addBus(lfBus);
+        }
 
-            bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
+        if (voltageControllerCount[0] == 0) {
+            LOGGER.error("Network {} has no equipment to control voltage", lfNetwork.getNum());
+        }
 
-                private void visitBranch(Branch branch) {
-                    creationContext.branchSet.add(branch);
+        // set controller -> controlled link
+        for (Map.Entry<LfBusImpl, String> e : controllerBusToControlledBusId.entrySet()) {
+            LfBusImpl controllerBus = e.getKey();
+            String controlledBusId = e.getValue();
+            LfBus controlledBus = lfNetwork.getBusById(controlledBusId);
+            controllerBus.setControlledBus((LfBusImpl) controlledBus);
+        }
+    }
+
+    private static LfBusImpl createBus(Bus bus, boolean voltageRemoteControl, LoadingContext loadingContext, LfNetworkLoadingReport report,
+                                       int[] voltageControllerCount, Map<LfBusImpl, String> controllerBusToControlledBusId) {
+        LfBusImpl lfBus = LfBusImpl.create(bus);
+
+        bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
+
+            private void visitBranch(Branch branch) {
+                loadingContext.branchSet.add(branch);
+            }
+
+            @Override
+            public void visitLine(Line line, Branch.Side side) {
+                visitBranch(line);
+            }
+
+            @Override
+            public void visitTwoWindingsTransformer(TwoWindingsTransformer transformer, Branch.Side side) {
+                visitBranch(transformer);
+            }
+
+            @Override
+            public void visitThreeWindingsTransformer(ThreeWindingsTransformer transformer, ThreeWindingsTransformer.Side side) {
+                loadingContext.t3wtSet.add(transformer);
+            }
+
+            private double checkVoltageRemoteControl(Injection injection, Terminal regulatingTerminal, double previousTargetV) {
+                double scaleV = 1;
+                Bus controlledBus = regulatingTerminal.getBusView().getBus();
+                Bus connectedBus = injection.getTerminal().getBusView().getBus();
+                if (controlledBus == null || connectedBus == null) {
+                    return scaleV;
                 }
-
-                @Override
-                public void visitLine(Line line, Branch.Side side) {
-                    visitBranch(line);
+                String controlledBusId = controlledBus.getId();
+                String connectedBusId = connectedBus.getId();
+                if (!Objects.equals(controlledBusId, connectedBusId)) {
+                    if (voltageRemoteControl) {
+                        // controller to controlled bus link will be set later because controlled bus might not have
+                        // been yet created
+                        controllerBusToControlledBusId.put(lfBus, controlledBusId);
+                    } else {
+                        double remoteNominalV = regulatingTerminal.getVoltageLevel().getNominalV();
+                        double localNominalV = injection.getTerminal().getVoltageLevel().getNominalV();
+                        scaleV = localNominalV / remoteNominalV;
+                        LOGGER.warn("Remote voltage control is not yet supported. The voltage target of " +
+                                        "{} ({}) with remote control is rescaled from {} to {}",
+                                injection.getId(), injection.getType(), previousTargetV, previousTargetV * scaleV);
+                    }
                 }
+                return scaleV;
+            }
 
-                @Override
-                public void visitTwoWindingsTransformer(TwoWindingsTransformer transformer, Branch.Side side) {
-                    visitBranch(transformer);
+            @Override
+            public void visitGenerator(Generator generator) {
+                double scaleV = checkVoltageRemoteControl(generator, generator.getRegulatingTerminal(), generator.getTargetV());
+                lfBus.addGenerator(generator, scaleV, report);
+                if (generator.isVoltageRegulatorOn()) {
+                    voltageControllerCount[0]++;
                 }
+            }
 
-                @Override
-                public void visitThreeWindingsTransformer(ThreeWindingsTransformer transformer, ThreeWindingsTransformer.Side side) {
-                    creationContext.t3wtSet.add(transformer);
-                }
+            @Override
+            public void visitLoad(Load load) {
+                lfBus.addLoad(load);
+            }
 
-                @Override
-                public void visitGenerator(Generator generator) {
-                    double scaleV = 1;
-                    String controlBusId = generator.getRegulatingTerminal().getBusView().getBus().getId();
-                    String connectedBusId = generator.getTerminal().getBusView().getBus().getId();
-                    if (!Objects.equals(controlBusId, connectedBusId)) {
-                        if (generatorVoltageRemoteControl) {
-                            // remote control target bus will be set later because target bus might not have
-                            // been yet created
-                            generatorRemoteControlTargetBusId.put(lfBus, controlBusId);
-                        } else {
-                            double previousTargetV = generator.getTargetV();
-                            double remoteNominalV = generator.getRegulatingTerminal().getVoltageLevel().getNominalV();
-                            double localNominalV = generator.getTerminal().getVoltageLevel().getNominalV();
-                            scaleV = localNominalV / remoteNominalV;
-                            LOGGER.warn("Generator remote voltage control is not yet supported. The voltage target of generator "
-                                    + generator.getId() + " with remote control is rescaled from " + previousTargetV + " to "
-                                    + previousTargetV * scaleV);
+            @Override
+            public void visitShuntCompensator(ShuntCompensator sc) {
+                lfBus.addShuntCompensator(sc);
+            }
+
+            @Override
+            public void visitDanglingLine(DanglingLine danglingLine) {
+                loadingContext.danglingLines.add(danglingLine);
+            }
+
+            @Override
+            public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
+                double scaleV = checkVoltageRemoteControl(staticVarCompensator, staticVarCompensator.getRegulatingTerminal(),
+                        staticVarCompensator.getVoltageSetPoint());
+                lfBus.addStaticVarCompensator(staticVarCompensator, scaleV, report);
+            }
+
+            @Override
+            public void visitBattery(Battery battery) {
+                lfBus.addBattery(battery);
+            }
+
+            @Override
+            public void visitHvdcConverterStation(HvdcConverterStation<?> converterStation) {
+                switch (converterStation.getHvdcType()) {
+                    case VSC:
+                        VscConverterStation vscConverterStation = (VscConverterStation) converterStation;
+                        lfBus.addVscConverterStation(vscConverterStation, report);
+                        if (vscConverterStation.isVoltageRegulatorOn()) {
+                            voltageControllerCount[0]++;
                         }
-                    }
-                    lfBus.addGenerator(generator, scaleV);
-                    generatorCount[0]++;
+                        break;
+                    case LCC:
+                        lfBus.addLccConverterStation((LccConverterStation) converterStation);
+                        break;
+                    default:
+                        throw new IllegalStateException("Unknown HVDC converter station type: " + converterStation.getHvdcType());
                 }
+            }
+        });
 
-                @Override
-                public void visitLoad(Load load) {
-                    lfBus.addLoad(load);
-                }
-
-                @Override
-                public void visitShuntCompensator(ShuntCompensator sc) {
-                    lfBus.addShuntCompensator(sc);
-                }
-
-                @Override
-                public void visitDanglingLine(DanglingLine danglingLine) {
-                    creationContext.danglingLines.add(danglingLine);
-                }
-
-                @Override
-                public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
-                    lfBus.addStaticVarCompensator(staticVarCompensator);
-                }
-
-                @Override
-                public void visitBattery(Battery battery) {
-                    lfBus.addBattery(battery);
-                }
-
-                @Override
-                public void visitHvdcConverterStation(HvdcConverterStation<?> converterStation) {
-                    switch (converterStation.getHvdcType()) {
-                        case VSC:
-                            lfBus.addVscConverterStation((VscConverterStation) converterStation);
-                            break;
-                        case LCC:
-                            throw new UnsupportedOperationException("LCC converter station is not yet supported");
-                        default:
-                            throw new IllegalStateException("Unknown HVDC converter station type: " + converterStation.getHvdcType());
-                    }
-                }
-            });
-        }
-
-        if (generatorCount[0] == 0) {
-            throw new PowsyblException("Connected component without any regulating generator");
-        }
-
-        // set generators remote control target bus
-        for (Map.Entry<LfBusImpl, String> e : generatorRemoteControlTargetBusId.entrySet()) {
-            LfBusImpl generatorBus = e.getKey();
-            String remoteControlTargetBusId = e.getValue();
-            LfBus remoteControlTargetBus = lfBuses.get(creationContext.busIdToNum.get(remoteControlTargetBusId));
-            generatorBus.setRemoteControlTargetBus((LfBusImpl) remoteControlTargetBus);
-        }
-
-        return lfBuses;
+        return lfBus;
     }
 
-    private static List<LfBranch> createBranches(List<LfBus> lfBuses, CreationContext creationContext) {
-        List<LfBranch> lfBranches = new ArrayList<>();
-
-        for (Branch branch : creationContext.branchSet) {
-            LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfBuses, creationContext.busIdToNum);
-            LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfBuses, creationContext.busIdToNum);
-            lfBranches.add(LfBranchImpl.create(branch, lfBus1, lfBus2));
-        }
-
-        for (DanglingLine danglingLine : creationContext.danglingLines) {
-            LfDanglingLineBus lfBus2 = addLfBus(danglingLine, lfBuses, creationContext.busIdToNum);
-            LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfBuses, creationContext.busIdToNum);
-            lfBranches.add(LfDanglingLineBranch.create(danglingLine, lfBus1, lfBus2));
-        }
-
-        for (ThreeWindingsTransformer t3wt : creationContext.t3wtSet) {
-            LfStarBus lfBus0 = addLfBus(t3wt, lfBuses, creationContext.busIdToNum);
-            LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfBuses, creationContext.busIdToNum);
-            LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfBuses, creationContext.busIdToNum);
-            LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfBuses, creationContext.busIdToNum);
-            lfBranches.add(LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1()));
-            lfBranches.add(LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2()));
-            lfBranches.add(LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3()));
-        }
-
-        // create bus -> branches link
-        for (LfBranch branch : lfBranches) {
-            if (branch.getBus1() != null) {
-                branch.getBus1().addBranch(branch);
+    private static void addBranch(LfNetwork lfNetwork, LfBranch lfBranch, LfNetworkLoadingReport report) {
+        boolean connectedToSameBus = lfBranch.getBus1() == lfBranch.getBus2();
+        if (connectedToSameBus) {
+            LOGGER.trace("Discard branch '{}' because connected to same bus at both ends", lfBranch.getId());
+            report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds++;
+        } else {
+            if (lfBranch.getPiModel().getZ() == 0) {
+                LOGGER.trace("Branch {} is non impedant", lfBranch.getId());
+                report.nonImpedantBranches++;
             }
-            if (branch.getBus2() != null) {
-                branch.getBus2().addBranch(branch);
-            }
+            lfNetwork.addBranch(lfBranch);
         }
-
-        return lfBranches;
     }
 
-    private static LfBus getLfBus(Terminal terminal, List<LfBus> lfBuses, Map<String, Integer> busIdToNum) {
+    private static void createBranches(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkLoadingReport report) {
+        for (Branch branch : loadingContext.branchSet) {
+            LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork);
+            LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork);
+            addBranch(lfNetwork, LfBranchImpl.create(branch, lfBus1, lfBus2), report);
+        }
+
+        for (DanglingLine danglingLine : loadingContext.danglingLines) {
+            LfDanglingLineBus lfBus2 = new LfDanglingLineBus(danglingLine);
+            lfNetwork.addBus(lfBus2);
+            LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork);
+            addBranch(lfNetwork, LfDanglingLineBranch.create(danglingLine, lfBus1, lfBus2), report);
+        }
+
+        for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
+            LfStarBus lfBus0 = new LfStarBus(t3wt);
+            lfNetwork.addBus(lfBus0);
+            LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork);
+            LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork);
+            LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork);
+            addBranch(lfNetwork, LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1()), report);
+            addBranch(lfNetwork, LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2()), report);
+            addBranch(lfNetwork, LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3()), report);
+        }
+    }
+
+    private static LfBus getLfBus(Terminal terminal, LfNetwork lfNetwork) {
         Bus bus = terminal.getBusView().getBus();
-        if (bus != null) {
-            int num = busIdToNum.get(bus.getId());
-            return lfBuses.get(num);
+        return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
+    }
+
+    private static LfNetwork create(MutableInt num, List<Bus> buses, SlackBusSelector slackBusSelector, boolean voltageRemoteControl) {
+        LfNetwork lfNetwork = new LfNetwork(num.getValue(), slackBusSelector);
+        num.increment();
+
+        LoadingContext loadingContext = new LoadingContext();
+        LfNetworkLoadingReport report = new LfNetworkLoadingReport();
+
+        createBuses(buses, voltageRemoteControl, lfNetwork, loadingContext, report);
+        createBranches(lfNetwork, loadingContext, report);
+
+        if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
+            LOGGER.warn("{} generators have been discarded from voltage control because not started",
+                    report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
         }
-        return null;
-    }
+        if (report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall > 0) {
+            LOGGER.warn("{} generators have been discarded from voltage control because of a too small max reactive range",
+                    report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
+        }
+        if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero > 0) {
+            LOGGER.warn("{} generators have been discarded from active power control because of a targetP <= 0",
+                    report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero);
+        }
+        if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP > 0) {
+            LOGGER.warn("{} generators have been discarded from active power control because of a targetP > maxP",
+                    report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP);
+        }
+        if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible > 0) {
+            LOGGER.warn("{} generators have been discarded from active power control because of maxP not plausible",
+                    report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
+        }
+        if (report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds > 0) {
+            LOGGER.warn("{} branches have been discarded because connected to same bus at both ends",
+                    report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds);
+        }
+        if (report.nonImpedantBranches > 0) {
+            LOGGER.warn("{} branches are non impedant", report.nonImpedantBranches);
+        }
 
-    private static LfBusImpl addLfBus(Bus bus, List<LfBus> lfBuses, Map<String, Integer> busIdToNum) {
-        int busNum = lfBuses.size();
-        LfBusImpl lfBus = LfBusImpl.create(bus, busNum);
-        busIdToNum.put(bus.getId(), busNum);
-        lfBuses.add(lfBus);
-        return lfBus;
-    }
-
-    private static LfDanglingLineBus addLfBus(DanglingLine danglingLine, List<LfBus> lfBuses, Map<String, Integer> busIdToNum) {
-        int busNum = lfBuses.size();
-        LfDanglingLineBus lfBus = new LfDanglingLineBus(danglingLine, busNum);
-        busIdToNum.put(lfBus.getId(), busNum);
-        lfBuses.add(lfBus);
-        return lfBus;
-    }
-
-    private static LfStarBus addLfBus(ThreeWindingsTransformer t3wt, List<LfBus> lfBuses, Map<String, Integer> busIdToNum) {
-        int busNum = lfBuses.size();
-        LfStarBus lfBus = new LfStarBus(t3wt, busNum);
-        busIdToNum.put(lfBus.getId(), busNum);
-        lfBuses.add(lfBus);
-        return lfBus;
-    }
-
-    private static LfNetwork create(List<Bus> buses, SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl) {
-        CreationContext creationContext = new CreationContext();
-        List<LfBus> lfBuses = createBuses(buses, generatorVoltageRemoteControl, creationContext);
-        List<LfBranch> lfBranches = createBranches(lfBuses, creationContext);
-        return new LfNetwork(lfBuses, lfBranches, slackBusSelector);
+        return lfNetwork;
     }
 
     @Override
-    public Optional<List<LfNetwork>> load(Object network, SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl) {
+    public Optional<List<LfNetwork>> load(Object network, SlackBusSelector slackBusSelector, boolean voltageRemoteControl) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(slackBusSelector);
 
         if (network instanceof Network) {
             Stopwatch stopwatch = Stopwatch.createStarted();
 
-            Map<Integer, List<Bus>> buseByCc = new TreeMap<>();
+            Map<Pair<Integer, Integer>, List<Bus>> buseByCc = new TreeMap<>();
             for (Bus bus : ((Network) network).getBusView().getBuses()) {
                 Component cc = bus.getConnectedComponent();
-                if (cc != null) {
-                    buseByCc.computeIfAbsent(cc.getNum(), k -> new ArrayList<>()).add(bus);
+                Component sc = bus.getSynchronousComponent();
+                if (cc != null && sc != null) {
+                    buseByCc.computeIfAbsent(Pair.of(cc.getNum(), sc.getNum()), k -> new ArrayList<>()).add(bus);
                 }
             }
 
+            MutableInt num = new MutableInt(0);
             List<LfNetwork> lfNetworks = buseByCc.entrySet().stream()
-                    .filter(e -> e.getKey() == ComponentConstants.MAIN_NUM)
-                    .map(e -> create(e.getValue(), slackBusSelector, generatorVoltageRemoteControl))
+                    .filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
+                    .map(e -> create(num, e.getValue(), slackBusSelector, voltageRemoteControl))
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
             stopwatch.stop();

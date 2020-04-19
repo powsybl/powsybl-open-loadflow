@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.VscConverterStation;
-import com.powsybl.openloadflow.network.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.PerUnit;
 
 import java.util.Objects;
@@ -33,11 +32,14 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     }
 
     private static double getHvdcLineTargetP(VscConverterStation vscCs) {
+        // The active power setpoint is always positive.
+        // If the converter station is at side 1 and is rectifier, targetP should be negative.
+        // If the converter station is at side 1 and is inverter, targetP should be positive.
+        // If the converter station is at side 2 and is rectifier, targetP should be negative.
+        // If the converter station is at side 2 and is inverter, targetP should be positive.
+        boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(vscCs);
         HvdcLine line = vscCs.getHvdcLine();
-        return (line.getConverterStation1() == vscCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
-                || (line.getConverterStation2() == vscCs && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
-                ? -line.getActivePowerSetpoint()
-                : line.getActivePowerSetpoint();
+        return (isConverterStationRectifier ? -1 : 1) * line.getActivePowerSetpoint() * (1 + (isConverterStationRectifier ? 1 : -1) * vscCs.getLossFactor());
     }
 
     @Override

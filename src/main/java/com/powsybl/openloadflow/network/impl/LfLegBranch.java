@@ -7,27 +7,32 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
-import com.powsybl.openloadflow.network.AbstractFictitiousBranch;
+import com.powsybl.openloadflow.network.AbstractLfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
+
+import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfLegBranch extends AbstractFictitiousBranch<ThreeWindingsTransformer> {
+public class LfLegBranch extends AbstractLfBranch {
+
+    private final ThreeWindingsTransformer twt;
 
     private final ThreeWindingsTransformer.Leg leg;
 
-    protected LfLegBranch(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
-        super(twt, bus1, bus0, new PiModel(leg.getR(), leg.getX())
-                            .setR1(Transformers.getRatioLeg(twt, leg))
-                            .setG2(leg.getG())
-                            .setB2(leg.getB()),
-                leg.getTerminal().getVoltageLevel().getNominalV(),
-                twt.getRatedU0()); // Star bus.
+    private Evaluable p = NAN;
+
+    private Evaluable q = NAN;
+
+    protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
+        super(bus1, bus0, piModel);
+        this.twt = twt;
         this.leg = leg;
     }
 
@@ -35,12 +40,52 @@ public class LfLegBranch extends AbstractFictitiousBranch<ThreeWindingsTransform
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(twt);
         Objects.requireNonNull(leg);
-        return new LfLegBranch(bus1, bus0, twt, leg);
+        double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
+        double nominalV2 = twt.getRatedU0();
+        double zb = nominalV2 * nominalV2 / PerUnit.SB;
+        PiModel piModel = new PiModel()
+                .setR(Transformers.getR(leg) / zb)
+                .setX(Transformers.getX(leg) / zb)
+                .setG1(Transformers.getG1(leg) * zb)
+                .setB1(Transformers.getB1(leg) * zb)
+                .setR1(Transformers.getRatioLeg(twt, leg) / nominalV2 * nominalV1)
+                .setA1(Transformers.getAngleLeg(leg));
+        return new LfLegBranch(bus1, bus0, piModel, twt, leg);
+    }
+
+    private int getLegNum() {
+        if (leg == twt.getLeg1()) {
+            return 1;
+        } else if (leg == twt.getLeg2()) {
+            return 2;
+        } else {
+            return 3;
+        }
     }
 
     @Override
     public String getId() {
-        return branch.getId() + " leg";
+        return twt.getId() + "_leg_" + getLegNum();
+    }
+
+    @Override
+    public void setP1(Evaluable p1) {
+        this.p = Objects.requireNonNull(p1);
+    }
+
+    @Override
+    public void setP2(Evaluable p2) {
+        // nothing to do
+    }
+
+    @Override
+    public void setQ1(Evaluable q1) {
+        this.q = Objects.requireNonNull(q1);
+    }
+
+    @Override
+    public void setQ2(Evaluable q2) {
+        // nothing to do
     }
 
     @Override

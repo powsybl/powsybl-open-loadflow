@@ -16,7 +16,7 @@ import java.util.Optional;
  */
 public abstract class AbstractLfBus implements LfBus {
 
-    private final int num;
+    private int num = -1;
 
     private boolean slack = false;
 
@@ -28,8 +28,7 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected final List<LfBranch> branches = new ArrayList<>();
 
-    protected AbstractLfBus(int num, double v, double angle) {
-        this.num = num;
+    protected AbstractLfBus(double v, double angle) {
         this.v = v;
         this.angle = angle;
     }
@@ -40,7 +39,12 @@ public abstract class AbstractLfBus implements LfBus {
     }
 
     @Override
-    public Optional<LfBus> getRemoteControlTargetBus() {
+    public void setNum(int num) {
+        this.num = num;
+    }
+
+    @Override
+    public Optional<LfBus> getControlledBus() {
         return Optional.empty();
     }
 
