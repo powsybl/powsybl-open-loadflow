@@ -29,6 +29,7 @@ import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.VoltageInitializer;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -179,6 +180,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     public CompletableFuture<LoadFlowResult> run(Network network, ComputationManager computationManager, String workingVariantId, LoadFlowParameters parameters) {
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(parameters);
+
+        LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
 
         OpenLoadFlowParameters parametersExt = getParametersExt(parameters);
 
