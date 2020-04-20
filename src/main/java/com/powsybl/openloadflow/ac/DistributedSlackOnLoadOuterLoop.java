@@ -32,7 +32,7 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
     protected List<ParticipatingElement<LfBus>> getParticipatingElements(LfNetwork network) {
         return network.getBuses()
                 .stream()
-                .filter(bus -> bus.getLoadCount() > 0 && bus.getLoadTargetP() > 0)
+                .filter(bus -> bus.getPositiveLoadCount() > 0 && bus.getLoadTargetP() > 0)
                 .map(bus -> new ParticipatingElement<>(bus, bus.getLoadTargetP()))
                 .collect(Collectors.toList());
     }

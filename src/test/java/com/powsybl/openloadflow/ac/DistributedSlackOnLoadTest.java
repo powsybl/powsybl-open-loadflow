@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
@@ -33,6 +32,7 @@ public class DistributedSlackOnLoadTest {
     private Load l2;
     private Load l3;
     private Load l4;
+    private Load l5;
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
 
@@ -43,6 +43,7 @@ public class DistributedSlackOnLoadTest {
         l2 = network.getLoad("l2");
         l3 = network.getLoad("l3");
         l4 = network.getLoad("l4");
+        l5 = network.getLoad("l5");
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
@@ -56,18 +57,10 @@ public class DistributedSlackOnLoadTest {
     public void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        Line l14 = network.getLine("l14");
-        Line l24 = network.getLine("l24");
-        Line l34 = network.getLine("l34");
-        assertActivePowerEquals(31.034, l1.getTerminal());
-        assertActivePowerEquals(62.069, l2.getTerminal());
-        assertActivePowerEquals(51.724, l3.getTerminal());
-        assertActivePowerEquals(155.172, l4.getTerminal());
-        assertActivePowerEquals(68.966, l14.getTerminal1());
-        assertActivePowerEquals(-68.966, l14.getTerminal2());
-        assertActivePowerEquals(137.931, l24.getTerminal1());
-        assertActivePowerEquals(-137.931, l24.getTerminal2());
-        assertActivePowerEquals(-51.724, l34.getTerminal1());
-        assertActivePowerEquals(51.724, l34.getTerminal2());
+        assertActivePowerEquals(37.5, l1.getTerminal());
+        assertActivePowerEquals(75, l2.getTerminal());
+        assertActivePowerEquals(62.5, l3.getTerminal());
+        assertActivePowerEquals(175, l4.getTerminal());
+        assertActivePowerEquals(-50, l5.getTerminal()); // same as p0 because p0 < 0
     }
 }
