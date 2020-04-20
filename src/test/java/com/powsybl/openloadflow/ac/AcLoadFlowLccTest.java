@@ -122,7 +122,7 @@ public class AcLoadFlowLccTest {
                 .setConnectableBus("b3")
                 .setBus("b3")
                 .setPowerFactor(0.8f)
-                .setLossFactor(0.1f)
+                .setLossFactor(1.1f)
                 .add();
         g3 = vl3.newGenerator()
                 .setId("g3")
@@ -182,15 +182,15 @@ public class AcLoadFlowLccTest {
 
         assertVoltageEquals(390, bus1);
         assertAngleEquals(0, bus1);
-        assertVoltageEquals(389.3348, bus2);
-        assertAngleEquals(-0.0995237, bus2);
+        assertVoltageEquals(389.3763, bus2);
+        assertAngleEquals(-0.095311, bus2);
         assertVoltageEquals(380, bus3);
         assertAngleEquals(0, bus3);
 
-        assertActivePowerEquals(55.0, cs2.getTerminal());
-        assertReactivePowerEquals(41.25, cs2.getTerminal());
+        assertActivePowerEquals(50.05, cs2.getTerminal());
+        assertReactivePowerEquals(37.538, cs2.getTerminal());
 
-        assertActivePowerEquals(-45.0, cs3.getTerminal());
-        assertReactivePowerEquals(33.75, cs3.getTerminal());
+        assertActivePowerEquals(-49.45, cs3.getTerminal());
+        assertReactivePowerEquals(37.087, cs3.getTerminal());
     }
 }
