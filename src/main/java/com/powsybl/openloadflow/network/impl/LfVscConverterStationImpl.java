@@ -39,7 +39,7 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
         // If the converter station is at side 2 and is inverter, targetP should be positive.
         boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(vscCs);
         HvdcLine line = vscCs.getHvdcLine();
-        return (isConverterStationRectifier ? -1 : 1) * line.getActivePowerSetpoint() * (1 + (isConverterStationRectifier ? 1 : -1) * vscCs.getLossFactor());
+        return (isConverterStationRectifier ? -1 : 1) * line.getActivePowerSetpoint() * (1 + (isConverterStationRectifier ? 1 : -1) * vscCs.getLossFactor() / 100);
     }
 
     @Override

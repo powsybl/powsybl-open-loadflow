@@ -96,7 +96,7 @@ public class AcLoadFlowVscTest {
                 .setVoltageRegulatorOn(true)
                 .setVoltageSetpoint(385)
                 .setReactivePowerSetpoint(100)
-                .setLossFactor(0.2f)
+                .setLossFactor(1.1f)
                 .add();
 
         Substation s3 = network.newSubstation()
@@ -175,22 +175,22 @@ public class AcLoadFlowVscTest {
         assertVoltageEquals(390, bus1);
         assertAngleEquals(0, bus1);
         assertVoltageEquals(385, bus2);
-        assertAngleEquals(0.104905, bus2);
+        assertAngleEquals(0.116917, bus2);
         assertVoltageEquals(383, bus3);
         assertAngleEquals(0, bus3);
 
         assertActivePowerEquals(-102.56, g1.getTerminal());
-        assertReactivePowerEquals(-612.567, g1.getTerminal());
+        assertReactivePowerEquals(-615.733, g1.getTerminal());
 
-        assertActivePowerEquals(60.0, cs2.getTerminal());
-        assertReactivePowerEquals(594.916, cs2.getTerminal());
+        assertActivePowerEquals(50.55, cs2.getTerminal());
+        assertReactivePowerEquals(598.046, cs2.getTerminal());
 
-        assertActivePowerEquals(-40.0, cs3.getTerminal());
+        assertActivePowerEquals(-49.90, cs3.getTerminal());
         assertReactivePowerEquals(-10.0, cs3.getTerminal());
 
-        assertActivePowerEquals(112.55, l12.getTerminal1());
-        assertReactivePowerEquals(612.567, l12.getTerminal1());
-        assertActivePowerEquals(-110.0, l12.getTerminal2());
-        assertReactivePowerEquals(-604.916, l12.getTerminal2());
+        assertActivePowerEquals(103.112, l12.getTerminal1());
+        assertReactivePowerEquals(615.733, l12.getTerminal1());
+        assertActivePowerEquals(-100.55, l12.getTerminal2());
+        assertReactivePowerEquals(-608.046, l12.getTerminal2());
     }
 }
