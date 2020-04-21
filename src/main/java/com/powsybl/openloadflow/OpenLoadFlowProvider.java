@@ -17,10 +17,7 @@ import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.loadflow.resultscompletion.z0flows.Z0FlowsCompletion;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.ac.AcLoadFlowLogger;
-import com.powsybl.openloadflow.ac.AcLoadFlowProfiler;
-import com.powsybl.openloadflow.ac.DistributedSlackOuterLoop;
-import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
+import com.powsybl.openloadflow.ac.*;
 import com.powsybl.openloadflow.ac.nr.*;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
@@ -35,6 +32,7 @@ import com.powsybl.openloadflow.equations.VoltageInitializer;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,12 +118,24 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
             LOGGER.info("Voltage level initializer: {}", voltageInitializer.getClass().getSimpleName());
             LOGGER.info("Distributed slack: {}", parametersExt.isDistributedSlack());
+            LOGGER.info("Balance type: {}", parametersExt.getBalanceType());
             LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
             LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
 
             List<OuterLoop> outerLoops = new ArrayList<>();
             if (parametersExt.isDistributedSlack()) {
-                outerLoops.add(new DistributedSlackOuterLoop());
+                switch (parametersExt.getBalanceType()) {
+                    case PROPORTIONAL_TO_GENERATION_P_MAX:
+                        outerLoops.add(new DistributedSlackOnGenerationOuterLoop());
+                        break;
+                    case PROPORTIONAL_TO_LOAD:
+                        outerLoops.add(new DistributedSlackOnLoadOuterLoop());
+                        break;
+                    case PROPORTIONAL_TO_GENERATION_P: // to be implemented.
+                        throw new UnsupportedOperationException("Unsupported balance type mode: " + parametersExt.getBalanceType());
+                    default:
+                        throw new UnsupportedOperationException("Unknown balance type mode: " + parametersExt.getBalanceType());
+                }
             }
             if (!parameters.isNoGeneratorReactiveLimits()) {
                 outerLoops.add(new ReactiveLimitsOuterLoop());
@@ -183,9 +193,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(parameters);
 
+        LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
+
         OpenLoadFlowParameters parametersExt = getParametersExt(parameters);
 
         return parametersExt.isDc() ? runDc(network, workingVariantId)
-                : runAc(network, workingVariantId, parameters, parametersExt);
+                                    : runAc(network, workingVariantId, parameters, parametersExt);
     }
 }

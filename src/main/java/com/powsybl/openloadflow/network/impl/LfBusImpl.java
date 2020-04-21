@@ -33,9 +33,17 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final double nominalV;
 
+    private boolean voltageControlCapacility = false;
+
     private boolean voltageControl = false;
 
+    private int voltageControlSwitchOffCount = 0;
+
+    private double initialLoadTargetP = 0;
+
     private double loadTargetP = 0;
+
+    private int loadCount = 0;
 
     private double loadTargetQ = 0;
 
@@ -79,13 +87,26 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
+    public boolean hasVoltageControlCapability() {
+        return voltageControlCapacility;
+    }
+
+    @Override
     public boolean hasVoltageControl() {
         return voltageControl;
     }
 
     @Override
     public void setVoltageControl(boolean voltageControl) {
+        if (this.voltageControl && !voltageControl) {
+            voltageControlSwitchOffCount++;
+        }
         this.voltageControl = voltageControl;
+    }
+
+    @Override
+    public int getVoltageControlSwitchOffCount() {
+        return voltageControlSwitchOffCount;
     }
 
     @Override
@@ -157,15 +178,21 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     void addLoad(Load load) {
-        loads.add(load);
-        this.loadTargetP += load.getP0();
-        this.loadTargetQ += load.getQ0();
+        if (load.getP0() >= 0) {
+            loads.add(load);
+            initialLoadTargetP += load.getP0();
+            loadTargetP += load.getP0();
+            loadTargetQ += load.getQ0();
+            loadCount++;
+        }
     }
 
     void addBattery(Battery battery) {
         batteries.add(battery);
+        initialLoadTargetP += battery.getP0();
         loadTargetP += battery.getP0();
         loadTargetQ += battery.getQ0();
+        loadCount++;
     }
 
     void addLccConverterStation(LccConverterStation lccCs) {
@@ -178,7 +205,7 @@ public class LfBusImpl extends AbstractLfBus {
         // If the converter station is at side 2 and is inverter, p should be negative.
         boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(lccCs);
         double p = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
-                (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor()); // A LCC station has active losses.
+                (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor() / 100); // A LCC station has active losses.
         double q = Math.abs(p * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
         loadTargetP += p;
         loadTargetQ += q;
@@ -187,23 +214,24 @@ public class LfBusImpl extends AbstractLfBus {
     private void add(LfGenerator generator, boolean voltageControl, double targetV, double targetQ,
                      LfNetworkLoadingReport report) {
         generators.add(generator);
-        boolean voltageControl2 = voltageControl;
+        boolean modifiedVoltageControl = voltageControl;
         double maxRangeQ = generator.getMaxRangeQ();
         if (voltageControl && maxRangeQ < REACTIVE_RANGE_THRESHOLD_PU) {
             LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small",
                     generator.getId(), maxRangeQ);
             report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
-            voltageControl2 = false;
+            modifiedVoltageControl = false;
         }
         if (voltageControl && Math.abs(generator.getTargetP()) < POWER_EPSILON_SI && generator.getMinP() > POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)",
                     generator.getId(), generator.getTargetP(), generator.getMinP());
             report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
-            voltageControl2 = false;
+            modifiedVoltageControl = false;
         }
-        if (voltageControl2) {
+        if (modifiedVoltageControl) {
             this.targetV = checkTargetV(targetV);
             this.voltageControl = true;
+            this.voltageControlCapacility = true;
         } else {
             generationTargetQ += targetQ;
         }
@@ -250,6 +278,16 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public double getLoadTargetP() {
         return loadTargetP / PerUnit.SB;
+    }
+
+    @Override
+    public void setLoadTargetP(double loadTargetP) {
+        this.loadTargetP = loadTargetP * PerUnit.SB;
+    }
+
+    @Override
+    public int getLoadCount() {
+        return loadCount;
     }
 
     @Override
@@ -363,6 +401,9 @@ public class LfBusImpl extends AbstractLfBus {
 
         // update load power
         for (Load load : loads) {
+            if (initialLoadTargetP != 0) {
+                load.setP0(load.getP0() * loadTargetP / initialLoadTargetP);
+            }
             load.getTerminal()
                     .setP(load.getP0())
                     .setQ(load.getQ0());
@@ -370,6 +411,9 @@ public class LfBusImpl extends AbstractLfBus {
 
         // update battery power
         for (Battery battery : batteries) {
+            if (initialLoadTargetP != 0) {
+                battery.setP0(battery.getP0() * loadTargetP / initialLoadTargetP);
+            }
             battery.getTerminal()
                     .setP(battery.getP0())
                     .setQ(battery.getQ0());
@@ -380,7 +424,7 @@ public class LfBusImpl extends AbstractLfBus {
             boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(lccCs);
             HvdcLine line = lccCs.getHvdcLine();
             double p = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
-                    (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor()); // A LCC station has active losses.
+                    (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor() / 100); // A LCC station has active losses.
             double q = Math.abs(p * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
             lccCs.getTerminal()
                     .setP(p)

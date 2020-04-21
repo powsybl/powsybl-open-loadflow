@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
@@ -88,6 +89,27 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return terms;
     }
 
+    private static double getBusTargetV(LfBus bus) {
+        Objects.requireNonNull(bus);
+        if (bus.getControllerBuses().isEmpty()) {
+            return bus.getTargetV();
+        } else {
+            return bus.getControllerBuses()
+                    .stream()
+                    .filter(LfBus::hasVoltageControl)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("None of the controller buses of bus '" + bus.getId()
+                            + "'has voltage control on"))
+                    .getTargetV();
+        }
+    }
+
+    private static double getBranchPhi(LfBranch branch) {
+        Objects.requireNonNull(branch);
+        PiModel piModel = branch.getPiModel();
+        return piModel.getA2() - piModel.getA1();
+    }
+
     void initTarget(LfNetwork network, double[] targets) {
         switch (type) {
             case BUS_P:
@@ -99,17 +121,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case BUS_V:
-                LfBus bus = network.getBus(num);
-                if (bus.getControllerBuses().isEmpty()) {
-                    targets[row] = bus.getTargetV();
-                } else {
-                    targets[row] = bus.getControllerBuses()
-                            .stream()
-                            .filter(LfBus::hasVoltageControl)
-                            .findFirst()
-                            .orElseThrow(() -> new IllegalStateException("None of the controller buses has voltage control on"))
-                            .getTargetV();
-                }
+                targets[row] = getBusTargetV(network.getBus(num));
                 break;
 
             case BUS_PHI:
@@ -122,12 +134,11 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case ZERO_PHI:
-                PiModel piModel = network.getBranch(num).getPiModel();
-                targets[row] = piModel.getA2() - piModel.getA1();
+                targets[row] = getBranchPhi(network.getBranch(num));
                 break;
 
             default:
-                throw new IllegalStateException("Unknown state variable type "  + type);
+                throw new IllegalStateException("Unknown state variable type: "  + type);
         }
 
         for (EquationTerm term : terms) {
