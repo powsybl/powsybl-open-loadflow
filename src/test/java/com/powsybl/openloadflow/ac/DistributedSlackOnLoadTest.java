@@ -33,6 +33,7 @@ public class DistributedSlackOnLoadTest {
     private Load l3;
     private Load l4;
     private Load l5;
+    private Load l6;
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
 
@@ -44,6 +45,7 @@ public class DistributedSlackOnLoadTest {
         l3 = network.getLoad("l3");
         l4 = network.getLoad("l4");
         l5 = network.getLoad("l5");
+        l6 = network.getLoad("l6");
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
@@ -61,6 +63,7 @@ public class DistributedSlackOnLoadTest {
         assertActivePowerEquals(75, l2.getTerminal());
         assertActivePowerEquals(62.5, l3.getTerminal());
         assertActivePowerEquals(175, l4.getTerminal());
-        assertActivePowerEquals(-50, l5.getTerminal()); // same as p0 because p0 < 0
+        assertActivePowerEquals(12.5, l5.getTerminal());
+        assertActivePowerEquals(-50, l6.getTerminal()); // same as p0 because p0 < 0
     }
 }
