@@ -123,6 +123,11 @@
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-loadflow-results-completion</artifactId>
+            <version>${powsyblcore.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
             <artifactId>powsybl-math</artifactId>
             <version>${powsyblcore.version}</version>
         </dependency>
