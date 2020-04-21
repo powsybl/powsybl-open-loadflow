@@ -211,7 +211,7 @@
         <profile>
         <id>native-image</id>
         <activation>
-            <activeByDefault>true</activeByDefault>
+            <activeByDefault>false</activeByDefault>
         </activation>
         <build>
             <plugins>
