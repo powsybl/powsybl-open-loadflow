@@ -399,7 +399,7 @@ public class LfBusImpl extends AbstractLfBus {
         updateGeneratorsState(voltageControl ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
 
         // update load power
-        double factor = loadTargetP / initialLoadTargetP;
+        double factor = initialLoadTargetP > 0 ? loadTargetP / initialLoadTargetP : 1;
         for (Load load : loads) {
             load.getTerminal()
                     .setP(load.getP0() >= 0 ? factor * load.getP0() : load.getP0())
