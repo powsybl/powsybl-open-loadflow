@@ -59,9 +59,6 @@ public class DistributedSlackOnLoadTest {
     public void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        for (Load load : network.getLoads()) {
-            System.out.println(load.getTerminal().getP());
-        }
         assertActivePowerEquals(37.5, l1.getTerminal());
         assertActivePowerEquals(75, l2.getTerminal());
         assertActivePowerEquals(62.5, l3.getTerminal());
