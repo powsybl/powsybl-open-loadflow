@@ -93,14 +93,14 @@ public final class AcEquationSystem {
             Equation zero = equationSystem.createEquation(controllerBus.getNum(), EquationType.ZERO_Q);
             for (LfBranch branch : firstControllerBus.getBranches()) {
                 LfBus otherSideBus = branch.getBus1() == firstControllerBus ? branch.getBus2() : branch.getBus1();
-                boolean deriveA = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
-                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, firstControllerBus, otherSideBus, variableSet, deriveA);
+                boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, firstControllerBus, otherSideBus, variableSet, new AcEquationTermDerivativeParameters(deriveA1, false));
                 zero.addTerm(q);
             }
             for (LfBranch branch : controllerBus.getBranches()) {
                 LfBus otherSideBus = branch.getBus1() == controllerBus ? branch.getBus2() : branch.getBus1();
-                boolean deriveA = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
-                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA);
+                boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, new AcEquationTermDerivativeParameters(deriveA1, false));
                 EquationTerm minusQ = EquationTerm.multiply(q, -c);
                 zero.addTerm(minusQ);
             }
@@ -177,11 +177,12 @@ public final class AcEquationSystem {
                 EquationTerm p2 = null;
                 EquationTerm q2 = null;
                 if (bus1 != null && bus2 != null) {
-                    boolean deriveA = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
-                    p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA);
-                    q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA);
-                    p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA);
-                    q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA);
+                    boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+                    AcEquationTermDerivativeParameters derivativeParameters = new AcEquationTermDerivativeParameters(deriveA1, false);
+                    p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, derivativeParameters);
+                    q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, derivativeParameters);
+                    p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, derivativeParameters);
+                    q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, derivativeParameters);
                 } else if (bus1 != null) {
                     p1 = new OpenBranchSide2ActiveFlowEquationTerm(branch, bus1, variableSet);
                     q1 = new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus1, variableSet);

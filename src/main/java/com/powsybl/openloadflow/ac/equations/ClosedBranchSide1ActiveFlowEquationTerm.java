@@ -31,9 +31,11 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
 
     private double dp1da1;
 
+    private double dp1da2;
+
     public ClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
-                                                   boolean deriveA) {
-        super(branch, bus1, bus2, variableSet, deriveA);
+                                                   AcEquationTermDerivativeParameters derivativeParameters) {
+        super(branch, bus1, bus2, variableSet, derivativeParameters);
     }
 
     @Override
@@ -43,7 +45,7 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         double v2 = x[v2Var.getColumn()];
         double ph1 = x[ph1Var.getColumn()];
         double ph2 = x[ph2Var.getColumn()];
-        double theta = ksi - (a1Var != null ? x[a1Var.getColumn()] : a1) + a2 - ph1 + ph2;
+        double theta = ksi - (a1Var != null ? x[a1Var.getColumn()] : a1) + (a2Var != null ? x[a2Var.getColumn()] : a2) - ph1 + ph2;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
         p1 = r1 * v1 * (g1 * r1 * v1 + y * r1 * v1 * sinKsi - y * r2 * v2 * sinTheta);
@@ -53,6 +55,9 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         dp1dph2 = -dp1dph1;
         if (a1Var != null) {
             dp1da1 = dp1dph1;
+        }
+        if (a2Var != null) {
+            dp1da2 = dp1dph2;
         }
     }
 
@@ -74,6 +79,8 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
             return dp1dph2;
         } else if (variable.equals(a1Var)) {
             return dp1da1;
+        } else if (variable.equals(a2Var)) {
+            return dp1da2;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

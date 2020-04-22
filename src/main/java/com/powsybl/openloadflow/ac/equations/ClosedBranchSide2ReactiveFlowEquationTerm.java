@@ -31,9 +31,11 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
 
     private double dq2da1;
 
+    private double dq2da2;
+
     public ClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
-                                                     boolean deriveA) {
-        super(branch, bus1, bus2, variableSet, deriveA);
+                                                     AcEquationTermDerivativeParameters derivativeParameters) {
+        super(branch, bus1, bus2, variableSet, derivativeParameters);
     }
 
     @Override
@@ -43,7 +45,7 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
         double v2 = x[v2Var.getColumn()];
         double ph1 = x[ph1Var.getColumn()];
         double ph2 = x[ph2Var.getColumn()];
-        double theta = ksi + (a1Var != null ? x[a1Var.getColumn()] : a1) - a2 + ph1 - ph2;
+        double theta = ksi + (a1Var != null ? x[a1Var.getColumn()] : a1) - (a2Var != null ? x[a2Var.getColumn()] : a2) + ph1 - ph2;
         double cosTheta = FastMath.cos(theta);
         double sinTheta = FastMath.sin(theta);
         q2 = r2 * v2 * (-b2 * r2 * v2 - y * r1 * v1 * cosTheta + y * r2 * v2 * cosKsi);
@@ -53,6 +55,9 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
         dq2dph2 = -dq2dph1;
         if (a1Var != null) {
             dq2da1 = dq2dph1;
+        }
+        if (a2Var != null) {
+            dq2da2 = dq2dph2;
         }
     }
 
@@ -74,6 +79,8 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
             return dq2dph2;
         } else if (variable.equals(a1Var)) {
             return dq2da1;
+        } else if (variable.equals(a2Var)) {
+            return dq2da2;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
