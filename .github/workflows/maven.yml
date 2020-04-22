@@ -48,6 +48,8 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
+          architecture: x64
+          jdkFile: https://github.com/graalvm/graalvm-ce-builds/releases/download/vm-20.0.0/graalvm-ce-java8-linux-amd64-20.0.0.tar.gz
 
       - name: Build with Maven
-        run: mvn --batch-mode -Pnative-image package
+        run: mvn --batch-mode -DskipTests=true -Pnative-image package
