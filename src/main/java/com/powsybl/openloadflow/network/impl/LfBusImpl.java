@@ -43,7 +43,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     private double loadTargetP = 0;
 
-    private int loadCount = 0;
+    private int positiveLoadCount = 0;
 
     private double loadTargetQ = 0;
 
@@ -178,12 +178,12 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     void addLoad(Load load) {
+        loads.add(load);
+        initialLoadTargetP += load.getP0();
+        loadTargetP += load.getP0();
+        loadTargetQ += load.getQ0();
         if (load.getP0() >= 0) {
-            loads.add(load);
-            initialLoadTargetP += load.getP0();
-            loadTargetP += load.getP0();
-            loadTargetQ += load.getQ0();
-            loadCount++;
+            positiveLoadCount++;
         }
     }
 
@@ -192,7 +192,6 @@ public class LfBusImpl extends AbstractLfBus {
         initialLoadTargetP += battery.getP0();
         loadTargetP += battery.getP0();
         loadTargetQ += battery.getQ0();
-        loadCount++;
     }
 
     void addLccConverterStation(LccConverterStation lccCs) {
@@ -205,7 +204,7 @@ public class LfBusImpl extends AbstractLfBus {
         // If the converter station is at side 2 and is inverter, p should be negative.
         boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(lccCs);
         double p = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
-                (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor()); // A LCC station has active losses.
+                (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor() / 100); // A LCC station has active losses.
         double q = Math.abs(p * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
         loadTargetP += p;
         loadTargetQ += q;
@@ -286,8 +285,8 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
-    public int getLoadCount() {
-        return loadCount;
+    public int getPositiveLoadCount() {
+        return positiveLoadCount;
     }
 
     @Override
@@ -400,20 +399,15 @@ public class LfBusImpl extends AbstractLfBus {
         updateGeneratorsState(voltageControl ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
 
         // update load power
+        double factor = initialLoadTargetP != 0 ? loadTargetP / initialLoadTargetP : 1;
         for (Load load : loads) {
-            if (initialLoadTargetP != 0) {
-                load.setP0(load.getP0() * loadTargetP / initialLoadTargetP);
-            }
             load.getTerminal()
-                    .setP(load.getP0())
+                    .setP(load.getP0() >= 0 ? factor * load.getP0() : load.getP0())
                     .setQ(load.getQ0());
         }
 
-        // update battery power
+        // update battery power (which are not part of slack distribution)
         for (Battery battery : batteries) {
-            if (initialLoadTargetP != 0) {
-                battery.setP0(battery.getP0() * loadTargetP / initialLoadTargetP);
-            }
             battery.getTerminal()
                     .setP(battery.getP0())
                     .setQ(battery.getQ0());
@@ -424,7 +418,7 @@ public class LfBusImpl extends AbstractLfBus {
             boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(lccCs);
             HvdcLine line = lccCs.getHvdcLine();
             double p = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
-                    (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor()); // A LCC station has active losses.
+                    (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor() / 100); // A LCC station has active losses.
             double q = Math.abs(p * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
             lccCs.getTerminal()
                     .setP(p)

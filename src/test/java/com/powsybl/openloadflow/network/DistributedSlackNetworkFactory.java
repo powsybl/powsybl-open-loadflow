@@ -129,8 +129,9 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
         createLoad(b1, "l1", 30, 30);
         createLoad(b2, "l2", 60, 40);
         createLoad(b3, "l3", 50, 35);
-        createLoad(b4, "l4", 150, 100);
-        createLoad(b4, "l5", -50, 100);
+        createLoad(b4, "l4", 140, 100);
+        createLoad(b4, "l5", 10, 100);
+        createLoad(b4, "l6", -50, 100);
         createLine(network, b1, b4, "l14", 0.1f);
         createLine(network, b2, b4, "l24", 0.15f);
         createLine(network, b3, b4, "l34", 0.12f);

@@ -59,7 +59,7 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     }
 
     @Override
-    public int getLoadCount() {
+    public int getPositiveLoadCount() {
         return 0;
     }
 
