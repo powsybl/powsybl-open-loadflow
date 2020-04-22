@@ -23,20 +23,32 @@ public class PhaseControl {
         A
     }
 
+    public enum ControlledSide {
+        ONE,
+        TWO
+    }
+
     private final Mode mode;
+
+    private final ControlledSide controlledSide;
 
     private final double targetValue;
 
     private final Unit unit;
 
-    public PhaseControl(Mode mode, double targetValue, Unit unit) {
+    public PhaseControl(Mode mode, ControlledSide controlledSide, double targetValue, Unit unit) {
         this.mode = Objects.requireNonNull(mode);
+        this.controlledSide = Objects.requireNonNull(controlledSide);
         this.targetValue = targetValue;
         this.unit = Objects.requireNonNull(unit);
     }
 
     public Mode getMode() {
         return mode;
+    }
+
+    public ControlledSide getControlledSide() {
+        return controlledSide;
     }
 
     public double getTargetValue() {

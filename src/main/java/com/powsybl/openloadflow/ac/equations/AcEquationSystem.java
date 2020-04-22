@@ -197,7 +197,9 @@ public final class AcEquationSystem {
 
                     if (creationParameters.isPhaseControl()) {
                         PhaseControl phaseControl = branch.getPhaseControl().orElse(null);
-                        if (phaseControl != null && phaseControl.getMode() == PhaseControl.Mode.CONTROLLER) {
+                        if (phaseControl != null
+                                && phaseControl.getMode() == PhaseControl.Mode.CONTROLLER
+                                && phaseControl.getControlledSide() == PhaseControl.ControlledSide.ONE) {
                             equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_P)
                                     .addTerm(p1);
                         }
@@ -210,6 +212,16 @@ public final class AcEquationSystem {
                 if (p2 != null) {
                     equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
                     branch.setP2(p2);
+
+                    if (creationParameters.isPhaseControl()) {
+                        PhaseControl phaseControl = branch.getPhaseControl().orElse(null);
+                        if (phaseControl != null
+                                && phaseControl.getMode() == PhaseControl.Mode.CONTROLLER
+                                && phaseControl.getControlledSide() == PhaseControl.ControlledSide.TWO) {
+                            equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_P)
+                                    .addTerm(EquationTerm.multiply(p2, -1));
+                        }
+                    }
                 }
                 if (q2 != null) {
                     equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);

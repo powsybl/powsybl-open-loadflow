@@ -71,10 +71,18 @@ public class LfBranchImpl extends AbstractLfBranch {
             PhaseTapChanger ptc = twt.getPhaseTapChanger();
             if (ptc != null && ptc.isRegulating()) {
                 PhaseTapChanger.RegulationMode regulationMode = ptc.getRegulationMode();
+                PhaseControl.ControlledSide controlledSide;
+                if (ptc.getRegulationTerminal() == twt.getTerminal1()) {
+                    controlledSide = PhaseControl.ControlledSide.ONE;
+                } else if (ptc.getRegulationTerminal() == twt.getTerminal2()) {
+                    controlledSide = PhaseControl.ControlledSide.TWO;
+                } else {
+                    throw new UnsupportedOperationException("Remote controlled phase not yet supported");
+                }
                 if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
-                    phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A);
+                    phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A);
                 } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
-                    phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW);
+                    phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW);
                 }
             }
         } else {

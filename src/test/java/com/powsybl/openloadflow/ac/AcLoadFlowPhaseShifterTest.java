@@ -114,6 +114,7 @@ public class AcLoadFlowPhaseShifterTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertActivePowerEquals(82.9, line2.getTerminal1());
+        assertActivePowerEquals(83, line2.getTerminal1());
+        assertActivePowerEquals(-82.9, line2.getTerminal2());
     }
 }
