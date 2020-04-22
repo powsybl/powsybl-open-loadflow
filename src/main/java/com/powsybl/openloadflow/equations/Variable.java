@@ -91,8 +91,11 @@ public class Variable implements Comparable<Variable> {
                 break;
 
             case BRANCH_ALPHA1:
+                network.getBranch(num).setA1(x[column]);
+                break;
+
             case BRANCH_ALPHA2:
-                // TODO update tap position
+                network.getBranch(num).setA2(x[column]);
                 break;
 
             case DUMMY_P:

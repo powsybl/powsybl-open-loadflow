@@ -28,6 +28,8 @@ public class LfLegBranch extends AbstractLfBranch {
 
     private Evaluable q = NAN;
 
+    private double a1 = Double.NaN;
+
     protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
         super(bus1, bus0, piModel);
         this.twt = twt;
@@ -87,6 +89,16 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
+    public void setA1(double a1) {
+        this.a1 = a1;
+    }
+
+    @Override
+    public void setA2(double a2) {
+        // nothing to do
+    }
+
+    @Override
     public Optional<PhaseControl> getPhaseControl() {
         return Optional.empty();
     }
@@ -95,5 +107,9 @@ public class LfLegBranch extends AbstractLfBranch {
     public void updateState() {
         leg.getTerminal().setP(p.eval() * PerUnit.SB);
         leg.getTerminal().setQ(q.eval() * PerUnit.SB);
+
+        if (!Double.isNaN(a1)) {
+            // TODO
+        }
     }
 }

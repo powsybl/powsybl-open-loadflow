@@ -36,6 +36,8 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private Evaluable q2 = NAN;
 
+    private double a1 = Double.NaN;
+
     protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, PhaseControl phaseControl, Branch branch) {
         super(bus1, bus2, piModel);
         this.phaseControl = phaseControl;
@@ -117,6 +119,16 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
+    public void setA1(double a1) {
+        this.a1 = a1;
+    }
+
+    @Override
+    public void setA2(double a2) {
+        // nothing to do
+    }
+
+    @Override
     public Optional<PhaseControl> getPhaseControl() {
         return Optional.ofNullable(phaseControl);
     }
@@ -127,5 +139,9 @@ public class LfBranchImpl extends AbstractLfBranch {
         branch.getTerminal1().setQ(q1.eval() * PerUnit.SB);
         branch.getTerminal2().setP(p2.eval() * PerUnit.SB);
         branch.getTerminal2().setQ(q2.eval() * PerUnit.SB);
+
+        if (!Double.isNaN(a1)) {
+            // TODO
+        }
     }
 }
