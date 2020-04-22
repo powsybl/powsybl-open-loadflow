@@ -139,6 +139,12 @@
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-loadflow-results-completion</artifactId>
             <version>${powsyblcore.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.codehaus.groovy</groupId>
+                    <artifactId>groovy</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
