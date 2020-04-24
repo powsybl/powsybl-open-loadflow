@@ -133,6 +133,10 @@ public class LfBranchImpl extends AbstractLfBranch {
         return Optional.ofNullable(phaseControl);
     }
 
+    public Branch getBranch() {
+        return branch;
+    }
+
     @Override
     public void updateState() {
         branch.getTerminal1().setP(p1.eval() * PerUnit.SB);

@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
@@ -123,6 +124,10 @@ public class LfLegBranch extends AbstractLfBranch {
     @Override
     public Optional<PhaseControl> getPhaseControl() {
         return Optional.empty();
+    }
+
+    public Branch getBranch() {
+        return null;
     }
 
     @Override

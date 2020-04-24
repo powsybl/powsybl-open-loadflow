@@ -6,7 +6,9 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.DanglingLine;
+import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
@@ -85,6 +87,11 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     @Override
     public Optional<PhaseControl> getPhaseControl() {
         return Optional.empty();
+    }
+
+    @Override
+    public Branch getBranch() {
+        return null;
     }
 
     @Override
