@@ -141,7 +141,14 @@ public class LfBranchImpl extends AbstractLfBranch {
         branch.getTerminal2().setQ(q2.eval() * PerUnit.SB);
 
         if (!Double.isNaN(a1)) {
-            // TODO
+            if (branch instanceof TwoWindingsTransformer) {
+                TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
+                PhaseTapChanger ptc = twt.getPhaseTapChanger();
+                if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                    int step = Transformers.findStep(ptc, a1);
+                    ptc.setTapPosition(step);
+                }
+            }
         }
     }
 }

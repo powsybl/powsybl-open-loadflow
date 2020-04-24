@@ -13,6 +13,7 @@ import com.powsybl.iidm.network.TwoWindingsTransformer;
 
 /**
  * @author Sylvain Leclerc <sylvain.leclerc at rte-france.com>
+ * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
 public final class Transformers {
 
@@ -52,6 +53,17 @@ public final class Transformers {
      */
     public static double getAngle(TwoWindingsTransformer twt) {
         return twt.getPhaseTapChanger() != null ? Math.toRadians(twt.getPhaseTapChanger().getCurrentStep().getAlpha()) : 0f;
+    }
+
+    /**
+     * Find the step of a phase tap changer corresponding to a given phase shift.
+     */
+    public static int findStep(PhaseTapChanger ptc, double angle) {
+        int position = ptc.getLowTapPosition();
+        while (position <= ptc.getHighTapPosition() && angle > Math.toRadians(ptc.getStep(position).getAlpha())) {
+            position++;
+        }
+        return position;
     }
 
     /**

@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -20,6 +21,8 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  */
 public class LfLegBranch extends AbstractLfBranch {
 
+    private PhaseControl phaseControl;
+
     private final ThreeWindingsTransformer twt;
 
     private final ThreeWindingsTransformer.Leg leg;
@@ -30,8 +33,10 @@ public class LfLegBranch extends AbstractLfBranch {
 
     private double a1 = Double.NaN;
 
-    protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
+    protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, PhaseControl phaseControl, ThreeWindingsTransformer twt,
+                          ThreeWindingsTransformer.Leg leg) {
         super(bus1, bus0, piModel);
+        this.phaseControl = phaseControl;
         this.twt = twt;
         this.leg = leg;
     }
@@ -43,6 +48,7 @@ public class LfLegBranch extends AbstractLfBranch {
         double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
         double nominalV2 = twt.getRatedU0();
         double zb = nominalV2 * nominalV2 / PerUnit.SB;
+        PhaseControl phaseControl = null;
         PiModel piModel = new PiModel()
                 .setR(Transformers.getR(leg) / zb)
                 .setX(Transformers.getX(leg) / zb)
@@ -50,7 +56,23 @@ public class LfLegBranch extends AbstractLfBranch {
                 .setB1(Transformers.getB1(leg) * zb)
                 .setR1(Transformers.getRatioLeg(twt, leg) / nominalV2 * nominalV1)
                 .setA1(Transformers.getAngleLeg(leg));
-        return new LfLegBranch(bus1, bus0, piModel, twt, leg);
+
+        PhaseTapChanger ptc = leg.getPhaseTapChanger();
+        if (ptc != null && ptc.isRegulating()) {
+            PhaseTapChanger.RegulationMode regulationMode = ptc.getRegulationMode();
+            PhaseControl.ControlledSide controlledSide;
+            if (ptc.getRegulationTerminal() == leg.getTerminal()) {
+                controlledSide = PhaseControl.ControlledSide.ONE; // Network side.
+            } else {
+                throw new UnsupportedOperationException("Remote controlled phase not yet supported");
+            }
+            if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
+                phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A);
+            } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW);
+            }
+        }
+        return new LfLegBranch(bus1, bus0, piModel, phaseControl, twt, leg);
     }
 
     private int getLegNum() {
@@ -109,7 +131,12 @@ public class LfLegBranch extends AbstractLfBranch {
         leg.getTerminal().setQ(q.eval() * PerUnit.SB);
 
         if (!Double.isNaN(a1)) {
-            // TODO
+            PhaseTapChanger ptc = leg.getPhaseTapChanger();
+            if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                int step = Transformers.findStep(ptc, a1);
+                ptc.setTapPosition(step);
+            }
         }
     }
 }
+
