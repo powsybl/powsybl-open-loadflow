@@ -94,7 +94,9 @@ public class PhaseControlOuterLoop implements OuterLoop {
                             // Equation for bus2.
                             context.getEquationSystem().createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
                             context.getEquationSystem().createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
-                        } else if (b.getBus2() == bus1) {
+                        }
+
+                        if (b.getBus2() == bus1) {
                             if (b.getBus1() != null) {
                                 p1 = new ClosedBranchSide2ActiveFlowEquationTerm(b, b.getBus1(), b.getBus2(), context.getVariableSet(), derivativeParameters);
                                 q1 = new ClosedBranchSide2ReactiveFlowEquationTerm(b, b.getBus1(), b.getBus2(), context.getVariableSet(), derivativeParameters);
