@@ -40,6 +40,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
                     int step = Transformers.findStep(ptc, branch.getPiModel().getA1());
                     ptc.setTapPosition(step);
                     branch.getPiModel().setA1(Transformers.getAngle(twt));
+                    ptc.setRegulating(false); // Fix.
 
                     status = OuterLoopStatus.UNSTABLE;
 
