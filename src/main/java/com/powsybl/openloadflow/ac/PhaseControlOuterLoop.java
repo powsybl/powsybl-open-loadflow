@@ -114,10 +114,10 @@ public class PhaseControlOuterLoop implements OuterLoop {
             AcEquationTermDerivativeParameters derivativeParameters = new AcEquationTermDerivativeParameters(false, false);
 
             if (b.getBus1() == bus1 && b.getBus2() == bus2) {
-                p1 = new ClosedBranchSide1ActiveFlowEquationTerm(b, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
-                q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(b, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
-                p2 = new ClosedBranchSide2ActiveFlowEquationTerm(b, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
-                q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(b, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
+                p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
+                q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
+                p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
+                q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
                 if (updateEquationBus1) {
                     equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
                     equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q).addTerm(q1);
@@ -126,10 +126,10 @@ public class PhaseControlOuterLoop implements OuterLoop {
                     equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
                     equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
                 }
-                branch.setP1(p1);
-                branch.setQ1(q1);
-                branch.setP2(p2);
-                branch.setQ2(q2);
+                b.setP1(p1);
+                b.setQ1(q1);
+                b.setP2(p2);
+                b.setQ2(q2);
 
             } else if ((b.getBus1() == bus1 || b.getBus2() == bus1) && updateEquationBus1) {
                 if (b.getBus1() == bus1) {
@@ -153,8 +153,8 @@ public class PhaseControlOuterLoop implements OuterLoop {
                 }
                 equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
                 equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q).addTerm(q1);
-                branch.setP1(p1);
-                branch.setQ1(q1);
+                b.setP1(p1);
+                b.setQ1(q1);
 
             } else if ((b.getBus1() == bus2 || b.getBus2() == bus2) && updateEquationBus2) {
                 if (b.getBus1() == bus2) {
@@ -177,8 +177,8 @@ public class PhaseControlOuterLoop implements OuterLoop {
                 // Equation for bus2.
                 equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
                 equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
-                branch.setP2(p2);
-                branch.setQ2(q2);
+                b.setP2(p2);
+                b.setQ2(q2);
             }
         }
     }
