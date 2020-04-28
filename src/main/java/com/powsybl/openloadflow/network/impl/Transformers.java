@@ -60,7 +60,7 @@ public final class Transformers {
      */
     public static int findStep(PhaseTapChanger ptc, double angle) {
         int position = ptc.getLowTapPosition();
-        while (position <= ptc.getHighTapPosition() && angle > Math.toRadians(ptc.getStep(position).getAlpha())) {
+        while (position < ptc.getHighTapPosition() && angle > Math.toRadians(ptc.getStep(position).getAlpha())) {
             position++;
         }
         return position;
