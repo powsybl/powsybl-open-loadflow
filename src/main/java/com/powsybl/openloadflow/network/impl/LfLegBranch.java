@@ -89,16 +89,6 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
-    public void setA1(double a1) {
-        this.a1 = a1;
-    }
-
-    @Override
-    public void setA2(double a2) {
-        // nothing to do
-    }
-
-    @Override
     public Optional<PhaseControl> getPhaseControl() {
         return Optional.empty();
     }

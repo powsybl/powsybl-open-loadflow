@@ -45,7 +45,8 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         double v2 = x[v2Var.getColumn()];
         double ph1 = x[ph1Var.getColumn()];
         double ph2 = x[ph2Var.getColumn()];
-        double theta = ksi - (a1Var != null ? x[a1Var.getColumn()] : a1) + (a2Var != null ? x[a2Var.getColumn()] : a2) - ph1 + ph2;
+        double theta = ksi - (a1Var != null ? x[a1Var.getColumn()] : branch.getPiModel().getA1())
+                + (a2Var != null ? x[a2Var.getColumn()] : branch.getPiModel().getA2()) - ph1 + ph2;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
         p1 = r1 * v1 * (g1 * r1 * v1 + y * r1 * v1 * sinKsi - y * r2 * v2 * sinTheta);

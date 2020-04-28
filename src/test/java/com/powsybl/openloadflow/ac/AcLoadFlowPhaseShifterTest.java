@@ -48,7 +48,7 @@ public class AcLoadFlowPhaseShifterTest {
         line1 = network.getLine("L1");
         line2 = network.getLine("L2");
         ps1 = network.getTwoWindingsTransformer("PS1");
-        ps1.getPhaseTapChanger().getStep(0).setAlpha(5);
+        ps1.getPhaseTapChanger().getStep(0).setAlpha(-5);
         ps1.getPhaseTapChanger().getStep(2).setAlpha(5);
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));

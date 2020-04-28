@@ -33,10 +33,6 @@ public interface LfBranch {
 
     void setQ2(Evaluable q2);
 
-    void setA1(double a1);
-
-    void setA2(double a2);
-
     PiModel getPiModel();
 
     Optional<PhaseControl> getPhaseControl();

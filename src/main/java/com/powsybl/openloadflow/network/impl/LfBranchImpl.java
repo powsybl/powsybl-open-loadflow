@@ -16,6 +16,8 @@ import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -35,8 +37,6 @@ public class LfBranchImpl extends AbstractLfBranch {
     private Evaluable q1 = NAN;
 
     private Evaluable q2 = NAN;
-
-    private double a1 = Double.NaN;
 
     protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, PhaseControl phaseControl, Branch branch) {
         super(bus1, bus2, piModel);
@@ -81,10 +81,16 @@ public class LfBranchImpl extends AbstractLfBranch {
                 } else {
                     throw new UnsupportedOperationException("Remote controlled phase not yet supported");
                 }
-                if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
-                    phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A);
-                } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
-                    phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW);
+                if (regulationMode != PhaseTapChanger.RegulationMode.FIXED_TAP) {
+                    SortedMap<Integer, Double> a1ByTap = new TreeMap<>();
+                    for (int position = ptc.getLowTapPosition(); position <= ptc.getHighTapPosition(); position++) {
+                        a1ByTap.put(position, Math.toRadians(ptc.getStep(position).getAlpha()));
+                    }
+                    if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
+                        phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A, a1ByTap);
+                    } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                        phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW, a1ByTap);
+                    }
                 }
             }
         } else {
@@ -119,16 +125,6 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public void setA1(double a1) {
-        this.a1 = a1;
-    }
-
-    @Override
-    public void setA2(double a2) {
-        // nothing to do
-    }
-
-    @Override
     public Optional<PhaseControl> getPhaseControl() {
         return Optional.ofNullable(phaseControl);
     }
@@ -140,8 +136,8 @@ public class LfBranchImpl extends AbstractLfBranch {
         branch.getTerminal2().setP(p2.eval() * PerUnit.SB);
         branch.getTerminal2().setQ(q2.eval() * PerUnit.SB);
 
-        if (!Double.isNaN(a1)) {
-            // TODO
+        if (phaseControl != null) {
+            // TODO update IIDM phase tap changer
         }
     }
 }

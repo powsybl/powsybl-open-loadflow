@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import java.util.Objects;
+import java.util.SortedMap;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -15,7 +16,8 @@ public class PhaseControl {
 
     public enum Mode {
         CONTROLLER,
-        LIMITER
+        LIMITER,
+        OFF
     }
 
     public enum Unit {
@@ -28,7 +30,7 @@ public class PhaseControl {
         TWO
     }
 
-    private final Mode mode;
+    private Mode mode;
 
     private final ControlledSide controlledSide;
 
@@ -36,15 +38,23 @@ public class PhaseControl {
 
     private final Unit unit;
 
-    public PhaseControl(Mode mode, ControlledSide controlledSide, double targetValue, Unit unit) {
+    private final SortedMap<Integer, Double> a1ByTap;
+
+    public PhaseControl(Mode mode, ControlledSide controlledSide, double targetValue, Unit unit,
+                        SortedMap<Integer, Double> a1ByTap) {
         this.mode = Objects.requireNonNull(mode);
         this.controlledSide = Objects.requireNonNull(controlledSide);
         this.targetValue = targetValue;
         this.unit = Objects.requireNonNull(unit);
+        this.a1ByTap = Objects.requireNonNull(a1ByTap);
     }
 
     public Mode getMode() {
         return mode;
+    }
+
+    public void setMode(Mode mode) {
+        this.mode = Objects.requireNonNull(mode);
     }
 
     public ControlledSide getControlledSide() {
@@ -57,5 +67,10 @@ public class PhaseControl {
 
     public Unit getUnit() {
         return unit;
+    }
+
+    public double findClosestA1(double a1) {
+        // TODO
+        return a1;
     }
 }

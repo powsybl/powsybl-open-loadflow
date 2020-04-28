@@ -12,7 +12,6 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.PiModel;
 
 import java.util.List;
 import java.util.Objects;
@@ -36,10 +35,6 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected final List<Variable> variables;
 
-    protected final double a1;
-
-    protected final double a2;
-
     protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
                                                      AcEquationTermDerivativeParameters derivativeParameters) {
         super(branch);
@@ -62,9 +57,6 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
             variablesBuilder.add(a2Var);
         }
         variables = variablesBuilder.build();
-        PiModel piModel = branch.getPiModel();
-        a1 = piModel.getA1();
-        a2 = piModel.getA2();
     }
 
     @Override

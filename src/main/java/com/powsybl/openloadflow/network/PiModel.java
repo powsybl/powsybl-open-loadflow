@@ -109,4 +109,8 @@ public class PiModel {
     public double getA2() {
         return 0;
     }
+
+    public PiModel setA2(double a2) {
+        return this;
+    }
 }

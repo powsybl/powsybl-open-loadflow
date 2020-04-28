@@ -73,16 +73,6 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
-    public void setA1(double a1) {
-        // nothing to do
-    }
-
-    @Override
-    public void setA2(double a2) {
-        // nothing to do
-    }
-
-    @Override
     public Optional<PhaseControl> getPhaseControl() {
         return Optional.empty();
     }

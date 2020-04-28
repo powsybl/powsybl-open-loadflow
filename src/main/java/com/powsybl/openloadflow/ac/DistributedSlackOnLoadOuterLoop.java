@@ -24,7 +24,7 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOnLoadOuterLoop.class);
 
     @Override
-    public String getName() {
+    public String getType() {
         return "Distributed slack on load";
     }
 
