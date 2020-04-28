@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.openloadflow.ac.equations.*;

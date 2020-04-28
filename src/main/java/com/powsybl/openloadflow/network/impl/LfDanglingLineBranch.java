@@ -79,7 +79,8 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
-    public double getA1() { return 0; }
+    public double getA1() {
+        return 0; }
 
     @Override
     public void setA2(double a2) {
