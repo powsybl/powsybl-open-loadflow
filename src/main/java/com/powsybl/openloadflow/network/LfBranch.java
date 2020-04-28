@@ -36,6 +36,8 @@ public interface LfBranch {
 
     void setA1(double a1);
 
+    double getA1();
+
     void setA2(double a2);
 
     PiModel getPiModel();

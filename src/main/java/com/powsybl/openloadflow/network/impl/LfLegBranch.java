@@ -117,6 +117,9 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
+    public double getA1() { return this.a1; }
+
+    @Override
     public void setA2(double a2) {
         // nothing to do
     }

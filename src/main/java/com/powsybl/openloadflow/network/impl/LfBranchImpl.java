@@ -118,6 +118,10 @@ public class LfBranchImpl extends AbstractLfBranch {
         this.q2 = Objects.requireNonNull(q2);
     }
 
+    public double getA1() {
+        return this.a1;
+    }
+
     @Override
     public void setA1(double a1) {
         this.a1 = a1;

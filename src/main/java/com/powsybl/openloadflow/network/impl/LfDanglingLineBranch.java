@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.DanglingLine;
-import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
@@ -78,6 +77,9 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     public void setA1(double a1) {
         // nothing to do
     }
+
+    @Override
+    public double getA1() { return 0; }
 
     @Override
     public void setA2(double a2) {
