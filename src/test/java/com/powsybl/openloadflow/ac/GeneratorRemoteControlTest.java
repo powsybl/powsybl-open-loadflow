@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.CoordinatedReactiveControlAdder;
+import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -198,9 +198,9 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     public void testWith3GeneratorsAndCoordinatedReactiveControlExtensions() {
-        g1.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(60).add();
-        g2.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(30).add();
-        g3.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(10).add();
+        g1.addExtension(CoordinatedReactiveControl.class, new CoordinatedReactiveControl(g1, 60));
+        g2.addExtension(CoordinatedReactiveControl.class, new CoordinatedReactiveControl(g2, 30));
+        g3.addExtension(CoordinatedReactiveControl.class, new CoordinatedReactiveControl(g3, 10));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(21.709276, b1);
