@@ -57,6 +57,7 @@ public class Variable implements Comparable<Variable> {
     }
 
     public void setActive(boolean active) {
+        // FIXME invalidate equation system cache
         this.active = active;
     }
 

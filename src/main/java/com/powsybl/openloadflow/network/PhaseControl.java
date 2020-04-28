@@ -6,6 +6,9 @@
  */
 package com.powsybl.openloadflow.network;
 
+import org.apache.commons.math3.util.Pair;
+
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.SortedMap;
 
@@ -70,7 +73,12 @@ public class PhaseControl {
     }
 
     public double findClosestA1(double a1) {
-        // TODO
-        return a1;
+        // find tap position with the closest a1 value
+        int position = a1ByTap.entrySet().stream()
+                .map(e -> Pair.create(e.getKey(), Math.abs(a1 - e.getValue())))
+                .min(Comparator.comparingDouble(Pair::getSecond))
+                .map(Pair::getFirst)
+                .orElseThrow(IllegalStateException::new);
+        return a1ByTap.get(position);
     }
 }

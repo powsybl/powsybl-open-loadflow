@@ -110,11 +110,13 @@ public class AcLoadFlowPhaseShifterTest {
         ps1.getPhaseTapChanger()
                 .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setRegulating(true)
+                .setTapPosition(1)
                 .setRegulationValue(83);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertActivePowerEquals(83, line2.getTerminal1());
-        assertActivePowerEquals(-82.9, line2.getTerminal2());
+        assertActivePowerEquals(83.587, line2.getTerminal1());
+        assertActivePowerEquals(-83.486, line2.getTerminal2());
+//        assertEquals(2, ps1.getPhaseTapChanger().getTapPosition());
     }
 }

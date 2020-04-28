@@ -9,15 +9,21 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.EquationType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PhaseControl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class PhaseControlOuterLoop implements OuterLoop {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PhaseControlOuterLoop.class);
 
     @Override
     public String getType() {
@@ -38,8 +44,13 @@ public class PhaseControlOuterLoop implements OuterLoop {
                     Variable a1 = context.getVariableSet().getVariable(branch.getNum(), VariableType.BRANCH_ALPHA1);
                     a1.setActive(false);
 
+                    // de-activate phase control equation
+                    Equation t = context.getEquationSystem().createEquation(branch.getNum(), EquationType.BRANCH_P);
+                    t.setActive(false);
+
                     // round the phase shift to the closest tap
                     double roundedA1 = phaseControl.findClosestA1(branch.getPiModel().getA1());
+                    LOGGER.info("Round phase shift of '{}': {} -> {}", branch.getId(), branch.getPiModel().getA1(), roundedA1);
                     branch.getPiModel().setA1(roundedA1);
                 }
             }
