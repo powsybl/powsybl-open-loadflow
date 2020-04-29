@@ -53,7 +53,7 @@ public class LfBranchImpl extends AbstractLfBranch {
         PhaseControl phaseControl = null;
         if (branch instanceof Line) {
             Line line = (Line) branch;
-            piModel = new PiModel()
+            piModel = new SimplePiModel()
                     .setR(line.getR() / zb)
                     .setX(line.getX() / zb)
                     .setG1(line.getG1() * zb)
@@ -62,7 +62,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                     .setB2(line.getB2() * zb);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-            piModel = new PiModel()
+            piModel = new SimplePiModel()
                     .setR(Transformers.getR(twt) / zb)
                     .setX(Transformers.getX(twt) / zb)
                     .setG1(Transformers.getG1(twt) * zb)

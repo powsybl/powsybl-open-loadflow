@@ -43,7 +43,7 @@ public class LfLegBranch extends AbstractLfBranch {
         double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
         double nominalV2 = twt.getRatedU0();
         double zb = nominalV2 * nominalV2 / PerUnit.SB;
-        PiModel piModel = new PiModel()
+        PiModel piModel = new SimplePiModel()
                 .setR(Transformers.getR(leg) / zb)
                 .setX(Transformers.getX(leg) / zb)
                 .setG1(Transformers.getG1(leg) * zb)
