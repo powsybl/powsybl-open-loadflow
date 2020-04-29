@@ -234,7 +234,6 @@
                         <buildArgs>
                             --no-fallback
                             --allow-incomplete-classpath
-                            --report-unsupported-elements-at-runtime
                         </buildArgs>
                     </configuration>
                 </plugin>
@@ -263,12 +262,6 @@
                 <artifactId>log4j-over-slf4j</artifactId>
                 <version>${slf4j.version}</version>
                 <scope>runtime</scope>
-            </dependency>
-            <!-- workaround for 1.21 issue used by core https://github.com/owainlewis/yaml/issues/35 -->
-            <dependency>
-                <groupId>org.yaml</groupId>
-                <artifactId>snakeyaml</artifactId>
-                <version>1.26</version>
             </dependency>
 
             <dependency>
