@@ -110,6 +110,7 @@ public class AcLoadFlowPhaseShifterTest {
         parameters.setPhaseShifterRegulationOn(true);
         ps1.getPhaseTapChanger()
                 .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1) // FIXME how to take this into account
                 .setRegulating(true)
                 .setTapPosition(1)
                 .setRegulationValue(83);
