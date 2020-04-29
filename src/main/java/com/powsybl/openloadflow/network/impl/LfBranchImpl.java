@@ -7,10 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.PhaseTapChanger;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
@@ -137,7 +134,18 @@ public class LfBranchImpl extends AbstractLfBranch {
         branch.getTerminal2().setQ(q2.eval() * PerUnit.SB);
 
         if (phaseControl != null) {
-            // TODO update IIDM phase tap changer
+            PhaseTapChanger ptc = null;
+            if (branch instanceof TwoWindingsTransformer) {
+                TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
+                ptc = twt.getPhaseTapChanger();
+            } else if (branch instanceof ThreeWindingsTransformer.Leg) {
+                ThreeWindingsTransformer.Leg leg = (ThreeWindingsTransformer.Leg) branch;
+                ptc = leg.getPhaseTapChanger();
+            }
+            if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                int step = Transformers.findStep(ptc, getPiModel().getA1());
+                ptc.setTapPosition(step);
+            }
         }
     }
 }
