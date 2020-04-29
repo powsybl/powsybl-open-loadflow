@@ -28,10 +28,10 @@ jobs:
         run: mvn --batch-mode -DskipTests=true -Pnative-image package
 
       - name: test
-        run: ls
+        run: ls target
 
       - name: Upload artifact
         uses: actions/upload-artifact@v1
         with:
           name: olf
-          path: ${{ runner.workspace }}/target/olf
+          path: target/olf
