@@ -41,78 +41,89 @@ public class LfBranchImpl extends AbstractLfBranch {
         this.branch = branch;
     }
 
+    private static LfBranchImpl createLine(Line line, LfBus bus1, LfBus bus2, double zb) {
+        PiModel piModel = new SimplePiModel()
+                .setR(line.getR() / zb)
+                .setX(line.getX() / zb)
+                .setG1(line.getG1() * zb)
+                .setG2(line.getG2() * zb)
+                .setB1(line.getB1() * zb)
+                .setB2(line.getB2() * zb);
+
+        return new LfBranchImpl(bus1, bus2, piModel, null, line);
+    }
+
+    private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfBus bus1, LfBus bus2, double nominalV1,
+                                                  double nominalV2, double zb) {
+        PiModel piModel;
+        PhaseControl phaseControl = null;
+
+        PhaseTapChanger ptc = twt.getPhaseTapChanger();
+        if (ptc != null
+                && ptc.isRegulating()
+                && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
+            PhaseTapChanger.RegulationMode regulationMode = ptc.getRegulationMode();
+            PhaseControl.ControlledSide controlledSide;
+            if (ptc.getRegulationTerminal() == twt.getTerminal1()) {
+                controlledSide = PhaseControl.ControlledSide.ONE;
+            } else if (ptc.getRegulationTerminal() == twt.getTerminal2()) {
+                controlledSide = PhaseControl.ControlledSide.TWO;
+            } else {
+                throw new UnsupportedOperationException("Remote controlled phase not yet supported");
+            }
+
+            List<PiModel> models = new ArrayList<>();
+
+            for (int position = ptc.getLowTapPosition(); position <= ptc.getHighTapPosition(); position++) {
+                PhaseTapChangerStep step = ptc.getStep(position);
+                double r = twt.getR() * (1 + step.getR() / 100) / zb;
+                double x = twt.getX() * (1 + step.getX() / 100) / zb;
+                double g1 = twt.getG() * (1 + step.getG() / 100) * zb;
+                double b1 = twt.getB() * (1 + step.getB() / 100) * zb;
+                double r1 = twt.getRatedU2() / twt.getRatedU1() * ptc.getCurrentStep().getRho() / nominalV2 * nominalV1;
+                double a1 = Math.toRadians(step.getAlpha());
+                models.add(new SimplePiModel()
+                        .setR(r)
+                        .setX(x)
+                        .setG1(g1)
+                        .setB1(b1)
+                        .setR1(r1)
+                        .setA1(a1));
+            }
+
+            piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
+
+            if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
+                phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A);
+            } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW);
+            }
+        } else {
+            piModel = new SimplePiModel()
+                    .setR(Transformers.getR(twt) / zb)
+                    .setX(Transformers.getX(twt) / zb)
+                    .setG1(Transformers.getG1(twt) * zb)
+                    .setB1(Transformers.getB1(twt) * zb)
+                    .setR1(Transformers.getRatio(twt) / nominalV2 * nominalV1)
+                    .setA1(Transformers.getAngle(twt));
+        }
+
+        return new LfBranchImpl(bus1, bus2, piModel, phaseControl, twt);
+    }
+
     public static LfBranchImpl create(Branch branch, LfBus bus1, LfBus bus2) {
         Objects.requireNonNull(branch);
         double nominalV1 = branch.getTerminal1().getVoltageLevel().getNominalV();
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
         double zb = nominalV2 * nominalV2 / PerUnit.SB;
-        PiModel piModel;
-        PhaseControl phaseControl = null;
         if (branch instanceof Line) {
-            Line line = (Line) branch;
-            piModel = new SimplePiModel()
-                    .setR(line.getR() / zb)
-                    .setX(line.getX() / zb)
-                    .setG1(line.getG1() * zb)
-                    .setG2(line.getG2() * zb)
-                    .setB1(line.getB1() * zb)
-                    .setB2(line.getB2() * zb);
+            return createLine((Line) branch, bus1, bus2, zb);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-
-            PhaseTapChanger ptc = twt.getPhaseTapChanger();
-            if (ptc != null
-                    && ptc.isRegulating()
-                    && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
-                PhaseTapChanger.RegulationMode regulationMode = ptc.getRegulationMode();
-                PhaseControl.ControlledSide controlledSide;
-                if (ptc.getRegulationTerminal() == twt.getTerminal1()) {
-                    controlledSide = PhaseControl.ControlledSide.ONE;
-                } else if (ptc.getRegulationTerminal() == twt.getTerminal2()) {
-                    controlledSide = PhaseControl.ControlledSide.TWO;
-                } else {
-                    throw new UnsupportedOperationException("Remote controlled phase not yet supported");
-                }
-
-                List<PiModel> models = new ArrayList<>();
-
-                for (int position = ptc.getLowTapPosition(); position <= ptc.getHighTapPosition(); position++) {
-                    PhaseTapChangerStep step = ptc.getStep(position);
-                    double r = twt.getR() * (1 + step.getR() / 100) / zb;
-                    double x = twt.getX() * (1 + step.getX() / 100) / zb;
-                    double g1 = twt.getG() * (1 + step.getG() / 100) * zb;
-                    double b1 = twt.getB() * (1 + step.getB() / 100) * zb;
-                    double r1 = twt.getRatedU2() / twt.getRatedU1() * ptc.getCurrentStep().getRho() / nominalV2 * nominalV1;
-                    double a1 = Math.toRadians(step.getAlpha());
-                    models.add(new SimplePiModel()
-                            .setR(r)
-                            .setX(x)
-                            .setG1(g1)
-                            .setB1(b1)
-                            .setR1(r1)
-                            .setA1(a1));
-                }
-
-                piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
-
-                if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
-                    phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A);
-                } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
-                    phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW);
-                }
-            } else {
-                piModel = new SimplePiModel()
-                        .setR(Transformers.getR(twt) / zb)
-                        .setX(Transformers.getX(twt) / zb)
-                        .setG1(Transformers.getG1(twt) * zb)
-                        .setB1(Transformers.getB1(twt) * zb)
-                        .setR1(Transformers.getRatio(twt) / nominalV2 * nominalV1)
-                        .setA1(Transformers.getAngle(twt));
-            }
+            return createTransformer(twt, bus1, bus2, nominalV1, nominalV2, zb);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }
-        return new LfBranchImpl(bus1, bus2, piModel, phaseControl, branch);
     }
 
     @Override
