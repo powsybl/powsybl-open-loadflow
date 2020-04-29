@@ -62,6 +62,16 @@ public class PhaseControlOuterLoop implements OuterLoop {
                     status = OuterLoopStatus.UNSTABLE;
                 }
             }
+        } else if (context.getIteration() == 1) {
+            // at second iteration we switch on phase control for branches that are in limiter mode
+            // and a current greater than the limit
+            for (LfBranch branch : context.getNetwork().getBranches()) {
+                PhaseControl phaseControl = branch.getPhaseControl().orElse(null);
+                if (phaseControl != null && phaseControl.getMode() == PhaseControl.Mode.LIMITER) {
+                    // TODO
+                    LOGGER.warn("Phase shifter in limiter mode not yet implemented");
+                }
+            }
         }
 
         return status;
