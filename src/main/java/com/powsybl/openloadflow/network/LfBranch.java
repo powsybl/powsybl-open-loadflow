@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.Branch;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Optional;
@@ -34,17 +33,9 @@ public interface LfBranch {
 
     void setQ2(Evaluable q2);
 
-    void setA1(double a1);
-
-    double getA1();
-
-    void setA2(double a2);
-
     PiModel getPiModel();
 
     Optional<PhaseControl> getPhaseControl();
-
-    Branch getBranch();
 
     void updateState();
 }

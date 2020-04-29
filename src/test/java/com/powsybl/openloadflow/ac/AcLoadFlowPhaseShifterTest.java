@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -48,7 +49,7 @@ public class AcLoadFlowPhaseShifterTest {
         line1 = network.getLine("L1");
         line2 = network.getLine("L2");
         ps1 = network.getTwoWindingsTransformer("PS1");
-        ps1.getPhaseTapChanger().getStep(0).setAlpha(5);
+        ps1.getPhaseTapChanger().getStep(0).setAlpha(-5);
         ps1.getPhaseTapChanger().getStep(2).setAlpha(5);
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -110,11 +111,13 @@ public class AcLoadFlowPhaseShifterTest {
         ps1.getPhaseTapChanger()
                 .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setRegulating(true)
+                .setTapPosition(1)
                 .setRegulationValue(83);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertActivePowerEquals(83, line2.getTerminal1());
-        assertActivePowerEquals(-82.9, line2.getTerminal2());
+        assertActivePowerEquals(83.587, line2.getTerminal1());
+        assertActivePowerEquals(-83.486, line2.getTerminal2());
+        assertEquals(2, ps1.getPhaseTapChanger().getTapPosition(), 1E-6d);
     }
 }

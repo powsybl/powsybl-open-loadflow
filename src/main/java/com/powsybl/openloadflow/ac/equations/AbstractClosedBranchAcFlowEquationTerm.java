@@ -12,7 +12,6 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.PiModel;
 
 import java.util.List;
 import java.util.Objects;
@@ -36,35 +35,27 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected final List<Variable> variables;
 
-    protected final double a1;
-
-    protected final double a2;
-
     protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
-                                                     AcEquationTermDerivativeParameters derivativeParameters) {
+                                                     boolean deriveA1, boolean deriveA2) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);
-        Objects.requireNonNull(derivativeParameters);
         v1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_V);
         v2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_V);
         ph1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_PHI);
         ImmutableList.Builder<Variable> variablesBuilder = ImmutableList.<Variable>builder()
                 .add(v1Var, v2Var, ph1Var, ph2Var);
-        if (derivativeParameters.isDeriveA1()) {
+        if (deriveA1) {
             a1Var = variableSet.getVariable(branch.getNum(), VariableType.BRANCH_ALPHA1);
             variablesBuilder.add(a1Var);
         }
-        if (derivativeParameters.isDeriveA2()) {
+        if (deriveA2) {
             a2Var = variableSet.getVariable(branch.getNum(), VariableType.BRANCH_ALPHA2);
             variablesBuilder.add(a2Var);
         }
         variables = variablesBuilder.build();
-        PiModel piModel = branch.getPiModel();
-        a1 = piModel.getA1();
-        a2 = piModel.getA2();
     }
 
     @Override

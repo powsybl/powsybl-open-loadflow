@@ -6,180 +6,61 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.PhaseTapChanger;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
-import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.equations.*;
-import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.Transformers;
+import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.EquationType;
+import com.powsybl.openloadflow.equations.Variable;
+import com.powsybl.openloadflow.equations.VariableType;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.PhaseControl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class PhaseControlOuterLoop implements OuterLoop {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(PhaseControlOuterLoop.class);
+
     @Override
-    public String getName() {
+    public String getType() {
         return "Phase control";
     }
 
     @Override
     public OuterLoopStatus check(OuterLoopContext context) {
-
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         if (context.getIteration() == 0) {
-
-            status = OuterLoopStatus.UNSTABLE;
-
-        } else {
+            // at first iteration all branches controlling phase are switched off
             for (LfBranch branch : context.getNetwork().getBranches()) {
-                PhaseTapChanger ptc = null;
-                if (branch.getBranch() instanceof TwoWindingsTransformer) {
-                    TwoWindingsTransformer twt = (TwoWindingsTransformer) branch.getBranch();
-                    ptc = twt.getPhaseTapChanger();
-                    if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
-                        int step = Transformers.findStep(ptc, branch.getA1());
-                        ptc.setTapPosition(step);
-                        branch.setA1(Transformers.getAngle(twt)); // Missing R1.
-                        ptc.setRegulating(false); // To be fixed ?
-                        updateBranchEquations(context.getEquationSystem(), context.getVariableSet(), context.getNetwork(), branch);
-                        status = OuterLoopStatus.UNSTABLE;
-                    }
+                PhaseControl phaseControl = branch.getPhaseControl().orElse(null);
+                if (phaseControl != null && phaseControl.getMode() == PhaseControl.Mode.CONTROLLER) {
+                    // switch off phase shifter
+                    phaseControl.setMode(PhaseControl.Mode.OFF);
 
-            /*} else if (branch.getBranch() instanceof ThreeWindingsTransformer.Leg) {
-                ThreeWindingsTransformer.Leg leg = (ThreeWindingsTransformer.Leg) branch.getBranch();
-                ptc = leg.getPhaseTapChanger();
-                if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
-                    int step = Transformers.findStep(ptc, branch.getPiModel().getA1());
-                    ptc.setTapPosition(step);
-                    branch.getPiModel().setA1(Transformers.getAngleLeg(leg));
+                    // de-activate a1 variable for next outer loop run
+                    Variable a1 = context.getVariableSet().getVariable(branch.getNum(), VariableType.BRANCH_ALPHA1);
+                    a1.setActive(false);
+
+                    // de-activate phase control equation
+                    Equation t = context.getEquationSystem().createEquation(branch.getNum(), EquationType.BRANCH_P);
+                    t.setActive(false);
+
+                    // round the phase shift to the closest tap
+                    double roundedA1 = phaseControl.findClosestA1(branch.getPiModel().getA1());
+                    LOGGER.info("Round phase shift of '{}': {} -> {}", branch.getId(), branch.getPiModel().getA1(), roundedA1);
+                    branch.getPiModel().setA1(roundedA1);
+
+                    // if at least one phase shifter has been switched off wee need to continue
                     status = OuterLoopStatus.UNSTABLE;
                 }
-            }*/
-                }
             }
         }
+
         return status;
-    }
-
-    protected void updateBranchEquations(EquationSystem equationSystem, VariableSet variableSet, LfNetwork network, LfBranch branch) {
-
-        LfBus bus1 = branch.getBus1();
-        LfBus bus2 = branch.getBus2();
-
-        // The phase tap changer is no more regulating active power.
-        // Equations of branch buses have to be removed.
-        equationSystem.removeEquation(branch.getNum(), EquationType.BRANCH_P);
-
-        boolean updateEquationBus1 = false;
-        boolean updateEquationBus2 = false;
-        if (!equationSystem.hasEquation(branch.getBus1().getNum(), EquationType.BUS_PHI)) {
-            equationSystem.removeEquation(branch.getBus1().getNum(), EquationType.BUS_P);
-            equationSystem.removeEquation(branch.getBus1().getNum(), EquationType.BUS_Q);
-            updateEquationBus1 = true;
-
-            // If shunts are connected to bus 1.
-            for (LfShunt shunt : bus1.getShunts()) {
-                ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus1,
-                        network, variableSet);
-                equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q).addTerm(q);
-            }
-        }
-        if (!equationSystem.hasEquation(branch.getBus2().getNum(), EquationType.BUS_PHI)) {
-            equationSystem.removeEquation(branch.getBus2().getNum(), EquationType.BUS_P);
-            equationSystem.removeEquation(branch.getBus2().getNum(), EquationType.BUS_Q);
-            updateEquationBus2 = true;
-
-            // If shunts are connected to bus 2.
-            for (LfShunt shunt : bus2.getShunts()) {
-                ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus2,
-                        network, variableSet);
-                equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q);
-            }
-        }
-
-        // TODO : if low impedance branches are connected to buses 1 or 2, or if the branch itself is low impedance branch.
-
-        for (LfBranch b : network.getBranches()) {
-
-            EquationTerm p1 = null;
-            EquationTerm q1 = null;
-            EquationTerm p2 = null;
-            EquationTerm q2 = null;
-
-            AcEquationTermDerivativeParameters derivativeParameters = new AcEquationTermDerivativeParameters(false, false);
-
-            if (b.getBus1() == bus1 && b.getBus2() == bus2) {
-                p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
-                q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
-                p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
-                q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
-                if (updateEquationBus1) {
-                    equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
-                    equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q).addTerm(q1);
-                }
-                if (updateEquationBus2) {
-                    equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
-                    equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
-                }
-                b.setP1(p1);
-                b.setQ1(q1);
-                b.setP2(p2);
-                b.setQ2(q2);
-
-            } else if ((b.getBus1() == bus1 || b.getBus2() == bus1) && updateEquationBus1) {
-                if (b.getBus1() == bus1) {
-                    if (b.getBus2() != null) {
-                        p1 = new ClosedBranchSide1ActiveFlowEquationTerm(b, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
-                        q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(b, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
-
-                    } else if (b.getBus2() == null) {
-                        p1 = new OpenBranchSide1ActiveFlowEquationTerm(b, b.getBus1(), variableSet);
-                        q1 = new OpenBranchSide1ReactiveFlowEquationTerm(b, b.getBus1(), variableSet);
-                    }
-                } else if (b.getBus2() == bus1) {
-                    if (b.getBus1() != null) {
-                        p1 = new ClosedBranchSide2ActiveFlowEquationTerm(b, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
-                        q1 = new ClosedBranchSide2ReactiveFlowEquationTerm(b, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
-
-                    } else if (b.getBus1() == null) {
-                        p1 = new OpenBranchSide2ActiveFlowEquationTerm(b, b.getBus2(), variableSet);
-                        q1 = new OpenBranchSide2ReactiveFlowEquationTerm(b, b.getBus2(), variableSet);
-                    }
-                }
-                equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
-                equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q).addTerm(q1);
-                b.setP1(p1);
-                b.setQ1(q1);
-
-            } else if ((b.getBus1() == bus2 || b.getBus2() == bus2) && updateEquationBus2) {
-                if (b.getBus1() == bus2) {
-                    if (b.getBus2() != null) {
-                        p2 = new ClosedBranchSide1ActiveFlowEquationTerm(b, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
-                        q2 = new ClosedBranchSide1ReactiveFlowEquationTerm(b, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
-                    } else if (b.getBus2() == null) {
-                        p2 = new OpenBranchSide1ActiveFlowEquationTerm(b, b.getBus1(), variableSet);
-                        q2 = new OpenBranchSide1ReactiveFlowEquationTerm(b, b.getBus1(), variableSet);
-                    }
-                } else if (b.getBus2() == bus2) {
-                    if (b.getBus1() != null) {
-                        p2 = new ClosedBranchSide2ActiveFlowEquationTerm(b, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
-                        q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(b, b.getBus1(), b.getBus2(), variableSet, derivativeParameters);
-                    } else if (b.getBus1() == null) {
-                        p2 = new OpenBranchSide2ActiveFlowEquationTerm(b, bus1, variableSet);
-                        q2 = new OpenBranchSide2ReactiveFlowEquationTerm(b, bus1, variableSet);
-                    }
-                }
-                // Equation for bus2.
-                equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
-                equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
-                b.setP2(p2);
-                b.setQ2(q2);
-            }
-        }
     }
 }

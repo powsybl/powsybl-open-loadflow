@@ -26,6 +26,11 @@ public class Variable implements Comparable<Variable> {
 
     private int column = -1;
 
+    /**
+     * true if this equation term active, false otherwise
+     */
+    private boolean active = true;
+
     Variable(int num, VariableType type) {
         this.num = num;
         this.type = Objects.requireNonNull(type);
@@ -45,6 +50,15 @@ public class Variable implements Comparable<Variable> {
 
     public void setColumn(int column) {
         this.column = column;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        // FIXME invalidate equation system cache
+        this.active = active;
     }
 
     void initState(VoltageInitializer initializer, LfNetwork network, double[] x) {
@@ -91,11 +105,11 @@ public class Variable implements Comparable<Variable> {
                 break;
 
             case BRANCH_ALPHA1:
-                network.getBranch(num).setA1(x[column]);
+                network.getBranch(num).getPiModel().setA1(x[column]);
                 break;
 
             case BRANCH_ALPHA2:
-                network.getBranch(num).setA2(x[column]);
+                network.getBranch(num).getPiModel().setA2(x[column]);
                 break;
 
             case DUMMY_P:

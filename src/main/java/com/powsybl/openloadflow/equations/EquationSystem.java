@@ -8,6 +8,8 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.openloadflow.network.LfNetwork;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -19,6 +21,8 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class EquationSystem {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(EquationSystem.class);
 
     private final LfNetwork network;
 
@@ -37,6 +41,8 @@ public class EquationSystem {
                 return;
             }
 
+            LOGGER.info("Update equation system cache");
+
             sortedEquationsToSolve.clear();
             sortedVariablesToFind.clear();
 
@@ -46,9 +52,11 @@ public class EquationSystem {
                     sortedEquationsToSolve.add(equation);
                     for (EquationTerm equationTerm : equation.getTerms()) {
                         for (Variable variable : equationTerm.getVariables()) {
-                            sortedVariablesToFind.computeIfAbsent(variable, k -> new TreeMap<>())
-                                    .computeIfAbsent(equation, k -> new ArrayList<>())
-                                    .add(equationTerm);
+                            if (variable.isActive()) {
+                                sortedVariablesToFind.computeIfAbsent(variable, k -> new TreeMap<>())
+                                        .computeIfAbsent(equation, k -> new ArrayList<>())
+                                        .add(equationTerm);
+                            }
                         }
                     }
                 }
