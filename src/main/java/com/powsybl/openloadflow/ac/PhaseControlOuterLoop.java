@@ -32,6 +32,8 @@ public class PhaseControlOuterLoop implements OuterLoop {
 
     @Override
     public OuterLoopStatus check(OuterLoopContext context) {
+        OuterLoopStatus status = OuterLoopStatus.STABLE;
+
         if (context.getIteration() == 0) {
             // at first iteration all branches controlling phase are switched off
             for (LfBranch branch : context.getNetwork().getBranches()) {
@@ -52,10 +54,13 @@ public class PhaseControlOuterLoop implements OuterLoop {
                     double roundedA1 = phaseControl.findClosestA1(branch.getPiModel().getA1());
                     LOGGER.info("Round phase shift of '{}': {} -> {}", branch.getId(), branch.getPiModel().getA1(), roundedA1);
                     branch.getPiModel().setA1(roundedA1);
+
+                    // if at least one phase shifter has been switched off wee need to continue
+                    status = OuterLoopStatus.UNSTABLE;
                 }
             }
-            return OuterLoopStatus.UNSTABLE;
         }
-        return OuterLoopStatus.STABLE;
+
+        return status;
     }
 }
