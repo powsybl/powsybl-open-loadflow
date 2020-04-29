@@ -27,6 +27,9 @@ jobs:
       - name: Build with Maven
         run: mvn --batch-mode -DskipTests=true -Pnative-image package
 
+      - name: test
+        run: ls
+
       - name: Upload artifact
         uses: actions/upload-artifact@v1
         with:
