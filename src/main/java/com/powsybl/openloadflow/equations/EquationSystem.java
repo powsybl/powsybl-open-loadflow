@@ -43,10 +43,26 @@ public class EquationSystem {
 
             LOGGER.info("Update equation system cache");
 
+            // index derivatives per variable then per equation
+            reIndex();
+
+            int rowCount = 0;
+            for (Equation equation : sortedEquationsToSolve) {
+                equation.setRow(rowCount++);
+            }
+
+            int columnCount = 0;
+            for (Variable variable : sortedVariablesToFind.keySet()) {
+                variable.setColumn(columnCount++);
+            }
+
+            invalide = false;
+        }
+
+        private void reIndex() {
             sortedEquationsToSolve.clear();
             sortedVariablesToFind.clear();
 
-            // index derivatives per variable then per equation
             for (Equation equation : equations.values()) {
                 if (equation.isActive()) {
                     sortedEquationsToSolve.add(equation);
@@ -61,18 +77,6 @@ public class EquationSystem {
                     }
                 }
             }
-
-            int rowCount = 0;
-            for (Equation equation : sortedEquationsToSolve) {
-                equation.setRow(rowCount++);
-            }
-
-            int columnCount = 0;
-            for (Variable variable : sortedVariablesToFind.keySet()) {
-                variable.setColumn(columnCount++);
-            }
-
-            invalide = false;
         }
 
         @Override
