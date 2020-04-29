@@ -1,6 +1,9 @@
 name: Native build CI
 
-on: [push]
+on:
+  push:
+    branches:
+      - master
 
 jobs:
   build:
@@ -26,9 +29,6 @@ jobs:
 
       - name: Build with Maven
         run: mvn --batch-mode -DskipTests=true -Pnative-image package
-
-      - name: test
-        run: ls target
 
       - name: Upload artifact
         uses: actions/upload-artifact@v1
