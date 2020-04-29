@@ -160,4 +160,16 @@ public final class Transformers {
                 rtc != null ? rtc.getCurrentStep().getB() : 0,
                 ptc != null ? ptc.getCurrentStep().getB() : 0);
     }
+
+    /**
+     * Find the step of a phase tap changer corresponding to a given phase shift.
+     */
+    public static int findStep(PhaseTapChanger ptc, double angle) {
+        int position = ptc.getLowTapPosition();
+        while (position < ptc.getHighTapPosition() && angle > Math.toRadians(ptc.getStep(position).getAlpha())) {
+            position++;
+        }
+        return position;
+    }
+
 }
