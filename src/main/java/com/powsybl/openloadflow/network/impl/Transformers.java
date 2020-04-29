@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
@@ -16,6 +17,8 @@ import com.powsybl.iidm.network.TwoWindingsTransformer;
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
 public final class Transformers {
+
+    private static final double EPS_ALPHA = Math.pow(10, -8);
 
     private Transformers() {
     }
@@ -163,14 +166,15 @@ public final class Transformers {
     }
 
     /**
-     * Find the step of a phase tap changer corresponding to a given phase shift.
+     * Find the tap position of a phase tap changer corresponding to a given phase shift.
      */
-    public static int findStep(PhaseTapChanger ptc, double angle) {
-        int position = ptc.getLowTapPosition();
-        while (position < ptc.getHighTapPosition() && angle > Math.toRadians(ptc.getStep(position).getAlpha())) {
-            position++;
+    public static int findTapPosition(PhaseTapChanger ptc, double angle) {
+        for (int position = ptc.getLowTapPosition(); position <= ptc.getHighTapPosition(); position++) {
+            if (Math.abs(angle - ptc.getStep(position).getAlpha()) < EPS_ALPHA) {
+                return position;
+            }
         }
-        return position;
+        throw new PowsyblException("No tap position found (should never happen)");
     }
 
 }

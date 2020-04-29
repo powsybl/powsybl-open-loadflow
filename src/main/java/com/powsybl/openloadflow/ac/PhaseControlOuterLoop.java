@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PhaseControl;
+import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,9 +52,11 @@ public class PhaseControlOuterLoop implements OuterLoop {
                     t.setActive(false);
 
                     // round the phase shift to the closest tap
-                    double roundedA1 = phaseControl.findClosestA1(branch.getPiModel().getA1());
-                    LOGGER.info("Round phase shift of '{}': {} -> {}", branch.getId(), branch.getPiModel().getA1(), roundedA1);
-                    branch.getPiModel().setA1(roundedA1);
+                    PiModel piModel = branch.getPiModel();
+                    double a1Value = piModel.getA1();
+                    piModel.roundA1ToClosestTap();
+                    double roundedA1Value = piModel.getA1();
+                    LOGGER.info("Round phase shift of '{}': {} -> {}", branch.getId(), a1Value, roundedA1Value);
 
                     // if at least one phase shifter has been switched off wee need to continue
                     status = OuterLoopStatus.UNSTABLE;

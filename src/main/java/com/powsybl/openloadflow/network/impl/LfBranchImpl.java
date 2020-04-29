@@ -11,10 +11,10 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -59,16 +59,11 @@ public class LfBranchImpl extends AbstractLfBranch {
                     .setB2(line.getB2() * zb);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-            piModel = new SimplePiModel()
-                    .setR(Transformers.getR(twt) / zb)
-                    .setX(Transformers.getX(twt) / zb)
-                    .setG1(Transformers.getG1(twt) * zb)
-                    .setB1(Transformers.getB1(twt) * zb)
-                    .setR1(Transformers.getRatio(twt) / nominalV2 * nominalV1)
-                    .setA1(Transformers.getAngle(twt));
 
             PhaseTapChanger ptc = twt.getPhaseTapChanger();
-            if (ptc != null && ptc.isRegulating()) {
+            if (ptc != null
+                    && ptc.isRegulating()
+                    && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
                 PhaseTapChanger.RegulationMode regulationMode = ptc.getRegulationMode();
                 PhaseControl.ControlledSide controlledSide;
                 if (ptc.getRegulationTerminal() == twt.getTerminal1()) {
@@ -78,17 +73,41 @@ public class LfBranchImpl extends AbstractLfBranch {
                 } else {
                     throw new UnsupportedOperationException("Remote controlled phase not yet supported");
                 }
-                if (regulationMode != PhaseTapChanger.RegulationMode.FIXED_TAP) {
-                    SortedMap<Integer, Double> a1ByTap = new TreeMap<>();
-                    for (int position = ptc.getLowTapPosition(); position <= ptc.getHighTapPosition(); position++) {
-                        a1ByTap.put(position, Math.toRadians(ptc.getStep(position).getAlpha()));
-                    }
-                    if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
-                        phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A, a1ByTap);
-                    } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
-                        phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW, a1ByTap);
-                    }
+
+                List<PiModel> models = new ArrayList<>();
+
+                for (int position = ptc.getLowTapPosition(); position <= ptc.getHighTapPosition(); position++) {
+                    PhaseTapChangerStep step = ptc.getStep(position);
+                    double r = twt.getR() * (1 + step.getR() / 100) / zb;
+                    double x = twt.getX() * (1 + step.getX() / 100) / zb;
+                    double g1 = twt.getG() * (1 + step.getG() / 100) * zb;
+                    double b1 = twt.getB() * (1 + step.getB() / 100) * zb;
+                    double r1 = twt.getRatedU2() / twt.getRatedU1() * ptc.getCurrentStep().getRho() / nominalV2 * nominalV1;
+                    double a1 = Math.toRadians(step.getAlpha());
+                    models.add(new SimplePiModel()
+                            .setR(r)
+                            .setX(x)
+                            .setG1(g1)
+                            .setB1(b1)
+                            .setR1(r1)
+                            .setA1(a1));
                 }
+
+                piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
+
+                if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
+                    phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A);
+                } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                    phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW);
+                }
+            } else {
+                piModel = new SimplePiModel()
+                        .setR(Transformers.getR(twt) / zb)
+                        .setX(Transformers.getX(twt) / zb)
+                        .setG1(Transformers.getG1(twt) * zb)
+                        .setB1(Transformers.getB1(twt) * zb)
+                        .setR1(Transformers.getRatio(twt) / nominalV2 * nominalV1)
+                        .setA1(Transformers.getAngle(twt));
             }
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
@@ -133,19 +152,10 @@ public class LfBranchImpl extends AbstractLfBranch {
         branch.getTerminal2().setP(p2.eval() * PerUnit.SB);
         branch.getTerminal2().setQ(q2.eval() * PerUnit.SB);
 
-        if (phaseControl != null) {
-            PhaseTapChanger ptc = null;
-            if (branch instanceof TwoWindingsTransformer) {
-                TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-                ptc = twt.getPhaseTapChanger();
-            } else if (branch instanceof ThreeWindingsTransformer.Leg) {
-                ThreeWindingsTransformer.Leg leg = (ThreeWindingsTransformer.Leg) branch;
-                ptc = leg.getPhaseTapChanger();
-            }
-            if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
-                int step = Transformers.findStep(ptc, getPiModel().getA1());
-                ptc.setTapPosition(step);
-            }
+        if (phaseControl != null) { // it means there is a regulating phase tap changer
+            PhaseTapChanger ptc = ((TwoWindingsTransformer) branch).getPhaseTapChanger();
+            int tapPosition = Transformers.findTapPosition(ptc, Math.toDegrees(getPiModel().getA1()));
+            ptc.setTapPosition(tapPosition);
         }
     }
 }

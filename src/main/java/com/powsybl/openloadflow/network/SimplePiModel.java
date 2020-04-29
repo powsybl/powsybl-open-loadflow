@@ -11,7 +11,7 @@ import net.jafama.FastMath;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class SimplePiModel implements PiModel<SimplePiModel> {
+public class SimplePiModel implements PiModel {
 
     private double r = 0;
     private double x = 0;
@@ -22,6 +22,7 @@ public class SimplePiModel implements PiModel<SimplePiModel> {
     private double r1 = 1;
     private double a1 = 0;
 
+    @Override
     public double getR() {
         return r;
     }
@@ -31,6 +32,7 @@ public class SimplePiModel implements PiModel<SimplePiModel> {
         return this;
     }
 
+    @Override
     public double getX() {
         return x;
     }
@@ -40,14 +42,17 @@ public class SimplePiModel implements PiModel<SimplePiModel> {
         return this;
     }
 
+    @Override
     public double getZ() {
         return FastMath.hypot(r, x);
     }
 
+    @Override
     public double getKsi() {
         return FastMath.atan2(r, x);
     }
 
+    @Override
     public double getG1() {
         return g1;
     }
@@ -57,6 +62,7 @@ public class SimplePiModel implements PiModel<SimplePiModel> {
         return this;
     }
 
+    @Override
     public double getB1() {
         return b1;
     }
@@ -66,6 +72,7 @@ public class SimplePiModel implements PiModel<SimplePiModel> {
         return this;
     }
 
+    @Override
     public double getG2() {
         return g2;
     }
@@ -75,6 +82,7 @@ public class SimplePiModel implements PiModel<SimplePiModel> {
         return this;
     }
 
+    @Override
     public double getB2() {
         return b2;
     }
@@ -84,6 +92,7 @@ public class SimplePiModel implements PiModel<SimplePiModel> {
         return this;
     }
 
+    @Override
     public double getR1() {
         return r1;
     }
@@ -93,24 +102,34 @@ public class SimplePiModel implements PiModel<SimplePiModel> {
         return this;
     }
 
+    @Override
     public double getR2() {
         return 1;
     }
 
+    @Override
     public double getA1() {
         return a1;
     }
 
+    @Override
     public SimplePiModel setA1(double a1) {
         this.a1 = a1;
         return this;
     }
 
+    @Override
     public double getA2() {
         return 0;
     }
 
+    @Override
     public SimplePiModel setA2(double a2) {
         return this;
+    }
+
+    @Override
+    public void roundA1ToClosestTap() {
+        throw new IllegalStateException("A1 rounding is not supported in simple Pi model implementation");
     }
 }

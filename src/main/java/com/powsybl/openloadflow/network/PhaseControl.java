@@ -6,11 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
-import org.apache.commons.math3.util.Pair;
-
-import java.util.Comparator;
 import java.util.Objects;
-import java.util.SortedMap;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -41,15 +37,11 @@ public class PhaseControl {
 
     private final Unit unit;
 
-    private final SortedMap<Integer, Double> a1ByTap;
-
-    public PhaseControl(Mode mode, ControlledSide controlledSide, double targetValue, Unit unit,
-                        SortedMap<Integer, Double> a1ByTap) {
+    public PhaseControl(Mode mode, ControlledSide controlledSide, double targetValue, Unit unit) {
         this.mode = Objects.requireNonNull(mode);
         this.controlledSide = Objects.requireNonNull(controlledSide);
         this.targetValue = targetValue;
         this.unit = Objects.requireNonNull(unit);
-        this.a1ByTap = Objects.requireNonNull(a1ByTap);
     }
 
     public Mode getMode() {
@@ -70,15 +62,5 @@ public class PhaseControl {
 
     public Unit getUnit() {
         return unit;
-    }
-
-    public double findClosestA1(double a1) {
-        // find tap position with the closest a1 value
-        int position = a1ByTap.entrySet().stream()
-                .map(e -> Pair.create(e.getKey(), Math.abs(a1 - e.getValue())))
-                .min(Comparator.comparingDouble(Pair::getSecond))
-                .map(Pair::getFirst)
-                .orElseThrow(IllegalStateException::new);
-        return a1ByTap.get(position);
     }
 }

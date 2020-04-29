@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface PiModel<T extends PiModel<T>> {
+public interface PiModel {
 
     double getR();
 
@@ -33,9 +33,11 @@ public interface PiModel<T extends PiModel<T>> {
 
     double getA1();
 
-    T setA1(double a1);
+    PiModel setA1(double a1);
 
     double getA2();
 
-    T setA2(double a2);
+    PiModel setA2(double a2);
+
+    void roundA1ToClosestTap();
 }
