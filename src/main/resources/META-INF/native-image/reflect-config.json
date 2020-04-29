@@ -1,0 +1,147 @@
+[
+{
+  "name":"ch.qos.logback.classic.encoder.PatternLayoutEncoder",
+  "allPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.classic.pattern.DateConverter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.classic.pattern.LevelConverter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.classic.pattern.LineSeparatorConverter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.classic.pattern.LoggerConverter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.classic.pattern.MessageConverter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.classic.pattern.ThreadConverter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.core.ConsoleAppender",
+  "allPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.powsybl.computation.local.LocalComputationManagerFactory",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.powsybl.ieeecdf.model.BranchSideConversion",
+  "allPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.powsybl.ieeecdf.model.BranchTypeConversion",
+  "allPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.powsybl.ieeecdf.model.BusTypeConversion",
+  "allPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.powsybl.ieeecdf.model.IeeeCdfBranch",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true
+},
+{
+  "name":"com.powsybl.ieeecdf.model.IeeeCdfBus",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true
+},
+{
+  "name":"com.powsybl.ieeecdf.model.IeeeCdfInterchangeData",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true
+},
+{
+  "name":"com.powsybl.ieeecdf.model.IeeeCdfLossZone",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true
+},
+{
+  "name":"com.powsybl.ieeecdf.model.IeeeCdfTieLine",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true
+},
+{
+  "name":"com.powsybl.ieeecdf.model.IeeeCdfTitle",
+  "allDeclaredFields":true,
+  "allDeclaredMethods":true,
+  "allDeclaredConstructors":true
+},
+{
+  "name":"com.powsybl.ieeecdf.model.LocalDateConversion",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.powsybl.ieeecdf.model.SeasonConversion",
+  "allPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.sun.xml.internal.stream.XMLInputFactoryImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.univocity.parsers.conversions.EnumConversion",
+  "allPublicMethods":true
+},
+{
+  "name":"java.beans.BeanInfo",
+  "methods":[{"name":"getPropertyDescriptors","parameterTypes":[] }]
+},
+{
+  "name":"java.beans.FeatureDescriptor",
+  "methods":[{"name":"getName","parameterTypes":[] }]
+},
+{
+  "name":"java.beans.Introspector",
+  "methods":[{"name":"getBeanInfo","parameterTypes":["java.lang.Class","java.lang.Class"] }]
+},
+{
+  "name":"java.beans.PropertyDescriptor",
+  "methods":[
+    {"name":"getReadMethod","parameterTypes":[] }, 
+    {"name":"getWriteMethod","parameterTypes":[] }
+  ]
+},
+{
+  "name":"java.lang.Object",
+  "methods":[
+    {"name":"<init>","parameterTypes":[] }, 
+    {"name":"hashCode","parameterTypes":[] }
+  ]
+},
+{
+  "name":"java.sql.Date"
+},
+{
+  "name":"java.sql.Timestamp"
+},
+{
+  "name":"javax.management.ObjectName"
+}
+]

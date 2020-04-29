@@ -24,6 +24,11 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     }
 
     @Override
+    public boolean hasVoltageControlCapability() {
+        return false;
+    }
+
+    @Override
     public boolean hasVoltageControl() {
         return false;
     }
@@ -34,12 +39,27 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     }
 
     @Override
+    public int getVoltageControlSwitchOffCount() {
+        return 0;
+    }
+
+    @Override
     public List<LfBus> getControllerBuses() {
         return Collections.emptyList();
     }
 
     @Override
     public double getLoadTargetP() {
+        return 0;
+    }
+
+    @Override
+    public void setLoadTargetP(double loadTargetQ) {
+        throw new IllegalStateException("Cannot change fictitious bus load");
+    }
+
+    @Override
+    public int getPositiveLoadCount() {
         return 0;
     }
 

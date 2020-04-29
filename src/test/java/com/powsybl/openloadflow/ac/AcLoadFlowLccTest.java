@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+ * Copyright (c) 2020, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -21,25 +21,27 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * VSC test case.
+ * LCC test case.
  *
  *  g1       ld2               ld3
  *  |         |                 |
  * b1 ------- b2-cs2--------cs3-b3
- *      l12          hvdc23
+ *      l12          hvdc23     |
+ *                              g3
  *
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class AcLoadFlowVscTest {
+public class AcLoadFlowLccTest {
 
     private Network network;
     private Bus bus1;
     private Bus bus2;
     private Bus bus3;
     private Generator g1;
+    private Generator g3;
     private Line l12;
-    private VscConverterStation cs2;
-    private VscConverterStation cs3;
+    private LccConverterStation cs2;
+    private LccConverterStation cs3;
     private HvdcLine hvdc23;
 
     private LoadFlow.Runner loadFlowRunner;
@@ -47,7 +49,7 @@ public class AcLoadFlowVscTest {
     private LoadFlowParameters parameters;
 
     private Network createNetwork() {
-        Network network = Network.create("vsc", "test");
+        Network network = Network.create("lcc", "test");
 
         Substation s1 = network.newSubstation()
                 .setId("S1")
@@ -89,14 +91,12 @@ public class AcLoadFlowVscTest {
                 .setP0(50)
                 .setQ0(10)
                 .add();
-        cs2 = vl2.newVscConverterStation()
+        cs2 = vl2.newLccConverterStation()
                 .setId("cs2")
                 .setConnectableBus("b2")
                 .setBus("b2")
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(385)
-                .setReactivePowerSetpoint(100)
-                .setLossFactor(1.1f)
+                .setPowerFactor(0.8f)
+                .setLossFactor(0.1f)
                 .add();
 
         Substation s3 = network.newSubstation()
@@ -117,14 +117,22 @@ public class AcLoadFlowVscTest {
                 .setP0(50)
                 .setQ0(10)
                 .add();
-        cs3 = vl3.newVscConverterStation()
+        cs3 = vl3.newLccConverterStation()
                 .setId("cs3")
                 .setConnectableBus("b3")
                 .setBus("b3")
+                .setPowerFactor(0.8f)
+                .setLossFactor(1.1f)
+                .add();
+        g3 = vl3.newGenerator()
+                .setId("g3")
+                .setConnectableBus("b3")
+                .setBus("b3")
+                .setTargetP(102.56)
+                .setTargetV(380)
+                .setMinP(0)
+                .setMaxP(500)
                 .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(383)
-                .setReactivePowerSetpoint(100)
-                .setLossFactor(0.2f)
                 .add();
 
         l12 = network.newLine()
@@ -174,23 +182,15 @@ public class AcLoadFlowVscTest {
 
         assertVoltageEquals(390, bus1);
         assertAngleEquals(0, bus1);
-        assertVoltageEquals(385, bus2);
-        assertAngleEquals(0.116917, bus2);
-        assertVoltageEquals(383, bus3);
+        assertVoltageEquals(389.3763, bus2);
+        assertAngleEquals(-0.095311, bus2);
+        assertVoltageEquals(380, bus3);
         assertAngleEquals(0, bus3);
 
-        assertActivePowerEquals(-102.56, g1.getTerminal());
-        assertReactivePowerEquals(-615.733, g1.getTerminal());
+        assertActivePowerEquals(50.05, cs2.getTerminal());
+        assertReactivePowerEquals(37.538, cs2.getTerminal());
 
-        assertActivePowerEquals(50.55, cs2.getTerminal());
-        assertReactivePowerEquals(598.046, cs2.getTerminal());
-
-        assertActivePowerEquals(-49.90, cs3.getTerminal());
-        assertReactivePowerEquals(-10.0, cs3.getTerminal());
-
-        assertActivePowerEquals(103.112, l12.getTerminal1());
-        assertReactivePowerEquals(615.733, l12.getTerminal1());
-        assertActivePowerEquals(-100.55, l12.getTerminal2());
-        assertReactivePowerEquals(-608.046, l12.getTerminal2());
+        assertActivePowerEquals(-49.45, cs3.getTerminal());
+        assertReactivePowerEquals(37.087, cs3.getTerminal());
     }
 }

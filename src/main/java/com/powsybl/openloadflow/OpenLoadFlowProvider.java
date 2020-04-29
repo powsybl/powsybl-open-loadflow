@@ -14,12 +14,10 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowResultImpl;
+import com.powsybl.loadflow.resultscompletion.z0flows.Z0FlowsCompletion;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.ac.AcLoadFlowLogger;
-import com.powsybl.openloadflow.ac.AcLoadFlowProfiler;
-import com.powsybl.openloadflow.ac.DistributedSlackOuterLoop;
-import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
+import com.powsybl.openloadflow.ac.*;
 import com.powsybl.openloadflow.ac.nr.*;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
@@ -27,19 +25,19 @@ import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.VoltageInitializer;
+import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -81,8 +79,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     private static ImmutableMap<String, String> createMetrics(AcLoadFlowResult result) {
-        return ImmutableMap.of("iterations", Integer.toString(result.getNewtonRaphsonIterations()),
-                "status", result.getNewtonRaphsonStatus().name());
+        String prefix = "network_" + result.getNetwork().getNum() + "_";
+        return ImmutableMap.of(prefix + "iterations", Integer.toString(result.getNewtonRaphsonIterations()),
+                               prefix + "status", result.getNewtonRaphsonStatus().name());
     }
 
     private static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters) {
@@ -119,12 +118,24 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
             LOGGER.info("Voltage level initializer: {}", voltageInitializer.getClass().getSimpleName());
             LOGGER.info("Distributed slack: {}", parametersExt.isDistributedSlack());
+            LOGGER.info("Balance type: {}", parametersExt.getBalanceType());
             LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
             LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
 
             List<OuterLoop> outerLoops = new ArrayList<>();
             if (parametersExt.isDistributedSlack()) {
-                outerLoops.add(new DistributedSlackOuterLoop());
+                switch (parametersExt.getBalanceType()) {
+                    case PROPORTIONAL_TO_GENERATION_P_MAX:
+                        outerLoops.add(new DistributedSlackOnGenerationOuterLoop());
+                        break;
+                    case PROPORTIONAL_TO_LOAD:
+                        outerLoops.add(new DistributedSlackOnLoadOuterLoop());
+                        break;
+                    case PROPORTIONAL_TO_GENERATION_P: // to be implemented.
+                        throw new UnsupportedOperationException("Unsupported balance type mode: " + parametersExt.getBalanceType());
+                    default:
+                        throw new UnsupportedOperationException("Unknown balance type mode: " + parametersExt.getBalanceType());
+                }
             }
             if (!parameters.isNoGeneratorReactiveLimits()) {
                 outerLoops.add(new ReactiveLimitsOuterLoop());
@@ -134,14 +145,32 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                          outerLoops, matrixFactory, getObserver(parametersExt),
                                                                          parametersExt.hasVoltageRemoteControl());
 
-            AcLoadFlowResult result = new AcloadFlowEngine(network, acParameters)
+            List<AcLoadFlowResult> results = new AcloadFlowEngine(network, acParameters)
                     .run();
 
-            // update network state
             Networks.resetState(network);
-            result.getNetworks().get(0).updateState(!parameters.isNoGeneratorReactiveLimits());
 
-            return new LoadFlowResultImpl(result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED, createMetrics(result), null);
+            boolean ok = false;
+            Map<String, String> metrics = new HashMap<>();
+            for (AcLoadFlowResult result : results) {
+                // update network state
+                result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits());
+
+                // consider ok if one of the component converged
+                ok |= result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
+                metrics.putAll(createMetrics(result));
+            }
+
+            // zero or low impedance branch flows computation
+            new Z0FlowsCompletion(network, line -> {
+                // to be consistent with low impedance criteria used in DcEquationSystem and AcEquationSystem
+                double nominalV = line.getTerminal1().getVoltageLevel().getNominalV();
+                double zb = nominalV * nominalV / PerUnit.SB;
+                double z = Math.hypot(line.getR(), line.getX());
+                return z / zb <= DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
+            }).complete();
+
+            return new LoadFlowResultImpl(ok, metrics, null);
         });
     }
 
@@ -164,9 +193,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(parameters);
 
+        LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
+
         OpenLoadFlowParameters parametersExt = getParametersExt(parameters);
 
         return parametersExt.isDc() ? runDc(network, workingVariantId)
-                : runAc(network, workingVariantId, parameters, parametersExt);
+                                    : runAc(network, workingVariantId, parameters, parametersExt);
     }
 }
