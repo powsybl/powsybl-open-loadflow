@@ -56,17 +56,6 @@ public final class Transformers {
     }
 
     /**
-     * Find the step of a phase tap changer corresponding to a given phase shift.
-     */
-    public static int findStep(PhaseTapChanger ptc, double angle) {
-        int position = ptc.getLowTapPosition();
-        while (position < ptc.getHighTapPosition() && angle > Math.toRadians(ptc.getStep(position).getAlpha())) {
-            position++;
-        }
-        return position;
-    }
-
-    /**
      * Get shift angle on network side of a three windings transformer leg.
      */
     public static double getAngleLeg(ThreeWindingsTransformer.Leg leg) {
