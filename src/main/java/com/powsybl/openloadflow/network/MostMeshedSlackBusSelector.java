@@ -14,11 +14,14 @@ import java.util.List;
  */
 public class MostMeshedSlackBusSelector implements SlackBusSelector {
 
+    public static final double NOMINALV_HUPPER_BOUND = 500d;
+
     @Override
     public LfBus select(List<LfBus> buses) {
         double maxNominalV = buses.stream()
                 .map(LfBus::getNominalV)
                 .mapToDouble(Double::valueOf)
+                .filter(value -> value < NOMINALV_HUPPER_BOUND)
                 .max()
                 .orElseThrow(AssertionError::new);
 
