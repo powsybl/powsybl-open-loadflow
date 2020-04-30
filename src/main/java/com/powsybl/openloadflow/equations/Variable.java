@@ -27,7 +27,7 @@ public class Variable implements Comparable<Variable> {
     private int column = -1;
 
     /**
-     * true if this equation term active, false otherwise
+     * true if this variable is active, false otherwise
      */
     private boolean active = true;
 
