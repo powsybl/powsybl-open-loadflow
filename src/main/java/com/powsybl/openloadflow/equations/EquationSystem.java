@@ -105,47 +105,73 @@ public class EquationSystem {
         }
     }
 
-    private class IncrementalEquationCache implements EquationCache {
+    private static class IncrementalEquationCache implements EquationCache {
 
         private final NavigableSet<Equation> sortedEquationsToSolve = new TreeSet<>();
 
         private final NavigableMap<Variable, NavigableMap<Equation, List<EquationTerm>>> sortedVariablesToFind = new TreeMap<>();
 
-        private boolean invalide = false;
+        private final Set<Equation> equationsToRemove = new HashSet<>();
+
+        private final Set<Equation> equationsToAdd = new HashSet<>();
 
         @Override
         public void equationListChanged(Equation equation, EquationEventType eventType) {
             switch (eventType) {
                 case EQUATION_CREATED:
-                    if (equation.isActive()) {
-                        addEquation(equation);
-                    }
                     break;
                 case EQUATION_REMOVED:
+                case EQUATION_DEACTIVATED:
+                    if (!sortedEquationsToSolve.isEmpty()) {
+                        equationsToRemove.add(equation);
+                        equationsToAdd.remove(equation);
+                    }
+                    break;
+                case EQUATION_UPDATED:
+                    // no need to replace the equation if not yet activated
+                    if (equation.isActive()) {
+                        if (!sortedEquationsToSolve.isEmpty()) {
+                            equationsToRemove.add(equation);
+                        }
+                        equationsToAdd.add(equation);
+                    }
                     break;
                 case EQUATION_ACTIVATED:
-                    addEquation(equation);
+                    // no need to remove first because activated event means it was not already activated
+                    equationsToAdd.add(equation);
                     break;
-                case EQUATION_DEACTIVATED:
-                    break;
-            }
-        }
-
-        private void addEquation(Equation equation) {
-            System.out.println("ADD " + equation);
-            sortedEquationsToSolve.add(equation);
-            for (EquationTerm equationTerm : equation.getTerms()) {
-                for (Variable variable : equationTerm.getVariables()) {
-                    sortedVariablesToFind.computeIfAbsent(variable, k -> new TreeMap<>())
-                            .computeIfAbsent(equation, k -> new ArrayList<>())
-                            .add(equationTerm);
-                }
             }
         }
 
         private void update() {
-            if (!invalide) {
+            if (equationsToAdd.isEmpty() && equationsToRemove.isEmpty()) {
                 return;
+            }
+
+            for (Equation equation : equationsToRemove) {
+                sortedEquationsToSolve.remove(equation);
+                for (EquationTerm equationTerm : equation.getTerms()) {
+                    for (Variable variable : equationTerm.getVariables()) {
+                        NavigableMap<Equation, List<EquationTerm>> map = sortedVariablesToFind.get(variable);
+                        if (map != null) {
+                            map.remove(equation);
+                            if (map.isEmpty()) {
+                                sortedVariablesToFind.remove(variable);
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (Equation equation : equationsToAdd) {
+                sortedEquationsToSolve.add(equation);
+                for (EquationTerm equationTerm : equation.getTerms()) {
+                    for (Variable variable : equationTerm.getVariables()) {
+                        sortedVariablesToFind.computeIfAbsent(variable, k -> new TreeMap<>())
+                                .computeIfAbsent(equation, k -> new ArrayList<>())
+                                .add(equationTerm);
+                    }
+                }
             }
 
             int rowCount = 0;
@@ -158,7 +184,8 @@ public class EquationSystem {
                 variable.setColumn(columnCount++);
             }
 
-            invalide = false;
+            equationsToRemove.clear();
+            equationsToAdd.clear();
         }
 
         @Override
@@ -290,7 +317,9 @@ public class EquationSystem {
     void notifyListeners(Equation equation, EquationEventType eventType) {
         Objects.requireNonNull(equation);
         Objects.requireNonNull(eventType);
-        listeners.forEach(listener -> listener.equationListChanged(equation, eventType));
+        if (!listeners.isEmpty()) {
+            listeners.forEach(listener -> listener.equationListChanged(equation, eventType));
+        }
     }
 
     public void write(Writer writer) {

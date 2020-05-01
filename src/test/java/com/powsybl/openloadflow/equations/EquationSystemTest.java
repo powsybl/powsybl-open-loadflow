@@ -50,9 +50,10 @@ public class EquationSystemTest {
         assertTrue(equationSystem.getSortedEquationsToSolve().isEmpty());
 
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusPhaseEquationTerm(bus, variableSet));
-        assertEquals(1, equations.size());
-        assertEquals(1, eventTypes.size());
+        assertEquals(2, equations.size());
+        assertEquals(2, eventTypes.size());
         assertEquals(EquationEventType.EQUATION_CREATED, eventTypes.get(0));
+        assertEquals(EquationEventType.EQUATION_UPDATED, eventTypes.get(1));
         assertEquals(1, equationSystem.getSortedEquationsToSolve().size());
 
         clearEvents();
