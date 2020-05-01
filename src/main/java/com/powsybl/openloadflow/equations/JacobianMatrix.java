@@ -73,9 +73,11 @@ public class JacobianMatrix {
 
         for (Map.Entry<Variable, NavigableMap<Equation, List<EquationTerm>>> e : equationSystem.getSortedVariablesToFind().entrySet()) {
             Variable var = e.getKey();
+            System.out.println(var);
             int column = var.getColumn();
             for (Map.Entry<Equation, List<EquationTerm>> e2 : e.getValue().entrySet()) {
                 Equation eq = e2.getKey();
+                System.out.println("    " + eq);
                 int row = eq.getRow();
                 for (EquationTerm equationTerm : e2.getValue()) {
                     double value = equationTerm.der(var);

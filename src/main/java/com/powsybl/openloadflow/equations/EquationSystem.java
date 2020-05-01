@@ -6,25 +6,40 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.google.common.base.Stopwatch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class EquationSystem {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(EquationSystem.class);
+
     private final LfNetwork network;
 
     private final Map<Pair<Integer, EquationType>, Equation> equations = new HashMap<>();
 
-    private class EquationCache implements EquationSystemListener {
+    private interface EquationCache extends EquationSystemListener {
+
+        NavigableSet<Equation> getSortedEquationsToSolve();
+
+        NavigableMap<Variable, NavigableMap<Equation, List<EquationTerm>>> getSortedVariablesToFind();
+    }
+
+    private class SimpleEquationCache implements EquationCache {
 
         private boolean invalide = false;
 
@@ -36,6 +51,8 @@ public class EquationSystem {
             if (!invalide) {
                 return;
             }
+
+            Stopwatch stopwatch = Stopwatch.createStarted();
 
             sortedEquationsToSolve.clear();
             sortedVariablesToFind.clear();
@@ -65,6 +82,9 @@ public class EquationSystem {
             }
 
             invalide = false;
+
+            stopwatch.stop();
+            LOGGER.debug(PERFORMANCE_MARKER, "Equation system indexed in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
         }
 
         @Override
@@ -72,18 +92,89 @@ public class EquationSystem {
             invalide = true;
         }
 
-        private NavigableSet<Equation> getSortedEquationsToSolve() {
+        @Override
+        public NavigableSet<Equation> getSortedEquationsToSolve() {
             update();
             return sortedEquationsToSolve;
         }
 
-        private NavigableMap<Variable, NavigableMap<Equation, List<EquationTerm>>> getSortedVariablesToFind() {
+        @Override
+        public NavigableMap<Variable, NavigableMap<Equation, List<EquationTerm>>> getSortedVariablesToFind() {
             update();
             return sortedVariablesToFind;
         }
     }
 
-    private final EquationCache equationCache = new EquationCache();
+    private class IncrementalEquationCache implements EquationCache {
+
+        private final NavigableSet<Equation> sortedEquationsToSolve = new TreeSet<>();
+
+        private final NavigableMap<Variable, NavigableMap<Equation, List<EquationTerm>>> sortedVariablesToFind = new TreeMap<>();
+
+        private boolean invalide = false;
+
+        @Override
+        public void equationListChanged(Equation equation, EquationEventType eventType) {
+            switch (eventType) {
+                case EQUATION_CREATED:
+                    if (equation.isActive()) {
+                        addEquation(equation);
+                    }
+                    break;
+                case EQUATION_REMOVED:
+                    break;
+                case EQUATION_ACTIVATED:
+                    addEquation(equation);
+                    break;
+                case EQUATION_DEACTIVATED:
+                    break;
+            }
+        }
+
+        private void addEquation(Equation equation) {
+            System.out.println("ADD " + equation);
+            sortedEquationsToSolve.add(equation);
+            for (EquationTerm equationTerm : equation.getTerms()) {
+                for (Variable variable : equationTerm.getVariables()) {
+                    sortedVariablesToFind.computeIfAbsent(variable, k -> new TreeMap<>())
+                            .computeIfAbsent(equation, k -> new ArrayList<>())
+                            .add(equationTerm);
+                }
+            }
+        }
+
+        private void update() {
+            if (!invalide) {
+                return;
+            }
+
+            int rowCount = 0;
+            for (Equation equation : sortedEquationsToSolve) {
+                equation.setRow(rowCount++);
+            }
+
+            int columnCount = 0;
+            for (Variable variable : sortedVariablesToFind.keySet()) {
+                variable.setColumn(columnCount++);
+            }
+
+            invalide = false;
+        }
+
+        @Override
+        public NavigableSet<Equation> getSortedEquationsToSolve() {
+            update();
+            return sortedEquationsToSolve;
+        }
+
+        @Override
+        public NavigableMap<Variable, NavigableMap<Equation, List<EquationTerm>>> getSortedVariablesToFind() {
+            update();
+            return sortedVariablesToFind;
+        }
+    }
+
+    private final EquationCache equationCache = new IncrementalEquationCache();
 
     private final List<EquationSystemListener> listeners = new ArrayList<>();
 
