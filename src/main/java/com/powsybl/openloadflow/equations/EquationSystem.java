@@ -148,6 +148,8 @@ public class EquationSystem {
                 return;
             }
 
+            Stopwatch stopwatch = Stopwatch.createStarted();
+
             for (Equation equation : equationsToRemove) {
                 sortedEquationsToSolve.remove(equation);
                 for (EquationTerm equationTerm : equation.getTerms()) {
@@ -186,6 +188,9 @@ public class EquationSystem {
 
             equationsToRemove.clear();
             equationsToAdd.clear();
+
+            stopwatch.stop();
+            LOGGER.debug(PERFORMANCE_MARKER, "Equation system indexed in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
         }
 
         @Override
