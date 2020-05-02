@@ -12,7 +12,8 @@
     {"pattern":"natives/linux_64/libmath.so"},
     {"pattern":"org/joda/time/tz/data/Europe/Paris"}, 
     {"pattern":"org/joda/time/tz/data/ZoneInfoMap"}, 
-    {"pattern":"org/slf4j/impl/StaticLoggerBinder.class"}
+    {"pattern":"org/slf4j/impl/StaticLoggerBinder.class"},
+    {"pattern":"logback.xml"}
   ],
   "bundles":[]
 }
