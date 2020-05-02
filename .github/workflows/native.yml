@@ -25,10 +25,11 @@ jobs:
           architecture: x64
           jdkFile: graalvm-ce-java11-linux-amd64-20.0.0.tar.gz
 
+      - name: Install GraalVM native image
+        run: $JAVA_HOME/bin/gu install native-image
+
       - name: Build with Maven
         run: mvn --batch-mode -DskipTests=true -Pnative-image package
-        env:
-          MAVEN_OPTS: "'--add-exports=java.base/jdk.internal.module=ALL-UNNAMED'"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v1
