@@ -10,7 +10,7 @@
     {"pattern":"META-INF/services/com.powsybl.openloadflow.network.LfNetworkLoader"}, 
     {"pattern":"META-INF/services/com.powsybl.tools.Tool"}, 
     {"pattern":"natives/linux_64/libmath.so"},
-    {"pattern":"org/joda/time/tz/data/Europe/Paris"}, 
+    {"pattern":"org/joda/time/tz/data/.*"},
     {"pattern":"org/joda/time/tz/data/ZoneInfoMap"}, 
     {"pattern":"org/slf4j/impl/StaticLoggerBinder.class"},
     {"pattern":"logback.xml"}
