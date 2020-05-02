@@ -28,7 +28,7 @@ jobs:
       - name: Build with Maven
         run: mvn --batch-mode -DskipTests=true -Pnative-image package
         env:
-          MAVEN_OPTS: '--add-exports=java.base/jdk.internal.module=ALL-UNNAMED'
+          MAVEN_OPTS: "'--add-exports=java.base/jdk.internal.module=ALL-UNNAMED'"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v1
