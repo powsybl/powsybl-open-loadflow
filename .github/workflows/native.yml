@@ -26,7 +26,9 @@ jobs:
           jdkFile: graalvm-ce-java11-darwin-amd64-20.0.0.tar.gz
 
       - name: Install GraalVM Native Image
-        run: $JAVA_HOME/Contents/Home/bin/gu install --no-progress native-image
+        run: $JAVA_HOME/bin/gu install --no-progress native-image
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME }}/Contents/Home
 
       - name: Build with Maven
         run: mvn --batch-mode -DskipTests=true -Pnative-image package
