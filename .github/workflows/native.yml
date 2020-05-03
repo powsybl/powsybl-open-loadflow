@@ -25,15 +25,14 @@ jobs:
           architecture: x64
           jdkFile: graalvm-ce-java11-darwin-amd64-20.0.0.tar.gz
 
+      - name: Fix JAVA_HOME on MacOS
+        run: mv $JAVA_HOME/Contents/Home/* $JAVA_HOME/
+
       - name: Install GraalVM Native Image
         run: $JAVA_HOME/bin/gu install --no-progress native-image
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME }}/Contents/Home
 
       - name: Build with Maven
         run: mvn --batch-mode -DskipTests=true -Pnative-image package
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME }}/Contents/Home
 
       - name: Upload artifact
         uses: actions/upload-artifact@v1
