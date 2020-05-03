@@ -31,7 +31,7 @@ jobs:
       - name: Build with Maven
         run: mvn --batch-mode -DskipTests=true -Pnative-image package
         env:
-          JAVA_HOME: /Users/runner/hostedtoolcache/jdk/11.0.0/x64/Contents/Home
+          JAVA_HOME: ${{ env.JAVA_HOME }}/Contents/Home
 
       - name: Upload artifact
         uses: actions/upload-artifact@v1
