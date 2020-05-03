@@ -26,7 +26,7 @@ jobs:
           jdkFile: graalvm-ce-java11-darwin-amd64-20.0.0.tar.gz
 
       - name: Install GraalVM Native Image
-        run: ls $JAVA_HOME/bin/
+        run: ls /Users/runner/hostedtoolcache
 
       - name: Build with Maven
         run: mvn --batch-mode -DskipTests=true -Pnative-image package
