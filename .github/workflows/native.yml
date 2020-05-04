@@ -58,7 +58,9 @@ jobs:
       - name: Install GraalVM Native Image on Windows
         if: matrix.config.name == 'windows'
         shell: cmd
-        run: %JAVA_HOME%/bin/gu.cmd install --no-progress native-image
+        run: |
+          set PATH=%PATH%;%JAVA_HOME%\bin
+          gu.cmd install --no-progress native-image
 
       - name: Build with Maven
         run: mvn --batch-mode -DskipTests=true -Pnative-image package
