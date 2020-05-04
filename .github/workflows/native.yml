@@ -11,16 +11,6 @@ jobs:
       matrix:
         config:
           - {
-            name: linux,
-            os: ubuntu-latest,
-            jdk_extension: tar.gz
-          }
-          - {
-            name: darwin,
-            os: macos-latest,
-            jdk_extension: tar.gz
-          }
-          - {
             name: windows,
             os: windows-latest,
             jdk_extension: zip
