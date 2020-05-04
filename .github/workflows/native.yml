@@ -13,17 +13,20 @@ jobs:
           - {
             name: linux,
             os: ubuntu-latest,
-            jdk_extension: tar.gz
+            jdk_extension: tar.gz,
+            gu_shell: bash
           }
           - {
             name: darwin,
             os: macos-latest,
-            jdk_extension: tar.gz
+            jdk_extension: tar.gz,
+            gu_shell: bash
           }
           - {
             name: windows,
             os: windows-latest,
             jdk_extension: zip
+            gu_shell: cmd
           }
 
     steps:
@@ -52,6 +55,7 @@ jobs:
         run: mv $JAVA_HOME/Contents/Home/* $JAVA_HOME/
 
       - name: Install GraalVM Native Image
+        shell: ${{ matrix.config.gu_shell }}
         run: $JAVA_HOME/bin/gu install --no-progress native-image
 
       - name: Build with Maven
