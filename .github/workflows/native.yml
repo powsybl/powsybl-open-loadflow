@@ -9,16 +9,15 @@ jobs:
     runs-on: ${{ matrix.config.os }}
     strategy:
       matrix:
-        matrix:
-          config:
-            - {
-              name: linux,
-              os: ubuntu-latest,
-            }
-            - {
-              name: darwin,
-              os: macos-latest,
-            }
+        config:
+          - {
+            name: linux,
+            os: ubuntu-latest,
+          }
+          - {
+            name: darwin,
+            os: macos-latest,
+          }
 
     steps:
       - name: Checkout sources
