@@ -25,7 +25,7 @@ jobs:
           - {
             name: windows,
             os: windows-latest,
-            jdk_extension: zip
+            jdk_extension: zip,
             gu_shell: cmd
           }
 
