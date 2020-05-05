@@ -114,10 +114,10 @@ public class PiModelArray implements PiModel {
 
         // find tap position with the closest a1 value
         double smallestDistance = Math.abs(a1 - getModel().getA1());
-        for (int p = lowTapPosition; p < lowTapPosition + models.size(); p++) {
+        for (int p = 0; p < models.size(); p++) {
             double distance = Math.abs(a1 - models.get(p).getA1());
             if (distance < smallestDistance) {
-                tapPosition = p;
+                tapPosition = lowTapPosition + p;
                 smallestDistance = distance;
             }
         }
