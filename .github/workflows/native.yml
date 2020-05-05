@@ -80,5 +80,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v1
         with:
-          name: olf${{ binary_extension }}
-          path: target/olf${{ binary_extension }}
+          name: olf${{ matrix.config.binary_extension }}
+          path: target/olf${{ matrix.config.binary_extension }}
