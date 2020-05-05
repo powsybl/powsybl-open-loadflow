@@ -75,6 +75,7 @@ jobs:
         if: matrix.config.os == 'windows-latest'
         shell: cmd
         run: |
+          native-image
           mvn --batch-mode -DskipTests=true -Pnative-image package
 
       - name: Upload artifact
