@@ -13,17 +13,20 @@ jobs:
           - {
             name: linux,
             os: ubuntu-latest,
-            jdk_extension: tar.gz
+            jdk_extension: tar.gz,
+            binary_extension: ''
           }
           - {
             name: darwin,
             os: macos-latest,
-            jdk_extension: tar.gz
+            jdk_extension: tar.gz,
+            binary_extension: ''
           }
           - {
             name: windows,
             os: windows-latest,
-            jdk_extension: zip
+            jdk_extension: zip,
+            binary_extension: '.exe'
           }
 
     steps:
@@ -72,11 +75,10 @@ jobs:
         if: matrix.config.os == 'windows-latest'
         shell: cmd
         run: |
-          native-image
           mvn --batch-mode -DskipTests=true -Pnative-image package
 
       - name: Upload artifact
         uses: actions/upload-artifact@v1
         with:
-          name: olf
-          path: target/olf
+          name: olf${{ binary_extension }}
+          path: target/olf${{ binary_extension }}
