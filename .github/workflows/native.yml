@@ -61,10 +61,16 @@ jobs:
         if: matrix.config.os == 'windows-latest'
         shell: cmd
         run: |
-          echo "::add-path::%JAVA_HOME%/bin"
+          echo "::add-path::%JAVA_HOME%\bin"
           gu install --no-progress native-image
 
-      - name: Build with Maven
+      - name: Build with Maven (Linux and MacOS)
+        if: matrix.config.os != 'windows-latest'
+        run: mvn --batch-mode -DskipTests=true -Pnative-image package
+
+      - name: Build with Maven (Windows)
+        if: matrix.config.os == 'windows-latest'
+        shell: cmd
         run: mvn --batch-mode -DskipTests=true -Pnative-image package
 
       - name: Upload artifact
