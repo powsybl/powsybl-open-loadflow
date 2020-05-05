@@ -214,6 +214,14 @@
             <activeByDefault>false</activeByDefault>
         </activation>
         <build>
+            <resources>
+                <resource>
+                    <directory>src/main/resources</directory>
+                </resource>
+                <resource>
+                    <directory>src/main/resources-native-image</directory>
+                </resource>
+            </resources>
             <plugins>
                 <plugin>
                     <groupId>org.graalvm.nativeimage</groupId>
