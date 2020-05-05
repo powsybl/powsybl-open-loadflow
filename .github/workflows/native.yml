@@ -51,16 +51,11 @@ jobs:
         if: matrix.config.os == 'macos-latest'
         run: mv $JAVA_HOME/Contents/Home/* $JAVA_HOME/
 
-      - name: Install GraalVM Native Image on Linux and MacOS
-        if: matrix.config.name != 'windows'
-        run: $JAVA_HOME/bin/gu install --no-progress native-image
+      - name: Add JAVA_HOME/bin to path
+        run: echo "::add-path::$JAVA_HOME/bin"
 
-      - name: Install GraalVM Native Image on Windows
-        if: matrix.config.name == 'windows'
-        shell: cmd
-        run: |
-          set PATH=%PATH%;%JAVA_HOME%\bin
-          gu.cmd install --no-progress native-image
+      - name: Install GraalVM Native Image
+        run: gu install --no-progress native-image
 
       - name: Build with Maven
         run: mvn --batch-mode -DskipTests=true -Pnative-image package
