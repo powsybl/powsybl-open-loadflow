@@ -71,7 +71,9 @@ jobs:
       - name: Build with Maven (Windows)
         if: matrix.config.os == 'windows-latest'
         shell: cmd
-        run: mvn --batch-mode -DskipTests=true -Pnative-image package
+        run: |
+          native-image
+          mvn --batch-mode -DskipTests=true -Pnative-image package
 
       - name: Upload artifact
         uses: actions/upload-artifact@v1
