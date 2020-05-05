@@ -214,7 +214,7 @@ public final class AcEquationSystem {
             branch.setP2(p2);
 
             if (creationParameters.isPhaseControl()) {
-                createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.TWO, equationSystem, EquationTerm.multiply(p2, -1));
+                createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.TWO, equationSystem, p2);
             }
         }
         if (q2 != null) {

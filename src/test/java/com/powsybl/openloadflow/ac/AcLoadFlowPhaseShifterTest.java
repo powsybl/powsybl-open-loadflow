@@ -113,6 +113,7 @@ public class AcLoadFlowPhaseShifterTest {
                 .setTargetDeadband(1) // FIXME how to take this into account
                 .setRegulating(true)
                 .setTapPosition(1)
+                .setRegulationTerminal(ps1.getTerminal1())
                 .setRegulationValue(83);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -120,5 +121,20 @@ public class AcLoadFlowPhaseShifterTest {
         assertActivePowerEquals(83.587, line2.getTerminal1());
         assertActivePowerEquals(-83.486, line2.getTerminal2());
         assertEquals(2, ps1.getPhaseTapChanger().getTapPosition());
+
+        ps1.getPhaseTapChanger()
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1) // FIXME how to take this into account
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationValue(83)
+                .setRegulationTerminal(ps1.getTerminal2());
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(16.528, line2.getTerminal1());
+        assertActivePowerEquals(-16.514, line2.getTerminal2());
+        assertEquals(0, ps1.getPhaseTapChanger().getTapPosition());
+
     }
 }
