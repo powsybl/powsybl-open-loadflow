@@ -77,7 +77,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return svc.getReactivePowerSetPoint() / PerUnit.SB;
+        return -svc.getReactivePowerSetPoint() / PerUnit.SB;
     }
 
     @Override
@@ -109,6 +109,6 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     public void updateState() {
         svc.getTerminal()
                 .setP(0)
-                .setQ(Double.isNaN(calculatedQ) ? -svc.getReactivePowerSetPoint() : -calculatedQ);
+                .setQ(Double.isNaN(calculatedQ) ? svc.getReactivePowerSetPoint() : -calculatedQ);
     }
 }
