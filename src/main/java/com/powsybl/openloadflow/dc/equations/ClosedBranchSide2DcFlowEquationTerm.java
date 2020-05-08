@@ -37,7 +37,7 @@ public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBra
         Objects.requireNonNull(x);
         double ph1 = x[ph1Var.getColumn()];
         double ph2 = x[ph2Var.getColumn()];
-        double deltaPhase =  ph2 - ph1 + a2 - a1;
+        double deltaPhase =  ph2 - ph1 + A2 - a1;
         p2 = power * deltaPhase;
     }
 
@@ -62,7 +62,7 @@ public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBra
     public double rhs(Variable variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(ph2Var)) {
-            return power * (a2 - a1);
+            return power * (A2 - a1);
         }
         return 0;
     }

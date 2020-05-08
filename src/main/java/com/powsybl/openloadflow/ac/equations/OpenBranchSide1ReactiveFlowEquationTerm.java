@@ -34,8 +34,8 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenBranchA
     public void update(double[] x) {
         Objects.requireNonNull(x);
         double v2 = x[v2Var.getColumn()];
-        q2 = -r2 * r2 * v2 * v2 * (b2 + y * y * b1 / shunt - (b1 * b1 + g1 * g1) * y * cosKsi / shunt);
-        dq2dv2 = -2 * v2 * r2 * r2 * (b2 + y * y * b1 / shunt - (b1 * b1 + g1 * g1) * y * cosKsi / shunt);
+        q2 = -R2 * R2 * v2 * v2 * (b2 + y * y * b1 / shunt - (b1 * b1 + g1 * g1) * y * cosKsi / shunt);
+        dq2dv2 = -2 * v2 * R2 * R2 * (b2 + y * y * b1 / shunt - (b1 * b1 + g1 * g1) * y * cosKsi / shunt);
     }
 
     @Override

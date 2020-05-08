@@ -95,13 +95,13 @@ public final class AcEquationSystem {
             for (LfBranch branch : firstControllerBus.getBranches()) {
                 LfBus otherSideBus = branch.getBus1() == firstControllerBus ? branch.getBus2() : branch.getBus1();
                 boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
-                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, firstControllerBus, otherSideBus, variableSet, deriveA1, false);
+                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, firstControllerBus, otherSideBus, variableSet, deriveA1);
                 zero.addTerm(q);
             }
             for (LfBranch branch : controllerBus.getBranches()) {
                 LfBus otherSideBus = branch.getBus1() == controllerBus ? branch.getBus2() : branch.getBus1();
                 boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
-                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1, false);
+                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1);
                 EquationTerm minusQ = EquationTerm.multiply(q, -c);
                 zero.addTerm(minusQ);
             }
@@ -142,7 +142,7 @@ public final class AcEquationSystem {
             // create voltage magnitude coupling equation
             // 0 = v1 - v2 * rho
             PiModel piModel = branch.getPiModel();
-            double rho = piModel.getR2() / piModel.getR1();
+            double rho = 1 / piModel.getR1();
             equationSystem.createEquation(branch.getNum(), EquationType.ZERO_V)
                     .addTerm(new BusVoltageEquationTerm(bus1, variableSet))
                     .addTerm(EquationTerm.multiply(new BusVoltageEquationTerm(bus2, variableSet), -1 * rho));
@@ -185,10 +185,10 @@ public final class AcEquationSystem {
         EquationTerm q2 = null;
         if (bus1 != null && bus2 != null) {
             boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
-            p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, false);
-            q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, false);
-            p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, false);
-            q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, false);
+            p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
+            q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
+            p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
+            q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
         } else if (bus1 != null) {
             p1 = new OpenBranchSide2ActiveFlowEquationTerm(branch, bus1, variableSet);
             q1 = new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus1, variableSet);

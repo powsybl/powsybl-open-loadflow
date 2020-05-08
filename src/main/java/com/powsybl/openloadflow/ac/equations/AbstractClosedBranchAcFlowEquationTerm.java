@@ -31,12 +31,10 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected Variable a1Var;
 
-    protected Variable a2Var;
-
     protected final List<Variable> variables;
 
     protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
-                                                     boolean deriveA1, boolean deriveA2) {
+                                                     boolean deriveA1) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
@@ -50,10 +48,6 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         if (deriveA1) {
             a1Var = variableSet.getVariable(branch.getNum(), VariableType.BRANCH_ALPHA1);
             variablesBuilder.add(a1Var);
-        }
-        if (deriveA2) {
-            a2Var = variableSet.getVariable(branch.getNum(), VariableType.BRANCH_ALPHA2);
-            variablesBuilder.add(a2Var);
         }
         variables = variablesBuilder.build();
     }

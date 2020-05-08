@@ -29,15 +29,9 @@ public interface PiModel {
 
     double getR1();
 
-    double getR2();
-
     double getA1();
 
     PiModel setA1(double a1);
-
-    double getA2();
-
-    PiModel setA2(double a2);
 
     void roundA1ToClosestTap();
 }

@@ -103,11 +103,6 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
-    public double getR2() {
-        return 1;
-    }
-
-    @Override
     public double getA1() {
         return a1;
     }
@@ -115,16 +110,6 @@ public class SimplePiModel implements PiModel {
     @Override
     public SimplePiModel setA1(double a1) {
         this.a1 = a1;
-        return this;
-    }
-
-    @Override
-    public double getA2() {
-        return 0;
-    }
-
-    @Override
-    public SimplePiModel setA2(double a2) {
         return this;
     }
 

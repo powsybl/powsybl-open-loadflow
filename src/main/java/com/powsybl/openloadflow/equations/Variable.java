@@ -78,10 +78,6 @@ public class Variable implements Comparable<Variable> {
                 x[column] = network.getBranch(num).getPiModel().getA1();
                 break;
 
-            case BRANCH_ALPHA2:
-                x[column] = network.getBranch(num).getPiModel().getA2();
-                break;
-
             case DUMMY_P:
             case DUMMY_Q:
                 x[column] = 0;
@@ -106,10 +102,6 @@ public class Variable implements Comparable<Variable> {
 
             case BRANCH_ALPHA1:
                 network.getBranch(num).getPiModel().setA1(x[column]);
-                break;
-
-            case BRANCH_ALPHA2:
-                network.getBranch(num).getPiModel().setA2(x[column]);
                 break;
 
             case DUMMY_P:

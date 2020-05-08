@@ -31,11 +31,9 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
 
     private double dq1da1;
 
-    private double dq1da2;
-
     public ClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
-                                                     boolean deriveA1, boolean deriveA2) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveA2);
+                                                     boolean deriveA1) {
+        super(branch, bus1, bus2, variableSet, deriveA1);
     }
 
     @Override
@@ -46,19 +44,16 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
         double ph1 = x[ph1Var.getColumn()];
         double ph2 = x[ph2Var.getColumn()];
         double theta = ksi - (a1Var != null && a1Var.isActive() ? x[a1Var.getColumn()] : branch.getPiModel().getA1())
-                + (a2Var != null && a2Var.isActive() ? x[a2Var.getColumn()] : branch.getPiModel().getA2()) - ph1 + ph2;
+                + A2 - ph1 + ph2;
         double cosTheta = FastMath.cos(theta);
         double sinTheta = FastMath.sin(theta);
-        q1 = r1 * v1 * (-b1 * r1 * v1 + y * r1 * v1 * cosKsi - y * r2 * v2 * cosTheta);
-        dq1dv1 = r1 * (-2 * b1 * r1 * v1 + 2 * y * r1 * v1 * cosKsi - y * r2 * v2 * cosTheta);
-        dq1dv2 = -y * r1 * r2 * v1 * cosTheta;
-        dq1dph1 = -y * r1 * r2 * v1 * v2 * sinTheta;
+        q1 = r1 * v1 * (-b1 * r1 * v1 + y * r1 * v1 * cosKsi - y * R2 * v2 * cosTheta);
+        dq1dv1 = r1 * (-2 * b1 * r1 * v1 + 2 * y * r1 * v1 * cosKsi - y * R2 * v2 * cosTheta);
+        dq1dv2 = -y * r1 * R2 * v1 * cosTheta;
+        dq1dph1 = -y * r1 * R2 * v1 * v2 * sinTheta;
         dq1dph2 = -dq1dph1;
         if (a1Var != null) {
             dq1da1 = dq1dph1;
-        }
-        if (a2Var != null) {
-            dq1da2 = dq1dph2;
         }
     }
 
@@ -80,8 +75,6 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
             return dq1dph2;
         } else if (variable.equals(a1Var)) {
             return dq1da1;
-        } else if (variable.equals(a2Var)) {
-            return dq1da2;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

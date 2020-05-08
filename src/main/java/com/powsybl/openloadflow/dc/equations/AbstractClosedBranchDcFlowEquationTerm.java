@@ -35,8 +35,6 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEqu
 
     protected final double a1;
 
-    protected final double a2;
-
     protected AbstractClosedBranchDcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet) {
         this.branch = Objects.requireNonNull(branch);
         PiModel piModel = branch.getPiModel();
@@ -46,9 +44,8 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEqu
         ph1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_PHI);
         variables = ImmutableList.of(ph1Var, ph2Var);
-        power =  1 / piModel.getX() * piModel.getR1() * piModel.getR2();
+        power =  1 / piModel.getX() * piModel.getR1() * R2;
         a1 = piModel.getA1();
-        a2 = piModel.getA2();
     }
 
     @Override
