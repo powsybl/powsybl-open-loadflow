@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.network;
 import java.util.Comparator;
 import java.util.List;
 
+import org.apache.commons.math3.stat.descriptive.rank.Percentile;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -16,11 +18,8 @@ public class MostMeshedSlackBusSelector implements SlackBusSelector {
 
     @Override
     public LfBus select(List<LfBus> buses) {
-        double maxNominalV = buses.stream()
-                .map(LfBus::getNominalV)
-                .mapToDouble(Double::valueOf)
-                .max()
-                .orElseThrow(AssertionError::new);
+        double[] nominalVoltages = buses.stream().map(LfBus::getNominalV).mapToDouble(Double::valueOf).toArray();
+        double maxNominalV = new Percentile().evaluate(nominalVoltages, 90);
 
         // select non fictitious and most meshed bus among buses with highest nominal voltage
         return buses.stream()
