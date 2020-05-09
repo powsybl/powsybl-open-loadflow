@@ -36,7 +36,7 @@ class OpenSensitivityAnalysisTest {
         loadFlowRunner.run(network, parameters);
 
         List<String> branchIds = Arrays.asList("NHV1_NHV2_1", "NHV1_NHV2_2");
-        new OpenSensitivityAnalysis(matrixFactory)
-                .run(network, branchIds);
+        new OpenSensitivityAnalysis(network, matrixFactory)
+                .run(branchIds);
     }
 }
