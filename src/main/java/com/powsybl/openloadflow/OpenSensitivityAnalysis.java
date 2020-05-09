@@ -10,9 +10,9 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.JacobianMatrix;
-import com.powsybl.openloadflow.equations.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 
@@ -31,29 +31,57 @@ public class OpenSensitivityAnalysis {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
     }
 
-
-    public void run(Network network) {
+    public void run(Network network, List<String> branchIds) {
         Objects.requireNonNull(network);
+        Objects.requireNonNull(branchIds);
 
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
 
         EquationSystem equationSystem = AcEquationSystem.create(lfNetwork);
 
-        // initialize equations with current state
-        double[] x = equationSystem.createStateVector(new PreviousValueVoltageInitializer());
-        equationSystem.updateEquations(x);
+        for (String branchId : branchIds) {
+            LfBranch branch = lfNetwork.getBranchById(branchId);
+            if (branch == null) {
+                throw new IllegalArgumentException("Branch '" + branchId + "' not found");
+            }
 
-        double[] targets = new double[equationSystem.getSortedEquationsToSolve().size()];
-        targets[0] = 1;
+            LfBus bus1 = branch.getBus1();
+            LfBus bus2 = branch.getBus2();
+            if (bus1 == null || bus2 == null) {
+                continue;
+            }
 
-        double[] dx = Arrays.copyOf(targets, targets.length);
-        JacobianMatrix j = JacobianMatrix.create(equationSystem, matrixFactory);
-        try (LUDecomposition lu = j.decomposeLU()) {
-            lu.solve(dx);
-            System.out.println(Arrays.toString(dx));
+            // initialize equations with current state
+            double[] x = equationSystem.createStateVector(new PreviousValueVoltageInitializer());
+
+            equationSystem.updateEquations(x);
+
+            JacobianMatrix j = JacobianMatrix.create(equationSystem, matrixFactory);
+
+            double[] targets = new double[equationSystem.getSortedEquationsToSolve().size()];
+            EquationTerm p1 = (EquationTerm) branch.getP1();
+            for (Variable variable : p1.getVariables()) {
+                targets[variable.getColumn()] += p1.der(variable);
+            }
+            EquationTerm p2 = (EquationTerm) branch.getP2();
+            for (Variable variable : p2.getVariables()) {
+                targets[variable.getColumn()] += p2.der(variable);
+            }
+            System.out.println(equationSystem.getRowNames());
+            System.out.println(Arrays.toString(targets));
+
+            double[] dx = Arrays.copyOf(targets, targets.length);
+            try (LUDecomposition lu = j.decomposeLU()) {
+                lu.solve(dx);
+                System.out.println(equationSystem.getColumnNames());
+                System.out.println(Arrays.toString(dx));
+            }
+
+            equationSystem.updateEquations(dx);
+
+            System.out.println(branch.getP1().eval());
+            System.out.println(branch.getP2().eval());
         }
-
-        equationSystem.updateEquations(dx);
     }
 }

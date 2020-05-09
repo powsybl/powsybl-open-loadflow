@@ -46,6 +46,8 @@ public class LfNetwork {
 
     private final List<LfBranch> branches = new ArrayList<>();
 
+    private final Map<String, LfBranch> branchesById = new LinkedHashMap<>();
+
     public LfNetwork(int num, SlackBusSelector slackBusSelector) {
         this.num = num;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
@@ -76,6 +78,9 @@ public class LfNetwork {
         Objects.requireNonNull(branch);
         branch.setNum(branches.size());
         branches.add(branch);
+        if (branchesById.put(branch.getId(), branch) != null) {
+            throw new IllegalArgumentException("Branch '" + branch.getId() + "' already exists");
+        }
 
         // create bus -> branches link
         if (branch.getBus1() != null) {
@@ -94,9 +99,15 @@ public class LfNetwork {
         return branches.get(num);
     }
 
+    public LfBranch getBranchById(String id) {
+        return branchesById.get(id);
+    }
+
     public void addBus(LfBus bus) {
         Objects.requireNonNull(bus);
-        busesById.put(bus.getId(), bus);
+        if (busesById.put(bus.getId(), bus) != null) {
+            throw new IllegalArgumentException("Bus '" + bus.getId() + "' already exists");
+        }
         invalidateCache();
     }
 

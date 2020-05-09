@@ -60,8 +60,18 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
+    public Evaluable getP1() {
+        return NAN;
+    }
+
+    @Override
     public void setP2(Evaluable p2) {
         this.p = Objects.requireNonNull(p2);
+    }
+
+    @Override
+    public Evaluable getP2() {
+        return p;
     }
 
     @Override
