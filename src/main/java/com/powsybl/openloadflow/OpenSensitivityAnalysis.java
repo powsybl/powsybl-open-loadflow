@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Objects;
 
 /**
+ * http://www.montefiore.ulg.ac.be/~vct/elec0029/lf.pdf
+ *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class OpenSensitivityAnalysis {
@@ -38,7 +40,15 @@ public class OpenSensitivityAnalysis {
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
 
-        EquationSystem equationSystem = AcEquationSystem.create(lfNetwork);
+        VariableSet variableSet = new VariableSet();
+        EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, variableSet);
+
+        // initialize equations with current state
+        double[] x = equationSystem.createStateVector(new PreviousValueVoltageInitializer());
+
+        equationSystem.updateEquations(x);
+
+        JacobianMatrix j = JacobianMatrix.create(equationSystem, matrixFactory);
 
         for (String branchId : branchIds) {
             LfBranch branch = lfNetwork.getBranchById(branchId);
@@ -52,13 +62,6 @@ public class OpenSensitivityAnalysis {
                 continue;
             }
 
-            // initialize equations with current state
-            double[] x = equationSystem.createStateVector(new PreviousValueVoltageInitializer());
-
-            equationSystem.updateEquations(x);
-
-            JacobianMatrix j = JacobianMatrix.create(equationSystem, matrixFactory);
-
             double[] targets = new double[equationSystem.getSortedEquationsToSolve().size()];
             EquationTerm p1 = (EquationTerm) branch.getP1();
             for (Variable variable : p1.getVariables()) {
@@ -68,20 +71,20 @@ public class OpenSensitivityAnalysis {
             for (Variable variable : p2.getVariables()) {
                 targets[variable.getColumn()] += p2.der(variable);
             }
-            System.out.println(equationSystem.getRowNames());
-            System.out.println(Arrays.toString(targets));
+//            System.out.println(equationSystem.getRowNames());
+//            System.out.println(Arrays.toString(targets));
 
             double[] dx = Arrays.copyOf(targets, targets.length);
             try (LUDecomposition lu = j.decomposeLU()) {
                 lu.solve(dx);
-                System.out.println(equationSystem.getColumnNames());
-                System.out.println(Arrays.toString(dx));
+//                System.out.println(equationSystem.getColumnNames());
+//                System.out.println(Arrays.toString(dx));
             }
-
-            equationSystem.updateEquations(dx);
-
-            System.out.println(branch.getP1().eval());
-            System.out.println(branch.getP2().eval());
+            for (LfBus bus : lfNetwork.getBuses()) {
+                Variable variable = variableSet.getVariable(bus.getNum(), VariableType.BUS_PHI);
+                double s = dx[variable.getColumn()];
+                System.out.println(bus.getId() + ": " + s);
+            }
         }
     }
 }

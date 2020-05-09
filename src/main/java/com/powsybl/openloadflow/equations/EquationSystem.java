@@ -105,6 +105,11 @@ public class EquationSystem {
         return equation;
     }
 
+    public Optional<Equation> getEquation(int num, EquationType type) {
+        Pair<Integer, EquationType> p = Pair.of(num, type);
+        return Optional.ofNullable(equations.get(p));
+    }
+
     public boolean hasEquation(int num, EquationType type) {
         Pair<Integer, EquationType> p = Pair.of(num, type);
         return equations.containsKey(p);

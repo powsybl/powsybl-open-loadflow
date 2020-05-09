@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow;
 
-import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
@@ -18,8 +17,6 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -28,10 +25,6 @@ class OpenSensitivityAnalysisTest {
     @Test
     public void test() {
         Network network = EurostagTutorialExample1Factory.create();
-        for (Branch branch : network.getBranches()) {
-            System.out.println(branch.getId());
-        }
-        List<String> branchIds = Arrays.asList("NHV1_NHV2_1", "NHV1_NHV2_2");
 
         DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(matrixFactory));
@@ -42,6 +35,7 @@ class OpenSensitivityAnalysisTest {
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
         loadFlowRunner.run(network, parameters);
 
+        List<String> branchIds = Arrays.asList("NHV1_NHV2_1", "NHV1_NHV2_2");
         new OpenSensitivityAnalysis(matrixFactory)
                 .run(network, branchIds);
     }
