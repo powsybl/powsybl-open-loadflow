@@ -5,7 +5,7 @@ on:
 
 jobs:
   linux_macos_build:
-    name: Build native binary OS ${{ matrix.config.name }}
+    name: Build native binary OS (${{ matrix.config.name }})
     runs-on: ${{ matrix.config.os }}
     strategy:
       matrix:
@@ -42,6 +42,34 @@ jobs:
 
       - name: Build with Maven
         run: mvn --batch-mode -DskipTests=true -Pnative-image package
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: olf
+          path: target/olf
+
+  windows_build:
+    name: Build native binary OS (windows)
+    runs-on: windows-latest
+    env:
+      VCVARS_BAT: C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v1
+
+      - name: Install GraalVM JDK 11
+        run: choco install graalvm --version=20.0.0 --no-progress
+
+      - name: Install GraalVM Native Image and build with Maven
+        shell: cmd
+          env:
+            JAVA_HOME: C:\Program Files\GraalVM\graalvm-ce-java11-20.0.0
+        run: |
+          call "%JAVA_HOME%\bin\gu" install native-image
+          call "%VCVARS_BAT%"
+          call mvn --batch-mode -DskipTests=true -Pnative-image package
 
       - name: Upload artifact
         uses: actions/upload-artifact@v1
