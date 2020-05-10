@@ -37,11 +37,10 @@ jobs:
         if: matrix.config.os == 'macos-latest'
         run: mv $JAVA_HOME/Contents/Home/* $JAVA_HOME/
 
-      - name: Install GraalVM Native Image
-        run: gu install --no-progress native-image
-
-      - name: Build with Maven
-        run: mvn --batch-mode -DskipTests=true -Pnative-image package
+      - name: Install GraalVM Native Image and build with Maven
+        run: |
+          gu install --no-progress native-image
+          mvn --batch-mode -DskipTests=true -Pnative-image package
 
       - name: Upload artifact
         uses: actions/upload-artifact@v1
