@@ -66,7 +66,8 @@ jobs:
         env:
           JAVA_HOME: C:\Program Files\GraalVM\graalvm-ce-java11-20.0.0
         run: |
-          call "%JAVA_HOME%\bin\gu" install native-image
+          echo "::add-path::%JAVA_HOME%\bin"
+          call gu install --no-progress native-image
           call "%VCVARS_BAT%"
           call mvn --batch-mode -DskipTests=true -Pnative-image package
 
