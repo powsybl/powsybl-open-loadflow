@@ -11,7 +11,7 @@ package com.powsybl.openloadflow.ac.outerloop;
  */
 public interface OuterLoop {
 
-    String getName();
+    String getType();
 
     OuterLoopStatus check(OuterLoopContext context);
 }

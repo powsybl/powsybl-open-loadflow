@@ -6,10 +6,8 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
@@ -104,10 +102,20 @@ public class Equation implements Evaluable, Comparable<Equation> {
         }
     }
 
-    private static double getBranchPhi(LfBranch branch) {
+    private static double getBranchA(LfBranch branch) {
         Objects.requireNonNull(branch);
         PiModel piModel = branch.getPiModel();
-        return piModel.getA2() - piModel.getA1();
+        return PiModel.A2 - piModel.getA1();
+    }
+
+    private static double getBranchTarget(LfBranch branch, PhaseControl.Unit unit) {
+        Objects.requireNonNull(branch);
+        PhaseControl phaseControl = branch.getPhaseControl()
+                .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no phase control"));
+        if (phaseControl.getUnit() != unit) {
+            throw new PowsyblException("Branch '" + branch.getId() + "' has not a target in " + unit);
+        }
+        return phaseControl.getTargetValue();
     }
 
     void initTarget(LfNetwork network, double[] targets) {
@@ -128,13 +136,21 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 targets[row] = 0;
                 break;
 
+            case BRANCH_P:
+                targets[row] = getBranchTarget(network.getBranch(num), PhaseControl.Unit.MW);
+                break;
+
+            case BRANCH_I:
+                targets[row] = getBranchTarget(network.getBranch(num), PhaseControl.Unit.A);
+                break;
+
             case ZERO_Q:
             case ZERO_V:
                 targets[row] = 0;
                 break;
 
             case ZERO_PHI:
-                targets[row] = getBranchPhi(network.getBranch(num));
+                targets[row] = getBranchA(network.getBranch(num));
                 break;
 
             default:
@@ -222,6 +238,11 @@ public class Equation implements Evaluable, Comparable<Equation> {
             case BUS_PHI:
                 LfBus bus = equationSystem.getNetwork().getBus(num);
                 builder.append(", busId=").append(bus.getId());
+                break;
+            case BRANCH_P:
+            case BRANCH_I:
+                LfBranch branch = equationSystem.getNetwork().getBranch(num);
+                builder.append(", branchId=").append(branch.getId());
                 break;
             case ZERO_Q:
             case ZERO_V:

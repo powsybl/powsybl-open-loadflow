@@ -121,6 +121,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info("Balance type: {}", parametersExt.getBalanceType());
             LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
             LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
+            LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
 
             List<OuterLoop> outerLoops = new ArrayList<>();
             if (parametersExt.isDistributedSlack()) {
@@ -137,13 +138,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                         throw new UnsupportedOperationException("Unknown balance type mode: " + parametersExt.getBalanceType());
                 }
             }
+            if (parameters.isPhaseShifterRegulationOn()) {
+                outerLoops.add(new PhaseControlOuterLoop());
+            }
             if (!parameters.isNoGeneratorReactiveLimits()) {
                 outerLoops.add(new ReactiveLimitsOuterLoop());
             }
 
             AcLoadFlowParameters acParameters = new AcLoadFlowParameters(slackBusSelector, voltageInitializer, stoppingCriteria,
                                                                          outerLoops, matrixFactory, getObserver(parametersExt),
-                                                                         parametersExt.hasVoltageRemoteControl());
+                                                                         parametersExt.hasVoltageRemoteControl(),
+                                                                         parameters.isPhaseShifterRegulationOn());
 
             List<AcLoadFlowResult> results = new AcloadFlowEngine(network, acParameters)
                     .run();
@@ -182,7 +187,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     .run();
 
             Networks.resetState(network);
-            result.getNetworks().get(0).updateState(false);
+            result.getNetwork().updateState(false);
 
             return new LoadFlowResultImpl(result.isOk(), Collections.emptyMap(), null);
         });

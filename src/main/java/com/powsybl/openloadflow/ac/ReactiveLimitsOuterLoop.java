@@ -47,7 +47,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
     private static final int MAX_SWITCH_PQ_PV = 2;
 
     @Override
-    public String getName() {
+    public String getType() {
         return "Reactive limits";
     }
 
