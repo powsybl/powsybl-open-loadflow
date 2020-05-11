@@ -18,6 +18,8 @@ import com.powsybl.openloadflow.network.PiModel;
 import java.util.List;
 import java.util.Objects;
 
+import static com.powsybl.openloadflow.network.PiModel.R2;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */

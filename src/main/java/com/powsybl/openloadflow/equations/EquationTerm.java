@@ -20,10 +20,6 @@ import java.util.Objects;
  */
 public interface EquationTerm extends Evaluable {
 
-    double A2 = 0;
-
-    double R2 = 1;
-
     class MultiplyByScalarEquationTerm implements EquationTerm {
 
         private final EquationTerm term;

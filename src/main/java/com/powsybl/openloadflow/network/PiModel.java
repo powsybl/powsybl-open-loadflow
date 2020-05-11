@@ -11,6 +11,10 @@ package com.powsybl.openloadflow.network;
  */
 public interface PiModel {
 
+    double A2 = 0;
+
+    double R2 = 1;
+
     double getR();
 
     double getX();

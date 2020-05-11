@@ -13,6 +13,8 @@ import com.powsybl.openloadflow.network.LfBus;
 
 import java.util.Objects;
 
+import static com.powsybl.openloadflow.network.PiModel.A2;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */

@@ -329,7 +329,7 @@ public class LfNetwork {
                 LfBus bus2 = branch.getBus2();
                 // ensure target voltages are consistent
                 if (bus1 != null && bus2 != null && bus1.hasVoltageControl() && bus2.hasVoltageControl()
-                        && FastMath.abs((bus1.getTargetV() / bus2.getTargetV()) - piModel.getR1()) > TARGET_VOLTAGE_EPSILON) {
+                        && FastMath.abs((bus1.getTargetV() / bus2.getTargetV()) - piModel.getR1() / PiModel.R2) > TARGET_VOLTAGE_EPSILON) {
                     throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
                             + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
                             + bus1.getTargetV() + " and " + bus2.getTargetV());

@@ -102,10 +102,10 @@ public class Equation implements Evaluable, Comparable<Equation> {
         }
     }
 
-    private static double getBranchA1(LfBranch branch) {
+    private static double getBranchA(LfBranch branch) {
         Objects.requireNonNull(branch);
         PiModel piModel = branch.getPiModel();
-        return -piModel.getA1();
+        return PiModel.A2 - piModel.getA1();
     }
 
     private static double getBranchTarget(LfBranch branch, PhaseControl.Unit unit) {
@@ -150,7 +150,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case ZERO_PHI:
-                targets[row] = getBranchA1(network.getBranch(num));
+                targets[row] = getBranchA(network.getBranch(num));
                 break;
 
             default:

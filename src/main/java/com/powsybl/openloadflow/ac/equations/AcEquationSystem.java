@@ -142,7 +142,7 @@ public final class AcEquationSystem {
             // create voltage magnitude coupling equation
             // 0 = v1 - v2 * rho
             PiModel piModel = branch.getPiModel();
-            double rho = 1 / piModel.getR1();
+            double rho = PiModel.R2 / piModel.getR1();
             equationSystem.createEquation(branch.getNum(), EquationType.ZERO_V)
                     .addTerm(new BusVoltageEquationTerm(bus1, variableSet))
                     .addTerm(EquationTerm.multiply(new BusVoltageEquationTerm(bus2, variableSet), -1 * rho));
