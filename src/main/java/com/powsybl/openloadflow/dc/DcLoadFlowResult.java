@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.openloadflow.network.LfNetwork;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -16,17 +15,17 @@ import java.util.Objects;
  */
 public class DcLoadFlowResult {
 
-    private final List<LfNetwork> networks;
+    private final LfNetwork network;
 
     private final boolean ok;
 
-    public DcLoadFlowResult(List<LfNetwork> networks, boolean ok) {
-        this.networks = Objects.requireNonNull(networks);
+    public DcLoadFlowResult(LfNetwork network, boolean ok) {
+        this.network = Objects.requireNonNull(network);
         this.ok = ok;
     }
 
-    public List<LfNetwork> getNetworks() {
-        return networks;
+    public LfNetwork getNetwork() {
+        return network;
     }
 
     public boolean isOk() {

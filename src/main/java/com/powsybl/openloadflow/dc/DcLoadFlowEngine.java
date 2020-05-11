@@ -87,7 +87,7 @@ public class DcLoadFlowEngine {
 
             LOGGER.info("Dc loadflow complete (ok={})", ok);
 
-            return new DcLoadFlowResult(networks, ok);
+            return new DcLoadFlowResult(network, ok);
         } finally {
             j.cleanLU();
         }

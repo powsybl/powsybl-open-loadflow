@@ -187,7 +187,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     .run();
 
             Networks.resetState(network);
-            result.getNetworks().get(0).updateState(false);
+            result.getNetwork().updateState(false);
 
             return new LoadFlowResultImpl(result.isOk(), Collections.emptyMap(), null);
         });
