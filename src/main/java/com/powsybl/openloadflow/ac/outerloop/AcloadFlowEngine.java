@@ -98,9 +98,9 @@ public class AcloadFlowEngine {
 
                 // update PV buses reactive power some outer loops might need this information
                 updatePvBusesReactivePower(runningContext.lastNrResult, network, equationSystem);
-            }
 
-            outerLoopIteration.increment();
+                outerLoopIteration.increment();
+            }
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE);
     }
 
