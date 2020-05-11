@@ -22,7 +22,6 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractEquationTerm {
     protected final LfBranch branch;
 
     protected final double r1;
-    protected final double r2;
     protected final double b1;
     protected final double b2;
     protected final double g1;
@@ -39,7 +38,6 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractEquationTerm {
             throw new IllegalArgumentException("Non impedant branch not supported: " + branch.getId());
         }
         r1 = piModel.getR1();
-        r2 = piModel.getR2();
         b1 = piModel.getB1();
         b2 = piModel.getB2();
         g1 = piModel.getG1();

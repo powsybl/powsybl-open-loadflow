@@ -8,7 +8,10 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.AbstractConverterTest;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.PhaseTapChanger;
+import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,6 +59,27 @@ public class LfNetworkTest extends AbstractConverterTest {
         lfNetworks.get(0).writeJson(file);
         try (InputStream is = Files.newInputStream(file)) {
             compareTxt(getClass().getResourceAsStream("/n.json"), is);
+        }
+    }
+
+    @Test
+    public void testPhaseShifter() throws IOException {
+        Network network = PhaseShifterTestCaseFactory.create();
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+        ps1.getPhaseTapChanger()
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(ps1.getTerminal1())
+                .setRegulationValue(83);
+
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+        Path file = fileSystem.getPath("/work/n2.json");
+        lfNetworks.get(0).writeJson(file);
+        try (InputStream is = Files.newInputStream(file)) {
+            compareTxt(getClass().getResourceAsStream("/n2.json"), is);
         }
     }
 }

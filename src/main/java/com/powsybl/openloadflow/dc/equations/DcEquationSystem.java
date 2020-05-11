@@ -26,7 +26,7 @@ public final class DcEquationSystem {
     }
 
     public static EquationSystem create(LfNetwork network) {
-        return create(network, new VariableSet());
+        return create(network, new VariableSet(), true);
     }
 
     public static void createNonImpedantBranch(VariableSet variableSet, EquationSystem equationSystem,
@@ -51,7 +51,7 @@ public final class DcEquationSystem {
         }
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean updateFlows) {
         EquationSystem equationSystem = new EquationSystem(network);
 
         for (LfBus bus : network.getBuses()) {
@@ -75,12 +75,18 @@ public final class DcEquationSystem {
                     ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet);
                     equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
                     equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
-                    branch.setP1(p1);
-                    branch.setP2(p2);
+                    if (updateFlows) {
+                        branch.setP1(p1);
+                        branch.setP2(p2);
+                    }
                 } else if (bus1 != null) {
-                    branch.setP1(EvaluableConstants.ZERO);
+                    if (updateFlows) {
+                        branch.setP1(EvaluableConstants.ZERO);
+                    }
                 } else if (bus2 != null) {
-                    branch.setP2(EvaluableConstants.ZERO);
+                    if (updateFlows) {
+                        branch.setP2(EvaluableConstants.ZERO);
+                    }
                 }
             }
         }

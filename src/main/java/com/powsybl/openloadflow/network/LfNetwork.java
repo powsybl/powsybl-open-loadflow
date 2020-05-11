@@ -208,15 +208,22 @@ public class LfNetwork {
         if (piModel.getR1() != 1) {
             jsonGenerator.writeNumberField("r1", piModel.getR1());
         }
-        if (piModel.getR2() != 1) {
-            jsonGenerator.writeNumberField("r2", piModel.getR2());
-        }
         if (piModel.getA1() != 0) {
             jsonGenerator.writeNumberField("a1", piModel.getA1());
         }
-        if (piModel.getA2() != 0) {
-            jsonGenerator.writeNumberField("a2", piModel.getA2());
-        }
+        branch.getPhaseControl().ifPresent(phaseControl -> {
+            try {
+                jsonGenerator.writeFieldName("phaseControl");
+                jsonGenerator.writeStartObject();
+                jsonGenerator.writeStringField("mode", phaseControl.getMode().name());
+                jsonGenerator.writeStringField("unit", phaseControl.getUnit().name());
+                jsonGenerator.writeStringField("controlledSide", phaseControl.getControlledSide().name());
+                jsonGenerator.writeNumberField("targetValue", phaseControl.getTargetValue());
+                jsonGenerator.writeEndObject();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
     }
 
     private void writeJson(LfShunt shunt, JsonGenerator jsonGenerator) throws IOException {
@@ -335,7 +342,7 @@ public class LfNetwork {
                 LfBus bus2 = branch.getBus2();
                 // ensure target voltages are consistent
                 if (bus1 != null && bus2 != null && bus1.hasVoltageControl() && bus2.hasVoltageControl()
-                        && FastMath.abs((bus1.getTargetV() / bus2.getTargetV()) - piModel.getR1() / piModel.getR2()) > TARGET_VOLTAGE_EPSILON) {
+                        && FastMath.abs((bus1.getTargetV() / bus2.getTargetV()) - piModel.getR1() / PiModel.R2) > TARGET_VOLTAGE_EPSILON) {
                     throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
                             + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
                             + bus1.getTargetV() + " and " + bus2.getTargetV());

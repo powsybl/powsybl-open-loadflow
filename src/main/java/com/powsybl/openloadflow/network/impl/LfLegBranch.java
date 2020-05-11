@@ -6,14 +6,13 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
-import com.powsybl.openloadflow.network.AbstractLfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.PerUnit;
-import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -30,6 +29,8 @@ public class LfLegBranch extends AbstractLfBranch {
 
     private Evaluable q = NAN;
 
+    private PhaseControl phaseControl;
+
     protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
         super(bus1, bus0, piModel);
         this.twt = twt;
@@ -43,7 +44,13 @@ public class LfLegBranch extends AbstractLfBranch {
         double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
         double nominalV2 = twt.getRatedU0();
         double zb = nominalV2 * nominalV2 / PerUnit.SB;
-        PiModel piModel = new PiModel()
+        PhaseTapChanger ptc = leg.getPhaseTapChanger();
+        if (ptc != null
+                && ptc.isRegulating()
+                && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
+            throw new UnsupportedOperationException("Regulating phase tap changer on 3 windings transformer not yet supported");
+        }
+        PiModel piModel = new SimplePiModel()
                 .setR(Transformers.getR(leg) / zb)
                 .setX(Transformers.getX(leg) / zb)
                 .setG1(Transformers.getG1(leg) * zb)
@@ -89,8 +96,19 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
+    public Optional<PhaseControl> getPhaseControl() {
+        return Optional.ofNullable(phaseControl);
+    }
+
+    @Override
     public void updateState() {
         leg.getTerminal().setP(p.eval() * PerUnit.SB);
         leg.getTerminal().setQ(q.eval() * PerUnit.SB);
+
+        if (phaseControl != null) {
+            PhaseTapChanger ptc = leg.getPhaseTapChanger();
+            int tapPosition = Transformers.findTapPosition(ptc, Math.toRadians(getPiModel().getA1()));
+            ptc.setTapPosition(tapPosition);
+        }
     }
 }

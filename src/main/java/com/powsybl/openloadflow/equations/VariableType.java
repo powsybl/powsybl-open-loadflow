@@ -12,6 +12,7 @@ package com.powsybl.openloadflow.equations;
 public enum VariableType {
     BUS_V("v"),
     BUS_PHI("\u03C6"),
+    BRANCH_ALPHA1("\u03B1" + "1"),
     DUMMY_P("dummy_p"),
     DUMMY_Q("dummy_q");
 
