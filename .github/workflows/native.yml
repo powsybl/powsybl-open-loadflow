@@ -48,5 +48,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v1
         with:
-          name: olf
+          name: olf-${{ matrix.config.name }}
           path: target/olf
