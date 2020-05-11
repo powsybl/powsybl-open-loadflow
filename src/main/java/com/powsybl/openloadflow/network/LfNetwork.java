@@ -211,6 +211,19 @@ public class LfNetwork {
         if (piModel.getA1() != 0) {
             jsonGenerator.writeNumberField("a1", piModel.getA1());
         }
+        branch.getPhaseControl().ifPresent(phaseControl -> {
+            try {
+                jsonGenerator.writeFieldName("phaseControl");
+                jsonGenerator.writeStartObject();
+                jsonGenerator.writeStringField("mode", phaseControl.getMode().name());
+                jsonGenerator.writeStringField("unit", phaseControl.getUnit().name());
+                jsonGenerator.writeStringField("controlledSide", phaseControl.getControlledSide().name());
+                jsonGenerator.writeNumberField("targetValue", phaseControl.getTargetValue());
+                jsonGenerator.writeEndObject();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
     }
 
     private void writeJson(LfShunt shunt, JsonGenerator jsonGenerator) throws IOException {
