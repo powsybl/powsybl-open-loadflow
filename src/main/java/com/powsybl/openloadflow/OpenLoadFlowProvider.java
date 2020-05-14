@@ -168,13 +168,15 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             }
 
             // zero or low impedance branch flows computation
-            new Z0FlowsCompletion(network, line -> {
-                // to be consistent with low impedance criteria used in DcEquationSystem and AcEquationSystem
-                double nominalV = line.getTerminal1().getVoltageLevel().getNominalV();
-                double zb = nominalV * nominalV / PerUnit.SB;
-                double z = Math.hypot(line.getR(), line.getX());
-                return z / zb <= DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
-            }).complete();
+            if (ok) {
+                new Z0FlowsCompletion(network, line -> {
+                    // to be consistent with low impedance criteria used in DcEquationSystem and AcEquationSystem
+                    double nominalV = line.getTerminal1().getVoltageLevel().getNominalV();
+                    double zb = nominalV * nominalV / PerUnit.SB;
+                    double z = Math.hypot(line.getR(), line.getX());
+                    return z / zb <= DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
+                }).complete();
+            }
 
             return new LoadFlowResultImpl(ok, metrics, null);
         });
