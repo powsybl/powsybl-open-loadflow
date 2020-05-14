@@ -37,6 +37,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean voltageRemoteControl = false;
 
+    public enum LowImpedanceBranchMode {
+        REPLACE_BY_COUPLER,
+        CUT_IMPEDANCE
+    }
+
+    private LowImpedanceBranchMode lowImpedanceBranchMode = LowImpedanceBranchMode.REPLACE_BY_COUPLER;
+
     private final List<AcLoadFlowObserver> additionalObservers = new ArrayList<>();
 
     @Override
@@ -85,6 +92,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setVoltageRemoteControl(boolean voltageRemoteControl) {
         this.voltageRemoteControl = voltageRemoteControl;
+        return this;
+    }
+
+    public LowImpedanceBranchMode getLowImpedanceBranchMode() {
+        return lowImpedanceBranchMode;
+    }
+
+    public OpenLoadFlowParameters setLowImpedanceBranchMode(LowImpedanceBranchMode lowImpedanceBranchMode) {
+        this.lowImpedanceBranchMode = Objects.requireNonNull(lowImpedanceBranchMode);
         return this;
     }
 

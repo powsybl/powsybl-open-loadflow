@@ -189,7 +189,7 @@ public class GeneratorTargetVoltageInconsistencyTest {
                 .setB2(0)
                 .add();
 
-        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new FirstSlackBusSelector(), true));
+        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new FirstSlackBusSelector(), true, false));
         assertEquals("Bus 'vl2_0' control voltage of bus 'vl3_0' which is already controlled by at least the bus 'vl1_0' with a different target voltage: 413.0 and 412.0", exception.getMessage());
     }
 
@@ -289,7 +289,7 @@ public class GeneratorTargetVoltageInconsistencyTest {
                 .setB2(0)
                 .add();
 
-        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new FirstSlackBusSelector(), true));
+        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new FirstSlackBusSelector(), true, false));
         assertEquals("Bus 'vl2_0' controlled by bus 'vl1_0' has also a local voltage control with a different value: 413.0 and 412.0", exception.getMessage());
     }
 }

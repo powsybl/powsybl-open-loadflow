@@ -229,7 +229,7 @@ public final class AcEquationSystem {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             PiModel piModel = branch.getPiModel();
-            if (piModel.getZ() <= DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
+            if (piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
                 if (bus1 != null && bus2 != null) {
                     createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
                 }
