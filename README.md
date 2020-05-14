@@ -92,7 +92,14 @@ network.getBusView().getBusStream().forEach(b -> System.out.println(b.getId() + 
 ## Contributing to PowSyBl Open Load Flow
 
 PowSyBl Open Load Flow could support more features. The following list is not exhaustive and is an invitation to collaborate:
+
+We are thinking about increasing features of the loadflow engine:
 - A distributed slack that can be configured by country;
 - Computation on all connected components;
 - Operational limits management;
 - Improve the voltage regulation: only generators and static var compensators are regulating at that stage. Shunts and ratio tap changers can regulate too (local and remote). We want to model these regulations in outer loops.
+- Allow generators to regulate reactive power, locally or remotely.
+
+We are also thinking about services using the loadflow engine:
+-The possibility to compute security analysis in an optimized way ; at this stage, a slow security analysis can be performed. After the contingency modeling on the IIDM network, a loadflow engine can be run. A new instance will be created after each contingency. This could be opimized by modeling the contingency directly in the equation system.
+- The possibility to perform sensitivity analysis.
