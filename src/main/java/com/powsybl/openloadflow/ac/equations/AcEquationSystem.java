@@ -95,26 +95,25 @@ public final class AcEquationSystem {
             for (LfBranch branch : firstControllerBus.getBranches()) {
                 LfBus otherSideBus = branch.getBus1() == firstControllerBus ? branch.getBus2() : branch.getBus1();
                 boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+                EquationTerm q;
                 if (otherSideBus != null) {
-                    EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, firstControllerBus, otherSideBus, variableSet, deriveA1);
-                    zero.addTerm(q);
+                    q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, firstControllerBus, otherSideBus, variableSet, deriveA1);
                 } else {
-                    EquationTerm q = new OpenBranchSide2ReactiveFlowEquationTerm(branch, firstControllerBus, variableSet);
-                    zero.addTerm(q);
+                    q = new OpenBranchSide2ReactiveFlowEquationTerm(branch, firstControllerBus, variableSet);
                 }
+                zero.addTerm(q);
             }
             for (LfBranch branch : controllerBus.getBranches()) {
                 LfBus otherSideBus = branch.getBus1() == controllerBus ? branch.getBus2() : branch.getBus1();
                 boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+                EquationTerm q;
                 if (otherSideBus != null) {
-                    EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1);
-                    EquationTerm minusQ = EquationTerm.multiply(q, -c);
-                    zero.addTerm(minusQ);
+                    q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1);
                 } else {
-                    EquationTerm q = new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
-                    EquationTerm minusQ = EquationTerm.multiply(q, -c);
-                    zero.addTerm(minusQ);
+                    q = new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
                 }
+                EquationTerm minusQ = EquationTerm.multiply(q, -c);
+                zero.addTerm(minusQ);
             }
         }
     }
@@ -240,7 +239,7 @@ public final class AcEquationSystem {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             PiModel piModel = branch.getPiModel();
-            if (piModel.getZ() <= DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
+            if (piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
                 if (bus1 != null && bus2 != null) {
                     createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
                 }

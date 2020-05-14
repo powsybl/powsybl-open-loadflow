@@ -127,7 +127,7 @@ public class LfBusImpl extends AbstractLfBus {
             if (controlledBus.hasVoltageControl()) { // controlled bus has also local voltage control
                 double localTargetV = controlledBus.getTargetV() * controlledBus.getNominalV();
                 if (FastMath.abs(this.targetV - localTargetV) > TARGET_V_EPSILON) {
-                    LOGGER.trace("Bus '" + controlledBus.getId()
+                    throw new PowsyblException("Bus '" + controlledBus.getId()
                             + "' controlled by bus '" + getId() + "' has also a local voltage control with a different value: "
                             + localTargetV + " and " + this.targetV);
                 }
@@ -233,7 +233,9 @@ public class LfBusImpl extends AbstractLfBus {
             this.voltageControl = true;
             this.voltageControlCapacility = true;
         } else {
-            generationTargetQ += targetQ;
+            if (!Double.isNaN(targetQ)) {
+                generationTargetQ += targetQ;
+            }
         }
     }
 

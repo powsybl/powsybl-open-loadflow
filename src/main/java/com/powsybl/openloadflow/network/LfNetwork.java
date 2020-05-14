@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -337,6 +338,10 @@ public class LfNetwork {
     private static void validate(LfNetwork network) {
         for (LfBranch branch : network.getBranches()) {
             PiModel piModel = branch.getPiModel();
+            if (Math.abs(piModel.getZ()) <= DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
+                piModel.setR(0);
+                piModel.setX(DcEquationSystem.LOW_IMPEDANCE_THRESHOLD);
+            }
             if (piModel.getZ() == 0) {
                 LfBus bus1 = branch.getBus1();
                 LfBus bus2 = branch.getBus2();
