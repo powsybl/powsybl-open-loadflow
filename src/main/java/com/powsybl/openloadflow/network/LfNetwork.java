@@ -339,7 +339,7 @@ public class LfNetwork {
         if (cutLowImpedance) {
             for (LfBranch branch : network.getBranches()) {
                 PiModel piModel = branch.getPiModel();
-                if (Math.abs(piModel.getZ()) <= DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
+                if (Math.abs(piModel.getZ()) < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
                     piModel.setR(0);
                     piModel.setX(DcEquationSystem.LOW_IMPEDANCE_THRESHOLD);
                 }
