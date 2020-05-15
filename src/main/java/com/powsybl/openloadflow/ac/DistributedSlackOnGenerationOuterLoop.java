@@ -23,6 +23,10 @@ public class DistributedSlackOnGenerationOuterLoop extends AbstractDistributedSl
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOnGenerationOuterLoop.class);
 
+    public DistributedSlackOnGenerationOuterLoop(boolean throwsExceptionInCaseOfFailure) {
+        super(throwsExceptionInCaseOfFailure);
+    }
+
     @Override
     public String getType() {
         return "Distributed slack on generation";
