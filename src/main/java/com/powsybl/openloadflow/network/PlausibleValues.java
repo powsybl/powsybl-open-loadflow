@@ -11,7 +11,7 @@ package com.powsybl.openloadflow.network;
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class PlausibleValues {
+public final class PlausibleValues {
 
     private PlausibleValues() {
     }
