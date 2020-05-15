@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.openloadflow.network.PlausibleValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,8 +27,6 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     private static final Logger LOGGER = LoggerFactory.getLogger(LfGeneratorImpl.class);
 
     private static final double DEFAULT_DROOP = 4; // why not
-
-    private static final int PLAUSIBLE_ACTIVE_POWER_LIMIT = 10000;
 
     private final Generator generator;
 
@@ -61,9 +60,9 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP++;
             participating = false;
         }
-        if (generator.getMaxP() > PLAUSIBLE_ACTIVE_POWER_LIMIT) {
+        if (generator.getMaxP() > PlausibleValues.ACTIVE_POWER_LIMIT) {
             LOGGER.trace("Discard generator '{}' from active power control because maxP ({}) > {}} MW",
-                    generator.getId(), generator.getMaxP(), PLAUSIBLE_ACTIVE_POWER_LIMIT);
+                    generator.getId(), generator.getMaxP(), PlausibleValues.ACTIVE_POWER_LIMIT);
             report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
             participating = false;
         }

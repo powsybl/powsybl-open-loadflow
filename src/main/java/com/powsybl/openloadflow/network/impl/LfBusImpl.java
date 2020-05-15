@@ -24,7 +24,6 @@ public class LfBusImpl extends AbstractLfBus {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfBusImpl.class);
 
-    private static final double REACTIVE_RANGE_THRESHOLD_PU = 1d / PerUnit.SB;
     private static final double POWER_EPSILON_SI = 1e-4;
     private static final double Q_DISPATCH_EPSILON = 1e-3;
     private static final double TARGET_V_EPSILON = 1e-2;
@@ -215,7 +214,7 @@ public class LfBusImpl extends AbstractLfBus {
         generators.add(generator);
         boolean modifiedVoltageControl = voltageControl;
         double maxRangeQ = generator.getMaxRangeQ();
-        if (voltageControl && maxRangeQ < REACTIVE_RANGE_THRESHOLD_PU) {
+        if (voltageControl && maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
             LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small",
                     generator.getId(), maxRangeQ);
             report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
