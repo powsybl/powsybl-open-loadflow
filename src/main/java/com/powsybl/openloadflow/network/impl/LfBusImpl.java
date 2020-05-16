@@ -123,6 +123,13 @@ public class LfBusImpl extends AbstractLfBus {
         }
 
         if (voltageControl) {
+            // check that targetV has a plausible value (wrong nominal voltage issue)
+            double targetVPu = targetV / controlledBus.getNominalV();
+            if (targetVPu < 0.8 || targetVPu > 1.2) {
+                throw new PowsyblException("Controller bus '" + getId() + "' has an inconsistent remote target voltage: "
+                        + targetVPu + " pu");
+            }
+
             // check target voltage consistency between local and remote control
             if (controlledBus.hasVoltageControl()) { // controlled bus has also local voltage control
                 double localTargetV = controlledBus.getTargetV() * controlledBus.getNominalV();
