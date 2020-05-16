@@ -335,6 +335,24 @@ public class LfNetwork {
     }
 
     private static void validate(LfNetwork network) {
+        // check that controller buses are connected to only one closed branch. The way remote voltage is modelled with
+        // reactive power distribution equations imply that we can have only one electrical path from controller bus
+        // to controlled bus. The perfect check is not easy to implement so we can start by just checking that we have
+        // only one connected branch.
+        for (LfBus bus : network.getBuses()) {
+            if (bus.getControlledBus().isPresent()) {
+                int closedBranchCount = 0;
+                for (LfBranch branch : bus.getBranches()) {
+                    if (branch.getBus1() != null && branch.getBus2() != null) {
+                        closedBranchCount++;
+                    }
+                }
+                if (closedBranchCount > 1) {
+                    throw new PowsyblException("Controller bus '" + bus.getId() + "' has more that one connected branch (" + closedBranchCount + ")");
+                }
+            }
+        }
+
         for (LfBranch branch : network.getBranches()) {
             PiModel piModel = branch.getPiModel();
             if (piModel.getZ() == 0) {

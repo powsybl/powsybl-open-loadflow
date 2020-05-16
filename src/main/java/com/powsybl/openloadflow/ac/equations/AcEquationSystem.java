@@ -95,13 +95,15 @@ public final class AcEquationSystem {
             for (LfBranch branch : firstControllerBus.getBranches()) {
                 LfBus otherSideBus = branch.getBus1() == firstControllerBus ? branch.getBus2() : branch.getBus1();
                 boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
-                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, firstControllerBus, otherSideBus, variableSet, deriveA1);
+                EquationTerm q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, firstControllerBus, otherSideBus, variableSet, deriveA1)
+                                                      : new OpenBranchSide2ReactiveFlowEquationTerm(branch, firstControllerBus, variableSet);
                 zero.addTerm(q);
             }
             for (LfBranch branch : controllerBus.getBranches()) {
                 LfBus otherSideBus = branch.getBus1() == controllerBus ? branch.getBus2() : branch.getBus1();
                 boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
-                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1);
+                EquationTerm q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1)
+                                                      : new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
                 EquationTerm minusQ = EquationTerm.multiply(q, -c);
                 zero.addTerm(minusQ);
             }
