@@ -33,6 +33,8 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     private int row = -1;
 
+    private Object data;
+
     /**
      * true if this equation term active, false otherwise
      */
@@ -77,6 +79,14 @@ public class Equation implements Evaluable, Comparable<Equation> {
         }
     }
 
+    public void setData(Object data) {
+        this.data = data;
+    }
+
+    public <T> T getData() {
+        return (T) data;
+    }
+
     public Equation addTerm(EquationTerm term) {
         Objects.requireNonNull(term);
         terms.add(term);
@@ -118,6 +128,13 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return phaseControl.getTargetValue();
     }
 
+    private static double getLoadQDiff(LfNetwork network, int num, LoadQDiffData data) {
+        LfBus controllerBus = network.getBus(num);
+        LfBus firstControllerBus = network.getBus(data.getFirstControllerBusNum());
+        double c = data.getC();
+        return firstControllerBus.getLoadTargetQ() - c * controllerBus.getLoadTargetQ();
+    }
+
     void initTarget(LfNetwork network, double[] targets) {
         switch (type) {
             case BUS_P:
@@ -144,7 +161,10 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 targets[row] = getBranchTarget(network.getBranch(num), PhaseControl.Unit.A);
                 break;
 
-            case ZERO_Q:
+            case LOAD_Q_DIFF:
+                targets[row] = getLoadQDiff(network, num, getData());
+                break;
+
             case ZERO_V:
                 targets[row] = 0;
                 break;
@@ -244,7 +264,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 LfBranch branch = equationSystem.getNetwork().getBranch(num);
                 builder.append(", branchId=").append(branch.getId());
                 break;
-            case ZERO_Q:
+            case LOAD_Q_DIFF:
             case ZERO_V:
             case ZERO_PHI:
                 break;

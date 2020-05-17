@@ -89,9 +89,10 @@ public final class AcEquationSystem {
             LfBus controllerBus = controllerBuses.get(i);
             double c = qKeys[0] / qKeys[i];
 
-            // 0 = q0 + c * qi
+            // l0 - c * li = q0 - c * qi
             AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false); // TODO could not be the right parameters
-            Equation zero = equationSystem.createEquation(controllerBus.getNum(), EquationType.ZERO_Q);
+            Equation zero = equationSystem.createEquation(controllerBus.getNum(), EquationType.LOAD_Q_DIFF);
+            zero.setData(new LoadQDiffData(firstControllerBus.getNum(), c));
             for (LfBranch branch : firstControllerBus.getBranches()) {
                 LfBus otherSideBus = branch.getBus1() == firstControllerBus ? branch.getBus2() : branch.getBus1();
                 boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();

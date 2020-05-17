@@ -39,6 +39,9 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     private Generator g1;
     private Generator g2;
     private Generator g3;
+    private TwoWindingsTransformer tr1;
+    private TwoWindingsTransformer tr2;
+    private TwoWindingsTransformer tr3;
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
     private OpenLoadFlowParameters parametersExt;
@@ -127,7 +130,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setVoltageRegulatorOn(true)
                 .setRegulatingTerminal(l4.getTerminal())
                 .add();
-        s.newTwoWindingsTransformer()
+        tr1 = s.newTwoWindingsTransformer()
                 .setId("tr1")
                 .setVoltageLevel1(b1.getVoltageLevel().getId())
                 .setBus1(b1.getId())
@@ -142,7 +145,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setG(0)
                 .setB(0)
                 .add();
-        s.newTwoWindingsTransformer()
+        tr2 = s.newTwoWindingsTransformer()
                 .setId("tr2")
                 .setVoltageLevel1(b2.getVoltageLevel().getId())
                 .setBus1(b2.getId())
@@ -157,7 +160,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setG(0)
                 .setB(0)
                 .add();
-        s.newTwoWindingsTransformer()
+        tr3 = s.newTwoWindingsTransformer()
                 .setId("tr3")
                 .setVoltageLevel1(b3.getVoltageLevel().getId())
                 .setBus1(b3.getId())
@@ -194,6 +197,27 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(-69.925, g1.getTerminal());
         assertReactivePowerEquals(-69.925, g2.getTerminal());
         assertReactivePowerEquals(-69.925, g3.getTerminal());
+    }
+
+    @Test
+    public void testWithLoadConnectedToGeneratorBus() {
+        // in that case we expect the generation reactive power to be equals for each of the controller buses but
+        // but the controller bus injection (generation + load)
+        b1.getVoltageLevel().newLoad()
+                .setId("l")
+                .setBus(b1.getId())
+                .setConnectableBus(b1.getId())
+                .setP0(0)
+                .setQ0(10)
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(-69.925, g1.getTerminal()); // and not -59.925 !!!
+        assertReactivePowerEquals(-69.925, g2.getTerminal());
+        assertReactivePowerEquals(-69.925, g3.getTerminal());
+        assertReactivePowerEquals(59.925, tr1.getTerminal1()); // and not 69.925 !!!
+        assertReactivePowerEquals(69.925, tr2.getTerminal1());
+        assertReactivePowerEquals(69.925, tr3.getTerminal1());
     }
 
     @Test
