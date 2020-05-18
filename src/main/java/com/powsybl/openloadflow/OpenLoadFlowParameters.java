@@ -25,6 +25,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean distributedSlack = true;
 
+    private boolean throwsExceptionInCaseOfSlackDistributionFailure = true;
+
     private BalanceType balanceType = BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX; // Default slack distribution on generators.
 
     public enum BalanceType {
@@ -66,6 +68,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setDistributedSlack(boolean distributedSlack) {
         this.distributedSlack = distributedSlack;
+        return this;
+    }
+
+    public boolean isThrowsExceptionInCaseOfSlackDistributionFailure() {
+        return throwsExceptionInCaseOfSlackDistributionFailure;
+    }
+
+    public OpenLoadFlowParameters setThrowsExceptionInCaseOfSlackDistributionFailure(boolean throwsExceptionInCaseOfSlackDistributionFailure) {
+        this.throwsExceptionInCaseOfSlackDistributionFailure = throwsExceptionInCaseOfSlackDistributionFailure;
         return this;
     }
 
