@@ -23,7 +23,7 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  */
 public class LfLegBranch extends AbstractLfBranch {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(LfLegBranch.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfLegBranch.class);
 
     private final ThreeWindingsTransformer twt;
 
