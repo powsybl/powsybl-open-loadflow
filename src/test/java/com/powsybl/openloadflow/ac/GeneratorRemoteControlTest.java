@@ -201,8 +201,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     public void testWithLoadConnectedToGeneratorBus() {
-        // in that case we expect the generation reactive power to be equals for each of the controller buses but
-        // but the controller bus injection (generation + load)
+        // in that case we expect the generation reactive power to be equals for each of the controller buses
         b1.getVoltageLevel().newLoad()
                 .setId("l")
                 .setBus(b1.getId())
@@ -231,6 +230,27 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(122.094, tr1.getTerminal1());
         assertReactivePowerEquals(66.047, tr2.getTerminal1());
         assertReactivePowerEquals(22.015, tr3.getTerminal1());
+    }
+
+    @Test
+    public void testWithShuntConnectedToGeneratorBus() {
+        // in that case we expect the generation reactive power to be equals for each of the controller buses
+        b1.getVoltageLevel().newShuntCompensator()
+                .setId("l")
+                .setBus(b1.getId())
+                .setConnectableBus(b1.getId())
+                .setbPerSection(Math.pow(10, -2))
+                .setMaximumSectionCount(1)
+                .setCurrentSectionCount(1)
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(-68.372, g1.getTerminal());
+        assertReactivePowerEquals(-68.372, g2.getTerminal());
+        assertReactivePowerEquals(-68.372, g3.getTerminal());
+        assertReactivePowerEquals(73.003, tr1.getTerminal1());
+        assertReactivePowerEquals(68.372, tr2.getTerminal1());
+        assertReactivePowerEquals(68.372, tr3.getTerminal1());
     }
 
     @Test
