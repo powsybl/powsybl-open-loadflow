@@ -231,7 +231,9 @@ public class LfBusImpl extends AbstractLfBus {
             this.voltageControl = true;
             this.voltageControlCapacility = true;
         } else {
-            generationTargetQ += targetQ;
+            if (!Double.isNaN(targetQ)) {
+                generationTargetQ += targetQ;
+            }
         }
     }
 
