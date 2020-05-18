@@ -145,7 +145,7 @@ public class GeneratorTargetVoltageInconsistencyTest {
         vl2.getBusBreakerView().newBus()
                 .setId("b2")
                 .add();
-        vl2.newGenerator()
+        Generator g2 = vl2.newGenerator()
                 .setId("g2")
                 .setBus("b2")
                 .setConnectableBus("b2")
@@ -191,6 +191,10 @@ public class GeneratorTargetVoltageInconsistencyTest {
 
         PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new FirstSlackBusSelector(), true));
         assertEquals("Bus 'vl2_0' control voltage of bus 'vl3_0' which is already controlled by at least the bus 'vl1_0' with a different target voltage: 413.0 and 412.0", exception.getMessage());
+
+        g2.setTargetV(225);
+        exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new FirstSlackBusSelector(), true));
+        assertEquals("Controller bus 'vl2_0' has an inconsistent remote target voltage: 0.5625 pu", exception.getMessage());
     }
 
     @Test
