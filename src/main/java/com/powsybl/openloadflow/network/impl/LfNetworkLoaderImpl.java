@@ -56,8 +56,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         for (Map.Entry<LfBusImpl, String> e : controllerBusToControlledBusId.entrySet()) {
             LfBusImpl controllerBus = e.getKey();
             String controlledBusId = e.getValue();
-            LfBus controlledBus = lfNetwork.getBusById(controlledBusId);
-            controllerBus.setControlledBus((LfBusImpl) controlledBus);
+            LfBusImpl controlledBus = (LfBusImpl) lfNetwork.getBusById(controlledBusId);
+            controllerBus.setControlledBus(controlledBus);
+            if (!controlledBus.getGenerators().isEmpty()) {
+                controlledBus.setControlledBus(controlledBus);
+            }
         }
     }
 
