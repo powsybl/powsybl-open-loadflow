@@ -16,7 +16,7 @@ public enum EquationType {
     BUS_PHI("\u03C6"),
     BRANCH_P("t"),
     BRANCH_I("i"),
-    LOAD_Q_DIFF("lqd"),
+    ZERO_Q("z_q"),
     ZERO_V("z_v"),
     ZERO_PHI("z_\u03C6");
 

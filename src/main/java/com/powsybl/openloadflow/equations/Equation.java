@@ -167,7 +167,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 targets[row] = getBranchTarget(network.getBranch(num), PhaseControl.Unit.A);
                 break;
 
-            case LOAD_Q_DIFF:
+            case ZERO_Q:
                 targets[row] = getLoadQDiff(network, num, getData());
                 break;
 
@@ -270,7 +270,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 LfBranch branch = equationSystem.getNetwork().getBranch(num);
                 builder.append(", branchId=").append(branch.getId());
                 break;
-            case LOAD_Q_DIFF:
+            case ZERO_Q:
             case ZERO_V:
             case ZERO_PHI:
                 break;

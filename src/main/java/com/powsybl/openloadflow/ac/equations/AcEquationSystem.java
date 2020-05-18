@@ -108,7 +108,7 @@ public final class AcEquationSystem {
 
             // l0 - c * li = q0 - c * qi
             AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false); // TODO could not be the right parameters
-            Equation zero = equationSystem.createEquation(controllerBus.getNum(), EquationType.LOAD_Q_DIFF);
+            Equation zero = equationSystem.createEquation(controllerBus.getNum(), EquationType.ZERO_Q);
             zero.setData(new LoadQDiffData(firstControllerBus.getNum(), c)); // for later use
             zero.addTerms(createReactiveTerms(firstControllerBus, variableSet, creationParameters));
             zero.addTerms(createReactiveTerms(controllerBus, variableSet, creationParameters).stream().map(term -> EquationTerm.multiply(term, -c)).collect(Collectors.toList()));
