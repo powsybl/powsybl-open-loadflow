@@ -134,7 +134,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return phaseControl.getTargetValue();
     }
 
-    private static double getLoadQDiff(LfNetwork network, int num, LoadQDiffData data) {
+    private static double getReactivePowerDistributionTarget(LfNetwork network, int num, ReactivePowerDistributionData data) {
         LfBus controllerBus = network.getBus(num);
         LfBus firstControllerBus = network.getBus(data.getFirstControllerBusNum());
         double c = data.getC();
@@ -168,7 +168,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case ZERO_Q:
-                targets[row] = getLoadQDiff(network, num, getData());
+                targets[row] = getReactivePowerDistributionTarget(network, num, getData());
                 break;
 
             case ZERO_V:
