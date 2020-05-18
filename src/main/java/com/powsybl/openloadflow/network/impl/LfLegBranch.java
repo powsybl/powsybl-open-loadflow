@@ -10,6 +10,8 @@ import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -20,6 +22,8 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class LfLegBranch extends AbstractLfBranch {
+
+    private final static Logger LOGGER = LoggerFactory.getLogger(LfLegBranch.class);
 
     private final ThreeWindingsTransformer twt;
 
@@ -48,7 +52,7 @@ public class LfLegBranch extends AbstractLfBranch {
         if (ptc != null
                 && ptc.isRegulating()
                 && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
-            throw new UnsupportedOperationException("Regulating phase tap changer on 3 windings transformer not yet supported");
+            LOGGER.error("3 windings transformer '{}' has a regulating phase tap changer which is is not yet supported", twt.getId());
         }
         PiModel piModel = new SimplePiModel()
                 .setR(Transformers.getR(leg) / zb)
