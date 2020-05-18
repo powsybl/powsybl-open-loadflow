@@ -42,6 +42,12 @@ public abstract class AbstractDistributedSlackOuterLoop<T> implements OuterLoop 
         }
     }
 
+    private final boolean throwsExceptionInCaseOfFailure;
+
+    protected AbstractDistributedSlackOuterLoop(boolean throwsExceptionInCaseOfFailure) {
+        this.throwsExceptionInCaseOfFailure = throwsExceptionInCaseOfFailure;
+    }
+
     protected abstract List<ParticipatingElement<T>> getParticipatingElements(LfNetwork network);
 
     protected void normalizeParticipationFactors(List<ParticipatingElement<T>> participatingElements, String elementType) {
@@ -77,14 +83,20 @@ public abstract class AbstractDistributedSlackOuterLoop<T> implements OuterLoop 
             }
 
             if (Math.abs(remainingMismatch) > SLACK_P_RESIDUE_EPS) {
-                throw new PowsyblException("Failed to distribute slack bus active power mismatch, "
-                        + remainingMismatch * PerUnit.SB + " MW remains");
+                if (throwsExceptionInCaseOfFailure) {
+                    throw new PowsyblException("Failed to distribute slack bus active power mismatch, "
+                            + remainingMismatch * PerUnit.SB + " MW remains");
+                }
+
+                LOGGER.error("Failed to distribute slack bus active power mismatch, {} MW remains", remainingMismatch * PerUnit.SB);
+
+                return OuterLoopStatus.STABLE;
             } else {
                 LOGGER.info("Slack bus active power ({} MW) distributed in {} iterations",
                         slackBusActivePowerMismatch * PerUnit.SB, iteration);
-            }
 
-            return OuterLoopStatus.UNSTABLE;
+                return OuterLoopStatus.UNSTABLE;
+            }
         }
 
         LOGGER.debug("Already balanced");
