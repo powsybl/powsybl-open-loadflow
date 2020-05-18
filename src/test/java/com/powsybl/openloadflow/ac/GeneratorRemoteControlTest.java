@@ -267,4 +267,22 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(-80.038, g2.getTerminal());
         assertReactivePowerEquals(-80.038, g3.getTerminal());
     }
+
+    @Test
+    public void testWith3GeneratorsAndAnAdditionalWithLocalRegulation() {
+        b4.getVoltageLevel()
+                .newGenerator()
+                .setId("g4")
+                .setBus("b4")
+                .setConnectableBus("b4")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(200)
+                .setTargetP(100)
+                .setTargetV(413.4)
+                .setVoltageRegulatorOn(true)
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+    }
 }
