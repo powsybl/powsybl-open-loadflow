@@ -237,6 +237,24 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
+    public void testWith3GeneratorsAndReactiveLimits() {
+        // as there is no CoordinatedReactiveControl extension, reactive limit range will be used to create reactive
+        // keys
+        g1.newMinMaxReactiveLimits().setMinQ(0).setMaxQ(60).add();
+        g2.newMinMaxReactiveLimits().setMinQ(0).setMaxQ(30).add();
+        g3.newMinMaxReactiveLimits().setMinQ(0).setMaxQ(10).add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(21.709276, b1);
+        assertVoltageEquals(21.264396, b2);
+        assertVoltageEquals(22.331965, b3);
+        assertVoltageEquals(413.4, b4);
+        assertReactivePowerEquals(-126.14, g1.getTerminal());
+        assertReactivePowerEquals(-63.07, g2.getTerminal());
+        assertReactivePowerEquals(-21.023, g3.getTerminal());
+    }
+
+    @Test
     public void testErrorWhenDifferentTargetV() {
         g3.setTargetV(413.3);
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));

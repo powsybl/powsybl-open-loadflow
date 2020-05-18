@@ -111,9 +111,27 @@ public final class AcEquationSystem {
         }
     }
 
-    private static double[] createReactiveKeysFallBack(int n) {
+    private static double[] createUniformReactiveKeys(int n) {
         double[] qKeys = new double[n];
         Arrays.fill(qKeys, 1d);
+        return qKeys;
+    }
+
+    private static double[] createReactiveKeysFromMaxReactivePowerRange(List<LfBus> controllerBuses) {
+        double[] qKeys = new double[controllerBuses.size()];
+        // try to build keys from reactive power range
+        for (int i = 0; i < controllerBuses.size(); i++) {
+            LfBus controllerBus = controllerBuses.get(i);
+            for (LfGenerator generator : controllerBus.getGenerators()) {
+                double maxRangeQ = generator.getMaxRangeQ();
+                // if one reactive range is not plausible, we fallback to uniform keys
+                if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB || maxRangeQ > PlausibleValues.MAX_REACTIVE_RANGE / PerUnit.SB) {
+                    return createUniformReactiveKeys(controllerBuses.size());
+                } else {
+                    qKeys[i] += maxRangeQ;
+                }
+            }
+        }
         return qKeys;
     }
 
@@ -127,8 +145,8 @@ public final class AcEquationSystem {
                     if (qKey == 0) {
                         LOGGER.error("Generator '{}' remote control reactive key value is zero", generator.getId());
                     }
-                    // in case of one missing key, we fallback to same reactive power for all buses
-                    return createReactiveKeysFallBack(controllerBuses.size());
+                    // in case of one missing key, we fallback to keys based on reactive power range
+                    return createReactiveKeysFromMaxReactivePowerRange(controllerBuses);
                 } else {
                     qKeys[i] += qKey;
                 }
