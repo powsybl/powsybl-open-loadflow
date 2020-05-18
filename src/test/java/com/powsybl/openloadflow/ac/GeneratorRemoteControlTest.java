@@ -212,12 +212,12 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertReactivePowerEquals(-69.925, g1.getTerminal()); // and not -59.925 !!!
-        assertReactivePowerEquals(-69.925, g2.getTerminal());
-        assertReactivePowerEquals(-69.925, g3.getTerminal());
-        assertReactivePowerEquals(59.925, tr1.getTerminal1()); // and not 69.925 !!!
-        assertReactivePowerEquals(69.925, tr2.getTerminal1());
-        assertReactivePowerEquals(69.925, tr3.getTerminal1());
+        assertReactivePowerEquals(-73.283, g1.getTerminal());
+        assertReactivePowerEquals(-73.283, g2.getTerminal());
+        assertReactivePowerEquals(-73.283, g3.getTerminal());
+        assertReactivePowerEquals(63.283, tr1.getTerminal1());
+        assertReactivePowerEquals(73.283, tr2.getTerminal1());
+        assertReactivePowerEquals(73.283, tr3.getTerminal1());
     }
 
     @Test
