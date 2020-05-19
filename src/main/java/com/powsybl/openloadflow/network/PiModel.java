@@ -17,7 +17,11 @@ public interface PiModel {
 
     double getR();
 
+    PiModel setR(double r);
+
     double getX();
+
+    PiModel setX(double x);
 
     double getZ();
 
