@@ -149,7 +149,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                          outerLoops, matrixFactory, getObserver(parametersExt),
                                                                          parametersExt.hasVoltageRemoteControl(),
                                                                          parameters.isPhaseShifterRegulationOn(),
-                                                                         parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.CUT_IMPEDANCE);
+                                                                         parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
 
             List<AcLoadFlowResult> results = new AcloadFlowEngine(network, acParameters)
                     .run();

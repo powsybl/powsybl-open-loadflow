@@ -68,7 +68,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(-1, l23.getTerminal2());
 
         // use low impedance cut strategy (state is changed a little bit)
-        parametersExt.setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.CUT_IMPEDANCE);
+        parametersExt.setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(1, b1);
