@@ -290,7 +290,8 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     @Test
     public void testErrorWhenDifferentTargetV() {
         g3.setTargetV(413.3);
-        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertVoltageEquals(413.4, b4);
     }
 
     @Test

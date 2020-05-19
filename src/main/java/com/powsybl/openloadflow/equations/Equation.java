@@ -271,6 +271,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 builder.append(", branchId=").append(branch.getId());
                 break;
             case ZERO_Q:
+                LfBus controllerBus = equationSystem.getNetwork().getBus(num);
+                builder.append(", controllerBusId=").append(controllerBus.getId());
+                break;
             case ZERO_V:
             case ZERO_PHI:
                 break;
