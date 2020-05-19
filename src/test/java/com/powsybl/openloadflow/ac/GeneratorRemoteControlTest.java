@@ -289,7 +289,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         g3.setTargetV(413.3);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(413.4, b4);
+        assertVoltageEquals(413.4, b4); // check target voltage has been fixed to first controller one
     }
 
     @Test
