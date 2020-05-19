@@ -36,10 +36,12 @@ public class AcLoadFlowParameters {
 
     private final boolean phaseControl;
 
+    private final boolean minImpedance;
+
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
                                 MatrixFactory matrixFactory, AcLoadFlowObserver observer, boolean voltageRemoteControl,
-                                boolean phaseControl) {
+                                boolean phaseControl, boolean minImpedance) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -48,6 +50,7 @@ public class AcLoadFlowParameters {
         this.observer = Objects.requireNonNull(observer);
         this.voltageRemoteControl = voltageRemoteControl;
         this.phaseControl = phaseControl;
+        this.minImpedance = minImpedance;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -80,5 +83,9 @@ public class AcLoadFlowParameters {
 
     public boolean isPhaseControl() {
         return phaseControl;
+    }
+
+    public boolean isMinImpedance() {
+        return minImpedance;
     }
 }

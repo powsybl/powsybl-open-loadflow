@@ -148,7 +148,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             AcLoadFlowParameters acParameters = new AcLoadFlowParameters(slackBusSelector, voltageInitializer, stoppingCriteria,
                                                                          outerLoops, matrixFactory, getObserver(parametersExt),
                                                                          parametersExt.hasVoltageRemoteControl(),
-                                                                         parameters.isPhaseShifterRegulationOn());
+                                                                         parameters.isPhaseShifterRegulationOn(),
+                                                                         parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
 
             List<AcLoadFlowResult> results = new AcloadFlowEngine(network, acParameters)
                     .run();

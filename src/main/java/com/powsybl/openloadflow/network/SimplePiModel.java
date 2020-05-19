@@ -27,6 +27,7 @@ public class SimplePiModel implements PiModel {
         return r;
     }
 
+    @Override
     public SimplePiModel setR(double r) {
         this.r = r;
         return this;
@@ -37,6 +38,7 @@ public class SimplePiModel implements PiModel {
         return x;
     }
 
+    @Override
     public SimplePiModel setX(double x) {
         this.x = x;
         return this;

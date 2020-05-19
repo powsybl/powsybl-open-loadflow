@@ -38,8 +38,18 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
+    public PiModel setR(double r) {
+        return getModel().setR(r);
+    }
+
+    @Override
     public double getX() {
         return getModel().getX();
+    }
+
+    @Override
+    public PiModel setX(double x) {
+        return getModel().setX(x);
     }
 
     @Override
