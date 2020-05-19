@@ -85,7 +85,7 @@ public class AcLoadFlowParameters {
         return phaseControl;
     }
 
-    public boolean isminImpedance() {
+    public boolean isMinImpedance() {
         return minImpedance;
     }
 }
