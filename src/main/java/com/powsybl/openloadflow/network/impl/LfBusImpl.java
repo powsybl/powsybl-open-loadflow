@@ -149,9 +149,8 @@ public class LfBusImpl extends AbstractLfBus {
                         .ifPresent(otherControllerBus -> {
                             double otherTargetV = otherControllerBus.getTargetV() * controlledBus.getNominalV();
                             if (FastMath.abs(otherTargetV - this.targetV) > TARGET_V_EPSILON) {
-                                LOGGER.error("Bus '" + getId() + "' control voltage of bus '" + controlledBus.getId()
-                                        + "' which is already controlled by at least the bus '" + otherControllerBus.getId()
-                                        + "' with a different target voltage: " + otherTargetV + " and " + this.targetV);
+                                LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by at least the bus '{}' with a different target voltage: {} and {}",
+                                        getId(), controlledBus.getId(), otherControllerBus.getId(), otherTargetV, this.targetV);
                                 this.targetV = otherTargetV;
                             }
                         });

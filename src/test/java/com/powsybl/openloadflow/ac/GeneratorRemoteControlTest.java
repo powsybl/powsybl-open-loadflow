@@ -19,11 +19,8 @@ import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.concurrent.CompletionException;
-
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -291,6 +288,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     public void testErrorWhenDifferentTargetV() {
         g3.setTargetV(413.3);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
         assertVoltageEquals(413.4, b4);
     }
 
