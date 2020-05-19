@@ -335,8 +335,8 @@ public class LfNetwork {
                 num, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
-    private static void fix(LfNetwork network, boolean cutLowImpedance) {
-        if (cutLowImpedance) {
+    private static void fix(LfNetwork network, boolean minImpedance) {
+        if (minImpedance) {
             for (LfBranch branch : network.getBranches()) {
                 PiModel piModel = branch.getPiModel();
                 if (Math.abs(piModel.getZ()) < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
@@ -369,14 +369,14 @@ public class LfNetwork {
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, boolean voltageRemoteControl,
-                                       boolean cutLowImpedance) {
+                                       boolean minImpedance) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(slackBusSelector);
         for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
             List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, voltageRemoteControl).orElse(null);
             if (lfNetworks != null) {
                 for (LfNetwork lfNetwork : lfNetworks) {
-                    fix(lfNetwork, cutLowImpedance);
+                    fix(lfNetwork, minImpedance);
                     validate(lfNetwork);
                     lfNetwork.logSize();
                     lfNetwork.logBalance();
