@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -49,13 +50,13 @@ public final class AcEquationSystem {
                 createVoltageControlledBusEquations(bus, equationSystem, variableSet);
             }
 
-            createShuntEquations(network, variableSet, equationSystem, bus);
+            createShuntEquations(variableSet, equationSystem, bus);
         }
     }
 
-    private static void createShuntEquations(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem, LfBus bus) {
+    private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus) {
         for (LfShunt shunt : bus.getShunts()) {
-            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, network, variableSet);
+            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet);
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
             shunt.setQ(q);
         }
@@ -77,6 +78,22 @@ public final class AcEquationSystem {
         }
     }
 
+    private static List<EquationTerm> createReactiveTerms(LfBus controllerBus, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {
+        List<EquationTerm> terms = new ArrayList<>();
+        for (LfBranch branch : controllerBus.getBranches()) {
+            LfBus otherSideBus = branch.getBus1() == controllerBus ? branch.getBus2() : branch.getBus1();
+            boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+            EquationTerm q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1)
+                                                  : new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
+            terms.add(q);
+        }
+        for (LfShunt shunt : controllerBus.getShunts()) {
+            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, variableSet);
+            terms.add(q);
+        }
+        return terms;
+    }
+
     public static void createReactivePowerDistributionEquations(EquationSystem equationSystem, VariableSet variableSet,
                                                                 List<LfBus> controllerBuses) {
         double[] qKeys = createReactiveKeys(controllerBuses);
@@ -89,22 +106,12 @@ public final class AcEquationSystem {
             LfBus controllerBus = controllerBuses.get(i);
             double c = qKeys[0] / qKeys[i];
 
-            // 0 = q0 + c * qi
+            // l0 - c * li = q0 - c * qi
             AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false); // TODO could not be the right parameters
             Equation zero = equationSystem.createEquation(controllerBus.getNum(), EquationType.ZERO_Q);
-            for (LfBranch branch : firstControllerBus.getBranches()) {
-                LfBus otherSideBus = branch.getBus1() == firstControllerBus ? branch.getBus2() : branch.getBus1();
-                boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
-                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, firstControllerBus, otherSideBus, variableSet, deriveA1);
-                zero.addTerm(q);
-            }
-            for (LfBranch branch : controllerBus.getBranches()) {
-                LfBus otherSideBus = branch.getBus1() == controllerBus ? branch.getBus2() : branch.getBus1();
-                boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
-                EquationTerm q = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1);
-                EquationTerm minusQ = EquationTerm.multiply(q, -c);
-                zero.addTerm(minusQ);
-            }
+            zero.setData(new ReactivePowerDistributionData(firstControllerBus.getNum(), c)); // for later use
+            zero.addTerms(createReactiveTerms(firstControllerBus, variableSet, creationParameters));
+            zero.addTerms(createReactiveTerms(controllerBus, variableSet, creationParameters).stream().map(term -> EquationTerm.multiply(term, -c)).collect(Collectors.toList()));
         }
     }
 
@@ -247,7 +254,7 @@ public final class AcEquationSystem {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             PiModel piModel = branch.getPiModel();
-            if (piModel.getZ() <= DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
+            if (piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
                 if (bus1 != null && bus2 != null) {
                     createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
                 }

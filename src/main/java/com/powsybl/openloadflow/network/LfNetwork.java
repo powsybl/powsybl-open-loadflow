@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -334,6 +335,18 @@ public class LfNetwork {
                 num, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
+    private static void fix(LfNetwork network, boolean minImpedance) {
+        if (minImpedance) {
+            for (LfBranch branch : network.getBranches()) {
+                PiModel piModel = branch.getPiModel();
+                if (Math.abs(piModel.getZ()) < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
+                    piModel.setR(0);
+                    piModel.setX(DcEquationSystem.LOW_IMPEDANCE_THRESHOLD);
+                }
+            }
+        }
+    }
+
     private static void validate(LfNetwork network) {
         for (LfBranch branch : network.getBranches()) {
             PiModel piModel = branch.getPiModel();
@@ -352,16 +365,18 @@ public class LfNetwork {
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
-        return load(network, slackBusSelector, false);
+        return load(network, slackBusSelector, false, false);
     }
 
-    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, boolean voltageRemoteControl) {
+    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, boolean voltageRemoteControl,
+                                       boolean minImpedance) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(slackBusSelector);
         for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
             List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, voltageRemoteControl).orElse(null);
             if (lfNetworks != null) {
                 for (LfNetwork lfNetwork : lfNetworks) {
+                    fix(lfNetwork, minImpedance);
                     validate(lfNetwork);
                     lfNetwork.logSize();
                     lfNetwork.logBalance();

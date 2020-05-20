@@ -122,6 +122,13 @@ public class LfBusImpl extends AbstractLfBus {
         }
 
         if (voltageControl) {
+            // check that targetV has a plausible value (wrong nominal voltage issue)
+            double targetVPu = targetV / controlledBus.getNominalV();
+            if (targetVPu < PlausibleValues.MIN_TARGET_VOLTAGE_PU || targetVPu > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
+                throw new PowsyblException("Controller bus '" + getId() + "' has an inconsistent remote target voltage: "
+                        + targetVPu + " pu");
+            }
+
             // check target voltage consistency between local and remote control
             if (controlledBus.hasVoltageControl()) { // controlled bus has also local voltage control
                 double localTargetV = controlledBus.getTargetV() * controlledBus.getNominalV();
@@ -142,9 +149,9 @@ public class LfBusImpl extends AbstractLfBus {
                         .ifPresent(otherControllerBus -> {
                             double otherTargetV = otherControllerBus.getTargetV() * controlledBus.getNominalV();
                             if (FastMath.abs(otherTargetV - this.targetV) > TARGET_V_EPSILON) {
-                                throw new PowsyblException("Bus '" + getId() + "' control voltage of bus '" + controlledBus.getId()
-                                        + "' which is already controlled by at least the bus '" + otherControllerBus.getId()
-                                        + "' with a different target voltage: " + otherTargetV + " and " + this.targetV);
+                                LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by at least the bus '{}' with a different target voltage: {} (kept) and {} (ignored)",
+                                        getId(), controlledBus.getId(), otherControllerBus.getId(), otherTargetV, this.targetV, this.targetV);
+                                this.targetV = otherTargetV;
                             }
                         });
             }
