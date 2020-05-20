@@ -33,6 +33,8 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     private int row = -1;
 
+    private Object data;
+
     /**
      * true if this equation term active, false otherwise
      */
@@ -77,9 +79,23 @@ public class Equation implements Evaluable, Comparable<Equation> {
         }
     }
 
+    public void setData(Object data) {
+        this.data = data;
+    }
+
+    public <T> T getData() {
+        return (T) data;
+    }
+
     public Equation addTerm(EquationTerm term) {
         Objects.requireNonNull(term);
         terms.add(term);
+        return this;
+    }
+
+    public Equation addTerms(List<EquationTerm> terms) {
+        Objects.requireNonNull(terms);
+        this.terms.addAll(terms);
         return this;
     }
 
@@ -118,6 +134,13 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return phaseControl.getTargetValue();
     }
 
+    private static double getReactivePowerDistributionTarget(LfNetwork network, int num, ReactivePowerDistributionData data) {
+        LfBus controllerBus = network.getBus(num);
+        LfBus firstControllerBus = network.getBus(data.getFirstControllerBusNum());
+        double c = data.getC();
+        return c * controllerBus.getLoadTargetQ() - firstControllerBus.getLoadTargetQ();
+    }
+
     void initTarget(LfNetwork network, double[] targets) {
         switch (type) {
             case BUS_P:
@@ -145,6 +168,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case ZERO_Q:
+                targets[row] = getReactivePowerDistributionTarget(network, num, getData());
+                break;
+
             case ZERO_V:
                 targets[row] = 0;
                 break;
@@ -245,6 +271,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 builder.append(", branchId=").append(branch.getId());
                 break;
             case ZERO_Q:
+                LfBus controllerBus = equationSystem.getNetwork().getBus(num);
+                builder.append(", controllerBusId=").append(controllerBus.getId());
+                break;
             case ZERO_V:
             case ZERO_PHI:
                 break;

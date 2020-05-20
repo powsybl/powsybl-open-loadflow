@@ -19,11 +19,8 @@ import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.concurrent.CompletionException;
-
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -39,6 +36,9 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     private Generator g1;
     private Generator g2;
     private Generator g3;
+    private TwoWindingsTransformer tr1;
+    private TwoWindingsTransformer tr2;
+    private TwoWindingsTransformer tr3;
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
     private OpenLoadFlowParameters parametersExt;
@@ -127,7 +127,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setVoltageRegulatorOn(true)
                 .setRegulatingTerminal(l4.getTerminal())
                 .add();
-        s.newTwoWindingsTransformer()
+        tr1 = s.newTwoWindingsTransformer()
                 .setId("tr1")
                 .setVoltageLevel1(b1.getVoltageLevel().getId())
                 .setBus1(b1.getId())
@@ -142,7 +142,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setG(0)
                 .setB(0)
                 .add();
-        s.newTwoWindingsTransformer()
+        tr2 = s.newTwoWindingsTransformer()
                 .setId("tr2")
                 .setVoltageLevel1(b2.getVoltageLevel().getId())
                 .setBus1(b2.getId())
@@ -157,7 +157,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setG(0)
                 .setB(0)
                 .add();
-        s.newTwoWindingsTransformer()
+        tr3 = s.newTwoWindingsTransformer()
                 .setId("tr3")
                 .setVoltageLevel1(b3.getVoltageLevel().getId())
                 .setBus1(b3.getId())
@@ -197,6 +197,60 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
+    public void testWithLoadConnectedToGeneratorBus() {
+        // in that case we expect the generation reactive power to be equals for each of the controller buses
+        b1.getVoltageLevel().newLoad()
+                .setId("l")
+                .setBus(b1.getId())
+                .setConnectableBus(b1.getId())
+                .setP0(0)
+                .setQ0(10)
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(-73.283, g1.getTerminal());
+        assertReactivePowerEquals(-73.283, g2.getTerminal());
+        assertReactivePowerEquals(-73.283, g3.getTerminal());
+        assertReactivePowerEquals(63.283, tr1.getTerminal1());
+        assertReactivePowerEquals(73.283, tr2.getTerminal1());
+        assertReactivePowerEquals(73.283, tr3.getTerminal1());
+
+        // same test but with a more complex distribution
+        g1.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(60).add();
+        g2.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(30).add();
+        g3.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(10).add();
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(-132.094, g1.getTerminal());
+        assertReactivePowerEquals(-66.047, g2.getTerminal());
+        assertReactivePowerEquals(-22.015, g3.getTerminal());
+        assertReactivePowerEquals(122.094, tr1.getTerminal1());
+        assertReactivePowerEquals(66.047, tr2.getTerminal1());
+        assertReactivePowerEquals(22.015, tr3.getTerminal1());
+    }
+
+    @Test
+    public void testWithShuntConnectedToGeneratorBus() {
+        // in that case we expect the generation reactive power to be equals for each of the controller buses
+        b1.getVoltageLevel().newShuntCompensator()
+                .setId("l")
+                .setBus(b1.getId())
+                .setConnectableBus(b1.getId())
+                .setbPerSection(Math.pow(10, -2))
+                .setMaximumSectionCount(1)
+                .setCurrentSectionCount(1)
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(-68.372, g1.getTerminal());
+        assertReactivePowerEquals(-68.372, g2.getTerminal());
+        assertReactivePowerEquals(-68.372, g3.getTerminal());
+        assertReactivePowerEquals(73.003, tr1.getTerminal1());
+        assertReactivePowerEquals(68.372, tr2.getTerminal1());
+        assertReactivePowerEquals(68.372, tr3.getTerminal1());
+    }
+
+    @Test
     public void testWith3GeneratorsAndCoordinatedReactiveControlExtensions() {
         g1.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(60).add();
         g2.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(30).add();
@@ -233,7 +287,9 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     @Test
     public void testErrorWhenDifferentTargetV() {
         g3.setTargetV(413.3);
-        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(413.4, b4); // check target voltage has been fixed to first controller one
     }
 
     @Test
