@@ -92,12 +92,10 @@ public final class AcEquationSystem {
                 LfBus otherSideBus = branch.getBus2();
                 q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1)
                                          : new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
-            } else if (branch.getBus2() == controllerBus) {
+            } else {
                 LfBus otherSideBus = branch.getBus1();
                 q = otherSideBus != null ? new ClosedBranchSide2ReactiveFlowEquationTerm(branch, otherSideBus, controllerBus, variableSet, deriveA1)
                                          : new OpenBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
-            } else {
-                throw new IllegalStateException("Should not happen");
             }
             terms.add(q);
         }

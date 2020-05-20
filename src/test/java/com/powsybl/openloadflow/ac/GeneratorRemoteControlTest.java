@@ -326,6 +326,8 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     public void testWith3GeneratorsAndAnAdditionalWithLocalRegulation() {
+        // create a generator on controlled bus to have "mixed" 1 local plus 3 remote generators controlling voltage
+        // at bus 4
         Generator g4 = b4.getVoltageLevel()
                 .newGenerator()
                 .setId("g4")
