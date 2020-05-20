@@ -345,6 +345,6 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(-52.103, g1.getTerminal());
         assertReactivePowerEquals(-52.103, g2.getTerminal());
         assertReactivePowerEquals(-52.103, g3.getTerminal());
-        assertReactivePowerEquals(-52.103, g4.getTerminal());
+        assertReactivePowerEquals(-52.103, g4.getTerminal()); // local generator has the same reactive power that remote ones
     }
 }
