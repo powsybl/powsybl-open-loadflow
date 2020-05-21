@@ -374,20 +374,20 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setVoltageRegulatorOn(false);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertReactivePowerEquals(-49.563, g1.getTerminal());
-        assertReactivePowerEquals(-49.563, g2.getTerminal());
-        assertReactivePowerEquals(-49.563, g3.getTerminal());
+        assertReactivePowerEquals(-54.646, g1.getTerminal());
+        assertReactivePowerEquals(-54.646, g2.getTerminal());
+        assertReactivePowerEquals(-54.646, g3.getTerminal());
         assertReactivePowerEquals(10, g4.getTerminal());
-        assertReactivePowerEquals(-69.563, g4bis.getTerminal()); // FIXME
+        assertReactivePowerEquals(-54.646, g4bis.getTerminal());
 
         g4.setTargetQ(10);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertReactivePowerEquals(-54.646, g1.getTerminal());
-        assertReactivePowerEquals(-54.646, g2.getTerminal());
-        assertReactivePowerEquals(-54.646, g3.getTerminal());
+        assertReactivePowerEquals(-49.563, g1.getTerminal());
+        assertReactivePowerEquals(-49.563, g2.getTerminal());
+        assertReactivePowerEquals(-49.563, g3.getTerminal());
         assertReactivePowerEquals(-10, g4.getTerminal());
-        assertReactivePowerEquals(-34.646, g4bis.getTerminal()); // FIXME
+        assertReactivePowerEquals(-49.563, g4bis.getTerminal());
 
         // same test but with one of the remote generator switched PQ
         g4.setVoltageRegulatorOn(true);
