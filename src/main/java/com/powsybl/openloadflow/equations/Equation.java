@@ -138,7 +138,8 @@ public class Equation implements Evaluable, Comparable<Equation> {
         LfBus controllerBus = network.getBus(num);
         LfBus firstControllerBus = network.getBus(data.getFirstControllerBusNum());
         double c = data.getC();
-        return c * controllerBus.getLoadTargetQ() - firstControllerBus.getLoadTargetQ();
+        return c * (controllerBus.getLoadTargetQ() + controllerBus.getGenerationTargetQ())
+                - firstControllerBus.getLoadTargetQ() + firstControllerBus.getGenerationTargetQ();
     }
 
     void initTarget(LfNetwork network, double[] targets) {

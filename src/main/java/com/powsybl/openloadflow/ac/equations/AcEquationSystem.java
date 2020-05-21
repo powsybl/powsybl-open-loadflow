@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -128,9 +127,12 @@ public final class AcEquationSystem {
         }
     }
 
-    private static double[] createUniformReactiveKeys(int n) {
-        double[] qKeys = new double[n];
-        Arrays.fill(qKeys, 1d);
+    private static double[] createUniformReactiveKeys(List<LfBus> controllerBuses) {
+        double[] qKeys = new double[controllerBuses.size()];
+        for (int i = 0; i < controllerBuses.size(); i++) {
+            LfBus controllerBus = controllerBuses.get(i);
+            qKeys[i] = controllerBus.getGenerators().stream().filter(LfGenerator::hasVoltageControl).count();
+        }
         return qKeys;
     }
 
@@ -143,7 +145,7 @@ public final class AcEquationSystem {
                 double maxRangeQ = generator.getMaxRangeQ();
                 // if one reactive range is not plausible, we fallback to uniform keys
                 if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB || maxRangeQ > PlausibleValues.MAX_REACTIVE_RANGE / PerUnit.SB) {
-                    return createUniformReactiveKeys(controllerBuses.size());
+                    return createUniformReactiveKeys(controllerBuses);
                 } else {
                     qKeys[i] += maxRangeQ;
                 }
