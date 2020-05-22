@@ -59,7 +59,7 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfBus bus1, LfBus bus2, double nominalV1,
                                                   double nominalV2, double zb) {
-        PiModel piModel;
+        PiModel piModel = null;
         PhaseControl phaseControl = null;
 
         PhaseTapChanger ptc = twt.getPhaseTapChanger();
@@ -67,42 +67,46 @@ public class LfBranchImpl extends AbstractLfBranch {
                 && ptc.isRegulating()
                 && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
             PhaseTapChanger.RegulationMode regulationMode = ptc.getRegulationMode();
-            PhaseControl.ControlledSide controlledSide;
+            PhaseControl.ControlledSide controlledSide = null;
             if (ptc.getRegulationTerminal() == twt.getTerminal1()) {
                 controlledSide = PhaseControl.ControlledSide.ONE;
             } else if (ptc.getRegulationTerminal() == twt.getTerminal2()) {
                 controlledSide = PhaseControl.ControlledSide.TWO;
             } else {
-                throw new UnsupportedOperationException("Remote controlled phase not yet supported");
+                LOGGER.error("2 windings transformer '{}' has a regulating phase tap changer with a remote control which is not yet supported", twt.getId());
             }
 
-            List<PiModel> models = new ArrayList<>();
+            if (controlledSide != null) {
+                List<PiModel> models = new ArrayList<>();
 
-            for (int position = ptc.getLowTapPosition(); position <= ptc.getHighTapPosition(); position++) {
-                PhaseTapChangerStep step = ptc.getStep(position);
-                double r = twt.getR() * (1 + step.getR() / 100) / zb;
-                double x = twt.getX() * (1 + step.getX() / 100) / zb;
-                double g1 = twt.getG() * (1 + step.getG() / 100) * zb;
-                double b1 = twt.getB() * (1 + step.getB() / 100) * zb;
-                double r1 = twt.getRatedU2() / twt.getRatedU1() * ptc.getCurrentStep().getRho() / nominalV2 * nominalV1;
-                double a1 = Math.toRadians(step.getAlpha());
-                models.add(new SimplePiModel()
-                        .setR(r)
-                        .setX(x)
-                        .setG1(g1)
-                        .setB1(b1)
-                        .setR1(r1)
-                        .setA1(a1));
+                for (int position = ptc.getLowTapPosition(); position <= ptc.getHighTapPosition(); position++) {
+                    PhaseTapChangerStep step = ptc.getStep(position);
+                    double r = twt.getR() * (1 + step.getR() / 100) / zb;
+                    double x = twt.getX() * (1 + step.getX() / 100) / zb;
+                    double g1 = twt.getG() * (1 + step.getG() / 100) * zb;
+                    double b1 = twt.getB() * (1 + step.getB() / 100) * zb;
+                    double r1 = twt.getRatedU2() / twt.getRatedU1() * ptc.getCurrentStep().getRho() / nominalV2 * nominalV1;
+                    double a1 = Math.toRadians(step.getAlpha());
+                    models.add(new SimplePiModel()
+                            .setR(r)
+                            .setX(x)
+                            .setG1(g1)
+                            .setB1(b1)
+                            .setR1(r1)
+                            .setA1(a1));
+                }
+
+                piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
+
+                if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
+                    phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A);
+                } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                    phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW);
+                }
             }
+        }
 
-            piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
-
-            if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
-                phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A);
-            } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
-                phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW);
-            }
-        } else {
+        if (piModel == null) {
             piModel = new SimplePiModel()
                     .setR(Transformers.getR(twt) / zb)
                     .setX(Transformers.getX(twt) / zb)
