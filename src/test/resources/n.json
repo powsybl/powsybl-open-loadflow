@@ -4,6 +4,7 @@
     "num" : 0,
     "targetV" : 1.0208333333333333,
     "generators" : [ {
+      "id" : "GEN",
       "targetP" : 6.07,
       "targetQ" : 3.01,
       "voltageControl" : true,
@@ -22,6 +23,7 @@
     "loadTargetP" : 6.0,
     "loadTargetQ" : 2.0,
     "shunts" : [ {
+      "id" : "SC",
       "b" : 0.7312500000000001
     } ]
   } ],
