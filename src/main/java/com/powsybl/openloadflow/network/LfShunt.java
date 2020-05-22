@@ -13,7 +13,27 @@ import com.powsybl.openloadflow.util.Evaluable;
  */
 public interface LfShunt {
 
-    double getB();
+    enum ModelType {
+        SUSCEPTANCE,
+        VOLTAGE_SLOPE
+    }
+
+    interface Model {
+
+        ModelType getType();
+    }
+
+    interface SusceptanceModel extends Model {
+
+        @Override
+        default ModelType getType() {
+            return ModelType.SUSCEPTANCE;
+        }
+
+        public abstract double getB();
+    }
+
+    Model getModel();
 
     void setQ(Evaluable q);
 

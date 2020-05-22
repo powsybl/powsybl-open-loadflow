@@ -228,7 +228,12 @@ public class LfNetwork {
     }
 
     private void writeJson(LfShunt shunt, JsonGenerator jsonGenerator) throws IOException {
-        jsonGenerator.writeNumberField("b", shunt.getB());
+        if (shunt.getModel().getType() == LfShunt.ModelType.SUSCEPTANCE) {
+            LfShunt.SusceptanceModel model = (LfShunt.SusceptanceModel) shunt.getModel();
+            jsonGenerator.writeNumberField("b", model.getB());
+        } else {
+            throw new PowsyblException("Shunt compensator model type not yet supported: " + shunt.getModel().getType());
+        }
     }
 
     private void writeJson(LfGenerator generator, JsonGenerator jsonGenerator) throws IOException {

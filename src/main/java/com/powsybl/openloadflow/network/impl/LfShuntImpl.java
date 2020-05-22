@@ -22,7 +22,21 @@ public class LfShuntImpl implements LfShunt {
 
     private final ShuntCompensator shuntCompensator;
 
-    private final double b;
+    static class SusceptanceModelImpl implements SusceptanceModel {
+
+        private final double b;
+
+        SusceptanceModelImpl(double b) {
+            this.b = b;
+        }
+
+        @Override
+        public double getB() {
+            return b;
+        }
+    }
+
+    private final SusceptanceModel model;
 
     private Evaluable q = NAN;
 
@@ -30,12 +44,13 @@ public class LfShuntImpl implements LfShunt {
         this.shuntCompensator = Objects.requireNonNull(shuntCompensator);
         double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
         double zb = nominalV * nominalV / PerUnit.SB;
-        b = shuntCompensator.getCurrentB() * zb;
+        double b = shuntCompensator.getCurrentB() * zb;
+        model = new SusceptanceModelImpl(b);
     }
 
     @Override
-    public double getB() {
-        return b;
+    public SusceptanceModel getModel() {
+        return model;
     }
 
     @Override
