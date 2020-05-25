@@ -23,7 +23,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
@@ -229,12 +228,15 @@ public class LfNetwork {
     }
 
     private void writeJson(LfShunt shunt, JsonGenerator jsonGenerator) throws IOException {
-        jsonGenerator.writeStringField("id", shunt.getId());
-        jsonGenerator.writeNumberField("b", shunt.getB());
+        if (shunt.getModel().getType() == LfShunt.ModelType.SUSCEPTANCE) {
+            LfShunt.SusceptanceModel model = (LfShunt.SusceptanceModel) shunt.getModel();
+            jsonGenerator.writeNumberField("b", model.getB());
+        } else {
+            throw new PowsyblException("Shunt compensator model type not yet supported: " + shunt.getModel().getType());
+        }
     }
 
     private void writeJson(LfGenerator generator, JsonGenerator jsonGenerator) throws IOException {
-        jsonGenerator.writeStringField("id", generator.getId());
         jsonGenerator.writeNumberField("targetP", generator.getTargetP());
         if (!Double.isNaN(generator.getTargetQ())) {
             jsonGenerator.writeNumberField("targetQ", generator.getTargetQ());
@@ -253,17 +255,16 @@ public class LfNetwork {
 
             jsonGenerator.writeFieldName("buses");
             jsonGenerator.writeStartArray();
-            List<LfBus> sortedBuses = busesById.values().stream().sorted(Comparator.comparing(LfBus::getId)).collect(Collectors.toList());
-            for (LfBus bus : sortedBuses) {
+            for (LfBus bus : busesById.values()) {
                 jsonGenerator.writeStartObject();
 
                 writeJson(bus, jsonGenerator);
 
-                List<LfShunt> sortedShunts = bus.getShunts().stream().sorted(Comparator.comparing(LfShunt::getId)).collect(Collectors.toList());
-                if (!sortedShunts.isEmpty()) {
+                List<LfShunt> shunts = bus.getShunts();
+                if (!shunts.isEmpty()) {
                     jsonGenerator.writeFieldName("shunts");
                     jsonGenerator.writeStartArray();
-                    for (LfShunt shunt : sortedShunts) {
+                    for (LfShunt shunt : shunts) {
                         jsonGenerator.writeStartObject();
 
                         writeJson(shunt, jsonGenerator);
@@ -273,11 +274,11 @@ public class LfNetwork {
                     jsonGenerator.writeEndArray();
                 }
 
-                List<LfGenerator> sortedGenerators = bus.getGenerators().stream().sorted(Comparator.comparing(LfGenerator::getId)).collect(Collectors.toList());
-                if (!sortedGenerators.isEmpty()) {
+                List<LfGenerator> generators = bus.getGenerators();
+                if (!generators.isEmpty()) {
                     jsonGenerator.writeFieldName("generators");
                     jsonGenerator.writeStartArray();
-                    for (LfGenerator generator : sortedGenerators) {
+                    for (LfGenerator generator : generators) {
                         jsonGenerator.writeStartObject();
 
                         writeJson(generator, jsonGenerator);
@@ -293,8 +294,7 @@ public class LfNetwork {
 
             jsonGenerator.writeFieldName("branches");
             jsonGenerator.writeStartArray();
-            List<LfBranch> sortedBranches = branches.stream().sorted(Comparator.comparing(LfBranch::getId)).collect(Collectors.toList());
-            for (LfBranch branch : sortedBranches) {
+            for (LfBranch branch : branches) {
                 jsonGenerator.writeStartObject();
 
                 writeJson(branch, jsonGenerator);
