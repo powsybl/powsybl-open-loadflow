@@ -52,7 +52,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     private LfBus controlledBus;
 
-    private final List<LfBus> controlledBuses = new ArrayList<>();
+    private final List<LfBus> controllerBuses = new ArrayList<>();
 
     private final List<LfGenerator> generators = new ArrayList<>();
 
@@ -158,17 +158,17 @@ public class LfBusImpl extends AbstractLfBus {
         }
 
         this.controlledBus = controlledBus;
-        controlledBus.addControlledBus(this);
+        controlledBus.addControllerBus(this);
     }
 
     @Override
     public List<LfBus> getControllerBuses() {
-        return controlledBuses;
+        return controllerBuses;
     }
 
-    public void addControlledBus(LfBus controlledBus) {
-        Objects.requireNonNull(controlledBus);
-        controlledBuses.add(controlledBus);
+    public void addControllerBus(LfBus controllerBus) {
+        Objects.requireNonNull(controllerBus);
+        controllerBuses.add(controllerBus);
     }
 
     private double checkTargetV(double targetV) {
