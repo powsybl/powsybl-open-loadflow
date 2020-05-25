@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 import com.google.common.base.Stopwatch;
 import com.powsybl.openloadflow.ac.nr.DefaultAcLoadFlowObserver;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Markers;
 import com.powsybl.math.matrix.Matrix;
 import org.slf4j.Logger;
@@ -137,7 +138,7 @@ public class AcLoadFlowProfiler extends DefaultAcLoadFlowObserver {
     }
 
     @Override
-    public void afterNetworkUpdate() {
+    public void afterNetworkUpdate(LfNetwork network) {
         LOGGER.debug(Markers.PERFORMANCE_MARKER, "Network updated in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
