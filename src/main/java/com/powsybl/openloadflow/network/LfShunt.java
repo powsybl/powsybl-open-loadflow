@@ -13,6 +13,8 @@ import com.powsybl.openloadflow.util.Evaluable;
  */
 public interface LfShunt {
 
+    String getId();
+
     double getB();
 
     void setQ(Evaluable q);

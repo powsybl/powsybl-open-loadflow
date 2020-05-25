@@ -44,7 +44,12 @@ public class AcloadFlowEngine {
 
     public AcloadFlowEngine(Object network, AcLoadFlowParameters parameters) {
         this.parameters = Objects.requireNonNull(parameters);
+
+        parameters.getObserver().beforeNetworksCreation();
+
         networks = LfNetwork.load(network, parameters.getSlackBusSelector(), parameters.isVoltageRemoteControl(), parameters.isMinImpedance());
+
+        parameters.getObserver().afterNetworksCreation(networks);
     }
 
     private void updatePvBusesReactivePower(NewtonRaphsonResult lastNrResult, LfNetwork network, EquationSystem equationSystem) {
