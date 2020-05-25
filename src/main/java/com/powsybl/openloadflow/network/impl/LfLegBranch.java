@@ -52,7 +52,7 @@ public class LfLegBranch extends AbstractLfBranch {
         if (ptc != null
                 && ptc.isRegulating()
                 && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
-            LOGGER.error("3 windings transformer '{}' has a regulating phase tap changer which is is not yet supported", twt.getId());
+            LOGGER.error("3 windings transformer '{}' has a regulating phase tap changer which is not yet supported", twt.getId());
         }
         PiModel piModel = new SimplePiModel()
                 .setR(Transformers.getR(leg) / zb)
