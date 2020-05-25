@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -108,13 +109,18 @@ public class Equation implements Evaluable, Comparable<Equation> {
         if (bus.getControllerBuses().isEmpty()) {
             return bus.getTargetV();
         } else {
-            return bus.getControllerBuses()
+            List<LfBus> controllerBuses = bus.getControllerBuses()
                     .stream()
                     .filter(LfBus::hasVoltageControl)
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalStateException("None of the controller buses of bus '" + bus.getId()
-                            + "'has voltage control on"))
-                    .getTargetV();
+                    .collect(Collectors.toList());
+            if (bus.hasVoltageControl()) {
+                controllerBuses.add(bus);
+            }
+            if (controllerBuses.isEmpty()) {
+                throw new IllegalStateException("None of the controller buses of bus '" + bus.getId()
+                        + "'has voltage control on");
+            }
+            return controllerBuses.get(0).getTargetV();
         }
     }
 

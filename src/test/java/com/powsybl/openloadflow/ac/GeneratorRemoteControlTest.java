@@ -409,5 +409,17 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(-49.449, g3.getTerminal());
         assertReactivePowerEquals(-49.449, g4.getTerminal());
         assertReactivePowerEquals(-49.449, g4bis.getTerminal());
+
+        // try to switch off regulation of the 3 remote generators
+        g1.setTargetQ(10).setVoltageRegulatorOn(false);
+        g2.setTargetQ(10).setVoltageRegulatorOn(false);
+        g3.setTargetQ(10).setVoltageRegulatorOn(false);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(-10, g1.getTerminal());
+        assertReactivePowerEquals(-10, g2.getTerminal());
+        assertReactivePowerEquals(-10, g3.getTerminal());
+        assertReactivePowerEquals(-88.407, g4.getTerminal());
+        assertReactivePowerEquals(-88.407, g4bis.getTerminal());
     }
 }
