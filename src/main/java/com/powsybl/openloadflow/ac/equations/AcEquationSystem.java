@@ -56,12 +56,7 @@ public final class AcEquationSystem {
 
     private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus) {
         for (LfShunt shunt : bus.getShunts()) {
-            EquationTerm q;
-            if (shunt.getModel().getType() == LfShunt.ModelType.SUSCEPTANCE) {
-                q = new ShuntCompensatorReactiveFlowEquationTerm((LfShunt.SusceptanceModel) shunt.getModel(), bus, variableSet);
-            } else {
-                throw new PowsyblException("Shunt compensator model type not yet supported: " + shunt.getModel().getType());
-            }
+            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet);
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
             shunt.setQ(q);
         }
@@ -93,12 +88,7 @@ public final class AcEquationSystem {
             terms.add(q);
         }
         for (LfShunt shunt : controllerBus.getShunts()) {
-            EquationTerm q;
-            if (shunt.getModel().getType() == LfShunt.ModelType.SUSCEPTANCE) {
-                q = new ShuntCompensatorReactiveFlowEquationTerm((LfShunt.SusceptanceModel) shunt.getModel(), controllerBus, variableSet);
-            } else {
-                throw new PowsyblException("Shunt compensator model type not yet supported: " + shunt.getModel().getType());
-            }
+            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, variableSet);
             terms.add(q);
         }
         return terms;

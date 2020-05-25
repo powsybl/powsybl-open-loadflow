@@ -32,13 +32,13 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractEquationTe
 
     private double dqdv;
 
-    public ShuntCompensatorReactiveFlowEquationTerm(LfShunt.SusceptanceModel shuntModel, LfBus bus, VariableSet variableSet) {
-        Objects.requireNonNull(shuntModel);
+    public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet variableSet) {
+        Objects.requireNonNull(shunt);
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
         vVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_V);
         variables = Collections.singletonList(vVar);
-        b = shuntModel.getB();
+        b = shunt.getB();
     }
 
     @Override
