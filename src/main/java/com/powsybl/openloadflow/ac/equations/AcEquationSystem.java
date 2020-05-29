@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -39,7 +38,7 @@ public final class AcEquationSystem {
 
             if (bus.hasVoltageControl()) {
                 // local voltage control
-                if (!creationParameters.isVoltageRemoteControl() || !bus.getControlledBus().isPresent()) {
+                if (!(creationParameters.isVoltageRemoteControl() && bus.getControlledBus().isPresent()) && bus.getControllerBuses().isEmpty()) {
                     equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
                 }
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
@@ -62,14 +61,19 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createVoltageControlledBusEquations(LfBus bus, EquationSystem equationSystem, VariableSet variableSet) {
+    private static void createVoltageControlledBusEquations(LfBus controlledBus, EquationSystem equationSystem, VariableSet variableSet) {
         // create voltage equation at voltage controlled bus
-        Equation vEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V)
-                .addTerm(new BusVoltageEquationTerm(bus, variableSet));
+        Equation vEq = equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V)
+                .addTerm(new BusVoltageEquationTerm(controlledBus, variableSet));
 
-        List<LfBus> controllerBuses = bus.getControllerBuses().stream()
+        List<LfBus> controllerBuses = controlledBus.getControllerBuses().stream()
                 .filter(LfBus::hasVoltageControl)
                 .collect(Collectors.toList());
+        // if controlled bus also control voltage locally, we add it the the controller list to create reactive power
+        // distribution equation for the controlled bus too
+        if (controlledBus.hasVoltageControl()) {
+            controllerBuses.add(controlledBus);
+        }
         if (controllerBuses.isEmpty()) {
             vEq.setActive(false);
         } else {
@@ -81,10 +85,17 @@ public final class AcEquationSystem {
     private static List<EquationTerm> createReactiveTerms(LfBus controllerBus, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {
         List<EquationTerm> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
-            LfBus otherSideBus = branch.getBus1() == controllerBus ? branch.getBus2() : branch.getBus1();
             boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
-            EquationTerm q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1)
-                                                  : new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
+            EquationTerm q;
+            if (branch.getBus1() == controllerBus) {
+                LfBus otherSideBus = branch.getBus2();
+                q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1)
+                                         : new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
+            } else {
+                LfBus otherSideBus = branch.getBus1();
+                q = otherSideBus != null ? new ClosedBranchSide2ReactiveFlowEquationTerm(branch, otherSideBus, controllerBus, variableSet, deriveA1)
+                                         : new OpenBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
+            }
             terms.add(q);
         }
         for (LfShunt shunt : controllerBus.getShunts()) {
@@ -100,6 +111,8 @@ public final class AcEquationSystem {
 
         // we choose first controller bus as reference for reactive power
         LfBus firstControllerBus = controllerBuses.get(0);
+        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false); // TODO could not be the right parameters
+        List<EquationTerm> firstControllerBusReactiveTerms = createReactiveTerms(firstControllerBus, variableSet, creationParameters);
 
         // create a reactive power distribution equation for all the other controller buses
         for (int i = 1; i < controllerBuses.size(); i++) {
@@ -107,17 +120,19 @@ public final class AcEquationSystem {
             double c = qKeys[0] / qKeys[i];
 
             // l0 - c * li = q0 - c * qi
-            AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false); // TODO could not be the right parameters
             Equation zero = equationSystem.createEquation(controllerBus.getNum(), EquationType.ZERO_Q);
             zero.setData(new ReactivePowerDistributionData(firstControllerBus.getNum(), c)); // for later use
-            zero.addTerms(createReactiveTerms(firstControllerBus, variableSet, creationParameters));
+            zero.addTerms(firstControllerBusReactiveTerms);
             zero.addTerms(createReactiveTerms(controllerBus, variableSet, creationParameters).stream().map(term -> EquationTerm.multiply(term, -c)).collect(Collectors.toList()));
         }
     }
 
-    private static double[] createUniformReactiveKeys(int n) {
-        double[] qKeys = new double[n];
-        Arrays.fill(qKeys, 1d);
+    private static double[] createUniformReactiveKeys(List<LfBus> controllerBuses) {
+        double[] qKeys = new double[controllerBuses.size()];
+        for (int i = 0; i < controllerBuses.size(); i++) {
+            LfBus controllerBus = controllerBuses.get(i);
+            qKeys[i] = controllerBus.getGenerators().stream().filter(LfGenerator::hasVoltageControl).count();
+        }
         return qKeys;
     }
 
@@ -130,7 +145,7 @@ public final class AcEquationSystem {
                 double maxRangeQ = generator.getMaxRangeQ();
                 // if one reactive range is not plausible, we fallback to uniform keys
                 if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB || maxRangeQ > PlausibleValues.MAX_REACTIVE_RANGE / PerUnit.SB) {
-                    return createUniformReactiveKeys(controllerBuses.size());
+                    return createUniformReactiveKeys(controllerBuses);
                 } else {
                     qKeys[i] += maxRangeQ;
                 }
