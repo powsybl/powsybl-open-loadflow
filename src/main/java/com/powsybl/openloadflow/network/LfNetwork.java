@@ -34,7 +34,7 @@ public class LfNetwork {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
-    private static final double TARGET_VOLTAGE_EPSILON = Math.pow(10, -6);
+    private static final double EPSILON = Math.pow(10, -6);
 
     private final int num;
 
@@ -365,7 +365,7 @@ public class LfNetwork {
                         // ensure target voltages are consistent
                         double rho = piModel.getR1() / PiModel.R2;
                         if (bus1.hasVoltageControl() && bus2.hasVoltageControl()
-                                && FastMath.abs((bus1.getTargetV() / bus2.getTargetV()) - rho) > TARGET_VOLTAGE_EPSILON) {
+                                && FastMath.abs((bus1.getTargetV() / bus2.getTargetV()) - rho) > EPSILON) {
                             throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
                                     + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
                                     + bus1.getTargetV() + " and " + bus2.getTargetV());
@@ -374,7 +374,7 @@ public class LfNetwork {
                         // check that there is non other non impedant branch between same buses with a different rho or alpha
                         String bus1Bus2Key = bus1.getNum() < bus2.getNum() ? bus1.getNum() + "_" + bus2.getNum() : bus2.getNum() + "_" + bus1.getNum();
                         Double oldRho = nonImpedantBranchRho.get(bus1Bus2Key);
-                        if (oldRho != null && oldRho != rho) {
+                        if (oldRho != null && Math.abs(oldRho - rho) > EPSILON) {
                             throw new PowsyblException("There is already a non impedant branch between bus " + bus1.getNum()
                                     + " and bus " + bus2.getNum() + " with a different voltage ratio value (" + oldRho + " != " + rho + ")");
                         }
@@ -382,7 +382,7 @@ public class LfNetwork {
 
                         double alpha = piModel.getA1() - PiModel.A2;
                         Double oldApha = nonImpedantBranchAlpha.get(bus1Bus2Key);
-                        if (oldApha != null && oldApha != alpha) {
+                        if (oldApha != null && Math.abs(oldApha - alpha) > EPSILON) {
                             throw new PowsyblException("There is already a non impedant branch between bus " + bus1.getNum()
                                     + " and bus " + bus2.getNum() + " with a different voltage phase shift value (" + oldApha
                                     + " != " + alpha + ")");
