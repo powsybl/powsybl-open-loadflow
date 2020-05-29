@@ -171,4 +171,20 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         CompletionException exception = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network));
         assertEquals("Non impedant branch 'l12' is connected to PV buses 'b1_vl_0' and 'b2_vl_0' with inconsistent target voltages: 1.0 and 1.01", exception.getCause().getMessage());
     }
+
+    @Test
+    public void parallelNonImpedantBranchTest() {
+        Network network = Network.create("ParallelNonImpedantBranch", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 2, 1);
+        createLoad(b3, "l1", 1.99, 1);
+        createLine(network, b1, b2, "l12", 0.1);
+        Line l23 = createLine(network, b2, b3, "l23", 0); // non impedant branch
+        Line l23bis = createLine(network, b2, b3, "l23bis", 0); // non impedant branch
+
+        LoadFlowResult result = loadFlowRunner.run(network);
+        assertTrue(result.isOk());
+    }
 }
