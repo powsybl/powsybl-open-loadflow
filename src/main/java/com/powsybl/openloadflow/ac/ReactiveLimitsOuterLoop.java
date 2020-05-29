@@ -149,6 +149,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
     private void switchPqPv(LfBus bus, EquationSystem equationSystem, VariableSet variableSet) {
         bus.setVoltageControl(true);
+        bus.setGenerationTargetQ(0);
 
         Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
         qEq.setActive(false);
