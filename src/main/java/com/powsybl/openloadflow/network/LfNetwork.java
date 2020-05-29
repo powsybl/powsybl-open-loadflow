@@ -352,18 +352,43 @@ public class LfNetwork {
         }
     }
 
-    private static void validate(LfNetwork network) {
-        for (LfBranch branch : network.getBranches()) {
-            PiModel piModel = branch.getPiModel();
-            if (piModel.getZ() == 0) {
-                LfBus bus1 = branch.getBus1();
-                LfBus bus2 = branch.getBus2();
-                // ensure target voltages are consistent
-                if (bus1 != null && bus2 != null && bus1.hasVoltageControl() && bus2.hasVoltageControl()
-                        && FastMath.abs((bus1.getTargetV() / bus2.getTargetV()) - piModel.getR1() / PiModel.R2) > TARGET_VOLTAGE_EPSILON) {
-                    throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
-                            + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
-                            + bus1.getTargetV() + " and " + bus2.getTargetV());
+    private static void validate(LfNetwork network, boolean minImpedance) {
+        if (!minImpedance) {
+            Map<String, Double> nonImpedantBranchRho = new HashMap<>();
+            Map<String, Double> nonImpedantBranchAlpha = new HashMap<>();
+            for (LfBranch branch : network.getBranches()) {
+                PiModel piModel = branch.getPiModel();
+                if (Math.abs(piModel.getZ()) < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) { // will be transformed to bus coupler
+                    LfBus bus1 = branch.getBus1();
+                    LfBus bus2 = branch.getBus2();
+                    if (bus1 != null && bus2 != null) {
+                        // ensure target voltages are consistent
+                        double rho = piModel.getR1() / PiModel.R2;
+                        if (bus1.hasVoltageControl() && bus2.hasVoltageControl()
+                                && FastMath.abs((bus1.getTargetV() / bus2.getTargetV()) - rho) > TARGET_VOLTAGE_EPSILON) {
+                            throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
+                                    + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
+                                    + bus1.getTargetV() + " and " + bus2.getTargetV());
+                        }
+
+                        // check that there is non other non impedant branch between same buses with a different rho or alpha
+                        String bus1Bus2Key = bus1.getNum() < bus2.getNum() ? bus1.getNum() + "_" + bus2.getNum() : bus2.getNum() + "_" + bus1.getNum();
+                        Double oldRho = nonImpedantBranchRho.get(bus1Bus2Key);
+                        if (oldRho != null && oldRho != rho) {
+                            throw new PowsyblException("There is already a non impedant branch between bus " + bus1.getNum()
+                                    + " and bus " + bus2.getNum() + " with a different voltage ratio value (" + oldRho + " != " + rho + ")");
+                        }
+                        nonImpedantBranchRho.put(bus1Bus2Key, rho);
+
+                        double alpha = piModel.getA1() - PiModel.A2;
+                        Double oldApha = nonImpedantBranchAlpha.get(bus1Bus2Key);
+                        if (oldApha != null && oldApha != alpha) {
+                            throw new PowsyblException("There is already a non impedant branch between bus " + bus1.getNum()
+                                    + " and bus " + bus2.getNum() + " with a different voltage phase shift value (" + oldApha
+                                    + " != " + alpha + ")");
+                        }
+                        nonImpedantBranchAlpha.put(bus1Bus2Key, alpha);
+                    }
                 }
             }
         }
@@ -382,7 +407,7 @@ public class LfNetwork {
             if (lfNetworks != null) {
                 for (LfNetwork lfNetwork : lfNetworks) {
                     fix(lfNetwork, minImpedance);
-                    validate(lfNetwork);
+                    validate(lfNetwork, minImpedance);
                     lfNetwork.logSize();
                     lfNetwork.logBalance();
                 }

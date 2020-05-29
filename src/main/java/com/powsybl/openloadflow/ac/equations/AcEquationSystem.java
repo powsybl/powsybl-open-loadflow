@@ -10,7 +10,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -265,7 +264,7 @@ public final class AcEquationSystem {
     private static void createBranchEquations(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters,
                                               EquationSystem equationSystem) {
         // memorize already created non impedant branches to avoid creating parallel non impedant
-        Set<Pair<Integer, Integer>> nonImpedantBranchesAlreadyCreated = new HashSet<>();
+        Set<String> nonImpedantBranchesAlreadyCreated = new HashSet<>();
 
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
@@ -273,10 +272,10 @@ public final class AcEquationSystem {
             PiModel piModel = branch.getPiModel();
             if (piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
                 if (bus1 != null && bus2 != null) {
-                    Pair<Integer, Integer> bus1NumBus2Num = Pair.of(bus1.getNum(), bus2.getNum());
-                    if (!nonImpedantBranchesAlreadyCreated.contains(bus1NumBus2Num)) {
+                    String bus1Bus2Key = bus1.getNum() < bus2.getNum() ? bus1.getNum() + "_" + bus2.getNum() : bus2.getNum() + "_" + bus1.getNum();
+                    if (!nonImpedantBranchesAlreadyCreated.contains(bus1Bus2Key)) {
                         createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
-                        nonImpedantBranchesAlreadyCreated.add(bus1NumBus2Num);
+                        nonImpedantBranchesAlreadyCreated.add(bus1Bus2Key);
                     }
                 }
             } else {
