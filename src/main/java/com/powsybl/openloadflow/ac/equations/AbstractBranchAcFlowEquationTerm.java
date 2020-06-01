@@ -54,7 +54,7 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractEquationTerm {
     }
 
     @Override
-    public double rhs(Variable variable) {
+    public double rhs() {
         return 0;
     }
 }
