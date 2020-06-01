@@ -127,10 +127,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             if (parametersExt.isDistributedSlack()) {
                 switch (parametersExt.getBalanceType()) {
                     case PROPORTIONAL_TO_GENERATION_P_MAX:
-                        outerLoops.add(new DistributedSlackOnGenerationOuterLoop());
+                        outerLoops.add(new DistributedSlackOnGenerationOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure()));
                         break;
                     case PROPORTIONAL_TO_LOAD:
-                        outerLoops.add(new DistributedSlackOnLoadOuterLoop());
+                        outerLoops.add(new DistributedSlackOnLoadOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure()));
                         break;
                     case PROPORTIONAL_TO_GENERATION_P: // to be implemented.
                         throw new UnsupportedOperationException("Unsupported balance type mode: " + parametersExt.getBalanceType());
@@ -148,7 +148,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             AcLoadFlowParameters acParameters = new AcLoadFlowParameters(slackBusSelector, voltageInitializer, stoppingCriteria,
                                                                          outerLoops, matrixFactory, getObserver(parametersExt),
                                                                          parametersExt.hasVoltageRemoteControl(),
-                                                                         parameters.isPhaseShifterRegulationOn());
+                                                                         parameters.isPhaseShifterRegulationOn(),
+                                                                         parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
 
             List<AcLoadFlowResult> results = new AcloadFlowEngine(network, acParameters)
                     .run();
@@ -167,13 +168,15 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             }
 
             // zero or low impedance branch flows computation
-            new Z0FlowsCompletion(network, line -> {
-                // to be consistent with low impedance criteria used in DcEquationSystem and AcEquationSystem
-                double nominalV = line.getTerminal1().getVoltageLevel().getNominalV();
-                double zb = nominalV * nominalV / PerUnit.SB;
-                double z = Math.hypot(line.getR(), line.getX());
-                return z / zb <= DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
-            }).complete();
+            if (ok) {
+                new Z0FlowsCompletion(network, line -> {
+                    // to be consistent with low impedance criteria used in DcEquationSystem and AcEquationSystem
+                    double nominalV = line.getTerminal1().getVoltageLevel().getNominalV();
+                    double zb = nominalV * nominalV / PerUnit.SB;
+                    double z = Math.hypot(line.getR(), line.getX());
+                    return z / zb <= DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
+                }).complete();
+            }
 
             return new LoadFlowResultImpl(ok, metrics, null);
         });

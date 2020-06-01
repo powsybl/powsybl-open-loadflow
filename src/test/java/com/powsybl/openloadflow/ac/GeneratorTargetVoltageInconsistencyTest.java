@@ -145,7 +145,7 @@ public class GeneratorTargetVoltageInconsistencyTest {
         vl2.getBusBreakerView().newBus()
                 .setId("b2")
                 .add();
-        vl2.newGenerator()
+        Generator g2 = vl2.newGenerator()
                 .setId("g2")
                 .setBus("b2")
                 .setConnectableBus("b2")
@@ -153,7 +153,7 @@ public class GeneratorTargetVoltageInconsistencyTest {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(412)
+                .setTargetV(225)
                 .setVoltageRegulatorOn(true)
                 .setRegulatingTerminal(ld.getTerminal())
                 .add();
@@ -189,8 +189,8 @@ public class GeneratorTargetVoltageInconsistencyTest {
                 .setB2(0)
                 .add();
 
-        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new FirstSlackBusSelector(), true));
-        assertEquals("Bus 'vl2_0' control voltage of bus 'vl3_0' which is already controlled by at least the bus 'vl1_0' with a different target voltage: 413.0 and 412.0", exception.getMessage());
+        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new FirstSlackBusSelector(), true, false));
+        assertEquals("Controller bus 'vl2_0' has an inconsistent remote target voltage: 0.5625 pu", exception.getMessage());
     }
 
     @Test
@@ -289,7 +289,7 @@ public class GeneratorTargetVoltageInconsistencyTest {
                 .setB2(0)
                 .add();
 
-        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new FirstSlackBusSelector(), true));
+        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new FirstSlackBusSelector(), true, false));
         assertEquals("Bus 'vl2_0' controlled by bus 'vl1_0' has also a local voltage control with a different value: 413.0 and 412.0", exception.getMessage());
     }
 }
