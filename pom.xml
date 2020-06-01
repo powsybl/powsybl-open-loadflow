@@ -247,6 +247,7 @@
                         <imageName>olf</imageName>
                         <mainClass>com.powsybl.tools.Main</mainClass>
                         <buildArgs>
+                            -J-Xmx20g
                             --no-fallback
                             --allow-incomplete-classpath
                         </buildArgs>
