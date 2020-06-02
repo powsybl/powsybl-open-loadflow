@@ -16,8 +16,12 @@ public class LfStarBus extends AbstractFictitiousLfBus {
 
     private final ThreeWindingsTransformer t3wt;
 
+    private final double nominalV;
+
     public LfStarBus(ThreeWindingsTransformer t3wt) {
+        super(Networks.getPropertyV(t3wt), Networks.getPropertyAngle(t3wt));
         this.t3wt = t3wt;
+        nominalV = t3wt.getLeg1().getTerminal().getVoltageLevel().getNominalV();
     }
 
     @Override
@@ -27,6 +31,6 @@ public class LfStarBus extends AbstractFictitiousLfBus {
 
     @Override
     public double getNominalV() {
-        return t3wt.getLeg1().getTerminal().getVoltageLevel().getNominalV();
+        return nominalV;
     }
 }

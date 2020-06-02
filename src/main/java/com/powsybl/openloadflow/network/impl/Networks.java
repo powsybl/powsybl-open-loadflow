@@ -7,13 +7,11 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.google.common.base.Stopwatch;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.ShuntCompensator;
+import com.powsybl.iidm.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -47,5 +45,17 @@ public final class Networks {
 
         stopwatch.stop();
         LOGGER.debug(PERFORMANCE_MARKER, "IIDM network reset done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+    }
+
+    public static double getPropertyV(Identifiable identifiable) {
+        Objects.requireNonNull(identifiable);
+        String v = identifiable.getProperty("v");
+        return v != null ? Double.parseDouble(v) : Double.NaN;
+    }
+
+    public static double getPropertyAngle(Identifiable identifiable) {
+        Objects.requireNonNull(identifiable);
+        String angle = identifiable.getProperty("angle");
+        return angle != null ? Double.parseDouble(angle) : Double.NaN;
     }
 }
