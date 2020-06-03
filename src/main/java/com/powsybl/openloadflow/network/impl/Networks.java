@@ -23,6 +23,9 @@ public final class Networks {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Networks.class);
 
+    private static final String PROPERTY_V = "v";
+    private static final String PROPERTY_ANGLE = "angle";
+
     private Networks() {
     }
 
@@ -47,15 +50,34 @@ public final class Networks {
         LOGGER.debug(PERFORMANCE_MARKER, "IIDM network reset done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
-    public static double getPropertyV(Identifiable identifiable) {
+    private static double getDoubleProperty(Identifiable identifiable, String name) {
         Objects.requireNonNull(identifiable);
-        String v = identifiable.getProperty("v");
-        return v != null ? Double.parseDouble(v) : Double.NaN;
+        String value = identifiable.getProperty(name);
+        return value != null ? Double.parseDouble(value) : Double.NaN;
+    }
+
+    private static void setDoubleProperty(Identifiable identifiable, String name, double value) {
+        Objects.requireNonNull(identifiable);
+        if (Double.isNaN(value)) {
+            identifiable.setProperty(name, null);
+        } else {
+            identifiable.setProperty(name, Double.toString(value));
+        }
+    }
+
+    public static double getPropertyV(Identifiable identifiable) {
+        return getDoubleProperty(identifiable, PROPERTY_V);
+    }
+
+    public static void setPropertyV(Identifiable identifiable, double v) {
+        setDoubleProperty(identifiable, PROPERTY_V, v);
     }
 
     public static double getPropertyAngle(Identifiable identifiable) {
-        Objects.requireNonNull(identifiable);
-        String angle = identifiable.getProperty("angle");
-        return angle != null ? Double.parseDouble(angle) : Double.NaN;
+        return getDoubleProperty(identifiable, PROPERTY_ANGLE);
+    }
+
+    public static void setPropertyAngle(Identifiable identifiable, double angle) {
+        setDoubleProperty(identifiable, PROPERTY_ANGLE, angle);
     }
 }

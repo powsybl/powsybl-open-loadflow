@@ -33,4 +33,10 @@ public class LfStarBus extends AbstractFictitiousLfBus {
     public double getNominalV() {
         return nominalV;
     }
+
+    @Override
+    public void updateState(boolean reactiveLimits) {
+        Networks.setPropertyV(t3wt, v);
+        Networks.setPropertyAngle(t3wt, angle);
+    }
 }

@@ -46,4 +46,10 @@ public class LfDanglingLineBus extends AbstractFictitiousLfBus {
     public double getNominalV() {
         return nominalV;
     }
+
+    @Override
+    public void updateState(boolean reactiveLimits) {
+        Networks.setPropertyV(danglingLine, v);
+        Networks.setPropertyAngle(danglingLine, angle);
+    }
 }

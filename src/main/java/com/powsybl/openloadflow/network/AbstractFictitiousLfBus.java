@@ -107,9 +107,4 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     public List<LfGenerator> getGenerators() {
         return Collections.emptyList();
     }
-
-    @Override
-    public void updateState(boolean reactiveLimits) {
-        // nothing to update
-    }
 }
