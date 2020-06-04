@@ -58,7 +58,11 @@ public final class Networks {
 
     private static void setDoubleProperty(Identifiable identifiable, String name, double value) {
         Objects.requireNonNull(identifiable);
-        identifiable.setProperty(name, Double.toString(value));
+        if (Double.isNaN(value)) {
+            identifiable.getProperties().remove(name, null);
+        } else {
+            identifiable.setProperty(name, Double.toString(value));
+        }
     }
 
     public static double getPropertyV(Identifiable identifiable) {
