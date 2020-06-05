@@ -34,9 +34,6 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractEquationTerm {
     protected AbstractBranchAcFlowEquationTerm(LfBranch branch) {
         this.branch = Objects.requireNonNull(branch);
         PiModel piModel = branch.getPiModel();
-        if (piModel.getR() == 0 && piModel.getX() == 0) {
-            throw new IllegalArgumentException("Non impedant branch not supported: " + branch.getId());
-        }
         r1 = piModel.getR1();
         b1 = piModel.getB1();
         b2 = piModel.getB2();
