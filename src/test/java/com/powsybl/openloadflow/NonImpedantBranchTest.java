@@ -187,4 +187,21 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         LoadFlowResult result = loadFlowRunner.run(network);
         assertTrue(result.isOk());
     }
+
+    @Test
+    public void loopNonImpedantBranchTest() {
+        Network network = Network.create("LoopNonImpedantBranch", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 2, 1);
+        createLoad(b3, "l1", 1.99, 1);
+        createLine(network, b1, b2, "l12", 0); // non impedant branch
+        Line l23 = createLine(network, b2, b3, "l23", 0); // non impedant branch
+        Line l23bis = createLine(network, b1, b3, "l13", 0); // non impedant branch
+
+        LoadFlowResult result = loadFlowRunner.run(network);
+        // assertTrue(result.isOk());
+    }
+
 }
