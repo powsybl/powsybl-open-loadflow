@@ -46,7 +46,7 @@ public class LfLegBranch extends AbstractLfBranch {
         Objects.requireNonNull(twt);
         Objects.requireNonNull(leg);
         double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
-        double nominalV2 = twt.getRatedU0();
+        double nominalV2 = twt.getLeg1().getTerminal().getVoltageLevel().getNominalV();
         double zb = nominalV2 * nominalV2 / PerUnit.SB;
         PhaseTapChanger ptc = leg.getPhaseTapChanger();
         if (ptc != null
