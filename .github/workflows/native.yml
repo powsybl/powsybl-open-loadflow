@@ -80,7 +80,10 @@ jobs:
           call "%JAVA_HOME%\bin\native-image.cmd" -jar "%JAVA_HOME%\lib\graalvm\svm-driver.jar" -H:Path="%JAVA_HOME%\bin"
 
       - name: Build with Maven
-        run: mvn --batch-mode -DskipTests=true -Pnative-image package
+        shell: cmd
+        run: |
+          call "%VCVARS_BAT%"
+          call mvn --batch-mode -DskipTests=true -Pnative-image package
 
       - name: Upload artifact
         uses: actions/upload-artifact@v1
