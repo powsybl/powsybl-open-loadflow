@@ -88,5 +88,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v1
         with:
-          name: olf-windows
-          path: target/olf
+          name: olf-windows.exe
+          path: target/olf.exe
