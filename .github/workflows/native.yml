@@ -2,8 +2,6 @@ name: Native build CI
 
 on:
   push:
-    branches:
-      - master
 
 jobs:
   linux_macos_build:
