@@ -72,13 +72,15 @@ jobs:
           architecture: x64
           jdkFile: graalvm-ce-java11-windows-amd64-20.1.0.zip
 
-      - name: Install GraalVM Native Image and build with Maven
+      - name: Install GraalVM Native Image
         shell: cmd
         run: |
           call "%JAVA_HOME%\bin\gu" install --no-progress native-image
           call "%VCVARS_BAT%"
           call "%JAVA_HOME%\bin\native-image.cmd" -jar "%JAVA_HOME%\lib\graalvm\svm-driver.jar" -H:Path="%JAVA_HOME%\bin"
-          call mvn --batch-mode -DskipTests=true -Pnative-image package
+
+      - name: Build with Maven
+        run: mvn --batch-mode -DskipTests=true -Pnative-image package
 
       - name: Upload artifact
         uses: actions/upload-artifact@v1
