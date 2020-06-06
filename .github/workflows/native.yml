@@ -61,7 +61,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v1
 
-      - name: Install wget on Windows
+      - name: Install wget
         run: choco install wget --no-progress
 
       - name: Download GraalVM JDK 11
