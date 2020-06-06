@@ -247,7 +247,6 @@
                         <imageName>olf</imageName>
                         <mainClass>com.powsybl.tools.Main</mainClass>
                         <buildArgs>
-                            --no-server
                             --no-fallback
                             --allow-incomplete-classpath
                         </buildArgs>
