@@ -7,13 +7,11 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.google.common.base.Stopwatch;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.ShuntCompensator;
+import com.powsybl.iidm.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -24,6 +22,9 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 public final class Networks {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Networks.class);
+
+    private static final String PROPERTY_V = "v";
+    private static final String PROPERTY_ANGLE = "angle";
 
     private Networks() {
     }
@@ -47,5 +48,36 @@ public final class Networks {
 
         stopwatch.stop();
         LOGGER.debug(PERFORMANCE_MARKER, "IIDM network reset done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+    }
+
+    private static double getDoubleProperty(Identifiable identifiable, String name) {
+        Objects.requireNonNull(identifiable);
+        String value = identifiable.getProperty(name);
+        return value != null ? Double.parseDouble(value) : Double.NaN;
+    }
+
+    private static void setDoubleProperty(Identifiable identifiable, String name, double value) {
+        Objects.requireNonNull(identifiable);
+        if (Double.isNaN(value)) {
+            identifiable.getProperties().remove(name);
+        } else {
+            identifiable.setProperty(name, Double.toString(value));
+        }
+    }
+
+    public static double getPropertyV(Identifiable identifiable) {
+        return getDoubleProperty(identifiable, PROPERTY_V);
+    }
+
+    public static void setPropertyV(Identifiable identifiable, double v) {
+        setDoubleProperty(identifiable, PROPERTY_V, v);
+    }
+
+    public static double getPropertyAngle(Identifiable identifiable) {
+        return getDoubleProperty(identifiable, PROPERTY_ANGLE);
+    }
+
+    public static void setPropertyAngle(Identifiable identifiable, double angle) {
+        setDoubleProperty(identifiable, PROPERTY_ANGLE, angle);
     }
 }

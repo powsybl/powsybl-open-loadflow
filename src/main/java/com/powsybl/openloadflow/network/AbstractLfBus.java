@@ -70,12 +70,12 @@ public abstract class AbstractLfBus implements LfBus {
 
     @Override
     public double getV() {
-        return v;
+        return v / getNominalV();
     }
 
     @Override
     public void setV(double v) {
-        this.v = v;
+        this.v = v * getNominalV();
     }
 
     @Override
