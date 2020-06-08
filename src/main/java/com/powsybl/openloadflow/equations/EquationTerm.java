@@ -57,8 +57,8 @@ public interface EquationTerm extends Evaluable {
         }
 
         @Override
-        public double rhs(Variable variable) {
-            return scalar * term.rhs(variable);
+        public double rhs() {
+            return scalar * term.rhs();
         }
 
         @Override
@@ -100,18 +100,17 @@ public interface EquationTerm extends Evaluable {
     double der(Variable variable);
 
     /**
-     * Check {@link #rhs(Variable)} can return a value different from zero.
+     * Check {@link #rhs()} can return a value different from zero.
      *
-     * @return true if {@link #rhs(Variable)} can return a value different from zero, false otherwise
+     * @return true if {@link #rhs()} can return a value different from zero, false otherwise
      */
     boolean hasRhs();
 
     /**
      * Get part of the partial derivative that has to be moved to right hand side.
-     * @param variable the variable the partial derivative is with respect to
      * @return value of part of the partial derivative that has to be moved to right hand side
      */
-    double rhs(Variable variable);
+    double rhs();
 
     void write(Writer writer) throws IOException;
 }
