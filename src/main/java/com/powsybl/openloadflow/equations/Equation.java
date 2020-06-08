@@ -192,9 +192,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
         for (EquationTerm term : terms) {
             if (term.hasRhs()) {
-                for (Variable variable : term.getVariables()) {
-                    targets[row] -= term.rhs(variable);
-                }
+                targets[row] -= term.rhs();
             }
         }
     }
@@ -211,9 +209,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
         for (EquationTerm term : terms) {
             value += term.eval();
             if (term.hasRhs()) {
-                for (Variable variable : term.getVariables()) {
-                    value -= term.rhs(variable);
-                }
+                value -= term.rhs();
             }
         }
         return value;
