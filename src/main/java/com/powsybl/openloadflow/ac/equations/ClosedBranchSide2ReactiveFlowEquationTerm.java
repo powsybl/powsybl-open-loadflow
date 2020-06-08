@@ -14,6 +14,9 @@ import net.jafama.FastMath;
 
 import java.util.Objects;
 
+import static com.powsybl.openloadflow.network.PiModel.A2;
+import static com.powsybl.openloadflow.network.PiModel.R2;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -29,8 +32,11 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
 
     private double dq2dph2;
 
-    public ClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet) {
-        super(branch, bus1, bus2, variableSet);
+    private double dq2da1;
+
+    public ClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
+                                                     boolean deriveA1) {
+        super(branch, bus1, bus2, variableSet, deriveA1);
     }
 
     @Override
@@ -40,14 +46,18 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
         double v2 = x[v2Var.getColumn()];
         double ph1 = x[ph1Var.getColumn()];
         double ph2 = x[ph2Var.getColumn()];
-        double theta = ksi + a1 - a2 + ph1 - ph2;
+        double theta = ksi + (a1Var != null && a1Var.isActive() ? x[a1Var.getColumn()] : branch.getPiModel().getA1())
+                - A2 + ph1 - ph2;
         double cosTheta = FastMath.cos(theta);
         double sinTheta = FastMath.sin(theta);
-        q2 = r2 * v2 * (-b2 * r2 * v2 - y * r1 * v1 * cosTheta + y * r2 * v2 * cosKsi);
-        dq2dv1 = -y * r1 * r2 * v2 * cosTheta;
-        dq2dv2 = r2 * (-2 * b2 * r2 * v2 - y * r1 * v1 * cosTheta + 2 * y * r2 * v2 * cosKsi);
-        dq2dph1 = y * r1 * r2 * v1 * v2 * sinTheta;
-        dq2dph2 = -y * r1 * r2 * v1 * v2 * sinTheta;
+        q2 = R2 * v2 * (-b2 * R2 * v2 - y * r1 * v1 * cosTheta + y * R2 * v2 * cosKsi);
+        dq2dv1 = -y * r1 * R2 * v2 * cosTheta;
+        dq2dv2 = R2 * (-2 * b2 * R2 * v2 - y * r1 * v1 * cosTheta + 2 * y * R2 * v2 * cosKsi);
+        dq2dph1 = y * r1 * R2 * v1 * v2 * sinTheta;
+        dq2dph2 = -dq2dph1;
+        if (a1Var != null) {
+            dq2da1 = dq2dph1;
+        }
     }
 
     @Override
@@ -66,6 +76,8 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
             return dq2dph1;
         } else if (variable.equals(ph2Var)) {
             return dq2dph2;
+        } else if (variable.equals(a1Var)) {
+            return dq2da1;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

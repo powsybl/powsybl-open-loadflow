@@ -121,15 +121,16 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info("Balance type: {}", parametersExt.getBalanceType());
             LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
             LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
+            LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
 
             List<OuterLoop> outerLoops = new ArrayList<>();
             if (parametersExt.isDistributedSlack()) {
                 switch (parametersExt.getBalanceType()) {
                     case PROPORTIONAL_TO_GENERATION_P_MAX:
-                        outerLoops.add(new DistributedSlackOnGenerationOuterLoop());
+                        outerLoops.add(new DistributedSlackOnGenerationOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure()));
                         break;
                     case PROPORTIONAL_TO_LOAD:
-                        outerLoops.add(new DistributedSlackOnLoadOuterLoop());
+                        outerLoops.add(new DistributedSlackOnLoadOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure()));
                         break;
                     case PROPORTIONAL_TO_GENERATION_P: // to be implemented.
                         throw new UnsupportedOperationException("Unsupported balance type mode: " + parametersExt.getBalanceType());
@@ -137,13 +138,18 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                         throw new UnsupportedOperationException("Unknown balance type mode: " + parametersExt.getBalanceType());
                 }
             }
+            if (parameters.isPhaseShifterRegulationOn()) {
+                outerLoops.add(new PhaseControlOuterLoop());
+            }
             if (!parameters.isNoGeneratorReactiveLimits()) {
                 outerLoops.add(new ReactiveLimitsOuterLoop());
             }
 
             AcLoadFlowParameters acParameters = new AcLoadFlowParameters(slackBusSelector, voltageInitializer, stoppingCriteria,
                                                                          outerLoops, matrixFactory, getObserver(parametersExt),
-                                                                         parametersExt.hasVoltageRemoteControl());
+                                                                         parametersExt.hasVoltageRemoteControl(),
+                                                                         parameters.isPhaseShifterRegulationOn(),
+                                                                         parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
 
             List<AcLoadFlowResult> results = new AcloadFlowEngine(network, acParameters)
                     .run();
@@ -162,13 +168,15 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             }
 
             // zero or low impedance branch flows computation
-            new Z0FlowsCompletion(network, line -> {
-                // to be consistent with low impedance criteria used in DcEquationSystem and AcEquationSystem
-                double nominalV = line.getTerminal1().getVoltageLevel().getNominalV();
-                double zb = nominalV * nominalV / PerUnit.SB;
-                double z = Math.hypot(line.getR(), line.getX());
-                return z / zb <= DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
-            }).complete();
+            if (ok) {
+                new Z0FlowsCompletion(network, line -> {
+                    // to be consistent with low impedance criteria used in DcEquationSystem and AcEquationSystem
+                    double nominalV = line.getTerminal1().getVoltageLevel().getNominalV();
+                    double zb = nominalV * nominalV / PerUnit.SB;
+                    double z = Math.hypot(line.getR(), line.getX());
+                    return z / zb <= DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
+                }).complete();
+            }
 
             return new LoadFlowResultImpl(ok, metrics, null);
         });
@@ -182,7 +190,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     .run();
 
             Networks.resetState(network);
-            result.getNetworks().get(0).updateState(false);
+            result.getNetwork().updateState(false);
 
             return new LoadFlowResultImpl(result.isOk(), Collections.emptyMap(), null);
         });

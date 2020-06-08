@@ -24,7 +24,6 @@ public class LfBusImpl extends AbstractLfBus {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfBusImpl.class);
 
-    private static final double REACTIVE_RANGE_THRESHOLD_PU = 1d / PerUnit.SB;
     private static final double POWER_EPSILON_SI = 1e-4;
     private static final double Q_DISPATCH_EPSILON = 1e-3;
     private static final double TARGET_V_EPSILON = 1e-2;
@@ -53,7 +52,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     private LfBus controlledBus;
 
-    private final List<LfBus> controlledBuses = new ArrayList<>();
+    private final List<LfBus> controllerBuses = new ArrayList<>();
 
     private final List<LfGenerator> generators = new ArrayList<>();
 
@@ -123,6 +122,13 @@ public class LfBusImpl extends AbstractLfBus {
         }
 
         if (voltageControl) {
+            // check that targetV has a plausible value (wrong nominal voltage issue)
+            double targetVPu = targetV / controlledBus.getNominalV();
+            if (targetVPu < PlausibleValues.MIN_TARGET_VOLTAGE_PU || targetVPu > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
+                throw new PowsyblException("Controller bus '" + getId() + "' has an inconsistent remote target voltage: "
+                        + targetVPu + " pu");
+            }
+
             // check target voltage consistency between local and remote control
             if (controlledBus.hasVoltageControl()) { // controlled bus has also local voltage control
                 double localTargetV = controlledBus.getTargetV() * controlledBus.getNominalV();
@@ -143,26 +149,26 @@ public class LfBusImpl extends AbstractLfBus {
                         .ifPresent(otherControllerBus -> {
                             double otherTargetV = otherControllerBus.getTargetV() * controlledBus.getNominalV();
                             if (FastMath.abs(otherTargetV - this.targetV) > TARGET_V_EPSILON) {
-                                throw new PowsyblException("Bus '" + getId() + "' control voltage of bus '" + controlledBus.getId()
-                                        + "' which is already controlled by at least the bus '" + otherControllerBus.getId()
-                                        + "' with a different target voltage: " + otherTargetV + " and " + this.targetV);
+                                LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by at least the bus '{}' with a different target voltage: {} (kept) and {} (ignored)",
+                                        getId(), controlledBus.getId(), otherControllerBus.getId(), otherTargetV, this.targetV);
+                                this.targetV = otherTargetV;
                             }
                         });
             }
         }
 
         this.controlledBus = controlledBus;
-        controlledBus.addControlledBus(this);
+        controlledBus.addControllerBus(this);
     }
 
     @Override
     public List<LfBus> getControllerBuses() {
-        return controlledBuses;
+        return controllerBuses;
     }
 
-    public void addControlledBus(LfBus controlledBus) {
-        Objects.requireNonNull(controlledBus);
-        controlledBuses.add(controlledBus);
+    public void addControllerBus(LfBus controllerBus) {
+        Objects.requireNonNull(controllerBus);
+        controllerBuses.add(controllerBus);
     }
 
     private double checkTargetV(double targetV) {
@@ -215,7 +221,7 @@ public class LfBusImpl extends AbstractLfBus {
         generators.add(generator);
         boolean modifiedVoltageControl = voltageControl;
         double maxRangeQ = generator.getMaxRangeQ();
-        if (voltageControl && maxRangeQ < REACTIVE_RANGE_THRESHOLD_PU) {
+        if (voltageControl && maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
             LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small",
                     generator.getId(), maxRangeQ);
             report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
@@ -232,7 +238,9 @@ public class LfBusImpl extends AbstractLfBus {
             this.voltageControl = true;
             this.voltageControlCapacility = true;
         } else {
-            generationTargetQ += targetQ;
+            if (!Double.isNaN(targetQ)) {
+                generationTargetQ += targetQ;
+            }
         }
     }
 
@@ -245,7 +253,7 @@ public class LfBusImpl extends AbstractLfBus {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
             add(LfStaticVarCompensatorImpl.create(staticVarCompensator),
                     staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE,
-                    staticVarCompensator.getVoltageSetPoint() * scaleV, staticVarCompensator.getReactivePowerSetPoint(),
+                    staticVarCompensator.getVoltageSetPoint() * scaleV, -staticVarCompensator.getReactivePowerSetPoint(),
                     report);
         }
     }

@@ -34,6 +34,11 @@ public class LfShuntImpl implements LfShunt {
     }
 
     @Override
+    public String getId() {
+        return shuntCompensator.getId();
+    }
+
+    @Override
     public double getB() {
         return b;
     }

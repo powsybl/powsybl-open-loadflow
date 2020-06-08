@@ -47,7 +47,6 @@ public class PerUnitTest {
         Mockito.doReturn(0).when(bus1).getNum();
         Mockito.doReturn(1).when(bus2).getNum();
         Mockito.doReturn(1d).when(piModel).getR1();
-        Mockito.doReturn(1d).when(piModel).getR2();
         Mockito.doReturn(324 * Math.pow(10, -6) * zb).when(piModel).getB1();
         Mockito.doReturn(186 * Math.pow(10, -6) * zb).when(piModel).getB2();
         Mockito.doReturn(111 * Math.pow(10, -6) * zb).when(piModel).getG1();
@@ -57,9 +56,8 @@ public class PerUnitTest {
         Mockito.doReturn(Math.hypot(0.1, 3) / zb).when(piModel).getZ();
         Mockito.doReturn(Math.atan2(0.1, 3)).when(piModel).getKsi();
         Mockito.doReturn(0d).when(piModel).getA1();
-        Mockito.doReturn(0d).when(piModel).getA2();
 
-        ClosedBranchSide1ActiveFlowEquationTerm p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet);
+        ClosedBranchSide1ActiveFlowEquationTerm p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, false);
         double[] x = new double[4];
         x[0] = 405 / vb;
         x[1] = 0.045;

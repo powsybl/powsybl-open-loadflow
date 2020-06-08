@@ -8,11 +8,24 @@ package com.powsybl.openloadflow.ac.nr;
 
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.math.matrix.Matrix;
+import com.powsybl.openloadflow.network.LfNetwork;
+
+import java.util.List;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
+
+    @Override
+    public void beforeNetworksCreation() {
+        // empty
+    }
+
+    @Override
+    public void afterNetworksCreation(List<LfNetwork> networks) {
+        // empty
+    }
 
     @Override
     public void beforeEquationSystemCreation() {
@@ -135,7 +148,7 @@ public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
     }
 
     @Override
-    public void afterNetworkUpdate() {
+    public void afterNetworkUpdate(LfNetwork network) {
         // empty
     }
 
