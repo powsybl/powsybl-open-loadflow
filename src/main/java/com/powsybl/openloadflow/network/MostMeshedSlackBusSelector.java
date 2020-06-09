@@ -22,7 +22,7 @@ public class MostMeshedSlackBusSelector implements SlackBusSelector {
                 .filter(bus -> !bus.isFictitious())
                 .map(LfBus::getNominalV).mapToDouble(Double::valueOf).toArray();
         double maxNominalV = new Percentile()
-                .withEstimationType(org.apache.commons.math3.stat.descriptive.rank.Percentile.EstimationType.R_3)
+                .withEstimationType(Percentile.EstimationType.R_3)
                 .evaluate(nominalVoltages, 90);
 
         // select non fictitious and most meshed bus among buses with highest nominal voltage
