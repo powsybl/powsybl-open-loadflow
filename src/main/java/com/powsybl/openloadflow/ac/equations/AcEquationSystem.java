@@ -89,16 +89,20 @@ public final class AcEquationSystem {
     private static List<EquationTerm> createReactiveTerms(LfBus controllerBus, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {
         List<EquationTerm> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
-            boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
             EquationTerm q;
-            if (branch.getBus1() == controllerBus) {
-                LfBus otherSideBus = branch.getBus2();
-                q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1)
-                                         : new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
+            if (isNonImpedantBranch(branch)) {
+                throw new UnsupportedOperationException("TODO");
             } else {
-                LfBus otherSideBus = branch.getBus1();
-                q = otherSideBus != null ? new ClosedBranchSide2ReactiveFlowEquationTerm(branch, otherSideBus, controllerBus, variableSet, deriveA1)
-                                         : new OpenBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
+                boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+                if (branch.getBus1() == controllerBus) {
+                    LfBus otherSideBus = branch.getBus2();
+                    q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1)
+                            : new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
+                } else {
+                    LfBus otherSideBus = branch.getBus1();
+                    q = otherSideBus != null ? new ClosedBranchSide2ReactiveFlowEquationTerm(branch, otherSideBus, controllerBus, variableSet, deriveA1)
+                            : new OpenBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
+                }
             }
             terms.add(q);
         }
@@ -267,14 +271,18 @@ public final class AcEquationSystem {
         }
     }
 
+    private static boolean isNonImpedantBranch(LfBranch branch) {
+        PiModel piModel = branch.getPiModel();
+        return piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
+    }
+
     private static void createBranchEquations(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters,
                                               EquationSystem equationSystem) {
         List<LfBranch> nonImpedantBranches = new ArrayList<>();
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            PiModel piModel = branch.getPiModel();
-            if (piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
+            if (isNonImpedantBranch(branch)) {
                 if (bus1 != null && bus2 != null) {
                     nonImpedantBranches.add(branch);
                 }
