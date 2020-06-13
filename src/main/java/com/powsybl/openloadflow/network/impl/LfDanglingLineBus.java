@@ -19,8 +19,12 @@ public class LfDanglingLineBus extends AbstractFictitiousLfBus {
 
     private final DanglingLine danglingLine;
 
+    private final double nominalV;
+
     public LfDanglingLineBus(DanglingLine danglingLine) {
+        super(Networks.getPropertyV(danglingLine), Networks.getPropertyAngle(danglingLine));
         this.danglingLine = Objects.requireNonNull(danglingLine);
+        nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
     }
 
     @Override
@@ -40,6 +44,12 @@ public class LfDanglingLineBus extends AbstractFictitiousLfBus {
 
     @Override
     public double getNominalV() {
-        return danglingLine.getTerminal().getVoltageLevel().getNominalV();
+        return nominalV;
+    }
+
+    @Override
+    public void updateState(boolean reactiveLimits) {
+        Networks.setPropertyV(danglingLine, v);
+        Networks.setPropertyAngle(danglingLine, angle);
     }
 }

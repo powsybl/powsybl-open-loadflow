@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.AbstractEquationTerm;
-import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
 import net.jafama.FastMath;
@@ -51,7 +50,7 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractEquationTerm {
     }
 
     @Override
-    public double rhs(Variable variable) {
+    public double rhs() {
         return 0;
     }
 }
