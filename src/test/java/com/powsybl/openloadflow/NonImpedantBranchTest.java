@@ -181,8 +181,24 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createGenerator(b1, "g1", 2, 1);
         createLoad(b3, "l1", 1.99, 1);
         createLine(network, b1, b2, "l12", 0.1);
-        Line l23 = createLine(network, b2, b3, "l23", 0); // non impedant branch
-        Line l23bis = createLine(network, b2, b3, "l23bis", 0); // non impedant branch
+        createLine(network, b2, b3, "l23", 0); // non impedant branch
+        createLine(network, b2, b3, "l23bis", 0); // non impedant branch
+
+        LoadFlowResult result = loadFlowRunner.run(network);
+        assertTrue(result.isOk());
+    }
+
+    @Test
+    public void parallelNonImpedantAndImpedantBranchTest() {
+        Network network = Network.create("ParallelNonImpedantAndImpedantBranch", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 2, 1);
+        createLoad(b3, "l1", 1.99, 1);
+        createLine(network, b1, b2, "l12", 0.1);
+        createLine(network, b2, b3, "l23", 0.1);
+        createLine(network, b2, b3, "l23bis", 0); // non impedant branch
 
         LoadFlowResult result = loadFlowRunner.run(network);
         assertTrue(result.isOk());
@@ -197,11 +213,10 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createGenerator(b1, "g1", 2, 1);
         createLoad(b3, "l1", 1.99, 1);
         createLine(network, b1, b2, "l12", 0); // non impedant branch
-        Line l23 = createLine(network, b2, b3, "l23", 0); // non impedant branch
-        Line l23bis = createLine(network, b1, b3, "l13", 0); // non impedant branch
+        createLine(network, b2, b3, "l23", 0); // non impedant branch
+        createLine(network, b1, b3, "l13", 0); // non impedant branch
 
         LoadFlowResult result = loadFlowRunner.run(network);
-        // assertTrue(result.isOk());
+        assertTrue(result.isOk());
     }
-
 }

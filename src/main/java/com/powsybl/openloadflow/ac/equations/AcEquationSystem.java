@@ -10,10 +10,16 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
+import org.jgrapht.Graph;
+import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
+import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
+import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -263,24 +269,31 @@ public final class AcEquationSystem {
 
     private static void createBranchEquations(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters,
                                               EquationSystem equationSystem) {
-        // memorize already created non impedant branches to avoid creating parallel non impedant
-        Set<String> nonImpedantBranchesAlreadyCreated = new HashSet<>();
-
+        List<LfBranch> nonImpedantBranches = new ArrayList<>();
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             PiModel piModel = branch.getPiModel();
             if (piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
                 if (bus1 != null && bus2 != null) {
-                    String bus1Bus2Key = bus1.getNum() < bus2.getNum() ? bus1.getNum() + "_" + bus2.getNum() : bus2.getNum() + "_" + bus1.getNum();
-                    if (!nonImpedantBranchesAlreadyCreated.contains(bus1Bus2Key)) {
-                        createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
-                        nonImpedantBranchesAlreadyCreated.add(bus1Bus2Key);
-                    }
+                    nonImpedantBranches.add(branch);
                 }
             } else {
                 createImpedantBranch(branch, bus1, bus2, variableSet, creationParameters, equationSystem);
             }
+        }
+
+        // create non impedant equations only on minimum spanning forest calculated from non impedant subgraph
+        Graph<LfBus, LfBranch> nonImpedantSubGraph = new Pseudograph<>(LfBranch.class);
+        for (LfBranch branch : nonImpedantBranches) {
+            nonImpedantSubGraph.addVertex(branch.getBus1());
+            nonImpedantSubGraph.addVertex(branch.getBus2());
+            nonImpedantSubGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
+        }
+
+        SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(nonImpedantSubGraph).getSpanningTree();
+        for (LfBranch branch : spanningTree.getEdges()) {
+            createNonImpedantBranch(variableSet, equationSystem, branch, branch.getBus1(), branch.getBus2());
         }
     }
 
