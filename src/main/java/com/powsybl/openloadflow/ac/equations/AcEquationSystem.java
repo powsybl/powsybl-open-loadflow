@@ -91,17 +91,21 @@ public final class AcEquationSystem {
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm q;
             if (isNonImpedantBranch(branch)) {
-                throw new UnsupportedOperationException("TODO");
+                if (branch.getBus1() == controllerBus) {
+                    q = new DummyReactivePowerEquationTerm(branch, variableSet);
+                } else {
+                    q = EquationTerm.multiply(new DummyReactivePowerEquationTerm(branch, variableSet), -1);
+                }
             } else {
                 boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
                 if (branch.getBus1() == controllerBus) {
                     LfBus otherSideBus = branch.getBus2();
                     q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1)
-                            : new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
+                                             : new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
                 } else {
                     LfBus otherSideBus = branch.getBus1();
                     q = otherSideBus != null ? new ClosedBranchSide2ReactiveFlowEquationTerm(branch, otherSideBus, controllerBus, variableSet, deriveA1)
-                            : new OpenBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
+                                             : new OpenBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
                 }
             }
             terms.add(q);
