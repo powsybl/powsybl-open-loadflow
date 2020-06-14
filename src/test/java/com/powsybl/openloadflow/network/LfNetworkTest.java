@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfNetworkTest extends AbstractConverterTest {
+class LfNetworkTest extends AbstractConverterTest {
 
     @Override
     @BeforeEach
@@ -42,7 +42,7 @@ public class LfNetworkTest extends AbstractConverterTest {
     }
 
     @Test
-    public void test() throws IOException {
+    void test() throws IOException {
         Network network = EurostagTutorialExample1Factory.create();
         network.getVoltageLevel("VLLOAD").newShuntCompensator()
                 .setId("SC")
@@ -63,7 +63,7 @@ public class LfNetworkTest extends AbstractConverterTest {
     }
 
     @Test
-    public void testPhaseShifter() throws IOException {
+    void testPhaseShifter() throws IOException {
         Network network = PhaseShifterTestCaseFactory.create();
         TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
         ps1.getPhaseTapChanger()

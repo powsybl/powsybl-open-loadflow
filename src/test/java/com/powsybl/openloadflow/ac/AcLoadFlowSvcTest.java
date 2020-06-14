@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcLoadFlowSvcTest {
+class AcLoadFlowSvcTest {
 
     private Network network;
     private Bus bus1;
@@ -109,7 +109,7 @@ public class AcLoadFlowSvcTest {
     }
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
@@ -121,7 +121,7 @@ public class AcLoadFlowSvcTest {
     }
 
     @Test
-    public void test() {
+    void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -155,7 +155,7 @@ public class AcLoadFlowSvcTest {
     }
 
     @Test
-    public void shouldReachReactiveMaxLimit() {
+    void shouldReachReactiveMaxLimit() {
         svc1.setBmin(-0.002)
                 .setVoltageSetPoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);

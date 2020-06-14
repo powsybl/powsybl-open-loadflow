@@ -22,14 +22,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
+class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
     private Network network;
 
     private Generator g;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         network = Network.create("test", "code");
         Bus b = createBus(network, "b", 380);
         Bus b2 = createBus(network, "b2", 380);
@@ -42,7 +42,7 @@ public class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void initialTest() {
+    void initialTest() {
         LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
         LfGenerator lfGenerator = lfNetwork.getBus(0).getGenerators().get(0);
         assertEquals("g", lfGenerator.getId());
@@ -50,7 +50,7 @@ public class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void generatorNegativeActivePowerTargetTest() {
+    void generatorNegativeActivePowerTargetTest() {
         // targetP < 0, generator is discarded from active power control
         g.setTargetP(-10);
         LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
@@ -58,7 +58,7 @@ public class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void generatorActivePowerTargetGreaterThanMaxTest() {
+    void generatorActivePowerTargetGreaterThanMaxTest() {
         // targetP > maxP, generator is discarded from active power control
         g.setTargetP(10);
         g.setMaxP(5);
@@ -67,7 +67,7 @@ public class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void generatorReactiveRangeTooSmallTest() {
+    void generatorReactiveRangeTooSmallTest() {
         // generators with a too small reactive range cannot control voltage
         g.newReactiveCapabilityCurve()
                 .beginPoint()
@@ -86,7 +86,7 @@ public class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void generatorNotStartedTest() {
+    void generatorNotStartedTest() {
         // targetP is zero and minP > 0, meansn generator is not started and cannot control voltage
         g.setTargetP(0);
         g.setMinP(1);

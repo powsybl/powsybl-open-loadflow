@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcLoadFlow3wtTest {
+class AcLoadFlow3wtTest {
 
     private Network network;
     private Substation s;
@@ -140,7 +140,7 @@ public class AcLoadFlow3wtTest {
     }
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
@@ -152,7 +152,7 @@ public class AcLoadFlow3wtTest {
     }
 
     @Test
-    public void test() {
+    void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -171,7 +171,7 @@ public class AcLoadFlow3wtTest {
     }
 
     @Test
-    public void testWithRatioTapChangers() {
+    void testWithRatioTapChangers() {
         // create a ratio tap changer on leg 1 and check that voltages on leg 2 and 3 have changed compare to previous
         // test
         twt.getLeg1().newRatioTapChanger()
@@ -193,7 +193,7 @@ public class AcLoadFlow3wtTest {
     }
 
     @Test
-    public void testWithPhaseTapChangers() {
+    void testWithPhaseTapChangers() {
         // create a phase tap changer at leg 2 with a zero phase shifting
         PhaseTapChanger ptc = twt.getLeg2().newPhaseTapChanger()
                 .setTapPosition(0)

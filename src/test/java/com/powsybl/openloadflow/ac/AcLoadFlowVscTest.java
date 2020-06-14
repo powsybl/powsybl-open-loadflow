@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcLoadFlowVscTest {
+class AcLoadFlowVscTest {
 
     private Network network;
     private Bus bus1;
@@ -156,7 +156,7 @@ public class AcLoadFlowVscTest {
     }
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
@@ -168,7 +168,7 @@ public class AcLoadFlowVscTest {
     }
 
     @Test
-    public void test() {
+    void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
