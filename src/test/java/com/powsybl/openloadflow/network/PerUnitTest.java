@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class PerUnitTest {
+class PerUnitTest {
 
     public static class RuntimeExceptionAnswer implements Answer<Object> {
 
@@ -29,7 +29,7 @@ public class PerUnitTest {
     }
 
     @Test
-    public void test() {
+    void test() {
         double vb = 380;
         double zb = 380 * 380 * PerUnit.SB;
 

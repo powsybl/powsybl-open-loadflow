@@ -16,10 +16,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class OpenLoadFlowProviderTest {
+class OpenLoadFlowProviderTest {
 
     @Test
-    public void test() {
+    void test() {
         LoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(new DenseMatrixFactory());
         assertEquals("OpenLoadFlow", loadFlowProvider.getName());
         assertEquals(new PowsyblCoreVersion().getMavenProjectVersion(), loadFlowProvider.getVersion());

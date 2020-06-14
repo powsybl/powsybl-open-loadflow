@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
+class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
 
     private Network network;
     private Bus b1;
@@ -47,7 +47,7 @@ public class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
     private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         network = Network.create("switch-pq-pv-test", "code");
         Substation s = network.newSubstation()
                 .setId("s")
@@ -194,7 +194,7 @@ public class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void test() {
+    void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         // bus 1 and 3 switch PQ at first outer loop, then at next outer loop bus 3 go back PV

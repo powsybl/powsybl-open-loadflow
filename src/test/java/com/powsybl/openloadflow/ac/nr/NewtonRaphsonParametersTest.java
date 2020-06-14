@@ -14,10 +14,10 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class NewtonRaphsonParametersTest {
+class NewtonRaphsonParametersTest {
 
     @Test
-    public void test() {
+    void test() {
         NewtonRaphsonParameters parameters = new NewtonRaphsonParameters();
         assertEquals(30, parameters.getMaxIteration());
         parameters.setMaxIteration(40);

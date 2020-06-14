@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DcLoadFlowMatrixTest {
+class DcLoadFlowMatrixTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DcLoadFlowMatrixTest.class);
 
@@ -45,7 +45,7 @@ public class DcLoadFlowMatrixTest {
     }
 
     @Test
-    public void buildDcMatrix() {
+    void buildDcMatrix() {
         Network network = EurostagTutorialExample1Factory.create();
 
         logNetwork(network);

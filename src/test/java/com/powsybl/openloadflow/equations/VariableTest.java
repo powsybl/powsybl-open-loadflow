@@ -14,10 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class VariableTest {
+class VariableTest {
 
     @Test
-    public void testEquals() {
+    void testEquals() {
         new EqualsTester()
                 .addEqualityGroup(new Variable(0, VariableType.BUS_PHI), new Variable(0, VariableType.BUS_PHI))
                 .addEqualityGroup(new Variable(1, VariableType.BUS_V), new Variable(1, VariableType.BUS_V))
@@ -25,7 +25,7 @@ public class VariableTest {
     }
 
     @Test
-    public void testToString() {
+    void testToString() {
         assertEquals("Variable(num=0, type=BUS_PHI, column=-1)", new Variable(0, VariableType.BUS_PHI).toString());
     }
 }
