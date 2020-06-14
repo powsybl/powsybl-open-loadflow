@@ -99,6 +99,7 @@ public class SimplePiModel implements PiModel {
         return r1;
     }
 
+    @Override
     public SimplePiModel setR1(double r1) {
         this.r1 = r1;
         return this;

@@ -37,6 +37,8 @@ public interface PiModel {
 
     double getR1();
 
+    PiModel setR1(double r1);
+
     double getA1();
 
     PiModel setA1(double a1);

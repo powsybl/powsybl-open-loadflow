@@ -348,6 +348,14 @@ public class LfNetwork {
                     piModel.setR(0);
                     piModel.setX(DcEquationSystem.LOW_IMPEDANCE_THRESHOLD);
                 }
+
+                LfBus bus1 = branch.getBus1();
+                LfBus bus2 = branch.getBus2();
+                if (bus1 != null && bus2 != null && (PiModel.R2 / piModel.getR1()) == 1 && bus1.getNominalV() != bus2.getNominalV()) {
+                    piModel.setR1(PiModel.R2 * bus1.getNominalV() / bus2.getNominalV());
+                    LOGGER.warn("Branch '{}' has no voltage ratio but different nominal voltages at both ends ({} and {}) => create a voltage ratio of {}",
+                            branch.getId(), bus1.getNominalV(), bus2.getNominalV(), piModel.getR1());
+                }
             }
         }
     }
