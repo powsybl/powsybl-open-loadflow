@@ -296,16 +296,18 @@ public final class AcEquationSystem {
         }
 
         // create non impedant equations only on minimum spanning forest calculated from non impedant subgraph
-        Graph<LfBus, LfBranch> nonImpedantSubGraph = new Pseudograph<>(LfBranch.class);
-        for (LfBranch branch : nonImpedantBranches) {
-            nonImpedantSubGraph.addVertex(branch.getBus1());
-            nonImpedantSubGraph.addVertex(branch.getBus2());
-            nonImpedantSubGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
-        }
+        if (!nonImpedantBranches.isEmpty()) {
+            Graph<LfBus, LfBranch> nonImpedantSubGraph = new Pseudograph<>(LfBranch.class);
+            for (LfBranch branch : nonImpedantBranches) {
+                nonImpedantSubGraph.addVertex(branch.getBus1());
+                nonImpedantSubGraph.addVertex(branch.getBus2());
+                nonImpedantSubGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
+            }
 
-        SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(nonImpedantSubGraph).getSpanningTree();
-        for (LfBranch branch : spanningTree.getEdges()) {
-            createNonImpedantBranch(variableSet, equationSystem, branch, branch.getBus1(), branch.getBus2());
+            SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(nonImpedantSubGraph).getSpanningTree();
+            for (LfBranch branch : spanningTree.getEdges()) {
+                createNonImpedantBranch(variableSet, equationSystem, branch, branch.getBus1(), branch.getBus2());
+            }
         }
     }
 
