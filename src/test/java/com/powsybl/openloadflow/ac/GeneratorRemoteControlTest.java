@@ -205,7 +205,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setNominalV(20)
                 .setTopologyKind(TopologyKind.BUS_BREAKER)
                 .add();
-        Bus b5 = vl5.getBusBreakerView().newBus()
+        vl5.getBusBreakerView().newBus()
                 .setId("b5")
                 .add();
         vl5.newLoad()
