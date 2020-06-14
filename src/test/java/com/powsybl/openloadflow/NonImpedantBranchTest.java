@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
+class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 
     private LoadFlow.Runner loadFlowRunner;
 
@@ -43,7 +43,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void threeBusesTest() {
+    void threeBusesTest() {
         Network network = Network.create("ThreeBusesWithNonImpedantLine", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
@@ -67,6 +67,18 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(1, l23.getTerminal1());
         assertReactivePowerEquals(-1, l23.getTerminal2());
 
+        // use low impedance cut strategy (state is changed a little bit)
+        parametersExt.setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(1, b1);
+        assertVoltageEquals(0.856, b2);
+        assertVoltageEquals(0.856, b3);
+        assertAngleEquals(13.444857, b1);
+        assertAngleEquals(0, b2);
+        assertAngleEquals(0, b3);
+
+        // test in DC mode
         parametersExt.setDc(true);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -79,7 +91,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void fourBusesTest() {
+    void fourBusesTest() {
         Network network = Network.create("FourBusesWithNonImpedantLine", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
@@ -116,7 +128,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void threeBusesAndNonImpTransfoTest() {
+    void threeBusesAndNonImpTransfoTest() {
         Network network = Network.create("ThreeBusesWithNonImpedantTransfo", "code");
         Bus b1 = createBus(network, "s", "b1");
         Bus b2 = createBus(network, "s", "b2");
@@ -143,7 +155,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void inconsistentTargetVoltagesTest() {
+    void inconsistentTargetVoltagesTest() {
         Network network = Network.create("FourBusesWithNonImpedantLineAndInconsistentTargetVoltages", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");

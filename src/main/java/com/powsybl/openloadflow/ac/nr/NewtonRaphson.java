@@ -185,7 +185,7 @@ public class NewtonRaphson implements AutoCloseable {
 
             equationSystem.updateNetwork(x);
 
-            observer.afterNetworkUpdate();
+            observer.afterNetworkUpdate(network);
         }
 
         return new NewtonRaphsonResult(status, iteration, slackBusActivePowerMismatch);

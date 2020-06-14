@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DcLoadFlowMatrixTest {
+class DcLoadFlowMatrixTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DcLoadFlowMatrixTest.class);
 
@@ -45,7 +45,7 @@ public class DcLoadFlowMatrixTest {
     }
 
     @Test
-    public void buildDcMatrix() {
+    void buildDcMatrix() {
         Network network = EurostagTutorialExample1Factory.create();
 
         logNetwork(network);
@@ -53,7 +53,7 @@ public class DcLoadFlowMatrixTest {
         LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
 
         VariableSet variableSet = new VariableSet();
-        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, variableSet);
+        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, variableSet, true);
 
         for (LfBus b : lfNetwork.getBuses()) {
             equationSystem.createEquation(b.getNum(), EquationType.BUS_P);
@@ -122,7 +122,7 @@ public class DcLoadFlowMatrixTest {
 
         lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
 
-        equationSystem = DcEquationSystem.create(lfNetwork, variableSet);
+        equationSystem = DcEquationSystem.create(lfNetwork, variableSet, true);
 
         j = JacobianMatrix.create(equationSystem, matrixFactory).getMatrix();
 

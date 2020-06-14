@@ -6,10 +6,8 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
@@ -18,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -34,6 +33,8 @@ public class Equation implements Evaluable, Comparable<Equation> {
     private final EquationSystem equationSystem;
 
     private int row = -1;
+
+    private Object data;
 
     /**
      * true if this equation term active, false otherwise
@@ -79,10 +80,24 @@ public class Equation implements Evaluable, Comparable<Equation> {
         }
     }
 
+    public void setData(Object data) {
+        this.data = data;
+    }
+
+    public <T> T getData() {
+        return (T) data;
+    }
+
     public Equation addTerm(EquationTerm term) {
         Objects.requireNonNull(term);
         terms.add(term);
         equationSystem.notifyListeners(this, EquationEventType.EQUATION_UPDATED);
+        return this;
+    }
+
+    public Equation addTerms(List<EquationTerm> terms) {
+        Objects.requireNonNull(terms);
+        this.terms.addAll(terms);
         return this;
     }
 
@@ -95,20 +110,43 @@ public class Equation implements Evaluable, Comparable<Equation> {
         if (bus.getControllerBuses().isEmpty()) {
             return bus.getTargetV();
         } else {
-            return bus.getControllerBuses()
+            List<LfBus> controllerBuses = bus.getControllerBuses()
                     .stream()
                     .filter(LfBus::hasVoltageControl)
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalStateException("None of the controller buses of bus '" + bus.getId()
-                            + "'has voltage control on"))
-                    .getTargetV();
+                    .collect(Collectors.toList());
+            if (bus.hasVoltageControl()) {
+                controllerBuses.add(bus);
+            }
+            if (controllerBuses.isEmpty()) {
+                throw new IllegalStateException("None of the controller buses of bus '" + bus.getId()
+                        + "'has voltage control on");
+            }
+            return controllerBuses.get(0).getTargetV();
         }
     }
 
-    private static double getBranchPhi(LfBranch branch) {
+    private static double getBranchA(LfBranch branch) {
         Objects.requireNonNull(branch);
         PiModel piModel = branch.getPiModel();
-        return piModel.getA2() - piModel.getA1();
+        return PiModel.A2 - piModel.getA1();
+    }
+
+    private static double getBranchTarget(LfBranch branch, PhaseControl.Unit unit) {
+        Objects.requireNonNull(branch);
+        PhaseControl phaseControl = branch.getPhaseControl()
+                .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no phase control"));
+        if (phaseControl.getUnit() != unit) {
+            throw new PowsyblException("Branch '" + branch.getId() + "' has not a target in " + unit);
+        }
+        return phaseControl.getTargetValue();
+    }
+
+    private static double getReactivePowerDistributionTarget(LfNetwork network, int num, ReactivePowerDistributionData data) {
+        LfBus controllerBus = network.getBus(num);
+        LfBus firstControllerBus = network.getBus(data.getFirstControllerBusNum());
+        double c = data.getC();
+        return c * (controllerBus.getLoadTargetQ() - controllerBus.getGenerationTargetQ())
+                - firstControllerBus.getLoadTargetQ() - firstControllerBus.getGenerationTargetQ();
     }
 
     void initTarget(LfNetwork network, double[] targets) {
@@ -129,13 +167,24 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 targets[row] = 0;
                 break;
 
+            case BRANCH_P:
+                targets[row] = getBranchTarget(network.getBranch(num), PhaseControl.Unit.MW);
+                break;
+
+            case BRANCH_I:
+                targets[row] = getBranchTarget(network.getBranch(num), PhaseControl.Unit.A);
+                break;
+
             case ZERO_Q:
+                targets[row] = getReactivePowerDistributionTarget(network, num, getData());
+                break;
+
             case ZERO_V:
                 targets[row] = 0;
                 break;
 
             case ZERO_PHI:
-                targets[row] = getBranchPhi(network.getBranch(num));
+                targets[row] = getBranchA(network.getBranch(num));
                 break;
 
             default:
@@ -144,9 +193,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
         for (EquationTerm term : terms) {
             if (term.hasRhs()) {
-                for (Variable variable : term.getVariables()) {
-                    targets[row] -= term.rhs(variable);
-                }
+                targets[row] -= term.rhs();
             }
         }
     }
@@ -163,9 +210,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
         for (EquationTerm term : terms) {
             value += term.eval();
             if (term.hasRhs()) {
-                for (Variable variable : term.getVariables()) {
-                    value -= term.rhs(variable);
-                }
+                value -= term.rhs();
             }
         }
         return value;
@@ -224,7 +269,15 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 LfBus bus = equationSystem.getNetwork().getBus(num);
                 builder.append(", busId=").append(bus.getId());
                 break;
+            case BRANCH_P:
+            case BRANCH_I:
+                LfBranch branch = equationSystem.getNetwork().getBranch(num);
+                builder.append(", branchId=").append(branch.getId());
+                break;
             case ZERO_Q:
+                LfBus controllerBus = equationSystem.getNetwork().getBus(num);
+                builder.append(", controllerBusId=").append(controllerBus.getId());
+                break;
             case ZERO_V:
             case ZERO_PHI:
                 break;

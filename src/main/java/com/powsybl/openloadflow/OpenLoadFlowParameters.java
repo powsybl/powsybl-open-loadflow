@@ -25,6 +25,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean distributedSlack = true;
 
+    private boolean throwsExceptionInCaseOfSlackDistributionFailure = true;
+
     private BalanceType balanceType = BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX; // Default slack distribution on generators.
 
     public enum BalanceType {
@@ -36,6 +38,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean dc = false;
 
     private boolean voltageRemoteControl = false;
+
+    public enum LowImpedanceBranchMode {
+        REPLACE_BY_ZERO_IMPEDANCE_LINE,
+        REPLACE_BY_MIN_IMPEDANCE_LINE
+    }
+
+    private LowImpedanceBranchMode lowImpedanceBranchMode = LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE;
 
     private final List<AcLoadFlowObserver> additionalObservers = new ArrayList<>();
 
@@ -62,6 +71,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isThrowsExceptionInCaseOfSlackDistributionFailure() {
+        return throwsExceptionInCaseOfSlackDistributionFailure;
+    }
+
+    public OpenLoadFlowParameters setThrowsExceptionInCaseOfSlackDistributionFailure(boolean throwsExceptionInCaseOfSlackDistributionFailure) {
+        this.throwsExceptionInCaseOfSlackDistributionFailure = throwsExceptionInCaseOfSlackDistributionFailure;
+        return this;
+    }
+
     public OpenLoadFlowParameters setBalanceType(BalanceType balanceType) {
         this.balanceType = Objects.requireNonNull(balanceType);
         return this;
@@ -85,6 +103,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setVoltageRemoteControl(boolean voltageRemoteControl) {
         this.voltageRemoteControl = voltageRemoteControl;
+        return this;
+    }
+
+    public LowImpedanceBranchMode getLowImpedanceBranchMode() {
+        return lowImpedanceBranchMode;
+    }
+
+    public OpenLoadFlowParameters setLowImpedanceBranchMode(LowImpedanceBranchMode lowImpedanceBranchMode) {
+        this.lowImpedanceBranchMode = Objects.requireNonNull(lowImpedanceBranchMode);
         return this;
     }
 

@@ -6,9 +6,11 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.equations.AbstractEquationTerm;
+import com.powsybl.openloadflow.equations.Variable;
+import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfShunt;
 
 import java.util.Collections;
@@ -30,11 +32,9 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractEquationTe
 
     private double dqdv;
 
-    public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, LfNetwork network,
-                                                    VariableSet variableSet) {
+    public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet variableSet) {
         Objects.requireNonNull(shunt);
         Objects.requireNonNull(bus);
-        Objects.requireNonNull(network);
         Objects.requireNonNull(variableSet);
         vVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_V);
         variables = Collections.singletonList(vVar);
@@ -75,7 +75,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractEquationTe
     }
 
     @Override
-    public double rhs(Variable variable) {
+    public double rhs() {
         return 0;
     }
 

@@ -104,7 +104,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                         double remoteNominalV = regulatingTerminal.getVoltageLevel().getNominalV();
                         double localNominalV = injection.getTerminal().getVoltageLevel().getNominalV();
                         scaleV = localNominalV / remoteNominalV;
-                        LOGGER.warn("Remote voltage control is not yet supported. The voltage target of " +
+                        LOGGER.warn("Remote voltage control is not activated. The voltage target of " +
                                         "{} ({}) with remote control is rescaled from {} to {}",
                                 injection.getId(), injection.getType(), previousTargetV, previousTargetV * scaleV);
                     }

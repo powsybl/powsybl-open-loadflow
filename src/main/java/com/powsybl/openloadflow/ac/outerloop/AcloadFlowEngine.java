@@ -20,10 +20,13 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Markers;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -41,7 +44,12 @@ public class AcloadFlowEngine {
 
     public AcloadFlowEngine(Object network, AcLoadFlowParameters parameters) {
         this.parameters = Objects.requireNonNull(parameters);
-        networks = LfNetwork.load(network, parameters.getSlackBusSelector(), parameters.isVoltageRemoteControl());
+
+        parameters.getObserver().beforeNetworksCreation();
+
+        networks = LfNetwork.load(network, parameters.getSlackBusSelector(), parameters.isVoltageRemoteControl(), parameters.isMinImpedance());
+
+        parameters.getObserver().afterNetworksCreation(networks);
     }
 
     private void updatePvBusesReactivePower(NewtonRaphsonResult lastNrResult, LfNetwork network, EquationSystem equationSystem) {
@@ -65,7 +73,7 @@ public class AcloadFlowEngine {
 
         private NewtonRaphsonResult lastNrResult;
 
-        private int outerLoopIteration = 0;
+        private final Map<String, MutableInt> outerLoopIterationByType = new HashMap<>();
     }
 
     private void runOuterLoop(OuterLoop outerLoop, LfNetwork network, EquationSystem equationSystem, VariableSet variableSet,
@@ -73,15 +81,17 @@ public class AcloadFlowEngine {
         // for each outer loop re-run Newton-Raphson until stabilization
         OuterLoopStatus outerLoopStatus;
         do {
-            parameters.getObserver().beforeOuterLoopStatusCheck(runningContext.outerLoopIteration, outerLoop.getName());
+            MutableInt outerLoopIteration = runningContext.outerLoopIterationByType.computeIfAbsent(outerLoop.getType(), k -> new MutableInt());
+
+            parameters.getObserver().beforeOuterLoopStatusCheck(outerLoopIteration.getValue(), outerLoop.getType());
 
             // check outer loop status
-            outerLoopStatus = outerLoop.check(new OuterLoopContext(runningContext.outerLoopIteration, network, equationSystem, variableSet, runningContext.lastNrResult));
+            outerLoopStatus = outerLoop.check(new OuterLoopContext(outerLoopIteration.getValue(), network, equationSystem, variableSet, runningContext.lastNrResult));
 
-            parameters.getObserver().afterOuterLoopStatusCheck(runningContext.outerLoopIteration, outerLoop.getName(), outerLoopStatus == OuterLoopStatus.STABLE);
+            parameters.getObserver().afterOuterLoopStatusCheck(outerLoopIteration.getValue(), outerLoop.getType(), outerLoopStatus == OuterLoopStatus.STABLE);
 
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
-                parameters.getObserver().beforeOuterLoopBody(runningContext.outerLoopIteration, outerLoop.getName());
+                parameters.getObserver().beforeOuterLoopBody(outerLoopIteration.getValue(), outerLoop.getType());
 
                 // if not yet stable, restart Newton-Raphson
                 runningContext.lastNrResult = newtonRaphson.run(nrParameters);
@@ -89,12 +99,12 @@ public class AcloadFlowEngine {
                     return;
                 }
 
-                parameters.getObserver().afterOuterLoopBody(runningContext.outerLoopIteration, outerLoop.getName());
+                parameters.getObserver().afterOuterLoopBody(outerLoopIteration.getValue(), outerLoop.getType());
 
                 // update PV buses reactive power some outer loops might need this information
                 updatePvBusesReactivePower(runningContext.lastNrResult, network, equationSystem);
 
-                runningContext.outerLoopIteration++;
+                outerLoopIteration.increment();
             }
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE);
     }
@@ -107,7 +117,8 @@ public class AcloadFlowEngine {
         parameters.getObserver().beforeEquationSystemCreation();
 
         VariableSet variableSet = new VariableSet();
-        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(parameters.isVoltageRemoteControl());
+        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(parameters.isVoltageRemoteControl(),
+                                                                                                       parameters.isPhaseControl());
         EquationSystem equationSystem = AcEquationSystem.create(network, variableSet, creationParameters);
 
         parameters.getObserver().afterEquationSystemCreation();
@@ -146,7 +157,7 @@ public class AcloadFlowEngine {
         stopwatch.stop();
 
         int nrIterations = runningContext.lastNrResult.getIteration();
-        int outerLoopIterations = runningContext.outerLoopIteration + 1;
+        int outerLoopIterations = runningContext.outerLoopIterationByType.values().stream().mapToInt(MutableInt::getValue).sum() + 1;
 
         LOGGER.debug(Markers.PERFORMANCE_MARKER, "Ac loadflow ran on network {} in {} ms", network.getNum(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
 

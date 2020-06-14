@@ -7,10 +7,7 @@
 
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Generator;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -25,13 +22,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcLoadFlowEurostagTutorialExample1Test {
+class AcLoadFlowEurostagTutorialExample1Test {
 
     private Network network;
     private Bus genBus;
@@ -46,7 +42,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
     private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         network = EurostagTutorialExample1Factory.create();
         genBus = network.getBusBreakerView().getBus("NGEN");
         bus1 = network.getBusBreakerView().getBus("NHV1");
@@ -66,7 +62,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    public void baseCaseTest() {
+    void baseCaseTest() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertEquals("3", result.getMetrics().get("network_0_iterations"));
@@ -93,7 +89,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    public void dcLfVoltageInitTest() {
+    void dcLfVoltageInitTest() {
         parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         boolean[] stateVectorInitialized = new boolean[1];
         parametersExt.getAdditionalObservers().add(new DefaultAcLoadFlowObserver() {
@@ -113,7 +109,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    public void line1Side1DeconnectionTest() {
+    void line1Side1DeconnectionTest() {
         line1.getTerminal1().disconnect();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -138,7 +134,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    public void line1Side2DeconnectionTest() {
+    void line1Side2DeconnectionTest() {
         line1.getTerminal2().disconnect();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -163,7 +159,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    public void line1DeconnectionTest() {
+    void line1DeconnectionTest() {
         line1.getTerminal1().disconnect();
         line1.getTerminal2().disconnect();
 
@@ -189,7 +185,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    public void shuntCompensatorTest() {
+    void shuntCompensatorTest() {
         loadBus.getVoltageLevel().newShuntCompensator()
                 .setId("SC")
                 .setBus(loadBus.getId())
@@ -207,5 +203,26 @@ public class AcLoadFlowEurostagTutorialExample1Test {
         assertReactivePowerEquals(-95.063, line1.getTerminal2());
         assertReactivePowerEquals(52.987, line2.getTerminal1());
         assertReactivePowerEquals(-95.063, line2.getTerminal2());
+    }
+
+    @Test
+    void invalidTargetQIssueTest() {
+        // create a generator with a targetP to 0 and a minP > 0 so that the generator will be discarded from voltage
+        // regulation
+        // targetQ is not defined so value is NaN
+        Generator g1 = loadBus.getVoltageLevel().newGenerator()
+                .setId("g1")
+                .setBus(loadBus.getId())
+                .setConnectableBus(loadBus.getId())
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(10)
+                .setMaxP(200)
+                .setTargetP(0)
+                .setTargetV(150)
+                .setVoltageRegulatorOn(true)
+                .add();
+        // check that the issue that add an undefined targetQ (NaN) to bus generation sum is solved
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
     }
 }
