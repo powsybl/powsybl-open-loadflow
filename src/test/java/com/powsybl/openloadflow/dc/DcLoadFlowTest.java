@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Sylvain Leclerc <sylvain.leclerc at rte-france.com>
  */
-public class DcLoadFlowTest {
+class DcLoadFlowTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DcLoadFlowTest.class);
 
@@ -37,7 +37,7 @@ public class DcLoadFlowTest {
     private LoadFlow.Runner loadFlowRunner;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         parameters = new LoadFlowParameters();
         parameters.addExtension(OpenLoadFlowParameters.class, new OpenLoadFlowParameters()
                 .setDc(true));
@@ -50,7 +50,7 @@ public class DcLoadFlowTest {
      * - load change
      */
     @Test
-    public void tuto1Test() {
+    void tuto1Test() {
         Network network = EurostagTutorialExample1Factory.create();
         Line line1 = network.getLine("NHV1_NHV2_1");
         Line line2 = network.getLine("NHV1_NHV2_2");
@@ -98,7 +98,7 @@ public class DcLoadFlowTest {
     }
 
     @Test
-    public void fourBusesTest() {
+    void fourBusesTest() {
         Network network = FourBusNetworkFactory.create();
 
         loadFlowRunner.run(network, parameters);
@@ -122,7 +122,7 @@ public class DcLoadFlowTest {
     }
 
     @Test
-    public void phaseShifterTest() {
+    void phaseShifterTest() {
         Network network = PhaseShifterTestCaseFactory.create();
         Line l1 = network.getLine("L1");
         Line l2 = network.getLine("L2");

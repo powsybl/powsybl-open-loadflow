@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
+class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 
     private LoadFlow.Runner loadFlowRunner;
 
@@ -43,7 +43,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void threeBusesTest() {
+    void threeBusesTest() {
         Network network = Network.create("ThreeBusesWithNonImpedantLine", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
@@ -91,7 +91,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void fourBusesTest() {
+    void fourBusesTest() {
         Network network = Network.create("FourBusesWithNonImpedantLine", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
@@ -128,7 +128,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void threeBusesAndNonImpTransfoTest() {
+    void threeBusesAndNonImpTransfoTest() {
         Network network = Network.create("ThreeBusesWithNonImpedantTransfo", "code");
         Bus b1 = createBus(network, "s", "b1");
         Bus b2 = createBus(network, "s", "b2");
@@ -155,7 +155,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void inconsistentTargetVoltagesTest() {
+    void inconsistentTargetVoltagesTest() {
         Network network = Network.create("FourBusesWithNonImpedantLineAndInconsistentTargetVoltages", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");

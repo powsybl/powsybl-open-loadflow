@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcLoadFlowPhaseShifterTest {
+class AcLoadFlowPhaseShifterTest {
 
     private Network network;
     private Bus bus1;
@@ -40,7 +40,7 @@ public class AcLoadFlowPhaseShifterTest {
     private LoadFlowParameters parameters;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         network = PhaseShifterTestCaseFactory.create();
         bus1 = network.getBusBreakerView().getBus("B1");
         bus2 = network.getBusBreakerView().getBus("B2");
@@ -62,7 +62,7 @@ public class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
-    public void baseCaseTest() {
+    void baseCaseTest() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -83,7 +83,7 @@ public class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
-    public void tapPlusOneTest() {
+    void tapPlusOneTest() {
         ps1.getPhaseTapChanger().setTapPosition(2);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -106,7 +106,7 @@ public class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
-    public void flowControlTest() {
+    void flowControlTest() {
         parameters.setPhaseShifterRegulationOn(true);
         ps1.getPhaseTapChanger()
                 .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)

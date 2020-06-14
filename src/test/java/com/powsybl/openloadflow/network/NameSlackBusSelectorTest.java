@@ -18,17 +18,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class NameSlackBusSelectorTest {
+class NameSlackBusSelectorTest {
 
     private Network network;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         network = EurostagTutorialExample1Factory.create();
     }
 
     @Test
-    public void test() {
+    void test() {
         LfNetwork lfNetwork = LfNetwork.load(network, new NameSlackBusSelector("VLGEN_0")).get(0);
         assertEquals("VLGEN_0", lfNetwork.getSlackBus().getId());
         lfNetwork = LfNetwork.load(network, new NameSlackBusSelector("VLLOAD_0")).get(0);
@@ -36,9 +36,10 @@ public class NameSlackBusSelectorTest {
     }
 
     @Test
-    public void errorTest() {
-        assertThrows(PowsyblException.class,
-            () -> LfNetwork.load(network, new NameSlackBusSelector("???")).get(0).getSlackBus(),
+    void errorTest() {
+        NameSlackBusSelector slackBusSelector = new NameSlackBusSelector("???");
+        LfNetwork lfNetwork = LfNetwork.load(network, slackBusSelector).get(0);
+        assertThrows(PowsyblException.class, () -> lfNetwork.getSlackBus(),
             "Slack bus '???' not found");
     }
 }

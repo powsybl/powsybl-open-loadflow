@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcLoadFlowEurostagTutorialExample1Test {
+class AcLoadFlowEurostagTutorialExample1Test {
 
     private Network network;
     private Bus genBus;
@@ -42,7 +42,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
     private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         network = EurostagTutorialExample1Factory.create();
         genBus = network.getBusBreakerView().getBus("NGEN");
         bus1 = network.getBusBreakerView().getBus("NHV1");
@@ -62,7 +62,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    public void baseCaseTest() {
+    void baseCaseTest() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertEquals("3", result.getMetrics().get("network_0_iterations"));
@@ -89,7 +89,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    public void dcLfVoltageInitTest() {
+    void dcLfVoltageInitTest() {
         parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         boolean[] stateVectorInitialized = new boolean[1];
         parametersExt.getAdditionalObservers().add(new DefaultAcLoadFlowObserver() {
@@ -109,7 +109,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    public void line1Side1DeconnectionTest() {
+    void line1Side1DeconnectionTest() {
         line1.getTerminal1().disconnect();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -134,7 +134,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    public void line1Side2DeconnectionTest() {
+    void line1Side2DeconnectionTest() {
         line1.getTerminal2().disconnect();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -159,7 +159,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    public void line1DeconnectionTest() {
+    void line1DeconnectionTest() {
         line1.getTerminal1().disconnect();
         line1.getTerminal2().disconnect();
 
@@ -185,7 +185,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    public void shuntCompensatorTest() {
+    void shuntCompensatorTest() {
         loadBus.getVoltageLevel().newShuntCompensator()
                 .setId("SC")
                 .setBus(loadBus.getId())
@@ -206,7 +206,7 @@ public class AcLoadFlowEurostagTutorialExample1Test {
     }
 
     @Test
-    public void invalidTargetQIssueTest() {
+    void invalidTargetQIssueTest() {
         // create a generator with a targetP to 0 and a minP > 0 so that the generator will be discarded from voltage
         // regulation
         // targetQ is not defined so value is NaN
