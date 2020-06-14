@@ -97,8 +97,6 @@ public class EquationSystem {
         @Override
         public void equationListChanged(Equation equation, EquationEventType eventType) {
             switch (eventType) {
-                case EQUATION_CREATED:
-                    break;
                 case EQUATION_REMOVED:
                 case EQUATION_DEACTIVATED:
                     if (!sortedEquationsToSolve.isEmpty()) { // not need to remove if not already indexed
@@ -115,6 +113,7 @@ public class EquationSystem {
                         equationsToAdd.add(equation);
                     }
                     break;
+                case EQUATION_CREATED:
                 case EQUATION_ACTIVATED:
                     // no need to remove first because activated event means it was not already activated
                     equationsToAdd.add(equation);
