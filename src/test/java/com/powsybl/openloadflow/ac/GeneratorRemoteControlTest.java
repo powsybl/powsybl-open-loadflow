@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
+class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     private Network network;
     Substation s;
@@ -45,7 +45,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         network = Network.create("generator-remote-control-test", "code");
         s = network.newSubstation()
                 .setId("s")
@@ -185,7 +185,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void testWith3Generators() {
+    void testWith3Generators() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(21.506559, b1);
@@ -198,7 +198,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void testWith3GeneratorsAndNonImpedantBranch() {
+    void testWith3GeneratorsAndNonImpedantBranch() {
         // add a non impedant branch going to a load at generator 3 connection bus.
         VoltageLevel vl5 = s.newVoltageLevel()
                 .setId("vl5")
@@ -239,7 +239,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void testWithLoadConnectedToGeneratorBus() {
+    void testWithLoadConnectedToGeneratorBus() {
         // in that case we expect the generation reactive power to be equals for each of the controller buses
         b1.getVoltageLevel().newLoad()
                 .setId("l")
@@ -272,7 +272,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void testWithShuntConnectedToGeneratorBus() {
+    void testWithShuntConnectedToGeneratorBus() {
         // in that case we expect the generation reactive power to be equals for each of the controller buses
         b1.getVoltageLevel().newShuntCompensator()
                 .setId("l")
@@ -293,7 +293,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void testWith3GeneratorsAndCoordinatedReactiveControlExtensions() {
+    void testWith3GeneratorsAndCoordinatedReactiveControlExtensions() {
         g1.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(60).add();
         g2.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(30).add();
         g3.newExtension(CoordinatedReactiveControlAdder.class).withQPercent(10).add();
@@ -309,7 +309,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void testWith3GeneratorsAndReactiveLimits() {
+    void testWith3GeneratorsAndReactiveLimits() {
         // as there is no CoordinatedReactiveControl extension, reactive limit range will be used to create reactive
         // keys
         g1.newMinMaxReactiveLimits().setMinQ(0).setMaxQ(60).add();
@@ -327,7 +327,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void testErrorWhenDifferentTargetV() {
+    void testErrorWhenDifferentTargetV() {
         g3.setTargetV(413.3);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -335,7 +335,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void testWith2Generators() {
+    void testWith2Generators() {
         g3.setTargetQ(10).setVoltageRegulatorOn(false);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -349,7 +349,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void testWith3GeneratorsAndFirstGeneratorToLimit() {
+    void testWith3GeneratorsAndFirstGeneratorToLimit() {
         parameters.setNoGeneratorReactiveLimits(false);
         g1.newMinMaxReactiveLimits()
                 .setMinQ(-50)
@@ -367,7 +367,7 @@ public class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void testWith3GeneratorsAndAnAdditionalWithLocalRegulation() {
+    void testWith3GeneratorsAndAnAdditionalWithLocalRegulation() {
         // create a generator on controlled bus to have "mixed" 1 local plus 3 remote generators controlling voltage
         // at bus 4
         Generator g4 = b4.getVoltageLevel()
