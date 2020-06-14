@@ -173,7 +173,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void parallelNonImpedantBranchTest() {
+    void parallelNonImpedantBranchTest() {
         Network network = Network.create("ParallelNonImpedantBranch", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
@@ -189,7 +189,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void parallelNonImpedantAndImpedantBranchTest() {
+    void parallelNonImpedantAndImpedantBranchTest() {
         Network network = Network.create("ParallelNonImpedantAndImpedantBranch", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
@@ -205,7 +205,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void loopNonImpedantBranchTest() {
+    void loopNonImpedantBranchTest() {
         Network network = Network.create("LoopNonImpedantBranch", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
