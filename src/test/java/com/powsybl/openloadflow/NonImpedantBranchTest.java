@@ -103,7 +103,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b3, "l23", 0); // non impedant branch
         createLine(network, b3, b4, "l34", 0.05);
 
-        LoadFlowResult result = loadFlowRunner.run(network);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(1, b1);
         assertVoltageEquals(0.921, b2);
@@ -144,7 +144,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(Double.isNaN(l23.getTerminal1().getQ()));
         assertTrue(Double.isNaN(l23.getTerminal2().getQ()));
 
-        LoadFlowResult result = loadFlowRunner.run(network);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(1, b1);
         assertVoltageEquals(0.858, b2);
@@ -168,7 +168,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b3, "l23", 0.05);
         createLine(network, b3, b4, "l34", 0.05);
 
-        CompletionException exception = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network));
+        CompletionException exception = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
         assertEquals("Non impedant branch 'l12' is connected to PV buses 'b1_vl_0' and 'b2_vl_0' with inconsistent target voltages: 1.0 and 1.01", exception.getCause().getMessage());
     }
 
@@ -184,7 +184,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b3, "l23", 0); // non impedant branch
         createLine(network, b2, b3, "l23bis", 0); // non impedant branch
 
-        LoadFlowResult result = loadFlowRunner.run(network);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
     }
 
@@ -200,7 +200,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b3, "l23", 0.1);
         createLine(network, b2, b3, "l23bis", 0); // non impedant branch
 
-        LoadFlowResult result = loadFlowRunner.run(network);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
     }
 
@@ -216,7 +216,12 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b3, "l23", 0); // non impedant branch
         createLine(network, b1, b3, "l13", 0); // non impedant branch
 
-        LoadFlowResult result = loadFlowRunner.run(network);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        // also test that it works in DC mode
+        parametersExt.setDc(true);
+        result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
     }
 }

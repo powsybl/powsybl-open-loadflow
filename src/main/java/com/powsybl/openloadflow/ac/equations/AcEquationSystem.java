@@ -283,6 +283,7 @@ public final class AcEquationSystem {
     private static void createBranchEquations(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters,
                                               EquationSystem equationSystem) {
         List<LfBranch> nonImpedantBranches = new ArrayList<>();
+
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
