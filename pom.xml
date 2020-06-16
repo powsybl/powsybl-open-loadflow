@@ -45,6 +45,7 @@
         <commonscompress.version>1.19</commonscompress.version>
         <commonsio.version>2.5</commonsio.version>
         <jafama.version>2.3.1</jafama.version>
+        <jgrapht.version>1.0.1</jgrapht.version>
         <jimfs.version>1.1</jimfs.version>
         <junit-jupiter.version>5.5.2</junit-jupiter.version>
         <guava.version>27.0.1-jre</guava.version>
@@ -113,6 +114,11 @@
             <groupId>net.jafama</groupId>
             <artifactId>jafama</artifactId>
             <version>${jafama.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jgrapht</groupId>
+            <artifactId>jgrapht-core</artifactId>
+            <version>${jgrapht.version}</version>
         </dependency>
         <dependency>
             <groupId>org.usefultoys</groupId>

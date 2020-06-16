@@ -352,18 +352,20 @@ public class LfNetwork {
         }
     }
 
-    private static void validate(LfNetwork network) {
-        for (LfBranch branch : network.getBranches()) {
-            PiModel piModel = branch.getPiModel();
-            if (piModel.getZ() == 0) {
-                LfBus bus1 = branch.getBus1();
-                LfBus bus2 = branch.getBus2();
-                // ensure target voltages are consistent
-                if (bus1 != null && bus2 != null && bus1.hasVoltageControl() && bus2.hasVoltageControl()
-                        && FastMath.abs((bus1.getTargetV() / bus2.getTargetV()) - piModel.getR1() / PiModel.R2) > TARGET_VOLTAGE_EPSILON) {
-                    throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
-                            + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
-                            + bus1.getTargetV() + " and " + bus2.getTargetV());
+    private static void validate(LfNetwork network, boolean minImpedance) {
+        if (!minImpedance) {
+            for (LfBranch branch : network.getBranches()) {
+                PiModel piModel = branch.getPiModel();
+                if (Math.abs(piModel.getZ()) < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) { // will be transformed to non impedant branch
+                    LfBus bus1 = branch.getBus1();
+                    LfBus bus2 = branch.getBus2();
+                    // ensure target voltages are consistent
+                    if (bus1 != null && bus2 != null && bus1.hasVoltageControl() && bus2.hasVoltageControl()
+                            && FastMath.abs((bus1.getTargetV() / bus2.getTargetV()) - piModel.getR1() / PiModel.R2) > TARGET_VOLTAGE_EPSILON) {
+                        throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
+                                + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
+                                + bus1.getTargetV() + " and " + bus2.getTargetV());
+                    }
                 }
             }
         }
@@ -382,7 +384,7 @@ public class LfNetwork {
             if (lfNetworks != null) {
                 for (LfNetwork lfNetwork : lfNetworks) {
                     fix(lfNetwork, minImpedance);
-                    validate(lfNetwork);
+                    validate(lfNetwork, minImpedance);
                     lfNetwork.logSize();
                     lfNetwork.logBalance();
                 }
