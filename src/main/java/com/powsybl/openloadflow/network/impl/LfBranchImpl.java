@@ -77,6 +77,9 @@ public class LfBranchImpl extends AbstractLfBranch {
             }
 
             if (controlledSide != null) {
+
+                int currentPosition = ptc.getTapPosition();
+
                 List<PiModel> models = new ArrayList<>();
 
                 for (int position = ptc.getLowTapPosition(); position <= ptc.getHighTapPosition(); position++) {
@@ -98,6 +101,9 @@ public class LfBranchImpl extends AbstractLfBranch {
                             .setB2(b2)
                             .setR1(r1)
                             .setA1(a1));
+
+                    ptc.setTapPosition(currentPosition);
+
                 }
 
                 piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
