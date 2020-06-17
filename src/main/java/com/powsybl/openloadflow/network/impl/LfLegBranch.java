@@ -35,13 +35,16 @@ public class LfLegBranch extends AbstractLfBranch {
 
     private PhaseControl phaseControl;
 
+    private boolean specificCompatibility;
+
     protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
         super(bus1, bus0, piModel);
         this.twt = twt;
         this.leg = leg;
     }
 
-    public static LfLegBranch create(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
+    public static LfLegBranch create(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg,
+                                     boolean specificCompatibility) {
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(twt);
         Objects.requireNonNull(leg);
@@ -57,8 +60,10 @@ public class LfLegBranch extends AbstractLfBranch {
         PiModel piModel = new SimplePiModel()
                 .setR(Transformers.getR(leg) / zb)
                 .setX(Transformers.getX(leg) / zb)
-                .setG1(Transformers.getG1(leg) * zb)
-                .setB1(Transformers.getB1(leg) * zb)
+                .setG1(Transformers.getG1(leg, specificCompatibility) * zb)
+                .setG2(specificCompatibility ? Transformers.getG1(leg, specificCompatibility) * zb : 0)
+                .setB1(Transformers.getB1(leg, specificCompatibility) * zb)
+                .setB2(specificCompatibility ? Transformers.getB1(leg, specificCompatibility) * zb : 0)
                 .setR1(Transformers.getRatioLeg(twt, leg) / nominalV2 * nominalV1)
                 .setA1(Transformers.getAngleLeg(leg));
         return new LfLegBranch(bus1, bus0, piModel, twt, leg);

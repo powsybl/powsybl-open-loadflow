@@ -58,7 +58,7 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfBus bus1, LfBus bus2, double nominalV1,
-                                                  double nominalV2, double zb) {
+                                                  double nominalV2, double zb, boolean specificCompatibility) {
         PiModel piModel = null;
         PhaseControl phaseControl = null;
 
@@ -80,18 +80,22 @@ public class LfBranchImpl extends AbstractLfBranch {
                 List<PiModel> models = new ArrayList<>();
 
                 for (int position = ptc.getLowTapPosition(); position <= ptc.getHighTapPosition(); position++) {
-                    PhaseTapChangerStep step = ptc.getStep(position);
-                    double r = twt.getR() * (1 + step.getR() / 100) / zb;
-                    double x = twt.getX() * (1 + step.getX() / 100) / zb;
-                    double g1 = twt.getG() * (1 + step.getG() / 100) * zb;
-                    double b1 = twt.getB() * (1 + step.getB() / 100) * zb;
-                    double r1 = twt.getRatedU2() / twt.getRatedU1() * ptc.getCurrentStep().getRho() / nominalV2 * nominalV1;
-                    double a1 = Math.toRadians(step.getAlpha());
+                    ptc.setTapPosition(position);
+                    double r = Transformers.getR(twt) / zb;
+                    double x = Transformers.getX(twt) / zb;
+                    double g1 = Transformers.getG1(twt, specificCompatibility) * zb;
+                    double g2 = specificCompatibility ? g1 : 0;
+                    double b1 = Transformers.getB1(twt, specificCompatibility) * zb;
+                    double b2 = specificCompatibility ? b1 : 0;
+                    double r1 = Transformers.getRatio(twt) / nominalV2 * nominalV1;
+                    double a1 = Transformers.getAngle(twt);
                     models.add(new SimplePiModel()
                             .setR(r)
                             .setX(x)
                             .setG1(g1)
+                            .setG2(g2)
                             .setB1(b1)
+                            .setB2(b2)
                             .setR1(r1)
                             .setA1(a1));
                 }
@@ -110,8 +114,10 @@ public class LfBranchImpl extends AbstractLfBranch {
             piModel = new SimplePiModel()
                     .setR(Transformers.getR(twt) / zb)
                     .setX(Transformers.getX(twt) / zb)
-                    .setG1(Transformers.getG1(twt) * zb)
-                    .setB1(Transformers.getB1(twt) * zb)
+                    .setG1(Transformers.getG1(twt, specificCompatibility) * zb)
+                    .setG2(specificCompatibility ? Transformers.getG1(twt, specificCompatibility) * zb : 0)
+                    .setB1(Transformers.getB1(twt, specificCompatibility) * zb)
+                    .setB2(specificCompatibility ? Transformers.getB1(twt, specificCompatibility) * zb : 0)
                     .setR1(Transformers.getRatio(twt) / nominalV2 * nominalV1)
                     .setA1(Transformers.getAngle(twt));
         }
@@ -119,7 +125,7 @@ public class LfBranchImpl extends AbstractLfBranch {
         return new LfBranchImpl(bus1, bus2, piModel, phaseControl, twt);
     }
 
-    public static LfBranchImpl create(Branch branch, LfBus bus1, LfBus bus2) {
+    public static LfBranchImpl create(Branch branch, LfBus bus1, LfBus bus2, boolean specificCompatibility) {
         Objects.requireNonNull(branch);
         double nominalV1 = branch.getTerminal1().getVoltageLevel().getNominalV();
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
@@ -128,7 +134,7 @@ public class LfBranchImpl extends AbstractLfBranch {
             return createLine((Line) branch, bus1, bus2, zb);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-            return createTransformer(twt, bus1, bus2, nominalV1, nominalV2, zb);
+            return createTransformer(twt, bus1, bus2, nominalV1, nominalV2, zb, specificCompatibility);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }

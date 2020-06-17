@@ -370,15 +370,15 @@ public class LfNetwork {
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
-        return load(network, slackBusSelector, false, false);
+        return load(network, slackBusSelector, false, false, false);
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, boolean voltageRemoteControl,
-                                       boolean minImpedance) {
+                                       boolean minImpedance, boolean specificCompatibility) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(slackBusSelector);
         for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
-            List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, voltageRemoteControl).orElse(null);
+            List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, voltageRemoteControl, specificCompatibility).orElse(null);
             if (lfNetworks != null) {
                 for (LfNetwork lfNetwork : lfNetworks) {
                     fix(lfNetwork, minImpedance);
