@@ -339,6 +339,16 @@
                 <artifactId>powsybl-triple-store-impl-rdf4j</artifactId>
                 <version>${powsyblcore.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-matpower-converter</artifactId>
+                <version>${powsyblcore.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-psse-converter</artifactId>
+                <version>${powsyblcore.version}</version>
+            </dependency>
         </dependencies>
         </profile>
     </profiles>
