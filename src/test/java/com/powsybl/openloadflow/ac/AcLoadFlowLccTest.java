@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class AcLoadFlowLccTest {
+class AcLoadFlowLccTest {
 
     private Network network;
     private Bus bus1;
@@ -164,7 +164,7 @@ public class AcLoadFlowLccTest {
     }
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
@@ -176,7 +176,7 @@ public class AcLoadFlowLccTest {
     }
 
     @Test
-    public void test() {
+    void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 

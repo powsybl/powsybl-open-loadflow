@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DistributedSlackOnGenerationTest {
+class DistributedSlackOnGenerationTest {
 
     private Network network;
     private Generator g1;
@@ -42,7 +42,7 @@ public class DistributedSlackOnGenerationTest {
     private LoadFlowParameters parameters;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         network = DistributedSlackNetworkFactory.create();
         g1 = network.getGenerator("g1");
         g2 = network.getGenerator("g2");
@@ -58,7 +58,7 @@ public class DistributedSlackOnGenerationTest {
     }
 
     @Test
-    public void test() {
+    void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertActivePowerEquals(-115, g1.getTerminal());
@@ -78,7 +78,7 @@ public class DistributedSlackOnGenerationTest {
     }
 
     @Test
-    public void maxTest() {
+    void maxTest() {
         // decrease g1 max limit power, so that distributed slack algo reach the g1 max
         g1.setMaxP(105);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -90,7 +90,7 @@ public class DistributedSlackOnGenerationTest {
     }
 
     @Test
-    public void minTest() {
+    void minTest() {
         // increase g1 min limit power and global load so that distributed slack algo reach the g1 min
         g1.setMinP(90);
         network.getLoad("l1").setP0(400);
@@ -104,7 +104,7 @@ public class DistributedSlackOnGenerationTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void zeroParticipatingGeneratorsTest() {
+    void zeroParticipatingGeneratorsTest() {
         g1.getExtension(ActivePowerControl.class).setDroop(2);
         g2.getExtension(ActivePowerControl.class).setDroop(-3);
         g3.getExtension(ActivePowerControl.class).setDroop(0);
@@ -115,7 +115,7 @@ public class DistributedSlackOnGenerationTest {
     }
 
     @Test
-    public void notEnoughActivePowerFailureTest() {
+    void notEnoughActivePowerFailureTest() {
         network.getLoad("l1").setP0(1000);
         assertThrows(CompletionException.class,
             () -> loadFlowRunner.run(network, parameters),

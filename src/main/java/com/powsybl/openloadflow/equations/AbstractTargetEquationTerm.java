@@ -50,7 +50,7 @@ public abstract class AbstractTargetEquationTerm implements EquationTerm {
     }
 
     @Override
-    public double rhs(Variable variable) {
+    public double rhs() {
         return 0;
     }
 

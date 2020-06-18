@@ -61,12 +61,8 @@ public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public double rhs(Variable variable) {
-        Objects.requireNonNull(variable);
-        if (variable.equals(ph2Var)) {
-            return power * (A2 - a1);
-        }
-        return 0;
+    public double rhs() {
+        return power * (A2 - a1);
     }
 
     @Override

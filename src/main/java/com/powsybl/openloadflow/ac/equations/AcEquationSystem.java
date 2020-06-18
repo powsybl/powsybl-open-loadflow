@@ -10,6 +10,10 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
+import org.jgrapht.Graph;
+import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
+import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
+import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,16 +89,24 @@ public final class AcEquationSystem {
     private static List<EquationTerm> createReactiveTerms(LfBus controllerBus, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {
         List<EquationTerm> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
-            boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
             EquationTerm q;
-            if (branch.getBus1() == controllerBus) {
-                LfBus otherSideBus = branch.getBus2();
-                q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1)
-                                         : new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
+            if (isNonImpedantBranch(branch)) {
+                if (branch.getBus1() == controllerBus) {
+                    q = new DummyReactivePowerEquationTerm(branch, variableSet);
+                } else {
+                    q = EquationTerm.multiply(new DummyReactivePowerEquationTerm(branch, variableSet), -1);
+                }
             } else {
-                LfBus otherSideBus = branch.getBus1();
-                q = otherSideBus != null ? new ClosedBranchSide2ReactiveFlowEquationTerm(branch, otherSideBus, controllerBus, variableSet, deriveA1)
-                                         : new OpenBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
+                boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+                if (branch.getBus1() == controllerBus) {
+                    LfBus otherSideBus = branch.getBus2();
+                    q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1)
+                                             : new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
+                } else {
+                    LfBus otherSideBus = branch.getBus1();
+                    q = otherSideBus != null ? new ClosedBranchSide2ReactiveFlowEquationTerm(branch, otherSideBus, controllerBus, variableSet, deriveA1)
+                                             : new OpenBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
+                }
             }
             terms.add(q);
         }
@@ -263,18 +275,39 @@ public final class AcEquationSystem {
         }
     }
 
+    private static boolean isNonImpedantBranch(LfBranch branch) {
+        PiModel piModel = branch.getPiModel();
+        return piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
+    }
+
     private static void createBranchEquations(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters,
                                               EquationSystem equationSystem) {
+        List<LfBranch> nonImpedantBranches = new ArrayList<>();
+
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            PiModel piModel = branch.getPiModel();
-            if (piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
+            if (isNonImpedantBranch(branch)) {
                 if (bus1 != null && bus2 != null) {
-                    createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
+                    nonImpedantBranches.add(branch);
                 }
             } else {
                 createImpedantBranch(branch, bus1, bus2, variableSet, creationParameters, equationSystem);
+            }
+        }
+
+        // create non impedant equations only on minimum spanning forest calculated from non impedant subgraph
+        if (!nonImpedantBranches.isEmpty()) {
+            Graph<LfBus, LfBranch> nonImpedantSubGraph = new Pseudograph<>(LfBranch.class);
+            for (LfBranch branch : nonImpedantBranches) {
+                nonImpedantSubGraph.addVertex(branch.getBus1());
+                nonImpedantSubGraph.addVertex(branch.getBus2());
+                nonImpedantSubGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
+            }
+
+            SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(nonImpedantSubGraph).getSpanningTree();
+            for (LfBranch branch : spanningTree.getEdges()) {
+                createNonImpedantBranch(variableSet, equationSystem, branch, branch.getBus1(), branch.getBus2());
             }
         }
     }

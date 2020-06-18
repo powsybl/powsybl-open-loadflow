@@ -325,16 +325,6 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
-    public double getV() {
-        return v / nominalV;
-    }
-
-    @Override
-    public void setV(double v) {
-        this.v = v * nominalV;
-    }
-
-    @Override
     public double getAngle() {
         return angle;
     }

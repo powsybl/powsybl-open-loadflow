@@ -14,8 +14,8 @@ import java.util.List;
  */
 public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
 
-    protected AbstractFictitiousLfBus() {
-        super(Double.NaN, Double.NaN);
+    protected AbstractFictitiousLfBus(double v, double angle) {
+        super(v, angle);
     }
 
     @Override
@@ -106,10 +106,5 @@ public abstract class AbstractFictitiousLfBus extends AbstractLfBus {
     @Override
     public List<LfGenerator> getGenerators() {
         return Collections.emptyList();
-    }
-
-    @Override
-    public void updateState(boolean reactiveLimits) {
-        // nothing to update
     }
 }
