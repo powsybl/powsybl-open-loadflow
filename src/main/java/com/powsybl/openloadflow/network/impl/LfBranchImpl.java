@@ -77,21 +77,17 @@ public class LfBranchImpl extends AbstractLfBranch {
             }
 
             if (controlledSide != null) {
-
-                int currentPosition = ptc.getTapPosition();
-
+                int rtcPosition = twt.getRatioTapChanger() != null ? twt.getRatioTapChanger().getTapPosition() : -1;
                 List<PiModel> models = new ArrayList<>();
-
-                for (int position = ptc.getLowTapPosition(); position <= ptc.getHighTapPosition(); position++) {
-                    ptc.setTapPosition(position);
-                    double r = Transformers.getR(twt) / zb;
-                    double x = Transformers.getX(twt) / zb;
-                    double g1 = Transformers.getG1(twt, specificCompatibility) * zb;
+                for (int ptcPosition = ptc.getLowTapPosition(); ptcPosition <= ptc.getHighTapPosition(); ptcPosition++) {
+                    double r = Transformers.getR(twt, rtcPosition, ptcPosition) / zb;
+                    double x = Transformers.getX(twt, rtcPosition, ptcPosition) / zb;
+                    double g1 = Transformers.getG1(twt, rtcPosition, ptcPosition, specificCompatibility) * zb;
                     double g2 = specificCompatibility ? g1 : 0;
-                    double b1 = Transformers.getB1(twt, specificCompatibility) * zb;
+                    double b1 = Transformers.getB1(twt, rtcPosition, ptcPosition, specificCompatibility) * zb;
                     double b2 = specificCompatibility ? b1 : 0;
-                    double r1 = Transformers.getRatio(twt) / nominalV2 * nominalV1;
-                    double a1 = Transformers.getAngle(twt);
+                    double r1 = Transformers.getRatio(twt, rtcPosition, ptcPosition) / nominalV2 * nominalV1;
+                    double a1 = Transformers.getAngle(twt, ptcPosition);
                     models.add(new SimplePiModel()
                             .setR(r)
                             .setX(x)
@@ -101,11 +97,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                             .setB2(b2)
                             .setR1(r1)
                             .setA1(a1));
-
-                    ptc.setTapPosition(currentPosition);
-
                 }
-
                 piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
 
                 if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
