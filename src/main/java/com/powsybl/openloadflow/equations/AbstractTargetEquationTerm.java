@@ -10,18 +10,34 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public abstract class AbstractTargetEquationTerm implements EquationTerm {
 
+    private Equation equation;
+
+    private final Variable var;
+
     private final List<Variable> variables;
 
     private double target;
 
     protected AbstractTargetEquationTerm(int num, VariableType variableType, VariableSet variableSet) {
-        variables = Collections.singletonList(variableSet.getVariable(num, variableType));
+        var = variableSet.getVariable(num, variableType);
+        variables = Collections.singletonList(var);
+    }
+
+    @Override
+    public Equation getEquation() {
+        return equation;
+    }
+
+    @Override
+    public void setEquation(Equation equation) {
+        this.equation = Objects.requireNonNull(equation);
     }
 
     @Override
@@ -31,7 +47,7 @@ public abstract class AbstractTargetEquationTerm implements EquationTerm {
 
     @Override
     public void update(double[] x) {
-        target = x[variables.get(0).getColumn()];
+        target = x[var.getColumn()];
     }
 
     @Override
@@ -56,6 +72,6 @@ public abstract class AbstractTargetEquationTerm implements EquationTerm {
 
     @Override
     public void write(Writer writer) throws IOException {
-        variables.get(0).write(writer);
+        var.write(writer);
     }
 }

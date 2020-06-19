@@ -9,11 +9,24 @@ package com.powsybl.openloadflow.equations;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Iterator;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public abstract class AbstractEquationTerm implements EquationTerm {
+
+    private Equation equation;
+
+    @Override
+    public Equation getEquation() {
+        return equation;
+    }
+
+    @Override
+    public void setEquation(Equation equation) {
+        this.equation = Objects.requireNonNull(equation);
+    }
 
     protected abstract String getName();
 

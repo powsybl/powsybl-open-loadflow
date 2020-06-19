@@ -54,12 +54,16 @@ public class EquationSystem {
                 sortedEquationsToSolve.remove(equation);
                 for (EquationTerm equationTerm : equation.getTerms()) {
                     for (Variable variable : equationTerm.getVariables()) {
-                        NavigableMap<Equation, List<EquationTerm>> equationTermsForThisVariable = sortedVariablesToFind.get(variable);
-                        if (equationTermsForThisVariable != null) {
-                            equationTermsForThisVariable.remove(equation);
-                            if (equationTermsForThisVariable.isEmpty()) {
-                                sortedVariablesToFind.remove(variable);
+                        if (variable.isActive()) {
+                            NavigableMap<Equation, List<EquationTerm>> equationTermsForThisVariable = sortedVariablesToFind.get(variable);
+                            if (equationTermsForThisVariable != null) {
+                                equationTermsForThisVariable.remove(equation);
+                                if (equationTermsForThisVariable.isEmpty()) {
+                                    sortedVariablesToFind.remove(variable);
+                                }
                             }
+                        } else {
+                            sortedVariablesToFind.remove(variable);
                         }
                     }
                 }
@@ -70,9 +74,11 @@ public class EquationSystem {
                 sortedEquationsToSolve.add(equation);
                 for (EquationTerm equationTerm : equation.getTerms()) {
                     for (Variable variable : equationTerm.getVariables()) {
-                        sortedVariablesToFind.computeIfAbsent(variable, k -> new TreeMap<>())
-                                .computeIfAbsent(equation, k -> new ArrayList<>())
-                                .add(equationTerm);
+                        if (variable.isActive()) {
+                            sortedVariablesToFind.computeIfAbsent(variable, k -> new TreeMap<>())
+                                    .computeIfAbsent(equation, k -> new ArrayList<>())
+                                    .add(equationTerm);
+                        }
                     }
                 }
             }
@@ -105,6 +111,8 @@ public class EquationSystem {
                     equationsToAdd.remove(equation);
                     break;
                 case EQUATION_UPDATED:
+                case VARIABLE_ACTIVATED:
+                case VARIABLE_DEACTIVATED:
                     // no need to replace the equation if not yet activated
                     if (equation.isActive()) {
                         if (!sortedEquationsToSolve.isEmpty()) { // not need to remove if not already indexed
@@ -164,6 +172,12 @@ public class EquationSystem {
         Equation equation = equations.remove(p);
         if (equation != null) {
             notifyListeners(equation, EquationEventType.EQUATION_REMOVED);
+            // remove variable -> equation term link
+            for (EquationTerm term : equation.getTerms()) {
+                for (Variable var : term.getVariables()) {
+                    var.removeEquationTerm(term);
+                }
+            }
         }
         return equation;
     }
@@ -172,6 +186,12 @@ public class EquationSystem {
         Equation equation = new Equation(p.getLeft(), p.getRight(), EquationSystem.this);
         equations.put(p, equation);
         notifyListeners(equation, EquationEventType.EQUATION_CREATED);
+        // create variable -> equation term link
+        for (EquationTerm term : equation.getTerms()) {
+            for (Variable var : term.getVariables()) {
+                var.addEquationTerm(term);
+            }
+        }
         return equation;
     }
 

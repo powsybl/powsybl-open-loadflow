@@ -10,6 +10,8 @@ import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -25,6 +27,8 @@ public class Variable implements Comparable<Variable> {
     private final VariableType type;
 
     private int column = -1;
+
+    private final List<EquationTerm> equationTerms = new ArrayList<>();
 
     /**
      * true if this variable is active, false otherwise
@@ -52,13 +56,28 @@ public class Variable implements Comparable<Variable> {
         this.column = column;
     }
 
+    public void addEquationTerm(EquationTerm equationTerm) {
+        Objects.requireNonNull(equationTerm);
+        equationTerms.add(equationTerm);
+    }
+
+    public void removeEquationTerm(EquationTerm equationTerm) {
+        Objects.requireNonNull(equationTerm);
+        equationTerms.remove(equationTerm);
+    }
+
     public boolean isActive() {
         return active;
     }
 
     public void setActive(boolean active) {
-        // FIXME invalidate equation system cache
-        this.active = active;
+        if (this.active != active) {
+            this.active = active;
+            for (EquationTerm equationTerm : equationTerms) {
+                Equation equation = equationTerm.getEquation();
+                equation.getEquationSystem().notifyListeners(equation, active ? EquationEventType.VARIABLE_ACTIVATED : EquationEventType.VARIABLE_DEACTIVATED);
+            }
+        }
     }
 
     void initState(VoltageInitializer initializer, LfNetwork network, double[] x) {

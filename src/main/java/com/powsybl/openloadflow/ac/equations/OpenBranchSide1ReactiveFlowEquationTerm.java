@@ -12,6 +12,8 @@ import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 import static com.powsybl.openloadflow.network.PiModel.R2;
@@ -23,13 +25,21 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenBranchA
 
     private final Variable v2Var;
 
+    private final List<Variable> variables;
+
     private double q2;
 
     private double dq2dv2;
 
     public OpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, VariableSet variableSet) {
-        super(branch, VariableType.BUS_V, bus2, variableSet);
+        super(branch);
         v2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_V);
+        variables = Collections.singletonList(v2Var);
+    }
+
+    @Override
+    public List<Variable> getVariables() {
+        return variables;
     }
 
     @Override

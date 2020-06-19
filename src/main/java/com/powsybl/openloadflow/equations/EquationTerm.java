@@ -32,6 +32,16 @@ public interface EquationTerm extends Evaluable {
         }
 
         @Override
+        public Equation getEquation() {
+            return term.getEquation();
+        }
+
+        @Override
+        public void setEquation(Equation equation) {
+            term.setEquation(equation);
+        }
+
+        @Override
         public List<Variable> getVariables() {
             return term.getVariables();
         }
@@ -72,6 +82,10 @@ public interface EquationTerm extends Evaluable {
     static EquationTerm multiply(EquationTerm term, double scalar) {
         return new MultiplyByScalarEquationTerm(term, scalar);
     }
+
+    Equation getEquation();
+
+    void setEquation(Equation equation);
 
     /**
      * Get the list of variable this equation term depends on.
