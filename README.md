@@ -41,13 +41,11 @@ sparse linear solver. Linux, Windows and MacOS are supported.
 ## Native builds
 
 A native build (no need to Java runtime) can be download here:
-
 - [Linux](https://github.com/powsybl/powsybl-open-loadflow/releases/download/v0.4.0/olf-linux-0.4.0.zip)
 - [MacOS](https://github.com/powsybl/powsybl-open-loadflow/releases/download/v0.4.0/olf-darwin-0.4.0.zip)
 - [Windows](https://github.com/powsybl/powsybl-open-loadflow/releases/download/v0.4.0/olf-windows-0.4.0.zip)
 
 To run Open Load Flow on file ieee14cdf.txt :
-
 ```bash
 $ olf loadflow --case-file ieee14cdf.txt
 Loading network 'ieee14cdf.txt'
@@ -58,7 +56,6 @@ loadflow results:
 | true   | {network_0_iterations=3, network_0_status=CONVERGED} |
 +--------+------------------------------------------------------+
 ```
-
 
 ## Getting started
 
