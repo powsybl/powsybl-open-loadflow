@@ -49,18 +49,25 @@ public class LfDanglingLineBus extends AbstractFictitiousLfBus {
 
     @Override
     public double getGenerationTargetQ() {
-        return !Double.isNaN(danglingLine.getGeneratorTargetQ()) ? danglingLine.getGeneratorTargetP() / PerUnit.SB : 0;
+        return !Double.isNaN(danglingLine.getGeneratorTargetQ()) ? danglingLine.getGeneratorTargetQ() / PerUnit.SB : 0;
+    }
+
+    @Override
+    public double getMinQ() {
+        return danglingLine.getReactiveLimits().getMinQ(danglingLine.getGeneratorTargetP()); }
+
+    @Override
+    public double getMaxQ() {
+        return danglingLine.getReactiveLimits().getMaxQ(danglingLine.getGeneratorTargetP());
     }
 
     @Override
     public double getTargetV() {
-        return danglingLine.getGeneratorTargetV();
-    }
+        return danglingLine.getGeneratorTargetV() / nominalV; }
 
     @Override
     public boolean hasVoltageControl() {
-        return danglingLine.isGeneratorVoltageRegulationOn();
-    }
+        return danglingLine.isGeneratorVoltageRegulationOn(); }
 
     @Override
     public double getNominalV() {
