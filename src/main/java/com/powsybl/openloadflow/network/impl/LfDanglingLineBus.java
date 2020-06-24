@@ -25,6 +25,18 @@ public class LfDanglingLineBus extends AbstractLfBus {
         nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
         loadTargetP += danglingLine.getP0();
         loadTargetQ += danglingLine.getQ0();
+        if (danglingLine.isGeneratorVoltageRegulationOn()) {
+            this.targetV = danglingLine.getGeneratorTargetV();
+            this.voltageControl = true;
+            this.voltageControlCapacility = true;
+        } else {
+            if (!Double.isNaN(danglingLine.getGeneratorTargetQ())) {
+                generationTargetQ += danglingLine.getGeneratorTargetQ();
+            }
+        }
+        if (!Double.isNaN(danglingLine.getGeneratorTargetP())) {
+            generators.add(new LfDanglingLineGenerator(danglingLine));
+        }
     }
 
     @Override
