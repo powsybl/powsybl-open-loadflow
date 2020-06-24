@@ -209,6 +209,7 @@
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-iidm-impl</artifactId>
             <version>${powsyblcore.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
