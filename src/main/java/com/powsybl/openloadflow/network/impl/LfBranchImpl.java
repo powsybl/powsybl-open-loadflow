@@ -58,7 +58,7 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfBus bus1, LfBus bus2, double nominalV1,
-                                                  double nominalV2, double zb, boolean specificCompatibility) {
+                                                  double nominalV2, double zb, boolean twtSplitShuntAdmittance) {
         PiModel piModel = null;
         PhaseControl phaseControl = null;
 
@@ -82,10 +82,10 @@ public class LfBranchImpl extends AbstractLfBranch {
                 for (int ptcPosition = ptc.getLowTapPosition(); ptcPosition <= ptc.getHighTapPosition(); ptcPosition++) {
                     double r = Transformers.getR(twt, rtcPosition, ptcPosition) / zb;
                     double x = Transformers.getX(twt, rtcPosition, ptcPosition) / zb;
-                    double g1 = Transformers.getG1(twt, rtcPosition, ptcPosition, specificCompatibility) * zb;
-                    double g2 = specificCompatibility ? g1 : 0;
-                    double b1 = Transformers.getB1(twt, rtcPosition, ptcPosition, specificCompatibility) * zb;
-                    double b2 = specificCompatibility ? b1 : 0;
+                    double g1 = Transformers.getG1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                    double g2 = twtSplitShuntAdmittance ? g1 : 0;
+                    double b1 = Transformers.getB1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                    double b2 = twtSplitShuntAdmittance ? b1 : 0;
                     double r1 = Transformers.getRatio(twt, rtcPosition, ptcPosition) / nominalV2 * nominalV1;
                     double a1 = Transformers.getAngle(twt, ptcPosition);
                     models.add(new SimplePiModel()
@@ -112,10 +112,10 @@ public class LfBranchImpl extends AbstractLfBranch {
             piModel = new SimplePiModel()
                     .setR(Transformers.getR(twt) / zb)
                     .setX(Transformers.getX(twt) / zb)
-                    .setG1(Transformers.getG1(twt, specificCompatibility) * zb)
-                    .setG2(specificCompatibility ? Transformers.getG1(twt, specificCompatibility) * zb : 0)
-                    .setB1(Transformers.getB1(twt, specificCompatibility) * zb)
-                    .setB2(specificCompatibility ? Transformers.getB1(twt, specificCompatibility) * zb : 0)
+                    .setG1(Transformers.getG1(twt, twtSplitShuntAdmittance) * zb)
+                    .setG2(twtSplitShuntAdmittance ? Transformers.getG1(twt, twtSplitShuntAdmittance) * zb : 0)
+                    .setB1(Transformers.getB1(twt, twtSplitShuntAdmittance) * zb)
+                    .setB2(twtSplitShuntAdmittance ? Transformers.getB1(twt, twtSplitShuntAdmittance) * zb : 0)
                     .setR1(Transformers.getRatio(twt) / nominalV2 * nominalV1)
                     .setA1(Transformers.getAngle(twt));
         }
@@ -123,7 +123,7 @@ public class LfBranchImpl extends AbstractLfBranch {
         return new LfBranchImpl(bus1, bus2, piModel, phaseControl, twt);
     }
 
-    public static LfBranchImpl create(Branch branch, LfBus bus1, LfBus bus2, boolean specificCompatibility) {
+    public static LfBranchImpl create(Branch branch, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance) {
         Objects.requireNonNull(branch);
         double nominalV1 = branch.getTerminal1().getVoltageLevel().getNominalV();
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
@@ -132,7 +132,7 @@ public class LfBranchImpl extends AbstractLfBranch {
             return createLine((Line) branch, bus1, bus2, zb);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-            return createTransformer(twt, bus1, bus2, nominalV1, nominalV2, zb, specificCompatibility);
+            return createTransformer(twt, bus1, bus2, nominalV1, nominalV2, zb, twtSplitShuntAdmittance);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }

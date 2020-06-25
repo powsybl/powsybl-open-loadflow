@@ -38,12 +38,12 @@ public class AcLoadFlowParameters {
 
     private final boolean minImpedance;
 
-    private final boolean specificCompatibility;
+    private final boolean twtSplitShuntAdmittance;
 
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
                                 MatrixFactory matrixFactory, AcLoadFlowObserver observer, boolean voltageRemoteControl,
-                                boolean phaseControl, boolean minImpedance, boolean specificCompatibility) {
+                                boolean phaseControl, boolean minImpedance, boolean twtSplitShuntAdmittance) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -53,7 +53,7 @@ public class AcLoadFlowParameters {
         this.voltageRemoteControl = voltageRemoteControl;
         this.phaseControl = phaseControl;
         this.minImpedance = minImpedance;
-        this.specificCompatibility = specificCompatibility;
+        this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -92,7 +92,7 @@ public class AcLoadFlowParameters {
         return minImpedance;
     }
 
-    public boolean isSpecificCompatibility() {
-        return specificCompatibility;
+    public boolean isTwtSplitShuntAdmittance() {
+        return twtSplitShuntAdmittance;
     }
 }

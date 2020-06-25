@@ -48,7 +48,7 @@ public class AcloadFlowEngine {
         parameters.getObserver().beforeNetworksCreation();
 
         networks = LfNetwork.load(network, parameters.getSlackBusSelector(), parameters.isVoltageRemoteControl(),
-                parameters.isMinImpedance(), parameters.isSpecificCompatibility());
+                parameters.isMinImpedance(), parameters.isTwtSplitShuntAdmittance());
 
         parameters.getObserver().afterNetworksCreation(networks);
     }

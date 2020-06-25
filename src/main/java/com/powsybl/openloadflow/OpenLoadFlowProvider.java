@@ -122,7 +122,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
             LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
             LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
-            LOGGER.info("Split shunt admittance: {}", parameters.isSpecificCompatibility());
+            LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
 
             List<OuterLoop> outerLoops = new ArrayList<>();
             if (parametersExt.isDistributedSlack()) {
@@ -151,7 +151,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     parametersExt.hasVoltageRemoteControl(),
                     parameters.isPhaseShifterRegulationOn(),
                     parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
-                    parameters.isSpecificCompatibility());
+                    parameters.isTwtSplitShuntAdmittance());
 
             List<AcLoadFlowResult> results = new AcloadFlowEngine(network, acParameters)
                     .run();

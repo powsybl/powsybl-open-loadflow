@@ -185,11 +185,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     private static void createBranches(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkLoadingReport report,
-                                       boolean specificCompatibility) {
+                                       boolean twtSplitShuntAdmittance) {
         for (Branch branch : loadingContext.branchSet) {
             LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork);
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork);
-            addBranch(lfNetwork, LfBranchImpl.create(branch, lfBus1, lfBus2, specificCompatibility), report);
+            addBranch(lfNetwork, LfBranchImpl.create(branch, lfBus1, lfBus2, twtSplitShuntAdmittance), report);
         }
 
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
@@ -205,9 +205,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork);
             LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork);
             LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork);
-            addBranch(lfNetwork, LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1(), specificCompatibility), report);
-            addBranch(lfNetwork, LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2(), specificCompatibility), report);
-            addBranch(lfNetwork, LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3(), specificCompatibility), report);
+            addBranch(lfNetwork, LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1(), twtSplitShuntAdmittance), report);
+            addBranch(lfNetwork, LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2(), twtSplitShuntAdmittance), report);
+            addBranch(lfNetwork, LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3(), twtSplitShuntAdmittance), report);
         }
     }
 
@@ -217,7 +217,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     private static LfNetwork create(MutableInt num, List<Bus> buses, SlackBusSelector slackBusSelector, boolean voltageRemoteControl,
-                                    boolean specificCompatibility) {
+                                    boolean twtSplitShuntAdmittance) {
         LfNetwork lfNetwork = new LfNetwork(num.getValue(), slackBusSelector);
         num.increment();
 
@@ -225,7 +225,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
 
         createBuses(buses, voltageRemoteControl, lfNetwork, loadingContext, report);
-        createBranches(lfNetwork, loadingContext, report, specificCompatibility);
+        createBranches(lfNetwork, loadingContext, report, twtSplitShuntAdmittance);
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             LOGGER.warn("{} generators have been discarded from voltage control because not started",
@@ -260,7 +260,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     @Override
     public Optional<List<LfNetwork>> load(Object network, SlackBusSelector slackBusSelector, boolean voltageRemoteControl,
-                                          boolean specificCompatibility) {
+                                          boolean twtSplitShuntAdmittance) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(slackBusSelector);
 
@@ -279,7 +279,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             MutableInt num = new MutableInt(0);
             List<LfNetwork> lfNetworks = buseByCc.entrySet().stream()
                     .filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
-                    .map(e -> create(num, e.getValue(), slackBusSelector, voltageRemoteControl, specificCompatibility))
+                    .map(e -> create(num, e.getValue(), slackBusSelector, voltageRemoteControl, twtSplitShuntAdmittance))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 

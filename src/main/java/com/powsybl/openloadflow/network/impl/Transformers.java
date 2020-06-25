@@ -152,23 +152,23 @@ public final class Transformers {
     /**
      * Get the nominal magnetizing conductance of a two windings transformer, located on side 2.
      */
-    public static double getG1(TwoWindingsTransformer twt, boolean specificCompatibility) {
-        return getG1(twt, getCurrentPosition(twt.getRatioTapChanger()), getCurrentPosition(twt.getPhaseTapChanger()), specificCompatibility);
+    public static double getG1(TwoWindingsTransformer twt, boolean twtSplitShuntAdmittance) {
+        return getG1(twt, getCurrentPosition(twt.getRatioTapChanger()), getCurrentPosition(twt.getPhaseTapChanger()), twtSplitShuntAdmittance);
     }
 
-    public static double getG1(TwoWindingsTransformer twt, int rtcPosition, int ptcPosition, boolean specificCompatibility) {
-        return getG1(specificCompatibility ? twt.getG() / 2 : twt.getG(), twt.getRatioTapChanger(), twt.getPhaseTapChanger(), rtcPosition, ptcPosition);
+    public static double getG1(TwoWindingsTransformer twt, int rtcPosition, int ptcPosition, boolean twtSplitShuntAdmittance) {
+        return getG1(twtSplitShuntAdmittance ? twt.getG() / 2 : twt.getG(), twt.getRatioTapChanger(), twt.getPhaseTapChanger(), rtcPosition, ptcPosition);
     }
 
     /**
      * Get the nominal magnetizing conductance of a three windings transformer, located on bus star side.
      */
-    public static double getG1(ThreeWindingsTransformer.Leg leg, boolean specificCompatibility) {
-        return getG1(leg, getCurrentPosition(leg.getRatioTapChanger()), getCurrentPosition(leg.getPhaseTapChanger()), specificCompatibility);
+    public static double getG1(ThreeWindingsTransformer.Leg leg, boolean twtSplitShuntAdmittance) {
+        return getG1(leg, getCurrentPosition(leg.getRatioTapChanger()), getCurrentPosition(leg.getPhaseTapChanger()), twtSplitShuntAdmittance);
     }
 
-    public static double getG1(ThreeWindingsTransformer.Leg leg, int rtcPosition, int ptcPosition, boolean specificCompatibility) {
-        return getG1(specificCompatibility ? leg.getG() / 2 : leg.getG(), leg.getRatioTapChanger(), leg.getPhaseTapChanger(), rtcPosition, ptcPosition);
+    public static double getG1(ThreeWindingsTransformer.Leg leg, int rtcPosition, int ptcPosition, boolean twtSplitShuntAdmittance) {
+        return getG1(twtSplitShuntAdmittance ? leg.getG() / 2 : leg.getG(), leg.getRatioTapChanger(), leg.getPhaseTapChanger(), rtcPosition, ptcPosition);
     }
 
     public static double getG1(TwoWindingsTransformer twt) {
@@ -188,23 +188,23 @@ public final class Transformers {
     /**
      * Get the nominal magnetizing susceptance of a two windings transformer, located on side 2.
      */
-    public static double getB1(TwoWindingsTransformer twt, boolean specificCompatibility) {
-        return getB1(twt, getCurrentPosition(twt.getRatioTapChanger()), getCurrentPosition(twt.getPhaseTapChanger()), specificCompatibility);
+    public static double getB1(TwoWindingsTransformer twt, boolean twtSplitShuntAdmittance) {
+        return getB1(twt, getCurrentPosition(twt.getRatioTapChanger()), getCurrentPosition(twt.getPhaseTapChanger()), twtSplitShuntAdmittance);
     }
 
-    public static double getB1(TwoWindingsTransformer twt, int rtcPosition, int ptcPosition, boolean specificCompatibility) {
-        return getB1(specificCompatibility ? twt.getB() / 2 : twt.getB(), twt.getRatioTapChanger(), twt.getPhaseTapChanger(), rtcPosition, ptcPosition);
+    public static double getB1(TwoWindingsTransformer twt, int rtcPosition, int ptcPosition, boolean twtSplitShuntAdmittance) {
+        return getB1(twtSplitShuntAdmittance ? twt.getB() / 2 : twt.getB(), twt.getRatioTapChanger(), twt.getPhaseTapChanger(), rtcPosition, ptcPosition);
     }
 
     /**
      * Get the nominal magnetizing susceptance of a three windings transformer, located on bus star side.
      */
-    public static double getB1(ThreeWindingsTransformer.Leg leg, boolean specificCompatibility) {
-        return getB1(leg, getCurrentPosition(leg.getRatioTapChanger()), getCurrentPosition(leg.getPhaseTapChanger()), specificCompatibility);
+    public static double getB1(ThreeWindingsTransformer.Leg leg, boolean twtSplitShuntAdmittance) {
+        return getB1(leg, getCurrentPosition(leg.getRatioTapChanger()), getCurrentPosition(leg.getPhaseTapChanger()), twtSplitShuntAdmittance);
     }
 
-    public static double getB1(ThreeWindingsTransformer.Leg leg, int rtcPosition, int ptcPosition, boolean specificCompatibility) {
-        return getB1(specificCompatibility ? leg.getB() / 2 : leg.getB(), leg.getRatioTapChanger(), leg.getPhaseTapChanger(), rtcPosition, ptcPosition);
+    public static double getB1(ThreeWindingsTransformer.Leg leg, int rtcPosition, int ptcPosition, boolean twtSplitShuntAdmittance) {
+        return getB1(twtSplitShuntAdmittance ? leg.getB() / 2 : leg.getB(), leg.getRatioTapChanger(), leg.getPhaseTapChanger(), rtcPosition, ptcPosition);
     }
 
     public static double getB1(TwoWindingsTransformer twt) {
