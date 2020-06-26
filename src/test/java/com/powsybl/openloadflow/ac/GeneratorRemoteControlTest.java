@@ -278,9 +278,11 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setId("l")
                 .setBus(b1.getId())
                 .setConnectableBus(b1.getId())
-                .setbPerSection(Math.pow(10, -2))
-                .setMaximumSectionCount(1)
-                .setCurrentSectionCount(1)
+                .setSectionCount(1)
+                .newLinearModel()
+                    .setBPerSection(Math.pow(10, -2))
+                    .setMaximumSectionCount(1)
+                    .add()
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
