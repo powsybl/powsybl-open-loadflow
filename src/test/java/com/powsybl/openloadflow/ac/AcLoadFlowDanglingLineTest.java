@@ -29,6 +29,7 @@ class AcLoadFlowDanglingLineTest {
     private Bus bus1;
     private Bus bus2;
     private DanglingLine dl1;
+    private Generator g1;
 
     private LoadFlow.Runner loadFlowRunner;
 
@@ -50,7 +51,7 @@ class AcLoadFlowDanglingLineTest {
         bus1 = vl1.getBusBreakerView().newBus()
                 .setId("b1")
                 .add();
-        vl1.newGenerator()
+        g1 = vl1.newGenerator()
                 .setId("g1")
                 .setConnectableBus("b1")
                 .setBus("b1")
@@ -118,5 +119,22 @@ class AcLoadFlowDanglingLineTest {
         assertAngleEquals(0, bus2);
         assertActivePowerEquals(101, dl1.getTerminal());
         assertReactivePowerEquals(150, dl1.getTerminal());
+    }
+
+    @Test
+    void testWithVoltageRegulationOn() {
+        g1.setTargetQ(0);
+        g1.setVoltageRegulatorOn(false);
+        dl1.setGeneratorTargetV(390);
+        dl1.setGeneratorVoltageRegulationOn(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(390.440, bus1);
+        assertAngleEquals(0.114371, bus1);
+        assertVoltageEquals(390.181, bus2);
+        assertAngleEquals(0, bus2);
+        assertActivePowerEquals(101, dl1.getTerminal());
+        assertReactivePowerEquals(0.187604, dl1.getTerminal());
     }
 }
