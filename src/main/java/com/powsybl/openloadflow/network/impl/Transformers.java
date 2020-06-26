@@ -42,7 +42,7 @@ public final class Transformers {
     }
 
     private static int getCurrentPosition(RatioTapChanger rtc) {
-        return rtc != null ? rtc.getTapPosition() : -1;
+        return rtc != null ? rtc.getTapPosition() : 0;
     }
 
     /**
@@ -75,7 +75,7 @@ public final class Transformers {
     }
 
     private static int getCurrentPosition(PhaseTapChanger rtc) {
-        return rtc != null ? rtc.getTapPosition() : -1;
+        return rtc != null ? rtc.getTapPosition() : 0;
     }
 
     /**
