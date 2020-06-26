@@ -256,7 +256,6 @@ class AcLoadFlow3wtTest {
         assertReactivePowerEquals(0, twt.getLeg3().getTerminal());
 
         parameters.setTwtSplitShuntAdmittance(true);
-        twt.getLeg1().setB(0.00004);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
