@@ -77,7 +77,7 @@ public class LfBranchImpl extends AbstractLfBranch {
             }
 
             if (controlledSide != null) {
-                int rtcPosition = twt.getRatioTapChanger() != null ? twt.getRatioTapChanger().getTapPosition() : -1;
+                Integer rtcPosition = Transformers.getCurrentPosition(twt.getRatioTapChanger());
                 List<PiModel> models = new ArrayList<>();
                 for (int ptcPosition = ptc.getLowTapPosition(); ptcPosition <= ptc.getHighTapPosition(); ptcPosition++) {
                     double r = Transformers.getR(twt, rtcPosition, ptcPosition) / zb;

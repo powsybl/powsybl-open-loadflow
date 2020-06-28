@@ -12,6 +12,8 @@ import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
 
+import java.util.Objects;
+
 /**
  * @author Sylvain Leclerc <sylvain.leclerc at rte-france.com>
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -30,19 +32,21 @@ public final class Transformers {
         return getRatio(twt, getCurrentPosition(twt.getRatioTapChanger()), getCurrentPosition(twt.getPhaseTapChanger()));
     }
 
-    public static double getRatio(TwoWindingsTransformer twt, int rtcPosition, int ptcPosition) {
+    public static double getRatio(TwoWindingsTransformer twt, Integer rtcPosition, Integer ptcPosition) {
         double rho = twt.getRatedU2() / twt.getRatedU1();
         if (twt.getRatioTapChanger() != null) {
+            Objects.requireNonNull(rtcPosition);
             rho *= twt.getRatioTapChanger().getStep(rtcPosition).getRho();
         }
         if (twt.getPhaseTapChanger() != null) {
+            Objects.requireNonNull(ptcPosition);
             rho *= twt.getPhaseTapChanger().getStep(ptcPosition).getRho();
         }
         return rho;
     }
 
-    private static int getCurrentPosition(RatioTapChanger rtc) {
-        return rtc != null ? rtc.getTapPosition() : 0;
+    public static Integer getCurrentPosition(RatioTapChanger rtc) {
+        return rtc != null ? rtc.getTapPosition() : null;
     }
 
     /**
@@ -52,12 +56,14 @@ public final class Transformers {
         return getRatioLeg(twt, leg, getCurrentPosition(leg.getRatioTapChanger()), getCurrentPosition(leg.getPhaseTapChanger()));
     }
 
-    public static double getRatioLeg(ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg, int rtcPosition, int ptcPosition) {
+    public static double getRatioLeg(ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg, Integer rtcPosition, Integer ptcPosition) {
         double rho = twt.getRatedU0() / leg.getRatedU();
         if (leg.getRatioTapChanger() != null) {
+            Objects.requireNonNull(rtcPosition);
             rho *= leg.getRatioTapChanger().getStep(rtcPosition).getRho();
         }
         if (leg.getPhaseTapChanger() != null) {
+            Objects.requireNonNull(ptcPosition);
             rho *= leg.getPhaseTapChanger().getStep(ptcPosition).getRho();
         }
         return rho;
@@ -70,11 +76,15 @@ public final class Transformers {
         return getAngle(twt, getCurrentPosition(twt.getPhaseTapChanger()));
     }
 
-    public static double getAngle(TwoWindingsTransformer twt, int position) {
-        return twt.getPhaseTapChanger() != null ? Math.toRadians(twt.getPhaseTapChanger().getStep(position).getAlpha()) : 0f;
+    public static double getAngle(TwoWindingsTransformer twt, Integer position) {
+        if (twt.getPhaseTapChanger() != null) {
+            Objects.requireNonNull(position);
+            return Math.toRadians(twt.getPhaseTapChanger().getStep(position).getAlpha());
+        }
+        return 0f;
     }
 
-    private static int getCurrentPosition(PhaseTapChanger rtc) {
+    public static Integer getCurrentPosition(PhaseTapChanger rtc) {
         return rtc != null ? rtc.getTapPosition() : 0;
     }
 
@@ -85,8 +95,12 @@ public final class Transformers {
         return getAngleLeg(leg, getCurrentPosition(leg.getPhaseTapChanger()));
     }
 
-    public static double getAngleLeg(ThreeWindingsTransformer.Leg leg, int position) {
-        return leg.getPhaseTapChanger() != null ? Math.toRadians(leg.getPhaseTapChanger().getStep(position).getAlpha()) : 0f;
+    public static double getAngleLeg(ThreeWindingsTransformer.Leg leg, Integer position) {
+        if (leg.getPhaseTapChanger() != null) {
+            Objects.requireNonNull(position);
+            return Math.toRadians(leg.getPhaseTapChanger().getStep(position).getAlpha());
+        }
+        return 0f;
     }
 
     /**
@@ -96,7 +110,7 @@ public final class Transformers {
         return getR(twt.getR(), twt.getRatioTapChanger(), twt.getPhaseTapChanger(), getCurrentPosition(twt.getRatioTapChanger()), getCurrentPosition(twt.getPhaseTapChanger()));
     }
 
-    public static double getR(TwoWindingsTransformer twt, int rtcPosition, int ptcPosition) {
+    public static double getR(TwoWindingsTransformer twt, Integer rtcPosition, Integer ptcPosition) {
         return getR(twt.getR(), twt.getRatioTapChanger(), twt.getPhaseTapChanger(), rtcPosition, ptcPosition);
     }
 
@@ -107,14 +121,24 @@ public final class Transformers {
         return getR(leg.getR(), leg.getRatioTapChanger(), leg.getPhaseTapChanger(), getCurrentPosition(leg.getRatioTapChanger()), getCurrentPosition(leg.getPhaseTapChanger()));
     }
 
-    public static double getR(ThreeWindingsTransformer.Leg leg, int rtcPosition, int ptcPosition) {
+    public static double getR(ThreeWindingsTransformer.Leg leg, Integer rtcPosition, Integer ptcPosition) {
         return getR(leg.getR(), leg.getRatioTapChanger(), leg.getPhaseTapChanger(), rtcPosition, ptcPosition);
     }
 
-    private static double getR(double r, RatioTapChanger rtc, PhaseTapChanger ptc, int rtcPosition, int ptcPosition) {
-        return getValue(r,
-                rtc != null ? rtc.getStep(rtcPosition).getR() : 0,
-                ptc != null ? ptc.getStep(ptcPosition).getR() : 0);
+    private static double getR(double r, RatioTapChanger rtc, PhaseTapChanger ptc, Integer rtcPosition, Integer ptcPosition) {
+        double rtcStepValue = 0;
+        if (rtc != null) {
+            Objects.requireNonNull(rtcPosition);
+            rtcStepValue = rtc.getStep(rtcPosition).getR();
+        }
+
+        double ptcStepValue = 0;
+        if (ptc != null) {
+            Objects.requireNonNull(ptcPosition);
+            ptcStepValue = ptc.getStep(ptcPosition).getR();
+        }
+
+        return getValue(r, rtcStepValue, ptcStepValue);
     }
 
     private static double getValue(double initialValue, double rtcStepValue, double ptcStepValue) {
@@ -128,7 +152,7 @@ public final class Transformers {
         return getX(twt.getX(), twt.getRatioTapChanger(), twt.getPhaseTapChanger(), getCurrentPosition(twt.getRatioTapChanger()), getCurrentPosition(twt.getPhaseTapChanger()));
     }
 
-    public static double getX(TwoWindingsTransformer twt, int rtcPosition, int ptcPosition) {
+    public static double getX(TwoWindingsTransformer twt, Integer rtcPosition, Integer ptcPosition) {
         return getX(twt.getX(), twt.getRatioTapChanger(), twt.getPhaseTapChanger(), rtcPosition, ptcPosition);
     }
 
@@ -139,14 +163,24 @@ public final class Transformers {
         return getX(leg.getX(), leg.getRatioTapChanger(), leg.getPhaseTapChanger(), getCurrentPosition(leg.getRatioTapChanger()), getCurrentPosition(leg.getPhaseTapChanger()));
     }
 
-    public static double getX(ThreeWindingsTransformer.Leg leg, int rtcPosition, int ptcPosition) {
+    public static double getX(ThreeWindingsTransformer.Leg leg, Integer rtcPosition, Integer ptcPosition) {
         return getX(leg.getX(), leg.getRatioTapChanger(), leg.getPhaseTapChanger(), rtcPosition, ptcPosition);
     }
 
-    private static double getX(double x, RatioTapChanger rtc, PhaseTapChanger ptc, int rtcPosition, int ptcPosition) {
-        return getValue(x,
-                rtc != null ? rtc.getStep(rtcPosition).getX() : 0,
-                ptc != null ? ptc.getStep(ptcPosition).getX() : 0);
+    private static double getX(double x, RatioTapChanger rtc, PhaseTapChanger ptc, Integer rtcPosition, Integer ptcPosition) {
+        double rtcStepValue = 0;
+        if (rtc != null) {
+            Objects.requireNonNull(rtcPosition);
+            rtcStepValue = rtc.getStep(rtcPosition).getX();
+        }
+
+        double ptcStepValue = 0;
+        if (ptc != null) {
+            Objects.requireNonNull(ptcPosition);
+            ptcStepValue = ptc.getStep(ptcPosition).getX();
+        }
+
+        return getValue(x, rtcStepValue, ptcStepValue);
     }
 
     /**
@@ -156,7 +190,7 @@ public final class Transformers {
         return getG1(twt, getCurrentPosition(twt.getRatioTapChanger()), getCurrentPosition(twt.getPhaseTapChanger()), twtSplitShuntAdmittance);
     }
 
-    public static double getG1(TwoWindingsTransformer twt, int rtcPosition, int ptcPosition, boolean twtSplitShuntAdmittance) {
+    public static double getG1(TwoWindingsTransformer twt, Integer rtcPosition, Integer ptcPosition, boolean twtSplitShuntAdmittance) {
         return getG1(twtSplitShuntAdmittance ? twt.getG() / 2 : twt.getG(), twt.getRatioTapChanger(), twt.getPhaseTapChanger(), rtcPosition, ptcPosition);
     }
 
@@ -167,22 +201,24 @@ public final class Transformers {
         return getG1(leg, getCurrentPosition(leg.getRatioTapChanger()), getCurrentPosition(leg.getPhaseTapChanger()), twtSplitShuntAdmittance);
     }
 
-    public static double getG1(ThreeWindingsTransformer.Leg leg, int rtcPosition, int ptcPosition, boolean twtSplitShuntAdmittance) {
+    public static double getG1(ThreeWindingsTransformer.Leg leg, Integer rtcPosition, Integer ptcPosition, boolean twtSplitShuntAdmittance) {
         return getG1(twtSplitShuntAdmittance ? leg.getG() / 2 : leg.getG(), leg.getRatioTapChanger(), leg.getPhaseTapChanger(), rtcPosition, ptcPosition);
     }
 
-    public static double getG1(TwoWindingsTransformer twt) {
-        return getG1(twt, false);
-    }
+    private static double getG1(double g1, RatioTapChanger rtc, PhaseTapChanger ptc, Integer rtcPosition, Integer ptcPosition) {
+        double rtcStepValue = 0;
+        if (rtc != null) {
+            Objects.requireNonNull(rtcPosition);
+            rtcStepValue = rtc.getStep(rtcPosition).getG();
+        }
 
-    public static double getG1(ThreeWindingsTransformer.Leg leg) {
-        return getG1(leg, false);
-    }
+        double ptcStepValue = 0;
+        if (ptc != null) {
+            Objects.requireNonNull(ptcPosition);
+            ptcStepValue = ptc.getStep(ptcPosition).getG();
+        }
 
-    private static double getG1(double g1, RatioTapChanger rtc, PhaseTapChanger ptc, int rtcPosition, int ptcPosition) {
-        return getValue(g1,
-                rtc != null ? rtc.getStep(rtcPosition).getG() : 0,
-                ptc != null ? ptc.getStep(ptcPosition).getG() : 0);
+        return getValue(g1, rtcStepValue, ptcStepValue);
     }
 
     /**
@@ -192,7 +228,7 @@ public final class Transformers {
         return getB1(twt, getCurrentPosition(twt.getRatioTapChanger()), getCurrentPosition(twt.getPhaseTapChanger()), twtSplitShuntAdmittance);
     }
 
-    public static double getB1(TwoWindingsTransformer twt, int rtcPosition, int ptcPosition, boolean twtSplitShuntAdmittance) {
+    public static double getB1(TwoWindingsTransformer twt, Integer rtcPosition, Integer ptcPosition, boolean twtSplitShuntAdmittance) {
         return getB1(twtSplitShuntAdmittance ? twt.getB() / 2 : twt.getB(), twt.getRatioTapChanger(), twt.getPhaseTapChanger(), rtcPosition, ptcPosition);
     }
 
@@ -203,26 +239,24 @@ public final class Transformers {
         return getB1(leg, getCurrentPosition(leg.getRatioTapChanger()), getCurrentPosition(leg.getPhaseTapChanger()), twtSplitShuntAdmittance);
     }
 
-    public static double getB1(ThreeWindingsTransformer.Leg leg, int rtcPosition, int ptcPosition, boolean twtSplitShuntAdmittance) {
+    public static double getB1(ThreeWindingsTransformer.Leg leg, Integer rtcPosition, Integer ptcPosition, boolean twtSplitShuntAdmittance) {
         return getB1(twtSplitShuntAdmittance ? leg.getB() / 2 : leg.getB(), leg.getRatioTapChanger(), leg.getPhaseTapChanger(), rtcPosition, ptcPosition);
     }
 
-    public static double getB1(TwoWindingsTransformer twt) {
-        return getB1(twt, false);
-    }
+    private static double getB1(double b1, RatioTapChanger rtc, PhaseTapChanger ptc, Integer rtcPosition, Integer ptcPosition) {
+        double rtcStepValue = 0;
+        if (rtc != null) {
+            Objects.requireNonNull(rtcPosition);
+            rtcStepValue = rtc.getStep(rtcPosition).getB();
+        }
 
-    public static double getB1(ThreeWindingsTransformer.Leg leg) {
-        return getB1(leg, false);
-    }
+        double ptcStepValue = 0;
+        if (ptc != null) {
+            Objects.requireNonNull(ptcPosition);
+            ptcStepValue = ptc.getStep(ptcPosition).getB();
+        }
 
-    private static double getB1(double b1, RatioTapChanger rtc, PhaseTapChanger ptc) {
-        return getB1(b1, rtc, ptc, rtc.getTapPosition(), ptc.getTapPosition());
-    }
-
-    private static double getB1(double b1, RatioTapChanger rtc, PhaseTapChanger ptc, int rtcPosition, int ptcPosition) {
-        return getValue(b1,
-                rtc != null ? rtc.getStep(rtcPosition).getB() : 0,
-                ptc != null ? ptc.getStep(ptcPosition).getB() : 0);
+        return getValue(b1, rtcStepValue, ptcStepValue);
     }
 
     /**
