@@ -35,8 +35,6 @@ public class LfLegBranch extends AbstractLfBranch {
 
     private PhaseControl phaseControl;
 
-    private boolean twtSplitShuntAdmittance;
-
     protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
         super(bus1, bus0, piModel);
         this.twt = twt;
