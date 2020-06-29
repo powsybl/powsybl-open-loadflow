@@ -40,16 +40,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static void createBuses(List<Bus> buses, boolean voltageRemoteControl, LfNetwork lfNetwork,
                                     LoadingContext loadingContext, LfNetworkLoadingReport report) {
-        int[] voltageControllerCount = new int[1];
         Map<LfBusImpl, String> controllerBusToControlledBusId = new LinkedHashMap<>();
 
         for (Bus bus : buses) {
-            LfBusImpl lfBus = createBus(bus, voltageRemoteControl, loadingContext, report, voltageControllerCount, controllerBusToControlledBusId);
+            LfBusImpl lfBus = createBus(bus, voltageRemoteControl, loadingContext, report, controllerBusToControlledBusId);
             lfNetwork.addBus(lfBus);
-        }
-
-        if (voltageControllerCount[0] == 0) {
-            LOGGER.error("Network {} has no equipment to control voltage", lfNetwork.getNum());
         }
 
         // set controller -> controlled link
@@ -62,7 +57,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     private static LfBusImpl createBus(Bus bus, boolean voltageRemoteControl, LoadingContext loadingContext, LfNetworkLoadingReport report,
-                                       int[] voltageControllerCount, Map<LfBusImpl, String> controllerBusToControlledBusId) {
+                                       Map<LfBusImpl, String> controllerBusToControlledBusId) {
         LfBusImpl lfBus = LfBusImpl.create(bus);
 
         bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
@@ -117,7 +112,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 double scaleV = checkVoltageRemoteControl(generator, generator.getRegulatingTerminal(), generator.getTargetV());
                 lfBus.addGenerator(generator, scaleV, report);
                 if (generator.isVoltageRegulatorOn()) {
-                    voltageControllerCount[0]++;
+                    report.voltageControllerCount++;
                 }
             }
 
@@ -141,6 +136,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 double scaleV = checkVoltageRemoteControl(staticVarCompensator, staticVarCompensator.getRegulatingTerminal(),
                         staticVarCompensator.getVoltageSetPoint());
                 lfBus.addStaticVarCompensator(staticVarCompensator, scaleV, report);
+                if (staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
+                    report.voltageControllerCount++;
+                }
             }
 
             @Override
@@ -155,7 +153,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                         VscConverterStation vscConverterStation = (VscConverterStation) converterStation;
                         lfBus.addVscConverterStation(vscConverterStation, report);
                         if (vscConverterStation.isVoltageRegulatorOn()) {
-                            voltageControllerCount[0]++;
+                            report.voltageControllerCount++;
                         }
                         break;
                     case LCC:
@@ -228,31 +226,36 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         createBranches(lfNetwork, loadingContext, report, twtSplitShuntAdmittance);
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
-            LOGGER.warn("{} generators have been discarded from voltage control because not started",
-                    report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
+            LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
+                    num.getValue(), report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall > 0) {
-            LOGGER.warn("{} generators have been discarded from voltage control because of a too small max reactive range",
-                    report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
+            LOGGER.warn("Network {}: {} generators have been discarded from voltage control because of a too small max reactive range",
+                    num.getValue(), report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero > 0) {
-            LOGGER.warn("{} generators have been discarded from active power control because of a targetP <= 0",
-                    report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero);
+            LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP <= 0",
+                    num.getValue(), report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP > 0) {
-            LOGGER.warn("{} generators have been discarded from active power control because of a targetP > maxP",
-                    report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP);
+            LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP > maxP",
+                    num.getValue(), report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible > 0) {
-            LOGGER.warn("{} generators have been discarded from active power control because of maxP not plausible",
-                    report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
+            LOGGER.warn("Network {}: {} generators have been discarded from active power control because of maxP not plausible",
+                    num.getValue(), report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
         }
         if (report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds > 0) {
-            LOGGER.warn("{} branches have been discarded because connected to same bus at both ends",
-                    report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds);
+            LOGGER.warn("Network {}: {} branches have been discarded because connected to same bus at both ends",
+                    num.getValue(), report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds);
         }
         if (report.nonImpedantBranches > 0) {
-            LOGGER.warn("{} branches are non impedant", report.nonImpedantBranches);
+            LOGGER.warn("Network {}: {} branches are non impedant", num.getValue(), report.nonImpedantBranches);
+        }
+
+        if (report.voltageControllerCount == 0) {
+            LOGGER.error("Discard network {} because there is no equipment to control voltage", lfNetwork.getNum());
+            return null;
         }
 
         return lfNetwork;
