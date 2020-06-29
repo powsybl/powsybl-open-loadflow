@@ -14,7 +14,6 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Markers;
@@ -41,19 +40,15 @@ public class DcLoadFlowEngine {
     private final boolean updateFlows;
 
     public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory) {
-        this(network, matrixFactory, true);
-    }
-
-    public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory, boolean updateFlows) {
         this.networks = Collections.singletonList(network);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        this.updateFlows = updateFlows;
+        this.updateFlows = false;
     }
 
-    public DcLoadFlowEngine(Object network, MatrixFactory matrixFactory) {
-        this.networks = LfNetwork.load(network, new FirstSlackBusSelector());
-        this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        this.updateFlows = true;
+    public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters) {
+        this.networks = LfNetwork.load(network, parameters.getSlackBusSelector(), false, false, parameters.isTwtSplitShuntAdmittance());
+        matrixFactory = parameters.getMatrixFactory();
+        updateFlows = parameters.isUpdateFlows();
     }
 
     public DcLoadFlowResult run() {
