@@ -24,6 +24,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
+import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.PreviousValueVoltageInitializer;
@@ -122,6 +123,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
             LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
             LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
+            LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
 
             List<OuterLoop> outerLoops = new ArrayList<>();
             if (parametersExt.isDistributedSlack()) {
@@ -146,10 +148,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             }
 
             AcLoadFlowParameters acParameters = new AcLoadFlowParameters(slackBusSelector, voltageInitializer, stoppingCriteria,
-                                                                         outerLoops, matrixFactory, getObserver(parametersExt),
-                                                                         parametersExt.hasVoltageRemoteControl(),
-                                                                         parameters.isPhaseShifterRegulationOn(),
-                                                                         parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
+                    outerLoops, matrixFactory, getObserver(parametersExt),
+                    parametersExt.hasVoltageRemoteControl(),
+                    parameters.isPhaseShifterRegulationOn(),
+                    parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
+                    parameters.isTwtSplitShuntAdmittance());
 
             List<AcLoadFlowResult> results = new AcloadFlowEngine(network, acParameters)
                     .run();
@@ -182,11 +185,15 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         });
     }
 
-    private CompletableFuture<LoadFlowResult> runDc(Network network, String workingStateId) {
+    private CompletableFuture<LoadFlowResult> runDc(Network network, String workingStateId, LoadFlowParameters parameters,
+                                                    OpenLoadFlowParameters parametersExt) {
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
-            DcLoadFlowResult result = new DcLoadFlowEngine(network, matrixFactory)
+            SlackBusSelector slackBusSelector = parametersExt.getSlackBusSelector();
+            DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector, matrixFactory, true, parameters.isTwtSplitShuntAdmittance());
+
+            DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters)
                     .run();
 
             Networks.resetState(network);
@@ -205,7 +212,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         OpenLoadFlowParameters parametersExt = getParametersExt(parameters);
 
-        return parametersExt.isDc() ? runDc(network, workingVariantId)
+        return parametersExt.isDc() ? runDc(network, workingVariantId, parameters, parametersExt)
                                     : runAc(network, workingVariantId, parameters, parametersExt);
     }
 }

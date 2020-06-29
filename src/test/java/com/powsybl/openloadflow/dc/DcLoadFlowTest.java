@@ -16,6 +16,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,7 +41,8 @@ class DcLoadFlowTest {
     void setUp() {
         parameters = new LoadFlowParameters();
         parameters.addExtension(OpenLoadFlowParameters.class, new OpenLoadFlowParameters()
-                .setDc(true));
+                .setDc(true)
+                .setSlackBusSelector(new FirstSlackBusSelector()));
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
     }
 
