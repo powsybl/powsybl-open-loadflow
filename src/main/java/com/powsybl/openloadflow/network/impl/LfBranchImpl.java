@@ -114,12 +114,15 @@ public class LfBranchImpl extends AbstractLfBranch {
         }
 
         RatioTapChanger rtc = twt.getRatioTapChanger();
+        double nominalVoltage = Double.NaN;
         if (rtc != null && rtc.isRegulating()) {
             VoltageControl.ControlledSide controlledSide = null;
             if (rtc.getRegulationTerminal() == twt.getTerminal1()) {
                 controlledSide = VoltageControl.ControlledSide.ONE;
+                nominalVoltage = twt.getTerminal1().getVoltageLevel().getNominalV();
             } else if (rtc.getRegulationTerminal() == twt.getTerminal2()) {
                 controlledSide = VoltageControl.ControlledSide.TWO;
+                nominalVoltage = twt.getTerminal2().getVoltageLevel().getNominalV();
             } else {
                 LOGGER.error("2 windings transformer '{}' has a regulating ratio tap changer with a remote control which is not yet supported", twt.getId());
             }
@@ -147,7 +150,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                             .setA1(a1));
                 }
                 piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
-                voltageControl = new VoltageControl(controlledSide, rtc.getTargetV() / PerUnit.SB);
+                voltageControl = new VoltageControl(controlledSide, rtc.getTargetV() / nominalVoltage);
             }
         }
 
