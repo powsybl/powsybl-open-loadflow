@@ -118,7 +118,7 @@ public class LfBranchImpl extends AbstractLfBranch {
             VoltageControl.ControlledSide controlledSide = null;
             if (rtc.getRegulationTerminal() == twt.getTerminal1()) {
                 controlledSide = VoltageControl.ControlledSide.ONE;
-            } else if (ptc.getRegulationTerminal() == twt.getTerminal2()) {
+            } else if (rtc.getRegulationTerminal() == twt.getTerminal2()) {
                 controlledSide = VoltageControl.ControlledSide.TWO;
             } else {
                 LOGGER.error("2 windings transformer '{}' has a regulating ratio tap changer with a remote control which is not yet supported", twt.getId());
@@ -127,7 +127,7 @@ public class LfBranchImpl extends AbstractLfBranch {
             if (controlledSide != null) {
                 Integer ptcPosition = Transformers.getCurrentPosition(twt.getPhaseTapChanger());
                 List<PiModel> models = new ArrayList<>();
-                for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= ptc.getHighTapPosition(); rtcPosition++) {
+                for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= rtc.getHighTapPosition(); rtcPosition++) {
                     double r = Transformers.getR(twt, rtcPosition, ptcPosition) / zb;
                     double x = Transformers.getX(twt, rtcPosition, ptcPosition) / zb;
                     double g1 = Transformers.getG1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
@@ -146,7 +146,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                             .setR1(r1)
                             .setA1(a1));
                 }
-                piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
+                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
                 voltageControl = new VoltageControl(controlledSide, rtc.getTargetV() / PerUnit.SB);
             }
         }
