@@ -98,13 +98,14 @@ public final class AcEquationSystem {
                 }
             } else {
                 boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+                boolean deriveR1 = creationParameters.isVoltageRemoteControl() && branch.getVoltageControl().isPresent();
                 if (branch.getBus1() == controllerBus) {
                     LfBus otherSideBus = branch.getBus2();
-                    q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1)
+                    q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1, deriveR1)
                                              : new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
                 } else {
                     LfBus otherSideBus = branch.getBus1();
-                    q = otherSideBus != null ? new ClosedBranchSide2ReactiveFlowEquationTerm(branch, otherSideBus, controllerBus, variableSet, deriveA1)
+                    q = otherSideBus != null ? new ClosedBranchSide2ReactiveFlowEquationTerm(branch, otherSideBus, controllerBus, variableSet, deriveA1, deriveR1)
                                              : new OpenBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, variableSet);
                 }
             }
@@ -237,10 +238,11 @@ public final class AcEquationSystem {
         EquationTerm q2 = null;
         if (bus1 != null && bus2 != null) {
             boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
-            p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
-            q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
-            p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
-            q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
+            boolean deriveR1 = creationParameters.isVoltageRemoteControl() && branch.getVoltageControl().isPresent();
+            p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+            q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+            p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+            q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
         } else if (bus1 != null) {
             p1 = new OpenBranchSide2ActiveFlowEquationTerm(branch, bus1, variableSet);
             q1 = new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus1, variableSet);
