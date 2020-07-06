@@ -209,7 +209,7 @@ class AcLoadFlowTransformerControlTest {
                 .setTargetV(34.0);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        // assertTrue(result.isOk()); FIXME
-        // System.out.println(bus3.getV());
+        assertTrue(result.isOk());
+        System.out.println(bus3.getV());
     }
 }

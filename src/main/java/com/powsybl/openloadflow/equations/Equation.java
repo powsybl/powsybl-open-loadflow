@@ -145,6 +145,13 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return phaseControl.getTargetValue();
     }
 
+    private static double getBranchTargetV(LfBranch branch) {
+        Objects.requireNonNull(branch);
+        VoltageControl voltageControl = branch.getVoltageControl()
+                .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no voltage control"));
+        return voltageControl.getTargetValue();
+    }
+
     private static double getReactivePowerDistributionTarget(LfNetwork network, int num, ReactivePowerDistributionData data) {
         LfBus controllerBus = network.getBus(num);
         LfBus firstControllerBus = network.getBus(data.getFirstControllerBusNum());
@@ -169,6 +176,10 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
             case BUS_PHI:
                 targets[column] = 0;
+                break;
+
+            case BUS_TRANSFO_V:
+                targets[column] = getBranchTargetV(network.getBranch(num));
                 break;
 
             case BRANCH_P:
@@ -278,6 +289,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 LfBus bus = equationSystem.getNetwork().getBus(num);
                 builder.append(", busId=").append(bus.getId());
                 break;
+            case BUS_TRANSFO_V:
             case BRANCH_P:
             case BRANCH_I:
                 LfBranch branch = equationSystem.getNetwork().getBranch(num);

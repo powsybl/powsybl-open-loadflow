@@ -235,10 +235,10 @@ public final class AcEquationSystem {
         if (voltageControl != null) {
             if (voltageControl.getControlledSide() == VoltageControl.ControlledSide.ONE) {
                 bus = branch.getBus1();
-                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+                equationSystem.createEquation(branch.getNum(), EquationType.BUS_TRANSFO_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
             } else {
                 bus = branch.getBus2();
-                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+                equationSystem.createEquation(branch.getNum(), EquationType.BUS_TRANSFO_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
             }
         }
     }
