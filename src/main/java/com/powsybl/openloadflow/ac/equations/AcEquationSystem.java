@@ -124,7 +124,7 @@ public final class AcEquationSystem {
 
         // we choose first controller bus as reference for reactive power
         LfBus firstControllerBus = controllerBuses.get(0);
-        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false); // TODO could not be the right parameters
+        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false, false); // TODO could not be the right parameters
         List<EquationTerm> firstControllerBusReactiveTerms = createReactiveTerms(firstControllerBus, variableSet, creationParameters);
 
         // create a reactive power distribution equation for all the other controller buses
@@ -229,6 +229,20 @@ public final class AcEquationSystem {
         }
     }
 
+    private static void createBranchVoltageTargetEquation(LfBranch branch,  VariableSet variableSet, EquationSystem equationSystem) {
+        VoltageControl voltageControl = branch.getVoltageControl().orElse(null);
+        LfBus bus;
+        if (voltageControl != null) {
+            if (voltageControl.getControlledSide() == VoltageControl.ControlledSide.ONE) {
+                bus = branch.getBus1();
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+            } else {
+                bus = branch.getBus2();
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+            }
+        }
+    }
+
     private static void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
                                              AcEquationSystemCreationParameters creationParameters,
                                              EquationSystem equationSystem) {
@@ -238,7 +252,7 @@ public final class AcEquationSystem {
         EquationTerm q2 = null;
         if (bus1 != null && bus2 != null) {
             boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
-            boolean deriveR1 = creationParameters.isVoltageRemoteControl() && branch.getVoltageControl().isPresent();
+            boolean deriveR1 = creationParameters.isTransformerVoltageControl() && branch.getVoltageControl().isPresent();
             p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
             q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
             p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
@@ -274,6 +288,10 @@ public final class AcEquationSystem {
         if (q2 != null) {
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
             branch.setQ2(q2);
+        }
+
+        if (creationParameters.isTransformerVoltageControl()) {
+            createBranchVoltageTargetEquation(branch, variableSet, equationSystem);
         }
     }
 
@@ -319,7 +337,7 @@ public final class AcEquationSystem {
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
-        return create(network, variableSet, new AcEquationSystemCreationParameters(false, false));
+        return create(network, variableSet, new AcEquationSystemCreationParameters(false, false, false));
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {

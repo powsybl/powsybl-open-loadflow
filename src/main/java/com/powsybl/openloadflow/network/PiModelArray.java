@@ -22,6 +22,8 @@ public class PiModelArray implements PiModel {
 
     private double a1 = Double.NaN;
 
+    private double r1 = Double.NaN;
+
     public PiModelArray(List<PiModel> models, int lowTapPosition, int tapPosition) {
         this.models = Objects.requireNonNull(models);
         this.lowTapPosition = lowTapPosition;
@@ -95,6 +97,12 @@ public class PiModelArray implements PiModel {
     @Override
     public PiModelArray setA1(double a1) {
         this.a1 = a1;
+        return this;
+    }
+
+    @Override
+    public PiModelArray setR1(double r1) {
+        this.r1 = r1;
         return this;
     }
 
