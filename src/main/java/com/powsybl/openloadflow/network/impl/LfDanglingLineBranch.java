@@ -99,6 +99,11 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
+    public Optional<VoltageControl> getVoltageControl() {
+        return Optional.empty();
+    }
+
+    @Override
     public void updateState() {
         danglingLine.getTerminal().setP(p.eval() * PerUnit.SB);
         danglingLine.getTerminal().setQ(q.eval() * PerUnit.SB);

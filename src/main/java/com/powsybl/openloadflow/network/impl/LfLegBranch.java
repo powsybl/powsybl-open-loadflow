@@ -35,6 +35,8 @@ public class LfLegBranch extends AbstractLfBranch {
 
     private PhaseControl phaseControl;
 
+    private VoltageControl voltageControl;
+
     protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
         super(bus1, bus0, piModel);
         this.twt = twt;
@@ -126,6 +128,11 @@ public class LfLegBranch extends AbstractLfBranch {
     @Override
     public double getPermanentLimit2() {
         return Double.NaN;
+    }
+
+    @Override
+    public Optional<VoltageControl> getVoltageControl() {
+        return Optional.ofNullable(voltageControl);
     }
 
     @Override

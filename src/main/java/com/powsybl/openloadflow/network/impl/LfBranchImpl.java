@@ -29,6 +29,8 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private PhaseControl phaseControl;
 
+    private VoltageControl voltageControl;
+
     private final Branch branch;
 
     private Evaluable p1 = NAN;
@@ -39,9 +41,11 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private Evaluable q2 = NAN;
 
-    protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, PhaseControl phaseControl, Branch branch) {
+    protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, PhaseControl phaseControl,
+                           VoltageControl voltageControl, Branch branch) {
         super(bus1, bus2, piModel);
         this.phaseControl = phaseControl;
+        this.voltageControl = voltageControl;
         this.branch = branch;
     }
 
@@ -54,13 +58,14 @@ public class LfBranchImpl extends AbstractLfBranch {
                 .setB1(line.getB1() * zb)
                 .setB2(line.getB2() * zb);
 
-        return new LfBranchImpl(bus1, bus2, piModel, null, line);
+        return new LfBranchImpl(bus1, bus2, piModel, null, null, line);
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfBus bus1, LfBus bus2, double nominalV1,
                                                   double nominalV2, double zb, boolean twtSplitShuntAdmittance) {
         PiModel piModel = null;
         PhaseControl phaseControl = null;
+        VoltageControl voltageControl = null;
 
         PhaseTapChanger ptc = twt.getPhaseTapChanger();
         if (ptc != null
@@ -108,6 +113,44 @@ public class LfBranchImpl extends AbstractLfBranch {
             }
         }
 
+        RatioTapChanger rtc = twt.getRatioTapChanger();
+        if (rtc != null && rtc.isRegulating()) {
+            VoltageControl.ControlledSide controlledSide = null;
+            if (rtc.getRegulationTerminal() == twt.getTerminal1()) {
+                controlledSide = VoltageControl.ControlledSide.ONE;
+            } else if (ptc.getRegulationTerminal() == twt.getTerminal2()) {
+                controlledSide = VoltageControl.ControlledSide.TWO;
+            } else {
+                LOGGER.error("2 windings transformer '{}' has a regulating ratio tap changer with a remote control which is not yet supported", twt.getId());
+            }
+
+            if (controlledSide != null) {
+                Integer ptcPosition = Transformers.getCurrentPosition(twt.getPhaseTapChanger());
+                List<PiModel> models = new ArrayList<>();
+                for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= ptc.getHighTapPosition(); rtcPosition++) {
+                    double r = Transformers.getR(twt, rtcPosition, ptcPosition) / zb;
+                    double x = Transformers.getX(twt, rtcPosition, ptcPosition) / zb;
+                    double g1 = Transformers.getG1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                    double g2 = twtSplitShuntAdmittance ? g1 : 0;
+                    double b1 = Transformers.getB1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                    double b2 = twtSplitShuntAdmittance ? b1 : 0;
+                    double r1 = Transformers.getRatio(twt, rtcPosition, ptcPosition) / nominalV2 * nominalV1;
+                    double a1 = Transformers.getAngle(twt, ptcPosition);
+                    models.add(new SimplePiModel()
+                            .setR(r)
+                            .setX(x)
+                            .setG1(g1)
+                            .setG2(g2)
+                            .setB1(b1)
+                            .setB2(b2)
+                            .setR1(r1)
+                            .setA1(a1));
+                }
+                piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
+                voltageControl = new VoltageControl(controlledSide, rtc.getTargetV() / PerUnit.SB);
+            }
+        }
+
         if (piModel == null) {
             piModel = new SimplePiModel()
                     .setR(Transformers.getR(twt) / zb)
@@ -120,7 +163,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                     .setA1(Transformers.getAngle(twt));
         }
 
-        return new LfBranchImpl(bus1, bus2, piModel, phaseControl, twt);
+        return new LfBranchImpl(bus1, bus2, piModel, phaseControl, voltageControl, twt);
     }
 
     public static LfBranchImpl create(Branch branch, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance) {
@@ -188,6 +231,11 @@ public class LfBranchImpl extends AbstractLfBranch {
     @Override
     public Optional<PhaseControl> getPhaseControl() {
         return Optional.ofNullable(phaseControl);
+    }
+
+    @Override
+    public Optional<VoltageControl> getVoltageControl() {
+        return Optional.ofNullable(voltageControl);
     }
 
     @Override

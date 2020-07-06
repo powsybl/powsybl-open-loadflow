@@ -45,5 +45,7 @@ public interface LfBranch {
 
     Optional<PhaseControl> getPhaseControl();
 
+    Optional<VoltageControl> getVoltageControl();
+
     void updateState();
 }

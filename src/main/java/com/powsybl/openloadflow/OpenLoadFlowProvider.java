@@ -160,6 +160,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 outerLoops, matrixFactory, getObserver(parametersExt),
                 parametersExt.hasVoltageRemoteControl(),
                 parameters.isPhaseShifterRegulationOn(),
+                parameters.isTransformerVoltageControlOn(),
                 parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
                 parameters.isTwtSplitShuntAdmittance());
     }
