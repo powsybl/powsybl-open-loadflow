@@ -44,4 +44,6 @@ public interface PiModel {
     PiModel setR1(double r1);
 
     void roundA1ToClosestTap();
+
+    void roundR1ToClosestTap();
 }

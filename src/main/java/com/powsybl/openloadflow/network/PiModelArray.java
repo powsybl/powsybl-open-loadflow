@@ -86,7 +86,7 @@ public class PiModelArray implements PiModel {
 
     @Override
     public double getR1() {
-        return getModel().getR1();
+        return Double.isNaN(r1) ? getModel().getR1() : r1;
     }
 
     @Override
@@ -116,6 +116,24 @@ public class PiModelArray implements PiModel {
         double smallestDistance = Math.abs(a1 - getModel().getA1());
         for (int p = 0; p < models.size(); p++) {
             double distance = Math.abs(a1 - models.get(p).getA1());
+            if (distance < smallestDistance) {
+                tapPosition = lowTapPosition + p;
+                smallestDistance = distance;
+            }
+        }
+        a1 = Double.NaN;
+    }
+
+    @Override
+    public void roundR1ToClosestTap() {
+        if (Double.isNaN(r1)) {
+            return; // nothing to do because a1 has not been modified
+        }
+
+        // find tap position with the closest a1 value
+        double smallestDistance = Math.abs(r1 - getModel().getR1());
+        for (int p = 0; p < models.size(); p++) {
+            double distance = Math.abs(r1 - models.get(p).getR1());
             if (distance < smallestDistance) {
                 tapPosition = lowTapPosition + p;
                 smallestDistance = distance;

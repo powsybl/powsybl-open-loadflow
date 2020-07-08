@@ -13,18 +13,34 @@ import java.util.Objects;
  */
 public class VoltageControl {
 
+    public enum Mode {
+        VOLTAGE,
+        OFF
+    }
+
     public enum ControlledSide {
         ONE,
         TWO
     }
 
+    private VoltageControl.Mode mode;
+
     private final ControlledSide controlledSide;
 
     private final double targetValue;
 
-    public VoltageControl(ControlledSide controlledSide, double targetValue) {
+    public VoltageControl(VoltageControl.Mode mode, ControlledSide controlledSide, double targetValue) {
+        this.mode = Objects.requireNonNull(mode);
         this.controlledSide = Objects.requireNonNull(controlledSide);
         this.targetValue = targetValue;
+    }
+
+    public Mode getMode() {
+        return mode;
+    }
+
+    public void setMode(Mode mode) {
+        this.mode = Objects.requireNonNull(mode);
     }
 
     public ControlledSide getControlledSide() {

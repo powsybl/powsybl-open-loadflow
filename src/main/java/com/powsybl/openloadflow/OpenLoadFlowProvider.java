@@ -155,6 +155,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         if (!parameters.isNoGeneratorReactiveLimits()) {
             outerLoops.add(new ReactiveLimitsOuterLoop());
         }
+        if (parameters.isTransformerVoltageControlOn()) {
+            outerLoops.add(new TransformerVoltageControlOuterLoop());
+        }
 
         return new AcLoadFlowParameters(slackBusSelector, voltageInitializer, stoppingCriteria,
                 outerLoops, matrixFactory, getObserver(parametersExt),
