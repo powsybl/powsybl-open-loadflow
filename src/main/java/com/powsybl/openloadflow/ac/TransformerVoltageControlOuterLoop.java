@@ -54,7 +54,6 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
                     // round the rho shift to the closest tap
                     PiModel piModel = branch.getPiModel();
                     double r1Value = piModel.getR1();
-                    System.out.println(r1Value);
                     piModel.roundR1ToClosestTap();
                     double roundedR1Value = piModel.getR1();
                     LOGGER.info("Round voltage shift of '{}': {} -> {}", branch.getId(), r1Value, roundedR1Value);

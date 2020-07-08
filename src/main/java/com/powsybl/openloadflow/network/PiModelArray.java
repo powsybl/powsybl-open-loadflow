@@ -130,7 +130,7 @@ public class PiModelArray implements PiModel {
             return; // nothing to do because a1 has not been modified
         }
 
-        // find tap position with the closest a1 value
+        // find tap position with the closest r1 value
         double smallestDistance = Math.abs(r1 - getModel().getR1());
         for (int p = 0; p < models.size(); p++) {
             double distance = Math.abs(r1 - models.get(p).getR1());
@@ -139,6 +139,6 @@ public class PiModelArray implements PiModel {
                 smallestDistance = distance;
             }
         }
-        a1 = Double.NaN;
+        r1 = Double.NaN;
     }
 }

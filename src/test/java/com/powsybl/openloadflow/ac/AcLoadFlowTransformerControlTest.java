@@ -210,7 +210,6 @@ class AcLoadFlowTransformerControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        System.out.println(bus3.getV());
-        // assertVoltageEquals(34.0, bus3);
+        assertVoltageEquals(34.433, bus3);
     }
 }
