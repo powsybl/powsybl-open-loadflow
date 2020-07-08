@@ -21,7 +21,7 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
     private final DanglingLine danglingLine;
 
     public LfDanglingLineGenerator(DanglingLine danglingLine) {
-        super(danglingLine.getGeneratorTargetP());
+        super(danglingLine.getGeneration().getTargetP());
         this.danglingLine = danglingLine;
     }
 
@@ -32,7 +32,7 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     @Override
     public boolean hasVoltageControl() {
-        return danglingLine.isGeneratorVoltageRegulationOn();
+        return danglingLine.getGeneration().isVoltageRegulationOn();
     }
 
     @Override
@@ -42,17 +42,17 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return danglingLine.getGeneratorTargetQ() / PerUnit.SB;
+        return danglingLine.getGeneration().getTargetQ() / PerUnit.SB;
     }
 
     @Override
     public double getMinP() {
-        return danglingLine.getGeneratorMinP() / PerUnit.SB;
+        return danglingLine.getGeneration().getMinP() / PerUnit.SB;
     }
 
     @Override
     public double getMaxP() {
-        return danglingLine.getGeneratorMaxP() / PerUnit.SB;
+        return danglingLine.getGeneration().getMaxP() / PerUnit.SB;
     }
 
     @Override

@@ -125,8 +125,10 @@ class AcLoadFlowDanglingLineTest {
     void testWithVoltageRegulationOn() {
         g1.setTargetQ(0);
         g1.setVoltageRegulatorOn(false);
-        dl1.setGeneratorTargetV(390);
-        dl1.setGeneratorVoltageRegulationOn(true);
+        dl1.newGeneration()
+                .setTargetV(390)
+                .setVoltageRegulationOn(true)
+                .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
