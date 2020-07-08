@@ -130,6 +130,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
         LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
         LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
+        LOGGER.info("Transformer voltage control: {}", parameters.isTransformerVoltageControlOn());
 
         List<OuterLoop> outerLoops = new ArrayList<>();
         if (parametersExt.isDistributedSlack()) {

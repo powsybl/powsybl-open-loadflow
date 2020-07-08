@@ -271,4 +271,16 @@ public final class Transformers {
         throw new PowsyblException("No tap position found (should never happen)");
     }
 
+    /**
+     * Find the tap position of a ratio tap changer corresponding to a given rho shift.
+     */
+    public static int findTapPosition(RatioTapChanger rtc, double rho) {
+        for (int position = rtc.getLowTapPosition(); position <= rtc.getHighTapPosition(); position++) {
+            if (Math.abs(rho - rtc.getStep(position).getRho()) < EPS_ALPHA) {
+                return position;
+            }
+        }
+        throw new PowsyblException("No tap position found (should never happen)");
+    }
+
 }

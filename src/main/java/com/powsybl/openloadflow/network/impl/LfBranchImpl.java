@@ -267,5 +267,28 @@ public class LfBranchImpl extends AbstractLfBranch {
                         phaseControl.getControlledSide(), this.getId(), p, phaseControl.getTargetValue() * PerUnit.SB, ptc.getTargetDeadband() / 2);
             }
         }
+        if (voltageControl != null) { // it means there is a regulating ratio tap changer
+            TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
+            RatioTapChanger rtc = twt.getRatioTapChanger();
+            double nominalV1 = twt.getTerminal1().getVoltageLevel().getNominalV();
+            double nominalV2 = twt.getTerminal2().getVoltageLevel().getNominalV();
+            double rho = getPiModel().getR1() * (nominalV2 / nominalV1) * (twt.getRatedU1() / twt.getRatedU2());
+            int tapPosition = Transformers.findTapPosition(rtc, rho);
+            rtc.setTapPosition(tapPosition);
+            double distance = 0; // we check if the target value deadband is respected.
+            double v = Double.NaN;
+            double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
+            if (voltageControl.getControlledSide() == VoltageControl.ControlledSide.ONE) {
+                v = nominalV1 * nominalV;
+                distance = Math.abs(v - voltageControl.getTargetValue() * nominalV);
+            } else if (voltageControl.getControlledSide() == VoltageControl.ControlledSide.TWO) {
+                v = nominalV2 * nominalV;
+                distance = Math.abs(v - voltageControl.getTargetValue() * rtc.getRegulationTerminal().getVoltageLevel().getNominalV());
+            }
+            if (distance > (rtc.getTargetDeadband() / 2)) {
+                LOGGER.warn("The active power on side {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
+                        voltageControl.getControlledSide(), this.getId(), v, voltageControl.getTargetValue() * nominalV, rtc.getTargetDeadband() / 2);
+            }
+        }
     }
 }
