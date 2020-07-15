@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 
 /**
@@ -31,6 +32,11 @@ public class LfStarBus extends AbstractLfBus {
     @Override
     public boolean isFictitious() {
         return true;
+    }
+
+    @Override
+    public Bus getBus() {
+        return null;
     }
 
     @Override

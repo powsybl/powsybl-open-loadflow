@@ -43,6 +43,11 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
+    public Bus getBus() {
+        return bus;
+    }
+
+    @Override
     public double getNominalV() {
         return nominalV;
     }
@@ -52,6 +57,7 @@ public class LfBusImpl extends AbstractLfBus {
         bus.setV(v).setAngle(angle);
 
         // update slack bus
+        // FIXME clean network from all slackterminal extensions
         if (this.isSlack()) {
             VoltageLevel vl = bus.getVoltageLevel();
             vl.newExtension(SlackTerminalAdder.class)
