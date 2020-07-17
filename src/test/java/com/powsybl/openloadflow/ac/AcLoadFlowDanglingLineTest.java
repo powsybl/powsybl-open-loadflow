@@ -70,7 +70,7 @@ class AcLoadFlowDanglingLineTest {
                 .setId("b2")
                 .add();
         dl1 = vl2.newDanglingLine()
-                .setId("ld1")
+                .setId("dl1")
                 .setConnectableBus("b2")
                 .setBus("b2")
                 .setR(0.7)
@@ -79,6 +79,12 @@ class AcLoadFlowDanglingLineTest {
                 .setB(3 * Math.pow(10, -6))
                 .setP0(101)
                 .setQ0(150)
+                .newGeneration()
+                    .setTargetP(0)
+                    .setTargetQ(0)
+                    .setTargetV(390)
+                    .setVoltageRegulationOn(false)
+                    .add()
                 .add();
         network.newLine()
                 .setId("l1")
@@ -125,10 +131,7 @@ class AcLoadFlowDanglingLineTest {
     void testWithVoltageRegulationOn() {
         g1.setTargetQ(0);
         g1.setVoltageRegulatorOn(false);
-        dl1.newGeneration()
-                .setTargetV(390)
-                .setVoltageRegulationOn(true)
-                .add();
+        dl1.getGeneration().setVoltageRegulationOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 

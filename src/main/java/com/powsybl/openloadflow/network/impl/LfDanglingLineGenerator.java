@@ -67,7 +67,7 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
-        return Optional.ofNullable(danglingLine.getReactiveLimits());
+        return Optional.ofNullable(danglingLine.getGeneration().getReactiveLimits());
     }
 
     @Override
