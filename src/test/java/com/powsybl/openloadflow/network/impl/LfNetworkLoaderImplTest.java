@@ -17,6 +17,8 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -92,5 +94,12 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         g.setMinP(1);
         LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
         assertFalse(lfNetwork.getBus(0).hasVoltageControl());
+    }
+
+    @Test
+    void networkWithoutGeneratorTest() {
+        g.remove();
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        assertTrue(lfNetworks.isEmpty());
     }
 }
