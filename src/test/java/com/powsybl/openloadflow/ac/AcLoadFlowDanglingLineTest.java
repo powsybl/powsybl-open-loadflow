@@ -150,13 +150,14 @@ class AcLoadFlowDanglingLineTest {
 
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new MostMeshedSlackBusSelector())
-                .setDistributedSlack(false);
+                .setDistributedSlack(true);
+        parameters.setNoGeneratorReactiveLimits(false);
         this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isOk());
 
         assertVoltageEquals(390.440, bus1);
-        assertAngleEquals(0.114371, bus1);
+        assertAngleEquals(0.114259, bus1);
         assertVoltageEquals(390.181, bus2);
         assertAngleEquals(0, bus2);
         assertActivePowerEquals(101, dl1.getTerminal());
