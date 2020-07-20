@@ -18,7 +18,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -142,9 +141,20 @@ class AcLoadFlowDanglingLineTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
-        assertEquals(dl1.getId(), "dl1");
-        assertEquals(0, dl1.getGeneration().getMinP());
-        assertEquals(10, dl1.getGeneration().getMaxP());
+        assertVoltageEquals(390.440, bus1);
+        assertAngleEquals(0.114371, bus1);
+        assertVoltageEquals(390.181, bus2);
+        assertAngleEquals(0, bus2);
+        assertActivePowerEquals(101, dl1.getTerminal());
+        assertReactivePowerEquals(0.187604, dl1.getTerminal());
+
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+                .setSlackBusSelector(new MostMeshedSlackBusSelector())
+                .setDistributedSlack(false);
+        this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+
         assertVoltageEquals(390.440, bus1);
         assertAngleEquals(0.114371, bus1);
         assertVoltageEquals(390.181, bus2);
