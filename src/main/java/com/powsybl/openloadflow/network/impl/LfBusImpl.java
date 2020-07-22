@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.VoltageLevel;
 import com.powsybl.iidm.network.extensions.SlackTerminalAdder;
+import com.powsybl.iidm.network.util.TerminalChooser;
 
 import java.util.Objects;
 
@@ -60,8 +61,9 @@ public class LfBusImpl extends AbstractLfBus {
         // FIXME clean network from all slackterminal extensions
         if (this.isSlack()) {
             VoltageLevel vl = bus.getVoltageLevel();
+            TerminalChooser slackTerminalChooser = TerminalChooser.getDefaultSlackTerminalChooser();
             vl.newExtension(SlackTerminalAdder.class)
-                    .setTerminal(bus.getConnectedTerminals().iterator().next()) // FIXME should be improved.
+                    .setTerminal(slackTerminalChooser.choose(bus.getConnectedTerminalStream()))
                     .add();
         }
 
