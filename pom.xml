@@ -137,7 +137,7 @@
             <version>${powsyblcore.version}</version>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>com.powsybl</groupId>
             <artifactId>powsybl-iidm-util</artifactId>
             <version>${powsyblcore.version}</version>
         </dependency>
