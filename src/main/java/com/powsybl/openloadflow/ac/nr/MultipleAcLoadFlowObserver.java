@@ -60,8 +60,13 @@ public class MultipleAcLoadFlowObserver implements AcLoadFlowObserver {
     }
 
     @Override
-    public void stateVectorInitialized(double[] x) {
-        observers.forEach(o -> o.stateVectorInitialized(x));
+    public void beforeStateVectorCreation(int iteration) {
+        observers.forEach(o -> o.beforeStateVectorCreation(iteration));
+    }
+
+    @Override
+    public void afterStateVectorCreation(double[] x, int iteration) {
+        observers.forEach(o -> o.afterStateVectorCreation(x, iteration));
     }
 
     @Override
@@ -90,13 +95,13 @@ public class MultipleAcLoadFlowObserver implements AcLoadFlowObserver {
     }
 
     @Override
-    public void beforeEquationVectorUpdate(int iteration) {
-        observers.forEach(o -> o.beforeEquationVectorUpdate(iteration));
+    public void beforeEquationVectorCreation(int iteration) {
+        observers.forEach(o -> o.beforeEquationVectorCreation(iteration));
     }
 
     @Override
-    public void afterEquationVectorUpdate(double[] fx, EquationSystem equationSystem, int iteration) {
-        observers.forEach(o -> o.afterEquationVectorUpdate(fx, equationSystem, iteration));
+    public void afterEquationVectorCreation(double[] fx, EquationSystem equationSystem, int iteration) {
+        observers.forEach(o -> o.afterEquationVectorCreation(fx, equationSystem, iteration));
     }
 
     @Override
@@ -167,5 +172,15 @@ public class MultipleAcLoadFlowObserver implements AcLoadFlowObserver {
     @Override
     public void afterPvBusesReactivePowerUpdate() {
         observers.forEach(AcLoadFlowObserver::afterPvBusesReactivePowerUpdate);
+    }
+
+    @Override
+    public void beforeLoadFlow(LfNetwork network) {
+        observers.forEach(o -> o.beforeLoadFlow(network));
+    }
+
+    @Override
+    public void afterLoadFlow(LfNetwork network) {
+        observers.forEach(o -> o.afterLoadFlow(network));
     }
 }

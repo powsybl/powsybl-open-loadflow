@@ -94,7 +94,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         boolean[] stateVectorInitialized = new boolean[1];
         parametersExt.getAdditionalObservers().add(new DefaultAcLoadFlowObserver() {
             @Override
-            public void stateVectorInitialized(double[] x) {
+            public void afterStateVectorCreation(double[] x, int iteration) {
                 assertEquals(0, x[1], LoadFlowAssert.DELTA_ANGLE);
                 assertEquals(-0.043833, x[3], LoadFlowAssert.DELTA_ANGLE);
                 assertEquals(-0.112393, x[5], LoadFlowAssert.DELTA_ANGLE);
