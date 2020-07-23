@@ -6,7 +6,9 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.google.common.base.Stopwatch;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.util.Markers;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +17,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -41,7 +44,7 @@ public class EquationSystem {
                 return;
             }
 
-            LOGGER.info("Update equation system cache");
+            Stopwatch stopwatch = Stopwatch.createStarted();
 
             // index derivatives per variable then per equation
             reIndex();
@@ -55,6 +58,9 @@ public class EquationSystem {
             for (Variable variable : sortedVariablesToFind.keySet()) {
                 variable.setColumn(columnCount++);
             }
+
+            stopwatch.stop();
+            LOGGER.debug(Markers.PERFORMANCE_MARKER, "Equation system updated in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
             invalide = false;
         }

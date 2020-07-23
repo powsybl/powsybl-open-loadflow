@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.google.common.base.Stopwatch;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
@@ -19,7 +18,6 @@ import com.powsybl.openloadflow.equations.EquationType;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.Markers;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -111,9 +108,9 @@ public class AcloadFlowEngine {
     }
 
     private AcLoadFlowResult run(LfNetwork network) {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-
         LOGGER.info("Start Ac loadflow on network {}", network.getNum());
+
+        parameters.getObserver().beforeLoadFlow(network);
 
         parameters.getObserver().beforeEquationSystemCreation();
 
@@ -155,12 +152,10 @@ public class AcloadFlowEngine {
             }
         }
 
-        stopwatch.stop();
-
         int nrIterations = runningContext.lastNrResult.getIteration();
         int outerLoopIterations = runningContext.outerLoopIterationByType.values().stream().mapToInt(MutableInt::getValue).sum() + 1;
 
-        LOGGER.debug(Markers.PERFORMANCE_MARKER, "Ac loadflow ran on network {} in {} ms", network.getNum(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        parameters.getObserver().afterLoadFlow(network);
 
         AcLoadFlowResult result = new AcLoadFlowResult(network, outerLoopIterations, nrIterations, runningContext.lastNrResult.getStatus(),
                 runningContext.lastNrResult.getSlackBusActivePowerMismatch());
