@@ -18,6 +18,7 @@ import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.Networks;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.usefultoys.slf4j.LoggerFactory;
@@ -45,6 +46,7 @@ class DcLoadFlowMatrixTest {
     }
 
     @Test
+    @Disabled
     void buildDcMatrix() {
         Network network = EurostagTutorialExample1Factory.create();
 
@@ -104,7 +106,7 @@ class DcLoadFlowMatrixTest {
 
         double[] dx = Arrays.copyOf(targets, targets.length);
         try (LUDecomposition lu = j.decomposeLU()) {
-            lu.solve(dx);
+            lu.solveTransposed(dx);
         }
 
         assertEquals(0d, dx[0], 1E-14d);
@@ -128,7 +130,7 @@ class DcLoadFlowMatrixTest {
 
         dx = Arrays.copyOf(targets, targets.length);
         try (LUDecomposition lu = j.decomposeLU()) {
-            lu.solve(dx);
+            lu.solveTransposed(dx);
         }
 
         Networks.resetState(network);
