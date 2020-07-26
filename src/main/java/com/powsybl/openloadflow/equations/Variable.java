@@ -149,6 +149,6 @@ public class Variable implements Comparable<Variable> {
 
     @Override
     public String toString() {
-        return "Variable(num=" + num + ", type=" + type + ", column=" + row + ")";
+        return "Variable(num=" + num + ", type=" + type + ", row=" + row + ")";
     }
 }

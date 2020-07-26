@@ -42,7 +42,7 @@ class EquationTest {
 
     @Test
     void testToString() {
-        assertEquals("Equation(num=0, busId=bus1, type=BUS_P, row=-1)", new Equation(0, EquationType.BUS_P, equationSystem).toString());
-        assertEquals("Equation(num=1, controllerBusId=bus1, type=ZERO_Q, row=-1)", new Equation(1, EquationType.ZERO_Q, equationSystem).toString());
+        assertEquals("Equation(num=0, busId=bus1, type=BUS_P, column=-1)", new Equation(0, EquationType.BUS_P, equationSystem).toString());
+        assertEquals("Equation(num=1, controllerBusId=bus1, type=ZERO_Q, column=-1)", new Equation(1, EquationType.ZERO_Q, equationSystem).toString());
     }
 }

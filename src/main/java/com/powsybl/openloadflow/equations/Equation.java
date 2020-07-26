@@ -282,7 +282,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
         }
         builder.append(", type=").append(type)
-                .append(", row=").append(column).append(")");
+                .append(", column=").append(column).append(")");
         return builder.toString();
     }
 }
