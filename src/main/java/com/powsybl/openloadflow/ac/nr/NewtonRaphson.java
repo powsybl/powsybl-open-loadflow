@@ -97,11 +97,11 @@ public class NewtonRaphson implements AutoCloseable {
             updateEquations(x);
 
             // recalculate f(x) with new x
-            observer.beforeEquationVectorUpdate(iteration);
+            observer.beforeEquationVectorCreation(iteration);
 
             equationSystem.updateEquationVector(fx);
 
-            observer.afterEquationVectorUpdate(fx, equationSystem, iteration);
+            observer.afterEquationVectorCreation(fx, equationSystem, iteration);
 
             Vectors.minus(fx, targets);
 
@@ -145,9 +145,11 @@ public class NewtonRaphson implements AutoCloseable {
 
         observer.afterVoltageInitializerPreparation();
 
+        observer.beforeStateVectorCreation(iteration);
+
         double[] x = equationSystem.createStateVector(voltageInitializer);
 
-        observer.stateVectorInitialized(x);
+        observer.afterStateVectorCreation(x, iteration);
 
         updateEquations(x);
 
@@ -155,11 +157,11 @@ public class NewtonRaphson implements AutoCloseable {
         double[] targets = equationSystem.createTargetVector();
 
         // initialize mismatch vector (difference between equation values and targets)
-        observer.beforeEquationVectorUpdate(iteration);
+        observer.beforeEquationVectorCreation(iteration);
 
         double[] fx = equationSystem.createEquationVector();
 
-        observer.afterEquationVectorUpdate(fx, equationSystem, iteration);
+        observer.afterEquationVectorCreation(fx, equationSystem, iteration);
 
         Vectors.minus(fx, targets);
 

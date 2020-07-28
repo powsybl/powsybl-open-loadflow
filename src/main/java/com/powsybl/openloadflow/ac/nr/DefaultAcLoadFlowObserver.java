@@ -53,7 +53,12 @@ public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
     }
 
     @Override
-    public void stateVectorInitialized(double[] x) {
+    public void beforeStateVectorCreation(int iteration) {
+        // empty
+    }
+
+    @Override
+    public void afterStateVectorCreation(double[] x, int iteration) {
         // empty
     }
 
@@ -83,12 +88,12 @@ public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
     }
 
     @Override
-    public void beforeEquationVectorUpdate(int iteration) {
+    public void beforeEquationVectorCreation(int iteration) {
         // empty
     }
 
     @Override
-    public void afterEquationVectorUpdate(double[] fx, EquationSystem equationSystem, int iteration) {
+    public void afterEquationVectorCreation(double[] fx, EquationSystem equationSystem, int iteration) {
         // empty
     }
 
@@ -159,6 +164,16 @@ public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
 
     @Override
     public void afterPvBusesReactivePowerUpdate() {
+        // empty
+    }
+
+    @Override
+    public void beforeLoadFlow(LfNetwork network) {
+        // empty
+    }
+
+    @Override
+    public void afterLoadFlow(LfNetwork network) {
         // empty
     }
 }
