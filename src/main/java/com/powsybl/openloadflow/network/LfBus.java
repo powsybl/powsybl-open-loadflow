@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.Bus;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -31,8 +29,6 @@ public interface LfBus {
     boolean hasVoltageControlCapability();
 
     boolean hasVoltageControl();
-
-    Bus getBus();
 
     /**
      * Get the number of time, voltage control status has be set from true to false.
@@ -97,5 +93,5 @@ public interface LfBus {
 
     void addBranch(LfBranch branch);
 
-    void updateState(boolean reactiveLimits);
+    void updateState(boolean reactiveLimits, boolean writeSlackBus);
 }

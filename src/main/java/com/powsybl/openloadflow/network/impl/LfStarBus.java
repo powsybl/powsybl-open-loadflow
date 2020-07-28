@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 
 /**
@@ -35,20 +34,15 @@ public class LfStarBus extends AbstractLfBus {
     }
 
     @Override
-    public Bus getBus() {
-        return null;
-    }
-
-    @Override
     public double getNominalV() {
         return nominalV;
     }
 
     @Override
-    public void updateState(boolean reactiveLimits) {
+    public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
         Networks.setPropertyV(t3wt, v);
         Networks.setPropertyAngle(t3wt, angle);
 
-        super.updateState(reactiveLimits);
+        super.updateState(reactiveLimits, writeSlackBus);
     }
 }

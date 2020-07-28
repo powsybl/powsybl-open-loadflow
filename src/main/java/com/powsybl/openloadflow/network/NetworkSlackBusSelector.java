@@ -6,37 +6,53 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.VoltageLevel;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
 public class NetworkSlackBusSelector implements SlackBusSelector {
 
-    private final Network network;
+    private static final SlackBusSelector DEFAULT_FALLBACK_SELECTOR = new MostMeshedSlackBusSelector();
 
-    private Bus slackBus = null;
+    private final SlackBusSelector fallbackSelector;
+
+    private final Set<String> slackBusIds = new HashSet<>();
 
     public NetworkSlackBusSelector(Network network) {
-        this.network = Objects.requireNonNull(network);
+        this(network, DEFAULT_FALLBACK_SELECTOR);
+    }
+
+    public NetworkSlackBusSelector(Network network, SlackBusSelector fallbackSelector) {
+        Objects.requireNonNull(network);
+        this.fallbackSelector = Objects.requireNonNull(fallbackSelector);
         for (VoltageLevel vl : network.getVoltageLevels()) {
-            if (vl.getExtension(SlackTerminal.class) != null) {
-                slackBus = vl.getExtension(SlackTerminal.class).getTerminal().getBusView().getBus();
-            } // FIXME could have several extensions in the same network.
+            SlackTerminal slackTerminal = vl.getExtension(SlackTerminal.class);
+            if (slackTerminal != null) {
+                Bus bus = slackTerminal.getTerminal().getBusView().getBus();
+                if (bus != null) {
+                    slackBusIds.add(bus.getId());
+                }
+            }
         }
     }
 
     @Override
     public LfBus select(List<LfBus> buses) {
         for (LfBus bus : buses) {
-            if (bus.getBus().equals(slackBus)) {
+            if (!bus.isFictitious() && slackBusIds.contains(bus.getId())) {
                 return bus;
             }
         }
-        return null;
+        // fallback to automatic selection
+        return fallbackSelector.select(buses);
     }
 }

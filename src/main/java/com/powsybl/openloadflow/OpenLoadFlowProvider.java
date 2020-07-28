@@ -10,6 +10,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableMap;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -30,6 +31,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.VoltageInitializer;
+import com.powsybl.openloadflow.network.NetworkSlackBusSelector;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -106,11 +108,16 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return parametersExt;
     }
 
+    private static SlackBusSelector getSlackBusSelector(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        return parameters.isReadSlackBus() ? new NetworkSlackBusSelector(network, parametersExt.getSlackBusSelector())
+                                           : parametersExt.getSlackBusSelector();
+    }
+
     private CompletableFuture<LoadFlowResult> runAc(Network network, String workingStateId, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
-            SlackBusSelector slackBusSelector = parametersExt.getSlackBusSelector();
+            SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
             VoltageInitializer voltageInitializer = getVoltageInitializer(parameters);
 
@@ -159,14 +166,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
             Networks.resetState(network);
 
-            boolean ok = false;
+            boolean ok = results.stream().anyMatch(result -> result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED);
+            // reset slack buses if at least one component has converged
+            if (ok && parameters.isWriteSlackBus()) {
+                SlackTerminal.reset(network);
+            }
+
             Map<String, String> metrics = new HashMap<>();
             for (AcLoadFlowResult result : results) {
                 // update network state
-                result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits());
+                result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(), parameters.isWriteSlackBus());
 
-                // consider ok if one of the component converged
-                ok |= result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
                 metrics.putAll(createMetrics(result));
             }
 
@@ -190,14 +200,19 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
-            SlackBusSelector slackBusSelector = parametersExt.getSlackBusSelector();
+            SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
             DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector, matrixFactory, true, parameters.isTwtSplitShuntAdmittance());
 
             DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters)
                     .run();
 
             Networks.resetState(network);
-            result.getNetwork().updateState(false);
+
+            if (result.isOk() && parameters.isWriteSlackBus()) {
+                SlackTerminal.reset(network);
+            }
+
+            result.getNetwork().updateState(false, parameters.isWriteSlackBus());
 
             return new LoadFlowResultImpl(result.isOk(), Collections.emptyMap(), null);
         });

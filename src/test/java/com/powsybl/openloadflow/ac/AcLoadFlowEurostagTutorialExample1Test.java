@@ -8,6 +8,8 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.SlackTerminal;
+import com.powsybl.iidm.network.extensions.SlackTerminalAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -36,8 +38,12 @@ class AcLoadFlowEurostagTutorialExample1Test {
     private Bus loadBus;
     private Line line1;
     private Line line2;
-    private LoadFlow.Runner loadFlowRunner;
     private Generator gen;
+    private VoltageLevel vlgen;
+    private VoltageLevel vlload;
+    private VoltageLevel vlhv1;
+    private VoltageLevel vlhv2;
+    private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
     private OpenLoadFlowParameters parametersExt;
 
@@ -51,6 +57,10 @@ class AcLoadFlowEurostagTutorialExample1Test {
         line1 = network.getLine("NHV1_NHV2_1");
         line2 = network.getLine("NHV1_NHV2_2");
         gen = network.getGenerator("GEN");
+        vlgen = network.getVoltageLevel("VLGEN");
+        vlload = network.getVoltageLevel("VLLOAD");
+        vlhv1 = network.getVoltageLevel("VLHV1");
+        vlhv2 = network.getVoltageLevel("VLHV2");
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
@@ -226,5 +236,36 @@ class AcLoadFlowEurostagTutorialExample1Test {
         // check that the issue that add an undefined targetQ (NaN) to bus generation sum is solved
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
+    }
+
+    @Test
+    void slackBusLoadTest() {
+        parameters.setReadSlackBus(true);
+        parameters.setWriteSlackBus(true);
+        Load load = network.getLoad("LOAD");
+        vlload.newExtension(SlackTerminalAdder.class)
+                .withTerminal(load.getTerminal())
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertNotNull(vlload.getExtension(SlackTerminal.class));
+        assertNull(vlgen.getExtension(SlackTerminal.class));
+        assertNull(vlhv1.getExtension(SlackTerminal.class));
+        assertNull(vlhv2.getExtension(SlackTerminal.class));
+    }
+
+    @Test
+    void slackBusWriteTest() {
+        parameters.setWriteSlackBus(true);
+        assertNull(vlgen.getExtension(SlackTerminal.class));
+        assertNull(vlload.getExtension(SlackTerminal.class));
+        assertNull(vlhv1.getExtension(SlackTerminal.class));
+        assertNull(vlhv2.getExtension(SlackTerminal.class));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertNotNull(vlgen.getExtension(SlackTerminal.class));
+        assertNull(vlload.getExtension(SlackTerminal.class));
+        assertNull(vlhv1.getExtension(SlackTerminal.class));
+        assertNull(vlhv2.getExtension(SlackTerminal.class));
     }
 }

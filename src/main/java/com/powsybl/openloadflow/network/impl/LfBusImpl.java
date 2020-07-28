@@ -7,9 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.VoltageLevel;
-import com.powsybl.iidm.network.extensions.SlackTerminalAdder;
-import com.powsybl.iidm.network.util.TerminalChooser;
+import com.powsybl.iidm.network.extensions.SlackTerminal;
 
 import java.util.Objects;
 
@@ -44,29 +42,19 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
-    public Bus getBus() {
-        return bus;
-    }
-
-    @Override
     public double getNominalV() {
         return nominalV;
     }
 
     @Override
-    public void updateState(boolean reactiveLimits) {
+    public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
         bus.setV(v).setAngle(angle);
 
         // update slack bus
-        // FIXME clean network from all slackterminal extensions
-        if (this.isSlack()) {
-            VoltageLevel vl = bus.getVoltageLevel();
-            TerminalChooser slackTerminalChooser = TerminalChooser.getDefaultSlackTerminalChooser();
-            vl.newExtension(SlackTerminalAdder.class)
-                    .setTerminal(slackTerminalChooser.choose(bus.getConnectedTerminalStream()))
-                    .add();
+        if (slack && writeSlackBus) {
+            SlackTerminal.attach(bus);
         }
 
-        super.updateState(reactiveLimits);
+        super.updateState(reactiveLimits, writeSlackBus);
     }
 }
