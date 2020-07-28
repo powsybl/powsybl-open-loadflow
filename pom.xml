@@ -138,11 +138,6 @@
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
-            <artifactId>powsybl-iidm-util</artifactId>
-            <version>${powsyblcore.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.powsybl</groupId>
             <artifactId>powsybl-loadflow-api</artifactId>
             <version>${powsyblcore.version}</version>
         </dependency>
