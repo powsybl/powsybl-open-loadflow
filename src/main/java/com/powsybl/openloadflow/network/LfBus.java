@@ -93,5 +93,5 @@ public interface LfBus {
 
     void addBranch(LfBranch branch);
 
-    void updateState(boolean reactiveLimits);
+    void updateState(boolean reactiveLimits, boolean writeSlackBus);
 }

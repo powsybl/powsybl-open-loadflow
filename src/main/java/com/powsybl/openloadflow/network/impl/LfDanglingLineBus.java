@@ -43,10 +43,10 @@ public class LfDanglingLineBus extends AbstractLfBus {
     }
 
     @Override
-    public void updateState(boolean reactiveLimits) {
+    public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
         Networks.setPropertyV(danglingLine, v);
         Networks.setPropertyAngle(danglingLine, angle);
 
-        super.updateState(reactiveLimits);
+        super.updateState(reactiveLimits, writeSlackBus);
     }
 }

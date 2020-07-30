@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.extensions.SlackTerminal;
 
 import java.util.Objects;
 
@@ -46,9 +47,14 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
-    public void updateState(boolean reactiveLimits) {
+    public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
         bus.setV(v).setAngle(angle);
 
-        super.updateState(reactiveLimits);
+        // update slack bus
+        if (slack && writeSlackBus) {
+            SlackTerminal.attach(bus);
+        }
+
+        super.updateState(reactiveLimits, writeSlackBus);
     }
 }
