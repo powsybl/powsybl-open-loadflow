@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.util.Identifiables;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
@@ -38,7 +39,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         private final Set<ThreeWindingsTransformer> t3wtSet = new LinkedHashSet<>();
     }
 
-    private static void createBuses(List<Bus> buses, boolean voltageRemoteControl, LfNetwork lfNetwork,
+    private static void createBuses(Collection<Bus> buses, boolean voltageRemoteControl, LfNetwork lfNetwork,
                                     LoadingContext loadingContext, LfNetworkLoadingReport report) {
         Map<LfBusImpl, String> controllerBusToControlledBusId = new LinkedHashMap<>();
 
@@ -184,20 +185,20 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static void createBranches(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkLoadingReport report,
                                        boolean twtSplitShuntAdmittance) {
-        for (Branch branch : loadingContext.branchSet) {
+        for (Branch branch : Identifiables.sort(loadingContext.branchSet)) {
             LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork);
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork);
             addBranch(lfNetwork, LfBranchImpl.create(branch, lfBus1, lfBus2, twtSplitShuntAdmittance), report);
         }
 
-        for (DanglingLine danglingLine : loadingContext.danglingLines) {
+        for (DanglingLine danglingLine : Identifiables.sort(loadingContext.danglingLines)) {
             LfDanglingLineBus lfBus2 = new LfDanglingLineBus(danglingLine);
             lfNetwork.addBus(lfBus2);
             LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork);
             addBranch(lfNetwork, LfDanglingLineBranch.create(danglingLine, lfBus1, lfBus2), report);
         }
 
-        for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
+        for (ThreeWindingsTransformer t3wt : Identifiables.sort(loadingContext.t3wtSet)) {
             LfStarBus lfBus0 = new LfStarBus(t3wt);
             lfNetwork.addBus(lfBus0);
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork);
@@ -214,7 +215,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private static LfNetwork create(MutableInt num, List<Bus> buses, SlackBusSelector slackBusSelector, boolean voltageRemoteControl,
+    private static LfNetwork create(MutableInt num, Collection<Bus> buses, SlackBusSelector slackBusSelector, boolean voltageRemoteControl,
                                     boolean twtSplitShuntAdmittance) {
         LfNetwork lfNetwork = new LfNetwork(num.getValue(), slackBusSelector);
         num.increment();
@@ -282,7 +283,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             MutableInt num = new MutableInt(0);
             List<LfNetwork> lfNetworks = buseByCc.entrySet().stream()
                     .filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
-                    .map(e -> e.getValue().stream().sorted(Comparator.comparing(Identifiable::getId)).collect(Collectors.toList())) // to get stable bus numbering
+                    .map(e -> Identifiables.sort(e.getValue())) // to get stable bus numbering
                     .map(buses -> create(num, buses, slackBusSelector, voltageRemoteControl, twtSplitShuntAdmittance))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
