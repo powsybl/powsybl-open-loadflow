@@ -26,15 +26,14 @@ class NetworkSlackBusSelectorTest {
 
     private SlackBusSelector selectorMock;
 
-    private boolean[] fallbackUsed;
+    private int fallbackBusCount = -1;
 
     @BeforeEach
     void setUp() {
         network = EurostagTutorialExample1Factory.create();
-        fallbackUsed = new boolean[1];
         MostMeshedSlackBusSelector selectorFallback = new MostMeshedSlackBusSelector();
         selectorMock = buses -> {
-            fallbackUsed[0] = true;
+            fallbackBusCount = buses.size();
             return selectorFallback.select(buses);
         };
     }
@@ -43,7 +42,7 @@ class NetworkSlackBusSelectorTest {
     void noExtensionTest() {
         LfNetwork lfNetwork = LfNetwork.load(network, new NetworkSlackBusSelector(network, selectorMock)).get(0);
         assertEquals("VLHV1_0", lfNetwork.getSlackBus().getId());
-        assertTrue(fallbackUsed[0]);
+        assertEquals(4, fallbackBusCount);
     }
 
     @Test
@@ -55,7 +54,7 @@ class NetworkSlackBusSelectorTest {
                 .add();
         LfNetwork lfNetwork = LfNetwork.load(network, new NetworkSlackBusSelector(network, selectorMock)).get(0);
         assertEquals("VLLOAD_0", lfNetwork.getSlackBus().getId());
-        assertFalse(fallbackUsed[0]);
+        assertEquals(-1, fallbackBusCount);
     }
 
     @Test
@@ -72,6 +71,6 @@ class NetworkSlackBusSelectorTest {
                 .add();
         LfNetwork lfNetwork = LfNetwork.load(network, new NetworkSlackBusSelector(network, selectorMock)).get(0);
         assertEquals("VLLOAD_0", lfNetwork.getSlackBus().getId());
-        assertTrue(fallbackUsed[0]);
+        assertEquals(2, fallbackBusCount);
     }
 }
