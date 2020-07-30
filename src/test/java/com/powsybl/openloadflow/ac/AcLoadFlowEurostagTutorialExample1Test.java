@@ -190,9 +190,11 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setId("SC")
                 .setBus(loadBus.getId())
                 .setConnectableBus(loadBus.getId())
-                .setbPerSection(3.25 * Math.pow(10, -3))
-                .setMaximumSectionCount(1)
-                .setCurrentSectionCount(1)
+                .setSectionCount(1)
+                .newLinearModel()
+                    .setBPerSection(3.25 * Math.pow(10, -3))
+                    .setMaximumSectionCount(1)
+                    .add()
                 .add();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
