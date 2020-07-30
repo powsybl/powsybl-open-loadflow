@@ -282,7 +282,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             MutableInt num = new MutableInt(0);
             List<LfNetwork> lfNetworks = buseByCc.entrySet().stream()
                     .filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
-                    .map(e -> create(num, e.getValue(), slackBusSelector, voltageRemoteControl, twtSplitShuntAdmittance))
+                    .map(e -> e.getValue().stream().sorted(Comparator.comparing(Identifiable::getId)).collect(Collectors.toList())) // to get stable bus numbering
+                    .map(buses -> create(num, buses, slackBusSelector, voltageRemoteControl, twtSplitShuntAdmittance))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 

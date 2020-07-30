@@ -10,10 +10,7 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
-import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -46,7 +43,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     @Test
     void initialTest() {
         LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
-        LfGenerator lfGenerator = lfNetwork.getBus(0).getGenerators().get(0);
+        LfGenerator lfGenerator = lfNetwork.getBusById("b_vl_0").getGenerators().get(0);
         assertEquals("g", lfGenerator.getId());
         assertTrue(lfGenerator.isParticipating());
     }
@@ -56,7 +53,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         // targetP < 0, generator is discarded from active power control
         g.setTargetP(-10);
         LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
-        assertFalse(lfNetwork.getBus(0).getGenerators().get(0).isParticipating());
+        assertFalse(lfNetwork.getBusById("b_vl_0").getGenerators().get(0).isParticipating());
     }
 
     @Test
@@ -65,7 +62,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         g.setTargetP(10);
         g.setMaxP(5);
         LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
-        assertFalse(lfNetwork.getBus(0).getGenerators().get(0).isParticipating());
+        assertFalse(lfNetwork.getBusById("b_vl_0").getGenerators().get(0).isParticipating());
     }
 
     @Test
