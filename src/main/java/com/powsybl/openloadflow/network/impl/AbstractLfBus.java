@@ -30,7 +30,7 @@ public abstract class AbstractLfBus implements LfBus {
 
     private int num = -1;
 
-    private boolean slack = false;
+    protected boolean slack = false;
 
     protected double v;
 
@@ -437,7 +437,7 @@ public abstract class AbstractLfBus implements LfBus {
     }
 
     @Override
-    public void updateState(boolean reactiveLimits) {
+    public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
         // update generator reactive power
         updateGeneratorsState(voltageControl ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
 
