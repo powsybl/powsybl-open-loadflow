@@ -129,6 +129,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             @Override
             public void visitDanglingLine(DanglingLine danglingLine) {
                 loadingContext.danglingLines.add(danglingLine);
+                DanglingLine.Generation generation = danglingLine.getGeneration();
+                if (generation != null && generation.isVoltageRegulationOn()) {
+                    report.voltageControllerCount++;
+                }
             }
 
             @Override
