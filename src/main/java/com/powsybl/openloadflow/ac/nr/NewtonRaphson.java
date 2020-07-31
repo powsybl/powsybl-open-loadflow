@@ -82,7 +82,7 @@ public class NewtonRaphson implements AutoCloseable {
             try {
                 observer.beforeLuSolve(iteration);
 
-                lu.solve(fx);
+                lu.solveTransposed(fx);
 
                 observer.afterLuSolve(iteration);
             } catch (Exception e) {

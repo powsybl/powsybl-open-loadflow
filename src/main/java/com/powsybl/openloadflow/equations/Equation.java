@@ -32,7 +32,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     private final EquationSystem equationSystem;
 
-    private int row = -1;
+    private int column = -1;
 
     private Object data;
 
@@ -61,12 +61,12 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return equationSystem;
     }
 
-    public int getRow() {
-        return row;
+    public int getColumn() {
+        return column;
     }
 
-    public void setRow(int row) {
-        this.row = row;
+    public void setColumn(int column) {
+        this.column = column;
     }
 
     public boolean isActive() {
@@ -151,39 +151,39 @@ public class Equation implements Evaluable, Comparable<Equation> {
     void initTarget(LfNetwork network, double[] targets) {
         switch (type) {
             case BUS_P:
-                targets[row] = network.getBus(num).getTargetP();
+                targets[column] = network.getBus(num).getTargetP();
                 break;
 
             case BUS_Q:
-                targets[row] = network.getBus(num).getTargetQ();
+                targets[column] = network.getBus(num).getTargetQ();
                 break;
 
             case BUS_V:
-                targets[row] = getBusTargetV(network.getBus(num));
+                targets[column] = getBusTargetV(network.getBus(num));
                 break;
 
             case BUS_PHI:
-                targets[row] = 0;
+                targets[column] = 0;
                 break;
 
             case BRANCH_P:
-                targets[row] = getBranchTarget(network.getBranch(num), PhaseControl.Unit.MW);
+                targets[column] = getBranchTarget(network.getBranch(num), PhaseControl.Unit.MW);
                 break;
 
             case BRANCH_I:
-                targets[row] = getBranchTarget(network.getBranch(num), PhaseControl.Unit.A);
+                targets[column] = getBranchTarget(network.getBranch(num), PhaseControl.Unit.A);
                 break;
 
             case ZERO_Q:
-                targets[row] = getReactivePowerDistributionTarget(network, num, getData());
+                targets[column] = getReactivePowerDistributionTarget(network, num, getData());
                 break;
 
             case ZERO_V:
-                targets[row] = 0;
+                targets[column] = 0;
                 break;
 
             case ZERO_PHI:
-                targets[row] = getBranchA(network.getBranch(num));
+                targets[column] = getBranchA(network.getBranch(num));
                 break;
 
             default:
@@ -192,7 +192,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
         for (EquationTerm term : terms) {
             if (term.hasRhs()) {
-                targets[row] -= term.rhs();
+                targets[column] -= term.rhs();
             }
         }
     }
@@ -282,7 +282,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
         }
         builder.append(", type=").append(type)
-                .append(", row=").append(row).append(")");
+                .append(", column=").append(column).append(")");
         return builder.toString();
     }
 }

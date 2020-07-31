@@ -71,7 +71,7 @@ public class DcLoadFlowEngine {
             boolean ok;
             try {
                 LUDecomposition lu = j.decomposeLU();
-                lu.solve(dx);
+                lu.solveTransposed(dx);
                 ok = true;
             } catch (Exception e) {
                 ok = false;
