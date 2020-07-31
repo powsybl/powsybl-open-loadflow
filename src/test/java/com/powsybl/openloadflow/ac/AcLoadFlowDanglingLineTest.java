@@ -29,10 +29,13 @@ class AcLoadFlowDanglingLineTest {
     private Bus bus1;
     private Bus bus2;
     private DanglingLine dl1;
+    private Generator g1;
 
     private LoadFlow.Runner loadFlowRunner;
 
     private LoadFlowParameters parameters;
+
+    private OpenLoadFlowParameters parametersExt;
 
     private Network createNetwork() {
         Network network = Network.create("dl", "test");
@@ -50,7 +53,7 @@ class AcLoadFlowDanglingLineTest {
         bus1 = vl1.getBusBreakerView().newBus()
                 .setId("b1")
                 .add();
-        vl1.newGenerator()
+        g1 = vl1.newGenerator()
                 .setId("g1")
                 .setConnectableBus("b1")
                 .setBus("b1")
@@ -69,7 +72,7 @@ class AcLoadFlowDanglingLineTest {
                 .setId("b2")
                 .add();
         dl1 = vl2.newDanglingLine()
-                .setId("ld1")
+                .setId("dl1")
                 .setConnectableBus("b2")
                 .setBus("b2")
                 .setR(0.7)
@@ -78,6 +81,12 @@ class AcLoadFlowDanglingLineTest {
                 .setB(3 * Math.pow(10, -6))
                 .setP0(101)
                 .setQ0(150)
+                .newGeneration()
+                    .setTargetP(0)
+                    .setTargetQ(0)
+                    .setTargetV(390)
+                    .setVoltageRegulationOn(false)
+                    .add()
                 .add();
         network.newLine()
                 .setId("l1")
@@ -101,10 +110,10 @@ class AcLoadFlowDanglingLineTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
         parameters.setNoGeneratorReactiveLimits(true);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+        parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new MostMeshedSlackBusSelector())
                 .setDistributedSlack(false);
-        this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
     @Test
@@ -118,5 +127,39 @@ class AcLoadFlowDanglingLineTest {
         assertAngleEquals(0, bus2);
         assertActivePowerEquals(101, dl1.getTerminal());
         assertReactivePowerEquals(150, dl1.getTerminal());
+    }
+
+    @Test
+    void testWithVoltageRegulationOn() {
+        g1.setTargetQ(0);
+        g1.setVoltageRegulatorOn(false);
+        dl1.getGeneration().setVoltageRegulationOn(true);
+        dl1.getGeneration().setMinP(0);
+        dl1.getGeneration().setMaxP(10);
+        dl1.getGeneration().newMinMaxReactiveLimits()
+                .setMinQ(-100)
+                .setMaxQ(100)
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(390.440, bus1);
+        assertAngleEquals(0.114371, bus1);
+        assertVoltageEquals(390.181, bus2);
+        assertAngleEquals(0, bus2);
+        assertActivePowerEquals(101, dl1.getTerminal());
+        assertReactivePowerEquals(0.187604, dl1.getTerminal());
+
+        parametersExt.setDistributedSlack(true);
+        parameters.setNoGeneratorReactiveLimits(false);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+
+        assertVoltageEquals(390.440, bus1);
+        assertAngleEquals(0.114259, bus1);
+        assertVoltageEquals(390.181, bus2);
+        assertAngleEquals(0, bus2);
+        assertActivePowerEquals(101, dl1.getTerminal());
+        assertReactivePowerEquals(0.187604, dl1.getTerminal());
     }
 }
