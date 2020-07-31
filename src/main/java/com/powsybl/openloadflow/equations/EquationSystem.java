@@ -35,9 +35,9 @@ public class EquationSystem {
 
         private boolean invalide = false;
 
-        private final NavigableSet<Equation> sortedEquationsToSolve = new TreeSet<>();
+        private final NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> sortedEquationsToSolve = new TreeMap<>();
 
-        private final NavigableMap<Variable, NavigableMap<Equation, List<EquationTerm>>> sortedVariablesToFind = new TreeMap<>();
+        private final NavigableSet<Variable> sortedVariablesToFind = new TreeSet<>();
 
         private void update() {
             if (!invalide) {
@@ -49,14 +49,14 @@ public class EquationSystem {
             // index derivatives per variable then per equation
             reIndex();
 
-            int rowCount = 0;
-            for (Equation equation : sortedEquationsToSolve) {
-                equation.setRow(rowCount++);
+            int columnCount = 0;
+            for (Equation equation : sortedEquationsToSolve.keySet()) {
+                equation.setColumn(columnCount++);
             }
 
-            int columnCount = 0;
-            for (Variable variable : sortedVariablesToFind.keySet()) {
-                variable.setColumn(columnCount++);
+            int rowCount = 0;
+            for (Variable variable : sortedVariablesToFind) {
+                variable.setRow(rowCount++);
             }
 
             stopwatch.stop();
@@ -69,20 +69,22 @@ public class EquationSystem {
             sortedEquationsToSolve.clear();
             sortedVariablesToFind.clear();
 
+            Set<Variable> variablesToFind = new HashSet<>();
             for (Equation equation : equations.values()) {
                 if (equation.isActive()) {
-                    sortedEquationsToSolve.add(equation);
+                    NavigableMap<Variable, List<EquationTerm>> equationTermsByVariable = sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>());
                     for (EquationTerm equationTerm : equation.getTerms()) {
                         for (Variable variable : equationTerm.getVariables()) {
                             if (variable.isActive()) {
-                                sortedVariablesToFind.computeIfAbsent(variable, k -> new TreeMap<>())
-                                        .computeIfAbsent(equation, k -> new ArrayList<>())
+                                equationTermsByVariable.computeIfAbsent(variable, k -> new ArrayList<>())
                                         .add(equationTerm);
+                                variablesToFind.add(variable);
                             }
                         }
                     }
                 }
             }
+            sortedVariablesToFind.addAll(variablesToFind);
         }
 
         @Override
@@ -90,12 +92,12 @@ public class EquationSystem {
             invalide = true;
         }
 
-        private NavigableSet<Equation> getSortedEquationsToSolve() {
+        private NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> getSortedEquationsToSolve() {
             update();
             return sortedEquationsToSolve;
         }
 
-        private NavigableMap<Variable, NavigableMap<Equation, List<EquationTerm>>> getSortedVariablesToFind() {
+        private NavigableSet<Variable> getSortedVariablesToFind() {
             update();
             return sortedVariablesToFind;
         }
@@ -144,29 +146,29 @@ public class EquationSystem {
         return equation;
     }
 
-    public SortedSet<Equation> getSortedEquationsToSolve() {
-        return equationCache.getSortedEquationsToSolve();
-    }
-
-    public NavigableMap<Variable, NavigableMap<Equation, List<EquationTerm>>> getSortedVariablesToFind() {
+    public SortedSet<Variable> getSortedVariablesToFind() {
         return equationCache.getSortedVariablesToFind();
     }
 
+    public NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> getSortedEquationsToSolve() {
+        return equationCache.getSortedEquationsToSolve();
+    }
+
     public List<String> getRowNames() {
-        return getSortedEquationsToSolve().stream()
+        return getSortedVariablesToFind().stream()
                 .map(eq -> network.getBus(eq.getNum()).getId() + "/" + eq.getType())
                 .collect(Collectors.toList());
     }
 
     public List<String> getColumnNames() {
-        return getSortedVariablesToFind().navigableKeySet().stream()
+        return getSortedEquationsToSolve().navigableKeySet().stream()
                 .map(v -> network.getBus(v.getNum()).getId() + "/" + v.getType())
                 .collect(Collectors.toList());
     }
 
     public double[] createStateVector(VoltageInitializer initializer) {
         double[] x = new double[getSortedVariablesToFind().size()];
-        for (Variable v : getSortedVariablesToFind().navigableKeySet()) {
+        for (Variable v : getSortedVariablesToFind()) {
             v.initState(initializer, network, x);
         }
         return x;
@@ -174,7 +176,7 @@ public class EquationSystem {
 
     public double[] createTargetVector() {
         double[] targets = new double[equationCache.getSortedEquationsToSolve().size()];
-        for (Equation equation : equationCache.getSortedEquationsToSolve()) {
+        for (Equation equation : equationCache.getSortedEquationsToSolve().keySet()) {
             equation.initTarget(network, targets);
         }
         return targets;
@@ -191,8 +193,8 @@ public class EquationSystem {
             throw new IllegalArgumentException("Bad equation vector length: " + fx.length);
         }
         Arrays.fill(fx, 0);
-        for (Equation equation : equationCache.getSortedEquationsToSolve()) {
-            fx[equation.getRow()] = equation.eval();
+        for (Equation equation : equationCache.getSortedEquationsToSolve().keySet()) {
+            fx[equation.getColumn()] = equation.eval();
         }
     }
 
@@ -204,7 +206,7 @@ public class EquationSystem {
 
     public void updateNetwork(double[] x) {
         // update state variable
-        for (Variable v : getSortedVariablesToFind().navigableKeySet()) {
+        for (Variable v : getSortedVariablesToFind()) {
             v.updateState(network, x);
         }
     }
@@ -222,7 +224,7 @@ public class EquationSystem {
 
     public void write(Writer writer) {
         try {
-            for (Equation equation : getSortedEquationsToSolve()) {
+            for (Equation equation : getSortedEquationsToSolve().navigableKeySet()) {
                 equation.write(writer);
                 writer.write(System.lineSeparator());
             }

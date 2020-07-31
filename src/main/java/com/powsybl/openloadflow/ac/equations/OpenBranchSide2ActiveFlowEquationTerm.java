@@ -33,7 +33,7 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenBranchAcF
     @Override
     public void update(double[] x) {
         Objects.requireNonNull(x);
-        double v1 = x[v1Var.getColumn()];
+        double v1 = x[v1Var.getRow()];
         p1 = r1 * r1 * v1 * v1 * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * sinKsi / shunt);
         dp1dv1 = 2 * r1 * r1 * v1 * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * sinKsi / shunt);
     }
