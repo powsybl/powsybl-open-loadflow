@@ -73,7 +73,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new PowsyblCoreVersion().getMavenProjectVersion();
     }
 
-    private AcLoadFlowObserver getObserver(OpenLoadFlowParameters parametersExt) {
+    private static AcLoadFlowObserver getObserver(OpenLoadFlowParameters parametersExt) {
         List<AcLoadFlowObserver> observers = new ArrayList<>(parametersExt.getAdditionalObservers().size() + 2);
         observers.add(new AcLoadFlowLogger());
         observers.add(new AcLoadFlowProfiler());
@@ -100,7 +100,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
     }
 
-    private OpenLoadFlowParameters getParametersExt(LoadFlowParameters parameters) {
+    static OpenLoadFlowParameters getParametersExt(LoadFlowParameters parameters) {
         OpenLoadFlowParameters parametersExt = parameters.getExtension(OpenLoadFlowParameters.class);
         if (parametersExt == null) {
             parametersExt = new OpenLoadFlowParameters();
@@ -113,54 +113,59 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                            : parametersExt.getSlackBusSelector();
     }
 
+    static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
+                                                   OpenLoadFlowParameters parametersExt, boolean breakers) {
+        SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
+
+        VoltageInitializer voltageInitializer = getVoltageInitializer(parameters);
+
+        NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
+
+        LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
+        LOGGER.info("Voltage level initializer: {}", voltageInitializer.getClass().getSimpleName());
+        LOGGER.info("Distributed slack: {}", parametersExt.isDistributedSlack());
+        LOGGER.info("Balance type: {}", parametersExt.getBalanceType());
+        LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
+        LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
+        LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
+        LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
+
+        List<OuterLoop> outerLoops = new ArrayList<>();
+        if (parametersExt.isDistributedSlack()) {
+            switch (parametersExt.getBalanceType()) {
+                case PROPORTIONAL_TO_GENERATION_P_MAX:
+                    outerLoops.add(new DistributedSlackOnGenerationOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure()));
+                    break;
+                case PROPORTIONAL_TO_LOAD:
+                    outerLoops.add(new DistributedSlackOnLoadOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure()));
+                    break;
+                case PROPORTIONAL_TO_GENERATION_P: // to be implemented.
+                    throw new UnsupportedOperationException("Unsupported balance type mode: " + parametersExt.getBalanceType());
+                default:
+                    throw new UnsupportedOperationException("Unknown balance type mode: " + parametersExt.getBalanceType());
+            }
+        }
+        if (parameters.isPhaseShifterRegulationOn()) {
+            outerLoops.add(new PhaseControlOuterLoop());
+        }
+        if (!parameters.isNoGeneratorReactiveLimits()) {
+            outerLoops.add(new ReactiveLimitsOuterLoop());
+        }
+
+        return new AcLoadFlowParameters(slackBusSelector, voltageInitializer, stoppingCriteria,
+                outerLoops, matrixFactory, getObserver(parametersExt),
+                parametersExt.hasVoltageRemoteControl(),
+                parameters.isPhaseShifterRegulationOn(),
+                parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
+                parameters.isTwtSplitShuntAdmittance(),
+                false);
+    }
+
     private CompletableFuture<LoadFlowResult> runAc(Network network, String workingStateId, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
-            SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
-
-            VoltageInitializer voltageInitializer = getVoltageInitializer(parameters);
-
-            NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
-
-            LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
-            LOGGER.info("Voltage level initializer: {}", voltageInitializer.getClass().getSimpleName());
-            LOGGER.info("Distributed slack: {}", parametersExt.isDistributedSlack());
-            LOGGER.info("Balance type: {}", parametersExt.getBalanceType());
-            LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
-            LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
-            LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
-            LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
-
-            List<OuterLoop> outerLoops = new ArrayList<>();
-            if (parametersExt.isDistributedSlack()) {
-                switch (parametersExt.getBalanceType()) {
-                    case PROPORTIONAL_TO_GENERATION_P_MAX:
-                        outerLoops.add(new DistributedSlackOnGenerationOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure()));
-                        break;
-                    case PROPORTIONAL_TO_LOAD:
-                        outerLoops.add(new DistributedSlackOnLoadOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure()));
-                        break;
-                    case PROPORTIONAL_TO_GENERATION_P: // to be implemented.
-                        throw new UnsupportedOperationException("Unsupported balance type mode: " + parametersExt.getBalanceType());
-                    default:
-                        throw new UnsupportedOperationException("Unknown balance type mode: " + parametersExt.getBalanceType());
-                }
-            }
-            if (parameters.isPhaseShifterRegulationOn()) {
-                outerLoops.add(new PhaseControlOuterLoop());
-            }
-            if (!parameters.isNoGeneratorReactiveLimits()) {
-                outerLoops.add(new ReactiveLimitsOuterLoop());
-            }
-
-            AcLoadFlowParameters acParameters = new AcLoadFlowParameters(slackBusSelector, voltageInitializer, stoppingCriteria,
-                    outerLoops, matrixFactory, getObserver(parametersExt),
-                    parametersExt.hasVoltageRemoteControl(),
-                    parameters.isPhaseShifterRegulationOn(),
-                    parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
-                    parameters.isTwtSplitShuntAdmittance());
-
+            AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt, false);
             List<AcLoadFlowResult> results = new AcloadFlowEngine(network, acParameters)
                     .run();
 

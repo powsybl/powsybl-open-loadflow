@@ -298,7 +298,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             if (parameters.isBreakers()) {
                 for (VoltageLevel vl : ((Network) network).getVoltageLevels()) {
                     for (Switch sw : vl.getBusBreakerView().getSwitches()) {
-                        if (!sw.isOpen()) {
+                        if (!sw.isOpen()) { // only create closed switches as in security analysis we can only open switches
                             Bus bus1 = vl.getBusBreakerView().getBus1(sw.getId());
                             Component cc = bus1.getConnectedComponent();
                             Component sc = bus1.getSynchronousComponent();

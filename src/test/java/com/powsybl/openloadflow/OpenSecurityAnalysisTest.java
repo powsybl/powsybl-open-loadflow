@@ -13,6 +13,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisResult;
@@ -21,6 +22,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -85,7 +88,7 @@ class OpenSecurityAnalysisTest {
                 .setMaxP(9999.99)
                 .setVoltageRegulatorOn(true)
                 .setTargetV(398)
-                .setTargetP(607.0)
+                .setTargetP(603.77)
                 .setTargetQ(301.0)
                 .add();
 
@@ -159,7 +162,8 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
         ContingenciesProvider contingenciesProvider = network -> Arrays.asList(new Contingency("L1", new BranchContingency("L1")),
                                                                                new Contingency("L2", new BranchContingency("L2")));
-        SecurityAnalysisResult result = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(), new LimitViolationFilter())
-                .runSync(parameters, contingenciesProvider);
+        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(), new LimitViolationFilter(), new DenseMatrixFactory());
+        SecurityAnalysisResult result = securityAnalysis.runSync(parameters, contingenciesProvider);
+        assertFalse(result.getPreContingencyResult().isComputationOk());
     }
 }

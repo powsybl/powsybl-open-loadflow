@@ -12,13 +12,17 @@ import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.tasks.AbstractTrippingTask;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkLoadingParameters;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.ac.ContingencyOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
+import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
+import com.powsybl.openloadflow.network.LfContingency;
+import com.powsybl.openloadflow.network.impl.LfContingencyImpl;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 
-import java.io.OutputStreamWriter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
@@ -35,10 +39,14 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
     private final List<SecurityAnalysisInterceptor> interceptors = new ArrayList<>();
 
-    public OpenSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter) {
+    private final MatrixFactory matrixFactory;
+
+    public OpenSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
+                                MatrixFactory matrixFactory) {
         this.network = Objects.requireNonNull(network);
         this.detector = Objects.requireNonNull(detector);
         this.filter = Objects.requireNonNull(filter);
+        this.matrixFactory = Objects.requireNonNull(matrixFactory);
     }
 
     @Override
@@ -67,37 +75,49 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
     static class ContingencyContext {
 
+        final Contingency contingency;
+
         final Set<String> branchIdsToOpen = new HashSet<>();
 
         final Set<Switch> switchesToOpen = new HashSet<>();
+
+        ContingencyContext(Contingency contingency) {
+            this.contingency = contingency;
+        }
     }
 
-    private List<LfNetwork> buildLfNetworks(List<Contingency> contingencies) {
+    SecurityAnalysisResult runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider) {
+        LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
+        OpenLoadFlowParameters lfParametersExt = OpenLoadFlowProvider.getParametersExt(securityAnalysisParameters.getLoadFlowParameters());
+
+        // load contingencies
+        List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
+
+        // try to find all swiches impacted by at least one contingency
         Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<ContingencyContext> contexts = new ArrayList<>();
+        List<ContingencyContext> contingencyContexts = new ArrayList<>();
         for (Contingency contingency : contingencies) {
-            ContingencyContext context = new ContingencyContext();
-            contexts.add(context);
+            ContingencyContext contingencyContext = new ContingencyContext(contingency);
+            contingencyContexts.add(contingencyContext);
 
             for (ContingencyElement element : contingency.getElements()) {
                 switch (element.getType()) {
                     case BRANCH:
-                        context.branchIdsToOpen.add(element.getId());
+                        contingencyContext.branchIdsToOpen.add(element.getId());
                         break;
                     default:
                         throw new UnsupportedOperationException("TODO");
                 }
                 AbstractTrippingTask task = element.toTask();
-                task.traverse(network, null, context.switchesToOpen, new HashSet<>());
+                task.traverse(network, null, contingencyContext.switchesToOpen, new HashSet<>());
             }
 
-            allSwitchesToOpen.addAll(context.switchesToOpen);
+            allSwitchesToOpen.addAll(contingencyContext.switchesToOpen);
         }
 
-        System.out.println(allSwitchesToOpen);
-
-        // try to find all swiches impacted by at least one contingency
-        String tmpVariantId = "tmp";
+        // create an AC engine with a network including all necessary switches
+        AcloadFlowEngine acEngine;
+        String tmpVariantId = "olf-tmp-" + UUID.randomUUID().toString();
         network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
         try {
             for (Switch sw : network.getSwitches()) {
@@ -106,22 +126,23 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             for (Switch sw : allSwitchesToOpen) {
                 sw.setRetained(true);
             }
-            return LfNetwork.load(network, new LfNetworkLoadingParameters(new FirstSlackBusSelector(), false, false, false, true));
+            AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters, lfParametersExt, true);
+            acEngine = new AcloadFlowEngine(network, acParameters);
         } finally {
             network.getVariantManager().removeVariant(tmpVariantId);
         }
-    }
 
-    SecurityAnalysisResult runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider) {
-        List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
+        // add an outer loop to simulate contingencies
+        List<LfContingency> lfContingencies = new ArrayList<>(contingencyContexts.size());
+        for (ContingencyContext contingencyContext : contingencyContexts) {
+            lfContingencies.add(new LfContingencyImpl(contingencyContext.contingency));
+        }
+        acEngine.getParameters().getOuterLoops().add(new ContingencyOuterLoop(lfContingencies));
 
-        List<LfNetwork> lfNetworks = buildLfNetworks(contingencies);
-
-        lfNetworks.get(0).writeJson(new OutputStreamWriter(System.out));
+        List<AcLoadFlowResult> acResults = acEngine.run();
 
         LimitViolationsResult preContingencyResult = new LimitViolationsResult(false, Collections.emptyList());
         List<PostContingencyResult> postContingencyResults = new ArrayList<>();
-        SecurityAnalysisResult result = new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
-        return result;
+        return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
     }
 }
