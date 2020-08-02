@@ -372,19 +372,18 @@ public class LfNetwork {
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
-        return load(network, slackBusSelector, false, false, false);
+        return load(network, new LfNetworkLoadingParameters(slackBusSelector, false, false, false));
     }
 
-    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, boolean voltageRemoteControl,
-                                       boolean minImpedance, boolean twtSplitShuntAdmittance) {
+    public static List<LfNetwork> load(Object network, LfNetworkLoadingParameters parameters) {
         Objects.requireNonNull(network);
-        Objects.requireNonNull(slackBusSelector);
+        Objects.requireNonNull(parameters);
         for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
-            List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, voltageRemoteControl, twtSplitShuntAdmittance).orElse(null);
+            List<LfNetwork> lfNetworks = importer.load(network, parameters).orElse(null);
             if (lfNetworks != null) {
                 for (LfNetwork lfNetwork : lfNetworks) {
-                    fix(lfNetwork, minImpedance);
-                    validate(lfNetwork, minImpedance);
+                    fix(lfNetwork, parameters.isMinImpedance());
+                    validate(lfNetwork, parameters.isMinImpedance());
                     lfNetwork.logSize();
                     lfNetwork.logBalance();
                 }
