@@ -158,7 +158,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 parameters.isPhaseShifterRegulationOn(),
                 parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
                 parameters.isTwtSplitShuntAdmittance(),
-                false);
+                breakers);
     }
 
     private CompletableFuture<LoadFlowResult> runAc(Network network, String workingStateId, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {

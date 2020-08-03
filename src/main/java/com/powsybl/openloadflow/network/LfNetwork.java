@@ -96,6 +96,16 @@ public class LfNetwork {
         return branches.get(num);
     }
 
+    public LfBranch getBranchById(String branchId) {
+        Objects.requireNonNull(branchId);
+        for (LfBranch branch : branches) {
+            if (branch.getId().equals(branchId)) {
+                return branch;
+            }
+        }
+        return null;
+    }
+
     public void addBus(LfBus bus) {
         Objects.requireNonNull(bus);
         busesById.put(bus.getId(), bus);

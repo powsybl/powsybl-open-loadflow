@@ -28,6 +28,8 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
 
     private int[] components;
 
+    private int componentCount;
+
     private final ToIntFunction<V> numGetter;
 
     public NaiveGraphDecrementalConnectivity(ToIntFunction<V> numGetter) {
@@ -38,6 +40,7 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
         if (components == null) {
             components = new int[graph.vertexSet().size()];
             List<Set<V>> componentSets = new ConnectivityInspector<>(graph).connectedSets();
+            componentCount = componentSets.size();
             for (int componentIndex = 0; componentIndex < componentSets.size(); componentIndex++) {
                 Set<V> vertices = componentSets.get(componentIndex);
                 for (V vertex : vertices) {
@@ -90,5 +93,11 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
         int component1 = components[numGetter.applyAsInt(vertex1)];
         int component2 = components[numGetter.applyAsInt(vertex2)];
         return component1 == component2;
+    }
+
+    @Override
+    public int getComponentCount() {
+        updateComponents();
+        return componentCount;
     }
 }

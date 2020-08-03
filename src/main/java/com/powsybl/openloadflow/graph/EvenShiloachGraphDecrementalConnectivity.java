@@ -54,4 +54,9 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     public boolean isConnected(V vertex1, V vertex2) {
         return false;
     }
+
+    @Override
+    public int getComponentCount() {
+        return 0;
+    }
 }

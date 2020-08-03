@@ -6,10 +6,28 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.List;
+import java.util.Objects;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface LfContingency {
+public class LfContingency {
 
-    String getId();
+    private final String id;
+
+    private final List<LfBranch> branches;
+
+    public LfContingency(String id, List<LfBranch> branches) {
+        this.id = Objects.requireNonNull(id);
+        this.branches = Objects.requireNonNull(branches);
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public List<LfBranch> getBranches() {
+        return branches;
+    }
 }

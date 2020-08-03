@@ -13,7 +13,9 @@ import com.powsybl.openloadflow.network.LfContingency;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -23,10 +25,10 @@ public class ContingencyOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ContingencyOuterLoop.class);
 
-    private final List<LfContingency> contingencies;
+    private final Map<Integer, List<LfContingency>> lfContingenciesByLfNetworkNum;
 
-    public ContingencyOuterLoop(List<LfContingency> contingencies) {
-        this.contingencies = Objects.requireNonNull(contingencies);
+    public ContingencyOuterLoop(Map<Integer, List<LfContingency>> lfContingenciesByLfNetworkNum) {
+        this.lfContingenciesByLfNetworkNum = Objects.requireNonNull(lfContingenciesByLfNetworkNum);
     }
 
     @Override
@@ -36,6 +38,7 @@ public class ContingencyOuterLoop implements OuterLoop {
 
     @Override
     public OuterLoopStatus check(OuterLoopContext context) {
+        List<LfContingency> contingencies = lfContingenciesByLfNetworkNum.getOrDefault(context.getNetwork().getNum(), Collections.emptyList());
         if (contingencies.isEmpty() || context.getIteration() >= contingencies.size()) {
             return OuterLoopStatus.STABLE;
         }
