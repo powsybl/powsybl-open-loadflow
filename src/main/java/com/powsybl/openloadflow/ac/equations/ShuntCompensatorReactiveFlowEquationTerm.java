@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.AbstractNamedEquationTerm;
-import com.powsybl.openloadflow.equations.Variable;
-import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.equations.VariableType;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
 
@@ -39,6 +36,16 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
         vVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_V);
         variables = Collections.singletonList(vVar);
         b = shunt.getB();
+    }
+
+    @Override
+    public SubjectType getSubjectType() {
+        return SubjectType.SHUNT_COMPENSATOR;
+    }
+
+    @Override
+    public int getSubjectNum() {
+        return 0; // FIXME
     }
 
     @Override

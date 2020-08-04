@@ -52,6 +52,16 @@ public interface EquationTerm extends Evaluable {
         }
 
         @Override
+        public SubjectType getSubjectType() {
+            return term.getSubjectType();
+        }
+
+        @Override
+        public int getSubjectNum() {
+            return term.getSubjectNum();
+        }
+
+        @Override
         public List<Variable> getVariables() {
             return term.getVariables();
         }
@@ -100,6 +110,10 @@ public interface EquationTerm extends Evaluable {
     boolean isActive();
 
     void setActive(boolean active);
+
+    SubjectType getSubjectType();
+
+    int getSubjectNum();
 
     /**
      * Get the list of variable this equation term depends on.

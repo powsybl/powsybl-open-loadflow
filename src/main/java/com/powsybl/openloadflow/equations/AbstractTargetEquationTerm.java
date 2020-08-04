@@ -10,18 +10,35 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public abstract class AbstractTargetEquationTerm extends AbstractEquationTerm {
 
+    private final SubjectType subjectType;
+
+    private final int subjectNum;
+
     private final List<Variable> variables;
 
     private double target;
 
-    protected AbstractTargetEquationTerm(int num, VariableType variableType, VariableSet variableSet) {
-        variables = Collections.singletonList(variableSet.getVariable(num, variableType));
+    protected AbstractTargetEquationTerm(SubjectType subjectType, int subjectNum, VariableType variableType, VariableSet variableSet) {
+        this.subjectType = Objects.requireNonNull(subjectType);
+        this.subjectNum = subjectNum;
+        variables = Collections.singletonList(variableSet.getVariable(subjectNum, variableType));
+    }
+
+    @Override
+    public SubjectType getSubjectType() {
+        return subjectType;
+    }
+
+    @Override
+    public int getSubjectNum() {
+        return subjectNum;
     }
 
     @Override
