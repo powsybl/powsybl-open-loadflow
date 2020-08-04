@@ -6,28 +6,37 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Iterator;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public abstract class AbstractEquationTerm implements EquationTerm {
 
-    protected abstract String getName();
+    private Equation equation;
+
+    private boolean active = true;
 
     @Override
-    public void write(Writer writer) throws IOException {
-        writer.write(getName());
-        writer.write("(");
-        for (Iterator<Variable> it = getVariables().iterator(); it.hasNext();) {
-            Variable variable = it.next();
-            variable.write(writer);
-            if (it.hasNext()) {
-                writer.write(", ");
-            }
+    public Equation getEquation() {
+        return equation;
+    }
+
+    @Override
+    public void setEquation(Equation equation) {
+        this.equation = Objects.requireNonNull(equation);
+    }
+
+    @Override
+    public void setActive(boolean active) {
+        if (this.active != active) {
+            this.active = active;
+            equation.getEquationSystem().notifyListeners(equation, EquationEventType.EQUATION_UPDATED);
         }
-        writer.write(")");
+    }
+
+    @Override
+    public boolean isActive() {
+        return active;
     }
 }

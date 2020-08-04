@@ -60,7 +60,8 @@ public class EquationSystem {
             }
 
             stopwatch.stop();
-            LOGGER.debug(Markers.PERFORMANCE_MARKER, "Equation system updated in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            LOGGER.debug(Markers.PERFORMANCE_MARKER, "Equation system ({} equations, {} variables) updated in {} ms",
+                    columnCount, rowCount, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
             invalide = false;
         }
@@ -74,11 +75,13 @@ public class EquationSystem {
                 if (equation.isActive()) {
                     NavigableMap<Variable, List<EquationTerm>> equationTermsByVariable = sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>());
                     for (EquationTerm equationTerm : equation.getTerms()) {
-                        for (Variable variable : equationTerm.getVariables()) {
-                            if (variable.isActive()) {
-                                equationTermsByVariable.computeIfAbsent(variable, k -> new ArrayList<>())
-                                        .add(equationTerm);
-                                variablesToFind.add(variable);
+                        if (equationTerm.isActive()) {
+                            for (Variable variable : equationTerm.getVariables()) {
+                                if (variable.isActive()) {
+                                    equationTermsByVariable.computeIfAbsent(variable, k -> new ArrayList<>())
+                                            .add(equationTerm);
+                                    variablesToFind.add(variable);
+                                }
                             }
                         }
                     }
@@ -87,9 +90,13 @@ public class EquationSystem {
             sortedVariablesToFind.addAll(variablesToFind);
         }
 
+        private void invalidate() {
+            invalide = true;
+        }
+
         @Override
         public void equationListChanged(Equation equation, EquationEventType eventType) {
-            invalide = true;
+            invalidate();
         }
 
         private NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> getSortedEquationsToSolve() {

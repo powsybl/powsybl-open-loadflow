@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractTargetEquationTerm implements EquationTerm {
+public abstract class AbstractTargetEquationTerm extends AbstractEquationTerm {
 
     private final List<Variable> variables;
 

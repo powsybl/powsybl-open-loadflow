@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.dc.equations;
 
 import com.google.common.collect.ImmutableList;
-import com.powsybl.openloadflow.equations.AbstractEquationTerm;
+import com.powsybl.openloadflow.equations.AbstractNamedEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.equations.VariableType;
@@ -23,7 +23,7 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEquationTerm {
+public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNamedEquationTerm {
 
     protected final LfBranch branch;
 
