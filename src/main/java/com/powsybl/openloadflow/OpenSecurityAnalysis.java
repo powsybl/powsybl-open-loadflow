@@ -158,7 +158,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                 ContingencyContext contingencyContext = contingencyIt.next();
 
                 // find contingency branches that are part of this network
-                List<LfBranch> lfBranches = new ArrayList<>(1);
+                Set<LfBranch> lfBranches = new HashSet<>(1);
                 Iterator<String> branchIt = contingencyContext.branchIdsToOpen.iterator();
                 while (branchIt.hasNext()) {
                     String branchId = branchIt.next();
@@ -176,20 +176,35 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                 }
 
                 // check if contingency split this network into multiple components
-                if (!lfBranches.isEmpty()) {
-                    for (LfBranch lfBranch : lfBranches) {
-                        connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2());
-                    }
-
-                    // discard contingency that create new components
-                    // TODO update list of branch and bus to remove with the one from other components
-                    if (connectivity.getComponentCount() == lfBranches.size()) {
-                        LfContingency lfContingency = new LfContingency(contingencyContext.contingencyId, lfBranches);
-                        lfContingencies.add(lfContingency);
-                    }
-
-                    connectivity.reset();
+                if (lfBranches.isEmpty()) {
+                    continue;
                 }
+
+                // update connectivity with triggered branches
+                for (LfBranch lfBranch : lfBranches) {
+                    connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2());
+                }
+
+                // add to contingency description buses and branches that won't be part of the main connected
+                // component in post contingency state
+                Set<LfBus> lfBuses = new HashSet<>();
+                for (LfBus lfBus : lfNetwork.getBuses()) {
+                    if (connectivity.getComponentNumber(lfBus) > 0) {
+                        lfBuses.add(lfBus);
+                    }
+                }
+                for (LfBranch lfBranch : lfNetwork.getBranches()) {
+                    if (connectivity.getComponentNumber(lfBranch.getBus1()) > 0
+                            && connectivity.getComponentNumber(lfBranch.getBus2()) > 0) {
+                        lfBranches.add(lfBranch);
+                    }
+                }
+
+                // reset connectivity to discard triggered branches
+                connectivity.reset();
+
+                LfContingency lfContingency = new LfContingency(contingencyContext.contingencyId, lfBuses, lfBranches);
+                lfContingencies.add(lfContingency);
             }
 
             if (!lfContingencies.isEmpty()) {

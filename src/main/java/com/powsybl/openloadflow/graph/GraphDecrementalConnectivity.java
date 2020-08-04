@@ -19,7 +19,5 @@ public interface GraphDecrementalConnectivity<V> {
 
     void reset();
 
-    boolean isConnected(V vertex1, V vertex2);
-
-    int getComponentCount();
+    int getComponentNumber(V vertex);
 }
