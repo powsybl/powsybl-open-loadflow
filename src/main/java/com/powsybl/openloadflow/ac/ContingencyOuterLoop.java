@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.SubjectType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfContingency;
@@ -75,9 +77,17 @@ public class ContingencyOuterLoop implements OuterLoop {
 
         LOGGER.info("Simulate contingency '{}'", contingency.getId());
 
-        // invalidate equation terms of contingency branches
+        // deactivate all equation terms related to branches
         for (LfBranch branch : contingency.getBranches()) {
-            // TODO deactivate all equation terms related to this branch
+            for (EquationTerm equationTerm : context.getEquationSystem().getEquationTerms(SubjectType.BRANCH, branch.getNum())) {
+                equationTerm.setActive(false);
+            }
+        }
+        // deactivate all equation terms related to buses
+        for (LfBus bus : contingency.getBuses()) {
+            for (EquationTerm equationTerm : context.getEquationSystem().getEquationTerms(SubjectType.BUS, bus.getNum())) {
+                equationTerm.setActive(false);
+            }
         }
 
         return OuterLoopStatus.UNSTABLE;

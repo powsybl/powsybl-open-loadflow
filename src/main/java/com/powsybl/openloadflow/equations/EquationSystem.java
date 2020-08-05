@@ -31,6 +31,8 @@ public class EquationSystem {
 
     private final Map<Pair<Integer, EquationType>, Equation> equations = new HashMap<>();
 
+    private final Map<Pair<SubjectType, Integer>, List<EquationTerm>> equationTermsBySubject = new HashMap<>();
+
     private class EquationCache implements EquationSystemListener {
 
         private boolean invalide = false;
@@ -73,9 +75,12 @@ public class EquationSystem {
             Set<Variable> variablesToFind = new HashSet<>();
             for (Equation equation : equations.values()) {
                 if (equation.isActive()) {
-                    NavigableMap<Variable, List<EquationTerm>> equationTermsByVariable = sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>());
+                    NavigableMap<Variable, List<EquationTerm>> equationTermsByVariable = null;
                     for (EquationTerm equationTerm : equation.getTerms()) {
                         if (equationTerm.isActive()) {
+                            if (equationTermsByVariable == null) {
+                                equationTermsByVariable = sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>());
+                            }
                             for (Variable variable : equationTerm.getVariables()) {
                                 if (variable.isActive()) {
                                     equationTermsByVariable.computeIfAbsent(variable, k -> new ArrayList<>())
@@ -121,6 +126,20 @@ public class EquationSystem {
 
     LfNetwork getNetwork() {
         return network;
+    }
+
+    void addEquationTerm(EquationTerm equationTerm) {
+        Objects.requireNonNull(equationTerm);
+        Pair<SubjectType, Integer> subject = Pair.of(equationTerm.getSubjectType(), equationTerm.getSubjectNum());
+        equationTermsBySubject.computeIfAbsent(subject, k -> new ArrayList<>())
+                .add(equationTerm);
+    }
+
+    public List<EquationTerm> getEquationTerms(SubjectType subjectType, int subjectNum) {
+        Objects.requireNonNull(subjectType);
+        Objects.requireNonNull(subjectNum);
+        Pair<SubjectType, Integer> subject = Pair.of(subjectType, subjectNum);
+        return equationTermsBySubject.getOrDefault(subject, Collections.emptyList());
     }
 
     public Equation createEquation(int num, EquationType type) {

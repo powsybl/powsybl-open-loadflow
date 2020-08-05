@@ -92,14 +92,14 @@ public class Equation implements Evaluable, Comparable<Equation> {
         Objects.requireNonNull(term);
         terms.add(term);
         term.setEquation(this);
+        equationSystem.addEquationTerm(term);
         return this;
     }
 
     public Equation addTerms(List<EquationTerm> terms) {
         Objects.requireNonNull(terms);
         for (EquationTerm term : terms) {
-            this.terms.add(term);
-            term.setEquation(this);
+            addTerm(term);
         }
         return this;
     }
