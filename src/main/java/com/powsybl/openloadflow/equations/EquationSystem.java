@@ -139,7 +139,6 @@ public class EquationSystem {
 
     public List<EquationTerm> getEquationTerms(SubjectType subjectType, int subjectNum) {
         Objects.requireNonNull(subjectType);
-        Objects.requireNonNull(subjectNum);
         Pair<SubjectType, Integer> subject = Pair.of(subjectType, subjectNum);
         return equationTermsBySubject.getOrDefault(subject, Collections.emptyList());
     }
@@ -181,7 +180,6 @@ public class EquationSystem {
 
     public List<Equation> getEquations(SubjectType subjectType, int subjectNum) {
         Objects.requireNonNull(subjectType);
-        Objects.requireNonNull(subjectNum);
         Pair<SubjectType, Integer> subject = Pair.of(subjectType, subjectNum);
         return equationsBySubject.getOrDefault(subject, Collections.emptyList());
     }
@@ -265,8 +263,10 @@ public class EquationSystem {
     public void write(Writer writer) {
         try {
             for (Equation equation : getSortedEquationsToSolve().navigableKeySet()) {
-                equation.write(writer);
-                writer.write(System.lineSeparator());
+                if (equation.isActive()) {
+                    equation.write(writer);
+                    writer.write(System.lineSeparator());
+                }
             }
             writer.flush();
         } catch (IOException e) {

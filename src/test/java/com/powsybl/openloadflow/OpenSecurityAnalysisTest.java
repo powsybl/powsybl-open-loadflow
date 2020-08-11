@@ -13,7 +13,9 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.network.NameSlackBusSelector;
 import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisResult;
@@ -44,6 +46,27 @@ class OpenSecurityAnalysisTest {
      * BBS3 -----------------          VL2
      *             |
      *             LD
+     *
+     * 6 buses
+     * 6 branches
+     *
+     *            G
+     *            |
+     *      o--C--o
+     *      |     |
+     *      |     B2
+     *      |     |
+     *      |     o
+     *      |     |
+     *      L1    L2
+     *      |     |
+     *      o     o
+     *      |     |
+     *      B3    B4
+     *      |     |
+     *      ---o---
+     *         |
+     *         LD
      */
     private static Network createNetwork() {
         Network network = Network.create("test", "test");
@@ -159,11 +182,16 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void test() {
-        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelector(new NameSlackBusSelector("VL1_1"));
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
         ContingenciesProvider contingenciesProvider = network -> Arrays.asList(new Contingency("L1", new BranchContingency("L1")),
                                                                                new Contingency("L2", new BranchContingency("L2")));
         OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(), new LimitViolationFilter(), new DenseMatrixFactory());
-        SecurityAnalysisResult result = securityAnalysis.runSync(parameters, contingenciesProvider);
+        SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
         assertFalse(result.getPreContingencyResult().isComputationOk());
     }
 }

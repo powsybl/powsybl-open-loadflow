@@ -255,13 +255,12 @@ public class Equation implements Evaluable, Comparable<Equation> {
         writer.write(type.getSymbol());
         writer.append(Integer.toString(num));
         writer.append(" = ");
-        for (Iterator<EquationTerm> it = terms.iterator(); it.hasNext();) {
+        List<EquationTerm> activeTerms = terms.stream().filter(EquationTerm::isActive).collect(Collectors.toList());
+        for (Iterator<EquationTerm> it = activeTerms.iterator(); it.hasNext();) {
             EquationTerm term = it.next();
-            if (term.isActive()) {
-                term.write(writer);
-                if (it.hasNext()) {
-                    writer.write(" + ");
-                }
+            term.write(writer);
+            if (it.hasNext()) {
+                writer.write(" + ");
             }
         }
     }

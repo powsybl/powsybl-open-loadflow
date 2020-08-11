@@ -38,6 +38,9 @@ public class ContingencyOuterLoop implements OuterLoop {
 
     private final Map<Integer, State> stateByNetworkNum = new HashMap<>();
 
+    private final List<Equation> deactivatedEquations = new ArrayList<>();
+    private final List<EquationTerm> deactivatedEquationTerms = new ArrayList<>();
+
     public ContingencyOuterLoop(Map<Integer, List<LfContingency>> contingenciesByNetworkNum) {
         this.contingenciesByNetworkNum = Objects.requireNonNull(contingenciesByNetworkNum);
     }
@@ -51,6 +54,8 @@ public class ContingencyOuterLoop implements OuterLoop {
     public OuterLoopStatus check(OuterLoopContext context) {
         List<LfBus> buses = context.getNetwork().getBuses();
         if (context.getIteration() == 0) {
+            LOGGER.info("Save base state");
+
             // save base state
             State state = new State();
             state.v = new double[buses.size()];
@@ -61,6 +66,8 @@ public class ContingencyOuterLoop implements OuterLoop {
             }
             stateByNetworkNum.put(context.getNetwork().getNum(), state);
         } else {
+            LOGGER.info("Restore base state");
+
             // restore base state
             State state = stateByNetworkNum.get(context.getNetwork().getNum());
             for (LfBus bus : buses) {
@@ -76,28 +83,59 @@ public class ContingencyOuterLoop implements OuterLoop {
 
         LfContingency contingency = contingencies.get(context.getIteration());
 
-        LOGGER.info("Simulate contingency '{}'", contingency.getId());
+        LOGGER.info("Start contingency '{}' simulation", contingency.getId());
+
+        // restore deactivated equations and equations terms from previous contingency
+        if (!deactivatedEquations.isEmpty()) {
+            for (Equation equation : deactivatedEquations) {
+                equation.setActive(true);
+            }
+            deactivatedEquations.clear();
+        }
+        if (!deactivatedEquationTerms.isEmpty()) {
+            for (EquationTerm equationTerm : deactivatedEquationTerms) {
+                equationTerm.setActive(true);
+            }
+            deactivatedEquationTerms.clear();
+        }
 
         for (LfBranch branch : contingency.getBranches()) {
+            LOGGER.trace("Remove equations and equations terms related to branch '{}'", branch.getId());
+
             // deactivate all equations related to a branch
             for (Equation equation : context.getEquationSystem().getEquations(SubjectType.BRANCH, branch.getNum())) {
-                equation.setActive(false);
+                if (equation.isActive()) {
+                    equation.setActive(false);
+                    deactivatedEquations.add(equation);
+                }
             }
 
             // deactivate all equation terms related to a branch
             for (EquationTerm equationTerm : context.getEquationSystem().getEquationTerms(SubjectType.BRANCH, branch.getNum())) {
-                equationTerm.setActive(false);
+                if (equationTerm.isActive()) {
+                    equationTerm.setActive(false);
+                    deactivatedEquationTerms.add(equationTerm);
+                }
             }
         }
+
         for (LfBus bus : contingency.getBuses()) {
+            LOGGER.trace("Remove equations and equation terms related to bus '{}'", bus.getId());
+
             // deactivate all equations related to a bus
             for (Equation equation : context.getEquationSystem().getEquations(SubjectType.BUS, bus.getNum())) {
-                equation.setActive(false);
+                if (equation.isActive()) {
+                    equation.setActive(false);
+                    deactivatedEquations.add(equation);
+                }
             }
 
             // deactivate all equation terms related to a bus
             for (EquationTerm equationTerm : context.getEquationSystem().getEquationTerms(SubjectType.BUS, bus.getNum())) {
-                equationTerm.setActive(false);
+                if (equationTerm.isActive()) {
+                    equationTerm.setActive(false);
+                    deactivatedEquationTerms.add(equationTerm);
+                }
             }
         }
 
