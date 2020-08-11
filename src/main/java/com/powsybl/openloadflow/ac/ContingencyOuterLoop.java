@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.SubjectType;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -77,14 +78,24 @@ public class ContingencyOuterLoop implements OuterLoop {
 
         LOGGER.info("Simulate contingency '{}'", contingency.getId());
 
-        // deactivate all equation terms related to branches
         for (LfBranch branch : contingency.getBranches()) {
+            // deactivate all equations related to a branch
+            for (Equation equation : context.getEquationSystem().getEquations(SubjectType.BRANCH, branch.getNum())) {
+                equation.setActive(false);
+            }
+
+            // deactivate all equation terms related to a branch
             for (EquationTerm equationTerm : context.getEquationSystem().getEquationTerms(SubjectType.BRANCH, branch.getNum())) {
                 equationTerm.setActive(false);
             }
         }
-        // deactivate all equation terms related to buses
         for (LfBus bus : contingency.getBuses()) {
+            // deactivate all equations related to a bus
+            for (Equation equation : context.getEquationSystem().getEquations(SubjectType.BUS, bus.getNum())) {
+                equation.setActive(false);
+            }
+
+            // deactivate all equation terms related to a bus
             for (EquationTerm equationTerm : context.getEquationSystem().getEquationTerms(SubjectType.BUS, bus.getNum())) {
                 equationTerm.setActive(false);
             }

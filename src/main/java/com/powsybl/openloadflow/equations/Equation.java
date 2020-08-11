@@ -195,7 +195,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
         }
 
         for (EquationTerm term : terms) {
-            if (term.hasRhs()) {
+            if (term.isActive() && term.hasRhs()) {
                 targets[column] -= term.rhs();
             }
         }
@@ -203,7 +203,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     public void update(double[] x) {
         for (EquationTerm term : terms) {
-            term.update(x);
+            if (term.isActive()) {
+                term.update(x);
+            }
         }
     }
 
@@ -211,9 +213,11 @@ public class Equation implements Evaluable, Comparable<Equation> {
     public double eval() {
         double value = 0;
         for (EquationTerm term : terms) {
-            value += term.eval();
-            if (term.hasRhs()) {
-                value -= term.rhs();
+            if (term.isActive()) {
+                value += term.eval();
+                if (term.hasRhs()) {
+                    value -= term.rhs();
+                }
             }
         }
         return value;
@@ -253,9 +257,11 @@ public class Equation implements Evaluable, Comparable<Equation> {
         writer.append(" = ");
         for (Iterator<EquationTerm> it = terms.iterator(); it.hasNext();) {
             EquationTerm term = it.next();
-            term.write(writer);
-            if (it.hasNext()) {
-                writer.write(" + ");
+            if (term.isActive()) {
+                term.write(writer);
+                if (it.hasNext()) {
+                    writer.write(" + ");
+                }
             }
         }
     }

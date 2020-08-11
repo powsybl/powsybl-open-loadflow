@@ -31,6 +31,8 @@ public class EquationSystem {
 
     private final Map<Pair<Integer, EquationType>, Equation> equations = new HashMap<>();
 
+    private final Map<Pair<SubjectType, Integer>, List<Equation>> equationsBySubject = new HashMap<>();
+
     private final Map<Pair<SubjectType, Integer>, List<EquationTerm>> equationTermsBySubject = new HashMap<>();
 
     private class EquationCache implements EquationSystemListener {
@@ -160,6 +162,8 @@ public class EquationSystem {
         Pair<Integer, EquationType> p = Pair.of(num, type);
         Equation equation = equations.remove(p);
         if (equation != null) {
+            Pair<SubjectType, Integer> subject = Pair.of(type.getSubjectType(), num);
+            equationsBySubject.remove(subject);
             notifyListeners(equation, EquationEventType.EQUATION_REMOVED);
         }
         return equation;
@@ -168,8 +172,18 @@ public class EquationSystem {
     private Equation addEquation(Pair<Integer, EquationType> p) {
         Equation equation = new Equation(p.getLeft(), p.getRight(), EquationSystem.this);
         equations.put(p, equation);
+        Pair<SubjectType, Integer> subject = Pair.of(p.getRight().getSubjectType(), p.getLeft());
+        equationsBySubject.computeIfAbsent(subject, k -> new ArrayList<>())
+                .add(equation);
         notifyListeners(equation, EquationEventType.EQUATION_CREATED);
         return equation;
+    }
+
+    public List<Equation> getEquations(SubjectType subjectType, int subjectNum) {
+        Objects.requireNonNull(subjectType);
+        Objects.requireNonNull(subjectNum);
+        Pair<SubjectType, Integer> subject = Pair.of(subjectType, subjectNum);
+        return equationsBySubject.getOrDefault(subject, Collections.emptyList());
     }
 
     public SortedSet<Variable> getSortedVariablesToFind() {
