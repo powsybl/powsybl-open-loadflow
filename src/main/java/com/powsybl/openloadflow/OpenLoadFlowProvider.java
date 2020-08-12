@@ -166,8 +166,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
             AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt, false);
-            List<AcLoadFlowResult> results = new AcloadFlowEngine(network, acParameters)
-                    .run();
+            List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, acParameters);
 
             Networks.resetState(network);
 

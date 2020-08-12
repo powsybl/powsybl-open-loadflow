@@ -14,10 +14,13 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.ac.ContingencyOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
+import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.SubjectType;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -26,6 +29,8 @@ import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -34,6 +39,8 @@ import java.util.concurrent.CompletableFuture;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class OpenSecurityAnalysis implements SecurityAnalysis {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(OpenSecurityAnalysis.class);
 
     private final Network network;
 
@@ -95,7 +102,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
 
-        // try to find all swiches impacted by at least one contingency
+        // try to find all switches impacted by at least one contingency
         Set<Switch> allSwitchesToOpen = new HashSet<>();
         List<ContingencyContext> contingencyContexts = new ArrayList<>();
         for (Contingency contingency : contingencies) {
@@ -121,8 +128,23 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             }
         }
 
-        // create an AC engine with a network including all necessary switches
-        AcloadFlowEngine acEngine;
+        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters, lfParametersExt, true);
+
+        // create networks including all necessary switches
+        List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters);
+
+        // run simulation on each network
+        for (LfNetwork lfNetwork : lfNetworks) {
+            runSimulations(lfNetwork, contingencyContexts, acParameters);
+        }
+
+        LimitViolationsResult preContingencyResult = new LimitViolationsResult(false, Collections.emptyList());
+        List<PostContingencyResult> postContingencyResults = new ArrayList<>();
+        return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
+    }
+
+    private List<LfNetwork> createNetworks(Set<Switch> allSwitchesToOpen, AcLoadFlowParameters acParameters) {
+        List<LfNetwork> lfNetworks;
         String tmpVariantId = "olf-tmp-" + UUID.randomUUID().toString();
         network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
         try {
@@ -132,93 +154,188 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             for (Switch sw : allSwitchesToOpen) {
                 sw.setRetained(true);
             }
-            AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters, lfParametersExt, true);
-            acEngine = new AcloadFlowEngine(network, acParameters);
+            lfNetworks = AcloadFlowEngine.createNetworks(network, acParameters);
         } finally {
             network.getVariantManager().removeVariant(tmpVariantId);
         }
+        return lfNetworks;
+    }
 
-        // map contingencies to LF networks
+    private void runSimulations(LfNetwork network, List<ContingencyContext> contingencyContexts, AcLoadFlowParameters acParameters) {
+        // create a contingency list that impact the network
+        List<LfContingency> contingencies = createContingencies(contingencyContexts, network);
 
-        Map<Integer, List<LfContingency>> lfContingenciesByLfNetworkNum = new HashMap<>();
-        for (LfNetwork lfNetwork : acEngine.getNetworks()) {
+        // run pre-contingency simulation
+        AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters);
+        AcLoadFlowResult preContingencyResult = engine.run();
+        // TODO process pre contingency results
 
-            // create connectivity data structure
-            GraphDecrementalConnectivity<LfBus> connectivity = new NaiveGraphDecrementalConnectivity<>(LfBus::getNum);
-            for (LfBus bus : lfNetwork.getBuses()) {
-                connectivity.addVertex(bus);
+        LOGGER.info("Save pre-contingency state");
+
+        // save base state for later restoration after each contingency
+        List<LfBus> buses = network.getBuses();
+        double[] v = new double[buses.size()];
+        double[] a = new double[buses.size()];
+        for (LfBus bus : buses) {
+            v[bus.getNum()] = bus.getV();
+            a[bus.getNum()] = bus.getAngle();
+        }
+
+        // start a simulation for each of the contingency
+        Iterator<LfContingency> contingencyIt = contingencies.iterator();
+        while (contingencyIt.hasNext()) {
+            LfContingency contingency = contingencyIt.next();
+
+            runPostContingencySimulation(engine, contingency);
+
+            if (contingencyIt.hasNext()) {
+                LOGGER.info("Restore pre-contingency state");
+
+                // restore base state
+                for (LfBus bus : buses) {
+                    bus.setV(v[bus.getNum()]);
+                    bus.setAngle(a[bus.getNum()]);
+                }
             }
-            for (LfBranch branch : lfNetwork.getBranches()) {
-                connectivity.addEdge(branch.getBus1(), branch.getBus2());
-            }
+        }
+    }
 
-            List<LfContingency> lfContingencies = new ArrayList<>();
-            Iterator<ContingencyContext> contingencyIt = contingencyContexts.iterator();
-            while (contingencyIt.hasNext()) {
-                ContingencyContext contingencyContext = contingencyIt.next();
+    private void runPostContingencySimulation(AcloadFlowEngine engine, LfContingency contingency) {
+        LOGGER.info("Start post contingency '{}' simulation", contingency.getId());
 
-                // find contingency branches that are part of this network
-                Set<LfBranch> lfBranches = new HashSet<>(1);
-                Iterator<String> branchIt = contingencyContext.branchIdsToOpen.iterator();
-                while (branchIt.hasNext()) {
-                    String branchId = branchIt.next();
-                    LfBranch lfBranch = lfNetwork.getBranchById(branchId);
-                    if (lfBranch != null) {
-                        lfBranches.add(lfBranch);
-                        branchIt.remove();
-                    }
+        EquationSystem equationSystem = engine.getEquationSystem();
+
+        List<Equation> deactivatedEquations = new ArrayList<>();
+        List<EquationTerm> deactivatedEquationTerms = new ArrayList<>();
+
+        for (LfBranch branch : contingency.getBranches()) {
+            LOGGER.trace("Remove equations and equations terms related to branch '{}'", branch.getId());
+
+            // deactivate all equations related to a branch
+            for (Equation equation : equationSystem.getEquations(SubjectType.BRANCH, branch.getNum())) {
+                if (equation.isActive()) {
+                    equation.setActive(false);
+                    deactivatedEquations.add(equation);
                 }
-
-                // if no more branch in the contingency, remove contingency from the list because
-                // it won't be part of another network
-                if (contingencyContext.branchIdsToOpen.isEmpty()) {
-                    contingencyIt.remove();
-                }
-
-                // check if contingency split this network into multiple components
-                if (lfBranches.isEmpty()) {
-                    continue;
-                }
-
-                // update connectivity with triggered branches
-                for (LfBranch lfBranch : lfBranches) {
-                    connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2());
-                }
-
-                // add to contingency description buses and branches that won't be part of the main connected
-                // component in post contingency state
-                Set<LfBus> lfBuses = new HashSet<>();
-                for (LfBus lfBus : lfNetwork.getBuses()) {
-                    if (connectivity.getComponentNumber(lfBus) > 0) {
-                        lfBuses.add(lfBus);
-                    }
-                }
-                for (LfBranch lfBranch : lfNetwork.getBranches()) {
-                    if (connectivity.getComponentNumber(lfBranch.getBus1()) > 0
-                            && connectivity.getComponentNumber(lfBranch.getBus2()) > 0) {
-                        lfBranches.add(lfBranch);
-                    }
-                }
-
-                // reset connectivity to discard triggered branches
-                connectivity.reset();
-
-                LfContingency lfContingency = new LfContingency(contingencyContext.contingencyId, lfBuses, lfBranches);
-                lfContingencies.add(lfContingency);
             }
 
-            if (!lfContingencies.isEmpty()) {
-                lfContingenciesByLfNetworkNum.put(lfNetwork.getNum(), lfContingencies);
+            // deactivate all equation terms related to a branch
+            for (EquationTerm equationTerm : equationSystem.getEquationTerms(SubjectType.BRANCH, branch.getNum())) {
+                if (equationTerm.isActive()) {
+                    equationTerm.setActive(false);
+                    deactivatedEquationTerms.add(equationTerm);
+                }
             }
         }
 
-        // add an outer loop to simulate contingencies
-        acEngine.getParameters().getOuterLoops().add(new ContingencyOuterLoop(lfContingenciesByLfNetworkNum));
+        for (LfBus bus : contingency.getBuses()) {
+            LOGGER.trace("Remove equations and equation terms related to bus '{}'", bus.getId());
 
-        List<AcLoadFlowResult> acResults = acEngine.run();
+            // deactivate all equations related to a bus
+            for (Equation equation : equationSystem.getEquations(SubjectType.BUS, bus.getNum())) {
+                if (equation.isActive()) {
+                    equation.setActive(false);
+                    deactivatedEquations.add(equation);
+                }
+            }
 
-        LimitViolationsResult preContingencyResult = new LimitViolationsResult(false, Collections.emptyList());
-        List<PostContingencyResult> postContingencyResults = new ArrayList<>();
-        return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
+            // deactivate all equation terms related to a bus
+            for (EquationTerm equationTerm : equationSystem.getEquationTerms(SubjectType.BUS, bus.getNum())) {
+                if (equationTerm.isActive()) {
+                    equationTerm.setActive(false);
+                    deactivatedEquationTerms.add(equationTerm);
+                }
+            }
+        }
+
+        // restart LF on post contingency equation system
+        AcLoadFlowResult postContingencyResult = engine.run();
+        // TODO process post contingency results
+
+        // restore deactivated equations and equations terms from previous contingency
+        if (!deactivatedEquations.isEmpty()) {
+            for (Equation equation : deactivatedEquations) {
+                equation.setActive(true);
+            }
+            deactivatedEquations.clear();
+        }
+        if (!deactivatedEquationTerms.isEmpty()) {
+            for (EquationTerm equationTerm : deactivatedEquationTerms) {
+                equationTerm.setActive(true);
+            }
+            deactivatedEquationTerms.clear();
+        }
+    }
+
+    private List<LfContingency> createContingencies(List<ContingencyContext> contingencyContexts, LfNetwork network) {
+        // create connectivity data structure
+        GraphDecrementalConnectivity<LfBus> connectivity = createConnectivity(network);
+
+        List<LfContingency> contingencies = new ArrayList<>();
+        Iterator<ContingencyContext> contingencyContextIt = contingencyContexts.iterator();
+        while (contingencyContextIt.hasNext()) {
+            ContingencyContext contingencyContext = contingencyContextIt.next();
+
+            // find contingency branches that are part of this network
+            Set<LfBranch> branches = new HashSet<>(1);
+            Iterator<String> branchIt = contingencyContext.branchIdsToOpen.iterator();
+            while (branchIt.hasNext()) {
+                String branchId = branchIt.next();
+                LfBranch branch = network.getBranchById(branchId);
+                if (branch != null) {
+                    branches.add(branch);
+                    branchIt.remove();
+                }
+            }
+
+            // if no more branch in the contingency, remove contingency from the list because
+            // it won't be part of another network
+            if (contingencyContext.branchIdsToOpen.isEmpty()) {
+                contingencyContextIt.remove();
+            }
+
+            // check if contingency split this network into multiple components
+            if (branches.isEmpty()) {
+                continue;
+            }
+
+            // update connectivity with triggered branches
+            for (LfBranch branch : branches) {
+                connectivity.cut(branch.getBus1(), branch.getBus2());
+            }
+
+            // add to contingency description buses and branches that won't be part of the main connected
+            // component in post contingency state
+            Set<LfBus> buses = new HashSet<>();
+            for (LfBus bus : network.getBuses()) {
+                if (connectivity.getComponentNumber(bus) > 0) {
+                    buses.add(bus);
+                }
+            }
+            for (LfBranch branch : network.getBranches()) {
+                if (connectivity.getComponentNumber(branch.getBus1()) > 0
+                        && connectivity.getComponentNumber(branch.getBus2()) > 0) {
+                    branches.add(branch);
+                }
+            }
+
+            // reset connectivity to discard triggered branches
+            connectivity.reset();
+
+            contingencies.add(new LfContingency(contingencyContext.contingencyId, buses, branches));
+        }
+
+        return contingencies;
+    }
+
+    private static GraphDecrementalConnectivity<LfBus> createConnectivity(LfNetwork network) {
+        GraphDecrementalConnectivity<LfBus> connectivity = new NaiveGraphDecrementalConnectivity<>(LfBus::getNum);
+        for (LfBus bus : network.getBuses()) {
+            connectivity.addVertex(bus);
+        }
+        for (LfBranch branch : network.getBranches()) {
+            connectivity.addEdge(branch.getBus1(), branch.getBus2());
+        }
+        return connectivity;
     }
 }
