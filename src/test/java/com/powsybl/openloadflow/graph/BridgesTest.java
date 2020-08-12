@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import org.graphstream.algorithm.ConnectedComponents;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.implementations.MultiGraph;
+import org.jgrapht.alg.connectivity.BiconnectivityInspector;
 import org.jgrapht.graph.Pseudograph;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,6 +67,12 @@ public final class BridgesTest {
     }
 
     @Test
+    public void testConnectivityInspector() {
+        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new DecrementalConnectivityInspector<>(), "ConnectivityInspector");
+        assertEquals(bridgesSetReference, bridges);
+    }
+
+    @Test
     public void testFindBridgesConnectivity() {
         Set<String> bridges = testBridgesOnConnectivity(lfNetwork,
             new BridgesFinder<>(lfNetwork.getBuses().size(), LfBus::getNum), "Hopcroft-Tarjan algorithm");
@@ -88,6 +95,18 @@ public final class BridgesTest {
         };
         Set<String> set = bridges.stream().collect(HashSet::new, (h, t) -> h.add(verticesToBranchId.apply(t[0], t[1])), HashSet::addAll);
         assertEquals(bridgesSetReference, set);
+    }
+
+    @Test
+    public void testBiconnectivityInspector() {
+        org.jgrapht.Graph<String, String> graph = getJgraphTGraph(lfNetwork);
+        BiconnectivityInspector<String, String> bi = new BiconnectivityInspector<>(graph);
+
+        long start = System.currentTimeMillis();
+        Set<String> bridges = bi.getBridges();
+        LOGGER.info("Bridges calculated based on jgraphT BiconnectivityInspector in {} ms", System.currentTimeMillis() - start);
+
+        assertEquals(bridgesSetReference, bridges);
     }
 
     @Test

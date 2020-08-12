@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import org.jgrapht.UndirectedGraph;
+import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
 
 import java.util.Objects;
@@ -19,7 +19,7 @@ import java.util.function.ToIntFunction;
  */
 public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecrementalConnectivity<V>  {
 
-    private final UndirectedGraph<V, Object> graph = new Pseudograph<>(Object.class);
+    private final Graph<V, Object> graph = new Pseudograph<>(Object.class);
 
     private final ToIntFunction<V> numGetter;
 
