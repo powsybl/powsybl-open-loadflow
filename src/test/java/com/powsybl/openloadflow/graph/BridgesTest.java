@@ -80,6 +80,12 @@ public final class BridgesTest {
     }
 
     @Test
+    public void testEvenShiloach() {
+        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new EvenShiloachGraphDecrementalConnectivity<>(), "Even-Shiloach");
+        assertEquals(bridgesSetReference, bridges);
+    }
+
+    @Test
     public void testFindBridges() {
         BridgesFinder<LfBus> graph = new BridgesFinder<>(lfNetwork.getBuses().size(), LfBus::getNum);
         initGraphDc(lfNetwork, graph);
