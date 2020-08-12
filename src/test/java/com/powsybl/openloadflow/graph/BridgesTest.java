@@ -13,6 +13,9 @@ import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import org.graphstream.algorithm.ConnectedComponents;
+import org.graphstream.graph.Graph;
+import org.graphstream.graph.implementations.MultiGraph;
 import org.jgrapht.graph.Pseudograph;
 import org.junit.Before;
 import org.junit.Test;
@@ -87,6 +90,37 @@ public final class BridgesTest {
         assertEquals(bridgesSetReference, set);
     }
 
+    @Test
+    public void testGraphStream() {
+        Graph graph = initGraphStream(lfNetwork);
+
+        ConnectedComponents cc = new ConnectedComponents();
+        long start = System.currentTimeMillis();
+        cc.init(graph);
+
+        int initialCCC = cc.getConnectedComponentsCount();
+        LOGGER.info("{} connected component(s) in this graph, so far.", initialCCC);
+
+        Set<String> bridges = new HashSet<>();
+        for (LfBranch branch : lfNetwork.getBranches()) {
+            LfBus bus1 = branch.getBus1();
+            LfBus bus2 = branch.getBus2();
+            if (bus1 != null && bus2 != null) {
+                String cutAttribute = branch.getId() + "-removed";
+                graph.getEdge(branch.getId()).setAttribute(cutAttribute, true);
+                cc.setCutAttribute(cutAttribute);
+                boolean connected = cc.getConnectedComponentsCount() == initialCCC;
+                if (!connected) {
+                    bridges.add(branch.getId());
+                }
+            }
+        }
+
+        LOGGER.info("Bridges calculated based on graphstream library in {} ms", System.currentTimeMillis() - start);
+
+        assertEquals(bridgesSetReference, bridges);
+    }
+
     private Set<String> testBridgesOnConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, String method) {
         long start = System.currentTimeMillis();
         initGraphDc(lfNetwork, connectivity);
@@ -107,6 +141,21 @@ public final class BridgesTest {
             LfBus bus2 = branch.getBus2();
             if (bus1 != null && bus2 != null) {
                 graph.addEdge(bus1.getId(), bus2.getId(), branch.getId());
+            }
+        }
+        return graph;
+    }
+
+    private static Graph initGraphStream(LfNetwork lfNetwork) {
+        Graph graph = new MultiGraph("TestCC");
+        for (LfBus bus : lfNetwork.getBuses()) {
+            graph.addNode(bus.getId());
+        }
+        for (LfBranch branch : lfNetwork.getBranches()) {
+            LfBus bus1 = branch.getBus1();
+            LfBus bus2 = branch.getBus2();
+            if (bus1 != null && bus2 != null) {
+                graph.addEdge(branch.getId(), bus1.getId(), bus2.getId());
             }
         }
         return graph;
