@@ -32,7 +32,6 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     private final List<Collection<V>> savedConnectedComponents;
     private final Map<V, LevelNeighbours> savedLevelNeighboursMap;
     private final Set<V> vertices;
-    private final Map<V, Set<V>> doubledEdges;
 
     public EvenShiloachGraphDecrementalConnectivity() {
         this.cutEdges = new ArrayList<>();
@@ -43,7 +42,6 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
         this.savedConnectedComponents = new ArrayList<>();
         this.savedLevelNeighboursMap = new HashMap<>();
         this.vertices = new HashSet<>();
-        this.doubledEdges = new HashMap<>();
     }
 
     @Override
@@ -87,6 +85,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
                 break;
             }
         }
+
     }
 
     private void initConnectedComponents() {
@@ -99,6 +98,12 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
             }
         }
         connectedComponents.forEach(cc -> cc.forEach(v -> vertexToConnectedComponent.put(v, cc)));
+    }
+
+    public void initLevels() {
+        connectedComponents.forEach(
+            cc -> cc.stream().findFirst().ifPresent(
+                v -> buildNextLevel(Collections.singleton(v), 0)));
     }
 
     private void completeConnectedComponent(V v, Set<V> visited, Set<V> currentCc) {
@@ -115,7 +120,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
         connectedComponents.forEach(t -> savedConnectedComponents.add(new HashSet<>(t)));
 
         savedLevelNeighboursMap.clear();
-        levelNeighboursMap.forEach((k, v) -> savedLevelNeighboursMap.put(k, v.copy()));
+        levelNeighboursMap.forEach((k, v) -> savedLevelNeighboursMap.put(k, new LevelNeighbours(v)));
     }
 
     @Override
@@ -126,7 +131,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
         connectedComponents.forEach(cc -> cc.forEach(v -> vertexToConnectedComponent.put(v, cc)));
 
         levelNeighboursMap.clear();
-        savedLevelNeighboursMap.forEach((k, v) -> levelNeighboursMap.put(k, v.copy()));
+        savedLevelNeighboursMap.forEach((k, v) -> levelNeighboursMap.put(k, new LevelNeighbours(v)));
 
         for (Pair<V, V> cutEdge : cutEdges) {
             addEdge(cutEdge.getLeft(), cutEdge.getRight());
@@ -201,9 +206,11 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     private class GraphProcessB implements GraphProcess {
 
         private final Deque<V> verticesToUpdate;
+        private final Map<V, LevelNeighbours> savedChangedLevels;
 
         public GraphProcessB(V v, V w) {
             this.verticesToUpdate = new LinkedList<>();
+            this.savedChangedLevels = new HashMap<>();
             LevelNeighbours nV = levelNeighboursMap.get(v);
             LevelNeighbours nW = levelNeighboursMap.get(w);
             if (nV.level == nW.level) {
@@ -231,6 +238,9 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
             }
             V w = verticesToUpdate.removeFirst();  // step (2)
             LevelNeighbours levelNeighbours = levelNeighboursMap.get(w);
+            if (!savedChangedLevels.containsKey(w)) {
+                savedChangedLevels.put(w, new LevelNeighbours(levelNeighbours));
+            }
             levelNeighbours.level++; // step (3)
             for (V localNeighbour : levelNeighbours.sameLevel) { // step (4)
                 LevelNeighbours lnln = levelNeighboursMap.get(localNeighbour);
@@ -260,7 +270,9 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
         }
 
         public void undoChanges() {
-            //TODO: reverse all changes
+            levelNeighboursMap.putAll(savedChangedLevels);
+            savedChangedLevels.clear();
+            verticesToUpdate.clear();
         }
     }
 
@@ -310,19 +322,13 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
             this.level = level;
         }
 
-        public LevelNeighbours copy() {
-            LevelNeighbours clone = new LevelNeighbours(level);
-            clone.lowerLevel.addAll(lowerLevel);
-            clone.sameLevel.addAll(sameLevel);
-            clone.upperLevel.addAll(upperLevel);
-            return clone;
+        public LevelNeighbours(LevelNeighbours origin) {
+            this.level = origin.level;
+            this.lowerLevel.addAll(origin.lowerLevel);
+            this.sameLevel.addAll(origin.sameLevel);
+            this.upperLevel.addAll(origin.upperLevel);
         }
-    }
 
-    public void initLevels() {
-        connectedComponents.forEach(
-            cc -> cc.stream().findFirst().ifPresent(
-                v -> buildNextLevel(Collections.singleton(v), 0)));
     }
 
     private void buildNextLevel(Collection<V> level, int levelIndex) {

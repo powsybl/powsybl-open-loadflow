@@ -36,7 +36,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public final class BridgesTest {
+public class BridgesTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BridgesTest.class);
 
