@@ -32,6 +32,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     private final List<Collection<V>> savedConnectedComponents;
     private final Map<V, LevelNeighbours> savedLevelNeighboursMap;
     private final Set<V> vertices;
+    private boolean sortedComponents;
 
     public EvenShiloachGraphDecrementalConnectivity() {
         this.cutEdges = new ArrayList<>();
@@ -60,6 +61,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
     @Override
     public void cut(V vertex1, V vertex2) {
+        sortedComponents = false;
         if (connectedComponents.isEmpty()) {
             initConnectedComponents();
             initLevels();
@@ -125,6 +127,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
     @Override
     public void reset() {
+        sortedComponents = false;
         connectedComponents.clear();
         savedConnectedComponents.forEach(t -> connectedComponents.add(new HashSet<>(t)));
         vertexToConnectedComponent.clear();
@@ -141,6 +144,10 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
     @Override
     public int getComponentNumber(V vertex) {
+        if (!sortedComponents) {
+            sortedComponents = true;
+            connectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
+        }
         return connectedComponents.indexOf(vertexToConnectedComponent.get(vertex));
     }
 
@@ -161,8 +168,10 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
         public GraphProcessA(V vertex1, V vertex2) {
             this.vertex1 = vertex1;
             this.vertex2 = vertex2;
-            this.t1 = new Traverser(vertex1, vertex2);
-            this.t2 = new Traverser(vertex2, vertex1);
+            Set<V> traversedVerticesT1 = new HashSet<>();
+            Set<V> traversedVerticesT2 = new HashSet<>();
+            this.t1 = new Traverser(vertex1, traversedVerticesT2, traversedVerticesT1);
+            this.t2 = new Traverser(vertex2, traversedVerticesT1, traversedVerticesT2);
             this.halted = false;
         }
 
@@ -279,12 +288,12 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     private class Traverser {
         private final Set<V> traversedVertices;
         private final Deque<V> verticesToTraverse;
-        private final V vertexEnd;
+        private final Set<V> vertexEnd;
         private boolean ended;
 
-        public Traverser(V vertexStart, V vertexEnd) {
+        public Traverser(V vertexStart, Set<V> vertexEnd, Set<V> traversedVertices) {
             this.vertexEnd = vertexEnd;
-            this.traversedVertices = new HashSet<>();
+            this.traversedVertices = traversedVertices;
             this.verticesToTraverse = new LinkedList<>();
             this.verticesToTraverse.add(vertexStart);
             this.ended = false;
@@ -295,7 +304,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
             if (traversedVertices.add(v)) {
                 for (V adj : Graphs.neighborListOf(graph, v)) {
                     verticesToTraverse.add(adj);
-                    if (adj == vertexEnd) {
+                    if (vertexEnd.contains(adj)) {
                         ended = true;
                         return;
                     }
