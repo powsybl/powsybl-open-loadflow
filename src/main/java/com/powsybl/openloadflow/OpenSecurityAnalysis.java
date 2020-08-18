@@ -22,7 +22,6 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.SubjectType;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfContingency;
@@ -32,6 +31,7 @@ import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Provider;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
@@ -52,12 +52,15 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
     private final MatrixFactory matrixFactory;
 
+    private final Provider<GraphDecrementalConnectivity<LfBus>> connectivityProvider;
+
     public OpenSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
-                                MatrixFactory matrixFactory) {
+                                MatrixFactory matrixFactory, Provider<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
         this.network = Objects.requireNonNull(network);
         this.detector = Objects.requireNonNull(detector);
         this.filter = Objects.requireNonNull(filter);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
+        this.connectivityProvider = Objects.requireNonNull(connectivityProvider);
     }
 
     @Override
@@ -102,8 +105,26 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
 
-        // try to find all switches impacted by at least one contingency
+        // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         Set<Switch> allSwitchesToOpen = new HashSet<>();
+        List<ContingencyContext> contingencyContexts = getContingencyContexts(contingencies, allSwitchesToOpen);
+
+        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters, lfParametersExt, true);
+
+        // create networks including all necessary switches
+        List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters);
+
+        // run simulation on each network
+        for (LfNetwork lfNetwork : lfNetworks) {
+            runSimulations(lfNetwork, contingencyContexts, acParameters);
+        }
+
+        LimitViolationsResult preContingencyResult = new LimitViolationsResult(false, Collections.emptyList());
+        List<PostContingencyResult> postContingencyResults = new ArrayList<>();
+        return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
+    }
+
+    List<ContingencyContext> getContingencyContexts(List<Contingency> contingencies, Set<Switch> allSwitchesToOpen) {
         List<ContingencyContext> contingencyContexts = new ArrayList<>();
         for (Contingency contingency : contingencies) {
             ContingencyContext contingencyContext = new ContingencyContext(contingency.getId());
@@ -127,23 +148,10 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                 allSwitchesToOpen.add(sw);
             }
         }
-
-        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters, lfParametersExt, true);
-
-        // create networks including all necessary switches
-        List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters);
-
-        // run simulation on each network
-        for (LfNetwork lfNetwork : lfNetworks) {
-            runSimulations(lfNetwork, contingencyContexts, acParameters);
-        }
-
-        LimitViolationsResult preContingencyResult = new LimitViolationsResult(false, Collections.emptyList());
-        List<PostContingencyResult> postContingencyResults = new ArrayList<>();
-        return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
+        return contingencyContexts;
     }
 
-    private List<LfNetwork> createNetworks(Set<Switch> allSwitchesToOpen, AcLoadFlowParameters acParameters) {
+    List<LfNetwork> createNetworks(Set<Switch> allSwitchesToOpen, AcLoadFlowParameters acParameters) {
         List<LfNetwork> lfNetworks;
         String tmpVariantId = "olf-tmp-" + UUID.randomUUID().toString();
         network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
@@ -267,7 +275,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         }
     }
 
-    private List<LfContingency> createContingencies(List<ContingencyContext> contingencyContexts, LfNetwork network) {
+    List<LfContingency> createContingencies(List<ContingencyContext> contingencyContexts, LfNetwork network) {
         // create connectivity data structure
         GraphDecrementalConnectivity<LfBus> connectivity = createConnectivity(network);
 
@@ -301,7 +309,11 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
             // update connectivity with triggered branches
             for (LfBranch branch : branches) {
-                connectivity.cut(branch.getBus1(), branch.getBus2());
+                LfBus bus1 = branch.getBus1();
+                LfBus bus2 = branch.getBus2();
+                if (bus1 != null && bus2 != null) {
+                    connectivity.cut(bus1, bus2);
+                }
             }
 
             // add to contingency description buses and branches that won't be part of the main connected
@@ -313,9 +325,13 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                 }
             }
             for (LfBranch branch : network.getBranches()) {
-                if (connectivity.getComponentNumber(branch.getBus1()) > 0
-                        && connectivity.getComponentNumber(branch.getBus2()) > 0) {
-                    branches.add(branch);
+                LfBus bus1 = branch.getBus1();
+                LfBus bus2 = branch.getBus2();
+                if (bus1 != null && bus2 != null) {
+                    if (connectivity.getComponentNumber(bus1) > 0
+                        && connectivity.getComponentNumber(bus2) > 0) {
+                        branches.add(branch);
+                    }
                 }
             }
 
@@ -328,13 +344,17 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         return contingencies;
     }
 
-    private static GraphDecrementalConnectivity<LfBus> createConnectivity(LfNetwork network) {
-        GraphDecrementalConnectivity<LfBus> connectivity = new NaiveGraphDecrementalConnectivity<>(LfBus::getNum);
+    private GraphDecrementalConnectivity<LfBus> createConnectivity(LfNetwork network) {
+        GraphDecrementalConnectivity<LfBus> connectivity = connectivityProvider.get();
         for (LfBus bus : network.getBuses()) {
             connectivity.addVertex(bus);
         }
         for (LfBranch branch : network.getBranches()) {
-            connectivity.addEdge(branch.getBus1(), branch.getBus2());
+            LfBus bus1 = branch.getBus1();
+            LfBus bus2 = branch.getBus2();
+            if (bus1 != null && bus2 != null) {
+                connectivity.addEdge(bus1, bus2);
+            }
         }
         return connectivity;
     }

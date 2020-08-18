@@ -15,6 +15,8 @@ import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.iidm.network.VoltageLevel;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.NameSlackBusSelector;
 import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisParameters;
@@ -190,7 +192,8 @@ class OpenSecurityAnalysisTest {
         saParameters.setLoadFlowParameters(lfParameters);
         ContingenciesProvider contingenciesProvider = network -> Arrays.asList(new Contingency("L1", new BranchContingency("L1")),
                                                                                new Contingency("L2", new BranchContingency("L2")));
-        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(), new LimitViolationFilter(), new DenseMatrixFactory());
+        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+            new LimitViolationFilter(), new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
         SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
         assertFalse(result.getPreContingencyResult().isComputationOk());
     }
