@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
@@ -24,7 +25,6 @@ import com.powsybl.openloadflow.equations.SubjectType;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
@@ -89,12 +89,12 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
     static class ContingencyContext {
 
-        final String contingencyId;
+        final Contingency contingency;
 
         final Set<String> branchIdsToOpen = new HashSet<>();
 
-        ContingencyContext(String contingencyId) {
-            this.contingencyId = contingencyId;
+        ContingencyContext(Contingency contingency) {
+            this.contingency = contingency;
         }
     }
 
@@ -114,20 +114,15 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         // create networks including all necessary switches
         List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters);
 
-        // run simulation on each network
-        for (LfNetwork lfNetwork : lfNetworks) {
-            runSimulations(lfNetwork, contingencyContexts, acParameters);
-        }
-
-        LimitViolationsResult preContingencyResult = new LimitViolationsResult(false, Collections.emptyList());
-        List<PostContingencyResult> postContingencyResults = new ArrayList<>();
-        return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
+        // run simulation on largest network
+        LfNetwork largestNetwork = lfNetworks.get(0);
+        return runSimulations(largestNetwork, contingencyContexts, acParameters);
     }
 
     List<ContingencyContext> getContingencyContexts(List<Contingency> contingencies, Set<Switch> allSwitchesToOpen) {
         List<ContingencyContext> contingencyContexts = new ArrayList<>();
         for (Contingency contingency : contingencies) {
-            ContingencyContext contingencyContext = new ContingencyContext(contingency.getId());
+            ContingencyContext contingencyContext = new ContingencyContext(contingency);
             contingencyContexts.add(contingencyContext);
 
             Set<Switch> switchesToOpen = new HashSet<>();
@@ -169,54 +164,63 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         return lfNetworks;
     }
 
-    private void runSimulations(LfNetwork network, List<ContingencyContext> contingencyContexts, AcLoadFlowParameters acParameters) {
+    private SecurityAnalysisResult runSimulations(LfNetwork network, List<ContingencyContext> contingencyContexts, AcLoadFlowParameters acParameters) {
         // create a contingency list that impact the network
         List<LfContingency> contingencies = createContingencies(contingencyContexts, network);
 
         // run pre-contingency simulation
         AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters);
-        AcLoadFlowResult preContingencyResult = engine.run();
-        // TODO process pre contingency results
+        AcLoadFlowResult preContingencyLoadFlowResult = engine.run();
+        boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
+        List<LimitViolation> preContingencyLimitViolations = new ArrayList<>();
+        LimitViolationsResult preContingencyResult = new LimitViolationsResult(preContingencyComputationOk, preContingencyLimitViolations);
 
-        LOGGER.info("Save pre-contingency state");
+        // only run post-contingency simulations if pre-contingency simulation is ok
+        List<PostContingencyResult> postContingencyResults = new ArrayList<>();
+        if (preContingencyComputationOk) {
+            LOGGER.info("Save pre-contingency state");
 
-        // save base state for later restoration after each contingency
-        List<LfBus> buses = network.getBuses();
-        double[] v = new double[buses.size()];
-        double[] a = new double[buses.size()];
-        for (LfBus bus : buses) {
-            v[bus.getNum()] = bus.getV();
-            a[bus.getNum()] = bus.getAngle();
-        }
+            // save base state for later restoration after each contingency
+            List<LfBus> buses = network.getBuses();
+            double[] v = new double[buses.size()];
+            double[] a = new double[buses.size()];
+            for (LfBus bus : buses) {
+                v[bus.getNum()] = bus.getV();
+                a[bus.getNum()] = bus.getAngle();
+            }
 
-        // start a simulation for each of the contingency
-        Iterator<LfContingency> contingencyIt = contingencies.iterator();
-        while (contingencyIt.hasNext()) {
-            LfContingency contingency = contingencyIt.next();
+            // start a simulation for each of the contingency
+            Iterator<LfContingency> contingencyIt = contingencies.iterator();
+            while (contingencyIt.hasNext()) {
+                LfContingency lfContingency = contingencyIt.next();
 
-            runPostContingencySimulation(engine, contingency);
+                PostContingencyResult postContingencyResult = runPostContingencySimulation(engine, lfContingency);
+                postContingencyResults.add(postContingencyResult);
 
-            if (contingencyIt.hasNext()) {
-                LOGGER.info("Restore pre-contingency state");
+                if (contingencyIt.hasNext()) {
+                    LOGGER.info("Restore pre-contingency state");
 
-                // restore base state
-                for (LfBus bus : buses) {
-                    bus.setV(v[bus.getNum()]);
-                    bus.setAngle(a[bus.getNum()]);
+                    // restore base state
+                    for (LfBus bus : buses) {
+                        bus.setV(v[bus.getNum()]);
+                        bus.setAngle(a[bus.getNum()]);
+                    }
                 }
             }
         }
+
+        return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
     }
 
-    private void runPostContingencySimulation(AcloadFlowEngine engine, LfContingency contingency) {
-        LOGGER.info("Start post contingency '{}' simulation", contingency.getId());
+    private PostContingencyResult runPostContingencySimulation(AcloadFlowEngine engine, LfContingency lfContingency) {
+        LOGGER.info("Start post contingency '{}' simulation", lfContingency.getContingency().getId());
 
         EquationSystem equationSystem = engine.getEquationSystem();
 
         List<Equation> deactivatedEquations = new ArrayList<>();
         List<EquationTerm> deactivatedEquationTerms = new ArrayList<>();
 
-        for (LfBranch branch : contingency.getBranches()) {
+        for (LfBranch branch : lfContingency.getBranches()) {
             LOGGER.trace("Remove equations and equations terms related to branch '{}'", branch.getId());
 
             // deactivate all equations related to a branch
@@ -236,7 +240,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             }
         }
 
-        for (LfBus bus : contingency.getBuses()) {
+        for (LfBus bus : lfContingency.getBuses()) {
             LOGGER.trace("Remove equations and equation terms related to bus '{}'", bus.getId());
 
             // deactivate all equations related to a bus
@@ -257,8 +261,9 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         }
 
         // restart LF on post contingency equation system
-        AcLoadFlowResult postContingencyResult = engine.run();
-        // TODO process post contingency results
+        AcLoadFlowResult postContingencyLoadFlowResult = engine.run();
+        boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
+        List<LimitViolation> postContingencyLimitViolations = new ArrayList<>();
 
         // restore deactivated equations and equations terms from previous contingency
         if (!deactivatedEquations.isEmpty()) {
@@ -273,6 +278,8 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             }
             deactivatedEquationTerms.clear();
         }
+
+        return new PostContingencyResult(lfContingency.getContingency(), postContingencyComputationOk, postContingencyLimitViolations);
     }
 
     List<LfContingency> createContingencies(List<ContingencyContext> contingencyContexts, LfNetwork network) {
@@ -338,7 +345,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             // reset connectivity to discard triggered branches
             connectivity.reset();
 
-            contingencies.add(new LfContingency(contingencyContext.contingencyId, buses, branches));
+            contingencies.add(new LfContingency(contingencyContext.contingency, buses, branches));
         }
 
         return contingencies;

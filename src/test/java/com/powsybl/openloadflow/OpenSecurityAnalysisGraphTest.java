@@ -80,7 +80,7 @@ class OpenSecurityAnalysisGraphTest {
             for (int iContingency = 0; iContingency < result.get(iNetwork).size(); iContingency++) {
                 LfContingency contingencyReference = reference.get(iNetwork).get(iContingency);
                 LfContingency contingencyResult = result.get(iNetwork).get(iContingency);
-                Assert.assertEquals(contingencyReference.getId(), contingencyResult.getId());
+                Assert.assertEquals(contingencyReference.getContingency().getId(), contingencyResult.getContingency().getId());
 
                 Set<LfBranch> branchesReference = contingencyReference.getBranches();
                 Set<LfBranch> branchesResult = contingencyResult.getBranches();
@@ -99,7 +99,7 @@ class OpenSecurityAnalysisGraphTest {
         for (List<LfContingency> networkResult : result) {
             for (LfContingency contingency : networkResult) {
                 LOGGER.info("Contingency {} containing {} branches - {} buses (branches: {}, buses: {})",
-                    contingency.getId(), contingency.getBranches().size(), contingency.getBuses().size(),
+                    contingency.getContingency().getId(), contingency.getBranches().size(), contingency.getBuses().size(),
                     contingency.getBranches().stream().map(LfBranch::getId).collect(Collectors.joining(",")),
                     contingency.getBuses().stream().map(LfBus::getId).collect(Collectors.joining(",")));
             }

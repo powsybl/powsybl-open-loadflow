@@ -4,10 +4,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.network;
+package com.powsybl.openloadflow;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.powsybl.contingency.Contingency;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -20,20 +23,20 @@ import java.util.Set;
  */
 public class LfContingency {
 
-    private final String id;
+    private final Contingency contingency;
 
     private final Set<LfBus> buses;
 
     private final Set<LfBranch> branches;
 
-    public LfContingency(String id, Set<LfBus> buses, Set<LfBranch> branches) {
-        this.id = Objects.requireNonNull(id);
+    public LfContingency(Contingency contingency, Set<LfBus> buses, Set<LfBranch> branches) {
+        this.contingency = Objects.requireNonNull(contingency);
         this.buses = Objects.requireNonNull(buses);
         this.branches = Objects.requireNonNull(branches);
     }
 
-    public String getId() {
-        return id;
+    public Contingency getContingency() {
+        return contingency;
     }
 
     public Set<LfBus> getBuses() {
@@ -51,7 +54,7 @@ public class LfContingency {
                 .useDefaultPrettyPrinter()) {
             jsonGenerator.writeStartObject();
 
-            jsonGenerator.writeStringField("id", id);
+            jsonGenerator.writeStringField("id", contingency.getId());
 
             jsonGenerator.writeFieldName("buses");
             int[] sortedBuses = buses.stream().mapToInt(LfBus::getNum).sorted().toArray();
