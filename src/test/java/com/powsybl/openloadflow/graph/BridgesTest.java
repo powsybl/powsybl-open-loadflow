@@ -18,8 +18,8 @@ import org.graphstream.graph.Graph;
 import org.graphstream.graph.implementations.MultiGraph;
 import org.jgrapht.alg.connectivity.BiconnectivityInspector;
 import org.jgrapht.graph.Pseudograph;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,15 +36,15 @@ import static org.junit.Assert.assertEquals;
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class BridgesTest {
+class BridgesTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BridgesTest.class);
 
     private LfNetwork lfNetwork;
     private Set<String> bridgesSetReference;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         long start = System.currentTimeMillis();
         Network network = EurostagTutorialExample1Factory.create();
         List<LfNetwork> lfn = LfNetwork.load(network, new FirstSlackBusSelector());
@@ -60,33 +60,33 @@ public class BridgesTest {
     }
 
     @Test
-    public void testNaiveConnectivity() {
+    void testNaiveConnectivity() {
         Set<String> bridges = testBridgesOnConnectivity(lfNetwork,
             new NaiveGraphDecrementalConnectivity<>(LfBus::getNum), "naive algorithm");
         assertEquals(bridgesSetReference, bridges);
     }
 
     @Test
-    public void testConnectivityInspector() {
+    void testConnectivityInspector() {
         Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new DecrementalConnectivityInspector<>(), "ConnectivityInspector");
         assertEquals(bridgesSetReference, bridges);
     }
 
     @Test
-    public void testFindBridgesConnectivity() {
+    void testFindBridgesConnectivity() {
         Set<String> bridges = testBridgesOnConnectivity(lfNetwork,
             new BridgesFinder<>(lfNetwork.getBuses().size(), LfBus::getNum), "Hopcroft-Tarjan algorithm");
         assertEquals(bridgesSetReference, bridges);
     }
 
     @Test
-    public void testEvenShiloach() {
+    void testEvenShiloach() {
         Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new EvenShiloachGraphDecrementalConnectivity<>(), "Even-Shiloach");
         assertEquals(bridgesSetReference, bridges);
     }
 
     @Test
-    public void testFindBridges() {
+    void testFindBridges() {
         BridgesFinder<LfBus> graph = new BridgesFinder<>(lfNetwork.getBuses().size(), LfBus::getNum);
         initGraphDc(lfNetwork, graph);
 
@@ -104,7 +104,7 @@ public class BridgesTest {
     }
 
     @Test
-    public void testBiconnectivityInspector() {
+    void testBiconnectivityInspector() {
         org.jgrapht.Graph<String, String> graph = getJgraphTGraph(lfNetwork);
         BiconnectivityInspector<String, String> bi = new BiconnectivityInspector<>(graph);
 
@@ -116,7 +116,7 @@ public class BridgesTest {
     }
 
     @Test
-    public void testGraphStream() {
+    void testGraphStream() {
         Graph graph = initGraphStream(lfNetwork);
 
         ConnectedComponents cc = new ConnectedComponents();
