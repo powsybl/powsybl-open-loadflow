@@ -164,6 +164,10 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         return lfNetworks;
     }
 
+    private void detectViolations(LfNetwork network, List<LimitViolation> violations) {
+        // TODO
+    }
+
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<ContingencyContext> contingencyContexts, AcLoadFlowParameters acParameters) {
         // create a contingency list that impact the network
         List<LfContingency> contingencies = createContingencies(contingencyContexts, network);
@@ -178,6 +182,8 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         // only run post-contingency simulations if pre-contingency simulation is ok
         List<PostContingencyResult> postContingencyResults = new ArrayList<>();
         if (preContingencyComputationOk) {
+            detectViolations(network, preContingencyLimitViolations);
+
             LOGGER.info("Save pre-contingency state");
 
             // save base state for later restoration after each contingency
@@ -194,7 +200,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             while (contingencyIt.hasNext()) {
                 LfContingency lfContingency = contingencyIt.next();
 
-                PostContingencyResult postContingencyResult = runPostContingencySimulation(engine, lfContingency);
+                PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency);
                 postContingencyResults.add(postContingencyResult);
 
                 if (contingencyIt.hasNext()) {
@@ -212,7 +218,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
     }
 
-    private PostContingencyResult runPostContingencySimulation(AcloadFlowEngine engine, LfContingency lfContingency) {
+    private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcloadFlowEngine engine, LfContingency lfContingency) {
         LOGGER.info("Start post contingency '{}' simulation", lfContingency.getContingency().getId());
 
         EquationSystem equationSystem = engine.getEquationSystem();
@@ -264,6 +270,9 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         AcLoadFlowResult postContingencyLoadFlowResult = engine.run();
         boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
         List<LimitViolation> postContingencyLimitViolations = new ArrayList<>();
+        if (postContingencyComputationOk) {
+            detectViolations(network, postContingencyLimitViolations);
+        }
 
         // restore deactivated equations and equations terms from previous contingency
         if (!deactivatedEquations.isEmpty()) {
