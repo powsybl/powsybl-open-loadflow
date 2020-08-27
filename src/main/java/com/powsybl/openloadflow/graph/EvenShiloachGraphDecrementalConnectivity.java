@@ -25,7 +25,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     private final Graph<V, Object> graph = new Pseudograph<>(Object.class);
 
     private final Map<V, Collection<V>> vertexToConnectedComponent;
-    private final List<Collection<V>> connectedComponents;
+    private final List<Set<V>> connectedComponents;
     private final Map<V, LevelNeighbours> levelNeighboursMap;
 
     private final List<Pair<V, V>> cutEdges;
@@ -149,6 +149,15 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
             connectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
         }
         return connectedComponents.indexOf(vertexToConnectedComponent.get(vertex));
+    }
+
+    @Override
+    public Collection<Set<V>> getSmallComponents() {
+        if (!sortedComponents) {
+            sortedComponents = true;
+            connectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
+        }
+        return connectedComponents.subList(1, connectedComponents.size());
     }
 
     private interface GraphProcess {

@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Provider;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -334,22 +335,10 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
             // add to contingency description buses and branches that won't be part of the main connected
             // component in post contingency state
-            Set<LfBus> buses = new HashSet<>();
-            for (LfBus bus : network.getBuses()) {
-                if (connectivity.getComponentNumber(bus) > 0) {
-                    buses.add(bus);
-                }
-            }
-            for (LfBranch branch : network.getBranches()) {
-                LfBus bus1 = branch.getBus1();
-                LfBus bus2 = branch.getBus2();
-                if (bus1 != null && bus2 != null) {
-                    if (connectivity.getComponentNumber(bus1) > 0
-                        && connectivity.getComponentNumber(bus2) > 0) {
-                        branches.add(branch);
-                    }
-                }
-            }
+            Set<LfBus> buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
+            network.getBranches().stream()
+                .filter(br -> buses.contains(br.getBus1()) && buses.contains(br.getBus2()))
+                .forEach(branches::add);
 
             // reset connectivity to discard triggered branches
             connectivity.reset();

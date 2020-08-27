@@ -13,6 +13,7 @@ import org.jgrapht.graph.DefaultListenableGraph;
 import org.jgrapht.graph.Pseudograph;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
@@ -80,6 +81,14 @@ public class DecrementalConnectivityInspector<V> implements GraphDecrementalConn
             }
         }
         return vertexToSetNumber.get(vertex);
+    }
+
+    @Override
+    public Collection<Set<V>> getSmallComponents() {
+        int nbCc = connectivityInspector.connectedSets().size();
+        return connectivityInspector.connectedSets().stream()
+            .sorted(Comparator.comparingInt(Set::size))
+            .collect(Collectors.toList()).subList(1, nbCc);
     }
 
 }

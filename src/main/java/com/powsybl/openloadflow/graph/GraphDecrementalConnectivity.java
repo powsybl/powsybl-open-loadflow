@@ -6,6 +6,9 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import java.util.Collection;
+import java.util.Set;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -35,4 +38,10 @@ public interface GraphDecrementalConnectivity<V> {
      * @return the number of the related connected component
      */
     int getComponentNumber(V vertex);
+
+    /**
+     * Return the collection of "small" connected components, meaning all the connected components except the biggest one (size-wise).
+     * @return the collection of small connected components
+     */
+    Collection<Set<V>> getSmallComponents();
 }

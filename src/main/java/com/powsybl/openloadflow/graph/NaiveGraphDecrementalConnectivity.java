@@ -28,6 +28,7 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
     private int[] components;
 
     private final ToIntFunction<V> numGetter;
+    private List<Set<V>> componentSets;
 
     public NaiveGraphDecrementalConnectivity(ToIntFunction<V> numGetter) {
         this.numGetter = Objects.requireNonNull(numGetter);
@@ -36,7 +37,7 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
     private void updateComponents() {
         if (components == null) {
             components = new int[graph.vertexSet().size()];
-            List<Set<V>> componentSets = new ConnectivityInspector<>(graph)
+            componentSets = new ConnectivityInspector<>(graph)
                     .connectedSets()
                     .stream()
                     .sorted(Comparator.comparing((Function<Set<V>, Integer>) Set::size).reversed())
@@ -91,5 +92,11 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
     public int getComponentNumber(V vertex) {
         updateComponents();
         return components[numGetter.applyAsInt(vertex)];
+    }
+
+    @Override
+    public Collection<Set<V>> getSmallComponents() {
+        updateComponents();
+        return componentSets.subList(1, componentSets.size());
     }
 }

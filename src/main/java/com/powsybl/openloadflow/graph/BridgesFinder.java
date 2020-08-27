@@ -6,13 +6,11 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import com.powsybl.commons.PowsyblException;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.ToIntFunction;
 
 /**
@@ -187,6 +185,11 @@ class BridgesFinder<V> implements GraphDecrementalConnectivity<V> {
     public int getComponentNumber(V vertex) {
         lazySearch();
         return cc[numGetter.applyAsInt(vertex)];
+    }
+
+    @Override
+    public Collection<Set<V>> getSmallComponents() {
+        throw new PowsyblException("Not implemented exception");
     }
 
 }
