@@ -17,8 +17,12 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.FirstSlackBusSelector;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
@@ -69,6 +73,14 @@ class OpenSecurityAnalysisGraphTest {
     void testEvenShiloach() {
         LOGGER.info("Test Even-Shiloach on test network containing {} branches", network.getBranchCount());
         List<List<LfContingency>> lfContingencies = getLoadFlowContingencies(EvenShiloachGraphDecrementalConnectivity::new);
+        printResult(lfContingencies);
+        checkResult(lfContingencies);
+    }
+
+    @Test
+    void testMst() {
+        LOGGER.info("Test Minimum Spanning Tree on test network containing {} branches", network.getBranchCount());
+        List<List<LfContingency>> lfContingencies = getLoadFlowContingencies(MinimumSpanningTreeGraphDecrementalConnectivity::new);
         printResult(lfContingencies);
         checkResult(lfContingencies);
     }
