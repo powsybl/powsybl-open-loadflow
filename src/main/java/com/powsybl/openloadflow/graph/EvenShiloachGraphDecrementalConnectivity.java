@@ -11,6 +11,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.Graph;
 import org.jgrapht.Graphs;
 import org.jgrapht.graph.Pseudograph;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -22,9 +24,11 @@ import java.util.*;
  */
 public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecrementalConnectivity<V> {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(EvenShiloachGraphDecrementalConnectivity.class);
+
     private final Graph<V, Object> graph = new Pseudograph<>(Object.class);
 
-    private final Map<V, Collection<V>> vertexToConnectedComponent;
+    private final Map<V, Set<V>> vertexToConnectedComponent;
     private final List<Set<V>> connectedComponents;
     private final Map<V, LevelNeighbours> levelNeighboursMap;
 
@@ -56,7 +60,11 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     public void addEdge(V vertex1, V vertex2) {
         Objects.requireNonNull(vertex1);
         Objects.requireNonNull(vertex2);
-        graph.addEdge(vertex1, vertex2, new Object());
+        if (vertex1 != vertex2) {
+            graph.addEdge(vertex1, vertex2, new Object());
+        } else {
+            LOGGER.warn("Loop on vertex {}: problem in input graph", vertex1);
+        }
     }
 
     @Override
@@ -152,7 +160,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     }
 
     @Override
-    public Collection<Set<V>> getSmallComponents() {
+    public List<Set<V>> getSmallComponents() {
         if (!sortedComponents) {
             sortedComponents = true;
             connectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
@@ -177,8 +185,8 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
         public GraphProcessA(V vertex1, V vertex2) {
             this.vertex1 = vertex1;
             this.vertex2 = vertex2;
-            Set<V> traversedVerticesT1 = new HashSet<>();
-            Set<V> traversedVerticesT2 = new HashSet<>();
+            Set<V> traversedVerticesT1 = new LinkedHashSet<>();
+            Set<V> traversedVerticesT2 = new LinkedHashSet<>();
             this.t1 = new Traverser(vertex1, traversedVerticesT2, traversedVerticesT1);
             this.t2 = new Traverser(vertex2, traversedVerticesT1, traversedVerticesT2);
             this.halted = false;
@@ -261,9 +269,13 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
             }
             levelNeighbours.level++; // step (3)
             for (V localNeighbour : levelNeighbours.sameLevel) { // step (4)
-                LevelNeighbours lnln = levelNeighboursMap.get(localNeighbour);
-                lnln.sameLevel.remove(w);
-                lnln.upperLevel.add(w);
+                if (w != localNeighbour) {
+                    LevelNeighbours lnln = levelNeighboursMap.get(localNeighbour);
+                    lnln.sameLevel.remove(w);
+                    lnln.upperLevel.add(w);
+                } else {
+                    System.out.println();
+                }
             }
             levelNeighbours.lowerLevel.addAll(levelNeighbours.sameLevel); // step (5)
             for (V upperNeighbour : levelNeighbours.upperLevel) { // step (6)
