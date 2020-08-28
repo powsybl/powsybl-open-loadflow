@@ -52,6 +52,11 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
         return danglingLine.getId();
     }
 
+    private double getI2() {
+        return Math.hypot(p.eval() * PerUnit.SB, q.eval() * PerUnit.SB)
+                / (Math.sqrt(3.) * getBus2().getV() / 1000);
+    }
+
     @Override
     public void setP1(Evaluable p1) {
         // nothing to do
@@ -75,6 +80,12 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     @Override
     public Optional<PhaseControl> getPhaseControl() {
         return Optional.empty();
+    }
+
+    @Override
+    public boolean permanentLimitViolation() {
+        double permanentLimitSide2 = danglingLine.getCurrentLimits().getPermanentLimit();
+        return this.getI2() > permanentLimitSide2;
     }
 
     @Override

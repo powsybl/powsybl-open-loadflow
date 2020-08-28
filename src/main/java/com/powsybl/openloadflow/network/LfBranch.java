@@ -37,5 +37,7 @@ public interface LfBranch {
 
     Optional<PhaseControl> getPhaseControl();
 
+    boolean permanentLimitViolation();
+
     void updateState();
 }

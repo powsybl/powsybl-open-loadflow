@@ -56,6 +56,11 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
+    public boolean permanentLimitViolation() {
+        return false;
+    }
+
+    @Override
     public void updateState() {
         // nothing to do
     }

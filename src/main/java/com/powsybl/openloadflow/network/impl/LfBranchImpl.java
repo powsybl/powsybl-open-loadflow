@@ -143,6 +143,16 @@ public class LfBranchImpl extends AbstractLfBranch {
         return branch.getId();
     }
 
+    private double getI1() {
+        return Math.hypot(p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB)
+                / (Math.sqrt(3.) * getBus1().getV() / 1000);
+    }
+
+    private double getI2() {
+        return Math.hypot(p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB)
+                / (Math.sqrt(3.) * getBus2().getV() / 1000);
+    }
+
     @Override
     public void setP1(Evaluable p1) {
         this.p1 = Objects.requireNonNull(p1);
@@ -166,6 +176,13 @@ public class LfBranchImpl extends AbstractLfBranch {
     @Override
     public Optional<PhaseControl> getPhaseControl() {
         return Optional.ofNullable(phaseControl);
+    }
+
+    @Override
+    public boolean permanentLimitViolation() {
+        double permanentLimitSide1 = branch.getCurrentLimits1().getPermanentLimit();
+        double permanentLimitSide2 = branch.getCurrentLimits2().getPermanentLimit();
+        return this.getI1() > permanentLimitSide1 || this.getI2() > permanentLimitSide2;
     }
 
     @Override
