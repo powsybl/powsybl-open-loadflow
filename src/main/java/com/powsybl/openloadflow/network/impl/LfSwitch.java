@@ -51,13 +51,28 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public Optional<PhaseControl> getPhaseControl() {
-        return Optional.empty();
+    public double getI1() {
+        return Double.MIN_VALUE;
     }
 
     @Override
-    public boolean permanentLimitViolation() {
-        return false;
+    public double getI2() {
+        return Double.MIN_VALUE;
+    }
+
+    @Override
+    public double getPermanentLimit1() {
+        return Double.MAX_VALUE;
+    }
+
+    @Override
+    public double getPermanentLimit2() {
+        return Double.MAX_VALUE;
+    }
+
+    @Override
+    public Optional<PhaseControl> getPhaseControl() {
+        return Optional.empty();
     }
 
     @Override

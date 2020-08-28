@@ -10,6 +10,7 @@ import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.tasks.AbstractTrippingTask;
+import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -166,7 +167,23 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
     }
 
     private void detectViolations(LfNetwork network, List<LimitViolation> violations) {
+        // detect violation limits on branches
+        List<LfBranch> branches = network.getBranches();
+        for (LfBranch branch : branches) {
+            if (branch.getI1() > branch.getPermanentLimit1()) {
+                LimitViolation limitViolation1 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
+                        2147483647, branch.getPermanentLimit1(), (float) 0., branch.getI1(), Branch.Side.ONE);
+                violations.add(limitViolation1);
+            }
+            if (branch.getI2() > branch.getPermanentLimit2()) {
+                LimitViolation limitViolation2 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
+                        2147483647, branch.getPermanentLimit2(), (float) 0., branch.getI2(), Branch.Side.TWO);
+                violations.add(limitViolation2);
+            }
+        }
+        // detect violation limits on buses
         // TODO
+
     }
 
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<ContingencyContext> contingencyContexts, AcLoadFlowParameters acParameters) {

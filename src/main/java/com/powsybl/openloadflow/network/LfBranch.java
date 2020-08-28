@@ -35,9 +35,15 @@ public interface LfBranch {
 
     PiModel getPiModel();
 
-    Optional<PhaseControl> getPhaseControl();
+    double getI1();
 
-    boolean permanentLimitViolation();
+    double getI2();
+
+    double getPermanentLimit1();
+
+    double getPermanentLimit2();
+
+    Optional<PhaseControl> getPhaseControl();
 
     void updateState();
 }

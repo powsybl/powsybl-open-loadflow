@@ -82,11 +82,6 @@ public class LfLegBranch extends AbstractLfBranch {
         return twt.getId() + "_leg_" + getLegNum();
     }
 
-    private double getI1() {
-        return Math.hypot(p.eval() * PerUnit.SB, q.eval() * PerUnit.SB)
-                / (Math.sqrt(3.) * getBus1().getV() / 1000);
-    }
-
     @Override
     public void setP1(Evaluable p1) {
         this.p = Objects.requireNonNull(p1);
@@ -108,13 +103,29 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
+    public double getI1() {
+        return Math.hypot(p.eval() * PerUnit.SB, q.eval() * PerUnit.SB)
+                / (Math.sqrt(3.) * getBus1().getV() / 1000);
+    }
+
+    @Override
+    public double getI2() {
+        return Double.MIN_VALUE;
+    }
+
+    @Override
     public Optional<PhaseControl> getPhaseControl() {
         return Optional.ofNullable(phaseControl);
     }
 
-    public boolean permanentLimitViolation() {
-        double permanentLimitSide1 = leg.getCurrentLimits().getPermanentLimit();
-        return this.getI1() > permanentLimitSide1;
+    @Override
+    public double getPermanentLimit1() {
+        return leg.getCurrentLimits() != null ? leg.getCurrentLimits().getPermanentLimit() : Double.MAX_VALUE;
+    }
+
+    @Override
+    public double getPermanentLimit2() {
+        return Double.MAX_VALUE;
     }
 
     @Override
