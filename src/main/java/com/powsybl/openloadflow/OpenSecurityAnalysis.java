@@ -166,19 +166,21 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         return lfNetworks;
     }
 
-    private void detectViolations(LfNetwork network, List<LimitViolation> violations) {
+    private void detectViolations(LfNetwork network, LfContingency lfContingency, List<LimitViolation> violations) {
         // detect violation limits on branches
         List<LfBranch> branches = network.getBranches();
         for (LfBranch branch : branches) {
-            if (branch.getI1() > branch.getPermanentLimit1()) {
-                LimitViolation limitViolation1 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
-                        2147483647, branch.getPermanentLimit1(), (float) 0., branch.getI1(), Branch.Side.ONE);
-                violations.add(limitViolation1);
-            }
-            if (branch.getI2() > branch.getPermanentLimit2()) {
-                LimitViolation limitViolation2 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
-                        2147483647, branch.getPermanentLimit2(), (float) 0., branch.getI2(), Branch.Side.TWO);
-                violations.add(limitViolation2);
+            if (lfContingency != null && !lfContingency.getBranches().contains(branch)) {
+                if (branch.getI1() > branch.getPermanentLimit1()) {
+                    LimitViolation limitViolation1 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
+                            2147483647, branch.getPermanentLimit1(), (float) 0., branch.getI1(), Branch.Side.ONE);
+                    violations.add(limitViolation1);
+                }
+                if (branch.getI2() > branch.getPermanentLimit2()) {
+                    LimitViolation limitViolation2 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
+                            2147483647, branch.getPermanentLimit2(), (float) 0., branch.getI2(), Branch.Side.TWO);
+                    violations.add(limitViolation2);
+                }
             }
         }
         // detect violation limits on buses
@@ -200,7 +202,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         // only run post-contingency simulations if pre-contingency simulation is ok
         List<PostContingencyResult> postContingencyResults = new ArrayList<>();
         if (preContingencyComputationOk) {
-            detectViolations(network, preContingencyLimitViolations);
+            detectViolations(network, null, preContingencyLimitViolations);
 
             LOGGER.info("Save pre-contingency state");
 
@@ -289,7 +291,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
         List<LimitViolation> postContingencyLimitViolations = new ArrayList<>();
         if (postContingencyComputationOk) {
-            detectViolations(network, postContingencyLimitViolations);
+            detectViolations(network, lfContingency, postContingencyLimitViolations);
         }
 
         // restore deactivated equations and equations terms from previous contingency
