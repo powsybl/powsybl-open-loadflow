@@ -71,7 +71,7 @@ class OpenSecurityAnalysisTest {
      *         |
      *         LD
      */
-    private static Network createNetwork() {
+    static Network createNetwork() {
         Network network = Network.create("test", "test");
         Substation s = network.newSubstation()
                 .setId("S")
