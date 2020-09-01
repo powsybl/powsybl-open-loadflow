@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -22,11 +23,19 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
 
     @Override
     public double getMagnitude(LfBus bus) {
-        return bus.getV();
+        double v = bus.getV();
+        if (Double.isNaN(v)) {
+            throw new PowsyblException("Voltage magnitude is undefined for bus '" + bus.getId() + "'");
+        }
+        return v;
     }
 
     @Override
     public double getAngle(LfBus bus) {
-        return bus.getAngle();
+        double angle = bus.getAngle();
+        if (Double.isNaN(angle)) {
+            throw new PowsyblException("Voltage angle is undefined for bus '" + bus.getId() + "'");
+        }
+        return angle;
     }
 }

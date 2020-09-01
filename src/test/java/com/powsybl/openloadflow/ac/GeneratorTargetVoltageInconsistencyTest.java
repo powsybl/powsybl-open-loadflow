@@ -18,10 +18,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class GeneratorTargetVoltageInconsistencyTest {
+class GeneratorTargetVoltageInconsistencyTest {
 
     @Test
-    public void localTest() {
+    void localTest() {
         Network network = Network.create("generatorLocalInconsistentTargetVoltage", "code");
         Substation s = network.newSubstation()
                 .setId("s")
@@ -89,12 +89,13 @@ public class GeneratorTargetVoltageInconsistencyTest {
                 .setB2(0)
                 .add();
 
-        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new FirstSlackBusSelector()));
+        FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
+        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, slackBusSelector));
         assertEquals("Generators [g1, g2] are connected to the same bus 'vl1_0' with a different target voltages: 412.0 and 413.0", exception.getMessage());
     }
 
     @Test
-    public void remoteTest() {
+    void remoteTest() {
         Network network = Network.create("generatorRemoteInconsistentTargetVoltage", "code");
         Substation s = network.newSubstation()
                 .setId("s")
@@ -145,7 +146,7 @@ public class GeneratorTargetVoltageInconsistencyTest {
         vl2.getBusBreakerView().newBus()
                 .setId("b2")
                 .add();
-        vl2.newGenerator()
+        Generator g2 = vl2.newGenerator()
                 .setId("g2")
                 .setBus("b2")
                 .setConnectableBus("b2")
@@ -153,7 +154,7 @@ public class GeneratorTargetVoltageInconsistencyTest {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(412)
+                .setTargetV(225)
                 .setVoltageRegulatorOn(true)
                 .setRegulatingTerminal(ld.getTerminal())
                 .add();
@@ -189,12 +190,13 @@ public class GeneratorTargetVoltageInconsistencyTest {
                 .setB2(0)
                 .add();
 
-        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new FirstSlackBusSelector(), true));
-        assertEquals("Bus 'vl2_0' control voltage of bus 'vl3_0' which is already controlled by at least the bus 'vl1_0' with a different target voltage: 413.0 and 412.0", exception.getMessage());
+        FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
+        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, slackBusSelector, true, false, false));
+        assertEquals("Controller bus 'vl2_0' has an inconsistent remote target voltage: 0.5625 pu", exception.getMessage());
     }
 
     @Test
-    public void remoteAndLocalTest() {
+    void remoteAndLocalTest() {
         Network network = Network.create("generatorRemoteAndLocalInconsistentTargetVoltage", "code");
         Substation s = network.newSubstation()
                 .setId("s")
@@ -289,7 +291,8 @@ public class GeneratorTargetVoltageInconsistencyTest {
                 .setB2(0)
                 .add();
 
-        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new FirstSlackBusSelector(), true));
+        FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
+        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, slackBusSelector, true, false, false));
         assertEquals("Bus 'vl2_0' controlled by bus 'vl1_0' has also a local voltage control with a different value: 413.0 and 412.0", exception.getMessage());
     }
 }

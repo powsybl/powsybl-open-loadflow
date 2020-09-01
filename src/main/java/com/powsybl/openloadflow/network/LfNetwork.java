@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
@@ -131,11 +133,11 @@ public class LfNetwork {
         return slackBus;
     }
 
-    public void updateState(boolean reactiveLimits) {
+    public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         for (LfBus bus : busesById.values()) {
-            bus.updateState(reactiveLimits);
+            bus.updateState(reactiveLimits, writeSlackBus);
             for (LfGenerator generator : bus.getGenerators()) {
                 generator.updateState();
             }
@@ -219,22 +221,31 @@ public class LfNetwork {
         if (piModel.getR1() != 1) {
             jsonGenerator.writeNumberField("r1", piModel.getR1());
         }
-        if (piModel.getR2() != 1) {
-            jsonGenerator.writeNumberField("r2", piModel.getR2());
-        }
         if (piModel.getA1() != 0) {
             jsonGenerator.writeNumberField("a1", piModel.getA1());
         }
-        if (piModel.getA2() != 0) {
-            jsonGenerator.writeNumberField("a2", piModel.getA2());
-        }
+        branch.getPhaseControl().ifPresent(phaseControl -> {
+            try {
+                jsonGenerator.writeFieldName("phaseControl");
+                jsonGenerator.writeStartObject();
+                jsonGenerator.writeStringField("mode", phaseControl.getMode().name());
+                jsonGenerator.writeStringField("unit", phaseControl.getUnit().name());
+                jsonGenerator.writeStringField("controlledSide", phaseControl.getControlledSide().name());
+                jsonGenerator.writeNumberField("targetValue", phaseControl.getTargetValue());
+                jsonGenerator.writeEndObject();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
     }
 
     private void writeJson(LfShunt shunt, JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeStringField("id", shunt.getId());
         jsonGenerator.writeNumberField("b", shunt.getB());
     }
 
     private void writeJson(LfGenerator generator, JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeStringField("id", generator.getId());
         jsonGenerator.writeNumberField("targetP", generator.getTargetP());
         if (!Double.isNaN(generator.getTargetQ())) {
             jsonGenerator.writeNumberField("targetQ", generator.getTargetQ());
@@ -253,16 +264,17 @@ public class LfNetwork {
 
             jsonGenerator.writeFieldName("buses");
             jsonGenerator.writeStartArray();
-            for (LfBus bus : busesById.values()) {
+            List<LfBus> sortedBuses = busesById.values().stream().sorted(Comparator.comparing(LfBus::getId)).collect(Collectors.toList());
+            for (LfBus bus : sortedBuses) {
                 jsonGenerator.writeStartObject();
 
                 writeJson(bus, jsonGenerator);
 
-                List<LfShunt> shunts = bus.getShunts();
-                if (!shunts.isEmpty()) {
+                List<LfShunt> sortedShunts = bus.getShunts().stream().sorted(Comparator.comparing(LfShunt::getId)).collect(Collectors.toList());
+                if (!sortedShunts.isEmpty()) {
                     jsonGenerator.writeFieldName("shunts");
                     jsonGenerator.writeStartArray();
-                    for (LfShunt shunt : shunts) {
+                    for (LfShunt shunt : sortedShunts) {
                         jsonGenerator.writeStartObject();
 
                         writeJson(shunt, jsonGenerator);
@@ -272,11 +284,11 @@ public class LfNetwork {
                     jsonGenerator.writeEndArray();
                 }
 
-                List<LfGenerator> generators = bus.getGenerators();
-                if (!generators.isEmpty()) {
+                List<LfGenerator> sortedGenerators = bus.getGenerators().stream().sorted(Comparator.comparing(LfGenerator::getId)).collect(Collectors.toList());
+                if (!sortedGenerators.isEmpty()) {
                     jsonGenerator.writeFieldName("generators");
                     jsonGenerator.writeStartArray();
-                    for (LfGenerator generator : generators) {
+                    for (LfGenerator generator : sortedGenerators) {
                         jsonGenerator.writeStartObject();
 
                         writeJson(generator, jsonGenerator);
@@ -292,7 +304,8 @@ public class LfNetwork {
 
             jsonGenerator.writeFieldName("branches");
             jsonGenerator.writeStartArray();
-            for (LfBranch branch : branches) {
+            List<LfBranch> sortedBranches = branches.stream().sorted(Comparator.comparing(LfBranch::getId)).collect(Collectors.toList());
+            for (LfBranch branch : sortedBranches) {
                 jsonGenerator.writeStartObject();
 
                 writeJson(branch, jsonGenerator);
@@ -338,35 +351,51 @@ public class LfNetwork {
                 num, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
-    private static void validate(LfNetwork network) {
-        for (LfBranch branch : network.getBranches()) {
-            PiModel piModel = branch.getPiModel();
-            if (piModel.getZ() == 0) {
-                LfBus bus1 = branch.getBus1();
-                LfBus bus2 = branch.getBus2();
-                // ensure target voltages are consistent
-                if (bus1 != null && bus2 != null && bus1.hasVoltageControl() && bus2.hasVoltageControl()
-                        && FastMath.abs((bus1.getTargetV() / bus2.getTargetV()) - piModel.getR1() / piModel.getR2()) > TARGET_VOLTAGE_EPSILON) {
-                    throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
-                            + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
-                            + bus1.getTargetV() + " and " + bus2.getTargetV());
+    private static void fix(LfNetwork network, boolean minImpedance) {
+        if (minImpedance) {
+            for (LfBranch branch : network.getBranches()) {
+                PiModel piModel = branch.getPiModel();
+                if (Math.abs(piModel.getZ()) < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
+                    piModel.setR(0);
+                    piModel.setX(DcEquationSystem.LOW_IMPEDANCE_THRESHOLD);
+                }
+            }
+        }
+    }
+
+    private static void validate(LfNetwork network, boolean minImpedance) {
+        if (!minImpedance) {
+            for (LfBranch branch : network.getBranches()) {
+                PiModel piModel = branch.getPiModel();
+                if (Math.abs(piModel.getZ()) < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) { // will be transformed to non impedant branch
+                    LfBus bus1 = branch.getBus1();
+                    LfBus bus2 = branch.getBus2();
+                    // ensure target voltages are consistent
+                    if (bus1 != null && bus2 != null && bus1.hasVoltageControl() && bus2.hasVoltageControl()
+                            && FastMath.abs((bus1.getTargetV() / bus2.getTargetV()) - piModel.getR1() / PiModel.R2) > TARGET_VOLTAGE_EPSILON) {
+                        throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
+                                + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
+                                + bus1.getTargetV() + " and " + bus2.getTargetV());
+                    }
                 }
             }
         }
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
-        return load(network, slackBusSelector, false);
+        return load(network, slackBusSelector, false, false, false);
     }
 
-    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, boolean voltageRemoteControl) {
+    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, boolean voltageRemoteControl,
+                                       boolean minImpedance, boolean twtSplitShuntAdmittance) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(slackBusSelector);
         for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
-            List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, voltageRemoteControl).orElse(null);
+            List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, voltageRemoteControl, twtSplitShuntAdmittance).orElse(null);
             if (lfNetworks != null) {
                 for (LfNetwork lfNetwork : lfNetworks) {
-                    validate(lfNetwork);
+                    fix(lfNetwork, minImpedance);
+                    validate(lfNetwork, minImpedance);
                     lfNetwork.logSize();
                     lfNetwork.logBalance();
                 }

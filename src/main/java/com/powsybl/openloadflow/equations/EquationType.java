@@ -14,6 +14,8 @@ public enum EquationType {
     BUS_Q("q"),
     BUS_V("v"),
     BUS_PHI("\u03C6"),
+    BRANCH_P("t"),
+    BRANCH_I("i"),
     ZERO_Q("z_q"),
     ZERO_V("z_v"),
     ZERO_PHI("z_\u03C6");

@@ -7,10 +7,7 @@
 
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -23,12 +20,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcLoadFlowPhaseShifterTest {
+class AcLoadFlowPhaseShifterTest {
 
     private Network network;
     private Bus bus1;
@@ -42,7 +40,7 @@ public class AcLoadFlowPhaseShifterTest {
     private LoadFlowParameters parameters;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         network = PhaseShifterTestCaseFactory.create();
         bus1 = network.getBusBreakerView().getBus("B1");
         bus2 = network.getBusBreakerView().getBus("B2");
@@ -51,7 +49,7 @@ public class AcLoadFlowPhaseShifterTest {
         line1 = network.getLine("L1");
         line2 = network.getLine("L2");
         ps1 = network.getTwoWindingsTransformer("PS1");
-        ps1.getPhaseTapChanger().getStep(0).setAlpha(5);
+        ps1.getPhaseTapChanger().getStep(0).setAlpha(-5);
         ps1.getPhaseTapChanger().getStep(2).setAlpha(5);
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -64,7 +62,7 @@ public class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
-    public void baseCaseTest() {
+    void baseCaseTest() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -85,7 +83,7 @@ public class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
-    public void tapPlusOneTest() {
+    void tapPlusOneTest() {
         ps1.getPhaseTapChanger().setTapPosition(2);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -105,5 +103,38 @@ public class AcLoadFlowPhaseShifterTest {
         assertReactivePowerEquals(27.195, line2.getTerminal1());
         assertActivePowerEquals(-83.487, line2.getTerminal2());
         assertReactivePowerEquals(-22.169, line2.getTerminal2());
+    }
+
+    @Test
+    void flowControlTest() {
+        parameters.setPhaseShifterRegulationOn(true);
+        ps1.getPhaseTapChanger()
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1) // FIXME how to take this into account
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(ps1.getTerminal1())
+                .setRegulationValue(83);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(83.587, line2.getTerminal1());
+        assertActivePowerEquals(-83.486, line2.getTerminal2());
+        assertEquals(2, ps1.getPhaseTapChanger().getTapPosition());
+
+        ps1.getPhaseTapChanger()
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1) // FIXME how to take this into account
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationValue(83)
+                .setRegulationTerminal(ps1.getTerminal2());
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(16.528, line2.getTerminal1());
+        assertActivePowerEquals(-16.514, line2.getTerminal2());
+        assertEquals(0, ps1.getPhaseTapChanger().getTapPosition());
+
     }
 }

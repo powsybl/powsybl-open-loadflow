@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcloadFlowReactiveLimitsTest {
+class AcloadFlowReactiveLimitsTest {
 
     private Network network;
     private VoltageLevel vlgen;
@@ -106,7 +106,7 @@ public class AcloadFlowReactiveLimitsTest {
     }
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
@@ -117,7 +117,7 @@ public class AcloadFlowReactiveLimitsTest {
     }
 
     @Test
-    public void diagramTest() {
+    void diagramTest() {
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
@@ -129,7 +129,7 @@ public class AcloadFlowReactiveLimitsTest {
     }
 
     @Test
-    public void test() {
+    void test() {
         parameters.setNoGeneratorReactiveLimits(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -147,7 +147,7 @@ public class AcloadFlowReactiveLimitsTest {
     }
 
     @Test
-    public void testWithMixedGenLoad() {
+    void testWithMixedGenLoad() {
         // add a 20 MVar to LOAD2 connected to same bus as GEN2 and allow 20 MVar additional max reactive power
         // to GEN2 => result should be the same
         vlgen2.newLoad()

@@ -20,7 +20,7 @@
     </parent>
 
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>0.4.0-SNAPSHOT</version>
+    <version>0.6.0-SNAPSHOT</version>
 
     <name>powsybl open loadflow</name>
     <description>An open source loadflow based on PowSyBl</description>
@@ -45,15 +45,16 @@
         <commonscompress.version>1.19</commonscompress.version>
         <commonsio.version>2.5</commonsio.version>
         <jafama.version>2.3.1</jafama.version>
+        <jgrapht.version>1.0.1</jgrapht.version>
+        <jimfs.version>1.1</jimfs.version>
         <junit-jupiter.version>5.5.2</junit-jupiter.version>
-        <graalvm.version>20.0.0</graalvm.version>
         <guava.version>27.0.1-jre</guava.version>
         <logback.version>1.2.3</logback.version>
         <mockito.version>1.10.19</mockito.version>
         <slf4j.version>1.7.22</slf4j.version>
         <slf4jtoys.version>1.6.2</slf4jtoys.version>
 
-        <powsyblcore.version>3.3.0</powsyblcore.version>
+        <powsyblcore.version>3.5.0</powsyblcore.version>
     </properties>
 
     <build>
@@ -115,6 +116,11 @@
             <version>${jafama.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.jgrapht</groupId>
+            <artifactId>jgrapht-core</artifactId>
+            <version>${jgrapht.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.usefultoys</groupId>
             <artifactId>slf4j-toys</artifactId>
             <version>${slf4jtoys.version}</version>
@@ -164,6 +170,12 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava-testlib</artifactId>
             <version>${guava.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.jimfs</groupId>
+            <artifactId>jimfs</artifactId>
+            <version>${jimfs.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -218,6 +230,11 @@
         <activation>
             <activeByDefault>false</activeByDefault>
         </activation>
+        <properties>
+            <graalvm.version>20.1.0</graalvm.version>
+            <janino.version>3.1.0</janino.version>
+            <mapdb.version>3.0.8</mapdb.version>
+        </properties>
         <build>
             <resources>
                 <resource>
@@ -262,13 +279,23 @@
             <dependency>
                 <groupId>org.codehaus.janino</groupId>
                 <artifactId>janino</artifactId>
-                <version>3.1.0</version>
+                <version>${janino.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.graalvm.sdk</groupId>
                 <artifactId>graal-sdk</artifactId>
                 <version>${graalvm.version}</version>
                 <scope>provided</scope>
+            </dependency>
+            <!--
+              rdf4j depends on a very old version of mapdb. It is using ObjectStream which is not yet supported
+              by GraalVM native image (https://github.com/oracle/graal/issues/2192). New version of mapdb seems to not
+              rely on ObjectStream anymore
+            -->
+            <dependency>
+                <groupId>org.mapdb</groupId>
+                <artifactId>mapdb</artifactId>
+                <version>${mapdb.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -305,6 +332,26 @@
             <dependency>
                 <groupId>com.powsybl</groupId>
                 <artifactId>powsybl-ucte-converter</artifactId>
+                <version>${powsyblcore.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-cgmes-conversion</artifactId>
+                <version>${powsyblcore.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-triple-store-impl-rdf4j</artifactId>
+                <version>${powsyblcore.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-matpower-converter</artifactId>
+                <version>${powsyblcore.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-psse-converter</artifactId>
                 <version>${powsyblcore.version}</version>
             </dependency>
         </dependencies>

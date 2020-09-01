@@ -7,13 +7,11 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DanglingLine;
-import com.powsybl.openloadflow.network.AbstractLfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.PerUnit;
-import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -39,7 +37,7 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
         Objects.requireNonNull(bus2);
         double nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
         double zb = nominalV * nominalV / PerUnit.SB;
-        PiModel piModel = new PiModel()
+        PiModel piModel = new SimplePiModel()
                 .setR(danglingLine.getR() / zb)
                 .setX(danglingLine.getX() / zb)
                 .setG1(danglingLine.getG() / 2 * zb)
@@ -82,6 +80,11 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     @Override
     public void setQ2(Evaluable q2) {
         this.q = Objects.requireNonNull(q2);
+    }
+
+    @Override
+    public Optional<PhaseControl> getPhaseControl() {
+        return Optional.empty();
     }
 
     @Override

@@ -15,6 +15,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
+import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
+class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 
     private LoadFlow.Runner loadFlowRunner;
 
@@ -43,7 +44,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void threeBusesTest() {
+    void threeBusesTest() {
         Network network = Network.create("ThreeBusesWithNonImpedantLine", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
@@ -67,7 +68,20 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(1, l23.getTerminal1());
         assertReactivePowerEquals(-1, l23.getTerminal2());
 
-        parametersExt.setDc(true);
+        // use low impedance cut strategy (state is changed a little bit)
+        parametersExt.setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(1, b1);
+        assertVoltageEquals(0.856, b2);
+        assertVoltageEquals(0.856, b3);
+        assertAngleEquals(13.444857, b1);
+        assertAngleEquals(0, b2);
+        assertAngleEquals(0, b3);
+
+        // test in DC mode
+        parametersExt.setDc(true)
+                .setSlackBusSelector(new FirstSlackBusSelector());
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertTrue(Double.isNaN(b1.getV()));
@@ -79,7 +93,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void fourBusesTest() {
+    void fourBusesTest() {
         Network network = Network.create("FourBusesWithNonImpedantLine", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
@@ -91,7 +105,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b3, "l23", 0); // non impedant branch
         createLine(network, b3, b4, "l34", 0.05);
 
-        LoadFlowResult result = loadFlowRunner.run(network);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(1, b1);
         assertVoltageEquals(0.921, b2);
@@ -102,7 +116,8 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertAngleEquals(0, b3);
         assertAngleEquals(-7.248787, b4);
 
-        parametersExt.setDc(true);
+        parametersExt.setDc(true)
+                .setSlackBusSelector(new FirstSlackBusSelector());
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertTrue(Double.isNaN(b1.getV()));
@@ -116,7 +131,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void threeBusesAndNonImpTransfoTest() {
+    void threeBusesAndNonImpTransfoTest() {
         Network network = Network.create("ThreeBusesWithNonImpedantTransfo", "code");
         Bus b1 = createBus(network, "s", "b1");
         Bus b2 = createBus(network, "s", "b2");
@@ -132,7 +147,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(Double.isNaN(l23.getTerminal1().getQ()));
         assertTrue(Double.isNaN(l23.getTerminal2().getQ()));
 
-        LoadFlowResult result = loadFlowRunner.run(network);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(1, b1);
         assertVoltageEquals(0.858, b2);
@@ -143,7 +158,7 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    public void inconsistentTargetVoltagesTest() {
+    void inconsistentTargetVoltagesTest() {
         Network network = Network.create("FourBusesWithNonImpedantLineAndInconsistentTargetVoltages", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
@@ -156,7 +171,60 @@ public class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b3, "l23", 0.05);
         createLine(network, b3, b4, "l34", 0.05);
 
-        CompletionException exception = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network));
+        CompletionException exception = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
         assertEquals("Non impedant branch 'l12' is connected to PV buses 'b1_vl_0' and 'b2_vl_0' with inconsistent target voltages: 1.0 and 1.01", exception.getCause().getMessage());
+    }
+
+    @Test
+    void parallelNonImpedantBranchTest() {
+        Network network = Network.create("ParallelNonImpedantBranch", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 2, 1);
+        createLoad(b3, "l1", 1.99, 1);
+        createLine(network, b1, b2, "l12", 0.1);
+        createLine(network, b2, b3, "l23", 0); // non impedant branch
+        createLine(network, b2, b3, "l23bis", 0); // non impedant branch
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+    }
+
+    @Test
+    void parallelNonImpedantAndImpedantBranchTest() {
+        Network network = Network.create("ParallelNonImpedantAndImpedantBranch", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 2, 1);
+        createLoad(b3, "l1", 1.99, 1);
+        createLine(network, b1, b2, "l12", 0.1);
+        createLine(network, b2, b3, "l23", 0.1);
+        createLine(network, b2, b3, "l23bis", 0); // non impedant branch
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+    }
+
+    @Test
+    void loopNonImpedantBranchTest() {
+        Network network = Network.create("LoopNonImpedantBranch", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 2, 1);
+        createLoad(b3, "l1", 1.99, 1);
+        createLine(network, b1, b2, "l12", 0); // non impedant branch
+        createLine(network, b2, b3, "l23", 0); // non impedant branch
+        createLine(network, b1, b3, "l13", 0); // non impedant branch
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        // also test that it works in DC mode
+        parametersExt.setDc(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
     }
 }

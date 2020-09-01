@@ -20,7 +20,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class GeneratorRemoteControlLocalRescaleTest {
+class GeneratorRemoteControlLocalRescaleTest {
 
     private Network network;
     private Bus b1;
@@ -28,7 +28,7 @@ public class GeneratorRemoteControlLocalRescaleTest {
     private LoadFlow.Runner loadFlowRunner;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         network = Network.create("GeneratorRemoteControlLocalRescaleTest", "code");
         Substation s = network.newSubstation()
                 .setId("s")
@@ -89,7 +89,7 @@ public class GeneratorRemoteControlLocalRescaleTest {
     }
 
     @Test
-    public void test() {
+    void test() {
         LoadFlowResult result = loadFlowRunner.run(network);
         assertTrue(result.isOk());
         LoadFlowAssert.assertVoltageEquals(20.67, b1); // check local targetV has been correctly rescaled

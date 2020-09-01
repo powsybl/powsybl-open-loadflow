@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcLoadFlow3wtTest {
+class AcLoadFlow3wtTest {
 
     private Network network;
     private Substation s;
@@ -101,9 +101,11 @@ public class AcLoadFlow3wtTest {
                 .setId("sc3")
                 .setConnectableBus("b3")
                 .setBus("b3")
-                .setbPerSection(-0.16)
-                .setMaximumSectionCount(1)
-                .setCurrentSectionCount(0)
+                .setSectionCount(0)
+                .newLinearModel()
+                    .setBPerSection(-0.16)
+                    .setMaximumSectionCount(1)
+                    .add()
                 .add();
 
         twt = s.newThreeWindingsTransformer()
@@ -140,7 +142,7 @@ public class AcLoadFlow3wtTest {
     }
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
@@ -152,7 +154,7 @@ public class AcLoadFlow3wtTest {
     }
 
     @Test
-    public void test() {
+    void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -171,7 +173,7 @@ public class AcLoadFlow3wtTest {
     }
 
     @Test
-    public void testWithRatioTapChangers() {
+    void testWithRatioTapChangers() {
         // create a ratio tap changer on leg 1 and check that voltages on leg 2 and 3 have changed compare to previous
         // test
         twt.getLeg1().newRatioTapChanger()
@@ -193,7 +195,7 @@ public class AcLoadFlow3wtTest {
     }
 
     @Test
-    public void testWithPhaseTapChangers() {
+    void testWithPhaseTapChangers() {
         // create a phase tap changer at leg 2 with a zero phase shifting
         PhaseTapChanger ptc = twt.getLeg2().newPhaseTapChanger()
                 .setTapPosition(0)
@@ -233,5 +235,43 @@ public class AcLoadFlow3wtTest {
         assertTrue(result.isOk());
         assertActivePowerEquals(121.691, twtParallel.getTerminal1());
         assertActivePowerEquals(-40.451, twt.getLeg2().getTerminal());
+    }
+
+    @Test
+    void testSplitShuntAdmittance() {
+        parameters.setTwtSplitShuntAdmittance(false);
+        twt.getLeg1().setB(0.00004);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(405, bus1);
+        LoadFlowAssert.assertAngleEquals(0, bus1);
+        assertVoltageEquals(235.132, bus2);
+        LoadFlowAssert.assertAngleEquals(-2.259241, bus2);
+        assertVoltageEquals(20.834, bus3);
+        LoadFlowAssert.assertAngleEquals(-2.721885, bus3);
+        assertActivePowerEquals(161.095, twt.getLeg1().getTerminal());
+        assertReactivePowerEquals(75.323, twt.getLeg1().getTerminal());
+        assertActivePowerEquals(-161, twt.getLeg2().getTerminal());
+        assertReactivePowerEquals(-74, twt.getLeg2().getTerminal());
+        assertActivePowerEquals(0, twt.getLeg3().getTerminal());
+        assertReactivePowerEquals(0, twt.getLeg3().getTerminal());
+
+        parameters.setTwtSplitShuntAdmittance(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(405, bus1);
+        LoadFlowAssert.assertAngleEquals(0, bus1);
+        assertVoltageEquals(235.358, bus2);
+        LoadFlowAssert.assertAngleEquals(-2.257583, bus2);
+        assertVoltageEquals(20.854, bus3);
+        LoadFlowAssert.assertAngleEquals(-2.719334, bus3);
+        assertActivePowerEquals(161.095, twt.getLeg1().getTerminal());
+        assertReactivePowerEquals(75.314, twt.getLeg1().getTerminal());
+        assertActivePowerEquals(-161, twt.getLeg2().getTerminal());
+        assertReactivePowerEquals(-74, twt.getLeg2().getTerminal());
+        assertActivePowerEquals(0, twt.getLeg3().getTerminal());
+        assertReactivePowerEquals(0, twt.getLeg3().getTerminal());
     }
 }

@@ -14,6 +14,13 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.util.EvaluableConstants;
 import net.jafama.FastMath;
+import org.jgrapht.Graph;
+import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
+import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
+import org.jgrapht.graph.Pseudograph;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -26,7 +33,16 @@ public final class DcEquationSystem {
     }
 
     public static EquationSystem create(LfNetwork network) {
-        return create(network, new VariableSet());
+        return create(network, new VariableSet(), true);
+    }
+
+    private static void createBuses(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem) {
+        for (LfBus bus : network.getBuses()) {
+            if (bus.isSlack()) {
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_PHI).addTerm(new BusPhaseEquationTerm(bus, variableSet));
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
+            }
+        }
     }
 
     public static void createNonImpedantBranch(VariableSet variableSet, EquationSystem equationSystem,
@@ -51,39 +67,65 @@ public final class DcEquationSystem {
         }
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
-        EquationSystem equationSystem = new EquationSystem(network);
-
-        for (LfBus bus : network.getBuses()) {
-            if (bus.isSlack()) {
-                equationSystem.createEquation(bus.getNum(), EquationType.BUS_PHI).addTerm(new BusPhaseEquationTerm(bus, variableSet));
-                equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
+    private static void createImpedantBranch(VariableSet variableSet, boolean updateFlows, EquationSystem equationSystem,
+                                             LfBranch branch, LfBus bus1, LfBus bus2) {
+        if (bus1 != null && bus2 != null) {
+            ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, variableSet);
+            ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet);
+            equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
+            equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
+            if (updateFlows) {
+                branch.setP1(p1);
+                branch.setP2(p2);
+            }
+        } else if (bus1 != null) {
+            if (updateFlows) {
+                branch.setP1(EvaluableConstants.ZERO);
+            }
+        } else if (bus2 != null) {
+            if (updateFlows) {
+                branch.setP2(EvaluableConstants.ZERO);
             }
         }
+    }
+
+    private static void createBranches(LfNetwork network, VariableSet variableSet, boolean updateFlows, EquationSystem equationSystem) {
+        List<LfBranch> nonImpedantBranches = new ArrayList<>();
 
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             PiModel piModel = branch.getPiModel();
-            if (FastMath.abs(piModel.getX()) <= LOW_IMPEDANCE_THRESHOLD) {
+            if (FastMath.abs(piModel.getX()) < LOW_IMPEDANCE_THRESHOLD) {
                 if (bus1 != null && bus2 != null) {
-                    createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
+                    nonImpedantBranches.add(branch);
                 }
             } else {
-                if (bus1 != null && bus2 != null) {
-                    ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, variableSet);
-                    ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet);
-                    equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
-                    equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
-                    branch.setP1(p1);
-                    branch.setP2(p2);
-                } else if (bus1 != null) {
-                    branch.setP1(EvaluableConstants.ZERO);
-                } else if (bus2 != null) {
-                    branch.setP2(EvaluableConstants.ZERO);
-                }
+                createImpedantBranch(variableSet, updateFlows, equationSystem, branch, bus1, bus2);
             }
         }
+
+        // create non impedant equations only on minimum spanning forest calculated from non impedant subgraph
+        if (!nonImpedantBranches.isEmpty()) {
+            Graph<LfBus, LfBranch> nonImpedantSubGraph = new Pseudograph<>(LfBranch.class);
+            for (LfBranch branch : nonImpedantBranches) {
+                nonImpedantSubGraph.addVertex(branch.getBus1());
+                nonImpedantSubGraph.addVertex(branch.getBus2());
+                nonImpedantSubGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
+            }
+
+            SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(nonImpedantSubGraph).getSpanningTree();
+            for (LfBranch branch : spanningTree.getEdges()) {
+                createNonImpedantBranch(variableSet, equationSystem, branch, branch.getBus1(), branch.getBus2());
+            }
+        }
+    }
+
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean updateFlows) {
+        EquationSystem equationSystem = new EquationSystem(network);
+
+        createBuses(network, variableSet, equationSystem);
+        createBranches(network, variableSet, updateFlows, equationSystem);
 
         return equationSystem;
     }

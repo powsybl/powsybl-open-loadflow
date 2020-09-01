@@ -30,7 +30,12 @@ public class LfShuntImpl implements LfShunt {
         this.shuntCompensator = Objects.requireNonNull(shuntCompensator);
         double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
         double zb = nominalV * nominalV / PerUnit.SB;
-        b = shuntCompensator.getCurrentB() * zb;
+        b = shuntCompensator.getB() * zb;
+    }
+
+    @Override
+    public String getId() {
+        return shuntCompensator.getId();
     }
 
     @Override

@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcLoadFlowTwoBusNetworkTest {
+class AcLoadFlowTwoBusNetworkTest {
 
     private Network network;
     private Bus bus1;
@@ -38,7 +38,7 @@ public class AcLoadFlowTwoBusNetworkTest {
     private LoadFlowParameters parameters;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         network = TwoBusNetworkFactory.create();
         bus1 = network.getBusBreakerView().getBus("b1");
         bus2 = network.getBusBreakerView().getBus("b2");
@@ -54,7 +54,7 @@ public class AcLoadFlowTwoBusNetworkTest {
     }
 
     @Test
-    public void baseCaseTest() {
+    void baseCaseTest() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -69,7 +69,7 @@ public class AcLoadFlowTwoBusNetworkTest {
     }
 
     @Test
-    public void voltageInitModeTest() {
+    void voltageInitModeTest() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertEquals("3", result.getMetrics().get("network_0_iterations"));
@@ -80,7 +80,7 @@ public class AcLoadFlowTwoBusNetworkTest {
     }
 
     @Test
-    public void withAnAdditionalBattery() {
+    void withAnAdditionalBattery() {
         bus2.getVoltageLevel().newBattery()
                 .setId("bt2")
                 .setBus("b2")

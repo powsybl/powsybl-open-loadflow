@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac.nr;
 
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.math.matrix.Matrix;
+import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.List;
 import java.util.Objects;
@@ -21,6 +22,16 @@ public class MultipleAcLoadFlowObserver implements AcLoadFlowObserver {
 
     public MultipleAcLoadFlowObserver(List<AcLoadFlowObserver> observers) {
         this.observers = Objects.requireNonNull(observers);
+    }
+
+    @Override
+    public void beforeNetworksCreation() {
+        observers.forEach(AcLoadFlowObserver::beforeNetworksCreation);
+    }
+
+    @Override
+    public void afterNetworksCreation(List<LfNetwork> networks) {
+        observers.forEach(o -> o.afterNetworksCreation(networks));
     }
 
     @Override
@@ -49,8 +60,13 @@ public class MultipleAcLoadFlowObserver implements AcLoadFlowObserver {
     }
 
     @Override
-    public void stateVectorInitialized(double[] x) {
-        observers.forEach(o -> o.stateVectorInitialized(x));
+    public void beforeStateVectorCreation(int iteration) {
+        observers.forEach(o -> o.beforeStateVectorCreation(iteration));
+    }
+
+    @Override
+    public void afterStateVectorCreation(double[] x, int iteration) {
+        observers.forEach(o -> o.afterStateVectorCreation(x, iteration));
     }
 
     @Override
@@ -79,13 +95,13 @@ public class MultipleAcLoadFlowObserver implements AcLoadFlowObserver {
     }
 
     @Override
-    public void beforeEquationVectorUpdate(int iteration) {
-        observers.forEach(o -> o.beforeEquationVectorUpdate(iteration));
+    public void beforeEquationVectorCreation(int iteration) {
+        observers.forEach(o -> o.beforeEquationVectorCreation(iteration));
     }
 
     @Override
-    public void afterEquationVectorUpdate(double[] fx, EquationSystem equationSystem, int iteration) {
-        observers.forEach(o -> o.afterEquationVectorUpdate(fx, equationSystem, iteration));
+    public void afterEquationVectorCreation(double[] fx, EquationSystem equationSystem, int iteration) {
+        observers.forEach(o -> o.afterEquationVectorCreation(fx, equationSystem, iteration));
     }
 
     @Override
@@ -144,8 +160,8 @@ public class MultipleAcLoadFlowObserver implements AcLoadFlowObserver {
     }
 
     @Override
-    public void afterNetworkUpdate() {
-        observers.forEach(AcLoadFlowObserver::afterNetworkUpdate);
+    public void afterNetworkUpdate(LfNetwork network) {
+        observers.forEach(o -> o.afterNetworkUpdate(network));
     }
 
     @Override
@@ -156,5 +172,15 @@ public class MultipleAcLoadFlowObserver implements AcLoadFlowObserver {
     @Override
     public void afterPvBusesReactivePowerUpdate() {
         observers.forEach(AcLoadFlowObserver::afterPvBusesReactivePowerUpdate);
+    }
+
+    @Override
+    public void beforeLoadFlow(LfNetwork network) {
+        observers.forEach(o -> o.beforeLoadFlow(network));
+    }
+
+    @Override
+    public void afterLoadFlow(LfNetwork network) {
+        observers.forEach(o -> o.afterLoadFlow(network));
     }
 }

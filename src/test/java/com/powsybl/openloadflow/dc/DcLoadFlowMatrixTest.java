@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DcLoadFlowMatrixTest {
+class DcLoadFlowMatrixTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DcLoadFlowMatrixTest.class);
 
@@ -45,7 +45,7 @@ public class DcLoadFlowMatrixTest {
     }
 
     @Test
-    public void buildDcMatrix() {
+    void buildDcMatrix() {
         Network network = EurostagTutorialExample1Factory.create();
 
         logNetwork(network);
@@ -53,7 +53,7 @@ public class DcLoadFlowMatrixTest {
         LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
 
         VariableSet variableSet = new VariableSet();
-        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, variableSet);
+        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, variableSet, true);
 
         for (LfBus b : lfNetwork.getBuses()) {
             equationSystem.createEquation(b.getNum(), EquationType.BUS_P);
@@ -75,26 +75,6 @@ public class DcLoadFlowMatrixTest {
             j.print(ps, equationSystem.getRowNames(), equationSystem.getColumnNames());
         }
 
-        assertEquals(1d, j.toDense().get(0, 0), 0d);
-        assertEquals(0d, j.toDense().get(0, 1), 0d);
-        assertEquals(0d, j.toDense().get(0, 2), 0d);
-        assertEquals(0d, j.toDense().get(0, 3), 0d);
-
-        assertEquals(-136.88153282299734d, j.toDense().get(1, 0), 0d);
-        assertEquals(224.39668433814884d, j.toDense().get(1, 1), 0d);
-        assertEquals(-87.51515151515152d, j.toDense().get(1, 2), 0d);
-        assertEquals(0d, j.toDense().get(1, 3), 0d);
-
-        assertEquals(0d, j.toDense().get(2, 0), 0d);
-        assertEquals(-87.51515151515152d, j.toDense().get(2, 1), 0d);
-        assertEquals(143.1485921296912d, j.toDense().get(2, 2), 0d);
-        assertEquals(-55.63344061453968d, j.toDense().get(2, 3), 0d);
-
-        assertEquals(0d, j.toDense().get(3, 0), 0d);
-        assertEquals(0d, j.toDense().get(3, 1), 0d);
-        assertEquals(-55.63344061453968d, j.toDense().get(3, 2), 0d);
-        assertEquals(55.63344061453968d, j.toDense().get(3, 3), 0d);
-
         double[] targets = equationSystem.createTargetVector();
         try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
             ps.println("TGT=");
@@ -104,7 +84,7 @@ public class DcLoadFlowMatrixTest {
 
         double[] dx = Arrays.copyOf(targets, targets.length);
         try (LUDecomposition lu = j.decomposeLU()) {
-            lu.solve(dx);
+            lu.solveTransposed(dx);
         }
 
         assertEquals(0d, dx[0], 1E-14d);
@@ -122,13 +102,13 @@ public class DcLoadFlowMatrixTest {
 
         lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
 
-        equationSystem = DcEquationSystem.create(lfNetwork, variableSet);
+        equationSystem = DcEquationSystem.create(lfNetwork, variableSet, true);
 
         j = JacobianMatrix.create(equationSystem, matrixFactory).getMatrix();
 
         dx = Arrays.copyOf(targets, targets.length);
         try (LUDecomposition lu = j.decomposeLU()) {
-            lu.solve(dx);
+            lu.solveTransposed(dx);
         }
 
         Networks.resetState(network);

@@ -13,7 +13,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
+import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Markers;
@@ -37,14 +37,18 @@ public class DcLoadFlowEngine {
 
     private final MatrixFactory matrixFactory;
 
+    private final boolean updateFlows;
+
     public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory) {
         this.networks = Collections.singletonList(network);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
+        this.updateFlows = false;
     }
 
-    public DcLoadFlowEngine(Object network, MatrixFactory matrixFactory) {
-        this.networks = LfNetwork.load(network, new FirstSlackBusSelector());
-        this.matrixFactory = Objects.requireNonNull(matrixFactory);
+    public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters) {
+        this.networks = LfNetwork.load(network, parameters.getSlackBusSelector(), false, false, parameters.isTwtSplitShuntAdmittance());
+        matrixFactory = parameters.getMatrixFactory();
+        updateFlows = parameters.isUpdateFlows();
     }
 
     public DcLoadFlowResult run() {
@@ -53,7 +57,7 @@ public class DcLoadFlowEngine {
         // only process main (largest) connected component
         LfNetwork network = networks.get(0);
 
-        EquationSystem equationSystem = DcEquationSystem.create(network);
+        EquationSystem equationSystem = DcEquationSystem.create(network, new VariableSet(), updateFlows);
 
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
 
@@ -67,7 +71,7 @@ public class DcLoadFlowEngine {
             boolean ok;
             try {
                 LUDecomposition lu = j.decomposeLU();
-                lu.solve(dx);
+                lu.solveTransposed(dx);
                 ok = true;
             } catch (Exception e) {
                 ok = false;
@@ -87,7 +91,7 @@ public class DcLoadFlowEngine {
 
             LOGGER.info("Dc loadflow complete (ok={})", ok);
 
-            return new DcLoadFlowResult(networks, ok);
+            return new DcLoadFlowResult(network, ok);
         } finally {
             j.cleanLU();
         }

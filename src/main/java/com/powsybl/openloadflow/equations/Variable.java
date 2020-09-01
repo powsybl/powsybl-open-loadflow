@@ -24,7 +24,12 @@ public class Variable implements Comparable<Variable> {
 
     private final VariableType type;
 
-    private int column = -1;
+    private int row = -1;
+
+    /**
+     * true if this variable is active, false otherwise
+     */
+    private boolean active = true;
 
     Variable(int num, VariableType type) {
         this.num = num;
@@ -39,12 +44,21 @@ public class Variable implements Comparable<Variable> {
         return type;
     }
 
-    public int getColumn() {
-        return column;
+    public int getRow() {
+        return row;
     }
 
-    public void setColumn(int column) {
-        this.column = column;
+    public void setRow(int row) {
+        this.row = row;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        // FIXME invalidate equation system cache
+        this.active = active;
     }
 
     void initState(VoltageInitializer initializer, LfNetwork network, double[] x) {
@@ -53,16 +67,20 @@ public class Variable implements Comparable<Variable> {
         Objects.requireNonNull(x);
         switch (type) {
             case BUS_V:
-                x[column] = initializer.getMagnitude(network.getBus(num));
+                x[row] = initializer.getMagnitude(network.getBus(num));
                 break;
 
             case BUS_PHI:
-                x[column] = Math.toRadians(initializer.getAngle(network.getBus(num)));
+                x[row] = Math.toRadians(initializer.getAngle(network.getBus(num)));
+                break;
+
+            case BRANCH_ALPHA1:
+                x[row] = network.getBranch(num).getPiModel().getA1();
                 break;
 
             case DUMMY_P:
             case DUMMY_Q:
-                x[column] = 0;
+                x[row] = 0;
                 break;
 
             default:
@@ -75,11 +93,15 @@ public class Variable implements Comparable<Variable> {
         Objects.requireNonNull(x);
         switch (type) {
             case BUS_V:
-                network.getBus(num).setV(x[column]);
+                network.getBus(num).setV(x[row]);
                 break;
 
             case BUS_PHI:
-                network.getBus(num).setAngle(Math.toDegrees(x[column]));
+                network.getBus(num).setAngle(Math.toDegrees(x[row]));
+                break;
+
+            case BRANCH_ALPHA1:
+                network.getBranch(num).getPiModel().setA1(x[row]);
                 break;
 
             case DUMMY_P:
@@ -127,6 +149,6 @@ public class Variable implements Comparable<Variable> {
 
     @Override
     public String toString() {
-        return "Variable(num=" + num + ", type=" + type + ", column=" + column + ")";
+        return "Variable(num=" + num + ", type=" + type + ", row=" + row + ")";
     }
 }

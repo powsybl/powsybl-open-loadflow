@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac.nr;
 
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.math.matrix.Matrix;
+import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.Arrays;
 import java.util.List;
@@ -25,6 +26,10 @@ public interface AcLoadFlowObserver {
         return new MultipleAcLoadFlowObserver(observers);
     }
 
+    void beforeNetworksCreation();
+
+    void afterNetworksCreation(List<LfNetwork> networks);
+
     void beforeEquationSystemCreation();
 
     void afterEquationSystemCreation();
@@ -33,7 +38,9 @@ public interface AcLoadFlowObserver {
 
     void afterVoltageInitializerPreparation();
 
-    void stateVectorInitialized(double[] x);
+    void beforeStateVectorCreation(int iteration);
+
+    void afterStateVectorCreation(double[] x, int iteration);
 
     void beginIteration(int iteration);
 
@@ -45,9 +52,9 @@ public interface AcLoadFlowObserver {
 
     void afterEquationsUpdate(EquationSystem equationSystem, int iteration);
 
-    void beforeEquationVectorUpdate(int iteration);
+    void beforeEquationVectorCreation(int iteration);
 
-    void afterEquationVectorUpdate(double[] fx, EquationSystem equationSystem, int iteration);
+    void afterEquationVectorCreation(double[] fx, EquationSystem equationSystem, int iteration);
 
     void beforeJacobianBuild(int iteration);
 
@@ -77,5 +84,9 @@ public interface AcLoadFlowObserver {
 
     void beforeNetworkUpdate();
 
-    void afterNetworkUpdate();
+    void afterNetworkUpdate(LfNetwork network);
+
+    void beforeLoadFlow(LfNetwork network);
+
+    void afterLoadFlow(LfNetwork network);
 }

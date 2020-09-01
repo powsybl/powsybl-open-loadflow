@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class EquationSystemTest {
+class EquationSystemTest {
 
     private final List<Equation> equations = new ArrayList<>();
     private final List<EquationEventType> eventTypes = new ArrayList<>();
@@ -36,7 +36,7 @@ public class EquationSystemTest {
     }
 
     @Test
-    public void test() {
+    void test() {
         LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector()).get(0);
         LfBus bus = network.getBus(0);
         EquationSystem equationSystem = new EquationSystem(network);
@@ -75,7 +75,7 @@ public class EquationSystemTest {
     }
 
     @Test
-    public void writeAcSystemTest() throws IOException {
+    void writeAcSystemTest() throws IOException {
         LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector()).get(0);
         EquationSystem equationSystem = AcEquationSystem.create(network);
         try (StringWriter writer = new StringWriter()) {
@@ -96,7 +96,7 @@ public class EquationSystemTest {
     }
 
     @Test
-    public void writeDcSystemTest() throws IOException {
+    void writeDcSystemTest() throws IOException {
         LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector()).get(0);
         EquationSystem equationSystem = DcEquationSystem.create(network);
         try (StringWriter writer = new StringWriter()) {

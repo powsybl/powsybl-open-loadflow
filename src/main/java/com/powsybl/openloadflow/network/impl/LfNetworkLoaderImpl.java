@@ -40,16 +40,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static void createBuses(List<Bus> buses, boolean voltageRemoteControl, LfNetwork lfNetwork,
                                     LoadingContext loadingContext, LfNetworkLoadingReport report) {
-        int[] voltageControllerCount = new int[1];
         Map<LfBusImpl, String> controllerBusToControlledBusId = new LinkedHashMap<>();
 
         for (Bus bus : buses) {
-            LfBusImpl lfBus = createBus(bus, voltageRemoteControl, loadingContext, report, voltageControllerCount, controllerBusToControlledBusId);
+            LfBusImpl lfBus = createBus(bus, voltageRemoteControl, loadingContext, report, controllerBusToControlledBusId);
             lfNetwork.addBus(lfBus);
-        }
-
-        if (voltageControllerCount[0] == 0) {
-            LOGGER.error("Network {} has no equipment to control voltage", lfNetwork.getNum());
         }
 
         // set controller -> controlled link
@@ -62,7 +57,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     private static LfBusImpl createBus(Bus bus, boolean voltageRemoteControl, LoadingContext loadingContext, LfNetworkLoadingReport report,
-                                       int[] voltageControllerCount, Map<LfBusImpl, String> controllerBusToControlledBusId) {
+                                       Map<LfBusImpl, String> controllerBusToControlledBusId) {
         LfBusImpl lfBus = LfBusImpl.create(bus);
 
         bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
@@ -104,7 +99,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                         double remoteNominalV = regulatingTerminal.getVoltageLevel().getNominalV();
                         double localNominalV = injection.getTerminal().getVoltageLevel().getNominalV();
                         scaleV = localNominalV / remoteNominalV;
-                        LOGGER.warn("Remote voltage control is not yet supported. The voltage target of " +
+                        LOGGER.warn("Remote voltage control is not activated. The voltage target of " +
                                         "{} ({}) with remote control is rescaled from {} to {}",
                                 injection.getId(), injection.getType(), previousTargetV, previousTargetV * scaleV);
                     }
@@ -117,7 +112,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 double scaleV = checkVoltageRemoteControl(generator, generator.getRegulatingTerminal(), generator.getTargetV());
                 lfBus.addGenerator(generator, scaleV, report);
                 if (generator.isVoltageRegulatorOn()) {
-                    voltageControllerCount[0]++;
+                    report.voltageControllerCount++;
                 }
             }
 
@@ -134,6 +129,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             @Override
             public void visitDanglingLine(DanglingLine danglingLine) {
                 loadingContext.danglingLines.add(danglingLine);
+                DanglingLine.Generation generation = danglingLine.getGeneration();
+                if (generation != null && generation.isVoltageRegulationOn()) {
+                    report.voltageControllerCount++;
+                }
             }
 
             @Override
@@ -141,6 +140,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 double scaleV = checkVoltageRemoteControl(staticVarCompensator, staticVarCompensator.getRegulatingTerminal(),
                         staticVarCompensator.getVoltageSetPoint());
                 lfBus.addStaticVarCompensator(staticVarCompensator, scaleV, report);
+                if (staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
+                    report.voltageControllerCount++;
+                }
             }
 
             @Override
@@ -155,7 +157,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                         VscConverterStation vscConverterStation = (VscConverterStation) converterStation;
                         lfBus.addVscConverterStation(vscConverterStation, report);
                         if (vscConverterStation.isVoltageRegulatorOn()) {
-                            voltageControllerCount[0]++;
+                            report.voltageControllerCount++;
                         }
                         break;
                     case LCC:
@@ -184,11 +186,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void createBranches(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkLoadingReport report) {
+    private static void createBranches(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkLoadingReport report,
+                                       boolean twtSplitShuntAdmittance) {
         for (Branch branch : loadingContext.branchSet) {
             LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork);
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork);
-            addBranch(lfNetwork, LfBranchImpl.create(branch, lfBus1, lfBus2), report);
+            addBranch(lfNetwork, LfBranchImpl.create(branch, lfBus1, lfBus2, twtSplitShuntAdmittance), report);
         }
 
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
@@ -204,9 +207,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork);
             LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork);
             LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork);
-            addBranch(lfNetwork, LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1()), report);
-            addBranch(lfNetwork, LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2()), report);
-            addBranch(lfNetwork, LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3()), report);
+            addBranch(lfNetwork, LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1(), twtSplitShuntAdmittance), report);
+            addBranch(lfNetwork, LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2(), twtSplitShuntAdmittance), report);
+            addBranch(lfNetwork, LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3(), twtSplitShuntAdmittance), report);
         }
     }
 
@@ -215,7 +218,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private static LfNetwork create(MutableInt num, List<Bus> buses, SlackBusSelector slackBusSelector, boolean voltageRemoteControl) {
+    private static LfNetwork create(MutableInt num, List<Bus> buses, SlackBusSelector slackBusSelector, boolean voltageRemoteControl,
+                                    boolean twtSplitShuntAdmittance) {
         LfNetwork lfNetwork = new LfNetwork(num.getValue(), slackBusSelector);
         num.increment();
 
@@ -223,41 +227,47 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
 
         createBuses(buses, voltageRemoteControl, lfNetwork, loadingContext, report);
-        createBranches(lfNetwork, loadingContext, report);
+        createBranches(lfNetwork, loadingContext, report, twtSplitShuntAdmittance);
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
-            LOGGER.warn("{} generators have been discarded from voltage control because not started",
-                    report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
+            LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
+                    lfNetwork.getNum(), report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall > 0) {
-            LOGGER.warn("{} generators have been discarded from voltage control because of a too small max reactive range",
-                    report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
+            LOGGER.warn("Network {}: {} generators have been discarded from voltage control because of a too small max reactive range",
+                    lfNetwork.getNum(), report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero > 0) {
-            LOGGER.warn("{} generators have been discarded from active power control because of a targetP <= 0",
-                    report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero);
+            LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP <= 0",
+                    lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP > 0) {
-            LOGGER.warn("{} generators have been discarded from active power control because of a targetP > maxP",
-                    report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP);
+            LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP > maxP",
+                    lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible > 0) {
-            LOGGER.warn("{} generators have been discarded from active power control because of maxP not plausible",
-                    report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
+            LOGGER.warn("Network {}: {} generators have been discarded from active power control because of maxP not plausible",
+                    lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
         }
         if (report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds > 0) {
-            LOGGER.warn("{} branches have been discarded because connected to same bus at both ends",
-                    report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds);
+            LOGGER.warn("Network {}: {} branches have been discarded because connected to same bus at both ends",
+                    lfNetwork.getNum(), report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds);
         }
         if (report.nonImpedantBranches > 0) {
-            LOGGER.warn("{} branches are non impedant", report.nonImpedantBranches);
+            LOGGER.warn("Network {}: {} branches are non impedant", lfNetwork.getNum(), report.nonImpedantBranches);
+        }
+
+        if (report.voltageControllerCount == 0) {
+            LOGGER.error("Discard network {} because there is no equipment to control voltage", lfNetwork.getNum());
+            return null;
         }
 
         return lfNetwork;
     }
 
     @Override
-    public Optional<List<LfNetwork>> load(Object network, SlackBusSelector slackBusSelector, boolean voltageRemoteControl) {
+    public Optional<List<LfNetwork>> load(Object network, SlackBusSelector slackBusSelector, boolean voltageRemoteControl,
+                                          boolean twtSplitShuntAdmittance) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(slackBusSelector);
 
@@ -276,7 +286,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             MutableInt num = new MutableInt(0);
             List<LfNetwork> lfNetworks = buseByCc.entrySet().stream()
                     .filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
-                    .map(e -> create(num, e.getValue(), slackBusSelector, voltageRemoteControl))
+                    .map(e -> create(num, e.getValue(), slackBusSelector, voltageRemoteControl, twtSplitShuntAdmittance))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 

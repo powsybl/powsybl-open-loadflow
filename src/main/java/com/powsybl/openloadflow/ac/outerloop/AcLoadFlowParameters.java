@@ -34,9 +34,16 @@ public class AcLoadFlowParameters {
 
     private final boolean voltageRemoteControl;
 
+    private final boolean phaseControl;
+
+    private final boolean minImpedance;
+
+    private final boolean twtSplitShuntAdmittance;
+
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
-                                MatrixFactory matrixFactory, AcLoadFlowObserver observer, boolean voltageRemoteControl) {
+                                MatrixFactory matrixFactory, AcLoadFlowObserver observer, boolean voltageRemoteControl,
+                                boolean phaseControl, boolean minImpedance, boolean twtSplitShuntAdmittance) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -44,6 +51,9 @@ public class AcLoadFlowParameters {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.observer = Objects.requireNonNull(observer);
         this.voltageRemoteControl = voltageRemoteControl;
+        this.phaseControl = phaseControl;
+        this.minImpedance = minImpedance;
+        this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -72,5 +82,17 @@ public class AcLoadFlowParameters {
 
     public boolean isVoltageRemoteControl() {
         return voltageRemoteControl;
+    }
+
+    public boolean isPhaseControl() {
+        return phaseControl;
+    }
+
+    public boolean isMinImpedance() {
+        return minImpedance;
+    }
+
+    public boolean isTwtSplitShuntAdmittance() {
+        return twtSplitShuntAdmittance;
     }
 }

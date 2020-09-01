@@ -13,11 +13,18 @@ public class AcEquationSystemCreationParameters {
 
     private final boolean voltageRemoteControl;
 
-    public AcEquationSystemCreationParameters(boolean voltageRemoteControl) {
+    private final boolean phaseControl;
+
+    public AcEquationSystemCreationParameters(boolean voltageRemoteControl, boolean phaseControl) {
         this.voltageRemoteControl = voltageRemoteControl;
+        this.phaseControl = phaseControl;
     }
 
     public boolean isVoltageRemoteControl() {
         return voltageRemoteControl;
+    }
+
+    public boolean isPhaseControl() {
+        return phaseControl;
     }
 }
