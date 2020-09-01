@@ -170,22 +170,29 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         // detect violation limits on branches
         List<LfBranch> branches = network.getBranches();
         for (LfBranch branch : branches) {
-            if (lfContingency != null && !lfContingency.getBranches().contains(branch)) {
-                if (branch.getI1() > branch.getPermanentLimit1()) {
-                    LimitViolation limitViolation1 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
-                            2147483647, branch.getPermanentLimit1(), (float) 0., branch.getI1(), Branch.Side.ONE);
-                    violations.add(limitViolation1);
-                }
-                if (branch.getI2() > branch.getPermanentLimit2()) {
-                    LimitViolation limitViolation2 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
-                            2147483647, branch.getPermanentLimit2(), (float) 0., branch.getI2(), Branch.Side.TWO);
-                    violations.add(limitViolation2);
-                }
+            if (lfContingency == null) {
+                detectBranchViolations(branch, violations);
+            } else if (!lfContingency.getBranches().contains(branch)) {
+                detectBranchViolations(branch, violations);
             }
         }
         // detect violation limits on buses
         // TODO
 
+    }
+
+    private void detectBranchViolations(LfBranch branch, List<LimitViolation> violations) {
+        // detect violation limits on a branch
+        if (branch.getI1() > branch.getPermanentLimit1()) {
+            LimitViolation limitViolation1 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
+                    2147483647, branch.getPermanentLimit1(), (float) 0., branch.getI1(), Branch.Side.ONE);
+            violations.add(limitViolation1);
+        }
+        if (branch.getI2() > branch.getPermanentLimit2()) {
+            LimitViolation limitViolation2 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
+                    2147483647, branch.getPermanentLimit2(), (float) 0., branch.getI2(), Branch.Side.TWO);
+            violations.add(limitViolation2);
+        }
     }
 
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<ContingencyContext> contingencyContexts, AcLoadFlowParameters acParameters) {
