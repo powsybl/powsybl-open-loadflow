@@ -9,6 +9,7 @@ package com.powsybl.openloadflow;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.tasks.AbstractTrippingTask;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.TopologyKind;
@@ -176,10 +177,10 @@ class OpenSecurityAnalysisTest {
                 .setB2(386E-6 / 2)
                 .add();
 
-        network.getLine("L1").newCurrentLimits1().setPermanentLimit(300000.0).add();
-        network.getLine("L1").newCurrentLimits2().setPermanentLimit(300000.0).add();
-        network.getLine("L2").newCurrentLimits1().setPermanentLimit(300000.0).add();
-        network.getLine("L2").newCurrentLimits2().setPermanentLimit(300000.0).add();
+        network.getLine("L1").newCurrentLimits1().setPermanentLimit(940.0).add();
+        network.getLine("L1").newCurrentLimits2().setPermanentLimit(940.0).add();
+        network.getLine("L2").newCurrentLimits1().setPermanentLimit(940.0).add();
+        network.getLine("L2").newCurrentLimits2().setPermanentLimit(940.0).add();
 
         return network;
     }
@@ -197,8 +198,20 @@ class OpenSecurityAnalysisTest {
                 .setSlackBusSelector(new NameSlackBusSelector("VL1_1"));
         lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
         saParameters.setLoadFlowParameters(lfParameters);
-        ContingenciesProvider contingenciesProvider = network -> Arrays.asList(new Contingency("L1", new BranchContingency("L1")),
-                                                                               new Contingency("L2", new BranchContingency("L2")));
+        ContingenciesProvider contingenciesProvider = network -> Arrays.asList(
+                new Contingency("L1", new BranchContingency("L1") {
+                    @Override
+                    public AbstractTrippingTask toTask() {
+                        return new LfBranchTripping(id, voltageLevelId);
+                    }
+                }),
+                new Contingency("L2", new BranchContingency("L2") {
+                    @Override
+                    public AbstractTrippingTask toTask() {
+                        return new LfBranchTripping(id, voltageLevelId);
+                    }
+                }));
+
         OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
             new LimitViolationFilter(), new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
         SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
