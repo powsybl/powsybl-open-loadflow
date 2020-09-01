@@ -10,23 +10,30 @@ package com.powsybl.openloadflow.equations;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public enum EquationType {
-    BUS_P("p"),
-    BUS_Q("q"),
-    BUS_V("v"),
-    BUS_PHI("\u03C6"),
-    BRANCH_P("t"),
-    BRANCH_I("i"),
-    ZERO_Q("z_q"),
-    ZERO_V("z_v"),
-    ZERO_PHI("z_\u03C6");
+    BUS_P("p", SubjectType.BUS),
+    BUS_Q("q", SubjectType.BUS),
+    BUS_V("v", SubjectType.BUS),
+    BUS_PHI("\u03C6", SubjectType.BUS),
+    BRANCH_P("t", SubjectType.BRANCH),
+    BRANCH_I("i", SubjectType.BRANCH),
+    ZERO_Q("z_q", SubjectType.BUS),
+    ZERO_V("z_v", SubjectType.BRANCH),
+    ZERO_PHI("z_\u03C6", SubjectType.BRANCH);
 
     private final String symbol;
 
-    EquationType(String symbol) {
+    private final SubjectType subjectType;
+
+    EquationType(String symbol, SubjectType subjectType) {
         this.symbol = symbol;
+        this.subjectType = subjectType;
     }
 
     public String getSymbol() {
         return symbol;
+    }
+
+    public SubjectType getSubjectType() {
+        return subjectType;
     }
 }
