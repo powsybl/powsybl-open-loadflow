@@ -82,11 +82,11 @@ public class OpenSensitivityAnalysis implements SensitivityComputation {
             double[] targets = new double[equationSystem.getSortedEquationsToSolve().size()];
             EquationTerm p1 = (EquationTerm) branch.getP1();
             for (Variable variable : p1.getVariables()) {
-                targets[variable.getColumn()] += p1.der(variable);
+                targets[variable.getRow()] += p1.der(variable);
             }
             EquationTerm p2 = (EquationTerm) branch.getP2();
             for (Variable variable : p2.getVariables()) {
-                targets[variable.getColumn()] += p2.der(variable);
+                targets[variable.getRow()] += p2.der(variable);
             }
 //            System.out.println(equationSystem.getRowNames());
 //            System.out.println(Arrays.toString(targets));
@@ -99,7 +99,7 @@ public class OpenSensitivityAnalysis implements SensitivityComputation {
             }
             for (LfBus bus : lfNetwork.getBuses()) {
                 Variable variable = variableSet.getVariable(bus.getNum(), VariableType.BUS_PHI);
-                double s = dx[variable.getColumn()];
+                double s = dx[variable.getRow()];
                 System.out.println(bus.getId() + ": " + s);
             }
         }
