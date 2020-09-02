@@ -48,6 +48,8 @@ public class LfNetwork {
 
     private final List<LfBranch> branches = new ArrayList<>();
 
+    private final Map<String, LfBranch> branchesById = new HashMap<>();
+
     public LfNetwork(int num, SlackBusSelector slackBusSelector) {
         this.num = num;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
@@ -78,6 +80,7 @@ public class LfNetwork {
         Objects.requireNonNull(branch);
         branch.setNum(branches.size());
         branches.add(branch);
+        branchesById.put(branch.getId(), branch);
 
         // create bus -> branches link
         if (branch.getBus1() != null) {
@@ -94,6 +97,11 @@ public class LfNetwork {
 
     public LfBranch getBranch(int num) {
         return branches.get(num);
+    }
+
+    public LfBranch getBranchById(String branchId) {
+        Objects.requireNonNull(branchId);
+        return branchesById.get(branchId);
     }
 
     public void addBus(LfBus bus) {
