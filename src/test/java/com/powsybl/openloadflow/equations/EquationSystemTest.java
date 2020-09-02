@@ -19,8 +19,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -72,6 +71,11 @@ class EquationSystemTest {
         assertEquals(1, eventTypes.size());
         assertEquals(EquationEventType.EQUATION_ACTIVATED, eventTypes.get(0));
         assertEquals(1, equationSystem.getSortedEquationsToSolve().size());
+
+        assertTrue(equationSystem.getEquation(bus.getNum(), EquationType.BUS_V).isPresent());
+        assertEquals(1, equationSystem.getEquations(SubjectType.BUS, bus.getNum()).size());
+        assertFalse(equationSystem.getEquation(99, EquationType.BUS_V).isPresent());
+        assertTrue(equationSystem.getEquations(SubjectType.BUS, 99).isEmpty());
     }
 
     @Test
