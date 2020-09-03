@@ -47,9 +47,9 @@ public abstract class AbstractLfBus implements LfBus {
     protected double initialLoadTargetP = 0;
 
     protected double loadTargetP = 0;
-    
+
     protected double fixedActivePower = 0;
-    
+
     protected double variableActivePower = 0;
 
     protected int positiveLoadCount = 0;
@@ -113,13 +113,13 @@ public abstract class AbstractLfBus implements LfBus {
 
     @Override
     public double getFixedActivePower() {
-    	return 0;
+        return 0;
     }
 
     @Override
     public double getVariableActivePower() {
-		return 0;
-	}
+        return 0;
+    }
 
     @Override
     public boolean hasVoltageControlCapability() {
