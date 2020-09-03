@@ -58,7 +58,14 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
 
             double targetP = bus.getLoadTargetP();
 
-            double newTargetP = targetP - remainingMismatch * factor;
+            double fixedActivePowed = bus.getFixedActivePower();
+            double variableActivePower = bus.getVariableActivePower();
+
+            double newVariableActivePower = variableActivePower - remainingMismatch * factor;
+
+            //double newTargetP = targetP - remainingMismatch * factor;
+
+            double newTargetP = fixedActivePowed + newVariableActivePower;
 
             // We stop when the load produces power.
             if (newTargetP <= 0) {

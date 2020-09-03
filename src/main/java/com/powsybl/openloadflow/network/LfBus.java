@@ -49,6 +49,10 @@ public interface LfBus {
 
     double getLoadTargetP();
 
+    double getVariableActivePower();
+
+    double getFixedActivePower();
+
     void setLoadTargetP(double loadTargetP);
 
     int getPositiveLoadCount();
