@@ -113,12 +113,12 @@ public abstract class AbstractLfBus implements LfBus {
 
     @Override
     public double getFixedActivePower() {
-        return 0;
+        return fixedActivePower;
     }
 
     @Override
     public double getVariableActivePower() {
-        return 0;
+        return variableActivePower;
     }
 
     @Override
