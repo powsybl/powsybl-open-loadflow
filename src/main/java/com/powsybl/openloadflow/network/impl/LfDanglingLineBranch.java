@@ -54,43 +54,43 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
 
     @Override
     public void setP1(Evaluable p1) {
-        // nothing to do
+        this.p = Objects.requireNonNull(p1);
     }
 
     @Override
     public void setP2(Evaluable p2) {
-        this.p = Objects.requireNonNull(p2);
-    }
-
-    @Override
-    public void setQ1(Evaluable q1) {
         // nothing to do
     }
 
     @Override
+    public void setQ1(Evaluable q1) {
+        this.q = Objects.requireNonNull(q1);
+    }
+
+    @Override
     public void setQ2(Evaluable q2) {
-        this.q = Objects.requireNonNull(q2);
+        // nothing to do
     }
 
     @Override
     public double getI1() {
-        return Double.MIN_VALUE;
+        return getBus1() != null ? Math.hypot(p.eval() * PerUnit.SB, q.eval() * PerUnit.SB)
+                / (Math.sqrt(3.) * getBus1().getV() * getBus1().getNominalV() / 1000) : Double.MIN_VALUE;
     }
 
     @Override
     public double getI2() {
-        return getBus2() != null ? Math.hypot(p.eval() * PerUnit.SB, q.eval() * PerUnit.SB)
-                / (Math.sqrt(3.) * getBus2().getV() * getBus2().getNominalV() / 1000) : Double.MIN_VALUE;
+        return Double.MIN_VALUE;
     }
 
     @Override
     public double getPermanentLimit1() {
-        return Double.MAX_VALUE;
+        return danglingLine.getCurrentLimits() != null ? danglingLine.getCurrentLimits().getPermanentLimit() : Double.MAX_VALUE;
     }
 
     @Override
     public double getPermanentLimit2() {
-        return danglingLine.getCurrentLimits() != null ? danglingLine.getCurrentLimits().getPermanentLimit() : Double.MAX_VALUE;
+        return Double.MAX_VALUE;
     }
 
     @Override
@@ -100,7 +100,7 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
 
     @Override
     public void updateState() {
-        danglingLine.getTerminal().setP(-p.eval() * PerUnit.SB);
-        danglingLine.getTerminal().setQ(-q.eval() * PerUnit.SB);
+        danglingLine.getTerminal().setP(p.eval() * PerUnit.SB);
+        danglingLine.getTerminal().setQ(q.eval() * PerUnit.SB);
     }
 }
