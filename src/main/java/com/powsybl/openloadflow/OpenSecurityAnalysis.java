@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow;
 
+import com.google.common.base.Stopwatch;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
@@ -35,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Provider;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -101,6 +103,8 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
     }
 
     SecurityAnalysisResult runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowProvider.getParametersExt(securityAnalysisParameters.getLoadFlowParameters());
 
@@ -118,7 +122,12 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         // run simulation on largest network
         LfNetwork largestNetwork = lfNetworks.get(0);
-        return runSimulations(largestNetwork, contingencyContexts, acParameters);
+        SecurityAnalysisResult result = runSimulations(largestNetwork, contingencyContexts, acParameters);
+
+        stopwatch.stop();
+        LOGGER.info("Security analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+
+        return result;
     }
 
     List<ContingencyContext> getContingencyContexts(List<Contingency> contingencies, Set<Switch> allSwitchesToOpen) {
@@ -248,6 +257,8 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
     private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcloadFlowEngine engine, LfContingency lfContingency) {
         LOGGER.info("Start post contingency '{}' simulation", lfContingency.getContingency().getId());
 
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         EquationSystem equationSystem = engine.getEquationSystem();
 
         List<Equation> deactivatedEquations = new ArrayList<>();
@@ -314,6 +325,10 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             }
             deactivatedEquationTerms.clear();
         }
+
+        stopwatch.stop();
+        LOGGER.info("Post contingency '{}' simulation done in {} ms", lfContingency.getContingency().getId(),
+                stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
         return new PostContingencyResult(lfContingency.getContingency(), postContingencyComputationOk, postContingencyLimitViolations);
     }
