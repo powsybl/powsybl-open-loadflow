@@ -54,22 +54,22 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
 
     @Override
     public void setP1(Evaluable p1) {
-        // nothing to do
+        this.p = Objects.requireNonNull(p1);
     }
 
     @Override
     public void setP2(Evaluable p2) {
-        this.p = Objects.requireNonNull(p2);
-    }
-
-    @Override
-    public void setQ1(Evaluable q1) {
         // nothing to do
     }
 
     @Override
+    public void setQ1(Evaluable q1) {
+        this.q = Objects.requireNonNull(q1);
+    }
+
+    @Override
     public void setQ2(Evaluable q2) {
-        this.q = Objects.requireNonNull(q2);
+        // nothing to do
     }
 
     @Override
@@ -79,7 +79,7 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
 
     @Override
     public void updateState() {
-        danglingLine.getTerminal().setP(-p.eval() * PerUnit.SB);
-        danglingLine.getTerminal().setQ(-q.eval() * PerUnit.SB);
+        danglingLine.getTerminal().setP(p.eval() * PerUnit.SB);
+        danglingLine.getTerminal().setQ(q.eval() * PerUnit.SB);
     }
 }
