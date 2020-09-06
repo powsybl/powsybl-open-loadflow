@@ -6,7 +6,8 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.AbstractEquationTerm;
+import com.powsybl.openloadflow.equations.AbstractNamedEquationTerm;
+import com.powsybl.openloadflow.equations.SubjectType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
 import net.jafama.FastMath;
@@ -16,7 +17,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-abstract class AbstractBranchAcFlowEquationTerm extends AbstractEquationTerm {
+abstract class AbstractBranchAcFlowEquationTerm extends AbstractNamedEquationTerm {
 
     protected final LfBranch branch;
 
@@ -45,6 +46,16 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractEquationTerm {
         ksi = piModel.getKsi();
         sinKsi = FastMath.sin(ksi);
         cosKsi = FastMath.cos(ksi);
+    }
+
+    @Override
+    public SubjectType getSubjectType() {
+        return SubjectType.BRANCH;
+    }
+
+    @Override
+    public int getSubjectNum() {
+        return branch.getNum();
     }
 
     @Override

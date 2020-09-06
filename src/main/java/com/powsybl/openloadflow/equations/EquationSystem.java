@@ -33,6 +33,8 @@ public class EquationSystem {
 
     private final Map<Pair<SubjectType, Integer>, List<Equation>> equationsBySubject = new HashMap<>();
 
+    private final Map<Pair<SubjectType, Integer>, List<EquationTerm>> equationTermsBySubject = new HashMap<>();
+
     private class EquationCache implements EquationSystemListener {
 
         private boolean invalide = false;
@@ -75,13 +77,18 @@ public class EquationSystem {
             Set<Variable> variablesToFind = new HashSet<>();
             for (Equation equation : equations.values()) {
                 if (equation.isActive()) {
-                    NavigableMap<Variable, List<EquationTerm>> equationTermsByVariable = sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>());
+                    NavigableMap<Variable, List<EquationTerm>> equationTermsByVariable = null;
                     for (EquationTerm equationTerm : equation.getTerms()) {
-                        for (Variable variable : equationTerm.getVariables()) {
-                            if (variable.isActive()) {
-                                equationTermsByVariable.computeIfAbsent(variable, k -> new ArrayList<>())
-                                        .add(equationTerm);
-                                variablesToFind.add(variable);
+                        if (equationTerm.isActive()) {
+                            if (equationTermsByVariable == null) {
+                                equationTermsByVariable = sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>());
+                            }
+                            for (Variable variable : equationTerm.getVariables()) {
+                                if (variable.isActive()) {
+                                    equationTermsByVariable.computeIfAbsent(variable, k -> new ArrayList<>())
+                                            .add(equationTerm);
+                                    variablesToFind.add(variable);
+                                }
                             }
                         }
                     }
@@ -90,9 +97,13 @@ public class EquationSystem {
             sortedVariablesToFind.addAll(variablesToFind);
         }
 
+        private void invalidate() {
+            invalide = true;
+        }
+
         @Override
         public void equationListChanged(Equation equation, EquationEventType eventType) {
-            invalide = true;
+            invalidate();
         }
 
         private NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> getSortedEquationsToSolve() {
@@ -117,6 +128,19 @@ public class EquationSystem {
 
     LfNetwork getNetwork() {
         return network;
+    }
+
+    void addEquationTerm(EquationTerm equationTerm) {
+        Objects.requireNonNull(equationTerm);
+        Pair<SubjectType, Integer> subject = Pair.of(equationTerm.getSubjectType(), equationTerm.getSubjectNum());
+        equationTermsBySubject.computeIfAbsent(subject, k -> new ArrayList<>())
+                .add(equationTerm);
+    }
+
+    public List<EquationTerm> getEquationTerms(SubjectType subjectType, int subjectNum) {
+        Objects.requireNonNull(subjectType);
+        Pair<SubjectType, Integer> subject = Pair.of(subjectType, subjectNum);
+        return equationTermsBySubject.getOrDefault(subject, Collections.emptyList());
     }
 
     public Equation createEquation(int num, EquationType type) {
