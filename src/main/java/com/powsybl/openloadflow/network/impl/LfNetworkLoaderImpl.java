@@ -218,16 +218,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private static LfNetwork create(MutableInt num, List<Bus> buses, SlackBusSelector slackBusSelector, boolean voltageRemoteControl,
-                                    boolean twtSplitShuntAdmittance) {
-        LfNetwork lfNetwork = new LfNetwork(num.getValue(), slackBusSelector);
+    private static LfNetwork create(MutableInt num, List<Bus> buses, LfNetworkLoadingParameters parameters) {
+        LfNetwork lfNetwork = new LfNetwork(num.getValue(), parameters.getSlackBusSelector());
         num.increment();
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
 
-        createBuses(buses, voltageRemoteControl, lfNetwork, loadingContext, report);
-        createBranches(lfNetwork, loadingContext, report, twtSplitShuntAdmittance);
+        createBuses(buses, parameters.isGeneratorVoltageRemoteControl(), lfNetwork, loadingContext, report);
+        createBranches(lfNetwork, loadingContext, report, parameters.isTwtSplitShuntAdmittance());
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
@@ -266,10 +265,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     @Override
-    public Optional<List<LfNetwork>> load(Object network, SlackBusSelector slackBusSelector, boolean voltageRemoteControl,
-                                          boolean twtSplitShuntAdmittance) {
+    public Optional<List<LfNetwork>> load(Object network, LfNetworkLoadingParameters parameters) {
         Objects.requireNonNull(network);
-        Objects.requireNonNull(slackBusSelector);
+        Objects.requireNonNull(parameters);
 
         if (network instanceof Network) {
             Stopwatch stopwatch = Stopwatch.createStarted();
@@ -286,7 +284,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             MutableInt num = new MutableInt(0);
             List<LfNetwork> lfNetworks = buseByCc.entrySet().stream()
                     .filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
-                    .map(e -> create(num, e.getValue(), slackBusSelector, voltageRemoteControl, twtSplitShuntAdmittance))
+                    .map(e -> create(num, e.getValue(), parameters))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
