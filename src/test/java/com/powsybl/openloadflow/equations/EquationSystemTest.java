@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
+import com.powsybl.openloadflow.ac.equations.BusVoltageEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
@@ -49,9 +50,10 @@ class EquationSystemTest {
         assertTrue(equationSystem.getSortedEquationsToSolve().isEmpty());
 
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusPhaseEquationTerm(bus, variableSet));
-        assertEquals(1, equations.size());
-        assertEquals(1, eventTypes.size());
+        assertEquals(2, equations.size());
+        assertEquals(2, eventTypes.size());
         assertEquals(EquationEventType.EQUATION_CREATED, eventTypes.get(0));
+        assertEquals(EquationEventType.EQUATION_UPDATED, eventTypes.get(1));
         assertEquals(1, equationSystem.getSortedEquationsToSolve().size());
 
         clearEvents();
@@ -79,6 +81,20 @@ class EquationSystemTest {
 
         assertEquals(1, equationSystem.getEquationTerms(SubjectType.BUS, bus.getNum()).size());
         assertTrue(equationSystem.getEquationTerms(SubjectType.BRANCH, 0).isEmpty());
+
+        clearEvents();
+        BusVoltageEquationTerm equationTerm = new BusVoltageEquationTerm(bus, variableSet);
+        equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(equationTerm);
+        assertEquals(2, equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).getTerms().size());
+        assertEquals(1, equations.size());
+        assertEquals(1, eventTypes.size());
+        assertEquals(EquationEventType.EQUATION_UPDATED, eventTypes.get(0));
+
+        clearEvents();
+        equationTerm.setActive(false);
+        assertEquals(1, equations.size());
+        assertEquals(1, eventTypes.size());
+        assertEquals(EquationEventType.EQUATION_UPDATED, eventTypes.get(0));
     }
 
     @Test

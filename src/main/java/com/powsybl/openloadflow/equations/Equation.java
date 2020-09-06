@@ -93,6 +93,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
         terms.add(term);
         term.setEquation(this);
         equationSystem.addEquationTerm(term);
+        equationSystem.notifyListeners(this, EquationEventType.EQUATION_UPDATED);
         return this;
     }
 
