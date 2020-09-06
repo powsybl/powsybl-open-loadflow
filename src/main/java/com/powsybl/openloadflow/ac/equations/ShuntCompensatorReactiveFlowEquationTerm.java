@@ -19,6 +19,8 @@ import java.util.Objects;
  */
 public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquationTerm {
 
+    private final LfShunt shunt;
+
     private final Variable vVar;
 
     private final List<Variable> variables;
@@ -30,7 +32,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
     private double dqdv;
 
     public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet variableSet) {
-        Objects.requireNonNull(shunt);
+        this.shunt = Objects.requireNonNull(shunt);
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
         vVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_V);
@@ -45,7 +47,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
 
     @Override
     public int getSubjectNum() {
-        return 0; // FIXME
+        return shunt.getNum();
     }
 
     @Override

@@ -76,6 +76,9 @@ class EquationSystemTest {
         assertEquals(1, equationSystem.getEquations(SubjectType.BUS, bus.getNum()).size());
         assertFalse(equationSystem.getEquation(99, EquationType.BUS_V).isPresent());
         assertTrue(equationSystem.getEquations(SubjectType.BUS, 99).isEmpty());
+
+        assertEquals(1, equationSystem.getEquationTerms(SubjectType.BUS, bus.getNum()).size());
+        assertTrue(equationSystem.getEquationTerms(SubjectType.BRANCH, 0).isEmpty());
     }
 
     @Test

@@ -50,6 +50,8 @@ public class LfNetwork {
 
     private final Map<String, LfBranch> branchesById = new HashMap<>();
 
+    private int shuntCount = 0;
+
     public LfNetwork(int num, SlackBusSelector slackBusSelector) {
         this.num = num;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
@@ -107,6 +109,9 @@ public class LfNetwork {
     public void addBus(LfBus bus) {
         Objects.requireNonNull(bus);
         busesById.put(bus.getId(), bus);
+        for (LfShunt shunt : bus.getShunts()) {
+            shunt.setNum(shuntCount++);
+        }
         invalidateCache();
     }
 
@@ -238,6 +243,7 @@ public class LfNetwork {
 
     private void writeJson(LfShunt shunt, JsonGenerator jsonGenerator) throws IOException {
         jsonGenerator.writeStringField("id", shunt.getId());
+        jsonGenerator.writeNumberField("num", shunt.getNum());
         jsonGenerator.writeNumberField("b", shunt.getB());
     }
 
