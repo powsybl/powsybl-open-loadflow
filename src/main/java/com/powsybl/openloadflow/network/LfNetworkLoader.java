@@ -14,6 +14,5 @@ import java.util.Optional;
  */
 public interface LfNetworkLoader {
 
-    Optional<List<LfNetwork>> load(Object network, SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl,
-                                   boolean twtSplitShuntAdmittance);
+    Optional<List<LfNetwork>> load(Object network, LfNetworkParameters parameters);
 }
