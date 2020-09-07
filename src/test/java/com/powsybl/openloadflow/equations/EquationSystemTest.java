@@ -39,7 +39,7 @@ class EquationSystemTest {
     void test() {
         LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector()).get(0);
         LfBus bus = network.getBus(0);
-        EquationSystem equationSystem = new EquationSystem(network);
+        EquationSystem equationSystem = new EquationSystem(network, true);
         equationSystem.addListener((equation, eventType) -> {
             equations.add(equation);
             eventTypes.add(eventType);
