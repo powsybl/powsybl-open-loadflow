@@ -27,6 +27,7 @@ import com.powsybl.openloadflow.equations.SubjectType;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
@@ -226,9 +227,19 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             List<LfBus> buses = network.getBuses();
             double[] v = new double[buses.size()];
             double[] a = new double[buses.size()];
+            // boolean[] vc = new boolean[buses.size()];
+            double[] loadTargetP = new double[buses.size()];
+            double[] generatorsTargetP = new double[buses.size()];
+            int generatorsCount = 0;
             for (LfBus bus : buses) {
                 v[bus.getNum()] = bus.getV();
                 a[bus.getNum()] = bus.getAngle();
+                // vc[bus.getNum()] = bus.hasVoltageControl();
+                loadTargetP[bus.getNum()] = bus.getLoadTargetP();
+                for (LfGenerator generator : bus.getGenerators()) {
+                    generatorsTargetP[generatorsCount] = generator.getTargetP();
+                    generatorsCount++;
+                }
             }
 
             // start a simulation for each of the contingency
@@ -243,9 +254,16 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                     LOGGER.info("Restore pre-contingency state");
 
                     // restore base state
+                    generatorsCount = 0;
                     for (LfBus bus : buses) {
                         bus.setV(v[bus.getNum()]);
                         bus.setAngle(a[bus.getNum()]);
+                        // bus.setVoltageControl(vc[bus.getNum()]);
+                        bus.setLoadTargetP(loadTargetP[bus.getNum()]);
+                        for (LfGenerator generator : bus.getGenerators()) {
+                            generator.setTargetP(generatorsTargetP[generatorsCount]);
+                            generatorsCount++;
+                        }
                     }
                 }
             }
