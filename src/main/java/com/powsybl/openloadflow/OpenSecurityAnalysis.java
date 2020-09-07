@@ -240,6 +240,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                     generatorsTargetP[generatorsCount] = generator.getTargetP();
                     generatorsCount++;
                 }
+                bus.setVoltageControlSwitchOffCount(0);
             }
 
             // start a simulation for each of the contingency
@@ -264,6 +265,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                             generator.setTargetP(generatorsTargetP[generatorsCount]);
                             generatorsCount++;
                         }
+                        bus.setVoltageControlSwitchOffCount(0);
                     }
                 }
             }

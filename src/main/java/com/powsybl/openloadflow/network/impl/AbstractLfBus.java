@@ -131,6 +131,11 @@ public abstract class AbstractLfBus implements LfBus {
     }
 
     @Override
+    public void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount) {
+        this.voltageControlSwitchOffCount = voltageControlSwitchOffCount;
+    }
+
+    @Override
     public Optional<LfBus> getControlledBus() {
         return Optional.ofNullable(controlledBus);
     }
