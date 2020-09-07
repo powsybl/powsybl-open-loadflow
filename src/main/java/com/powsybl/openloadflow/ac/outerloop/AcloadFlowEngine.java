@@ -18,7 +18,7 @@ import com.powsybl.openloadflow.equations.EquationType;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkLoadingParameters;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +45,7 @@ public class AcloadFlowEngine {
 
         parameters.getObserver().beforeNetworksCreation();
 
-        networks = LfNetwork.load(network, new LfNetworkLoadingParameters(parameters.getSlackBusSelector(), parameters.isVoltageRemoteControl(),
+        networks = LfNetwork.load(network, new LfNetworkParameters(parameters.getSlackBusSelector(), parameters.isVoltageRemoteControl(),
                                                                           parameters.isMinImpedance(), parameters.isTwtSplitShuntAdmittance()));
 
         parameters.getObserver().afterNetworksCreation(networks);

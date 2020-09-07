@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfNetworkLoadingParameters {
+public class LfNetworkParameters {
 
     private final SlackBusSelector slackBusSelector;
 
@@ -19,8 +19,8 @@ public class LfNetworkLoadingParameters {
 
     private final boolean twtSplitShuntAdmittance;
 
-    public LfNetworkLoadingParameters(SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl,
-                                      boolean minImpedance, boolean twtSplitShuntAdmittance) {
+    public LfNetworkParameters(SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl,
+                               boolean minImpedance, boolean twtSplitShuntAdmittance) {
         this.slackBusSelector = slackBusSelector;
         this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
         this.minImpedance = minImpedance;

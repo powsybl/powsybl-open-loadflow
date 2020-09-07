@@ -380,10 +380,10 @@ public class LfNetwork {
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
-        return load(network, new LfNetworkLoadingParameters(slackBusSelector, false, false, false));
+        return load(network, new LfNetworkParameters(slackBusSelector, false, false, false));
     }
 
-    public static List<LfNetwork> load(Object network, LfNetworkLoadingParameters parameters) {
+    public static List<LfNetwork> load(Object network, LfNetworkParameters parameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
         for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
