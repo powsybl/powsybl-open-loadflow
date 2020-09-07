@@ -9,7 +9,9 @@ package com.powsybl.openloadflow.graph;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
 
+import java.util.Collection;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.ToIntFunction;
 
 /**
@@ -51,7 +53,13 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     }
 
     @Override
-    public boolean isConnected(V vertex1, V vertex2) {
-        return false;
+    public int getComponentNumber(V vertex) {
+        return 0;
     }
+
+    @Override
+    public Collection<Set<V>> getSmallComponents() {
+        return null;
+    }
+
 }

@@ -11,11 +11,10 @@ import org.jgrapht.UndirectedGraph;
 import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.graph.Pseudograph;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
 import java.util.function.ToIntFunction;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -30,6 +29,8 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
 
     private final ToIntFunction<V> numGetter;
 
+    private List<Set<V>> componentSets;
+
     public NaiveGraphDecrementalConnectivity(ToIntFunction<V> numGetter) {
         this.numGetter = Objects.requireNonNull(numGetter);
     }
@@ -37,7 +38,11 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
     private void updateComponents() {
         if (components == null) {
             components = new int[graph.vertexSet().size()];
-            List<Set<V>> componentSets = new ConnectivityInspector<>(graph).connectedSets();
+            componentSets = new ConnectivityInspector<>(graph)
+                    .connectedSets()
+                    .stream()
+                    .sorted(Comparator.comparing((Function<Set<V>, Integer>) Set::size).reversed())
+                    .collect(Collectors.toList());
             for (int componentIndex = 0; componentIndex < componentSets.size(); componentIndex++) {
                 Set<V> vertices = componentSets.get(componentIndex);
                 for (V vertex : vertices) {
@@ -85,10 +90,14 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
     }
 
     @Override
-    public boolean isConnected(V vertex1, V vertex2) {
+    public int getComponentNumber(V vertex) {
         updateComponents();
-        int component1 = components[numGetter.applyAsInt(vertex1)];
-        int component2 = components[numGetter.applyAsInt(vertex2)];
-        return component1 == component2;
+        return components[numGetter.applyAsInt(vertex)];
+    }
+
+    @Override
+    public Collection<Set<V>> getSmallComponents() {
+        updateComponents();
+        return componentSets.subList(1, componentSets.size());
     }
 }
