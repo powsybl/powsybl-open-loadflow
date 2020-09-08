@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadDetail;
+import com.powsybl.iidm.network.extensions.LoadDetailImpl;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -89,7 +90,7 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .setQ0(q)
                 .setP0(fixed + variable)
                 .add();
-        LoadDetail ldetail = l.getExtension(LoadDetail.class);
+        LoadDetail ldetail = l.getExtension(LoadDetail.class) != null ? l.getExtension(LoadDetail.class) : new LoadDetailImpl(l, fixed + variable, 0, 0, 0);
         ldetail.setFixedActivePower(fixed);
         ldetail.setVariableActivePower(variable);
         l.addExtension(LoadDetail.class, ldetail);

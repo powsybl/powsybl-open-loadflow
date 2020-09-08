@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadDetail;
+import com.powsybl.iidm.network.extensions.LoadDetailImpl;
 import com.powsybl.openloadflow.network.*;
 import net.jafama.FastMath;
 import org.slf4j.Logger;
@@ -224,7 +225,7 @@ public abstract class AbstractLfBus implements LfBus {
         loads.add(load);
         initialLoadTargetP += load.getP0();
         loadTargetP += load.getP0();
-        LoadDetail loadDetail = load.getExtension(LoadDetail.class);
+        LoadDetail loadDetail = load.getExtension(LoadDetail.class) != null ? load.getExtension(LoadDetail.class) : new LoadDetailImpl(load, Float.parseFloat(String.valueOf(loadTargetP)), 0, 0, 0);
         fixedActivePower += loadDetail.getFixedActivePower();
         variableActivePower += loadDetail.getVariableActivePower();
         load.addExtension(LoadDetail.class, loadDetail);
