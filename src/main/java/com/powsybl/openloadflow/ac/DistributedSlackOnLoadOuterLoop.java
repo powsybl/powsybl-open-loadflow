@@ -37,7 +37,7 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
         return network.getBuses()
                 .stream()
                 .filter(bus -> bus.getPositiveLoadCount() > 0 && bus.getLoadTargetP() > 0)
-                .map(bus -> new ParticipatingElement<>(bus, bus.getLoadTargetP()))
+                .map(bus -> new ParticipatingElement<>(bus, bus.getVariableActivePower() != 0 ? bus.getVariableActivePower() : bus.getLoadTargetP()))
                 .collect(Collectors.toList());
     }
 
