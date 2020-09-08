@@ -12,7 +12,6 @@ import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.graph.Pseudograph;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
@@ -41,7 +40,7 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
             componentSets = new ConnectivityInspector<>(graph)
                     .connectedSets()
                     .stream()
-                    .sorted(Comparator.comparing((Function<Set<V>, Integer>) Set::size).reversed())
+                    .sorted(Comparator.comparing(Set<V>::size).reversed())
                     .collect(Collectors.toList());
             for (int componentIndex = 0; componentIndex < componentSets.size(); componentIndex++) {
                 Set<V> vertices = componentSets.get(componentIndex);
