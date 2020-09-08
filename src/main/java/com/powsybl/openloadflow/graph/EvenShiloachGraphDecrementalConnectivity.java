@@ -84,15 +84,12 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
         GraphProcess processA = new GraphProcessA(vertex1, vertex2);
         GraphProcessB processB = new GraphProcessB(vertex1, vertex2);
-        while (true) {
+        while (!processA.isHalted() && !processB.isHalted()) {
             processA.next();
             if (processA.isHalted()) {
                 processB.undoChanges();
-                break;
-            }
-            processB.next();
-            if (processB.isHalted()) {
-                break;
+            } else {
+                processB.next();
             }
         }
 
@@ -273,8 +270,6 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
                     LevelNeighbours lnln = levelNeighboursMap.get(localNeighbour);
                     lnln.sameLevel.remove(w);
                     lnln.upperLevel.add(w);
-                } else {
-                    System.out.println();
                 }
             }
             levelNeighbours.lowerLevel.addAll(levelNeighbours.sameLevel); // step (5)
