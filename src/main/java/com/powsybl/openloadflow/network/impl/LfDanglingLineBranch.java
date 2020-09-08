@@ -70,6 +70,7 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     @Override
     public void setQ2(Evaluable q2) {
         // nothing to do
+        // nothing to do
     }
 
     @Override

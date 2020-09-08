@@ -6,9 +6,9 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import org.apache.commons.lang3.tuple.Triple;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
-import org.jgrapht.alg.util.Triple;
 import org.jgrapht.alg.util.UnionFind;
 import org.jgrapht.graph.Pseudograph;
 
@@ -68,7 +68,7 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements Graph
     @Override
     public void reset() {
         for (Triple<V, V, Object> cutEdge : cutEdges) {
-            graph.addEdge(cutEdge.getFirst(), cutEdge.getSecond(), cutEdge.getThird());
+            graph.addEdge(cutEdge.getLeft(), cutEdge.getMiddle(), cutEdge.getRight());
         }
         cutEdges.clear();
         resetMst();

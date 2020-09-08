@@ -7,8 +7,8 @@
 package com.powsybl.openloadflow.graph;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.jgrapht.Graph;
-import org.jgrapht.alg.connectivity.ConnectivityInspector;
+import org.jgrapht.UndirectedGraph;
+import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.graph.Pseudograph;
 
 import java.util.*;
@@ -21,13 +21,14 @@ import java.util.stream.Collectors;
  */
 public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalConnectivity<V> {
 
-    private final Graph<V, Object> graph = new Pseudograph<>(Object.class);
+    private final UndirectedGraph<V, Object> graph = new Pseudograph<>(Object.class);
 
     private final List<Pair<V, V>> cutEdges = new ArrayList<>();
 
     private int[] components;
 
     private final ToIntFunction<V> numGetter;
+
     private List<Set<V>> componentSets;
 
     public NaiveGraphDecrementalConnectivity(ToIntFunction<V> numGetter) {

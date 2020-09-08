@@ -147,7 +147,7 @@ class AcLoadFlowDanglingLineTest {
         assertAngleEquals(0.114371, bus1);
         assertVoltageEquals(390.181, bus2);
         assertAngleEquals(0, bus2);
-        assertActivePowerEquals(101.199, dl1.getTerminal());
+        assertActivePowerEquals(101.2, dl1.getTerminal());
         assertReactivePowerEquals(-0.202, dl1.getTerminal());
 
         parametersExt.setDistributedSlack(true);
@@ -159,7 +159,7 @@ class AcLoadFlowDanglingLineTest {
         assertAngleEquals(0.114259, bus1);
         assertVoltageEquals(390.181, bus2);
         assertAngleEquals(0, bus2);
-        assertActivePowerEquals(101.199, dl1.getTerminal());
+        assertActivePowerEquals(101.2, dl1.getTerminal());
         assertReactivePowerEquals(-0.202, dl1.getTerminal());
     }
 }

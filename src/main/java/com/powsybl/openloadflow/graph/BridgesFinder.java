@@ -6,17 +6,19 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import com.powsybl.commons.PowsyblException;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.ToIntFunction;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-class BridgesFinder<V> implements GraphDecrementalConnectivity<V> {
+class BridgesFinder<V> {
 
     private static class NeighbourList extends ArrayList<Integer> {
     }
@@ -25,7 +27,6 @@ class BridgesFinder<V> implements GraphDecrementalConnectivity<V> {
     private final ToIntFunction<V> numGetter;
     private final Graph<Integer, Object> graph = new Pseudograph<>(Object.class);
 
-    private final List<int[]> cutEdges;
     private List<int[]> bridges;
     private final NeighbourList[] neighbours;
     private final boolean[] visited;
@@ -40,16 +41,6 @@ class BridgesFinder<V> implements GraphDecrementalConnectivity<V> {
      */
     private int dfsnCount;
 
-    /**
-     * Connected components array
-     */
-    private final int[] cc;
-
-    /**
-     * Connected components counter
-     */
-    private int ccCount;
-
     BridgesFinder(int nbVertices, ToIntFunction<V> numGetter) {
         this.numGetter = Objects.requireNonNull(numGetter);
         this.nbVertices = nbVertices;
@@ -60,9 +51,6 @@ class BridgesFinder<V> implements GraphDecrementalConnectivity<V> {
             neighbours[i] = new NeighbourList();
         }
         this.dfsnCount = 0;
-        this.ccCount = 0;
-        this.cc = new int[nbVertices];
-        this.cutEdges = new ArrayList<>();
     }
 
     /**
@@ -77,7 +65,6 @@ class BridgesFinder<V> implements GraphDecrementalConnectivity<V> {
         visited[start] = true;
         dfsnCount++;
         dfsn[start] = dfsnCount;
-        cc[start] = ccCount;
         int lowestReachableVertex = dfsnCount;
 
         for (int neighbour : neighbours[start]) {
@@ -123,26 +110,22 @@ class BridgesFinder<V> implements GraphDecrementalConnectivity<V> {
 
     private void lazySearch() {
         if (bridges == null) {
-            ccCount = 0;
             dfsnCount = 0;
             bridges = new ArrayList<>();
             Arrays.fill(visited, false);
             for (int i = 0; i < nbVertices; i++) {
                 if (!visited[i]) {
                     findBridgesFromVertex(i, i);
-                    ccCount++;
                 }
             }
         }
     }
 
-    @Override
     public void addVertex(V vertex) {
         Objects.requireNonNull(vertex);
         graph.addVertex(numGetter.applyAsInt(vertex));
     }
 
-    @Override
     public void addEdge(V vertex1, V vertex2) {
         Objects.requireNonNull(vertex1);
         Objects.requireNonNull(vertex2);
@@ -153,43 +136,6 @@ class BridgesFinder<V> implements GraphDecrementalConnectivity<V> {
         graph.addEdge(num1, num2, new Object());
         neighbours[num1].add(num2);
         neighbours[num2].add(num1);
-    }
-
-    @Override
-    public void cut(V vertex1, V vertex2) {
-        Objects.requireNonNull(vertex1);
-        Objects.requireNonNull(vertex2);
-        int num1 = numGetter.applyAsInt(vertex1);
-        int num2 = numGetter.applyAsInt(vertex2);
-        neighbours[num1].remove((Integer) num2);
-        neighbours[num2].remove((Integer) num1);
-        graph.removeEdge(num1, num2);
-        cutEdges.add(new int[] {num1, num2});
-        invalidate();
-    }
-
-    private void invalidate() {
-        bridges = null;
-    }
-
-    @Override
-    public void reset() {
-        for (int[] cutEdge : cutEdges) {
-            addEdge(cutEdge[0], cutEdge[1]);
-        }
-        cutEdges.clear();
-        invalidate();
-    }
-
-    @Override
-    public int getComponentNumber(V vertex) {
-        lazySearch();
-        return cc[numGetter.applyAsInt(vertex)];
-    }
-
-    @Override
-    public Collection<Set<V>> getSmallComponents() {
-        throw new PowsyblException("Not implemented exception");
     }
 
 }
