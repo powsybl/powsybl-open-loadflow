@@ -386,7 +386,7 @@ public class LfNetwork {
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
-        return load(network, new LfNetworkParameters(slackBusSelector, false, false, false));
+        return load(network, new LfNetworkParameters(slackBusSelector, false, false, false, false));
     }
 
     public static List<LfNetwork> load(Object network, LfNetworkParameters parameters) {
