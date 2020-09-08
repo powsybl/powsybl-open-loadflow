@@ -67,7 +67,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         }
     }
 
-    private void updateControlledBus(LfBus controlledBus, EquationSystem equationSystem, VariableSet variableSet) {
+    public static void updateControlledBus(LfBus controlledBus, EquationSystem equationSystem, VariableSet variableSet) {
         // clean reactive power distribution equations
         controlledBus.getControllerBuses().forEach(b -> equationSystem.removeEquation(b.getNum(), EquationType.ZERO_Q));
 
@@ -147,7 +147,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         return done;
     }
 
-    private void switchPqPv(LfBus bus, EquationSystem equationSystem, VariableSet variableSet) {
+    public static void switchPqPv(LfBus bus, EquationSystem equationSystem, VariableSet variableSet) {
         bus.setVoltageControl(true);
         bus.setGenerationTargetQ(0);
 

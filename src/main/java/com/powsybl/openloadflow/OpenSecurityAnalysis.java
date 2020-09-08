@@ -16,19 +16,14 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.SubjectType;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import org.slf4j.Logger;
@@ -123,7 +118,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         // run simulation on largest network
         LfNetwork largestNetwork = lfNetworks.get(0);
-        SecurityAnalysisResult result = runSimulations(largestNetwork, contingencyContexts, acParameters);
+        SecurityAnalysisResult result = runSimulations(largestNetwork, contingencyContexts, acParameters, lfParametersExt);
 
         stopwatch.stop();
         LOGGER.info("Security analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
@@ -205,7 +200,8 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         }
     }
 
-    private SecurityAnalysisResult runSimulations(LfNetwork network, List<ContingencyContext> contingencyContexts, AcLoadFlowParameters acParameters) {
+    private SecurityAnalysisResult runSimulations(LfNetwork network, List<ContingencyContext> contingencyContexts, AcLoadFlowParameters acParameters,
+                                                  OpenLoadFlowParameters openLoadFlowParameters) {
         // create a contingency list that impact the network
         List<LfContingency> contingencies = createContingencies(contingencyContexts, network);
 
@@ -227,20 +223,21 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             List<LfBus> buses = network.getBuses();
             double[] v = new double[buses.size()];
             double[] a = new double[buses.size()];
-            // boolean[] vc = new boolean[buses.size()];
             double[] loadTargetP = new double[buses.size()];
             double[] generatorsTargetP = new double[buses.size()];
             int generatorsCount = 0;
             for (LfBus bus : buses) {
                 v[bus.getNum()] = bus.getV();
                 a[bus.getNum()] = bus.getAngle();
-                // vc[bus.getNum()] = bus.hasVoltageControl();
                 loadTargetP[bus.getNum()] = bus.getLoadTargetP();
                 for (LfGenerator generator : bus.getGenerators()) {
                     generatorsTargetP[generatorsCount] = generator.getTargetP();
                     generatorsCount++;
                 }
-                bus.setVoltageControlSwitchOffCount(0);
+                if (bus.hasVoltageControlCapability() && !bus.hasVoltageControl()) { // Bus PV -> PQ
+                    ReactiveLimitsOuterLoop.switchPqPv(bus, engine.getEquationSystem(), engine.getVariableSet());
+                    bus.setVoltageControlSwitchOffCount(0);
+                }
             }
 
             // start a simulation for each of the contingency
@@ -254,18 +251,25 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                 if (contingencyIt.hasNext()) {
                     LOGGER.info("Restore pre-contingency state");
 
+                    double mismatch = 0;
+                    for (LfBus bus : lfContingency.getBuses()) {
+                        mismatch += bus.getGenerationTargetP() - bus.getLoadTargetP();
+                    } //TODO: if mismatch different than zero, start with a slack distribution.
+
                     // restore base state
                     generatorsCount = 0;
                     for (LfBus bus : buses) {
                         bus.setV(v[bus.getNum()]);
                         bus.setAngle(a[bus.getNum()]);
-                        // bus.setVoltageControl(vc[bus.getNum()]);
                         bus.setLoadTargetP(loadTargetP[bus.getNum()]);
                         for (LfGenerator generator : bus.getGenerators()) {
                             generator.setTargetP(generatorsTargetP[generatorsCount]);
                             generatorsCount++;
                         }
-                        bus.setVoltageControlSwitchOffCount(0);
+                        if (bus.hasVoltageControlCapability() && !bus.hasVoltageControl()) { // Bus PV -> PQ
+                            ReactiveLimitsOuterLoop.switchPqPv(bus, engine.getEquationSystem(), engine.getVariableSet());
+                            bus.setVoltageControlSwitchOffCount(0);
+                        }
                     }
                 }
             }
@@ -325,6 +329,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         }
 
         // restart LF on post contingency equation system
+        engine.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
         AcLoadFlowResult postContingencyLoadFlowResult = engine.run();
         boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
         List<LimitViolation> postContingencyLimitViolations = new ArrayList<>();
