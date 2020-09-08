@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.equations;
 
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Markers;
 import org.apache.commons.lang3.tuple.Pair;
@@ -28,6 +29,8 @@ public class EquationSystem {
     private static final Logger LOGGER = LoggerFactory.getLogger(EquationSystem.class);
 
     private final LfNetwork network;
+
+    private final boolean indexTerms;
 
     private final Map<Pair<Integer, EquationType>, Equation> equations = new HashMap<>();
 
@@ -122,7 +125,12 @@ public class EquationSystem {
     private final List<EquationSystemListener> listeners = new ArrayList<>();
 
     public EquationSystem(LfNetwork network) {
+        this(network, false);
+    }
+
+    public EquationSystem(LfNetwork network, boolean indexTerms) {
         this.network = Objects.requireNonNull(network);
+        this.indexTerms = indexTerms;
         addListener(equationCache);
     }
 
@@ -131,13 +139,18 @@ public class EquationSystem {
     }
 
     void addEquationTerm(EquationTerm equationTerm) {
-        Objects.requireNonNull(equationTerm);
-        Pair<SubjectType, Integer> subject = Pair.of(equationTerm.getSubjectType(), equationTerm.getSubjectNum());
-        equationTermsBySubject.computeIfAbsent(subject, k -> new ArrayList<>())
-                .add(equationTerm);
+        if (indexTerms) {
+            Objects.requireNonNull(equationTerm);
+            Pair<SubjectType, Integer> subject = Pair.of(equationTerm.getSubjectType(), equationTerm.getSubjectNum());
+            equationTermsBySubject.computeIfAbsent(subject, k -> new ArrayList<>())
+                    .add(equationTerm);
+        }
     }
 
     public List<EquationTerm> getEquationTerms(SubjectType subjectType, int subjectNum) {
+        if (!indexTerms) {
+            throw new PowsyblException("Equations terms have not been indexed");
+        }
         Objects.requireNonNull(subjectType);
         Pair<SubjectType, Integer> subject = Pair.of(subjectType, subjectNum);
         return equationTermsBySubject.getOrDefault(subject, Collections.emptyList());
@@ -150,6 +163,11 @@ public class EquationSystem {
             equation = addEquation(p);
         }
         return equation;
+    }
+
+    public Optional<Equation> getEquation(int num, EquationType type) {
+        Pair<Integer, EquationType> p = Pair.of(num, type);
+        return Optional.ofNullable(equations.get(p));
     }
 
     public boolean hasEquation(int num, EquationType type) {
@@ -257,7 +275,9 @@ public class EquationSystem {
     void notifyListeners(Equation equation, EquationEventType eventType) {
         Objects.requireNonNull(equation);
         Objects.requireNonNull(eventType);
-        listeners.forEach(listener -> listener.equationListChanged(equation, eventType));
+        if (!listeners.isEmpty()) {
+            listeners.forEach(listener -> listener.equationListChanged(equation, eventType));
+        }
     }
 
     public void write(Writer writer) {

@@ -48,6 +48,10 @@ public class LfNetwork {
 
     private final List<LfBranch> branches = new ArrayList<>();
 
+    private final Map<String, LfBranch> branchesById = new HashMap<>();
+
+    private int shuntCount = 0;
+
     public LfNetwork(int num, SlackBusSelector slackBusSelector) {
         this.num = num;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
@@ -78,6 +82,7 @@ public class LfNetwork {
         Objects.requireNonNull(branch);
         branch.setNum(branches.size());
         branches.add(branch);
+        branchesById.put(branch.getId(), branch);
 
         // create bus -> branches link
         if (branch.getBus1() != null) {
@@ -98,17 +103,15 @@ public class LfNetwork {
 
     public LfBranch getBranchById(String branchId) {
         Objects.requireNonNull(branchId);
-        for (LfBranch branch : branches) {
-            if (branch.getId().equals(branchId)) {
-                return branch;
-            }
-        }
-        return null;
+        return branchesById.get(branchId);
     }
 
     public void addBus(LfBus bus) {
         Objects.requireNonNull(bus);
         busesById.put(bus.getId(), bus);
+        for (LfShunt shunt : bus.getShunts()) {
+            shunt.setNum(shuntCount++);
+        }
         invalidateCache();
     }
 
@@ -240,6 +243,7 @@ public class LfNetwork {
 
     private void writeJson(LfShunt shunt, JsonGenerator jsonGenerator) throws IOException {
         jsonGenerator.writeStringField("id", shunt.getId());
+        jsonGenerator.writeNumberField("num", shunt.getNum());
         jsonGenerator.writeNumberField("b", shunt.getB());
     }
 
@@ -382,10 +386,10 @@ public class LfNetwork {
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
-        return load(network, new LfNetworkLoadingParameters(slackBusSelector, false, false, false));
+        return load(network, new LfNetworkParameters(slackBusSelector, false, false, false, false));
     }
 
-    public static List<LfNetwork> load(Object network, LfNetworkLoadingParameters parameters) {
+    public static List<LfNetwork> load(Object network, LfNetworkParameters parameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
         for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {

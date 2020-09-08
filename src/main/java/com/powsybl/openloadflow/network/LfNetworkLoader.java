@@ -14,5 +14,5 @@ import java.util.Optional;
  */
 public interface LfNetworkLoader {
 
-    Optional<List<LfNetwork>> load(Object network, LfNetworkLoadingParameters parameters);
+    Optional<List<LfNetwork>> load(Object network, LfNetworkParameters parameters);
 }

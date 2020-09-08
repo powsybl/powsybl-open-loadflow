@@ -13,11 +13,6 @@ import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import org.graphstream.algorithm.ConnectedComponents;
-import org.graphstream.graph.Graph;
-import org.graphstream.graph.implementations.MultiGraph;
-import org.jgrapht.alg.connectivity.BiconnectivityInspector;
-import org.jgrapht.graph.Pseudograph;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -67,28 +62,30 @@ class BridgesTest {
     }
 
     @Test
-    void testConnectivityInspector() {
-        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new DecrementalConnectivityInspector<>(), "ConnectivityInspector");
-        assertEquals(bridgesSetReference, bridges);
-    }
-
-    @Test
-    void testFindBridgesConnectivity() {
-        Set<String> bridges = testBridgesOnConnectivity(lfNetwork,
-            new BridgesFinder<>(lfNetwork.getBuses().size(), LfBus::getNum), "Hopcroft-Tarjan algorithm");
-        assertEquals(bridgesSetReference, bridges);
-    }
-
-    @Test
     void testEvenShiloach() {
         Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new EvenShiloachGraphDecrementalConnectivity<>(), "Even-Shiloach");
         assertEquals(bridgesSetReference, bridges);
     }
 
     @Test
+    void testMst() {
+        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new MinimumSpanningTreeGraphDecrementalConnectivity<>(), "Even-Shiloach");
+        assertEquals(bridgesSetReference, bridges);
+    }
+
+    @Test
     void testFindBridges() {
         BridgesFinder<LfBus> graph = new BridgesFinder<>(lfNetwork.getBuses().size(), LfBus::getNum);
-        initGraphDc(lfNetwork, graph);
+        for (LfBus bus : lfNetwork.getBuses()) {
+            graph.addVertex(bus);
+        }
+        for (LfBranch branch : lfNetwork.getBranches()) {
+            LfBus bus1 = branch.getBus1();
+            LfBus bus2 = branch.getBus2();
+            if (bus1 != null && bus2 != null) {
+                graph.addEdge(bus1, bus2);
+            }
+        }
 
         long start = System.currentTimeMillis();
         List<int[]> bridges = graph.getBridges();
@@ -103,49 +100,6 @@ class BridgesTest {
         assertEquals(bridgesSetReference, set);
     }
 
-    @Test
-    void testBiconnectivityInspector() {
-        org.jgrapht.Graph<String, String> graph = getJgraphTGraph(lfNetwork);
-        BiconnectivityInspector<String, String> bi = new BiconnectivityInspector<>(graph);
-
-        long start = System.currentTimeMillis();
-        Set<String> bridges = bi.getBridges();
-        LOGGER.info("Bridges calculated based on jgraphT BiconnectivityInspector in {} ms", System.currentTimeMillis() - start);
-
-        assertEquals(bridgesSetReference, bridges);
-    }
-
-    @Test
-    void testGraphStream() {
-        Graph graph = initGraphStream(lfNetwork);
-
-        ConnectedComponents cc = new ConnectedComponents();
-        long start = System.currentTimeMillis();
-        cc.init(graph);
-
-        int initialCCC = cc.getConnectedComponentsCount();
-        LOGGER.info("{} connected component(s) in this graph, so far.", initialCCC);
-
-        Set<String> bridges = new HashSet<>();
-        for (LfBranch branch : lfNetwork.getBranches()) {
-            LfBus bus1 = branch.getBus1();
-            LfBus bus2 = branch.getBus2();
-            if (bus1 != null && bus2 != null) {
-                String cutAttribute = branch.getId() + "-removed";
-                graph.getEdge(branch.getId()).setAttribute(cutAttribute, true);
-                cc.setCutAttribute(cutAttribute);
-                boolean connected = cc.getConnectedComponentsCount() == initialCCC;
-                if (!connected) {
-                    bridges.add(branch.getId());
-                }
-            }
-        }
-
-        LOGGER.info("Bridges calculated based on graphstream library in {} ms", System.currentTimeMillis() - start);
-
-        assertEquals(bridgesSetReference, bridges);
-    }
-
     private Set<String> testBridgesOnConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, String method) {
         long start = System.currentTimeMillis();
         initGraphDc(lfNetwork, connectivity);
@@ -154,36 +108,6 @@ class BridgesTest {
         Set<String> bridgesSet = getBridges(lfNetwork, connectivity);
         LOGGER.info("Bridges calculated based on {} in {} ms", method, System.currentTimeMillis() - start);
         return bridgesSet;
-    }
-
-    private static org.jgrapht.Graph<String, String> getJgraphTGraph(LfNetwork lfNetwork) {
-        org.jgrapht.Graph<String, String> graph = new Pseudograph<>(String.class);
-        for (LfBus bus : lfNetwork.getBuses()) {
-            graph.addVertex(bus.getId());
-        }
-        for (LfBranch branch : lfNetwork.getBranches()) {
-            LfBus bus1 = branch.getBus1();
-            LfBus bus2 = branch.getBus2();
-            if (bus1 != null && bus2 != null) {
-                graph.addEdge(bus1.getId(), bus2.getId(), branch.getId());
-            }
-        }
-        return graph;
-    }
-
-    private static Graph initGraphStream(LfNetwork lfNetwork) {
-        Graph graph = new MultiGraph("TestCC");
-        for (LfBus bus : lfNetwork.getBuses()) {
-            graph.addNode(bus.getId());
-        }
-        for (LfBranch branch : lfNetwork.getBranches()) {
-            LfBus bus1 = branch.getBus1();
-            LfBus bus2 = branch.getBus2();
-            if (bus1 != null && bus2 != null) {
-                graph.addEdge(branch.getId(), bus1.getId(), bus2.getId());
-            }
-        }
-        return graph;
     }
 
     private static Set<String> getBridges(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity) {

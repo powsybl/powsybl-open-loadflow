@@ -219,7 +219,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private static LfNetwork create(MutableInt num, List<Bus> buses, List<Switch> switches, LfNetworkLoadingParameters parameters) {
+    private static LfNetwork create(MutableInt num, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters) {
         LfNetwork lfNetwork = new LfNetwork(num.getValue(), parameters.getSlackBusSelector());
         num.increment();
 
@@ -276,7 +276,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     @Override
-    public Optional<List<LfNetwork>> load(Object network, LfNetworkLoadingParameters parameters) {
+    public Optional<List<LfNetwork>> load(Object network, LfNetworkParameters parameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
