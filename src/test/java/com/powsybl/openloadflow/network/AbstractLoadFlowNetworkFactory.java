@@ -87,6 +87,7 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .setBus(b.getId())
                 .setConnectableBus(b.getId())
                 .setQ0(q)
+                .setP0(fixed + variable)
                 .add();
         LoadDetail ldetail = l.getExtension(LoadDetail.class);
         ldetail.setFixedActivePower(fixed);
