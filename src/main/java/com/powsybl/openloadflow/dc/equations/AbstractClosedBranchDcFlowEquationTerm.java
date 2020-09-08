@@ -7,10 +7,7 @@
 package com.powsybl.openloadflow.dc.equations;
 
 import com.google.common.collect.ImmutableList;
-import com.powsybl.openloadflow.equations.AbstractEquationTerm;
-import com.powsybl.openloadflow.equations.Variable;
-import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.equations.VariableType;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
@@ -23,7 +20,7 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEquationTerm {
+public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNamedEquationTerm {
 
     protected final LfBranch branch;
 
@@ -48,6 +45,16 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEqu
         variables = ImmutableList.of(ph1Var, ph2Var);
         power =  1 / piModel.getX() * piModel.getR1() * R2;
         a1 = piModel.getA1();
+    }
+
+    @Override
+    public SubjectType getSubjectType() {
+        return SubjectType.BRANCH;
+    }
+
+    @Override
+    public int getSubjectNum() {
+        return branch.getNum();
     }
 
     @Override

@@ -12,6 +12,7 @@ package com.powsybl.openloadflow.equations;
 public enum EquationEventType {
     EQUATION_CREATED,
     EQUATION_REMOVED,
+    EQUATION_UPDATED,
     EQUATION_ACTIVATED,
-    EQUATION_DEACTIVATED
+    EQUATION_DEACTIVATED;
 }
