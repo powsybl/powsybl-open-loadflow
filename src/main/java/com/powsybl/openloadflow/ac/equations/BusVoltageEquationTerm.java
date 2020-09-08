@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.AbstractTargetEquationTerm;
+import com.powsybl.openloadflow.equations.SubjectType;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBus;
@@ -19,6 +20,6 @@ import java.util.Objects;
 public class BusVoltageEquationTerm extends AbstractTargetEquationTerm {
 
     public BusVoltageEquationTerm(LfBus bus, VariableSet variableSet) {
-        super(Objects.requireNonNull(bus).getNum(), VariableType.BUS_V, variableSet);
+        super(SubjectType.BUS, Objects.requireNonNull(bus).getNum(), VariableType.BUS_V, variableSet);
     }
 }

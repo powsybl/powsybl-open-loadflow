@@ -50,6 +50,8 @@ public class LfNetwork {
 
     private final Map<String, LfBranch> branchesById = new HashMap<>();
 
+    private int shuntCount = 0;
+
     public LfNetwork(int num, SlackBusSelector slackBusSelector) {
         this.num = num;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
@@ -107,6 +109,9 @@ public class LfNetwork {
     public void addBus(LfBus bus) {
         Objects.requireNonNull(bus);
         busesById.put(bus.getId(), bus);
+        for (LfShunt shunt : bus.getShunts()) {
+            shunt.setNum(shuntCount++);
+        }
         invalidateCache();
     }
 
@@ -238,6 +243,7 @@ public class LfNetwork {
 
     private void writeJson(LfShunt shunt, JsonGenerator jsonGenerator) throws IOException {
         jsonGenerator.writeStringField("id", shunt.getId());
+        jsonGenerator.writeNumberField("num", shunt.getNum());
         jsonGenerator.writeNumberField("b", shunt.getB());
     }
 
@@ -380,19 +386,18 @@ public class LfNetwork {
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
-        return load(network, slackBusSelector, false, false, false);
+        return load(network, new LfNetworkParameters(slackBusSelector, false, false, false));
     }
 
-    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, boolean voltageRemoteControl,
-                                       boolean minImpedance, boolean twtSplitShuntAdmittance) {
+    public static List<LfNetwork> load(Object network, LfNetworkParameters parameters) {
         Objects.requireNonNull(network);
-        Objects.requireNonNull(slackBusSelector);
+        Objects.requireNonNull(parameters);
         for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
-            List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, voltageRemoteControl, twtSplitShuntAdmittance).orElse(null);
+            List<LfNetwork> lfNetworks = importer.load(network, parameters).orElse(null);
             if (lfNetworks != null) {
                 for (LfNetwork lfNetwork : lfNetworks) {
-                    fix(lfNetwork, minImpedance);
-                    validate(lfNetwork, minImpedance);
+                    fix(lfNetwork, parameters.isMinImpedance());
+                    validate(lfNetwork, parameters.isMinImpedance());
                     lfNetwork.logSize();
                     lfNetwork.logBalance();
                 }

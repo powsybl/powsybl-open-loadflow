@@ -127,7 +127,8 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
                 .setVoltageRegulatorOn(false)
                 .add();
         createLoad(b1, "l1", 30, 30);
-        createLoad(b2, "l2", 60, 40);
+//        createLoad(b2, "l2", 60, 40);
+        createLoadDetail(b2, "l2", 40, 20, 40);
         createLoad(b3, "l3", 50, 35);
         createLoad(b4, "l4", 140, 100);
         createLoad(b4, "l5", 10, 100);
