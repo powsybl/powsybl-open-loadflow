@@ -81,6 +81,7 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
                 }
 
                 bus.setLoadTargetP(newTargetP);
+                bus.setVariableActivePower(newVariableActivePower);
                 done += targetP - newTargetP;
                 modifiedBuses++;
             }

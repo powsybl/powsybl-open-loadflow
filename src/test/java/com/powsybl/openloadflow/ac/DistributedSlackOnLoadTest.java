@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -65,5 +66,12 @@ class DistributedSlackOnLoadTest {
         assertActivePowerEquals(175, l4.getTerminal());
         assertActivePowerEquals(12.5, l5.getTerminal());
         assertActivePowerEquals(-50, l6.getTerminal()); // same as p0 because p0 < 0
+    }
+
+    @Test
+    void test2() {
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerNotEquals(75, l2.getTerminal());
     }
 }
