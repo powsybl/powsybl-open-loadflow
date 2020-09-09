@@ -37,7 +37,7 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
         return network.getBuses()
                 .stream()
                 .filter(bus -> bus.getPositiveLoadCount() > 0 && bus.getLoadTargetP() > 0)
-                .map(bus -> new ParticipatingElement<>(bus, bus.getLoadTargetP()))
+                .map(bus -> new ParticipatingElement<>(bus, bus.getLoadScalingRatio() * bus.getLoadTargetP()))
                 .collect(Collectors.toList());
     }
 
@@ -58,14 +58,9 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
 
             double targetP = bus.getLoadTargetP();
 
-            double fixedActivePowed = bus.getFixedActivePower();
-            double variableActivePower = bus.getVariableActivePower();
+            double newVariablePartTargetP = targetP * bus.getLoadScalingRatio() - remainingMismatch * factor;
 
-            double newVariableActivePower = variableActivePower - remainingMismatch * factor;
-
-            //double newTargetP = targetP - remainingMismatch * factor;
-
-            double newTargetP = fixedActivePowed + newVariableActivePower;
+            double newTargetP = newVariablePartTargetP + targetP * (1 - bus.getLoadScalingRatio());
 
             // We stop when the load produces power.
             if (newTargetP <= 0) {
@@ -81,7 +76,7 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
                 }
 
                 bus.setLoadTargetP(newTargetP);
-                bus.setVariableActivePower(newVariableActivePower);
+                bus.setLoadScalingRatio(newVariablePartTargetP / newTargetP);
                 done += targetP - newTargetP;
                 modifiedBuses++;
             }

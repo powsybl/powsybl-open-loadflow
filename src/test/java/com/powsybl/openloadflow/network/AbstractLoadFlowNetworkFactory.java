@@ -7,8 +7,6 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.LoadDetail;
-import com.powsybl.iidm.network.extensions.LoadDetailImpl;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -79,22 +77,6 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .setQ0(q)
                 .add();
         l.getTerminal().setP(p).setQ(q);
-        return l;
-    }
-
-    protected static Load createLoadDetail(Bus b, String id, float variable, float fixed, double q) {
-        Load l = b.getVoltageLevel().newLoad()
-                .setId(id)
-                .setBus(b.getId())
-                .setConnectableBus(b.getId())
-                .setQ0(q)
-                .setP0(fixed + variable)
-                .add();
-        LoadDetail ldetail = l.getExtension(LoadDetail.class) != null ? l.getExtension(LoadDetail.class) : new LoadDetailImpl(l, fixed + variable, 0, 0, 0);
-        ldetail.setFixedActivePower(fixed);
-        ldetail.setVariableActivePower(variable);
-        l.addExtension(LoadDetail.class, ldetail);
-        l.getTerminal().setP(ldetail.getFixedActivePower() + ldetail.getVariableActivePower()).setQ(q);
         return l;
     }
 

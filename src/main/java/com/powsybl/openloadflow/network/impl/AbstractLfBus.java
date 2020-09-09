@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadDetail;
-import com.powsybl.iidm.network.extensions.LoadDetailImpl;
 import com.powsybl.openloadflow.network.*;
 import net.jafama.FastMath;
 import org.slf4j.Logger;
@@ -50,9 +49,7 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected double loadTargetP = 0;
 
-    protected double fixedActivePower = 0;
-
-    protected double variableActivePower = 0;
+    protected double loadScalingRatio = 1;
 
     protected int positiveLoadCount = 0;
 
@@ -111,16 +108,6 @@ public abstract class AbstractLfBus implements LfBus {
     @Override
     public double getTargetQ() {
         return getGenerationTargetQ() - getLoadTargetQ();
-    }
-
-    @Override
-    public double getFixedActivePower() {
-        return fixedActivePower;
-    }
-
-    @Override
-    public double getVariableActivePower() {
-        return variableActivePower;
     }
 
     @Override
@@ -225,10 +212,10 @@ public abstract class AbstractLfBus implements LfBus {
         loads.add(load);
         initialLoadTargetP += load.getP0();
         loadTargetP += load.getP0();
-        LoadDetail loadDetail = load.getExtension(LoadDetail.class) != null ? load.getExtension(LoadDetail.class) : new LoadDetailImpl(load, Float.parseFloat(String.valueOf(loadTargetP)), 0, 0, 0);
-        fixedActivePower += loadDetail.getFixedActivePower();
-        variableActivePower += loadDetail.getVariableActivePower();
-        load.addExtension(LoadDetail.class, loadDetail);
+        LoadDetail loadDetail = load.getExtension(LoadDetail.class);
+        if (loadDetail != null) {
+            loadScalingRatio = loadDetail.getVariableActivePower() / load.getP0();
+        }
         loadTargetQ += load.getQ0();
         if (load.getP0() >= 0) {
             positiveLoadCount++;
@@ -335,13 +322,13 @@ public abstract class AbstractLfBus implements LfBus {
     }
 
     @Override
-    public void setFixedActivePower(double fixedActivePower) {
-        this.fixedActivePower = fixedActivePower * PerUnit.SB;
+    public void setLoadScalingRatio(double loadScalingRatio) {
+        this.loadScalingRatio = loadScalingRatio;
     }
 
     @Override
-    public void setVariableActivePower(double variableActivePower) {
-        this.variableActivePower = variableActivePower * PerUnit.SB;
+    public double getLoadScalingRatio() {
+        return loadScalingRatio;
     }
 
     @Override

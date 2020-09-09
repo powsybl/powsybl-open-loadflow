@@ -10,7 +10,6 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Terminal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -35,10 +34,6 @@ public final class LoadFlowAssert {
 
     public static void assertActivePowerEquals(double p, Terminal terminal) {
         assertEquals(p, terminal.getP(), DELTA_POWER);
-    }
-
-    public static void assertActivePowerNotEquals(double p, Terminal terminal) {
-        assertNotEquals(p, terminal.getP(), DELTA_POWER);
     }
 
     public static void assertReactivePowerEquals(double q, Terminal terminal) {

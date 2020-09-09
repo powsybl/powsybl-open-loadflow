@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.extensions.LoadDetailAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -20,7 +21,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -61,7 +61,7 @@ class DistributedSlackOnLoadTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertActivePowerEquals(37.5, l1.getTerminal());
-        //assertActivePowerEquals(75, l2.getTerminal());
+        assertActivePowerEquals(75, l2.getTerminal());
         assertActivePowerEquals(62.5, l3.getTerminal());
         assertActivePowerEquals(175, l4.getTerminal());
         assertActivePowerEquals(12.5, l5.getTerminal());
@@ -69,9 +69,13 @@ class DistributedSlackOnLoadTest {
     }
 
     @Test
-    void test2() {
+    void testWithLoadDetail() {
+        l2.newExtension(LoadDetailAdder.class)
+                .withVariableActivePower(40)
+                .withFixedActivePower(20)
+                .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertActivePowerNotEquals(75, l2.getTerminal());
+        assertActivePowerEquals(70.909, l2.getTerminal());
     }
 }
