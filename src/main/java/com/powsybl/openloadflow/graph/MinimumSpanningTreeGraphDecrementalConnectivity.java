@@ -56,10 +56,8 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements Graph
         Objects.requireNonNull(vertex2);
         Object e = graph.removeEdge(vertex1, vertex2);
 
-        if (mst != null) {
-            if (mst.getEdges().contains(e)) {
-                invalidateMst();
-            }
+        if (mst != null && mst.getEdges().contains(e)) {
+            invalidateMst();
         }
 
         cutEdges.add(Triple.of(vertex1, vertex2, e));
@@ -140,7 +138,7 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements Graph
     }
 
     private class SpanningTrees extends SpanningTreeAlgorithm.SpanningTreeImpl<Object> {
-        private final MyUnionFind forest;
+        private final transient MyUnionFind forest;
 
         public SpanningTrees(MyUnionFind forest, Set<Object> edgeList, double spanningTreeCost) {
             super(edgeList, spanningTreeCost);
@@ -163,9 +161,9 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements Graph
         private void lazyComputeSortedRoots() {
             if (sortedRoots == null) {
                 Map<V, Integer> rankMap = super.getRankMap();
-                Map<V, V> parentMap = super.getParentMap();
-                parentMap.keySet().forEach(this::find);
-                sortedRoots = new HashSet<>(parentMap.values()).stream()
+                Map<V, V> pMap = super.getParentMap();
+                pMap.keySet().forEach(this::find);
+                sortedRoots = new HashSet<>(pMap.values()).stream()
                     .sorted((o1, o2) -> o1 == o2 ? 0 : rankMap.get(o2) - rankMap.get(o1))
                     .collect(Collectors.toCollection(ArrayList::new));
             }
