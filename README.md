@@ -41,9 +41,9 @@ sparse linear solver. Linux, Windows and MacOS are supported.
 ## Native builds
 
 A native build (no need to Java runtime) can be download here:
-- [Linux](https://github.com/powsybl/powsybl-open-loadflow/releases/download/v0.5.0/olf-linux-0.5.0.zip)
-- [MacOS](https://github.com/powsybl/powsybl-open-loadflow/releases/download/v0.5.0/olf-darwin-0.5.0.zip)
-- [Windows](https://github.com/powsybl/powsybl-open-loadflow/releases/download/v0.5.0/olf-windows-0.5.0.zip)
+- [Linux](https://github.com/powsybl/powsybl-open-loadflow/releases/download/v0.6.0/olf-linux-0.6.0.zip)
+- [MacOS](https://github.com/powsybl/powsybl-open-loadflow/releases/download/v0.6.0/olf-darwin-0.6.0.zip)
+- [Windows](https://github.com/powsybl/powsybl-open-loadflow/releases/download/v0.6.0/olf-windows-0.6.0.zip)
 
 To run Open Load Flow on file ieee14cdf.txt :
 ```bash
@@ -67,17 +67,17 @@ capabilities:
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-iidm-impl</artifactId>
-    <version>3.5.0</version>
+    <version>3.6.0</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-ieee-cdf-converter</artifactId>
-    <version>3.5.0</version>
+    <version>3.6.0</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-config-classic</artifactId>
-    <version>3.5.0</version>
+    <version>3.6.0</version>
 </dependency>
 <dependency>
     <groupId>org.slf4j</groupId>
@@ -96,7 +96,7 @@ After adding a last Maven dependency on Open Load Flow implementation:
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>0.5.0</version>
+    <version>0.6.0</version>
 </dependency>
 ```
 
