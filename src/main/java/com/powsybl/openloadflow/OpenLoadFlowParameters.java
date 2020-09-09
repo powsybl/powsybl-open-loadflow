@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow;
 
+import com.google.auto.service.AutoService;
+import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.nr.AcLoadFlowObserver;
@@ -119,4 +121,41 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public List<AcLoadFlowObserver> getAdditionalObservers() {
         return additionalObservers;
     }
+
+    @AutoService(LoadFlowParameters.ConfigLoader.class)
+    public static class OpenLoadFlowConfigLoader implements LoadFlowParameters.ConfigLoader<OpenLoadFlowParameters> {
+
+        @Override
+        public OpenLoadFlowParameters load(PlatformConfig platformConfig) {
+            OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
+
+            platformConfig.getOptionalModuleConfig("open-loadflow-default-parameters")
+                    .ifPresent(config -> {
+                        parameters.setBalanceType(config.getEnumProperty("balanceType", BalanceType.class, BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX));
+                        parameters.setDc(config.getBooleanProperty("dc", false));
+                        parameters.setDistributedSlack(config.getBooleanProperty("distributedSlack", true));
+                        parameters.setLowImpedanceBranchMode(config.getEnumProperty("lowImpedanceBranchMode", LowImpedanceBranchMode.class, LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE));
+                        // p arameters.setSlackBusSelector()
+                        parameters.setVoltageRemoteControl(config.getBooleanProperty("voltageRemoteControle", false));
+                        parameters.setThrowsExceptionInCaseOfSlackDistributionFailure(config.getBooleanProperty("throwsExceptionInCaseOfSlackDistributionFailure", true));
+                    });
+            return parameters;
+        }
+
+        @Override
+        public String getExtensionName() {
+            return "openLoadflowParameters";
+        }
+
+        @Override
+        public String getCategoryName() {
+            return "loadflow-parameters";
+        }
+
+        @Override
+        public Class<? super OpenLoadFlowParameters> getExtensionClass() {
+            return OpenLoadFlowParameters.class;
+        }
+    }
+
 }
