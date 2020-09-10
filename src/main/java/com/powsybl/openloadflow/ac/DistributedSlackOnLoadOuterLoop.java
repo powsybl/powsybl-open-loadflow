@@ -76,7 +76,7 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
                 }
 
                 bus.setLoadTargetP(newTargetP);
-                bus.setLoadScalingRatio(newVariablePartTargetP / newTargetP);
+                bus.setLoadScalingRatio(newTargetP != 0 ? newVariablePartTargetP / newTargetP : 1.);
                 done += targetP - newTargetP;
                 modifiedBuses++;
             }
