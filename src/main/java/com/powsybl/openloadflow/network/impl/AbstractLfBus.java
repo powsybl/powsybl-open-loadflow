@@ -49,7 +49,7 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected double loadTargetP = 0;
 
-    protected double loadScalingRatio = 1;
+    protected double fixedLoadTargetP = 0;
 
     protected int positiveLoadCount = 0;
 
@@ -214,7 +214,7 @@ public abstract class AbstractLfBus implements LfBus {
         loadTargetP += load.getP0();
         LoadDetail loadDetail = load.getExtension(LoadDetail.class);
         if (loadDetail != null) {
-            loadScalingRatio = loadDetail.getVariableActivePower() / load.getP0();
+            fixedLoadTargetP = loadDetail.getFixedActivePower();
         }
         loadTargetQ += load.getQ0();
         if (load.getP0() >= 0) {
@@ -322,13 +322,13 @@ public abstract class AbstractLfBus implements LfBus {
     }
 
     @Override
-    public void setLoadScalingRatio(double loadScalingRatio) {
-        this.loadScalingRatio = loadScalingRatio;
+    public void setFixedLoadTargetP(double fixedLoadTargetP) {
+        this.fixedLoadTargetP = fixedLoadTargetP * PerUnit.SB;
     }
 
     @Override
-    public double getLoadScalingRatio() {
-        return loadScalingRatio;
+    public double getFixedLoadTargetP() {
+        return fixedLoadTargetP / PerUnit.SB;
     }
 
     @Override

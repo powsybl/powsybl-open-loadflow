@@ -36,8 +36,8 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
     protected List<ParticipatingElement<LfBus>> getParticipatingElements(LfNetwork network) {
         return network.getBuses()
                 .stream()
-                .filter(bus -> bus.getPositiveLoadCount() > 0 && bus.getLoadTargetP() > 0)
-                .map(bus -> new ParticipatingElement<>(bus, bus.getLoadScalingRatio() * bus.getLoadTargetP()))
+                .filter(bus -> bus.getPositiveLoadCount() > 0 && (bus.getLoadTargetP() - bus.getFixedLoadTargetP()) > 0)
+                .map(bus -> new ParticipatingElement<>(bus, bus.getLoadTargetP() - bus.getFixedLoadTargetP()))
                 .collect(Collectors.toList());
     }
 
@@ -57,10 +57,8 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
             double factor = participatingBus.factor;
 
             double targetP = bus.getLoadTargetP();
-
-            double newVariablePartTargetP = targetP * bus.getLoadScalingRatio() - remainingMismatch * factor;
-
-            double newTargetP = newVariablePartTargetP + targetP * (1 - bus.getLoadScalingRatio());
+            double newVariableLoadTargetP = targetP - bus.getFixedLoadTargetP() - remainingMismatch * factor;
+            double newTargetP = newVariableLoadTargetP + bus.getFixedLoadTargetP();
 
             // We stop when the load produces power.
             if (newTargetP <= 0) {
@@ -76,7 +74,6 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
                 }
 
                 bus.setLoadTargetP(newTargetP);
-                bus.setLoadScalingRatio(newTargetP != 0 ? newVariablePartTargetP / newTargetP : 1.);
                 done += targetP - newTargetP;
                 modifiedBuses++;
             }

@@ -49,11 +49,11 @@ public interface LfBus {
 
     double getLoadTargetP();
 
-    double getLoadScalingRatio();
+    double getFixedLoadTargetP();
 
     void setLoadTargetP(double loadTargetP);
 
-    void setLoadScalingRatio(double loadScalingRatio);
+    void setFixedLoadTargetP(double fixedLoadTargetP);
 
     int getPositiveLoadCount();
 
