@@ -74,6 +74,8 @@ class DistributedSlackOnLoadTest {
                 .withVariableActivePower(40)
                 .withFixedActivePower(20)
                 .add();
+        OpenLoadFlowParameters parametersExt = parameters.getExtension(OpenLoadFlowParameters.class);
+        parametersExt.setBalanceType(OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertActivePowerEquals(38.182, l1.getTerminal());
