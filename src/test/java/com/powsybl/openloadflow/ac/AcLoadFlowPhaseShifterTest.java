@@ -36,9 +36,8 @@ class AcLoadFlowPhaseShifterTest {
     private Bus bus4;
     private Line line1;
     private Line line2;
-    private TwoWindingsTransformer ps1TwoWT;
-    private ThreeWindingsTransformer ps1ThreeWT;
-    private PhaseTapChanger phaseTapChanger;
+    private TwoWindingsTransformer t2wt;
+    private ThreeWindingsTransformer t3wt;
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
@@ -56,7 +55,7 @@ class AcLoadFlowPhaseShifterTest {
 
     @Test
     void baseCase2WTTest() {
-        selectNetwork(create2WTNetwork());
+        selectNetwork(createNetworkWithT2wt());
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -78,9 +77,9 @@ class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
-    void tapPlusOne2WTTest() {
-        selectNetwork(create2WTNetwork());
-        phaseTapChanger.setTapPosition(2);
+    void tapPlusOneT2wtTest() {
+        selectNetwork(createNetworkWithT2wt());
+        t2wt.getPhaseTapChanger().setTapPosition(2);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -102,122 +101,106 @@ class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
-    void flowControl2WTTest() {
-        selectNetwork(create2WTNetwork());
+    void flowControlT2wtTest() {
+        selectNetwork(createNetworkWithT2wt());
         parameters.setPhaseShifterRegulationOn(true);
-        phaseTapChanger
-                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setTargetDeadband(1) // FIXME how to take this into account
                 .setRegulating(true)
                 .setTapPosition(1)
-                .setRegulationTerminal(ps1TwoWT.getTerminal1())
+                .setRegulationTerminal(t2wt.getTerminal1())
                 .setRegulationValue(83);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertActivePowerEquals(83.587, line2.getTerminal1());
         assertActivePowerEquals(-83.486, line2.getTerminal2());
-        assertEquals(2, phaseTapChanger.getTapPosition());
+        assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
 
-        phaseTapChanger
-                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setTargetDeadband(1) // FIXME how to take this into account
                 .setRegulating(true)
                 .setTapPosition(1)
                 .setRegulationValue(83)
-                .setRegulationTerminal(ps1TwoWT.getTerminal2());
+                .setRegulationTerminal(t2wt.getTerminal2());
 
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertActivePowerEquals(16.528, line2.getTerminal1());
         assertActivePowerEquals(-16.514, line2.getTerminal2());
-        assertEquals(0, phaseTapChanger.getTapPosition());
-
+        assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
     }
 
     @Test
-    void baseCase3WTTest() {
-        selectNetwork(create3WTNetwork());
+    void baseCaseT3wtTest() {
+        selectNetwork(createNetworkWithT3wt());
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
         assertVoltageEquals(400, bus1);
         assertAngleEquals(0, bus1);
-        assertVoltageEquals(378.25191733234965, bus2); // 385.698
-        assertAngleEquals(-3.635322112477251, bus2); // -3.679569
-        assertVoltageEquals(381.45561867320447, bus3); // 392.648
-        assertAngleEquals(-2.6012527358034787, bus3); // -1.806254
-        assertVoltageEquals(372.1620401532227, bus4); // NEW
-        assertAngleEquals(-2.550385462101632, bus4); // NEW
-        assertActivePowerEquals(48.84754295342194, line1.getTerminal1()); // 50.089
-        assertReactivePowerEquals(44.04142938099036, line1.getTerminal1()); // 29.192
-        assertActivePowerEquals(-48.739399704559176, line1.getTerminal2()); // -50.005
-        assertReactivePowerEquals(-38.634266937856474, line1.getTerminal2()); // -24.991
-        assertActivePowerEquals(26.277861524499986, line2.getTerminal1()); // 50.048
-        assertReactivePowerEquals(11.930125089002578, line2.getTerminal1()); // 27.097
-        assertActivePowerEquals(-26.26641402107318, line2.getTerminal2()); // -50.006
-        assertReactivePowerEquals(-11.357749917671041, line2.getTerminal2()); // -24.996
+        assertVoltageEquals(378.252, bus2);
+        assertAngleEquals(-3.635322112477251, bus2);
+        assertVoltageEquals(381.456, bus3);
+        assertAngleEquals(-2.6012527358034787, bus3);
+        assertVoltageEquals(372.162, bus4);
+        assertAngleEquals(-2.550385462101632, bus4);
+        assertActivePowerEquals(48.848, line1.getTerminal1());
+        assertReactivePowerEquals(44.041, line1.getTerminal1());
+        assertActivePowerEquals(-48.739, line1.getTerminal2());
+        assertReactivePowerEquals(-38.634, line1.getTerminal2());
+        assertActivePowerEquals(26.278, line2.getTerminal1());
+        assertReactivePowerEquals(11.9308, line2.getTerminal1());
+        assertActivePowerEquals(-26.266, line2.getTerminal2());
+        assertReactivePowerEquals(-11.358, line2.getTerminal2());
     }
 
     @Test
-    void tapPlusOne3WTTest() {
-        selectNetwork(create3WTNetwork());
-        phaseTapChanger.setTapPosition(2);
+    void tapPlusOneT3wtTest() {
+        selectNetwork(createNetworkWithT3wt());
+        t3wt.getLeg2().getPhaseTapChanger().setTapPosition(2);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
         assertVoltageEquals(400, bus1);
         assertAngleEquals(0, bus1);
-        assertVoltageEquals(377.7817093021516, bus2); // 385.296
-        assertAngleEquals(-5.697417220150056, bus2); // -1.186517
-        assertVoltageEquals(381.2928579136935, bus3); // 392.076
-        assertAngleEquals(-5.737530604739468, bus3); // 1.964715
-        assertVoltageEquals(372.1717464076424, bus4); // NEW
-        assertAngleEquals(-1.6404666559146512, bus4); // NEW
-        assertActivePowerEquals(75.94148268594054, line1.getTerminal1()); // 16.541
-        assertReactivePowerEquals(46.65020020813443, line1.getTerminal1()); // 29.241
-        assertActivePowerEquals(-75.7428989366405, line1.getTerminal2()); // -16.513
-        assertReactivePowerEquals(-36.721012743136995, line1.getTerminal2()); // -27.831
-        assertActivePowerEquals(-0.7404191500133481, line2.getTerminal1()); // 83.587
-        assertReactivePowerEquals(13.402920292490858, line2.getTerminal1()); // 27.195
-        assertActivePowerEquals(0.7428979123408874, line2.getTerminal2()); // -83.487
-        assertReactivePowerEquals(-13.27898217612303, line2.getTerminal2()); // -22.169
+        assertVoltageEquals(377.782, bus2);
+        assertAngleEquals(-5.697417220150056, bus2);
+        assertVoltageEquals(381.293, bus3);
+        assertAngleEquals(-5.737530604739468, bus3);
+        assertVoltageEquals(372.172, bus4);
+        assertAngleEquals(-1.6404666559146515, bus4);
+        assertActivePowerEquals(75.941, line1.getTerminal1());
+        assertReactivePowerEquals(46.650, line1.getTerminal1());
+        assertActivePowerEquals(-75.742, line1.getTerminal2());
+        assertReactivePowerEquals(-36.721, line1.getTerminal2());
+        assertActivePowerEquals(-0.740, line2.getTerminal1());
+        assertReactivePowerEquals(13.403, line2.getTerminal1());
+        assertActivePowerEquals(0.743, line2.getTerminal2());
+        assertReactivePowerEquals(-13.279, line2.getTerminal2());
     }
 
     @Test
     void flowControl3WTTest() {
-        selectNetwork(create3WTNetwork());
+        selectNetwork(createNetworkWithT3wt());
         parameters.setPhaseShifterRegulationOn(true);
-        phaseTapChanger.setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+        t3wt.getLeg2().getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setTargetDeadband(1) // FIXME how to take this into account
                 .setRegulating(true)
                 .setTapPosition(1)
-                .setRegulationTerminal(ps1ThreeWT.getLeg1().getTerminal())
-                .setRegulationValue(83);
+                .setRegulationTerminal(t3wt.getLeg2().getTerminal())
+                .setRegulationValue(0.);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertActivePowerEquals(26.277861524499986, line2.getTerminal1()); // 83.587
-        assertActivePowerEquals(-26.26641402107318, line2.getTerminal2()); // -83.486
-        assertEquals(1, phaseTapChanger.getTapPosition()); // 2
-
-        phaseTapChanger.setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
-                .setTargetDeadband(1) // FIXME how to take this into account
-                .setRegulating(true)
-                .setTapPosition(1)
-                .setRegulationValue(83)
-                .setRegulationTerminal(ps1ThreeWT.getLeg2().getTerminal());
-
-        result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
-        assertActivePowerEquals(26.277861524499986, line2.getTerminal1()); // 16.528
-        assertActivePowerEquals(-26.26641402107318, line2.getTerminal2()); // -16.514
-        assertEquals(1, phaseTapChanger.getTapPosition()); // 0
+        assertActivePowerEquals(26.277861524499986, line2.getTerminal1());
+        assertActivePowerEquals(-26.26641402107318, line2.getTerminal2());
+        assertEquals(1, t3wt.getLeg2().getPhaseTapChanger().getTapPosition()); // 2
     }
 
     /**
-     * A very small network to test phase shifters with 2WT.
+     * A very small network to test a phase shifter on a T2WT.
      *
      *     G1                   LD2
      *     |          L1        |
@@ -227,7 +210,7 @@ class AcLoadFlowPhaseShifterTest {
      *           PS1       L2
      */
 
-    private static Network create2WTNetwork() {
+    private static Network createNetworkWithT2wt() {
         Network network = PhaseShifterTestCaseFactory.create();
         TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
         ps1.getPhaseTapChanger().getStep(0).setAlpha(-5);
@@ -236,7 +219,7 @@ class AcLoadFlowPhaseShifterTest {
     }
 
     /**
-     * A very small network to test phase shifters with 3WT.
+     * A very small network to test a phase shifter on a T3WT.
      *
      *     G1                   LD2
      *     |          L1        |
@@ -249,7 +232,7 @@ class AcLoadFlowPhaseShifterTest {
      *          |
      *         LD4
      */
-    private static Network create3WTNetwork() {
+    private static Network createNetworkWithT3wt() {
         Network network = NetworkFactory.findDefault().createNetwork("three-windings-transformer", "test");
         network.setCaseDate(DateTime.parse("2020-04-05T14:11:00.000+01:00"));
         Substation s1 = network.newSubstation()
@@ -264,7 +247,6 @@ class AcLoadFlowPhaseShifterTest {
         Bus b1 = vl1.getBusBreakerView().newBus()
                 .setId("B1")
                 .add();
-        b1.setV(400).setAngle(0);
         Generator g1 = vl1.newGenerator()
                 .setId("G1")
                 .setConnectableBus("B1")
@@ -289,15 +271,14 @@ class AcLoadFlowPhaseShifterTest {
                 .setId("B2")
                 .add();
         b2.setV(385.6934).setAngle(-3.6792064);
-        Load ld2 = vl2.newLoad()
+        vl2.newLoad()
                 .setId("LD2")
                 .setConnectableBus("B2")
                 .setBus("B2")
-                .setP0(75.0) // 100
+                .setP0(75.0)
                 .setQ0(50.0)
                 .add();
-        ld2.getTerminal().setP(75.0).setQ(50.0); // P(100)
-        Line l1 = network.newLine()
+        network.newLine()
                 .setId("L1")
                 .setVoltageLevel1("VL1")
                 .setConnectableBus1("B1")
@@ -312,8 +293,6 @@ class AcLoadFlowPhaseShifterTest {
                 .setG2(0.0)
                 .setB2(0.0)
                 .add();
-        l1.getTerminal1().setP(50.084026).setQ(29.201416);
-        l1.getTerminal2().setP(-50.0).setQ(-25.0);
         VoltageLevel vl3 = s1.newVoltageLevel()
                 .setId("VL3")
                 .setNominalV(380)
@@ -322,8 +301,6 @@ class AcLoadFlowPhaseShifterTest {
         Bus b3 = vl3.getBusBreakerView().newBus()
                 .setId("B3")
                 .add();
-        b3.setV(392.6443).setAngle(-1.8060945);
-
         VoltageLevel vl4 = s1.newVoltageLevel()
                 .setId("VL4")
                 .setNominalV(380)
@@ -332,15 +309,13 @@ class AcLoadFlowPhaseShifterTest {
         Bus b4 = vl4.getBusBreakerView().newBus()
                 .setId("B4")
                 .add();
-        b4.setV(392.6443).setAngle(-1.8060945);
-        Load ld3 = vl4.newLoad()
+        vl4.newLoad()
                 .setId("LD3")
                 .setConnectableBus("B4")
                 .setBus("B4")
                 .setP0(25.0)
                 .setQ0(50.0)
                 .add();
-        ld3.getTerminal().setP(25.0).setQ(50.0);
         ThreeWindingsTransformer ps1 = s1.newThreeWindingsTransformer()
                 .setId("PS1")
                 .setRatedU0(400.0)
@@ -375,9 +350,6 @@ class AcLoadFlowPhaseShifterTest {
                 .setBus(b4.getId())
                 .add()
                 .add();
-        ps1.getLeg1().getTerminal().setP(50.08403).setQ(29.201416);
-        ps1.getLeg2().getTerminal().setP(-25.042015).setQ(-27.100708);
-        ps1.getLeg3().getTerminal().setP(-25.042015).setQ(-27.100708); // NEW
         ps1.getLeg2().newPhaseTapChanger()
                 .setTapPosition(1)
                 .setRegulationTerminal(ps1.getLeg2().getTerminal())
@@ -408,7 +380,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setB(0.0)
                 .endStep()
                 .add();
-        Line l2 = network.newLine()
+        network.newLine()
                 .setId("L2")
                 .setVoltageLevel1("VL3")
                 .setConnectableBus1("B3")
@@ -423,8 +395,6 @@ class AcLoadFlowPhaseShifterTest {
                 .setG2(0.0)
                 .setB2(0.0)
                 .add();
-        l2.getTerminal1().setP(50.042015).setQ(27.100708);
-        l2.getTerminal2().setP(-50.0).setQ(-25.0);
 
         return network;
     }
@@ -438,12 +408,7 @@ class AcLoadFlowPhaseShifterTest {
 
         line1 = network.getLine("L1");
         line2 = network.getLine("L2");
-        ps1TwoWT = network.getTwoWindingsTransformer("PS1");
-        ps1ThreeWT = network.getThreeWindingsTransformer("PS1");
-        if (ps1TwoWT != null) {
-            phaseTapChanger = ps1TwoWT.getPhaseTapChanger();
-        } else {
-            phaseTapChanger = ps1ThreeWT.getLeg2().getPhaseTapChanger();
-        }
+        t2wt = network.getTwoWindingsTransformer("PS1");
+        t3wt = network.getThreeWindingsTransformer("PS1");
     }
 }
