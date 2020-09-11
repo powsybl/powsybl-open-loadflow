@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.*;
 import net.jafama.FastMath;
 import org.slf4j.Logger;
@@ -47,6 +48,8 @@ public abstract class AbstractLfBus implements LfBus {
     protected double initialLoadTargetP = 0;
 
     protected double loadTargetP = 0;
+
+    protected double fixedLoadTargetP = 0;
 
     protected int positiveLoadCount = 0;
 
@@ -209,6 +212,10 @@ public abstract class AbstractLfBus implements LfBus {
         loads.add(load);
         initialLoadTargetP += load.getP0();
         loadTargetP += load.getP0();
+        LoadDetail loadDetail = load.getExtension(LoadDetail.class);
+        if (loadDetail != null) {
+            fixedLoadTargetP = loadDetail.getFixedActivePower();
+        }
         loadTargetQ += load.getQ0();
         if (load.getP0() >= 0) {
             positiveLoadCount++;
@@ -312,6 +319,11 @@ public abstract class AbstractLfBus implements LfBus {
     @Override
     public void setLoadTargetP(double loadTargetP) {
         this.loadTargetP = loadTargetP * PerUnit.SB;
+    }
+
+    @Override
+    public double getFixedLoadTargetP() {
+        return fixedLoadTargetP / PerUnit.SB;
     }
 
     @Override

@@ -33,6 +33,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         PROPORTIONAL_TO_GENERATION_P, // Not implemented yet.
         PROPORTIONAL_TO_GENERATION_P_MAX,
         PROPORTIONAL_TO_LOAD,
+        PROPORTIONAL_TO_CONFORM_LOAD,
     }
 
     private boolean dc = false;
