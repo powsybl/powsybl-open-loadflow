@@ -13,6 +13,8 @@ import com.powsybl.openloadflow.util.Evaluable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -33,10 +35,11 @@ public class LfLegBranch extends AbstractLfBranch {
 
     private Evaluable q = NAN;
 
-    private PhaseControl phaseControl;
+    private final PhaseControl phaseControl;
 
-    protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
+    protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, PhaseControl phaseControl, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
         super(bus1, bus0, piModel);
+        this.phaseControl = phaseControl;
         this.twt = twt;
         this.leg = leg;
     }
@@ -46,6 +49,10 @@ public class LfLegBranch extends AbstractLfBranch {
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(twt);
         Objects.requireNonNull(leg);
+
+        PiModel piModel = null;
+        PhaseControl phaseControl = null;
+
         double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
         double nominalV2 = twt.getRatedU0();
         double zb = nominalV2 * nominalV2 / PerUnit.SB;
@@ -53,18 +60,62 @@ public class LfLegBranch extends AbstractLfBranch {
         if (ptc != null
                 && ptc.isRegulating()
                 && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
-            LOGGER.error("3 windings transformer '{}' has a regulating phase tap changer which is not yet supported", twt.getId());
+            PhaseTapChanger.RegulationMode regulationMode = ptc.getRegulationMode();
+            PhaseControl.ControlledSide controlledSide = null;
+            if (ptc.getRegulationTerminal() == twt.getLeg1().getTerminal()) {
+                controlledSide = PhaseControl.ControlledSide.ONE;
+            } else if (ptc.getRegulationTerminal() == twt.getLeg2().getTerminal()) {
+                controlledSide = PhaseControl.ControlledSide.TWO;
+            } else if (ptc.getRegulationTerminal() == twt.getLeg3().getTerminal()) {
+                controlledSide = PhaseControl.ControlledSide.THREE;
+            } else {
+                LOGGER.error("3 windings transformer '{}' has a regulating phase tap changer which is not yet supported", twt.getId());
+            }
+
+            if (controlledSide != null) {
+                Integer rtcPosition = Transformers.getCurrentPosition(leg.getRatioTapChanger());
+                List<PiModel> models = new ArrayList<>();
+                for (int ptcPosition = ptc.getLowTapPosition(); ptcPosition <= ptc.getHighTapPosition(); ptcPosition++) {
+                    double r = Transformers.getR(leg, rtcPosition, ptcPosition) / zb;
+                    double x = Transformers.getX(leg, rtcPosition, ptcPosition) / zb;
+                    double g1 = Transformers.getG1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                    double g2 = twtSplitShuntAdmittance ? g1 : 0;
+                    double b1 = Transformers.getB1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                    double b2 = twtSplitShuntAdmittance ? b1 : 0;
+                    double r1 = Transformers.getRatioLeg(twt, leg) / nominalV2 * nominalV1;
+                    double a1 = Transformers.getAngleLeg(leg, ptcPosition);
+                    models.add(new SimplePiModel()
+                            .setR(r)
+                            .setX(x)
+                            .setG1(g1)
+                            .setG2(g2)
+                            .setB1(b1)
+                            .setB2(b2)
+                            .setR1(r1)
+                            .setA1(a1));
+                }
+                piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
+
+                if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
+                    phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A);
+                } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                    phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, controlledSide, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW);
+                }
+            }
         }
-        PiModel piModel = new SimplePiModel()
-                .setR(Transformers.getR(leg) / zb)
-                .setX(Transformers.getX(leg) / zb)
-                .setG1(Transformers.getG1(leg, twtSplitShuntAdmittance) * zb)
-                .setG2(twtSplitShuntAdmittance ? Transformers.getG1(leg, twtSplitShuntAdmittance) * zb : 0)
-                .setB1(Transformers.getB1(leg, twtSplitShuntAdmittance) * zb)
-                .setB2(twtSplitShuntAdmittance ? Transformers.getB1(leg, twtSplitShuntAdmittance) * zb : 0)
-                .setR1(Transformers.getRatioLeg(twt, leg) / nominalV2 * nominalV1)
-                .setA1(Transformers.getAngleLeg(leg));
-        return new LfLegBranch(bus1, bus0, piModel, twt, leg);
+
+        if (piModel == null) {
+            piModel = new SimplePiModel()
+                    .setR(Transformers.getR(leg) / zb)
+                    .setX(Transformers.getX(leg) / zb)
+                    .setG1(Transformers.getG1(leg, twtSplitShuntAdmittance) * zb)
+                    .setG2(twtSplitShuntAdmittance ? Transformers.getG1(leg, twtSplitShuntAdmittance) * zb : 0)
+                    .setB1(Transformers.getB1(leg, twtSplitShuntAdmittance) * zb)
+                    .setB2(twtSplitShuntAdmittance ? Transformers.getB1(leg, twtSplitShuntAdmittance) * zb : 0)
+                    .setR1(Transformers.getRatioLeg(twt, leg) / nominalV2 * nominalV1)
+                    .setA1(Transformers.getAngleLeg(leg));
+        }
+        return new LfLegBranch(bus1, bus0, piModel, phaseControl, twt, leg);
     }
 
     private int getLegNum() {
