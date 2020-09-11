@@ -5,8 +5,6 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.tasks.BranchTripping;
 import com.powsybl.iidm.network.*;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -17,13 +15,11 @@ public class LfBranchTripping extends BranchTripping {
 
     private final String branchId;
     private final String voltageLevelId;
-    private final LfContingencyTopologyTraverser traverser;
 
     public LfBranchTripping(String branchId, String voltageLevelId) {
         super(branchId, voltageLevelId);
         this.branchId = Objects.requireNonNull(branchId);
         this.voltageLevelId = voltageLevelId;
-        this.traverser = new LfContingencyTopologyTraverser();
     }
 
     @Override
@@ -36,32 +32,54 @@ public class LfBranchTripping extends BranchTripping {
         }
         if (voltageLevelId != null) {
             if (voltageLevelId.equals(branch.getTerminal1().getVoltageLevel().getId())) {
-                traverser.traverse(branch.getTerminal1(), switchesToOpen, terminalsToDisconnect);
+                findSwitchesToOpen(branch.getTerminal1(), switchesToOpen);
             } else if (voltageLevelId.equals(branch.getTerminal2().getVoltageLevel().getId())) {
-                traverser.traverse(branch.getTerminal2(), switchesToOpen, terminalsToDisconnect);
+                findSwitchesToOpen(branch.getTerminal2(), switchesToOpen);
             } else {
                 throw new PowsyblException("VoltageLevel '" + voltageLevelId + "' not connected to branch '" + branchId + "'");
             }
         } else {
-            List<Switch> uselessSwitchForLf = new ArrayList<>();
-            findUselessRetainedSwitch(branch.getTerminal1(), uselessSwitchForLf);
-            findUselessRetainedSwitch(branch.getTerminal2(), uselessSwitchForLf);
-            traverser.traverse(branch.getTerminal1(), switchesToOpen, terminalsToDisconnect);
-            traverser.traverse(branch.getTerminal2(), switchesToOpen, terminalsToDisconnect);
-            switchesToOpen.removeAll(uselessSwitchForLf);
+            findSwitchesToOpen(branch.getTerminal1(), switchesToOpen);
+            findSwitchesToOpen(branch.getTerminal2(), switchesToOpen);
         }
     }
 
-    private void findUselessRetainedSwitch(Terminal terminal, List<Switch> uselessSwitchForLf) {
+    private void findSwitchesToOpen(Terminal terminal, Set<Switch> switchesToOpen) {
         if (terminal.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
-            int node = terminal.getNodeBreakerView().getNode();
-            terminal.getVoltageLevel().getNodeBreakerView().traverse(node, (node1, sw, node2) -> {
-                if ((node1 == node || node2 == node) && sw != null && sw.getKind() == SwitchKind.BREAKER) {
-                    uselessSwitchForLf.add(sw);
+            int initNode = terminal.getNodeBreakerView().getNode();
+            terminal.getVoltageLevel().getNodeBreakerView().traverse(initNode, (nodeBefore, sw, nodeAfter) -> {
+                if (sw != null) {
+                    if (isOpenable(sw)) {
+                        if (isSwitchLfNeeded(sw, nodeBefore, initNode)) {
+                            switchesToOpen.add(sw);
+                        }
+                        return false;
+                    }
+                    return !sw.isOpen();
                 }
-                return false;
+                return true;
             });
+        } else {
+            // FIXME: Traverser yet to implement for bus breaker view
+            throw new PowsyblException("Traverser yet to implement for bus breaker view");
         }
+    }
+
+    private static boolean isSwitchLfNeeded(Switch sw, int nodeBefore, int initNode) {
+        // TODO: find other rules to identify switches which don't need to be retained
+        return nodeBefore != initNode
+            && !isLineBeforeSwitch(sw, nodeBefore);
+    }
+
+    private static boolean isLineBeforeSwitch(Switch sw, int nodeBefore) {
+        Terminal terminal1 = sw.getVoltageLevel().getNodeBreakerView().getTerminal(nodeBefore);
+        return terminal1 != null && terminal1.getConnectable().getType() == ConnectableType.LINE;
+    }
+
+    private static boolean isOpenable(Switch aSwitch) {
+        return !aSwitch.isOpen() &&
+            !aSwitch.isFictitious() &&
+            aSwitch.getKind() == SwitchKind.BREAKER;
     }
 
 }
