@@ -322,11 +322,6 @@ public abstract class AbstractLfBus implements LfBus {
     }
 
     @Override
-    public void setFixedLoadTargetP(double fixedLoadTargetP) {
-        this.fixedLoadTargetP = fixedLoadTargetP * PerUnit.SB;
-    }
-
-    @Override
     public double getFixedLoadTargetP() {
         return fixedLoadTargetP / PerUnit.SB;
     }
