@@ -186,7 +186,7 @@ public class LfLegBranch extends AbstractLfBranch {
 
         if (phaseControl != null) {
             PhaseTapChanger ptc = leg.getPhaseTapChanger();
-            int tapPosition = Transformers.findTapPosition(ptc, Math.toRadians(getPiModel().getA1()));
+            int tapPosition = Transformers.findTapPosition(ptc, Math.toDegrees(getPiModel().getA1()));
             ptc.setTapPosition(tapPosition);
         }
     }
