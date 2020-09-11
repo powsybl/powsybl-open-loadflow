@@ -26,7 +26,8 @@ public class PhaseControl {
 
     public enum ControlledSide {
         ONE,
-        TWO
+        TWO,
+        THREE
     }
 
     private Mode mode;
