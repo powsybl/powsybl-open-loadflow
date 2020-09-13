@@ -76,8 +76,6 @@ jobs:
         shell: cmd
         run: |
           call "%JAVA_HOME%\bin\gu" install --no-progress native-image
-          call "%VCVARS_BAT%"
-          call "%JAVA_HOME%\bin\native-image.cmd" -jar "%JAVA_HOME%\lib\graalvm\svm-driver.jar" -H:Path="%JAVA_HOME%\bin"
 
       - name: Build with Maven
         shell: cmd
