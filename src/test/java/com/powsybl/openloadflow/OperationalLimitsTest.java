@@ -50,7 +50,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         LfBranch branch1 = lfNetwork.getBranchById("NHV1_NHV2_1");
         assertTrue(branch1.getI1() < branch1.getPermanentLimit1());
         LfBranch branch2 = lfNetwork.getBranchById("NHV1_NHV2_2");
-        assertTrue(branch2.getI1() < branch2.getPermanentLimit1());
+        assertTrue(branch2.getI2() < branch2.getPermanentLimit2());
         LfBranch branch3 = lfNetwork.getBranchById("NGEN_NHV1");
         assertTrue(Double.isNaN(branch3.getPermanentLimit1()));
         assertEquals(branch3.getI1(), 3654.181, 10E-3);
