@@ -52,22 +52,22 @@ public class LfSwitch extends AbstractLfBranch {
 
     @Override
     public double getI1() {
-        return Double.MIN_VALUE;
+        return Double.NaN;
     }
 
     @Override
     public double getI2() {
-        return Double.MIN_VALUE;
+        return Double.NaN;
     }
 
     @Override
     public double getPermanentLimit1() {
-        return Double.MAX_VALUE;
+        return Double.NaN;
     }
 
     @Override
     public double getPermanentLimit2() {
-        return Double.MAX_VALUE;
+        return Double.NaN;
     }
 
     @Override

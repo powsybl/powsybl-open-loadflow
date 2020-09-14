@@ -105,7 +105,7 @@ public class LfLegBranch extends AbstractLfBranch {
     @Override
     public double getI1() {
         return getBus1() != null ? Math.hypot(p.eval(), q.eval())
-            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.MIN_VALUE;
+            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
     }
 
     @Override
