@@ -165,24 +165,24 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     @Override
     public double getI1() {
-        return getBus1() != null ? Math.hypot(p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB)
-                / (Math.sqrt(3.) * getBus1().getV() * getBus1().getNominalV() / 1000) : Double.MIN_VALUE;
+        return getBus1() != null ? Math.hypot(p1.eval(), q1.eval())
+                / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
     }
 
     @Override
     public double getI2() {
-        return getBus2() != null ? Math.hypot(p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB)
-                / (Math.sqrt(3.) * getBus2().getV() * getBus2().getNominalV() / 1000) : Double.MIN_VALUE;
+        return getBus2() != null ? Math.hypot(p2.eval(), q2.eval())
+                / (Math.sqrt(3.) * getBus2().getV() / 1000) : Double.NaN;
     }
 
     @Override
     public double getPermanentLimit1() {
-        return branch.getCurrentLimits1() != null ? branch.getCurrentLimits1().getPermanentLimit() : Double.MAX_VALUE;
+        return branch.getCurrentLimits1() != null ? branch.getCurrentLimits1().getPermanentLimit() * getBus1().getNominalV() / PerUnit.SB : Double.NaN;
     }
 
     @Override
     public double getPermanentLimit2() {
-        return branch.getCurrentLimits1() != null ? branch.getCurrentLimits1().getPermanentLimit() : Double.MAX_VALUE;
+        return branch.getCurrentLimits1() != null ? branch.getCurrentLimits2().getPermanentLimit() * getBus2().getNominalV() / PerUnit.SB : Double.NaN;
     }
 
     @Override
