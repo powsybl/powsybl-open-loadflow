@@ -325,7 +325,7 @@ public final class AcEquationSystem {
         Objects.requireNonNull(variableSet);
         Objects.requireNonNull(creationParameters);
 
-        EquationSystem equationSystem = new EquationSystem(network);
+        EquationSystem equationSystem = new EquationSystem(network, true);
 
         createBusEquations(network, variableSet, creationParameters, equationSystem);
         createBranchEquations(network, variableSet, creationParameters, equationSystem);

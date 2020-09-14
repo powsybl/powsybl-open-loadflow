@@ -22,7 +22,7 @@ public class AcLoadFlowParameters {
 
     private final SlackBusSelector slackBusSelector;
 
-    private final VoltageInitializer voltageInitializer;
+    private VoltageInitializer voltageInitializer;
 
     private final NewtonRaphsonStoppingCriteria stoppingCriteria;
 
@@ -62,6 +62,10 @@ public class AcLoadFlowParameters {
 
     public VoltageInitializer getVoltageInitializer() {
         return voltageInitializer;
+    }
+
+    public void setVoltageInitializer(VoltageInitializer voltageInitializer) {
+        this.voltageInitializer = voltageInitializer;
     }
 
     public NewtonRaphsonStoppingCriteria getStoppingCriteria() {
