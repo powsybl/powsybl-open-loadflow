@@ -19,12 +19,15 @@ public class LfNetworkParameters {
 
     private final boolean twtSplitShuntAdmittance;
 
+    private final boolean breakers;
+
     public LfNetworkParameters(SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl,
-                               boolean minImpedance, boolean twtSplitShuntAdmittance) {
+                               boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers) {
         this.slackBusSelector = slackBusSelector;
         this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
         this.minImpedance = minImpedance;
         this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
+        this.breakers = breakers;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -41,5 +44,9 @@ public class LfNetworkParameters {
 
     public boolean isTwtSplitShuntAdmittance() {
         return twtSplitShuntAdmittance;
+    }
+
+    public boolean isBreakers() {
+        return breakers;
     }
 }
