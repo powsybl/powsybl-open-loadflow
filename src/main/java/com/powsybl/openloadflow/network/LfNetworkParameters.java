@@ -42,5 +42,4 @@ public class LfNetworkParameters {
     public boolean isTwtSplitShuntAdmittance() {
         return twtSplitShuntAdmittance;
     }
-
 }
