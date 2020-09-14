@@ -6,10 +6,8 @@
  */
 package com.powsybl.openloadflow;
 
-import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
-import com.powsybl.contingency.tasks.AbstractTrippingTask;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -58,12 +56,7 @@ class OpenSecurityAnalysisGraphTest {
 
         // Testing all contingencies at once
         contingenciesProvider = network -> network.getBranchStream()
-            .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId()) {
-                @Override
-                public AbstractTrippingTask toTask() {
-                    return new LfBranchTripping(id, voltageLevelId);
-                }
-            }))
+            .map(b -> new Contingency(b.getId(), new LfBranchContingency(b.getId())))
             .collect(Collectors.toList());
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();

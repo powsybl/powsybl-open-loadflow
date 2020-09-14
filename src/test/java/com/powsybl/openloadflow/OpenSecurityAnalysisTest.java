@@ -6,10 +6,8 @@
  */
 package com.powsybl.openloadflow;
 
-import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
-import com.powsybl.contingency.tasks.AbstractTrippingTask;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.TopologyKind;
@@ -26,7 +24,8 @@ import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -198,19 +197,9 @@ class OpenSecurityAnalysisTest {
                 .setSlackBusSelector(new NameSlackBusSelector("VL1_1"));
         lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
         saParameters.setLoadFlowParameters(lfParameters);
-        ContingenciesProvider contingenciesProvider = network -> Arrays.asList(
-                new Contingency("L1", new BranchContingency("L1") {
-                    @Override
-                    public AbstractTrippingTask toTask() {
-                        return new LfBranchTripping(id, voltageLevelId);
-                    }
-                }),
-                new Contingency("L2", new BranchContingency("L2") {
-                    @Override
-                    public AbstractTrippingTask toTask() {
-                        return new LfBranchTripping(id, voltageLevelId);
-                    }
-                }));
+        ContingenciesProvider contingenciesProvider = network -> Stream.of("L1", "L2")
+            .map(id -> new Contingency(id, new LfBranchContingency(id)))
+            .collect(Collectors.toList());
 
         OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
             new LimitViolationFilter(), new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));

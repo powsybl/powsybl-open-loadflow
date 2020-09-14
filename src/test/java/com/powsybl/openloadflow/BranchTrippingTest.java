@@ -74,12 +74,7 @@ class BranchTrippingTest {
     void testLfBranchTripping() {
         // Testing all contingencies
         ContingenciesProvider contingenciesProvider = network -> network.getBranchStream()
-            .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId()) {
-                @Override
-                public AbstractTrippingTask toTask() {
-                    return new LfBranchTripping(id, voltageLevelId);
-                }
-            }))
+            .map(b -> new Contingency(b.getId(), new LfBranchContingency(b.getId())))
             .collect(Collectors.toList());
 
         List<ContingencyContext> contingencyContexts = computeBranchesToOpen(contingenciesProvider);
@@ -111,7 +106,7 @@ class BranchTrippingTest {
 
     private void checkResult(List<ContingencyContext> contingencyContexts, List<ContingencyContext> reference) {
         Assert.assertEquals(reference.size(), contingencyContexts.size());
-        for (int i=0; i<contingencyContexts.size(); i++) {
+        for (int i = 0; i < contingencyContexts.size(); i++) {
             Assert.assertEquals(reference.get(i).contingency.getId(), contingencyContexts.get(i).contingency.getId());
             Assert.assertEquals(reference.get(i).branchIdsToOpen, contingencyContexts.get(i).branchIdsToOpen);
         }
