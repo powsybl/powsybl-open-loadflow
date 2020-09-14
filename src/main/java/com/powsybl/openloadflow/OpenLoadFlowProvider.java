@@ -114,7 +114,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
-                                                   OpenLoadFlowParameters parametersExt, boolean breakers) {
+                                                   OpenLoadFlowParameters parametersExt) {
 
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
@@ -161,15 +161,14 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 parametersExt.hasVoltageRemoteControl(),
                 parameters.isPhaseShifterRegulationOn(),
                 parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
-                parameters.isTwtSplitShuntAdmittance(),
-                breakers);
+                parameters.isTwtSplitShuntAdmittance());
     }
 
     private CompletableFuture<LoadFlowResult> runAc(Network network, String workingStateId, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
-            AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt, false);
+            AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt);
             List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, acParameters);
 
             Networks.resetState(network);
