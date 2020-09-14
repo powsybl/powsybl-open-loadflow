@@ -7,7 +7,9 @@
 package com.powsybl.openloadflow;
 
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
@@ -37,14 +39,12 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    void testPermanentCurrentLimits() {
+    void testLineCurrentLimits() {
         Network network = EurostagTutorialExample1Factory.createWithFixedCurrentLimits();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        LoadFlowParameters lfParameters = new LoadFlowParameters();
-        OpenLoadFlowParameters lfParametersExt = OpenLoadFlowProvider.getParametersExt(lfParameters);
-        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), lfParameters, lfParametersExt);
+        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt);
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
         LfBranch branch1 = lfNetwork.getBranchById("NHV1_NHV2_1");
@@ -55,7 +55,39 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(Double.isNaN(branch3.getPermanentLimit1()));
         assertEquals(branch3.getI1(), 3654.181, 10E-3);
         LfBranch branch4 = lfNetwork.getBranchById("NHV2_NLOAD");
-        assertTrue(Double.isNaN(branch4.getPermanentLimit1()));
-        assertEquals(branch4.getI1(), 3716.345, 10E-3);
+        assertTrue(Double.isNaN(branch4.getPermanentLimit2()));
+        assertEquals(branch4.getI2(), 3711.395, 10E-3);
+    }
+
+    @Test
+    void testDanglingLineCurrentLimits() {
+        Network network = DanglingLineNetworkFactory.create();
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt);
+        AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
+        engine.run();
+        LfBranch branch = lfNetwork.getBranchById("DL");
+        assertEquals(branch.getI1(), 361.588, 10E-3);
+        assertEquals(branch.getPermanentLimit1(), 100.0, 10E-3);
+        assertTrue(Double.isNaN(branch.getI2()));
+        assertTrue(Double.isNaN(branch.getPermanentLimit2()));
+    }
+
+    @Test
+    void testLegCurrentLimits() {
+        Network network = ThreeWindingsTransformerNetworkFactory.create();
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt);
+        AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
+        engine.run();
+        LfBranch branch1 = lfNetwork.getBranchById("3WT_leg_1");
+        assertEquals(branch1.getI1(), 6000.771, 10E-3);
+        assertTrue(Double.isNaN(branch1.getI2()));
+        assertTrue(Double.isNaN(branch1.getPermanentLimit1()));
+        assertTrue(Double.isNaN(branch1.getPermanentLimit2()));
     }
 }
