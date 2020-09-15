@@ -103,8 +103,29 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
+    public double getI1() {
+        return getBus1() != null ? Math.hypot(p.eval(), q.eval())
+            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
+    }
+
+    @Override
+    public double getI2() {
+        return Double.NaN;
+    }
+
+    @Override
     public Optional<PhaseControl> getPhaseControl() {
         return Optional.ofNullable(phaseControl);
+    }
+
+    @Override
+    public double getPermanentLimit1() {
+        return leg.getCurrentLimits() != null ? leg.getCurrentLimits().getPermanentLimit() * getBus1().getNominalV() / PerUnit.SB : Double.NaN;
+    }
+
+    @Override
+    public double getPermanentLimit2() {
+        return Double.NaN;
     }
 
     @Override
