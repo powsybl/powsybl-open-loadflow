@@ -230,25 +230,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             LOGGER.info("Save pre-contingency state");
 
             // save base state for later restoration after each contingency
-            List<LfBus> buses = network.getBuses();
-            double[] v = new double[buses.size()];
-            double[] a = new double[buses.size()];
-            double[] loadTargetP = new double[buses.size()];
-            double[] generatorsTargetP = new double[buses.size()];
-            int generatorsCount = 0;
-            for (LfBus bus : buses) {
-                v[bus.getNum()] = bus.getV();
-                a[bus.getNum()] = bus.getAngle();
-                loadTargetP[bus.getNum()] = bus.getLoadTargetP();
-                for (LfGenerator generator : bus.getGenerators()) {
-                    generatorsTargetP[generatorsCount] = generator.getTargetP();
-                    generatorsCount++;
-                }
-                if (bus.hasVoltageControlCapability() && !bus.hasVoltageControl()) { // Bus PV -> PQ
-                    ReactiveLimitsOuterLoop.switchPqPv(bus, engine.getEquationSystem(), engine.getVariableSet());
-                    bus.setVoltageControlSwitchOffCount(0);
-                }
-            }
+            Map<LfBus, BusState> busStates = getBusStates(network.getBuses(), engine);
 
             // start a simulation for each of the contingency
             Iterator<LfContingency> contingencyIt = contingencies.iterator();
@@ -267,25 +249,58 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                     } //TODO: if mismatch different than zero, start with a slack distribution.
 
                     // restore base state
-                    generatorsCount = 0;
-                    for (LfBus bus : buses) {
-                        bus.setV(v[bus.getNum()]);
-                        bus.setAngle(a[bus.getNum()]);
-                        bus.setLoadTargetP(loadTargetP[bus.getNum()]);
-                        for (LfGenerator generator : bus.getGenerators()) {
-                            generator.setTargetP(generatorsTargetP[generatorsCount]);
-                            generatorsCount++;
-                        }
-                        if (bus.hasVoltageControlCapability() && !bus.hasVoltageControl()) { // Bus PV -> PQ
-                            ReactiveLimitsOuterLoop.switchPqPv(bus, engine.getEquationSystem(), engine.getVariableSet());
-                            bus.setVoltageControlSwitchOffCount(0);
-                        }
-                    }
+                    restoreBusStates(busStates, engine);
                 }
             }
         }
 
         return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
+    }
+
+    /**
+     * Get the map of the states of given buses, indexed by the bus itself
+     * @param buses the bus for which the state is returned
+     * @param engine
+     * @return the map of the states of given buses, indexed by the bus itself
+     */
+    private Map<LfBus, BusState> getBusStates(List<LfBus> buses, AcloadFlowEngine engine) {
+        Map<LfBus, BusState> result = new HashMap<>(buses.size());
+        buses.forEach(b -> {
+            Map<String, Double> generatorsTargetP = b.getGenerators().stream().collect(
+                Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
+            BusState busState = new BusState(b.getV(), b.getAngle(), b.getLoadTargetP(), generatorsTargetP);
+            result.put(b, busState);
+            switchPqPv(b, engine);
+        });
+        return result;
+    }
+
+    /**
+     * Set the bus states based on the given map of states
+     * @param busStates the map containgin the bus states, indexed by buses
+     * @param engine
+     */
+    private void restoreBusStates(Map<LfBus, BusState> busStates, AcloadFlowEngine engine) {
+        busStates.forEach((b, state) -> {
+            setBusState(b, state);
+            switchPqPv(b, engine);
+        });
+    }
+
+    private void setBusState(LfBus bus, BusState busState) {
+        bus.setV(busState.v);
+        bus.setAngle(busState.angle);
+        bus.setLoadTargetP(busState.loadTargetP);
+        bus.getGenerators().forEach(g -> {
+            g.setTargetP(busState.generatorsTargetP.get(g.getId()));
+        });
+    }
+
+    private void switchPqPv(LfBus bus, AcloadFlowEngine engine) {
+        if (bus.hasVoltageControlCapability() && !bus.hasVoltageControl()) { // Bus PV -> PQ
+            ReactiveLimitsOuterLoop.switchPqPv(bus, engine.getEquationSystem(), engine.getVariableSet());
+            bus.setVoltageControlSwitchOffCount(0);
+        }
     }
 
     private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcloadFlowEngine engine, LfContingency lfContingency) {
@@ -441,5 +456,19 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             }
         }
         return connectivity;
+    }
+
+    private static class BusState {
+        private final double v;
+        private final double angle;
+        private final double loadTargetP;
+        private final Map<String, Double> generatorsTargetP;
+
+        public BusState(double v, double angle, double loadTargetP, Map<String, Double> generatorsTargetP) {
+            this.v = v;
+            this.angle = angle;
+            this.loadTargetP = loadTargetP;
+            this.generatorsTargetP = generatorsTargetP;
+        }
     }
 }
