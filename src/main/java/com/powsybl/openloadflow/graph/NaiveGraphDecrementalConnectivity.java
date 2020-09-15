@@ -7,12 +7,11 @@
 package com.powsybl.openloadflow.graph;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.jgrapht.UndirectedGraph;
-import org.jgrapht.alg.ConnectivityInspector;
+import org.jgrapht.Graph;
+import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.graph.Pseudograph;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
@@ -21,7 +20,7 @@ import java.util.stream.Collectors;
  */
 public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalConnectivity<V> {
 
-    private final UndirectedGraph<V, Object> graph = new Pseudograph<>(Object.class);
+    private final Graph<V, Object> graph = new Pseudograph<>(Object.class);
 
     private final List<Pair<V, V>> cutEdges = new ArrayList<>();
 
@@ -41,7 +40,7 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
             componentSets = new ConnectivityInspector<>(graph)
                     .connectedSets()
                     .stream()
-                    .sorted(Comparator.comparing((Function<Set<V>, Integer>) Set::size).reversed())
+                    .sorted(Comparator.comparing(Set<V>::size).reversed())
                     .collect(Collectors.toList());
             for (int componentIndex = 0; componentIndex < componentSets.size(); componentIndex++) {
                 Set<V> vertices = componentSets.get(componentIndex);

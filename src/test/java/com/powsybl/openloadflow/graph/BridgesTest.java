@@ -13,6 +13,8 @@ import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import org.jgrapht.alg.connectivity.BiconnectivityInspector;
+import org.jgrapht.graph.Pseudograph;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -100,6 +102,18 @@ class BridgesTest {
         assertEquals(bridgesSetReference, set);
     }
 
+    @Test
+    void testBiconnectivityInspector() {
+        org.jgrapht.Graph<String, String> graph = getJgraphTGraph(lfNetwork);
+        BiconnectivityInspector<String, String> bi = new BiconnectivityInspector<>(graph);
+
+        long start = System.currentTimeMillis();
+        Set<String> bridges = bi.getBridges();
+        LOGGER.info("Bridges calculated based on jgraphT BiconnectivityInspector in {} ms", System.currentTimeMillis() - start);
+
+        assertEquals(bridgesSetReference, bridges);
+    }
+
     private Set<String> testBridgesOnConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, String method) {
         long start = System.currentTimeMillis();
         initGraphDc(lfNetwork, connectivity);
@@ -125,6 +139,21 @@ class BridgesTest {
             }
         }
         return bridgesSet;
+    }
+
+    private static org.jgrapht.Graph<String, String> getJgraphTGraph(LfNetwork lfNetwork) {
+        org.jgrapht.Graph<String, String> graph = new Pseudograph<>(String.class);
+        for (LfBus bus : lfNetwork.getBuses()) {
+            graph.addVertex(bus.getId());
+        }
+        for (LfBranch branch : lfNetwork.getBranches()) {
+            LfBus bus1 = branch.getBus1();
+            LfBus bus2 = branch.getBus2();
+            if (bus1 != null && bus2 != null) {
+                graph.addEdge(bus1.getId(), bus2.getId(), branch.getId());
+            }
+        }
+        return graph;
     }
 
     private static void initGraphDc(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity) {

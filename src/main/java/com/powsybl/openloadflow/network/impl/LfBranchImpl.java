@@ -166,13 +166,13 @@ public class LfBranchImpl extends AbstractLfBranch {
     @Override
     public double getI1() {
         return getBus1() != null ? Math.hypot(p1.eval(), q1.eval())
-                / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
+            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
     }
 
     @Override
     public double getI2() {
         return getBus2() != null ? Math.hypot(p2.eval(), q2.eval())
-                / (Math.sqrt(3.) * getBus2().getV() / 1000) : Double.NaN;
+            / (Math.sqrt(3.) * getBus2().getV() / 1000) : Double.NaN;
     }
 
     @Override
@@ -182,7 +182,7 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     @Override
     public double getPermanentLimit2() {
-        return branch.getCurrentLimits1() != null ? branch.getCurrentLimits2().getPermanentLimit() * getBus2().getNominalV() / PerUnit.SB : Double.NaN;
+        return branch.getCurrentLimits2() != null ? branch.getCurrentLimits2().getPermanentLimit() * getBus2().getNominalV() / PerUnit.SB : Double.NaN;
     }
 
     @Override
