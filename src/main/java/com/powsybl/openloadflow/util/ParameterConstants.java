@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.util;
 
-
 import static com.powsybl.openloadflow.OpenLoadFlowParameters.*;
 
 /**

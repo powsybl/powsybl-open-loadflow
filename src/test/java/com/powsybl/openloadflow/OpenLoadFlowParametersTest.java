@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.FileSystem;
 
 import static org.junit.Assert.*;
+import static com.powsybl.openloadflow.util.ParameterConstants.*;
 
 /**
  * @author Jérémy Labous <jlabous at silicom.fr>
@@ -48,8 +49,8 @@ public class OpenLoadFlowParametersTest {
         lfModuleConfig.setStringProperty("transformerVoltageControlOn", Boolean.toString(true));
 
         MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
-        olfModuleConfig.setStringProperty("balanceType", OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD.toString());
-        olfModuleConfig.setStringProperty("dc", Boolean.toString(true));
+        olfModuleConfig.setStringProperty(BALANCE_TYPE_PARAM_NAME, OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD.toString());
+        olfModuleConfig.setStringProperty(DC_PARAM_NAME, Boolean.toString(true));
 
         LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
 
@@ -59,5 +60,9 @@ public class OpenLoadFlowParametersTest {
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         assertEquals(OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, olfParameters.getBalanceType());
         assertTrue(olfParameters.isDc());
+        assertTrue(olfParameters.isDistributedSlack());
+        assertTrue(olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
+        assertFalse(olfParameters.hasVoltageRemoteControl());
+        assertEquals(LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
     }
 }
