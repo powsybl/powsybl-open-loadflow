@@ -215,12 +215,15 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
      */
     private void detectBusViolations(LfBus bus, List<LimitViolation> violations) {
         // detect violation limits on a bus
-        if (bus.getV() > bus.getHighVoltageLimit()) {
-            LimitViolation limitViolation1 = new LimitViolation(bus.getId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit(), (float) 0., bus.getV());
+        double scale = bus.getNominalV();
+        if (!Double.isNaN(bus.getHighVoltageLimit()) && bus.getV() > bus.getHighVoltageLimit()) {
+            LimitViolation limitViolation1 = new LimitViolation(bus.getId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit() * scale,
+                    (float) 0., bus.getV() * scale);
             violations.add(limitViolation1);
         }
-        if (bus.getV() < bus.getLowVoltageLimit()) {
-            LimitViolation limitViolation2 = new LimitViolation(bus.getId(), LimitViolationType.LOW_VOLTAGE, bus.getHighVoltageLimit(), (float) 0., bus.getV());
+        if (!Double.isNaN(bus.getLowVoltageLimit()) && bus.getV() < bus.getLowVoltageLimit()) {
+            LimitViolation limitViolation2 = new LimitViolation(bus.getId(), LimitViolationType.LOW_VOLTAGE, bus.getHighVoltageLimit() * scale,
+                    (float) 0., bus.getV() * scale);
             violations.add(limitViolation2);
         }
     }

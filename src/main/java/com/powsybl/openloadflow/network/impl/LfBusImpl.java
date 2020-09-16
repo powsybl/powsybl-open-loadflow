@@ -54,12 +54,12 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public double getLowVoltageLimit() {
-        return lowVoltageLimit;
+        return lowVoltageLimit / nominalV;
     }
 
     @Override
     public double getHighVoltageLimit() {
-        return highVoltageLimit;
+        return highVoltageLimit / nominalV;
     }
 
     @Override

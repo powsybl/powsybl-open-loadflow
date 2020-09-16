@@ -8,10 +8,7 @@ package com.powsybl.openloadflow;
 
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Substation;
-import com.powsybl.iidm.network.TopologyKind;
-import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
@@ -79,6 +76,8 @@ class OpenSecurityAnalysisTest {
         VoltageLevel vl1 = s.newVoltageLevel()
                 .setId("VL1")
                 .setNominalV(400)
+                .setLowVoltageLimit(370.)
+                .setHighVoltageLimit(420.)
                 .setTopologyKind(TopologyKind.NODE_BREAKER)
                 .add();
         vl1.getNodeBreakerView().newBusbarSection()
@@ -122,6 +121,8 @@ class OpenSecurityAnalysisTest {
                 .setId("VL2")
                 .setNominalV(400)
                 .setTopologyKind(TopologyKind.NODE_BREAKER)
+                .setLowVoltageLimit(370.)
+                .setHighVoltageLimit(420.)
                 .add();
         vl2.getNodeBreakerView().newBusbarSection()
                 .setId("BBS3")
@@ -190,7 +191,7 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
-    void test() {
+    void testCurrentLimitViolations() {
         SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
@@ -211,5 +212,32 @@ class OpenSecurityAnalysisTest {
         assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
         assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+    }
+
+    @Test
+    void testVoltageLimitViolations() {
+
+        network.getGenerator("G").setTargetV(393);
+
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelector(new NameSlackBusSelector("VL1_1"));
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+        ContingenciesProvider contingenciesProvider = network -> Stream.of("L1", "L2")
+                .map(id -> new Contingency(id, new LfBranchContingency(id)))
+                .collect(Collectors.toList());
+
+        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(), new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
+        assertTrue(result.getPreContingencyResult().isComputationOk());
+        assertEquals(0, result.getPreContingencyResult().getLimitViolations().size());
+        assertEquals(2, result.getPostContingencyResults().size());
+        assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
+        assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
+        assertEquals(3, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
     }
 }
