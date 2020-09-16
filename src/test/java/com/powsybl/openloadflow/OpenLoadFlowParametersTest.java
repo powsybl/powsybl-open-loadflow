@@ -20,6 +20,7 @@ import java.nio.file.FileSystem;
 
 import static org.junit.Assert.*;
 import static com.powsybl.openloadflow.util.ParameterConstants.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author Jérémy Labous <jlabous at silicom.fr>
@@ -42,7 +43,7 @@ public class OpenLoadFlowParametersTest {
     }
 
     @Test
-    public void testCheckConfig() {
+    public void testConfig() {
 
         MapModuleConfig lfModuleConfig = platformConfig.createModuleConfig("load-flow-default-parameters");
         lfModuleConfig.setStringProperty("voltageInitMode", LoadFlowParameters.VoltageInitMode.DC_VALUES.toString());
@@ -64,5 +65,26 @@ public class OpenLoadFlowParametersTest {
         assertTrue(olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
         assertFalse(olfParameters.hasVoltageRemoteControl());
         assertEquals(LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
+    }
+
+    @Test
+    public void testDefaultOpenLoadflowConfig() {
+
+        MapModuleConfig lfModuleConfig = platformConfig.createModuleConfig("load-flow-default-parameters");
+        lfModuleConfig.setStringProperty("voltageInitMode", LoadFlowParameters.VoltageInitMode.DC_VALUES.toString());
+        lfModuleConfig.setStringProperty("transformerVoltageControlOn", Boolean.toString(true));
+
+        LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
+
+        assertEquals(LoadFlowParameters.VoltageInitMode.DC_VALUES, parameters.getVoltageInitMode());
+        assertTrue(parameters.isTransformerVoltageControlOn());
+
+        OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
+        assertEquals(BALANCE_TYPE_DEFAULT_VALUE, olfParameters.getBalanceType());
+        assertEquals(DC_DEFAULT_VALUE, olfParameters.isDc());
+        assertEquals(DISTRIBUTED_SLACK_DEFAULT_VALUE, olfParameters.isDistributedSlack());
+        assertEquals(VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE, olfParameters.hasVoltageRemoteControl());
+        assertEquals(LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
+        assertEquals(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE, olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
     }
 }
