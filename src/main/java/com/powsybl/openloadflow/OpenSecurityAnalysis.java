@@ -192,21 +192,19 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
      * @param violations list on which the violation limits encountered are added
      */
     private void detectBranchViolations(LfBranch branch, List<LimitViolation> violations) {
-        // Detect violation on the left
-        detectBranchViolationSide(branch.getId(), Branch.Side.ONE, branch.getBus1(), branch.getI1(), branch.getPermanentLimit1(), violations);
-
-        // Detect violation on the right
-        detectBranchViolationSide(branch.getId(), Branch.Side.TWO, branch.getBus2(), branch.getI2(), branch.getPermanentLimit2(), violations);
-    }
-
-    private void detectBranchViolationSide(String branchId, Branch.Side branchSide, LfBus busOfSide, double iOfSide,
-                                           double permanentLimitOfSide, List<LimitViolation> violations) {
-        if (busOfSide != null && iOfSide > permanentLimitOfSide) {
-            double scale = PerUnit.SB / busOfSide.getNominalV();
-            LimitViolation limitViolation1 = new LimitViolation(
-                branchId, LimitViolationType.CURRENT, null, 2147483647,
-                permanentLimitOfSide * scale, 0.f, iOfSide * scale, branchSide);
+        // detect violation limits on a branch
+        double scale = 1;
+        if (branch.getBus1() != null && branch.getI1() > branch.getPermanentLimit1()) {
+            scale = PerUnit.SB / branch.getBus1().getNominalV();
+            LimitViolation limitViolation1 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
+                    2147483647, branch.getPermanentLimit1() * scale, (float) 0., branch.getI1() * scale, Branch.Side.ONE);
             violations.add(limitViolation1);
+        }
+        if (branch.getBus2() != null && branch.getI2() > branch.getPermanentLimit2()) {
+            scale = PerUnit.SB / branch.getBus2().getNominalV();
+            LimitViolation limitViolation2 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
+                    2147483647, branch.getPermanentLimit2() * scale, (float) 0., branch.getI2() * scale, Branch.Side.TWO);
+            violations.add(limitViolation2);
         }
     }
 
