@@ -180,10 +180,10 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
      */
     private void detectViolations(Stream<LfBranch> branches, Stream<LfBus> buses, List<LimitViolation> violations) {
         // Detect violation limits on branches
-        branches.forEach(b -> detectBranchViolations(b, violations));
+        branches.forEach(branch -> detectBranchViolations(branch, violations));
 
         // Detect violation limits on buses
-        // TODO
+        buses.forEach(bus -> detectBusViolations(bus, violations));
     }
 
     /**
@@ -204,6 +204,23 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             scale = PerUnit.SB / branch.getBus2().getNominalV();
             LimitViolation limitViolation2 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
                     2147483647, branch.getPermanentLimit2() * scale, (float) 0., branch.getI2() * scale, Branch.Side.TWO);
+            violations.add(limitViolation2);
+        }
+    }
+
+    /**
+     * Detect violation limits on one branch and add them to the given list
+     * @param bus branch of interest
+     * @param violations list on which the violation limits encountered are added
+     */
+    private void detectBusViolations(LfBus bus, List<LimitViolation> violations) {
+        // detect violation limits on a bus
+        if (bus.getV() > bus.getHighVoltageLimit()) {
+            LimitViolation limitViolation1 = new LimitViolation(bus.getId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit(), (float) 0., bus.getV());
+            violations.add(limitViolation1);
+        }
+        if (bus.getV() < bus.getLowVoltageLimit()) {
+            LimitViolation limitViolation2 = new LimitViolation(bus.getId(), LimitViolationType.LOW_VOLTAGE, bus.getHighVoltageLimit(), (float) 0., bus.getV());
             violations.add(limitViolation2);
         }
     }
@@ -229,6 +246,9 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
             // save base state for later restoration after each contingency
             Map<LfBus, BusState> busStates = getBusStates(network.getBuses());
+            for (LfBus bus : network.getBuses()) {
+                bus.setVoltageControlSwitchOffCount(0);
+            }
 
             // start a simulation for each of the contingency
             Iterator<LfContingency> contingencyIt = contingencies.iterator();

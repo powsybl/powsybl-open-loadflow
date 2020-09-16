@@ -89,6 +89,10 @@ public interface LfBus {
      */
     double getNominalV();
 
+    double getLowVoltageLimit();
+
+    double getHighVoltageLimit();
+
     List<LfGenerator> getGenerators();
 
     List<LfShunt> getShunts();
