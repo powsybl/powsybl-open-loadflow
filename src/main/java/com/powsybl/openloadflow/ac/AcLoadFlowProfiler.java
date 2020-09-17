@@ -205,6 +205,7 @@ public class AcLoadFlowProfiler extends DefaultAcLoadFlowObserver {
         jacobianBuildTotalStopwatch.reset();
         luDecompositionTotalStopwatch.reset();
         luSolveTotalStopwatch.reset();
+        loadFlowStopwatch.reset();
         loadFlowStopwatch.start();
     }
 
