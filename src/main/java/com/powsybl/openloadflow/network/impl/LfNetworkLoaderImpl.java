@@ -207,10 +207,36 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork);
             LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork);
             LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork);
-            addBranch(lfNetwork, LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1(), twtSplitShuntAdmittance), report);
-            addBranch(lfNetwork, LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2(), twtSplitShuntAdmittance), report);
-            addBranch(lfNetwork, LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3(), twtSplitShuntAdmittance), report);
+            LfLegBranch lfLeg1Branch = LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1(), twtSplitShuntAdmittance);
+            addBranch(lfNetwork, lfLeg1Branch, report);
+            LfLegBranch lfLeg2Branch = LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2(), twtSplitShuntAdmittance);
+            addBranch(lfNetwork, lfLeg2Branch, report);
+            LfLegBranch lfLeg3Branch = LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3(), twtSplitShuntAdmittance);
+            addBranch(lfNetwork, lfLeg3Branch, report);
+            // set controller -> controlled link
+            setBranchControlled(lfLeg1Branch, lfLeg2Branch, lfLeg3Branch);
         }
+    }
+
+    private static void setBranchControlled(LfLegBranch... lfLegBranches) {
+        Arrays.stream(lfLegBranches).forEach(b -> {
+            Optional<PhaseControl> pc = b.getPhaseControl();
+            if (pc.isPresent()) {
+                switch (pc.get().getControlledSide()) {
+                    case ONE:
+                        b.setControlledBranch(lfLegBranches[0]);
+                        break;
+                    case TWO:
+                        b.setControlledBranch(lfLegBranches[1]);
+                        break;
+                    case THREE:
+                        b.setControlledBranch(lfLegBranches[2]);
+                        break;
+                    default:
+                        throw new IllegalStateException("Unexpected value: " + pc.get().getControlledSide());
+                }
+            }
+        });
     }
 
     private static LfBus getLfBus(Terminal terminal, LfNetwork lfNetwork) {

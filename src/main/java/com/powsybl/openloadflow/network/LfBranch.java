@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -44,6 +45,10 @@ public interface LfBranch {
     double getPermanentLimit2();
 
     Optional<PhaseControl> getPhaseControl();
+
+    Optional<LfBranch> getControlledBranch();
+
+    List<LfBranch> getControllerBranches();
 
     void updateState();
 }

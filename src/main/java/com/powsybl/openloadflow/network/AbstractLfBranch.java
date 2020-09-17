@@ -6,7 +6,10 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -20,6 +23,10 @@ public abstract class AbstractLfBranch implements LfBranch {
     private final LfBus bus2;
 
     private final PiModel piModel;
+
+    protected LfBranch controlledBranch;
+
+    protected final List<LfBranch> controllerBranches = new ArrayList<>();
 
     protected AbstractLfBranch(LfBus bus1, LfBus bus2, PiModel piModel) {
         this.bus1 = bus1;
@@ -50,5 +57,29 @@ public abstract class AbstractLfBranch implements LfBranch {
     @Override
     public PiModel getPiModel() {
         return piModel;
+    }
+
+    @Override
+    public Optional<LfBranch> getControlledBranch() {
+        return Optional.ofNullable(controlledBranch);
+    }
+
+    public void setControlledBranch(AbstractLfBranch controlledBranch) {
+        Objects.requireNonNull(controlledBranch);
+
+        // FIXME : Make somme checks ?
+
+        this.controlledBranch = controlledBranch;
+        controlledBranch.addControllerBranch(this);
+    }
+
+    @Override
+    public List<LfBranch> getControllerBranches() {
+        return controllerBranches;
+    }
+
+    public void addControllerBranch(LfBranch controllerBranch) {
+        Objects.requireNonNull(controllerBranch);
+        controllerBranches.add(controllerBranch);
     }
 }
