@@ -34,6 +34,7 @@ import javax.inject.Provider;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -289,38 +290,29 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
      * @return the map of the states of given buses, indexed by the bus itself
      */
     private Map<LfBus, BusState> getBusStates(List<LfBus> buses) {
-        Map<LfBus, BusState> result = new HashMap<>(buses.size());
-        buses.forEach(b -> {
-            Map<String, Double> generatorsTargetP = b.getGenerators().stream().collect(
-                Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
-            BusState busState = new BusState(b.getV(), b.getAngle(), b.getLoadTargetP(), generatorsTargetP, b.hasVoltageControl());
-            result.put(b, busState);
-        });
-        return result;
+        return buses.stream().collect(Collectors.toMap(Function.identity(), BusState::new));
     }
 
     /**
      * Set the bus states based on the given map of states
-     * @param busStates the map containgin the bus states, indexed by buses
-     * @param engine
+     * @param busStates the map containing the bus states, indexed by buses
+     * @param engine AcLoadFlowEngine to operate the PqPv switching if the bus has lost its voltage control
      */
     private void restoreBusStates(Map<LfBus, BusState> busStates, AcloadFlowEngine engine) {
-        busStates.forEach((b, state) -> {
-            if (state.hasVoltageControl && !b.hasVoltageControl()) { // b is now PQ bus.
-                ReactiveLimitsOuterLoop.switchPqPv(b, engine.getEquationSystem(), engine.getVariableSet());
-            }
-            setBusState(b, state);
-            b.setVoltageControlSwitchOffCount(0);
-        });
+        busStates.forEach((b, state) -> setBusState(b, state, engine));
     }
 
-    private void setBusState(LfBus bus, BusState busState) {
+    private void setBusState(LfBus bus, BusState busState, AcloadFlowEngine engine) {
         bus.setV(busState.v);
         bus.setAngle(busState.angle);
         bus.setLoadTargetP(busState.loadTargetP);
         bus.getGenerators().forEach(g -> {
             g.setTargetP(busState.generatorsTargetP.get(g.getId()));
         });
+        if (busState.hasVoltageControl && !bus.hasVoltageControl()) { // b is now PQ bus.
+            ReactiveLimitsOuterLoop.switchPqPv(bus, engine.getEquationSystem(), engine.getVariableSet());
+        }
+        bus.setVoltageControlSwitchOffCount(0);
     }
 
     private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcloadFlowEngine engine, LfContingency lfContingency) {
@@ -483,15 +475,14 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         private final double angle;
         private final double loadTargetP;
         private final Map<String, Double> generatorsTargetP;
-        private boolean hasVoltageControl;
+        private final boolean hasVoltageControl;
 
-        public BusState(double v, double angle, double loadTargetP, Map<String, Double> generatorsTargetP,
-                        boolean hasVoltageControl) {
-            this.v = v;
-            this.angle = angle;
-            this.loadTargetP = loadTargetP;
-            this.generatorsTargetP = generatorsTargetP;
-            this.hasVoltageControl = hasVoltageControl;
+        public BusState(LfBus b) {
+            this.v = b.getV();
+            this.angle = b.getAngle();
+            this.loadTargetP = b.getLoadTargetP();
+            this.generatorsTargetP = b.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
+            this.hasVoltageControl = b.hasVoltageControl();
         }
     }
 }
