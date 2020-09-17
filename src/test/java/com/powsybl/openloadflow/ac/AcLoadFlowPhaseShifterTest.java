@@ -54,7 +54,7 @@ class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
-    void baseCase2WTTest() {
+    void baseCaseT2wtTest() {
         selectNetwork(createNetworkWithT2wt());
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
