@@ -14,6 +14,7 @@ import com.powsybl.contingency.tasks.AbstractTrippingTask;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
+import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
@@ -134,6 +135,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             contingencyContexts.add(contingencyContext);
 
             Set<Switch> switchesToOpen = new HashSet<>();
+            Set<Terminal> terminalsToDisconnect =  new HashSet<>();
             for (ContingencyElement element : contingency.getElements()) {
                 switch (element.getType()) {
                     case BRANCH:
@@ -143,13 +145,16 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                         throw new UnsupportedOperationException("TODO");
                 }
                 AbstractTrippingTask task = element.toTask();
-                task.traverse(network, null, switchesToOpen, new HashSet<>());
+                task.traverse(network, null, switchesToOpen, terminalsToDisconnect);
             }
 
             for (Switch sw : switchesToOpen) {
                 contingencyContext.branchIdsToOpen.add(sw.getId());
                 allSwitchesToOpen.add(sw);
             }
+
+            terminalsToDisconnect.forEach(t -> contingencyContext.branchIdsToOpen.add(t.getConnectable().getId()));
+
         }
         return contingencyContexts;
     }

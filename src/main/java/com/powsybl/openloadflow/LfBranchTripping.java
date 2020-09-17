@@ -32,31 +32,33 @@ public class LfBranchTripping extends BranchTripping {
         }
         if (voltageLevelId != null) {
             if (voltageLevelId.equals(branch.getTerminal1().getVoltageLevel().getId())) {
-                findSwitchesToOpen(branch.getTerminal1(), switchesToOpen);
+                findSwitchesToOpen(branch.getTerminal1(), switchesToOpen, terminalsToDisconnect);
             } else if (voltageLevelId.equals(branch.getTerminal2().getVoltageLevel().getId())) {
-                findSwitchesToOpen(branch.getTerminal2(), switchesToOpen);
+                findSwitchesToOpen(branch.getTerminal2(), switchesToOpen, terminalsToDisconnect);
             } else {
                 throw new PowsyblException("VoltageLevel '" + voltageLevelId + "' not connected to branch '" + branchId + "'");
             }
         } else {
-            findSwitchesToOpen(branch.getTerminal1(), switchesToOpen);
-            findSwitchesToOpen(branch.getTerminal2(), switchesToOpen);
+            findSwitchesToOpen(branch.getTerminal1(), switchesToOpen, terminalsToDisconnect);
+            findSwitchesToOpen(branch.getTerminal2(), switchesToOpen, terminalsToDisconnect);
         }
     }
 
-    private void findSwitchesToOpen(Terminal terminal, Set<Switch> switchesToOpen) {
+    private void findSwitchesToOpen(Terminal terminal, Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect) {
         if (terminal.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
             int initNode = terminal.getNodeBreakerView().getNode();
-            terminal.getVoltageLevel().getNodeBreakerView().traverse(initNode, (nodeBefore, sw, nodeAfter) -> {
+            VoltageLevel.NodeBreakerView nodeBreakerView = terminal.getVoltageLevel().getNodeBreakerView();
+            nodeBreakerView.traverse(initNode, (nodeBefore, sw, nodeAfter) -> {
                 if (sw != null) {
-                    if (isOpenable(sw)) {
-                        if (isSwitchLfNeeded(sw, nodeBefore, initNode)) {
+                    if (isOpenable(sw) || sw.isOpen()) {
+                        if (!sw.isOpen() && isSwitchLfNeeded(sw, nodeBefore, initNode)) {
                             switchesToOpen.add(sw);
                         }
                         return false;
                     }
-                    return !sw.isOpen();
                 }
+                // nodeAfter is traversed and its terminal is therefore disconnected
+                nodeBreakerView.getOptionalTerminal(nodeAfter).ifPresent(terminalsToDisconnect::add);
                 return true;
             });
         } else {
