@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -266,13 +267,18 @@ public final class AcEquationSystem {
             branch.setQ2(q2);
         }
         // Is this branch controlled by another one.
-        if (creationParameters.isPhaseControl() && branch.getControllerBranch().isPresent()) {
-            PhaseControl phaseControl = branch.getControllerBranch().get().getPhaseControl().orElse(null);
-            if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.ONE && p1 != null) {
-                createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.ONE, equationSystem, p1);
-            }
-            if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.TWO && p2 != null) {
-                createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.TWO, equationSystem, p2);
+        Optional<LfBranch> controllerBranch = branch.getControllerBranch();
+        if (creationParameters.isPhaseControl() && controllerBranch.isPresent()) {
+            Optional<PhaseControl> phaseControl = controllerBranch.get().getPhaseControl();
+            if (phaseControl.isPresent()) {
+                if (phaseControl.get().getControlledSide() == PhaseControl.ControlledSide.ONE && p1 != null) {
+                    createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.ONE, equationSystem, p1);
+                }
+                if (phaseControl.get().getControlledSide() == PhaseControl.ControlledSide.TWO && p2 != null) {
+                    createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.TWO, equationSystem, p2);
+                }
+            } else {
+                throw new PowsyblException("Controller branch '" + controllerBranch.get().getId() + "' without Phase control");
             }
         }
     }

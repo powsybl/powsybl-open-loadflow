@@ -232,9 +232,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                     }
                     LfBranch controlledBranch = lfNetwork.getBranchById(lfBranchId);
                     LfBranch controllerBranch = lfNetwork.getBranchById(t3wt.getId() + "_leg_" + legNumber);
-                    PhaseControl phaseControl = controllerBranch.getPhaseControl().orElse(null);
-                    if (phaseControl.getControlledBranch() == null) {
-                        phaseControl.setControlledBranch(controlledBranch);
+                    Optional<PhaseControl> phaseControl = controllerBranch.getPhaseControl();
+                    if (phaseControl.isPresent() && !phaseControl.get().getControlledBranch().isPresent()) {
+                        phaseControl.get().setControlledBranch(controlledBranch);
                         controlledBranch.setControllerBranch(controllerBranch);
                     }
                 }
@@ -242,7 +242,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             }
         }
     }
-
 
     private static LfBus getLfBus(Terminal terminal, LfNetwork lfNetwork) {
         Bus bus = terminal.getBusView().getBus();
