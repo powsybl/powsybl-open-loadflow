@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -24,7 +22,7 @@ public abstract class AbstractLfBranch implements LfBranch {
 
     private final PiModel piModel;
 
-    protected Optional<LfBranch> controllerBranch = Optional.empty();
+    protected LfBranch controllerBranch;
 
     protected AbstractLfBranch(LfBus bus1, LfBus bus2, PiModel piModel) {
         this.bus1 = bus1;
@@ -59,12 +57,11 @@ public abstract class AbstractLfBranch implements LfBranch {
 
     @Override
     public Optional<LfBranch> getControllerBranch() {
-        return controllerBranch;
+        return Optional.ofNullable(controllerBranch);
     }
 
     @Override
     public void setControllerBranch(LfBranch controllerBranch) {
-        Objects.requireNonNull(controllerBranch);
-        this.controllerBranch = Optional.of(controllerBranch);
+        this.controllerBranch = Objects.requireNonNull(controllerBranch, "Controller branch cannot be null");
     }
 }

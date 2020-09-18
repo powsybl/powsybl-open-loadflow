@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -37,7 +38,7 @@ public class PhaseControl {
 
     private final Unit unit;
 
-    private LfBranch controlledBranch = null;
+    private LfBranch controlledBranch;
 
     public PhaseControl(Mode mode, double targetValue, Unit unit) {
         this.mode = Objects.requireNonNull(mode);
@@ -57,7 +58,9 @@ public class PhaseControl {
         return controlledSide;
     }
 
-    public void setControlledSide(ControlledSide controlledSide) { this.controlledSide = Objects.requireNonNull(controlledSide); }
+    public void setControlledSide(ControlledSide controlledSide) {
+        this.controlledSide = Objects.requireNonNull(controlledSide);
+    }
 
     public double getTargetValue() {
         return targetValue;
@@ -67,7 +70,9 @@ public class PhaseControl {
         return unit;
     }
 
-    public LfBranch getControlledBranch() { return controlledBranch; }
+    public Optional<LfBranch> getControlledBranch() {
+        return Optional.ofNullable(controlledBranch);
+    }
 
     public void setControlledBranch(LfBranch branch) {
         this.controlledBranch = Objects.requireNonNull(branch);
