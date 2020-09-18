@@ -215,7 +215,7 @@ public final class AcEquationSystem {
 
     private static void createBranchActivePowerTargetEquation(LfBranch branch, PhaseControl.ControlledSide controlledSide,
                                                               EquationSystem equationSystem, EquationTerm p) {
-        PhaseControl phaseControl = branch.getPhaseControl().orElse(null);
+        PhaseControl phaseControl = branch.getControllerBranch().get().getPhaseControl().orElse(null);
         if (phaseControl != null
                 && phaseControl.getMode() == PhaseControl.Mode.CONTROLLER
                 && phaseControl.getControlledSide() == controlledSide) {

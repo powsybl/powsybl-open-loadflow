@@ -61,10 +61,6 @@ public class LfLegBranch extends AbstractLfBranch {
                 && ptc.isRegulating()
                 && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
             PhaseTapChanger.RegulationMode regulationMode = ptc.getRegulationMode();
-            PhaseControl.ControlledSide controlledSide = null;
-            if (ptc.getRegulationTerminal() == leg.getTerminal()) {
-                controlledSide = PhaseControl.ControlledSide.ONE;
-            }
 
             Integer rtcPosition = Transformers.getCurrentPosition(leg.getRatioTapChanger());
             List<PiModel> models = new ArrayList<>();
@@ -93,7 +89,6 @@ public class LfLegBranch extends AbstractLfBranch {
                 phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A);
             } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
                 phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW);
-                phaseControl.setControlledSide(controlledSide);
             }
         }
 

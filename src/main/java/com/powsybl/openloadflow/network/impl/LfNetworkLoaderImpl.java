@@ -209,9 +209,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 LfBranch controlledBranch = lfNetwork.getBranchById(lfBranchId);
                 LfBranch controllerBranch = lfNetwork.getBranchById(t2wt.getId());
                 Optional<PhaseControl> phaseControl = controllerBranch.getPhaseControl();
-                if (phaseControl.isPresent() && !phaseControl.get().getControlledBranch().isPresent()) {
+                if (phaseControl.isPresent()) {
                     phaseControl.get().setControlledBranch(controlledBranch);
                     controlledBranch.setControllerBranch(controllerBranch);
+                    LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
+                    if (controlledBus == controlledBranch.getBus1()) {
+                        phaseControl.get().setControlledSide(PhaseControl.ControlledSide.ONE);
+                    } else {
+                        phaseControl.get().setControlledSide(PhaseControl.ControlledSide.TWO);
+                    }
                 }
             }
         });
@@ -255,9 +261,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                     LfBranch controlledBranch = lfNetwork.getBranchById(lfBranchId);
                     LfBranch controllerBranch = lfNetwork.getBranchById(t3wt.getId() + "_leg_" + legNumber);
                     Optional<PhaseControl> phaseControl = controllerBranch.getPhaseControl();
-                    if (phaseControl.isPresent() && !phaseControl.get().getControlledBranch().isPresent()) {
+                    if (phaseControl.isPresent()) {
                         phaseControl.get().setControlledBranch(controlledBranch);
                         controlledBranch.setControllerBranch(controllerBranch);
+                        LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
+                        if (controlledBus == controlledBranch.getBus1()) {
+                            phaseControl.get().setControlledSide(PhaseControl.ControlledSide.ONE);
+                        } else {
+                            phaseControl.get().setControlledSide(PhaseControl.ControlledSide.TWO);
+                        }
                     }
                 }
                 legNumber++;
