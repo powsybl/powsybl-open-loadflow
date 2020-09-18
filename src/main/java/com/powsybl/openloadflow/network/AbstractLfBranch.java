@@ -24,9 +24,7 @@ public abstract class AbstractLfBranch implements LfBranch {
 
     private final PiModel piModel;
 
-    protected LfBranch controlledBranch;
-
-    protected final List<LfBranch> controllerBranches = new ArrayList<>();
+    protected Optional<LfBranch> controllerBranch = Optional.empty();
 
     protected AbstractLfBranch(LfBus bus1, LfBus bus2, PiModel piModel) {
         this.bus1 = bus1;
@@ -60,26 +58,13 @@ public abstract class AbstractLfBranch implements LfBranch {
     }
 
     @Override
-    public Optional<LfBranch> getControlledBranch() {
-        return Optional.ofNullable(controlledBranch);
-    }
-
-    public void setControlledBranch(AbstractLfBranch controlledBranch) {
-        Objects.requireNonNull(controlledBranch);
-
-        // FIXME : Make somme checks ?
-
-        this.controlledBranch = controlledBranch;
-        controlledBranch.addControllerBranch(this);
+    public Optional<LfBranch> getControllerBranch() {
+        return controllerBranch;
     }
 
     @Override
-    public List<LfBranch> getControllerBranches() {
-        return controllerBranches;
-    }
-
-    public void addControllerBranch(LfBranch controllerBranch) {
+    public void setControllerBranch(LfBranch controllerBranch) {
         Objects.requireNonNull(controllerBranch);
-        controllerBranches.add(controllerBranch);
+        this.controllerBranch = Optional.of(controllerBranch);
     }
 }

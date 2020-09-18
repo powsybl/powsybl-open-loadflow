@@ -46,9 +46,9 @@ public interface LfBranch {
 
     Optional<PhaseControl> getPhaseControl();
 
-    Optional<LfBranch> getControlledBranch();
+    Optional<LfBranch> getControllerBranch();
 
-    List<LfBranch> getControllerBranches();
+    void setControllerBranch(LfBranch controllerBranch);
 
     void updateState();
 }
