@@ -198,6 +198,24 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             addBranch(lfNetwork, LfBranchImpl.create(branch, lfBus1, lfBus2, twtSplitShuntAdmittance), report);
         }
 
+        loadingContext.branchSet.stream().filter(b -> b instanceof TwoWindingsTransformer).forEach(b -> {
+            // Complete phase controls when controlled branch is remote.
+            // set controller -> controlled link
+            TwoWindingsTransformer t2wt = (TwoWindingsTransformer) b;
+            PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
+            if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
+                Connectable connectable = ptc.getRegulationTerminal().getConnectable();
+                String lfBranchId = connectable.getId();
+                LfBranch controlledBranch = lfNetwork.getBranchById(lfBranchId);
+                LfBranch controllerBranch = lfNetwork.getBranchById(t2wt.getId());
+                Optional<PhaseControl> phaseControl = controllerBranch.getPhaseControl();
+                if (phaseControl.isPresent() && !phaseControl.get().getControlledBranch().isPresent()) {
+                    phaseControl.get().setControlledBranch(controlledBranch);
+                    controlledBranch.setControllerBranch(controllerBranch);
+                }
+            }
+        });
+
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
             LfDanglingLineBus lfBus2 = new LfDanglingLineBus(danglingLine);
             lfNetwork.addBus(lfBus2);
