@@ -199,6 +199,23 @@ class AcLoadFlowPhaseShifterTest {
         assertEquals(2, t3wt.getLeg2().getPhaseTapChanger().getTapPosition()); // 2
     }
 
+    @Test
+    void remoteFlowControl3WTTest() {
+        selectNetwork(createNetworkWithT3wt());
+        parameters.setPhaseShifterRegulationOn(true);
+        t3wt.getLeg2().getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1) // FIXME how to take this into account
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(line1.getTerminal1())
+                .setRegulationValue(75);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(75.94143342722937, line1.getTerminal1());
+        assertEquals(2, t3wt.getLeg2().getPhaseTapChanger().getTapPosition()); // 2
+    }
+
     /**
      * A very small network to test a phase shifter on a T2WT.
      *
