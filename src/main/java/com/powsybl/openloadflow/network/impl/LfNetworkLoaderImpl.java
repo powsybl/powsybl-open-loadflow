@@ -211,36 +211,40 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork, breakers);
             LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork, breakers);
             LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork, breakers);
-            LfLegBranch lfLeg1Branch = LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1(), twtSplitShuntAdmittance);
-            addBranch(lfNetwork, lfLeg1Branch, report);
-            LfLegBranch lfLeg2Branch = LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2(), twtSplitShuntAdmittance);
-            addBranch(lfNetwork, lfLeg2Branch, report);
-            LfLegBranch lfLeg3Branch = LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3(), twtSplitShuntAdmittance);
-            addBranch(lfNetwork, lfLeg3Branch, report);
-            // set controller -> controlled link
-            setBranchControlled(lfLeg1Branch, lfLeg2Branch, lfLeg3Branch);
+            addBranch(lfNetwork, LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1(), twtSplitShuntAdmittance), report);
+            addBranch(lfNetwork, LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2(), twtSplitShuntAdmittance), report);
+            addBranch(lfNetwork, LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3(), twtSplitShuntAdmittance), report);
         }
-    }
 
-    private static void setBranchControlled(LfLegBranch... lfLegBranches) {
-        Arrays.stream(lfLegBranches).forEach(b -> {
-            Optional<PhaseControl> pc = b.getPhaseControl();
-            if (pc.isPresent()) {
-                switch (pc.get().getControlledSide()) {
-                    case ONE:
-                        b.setControlledBranch(lfLegBranches[0]);
-                        break;
-                    case TWO:
-                        b.setControlledBranch(lfLegBranches[1]);
-                        break;
-                    case THREE:
-                        b.setControlledBranch(lfLegBranches[2]);
-                        break;
-                    default:
-                        throw new IllegalStateException("Unexpected value: " + pc.get().getControlledSide());
+        for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
+            // Complete phase controls when controlled branch is remote.
+            // set controller -> controlled link
+            List<ThreeWindingsTransformer.Leg> legs = new ArrayList<>();
+            legs.add(t3wt.getLeg1());
+            legs.add(t3wt.getLeg2());
+            legs.add(t3wt.getLeg3());
+            int legNumber = 1;
+            for (ThreeWindingsTransformer.Leg leg : legs) {
+                PhaseTapChanger ptc = leg.getPhaseTapChanger();
+                if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
+                    Connectable connectable = ptc.getRegulationTerminal().getConnectable();
+                    String lfBranchId;
+                    if (connectable instanceof ThreeWindingsTransformer) {
+                        lfBranchId = connectable.getId() + "_leg_" + legNumber;
+                    } else {
+                        lfBranchId = connectable.getId();
+                    }
+                    LfBranch controlledBranch = lfNetwork.getBranchById(lfBranchId);
+                    LfBranch controllerBranch = lfNetwork.getBranchById(t3wt.getId() + "_leg_" + legNumber);
+                    PhaseControl phaseControl = controllerBranch.getPhaseControl().orElse(null);
+                    if (phaseControl.getControlledBranch() == null) {
+                        phaseControl.setControlledBranch(controlledBranch);
+                        controlledBranch.setControllerBranch(controllerBranch);
+                    }
                 }
+                legNumber++;
             }
-        });
+        }
     }
 
     private static LfBus getLfBus(Terminal terminal, LfNetwork lfNetwork, boolean breakers) {

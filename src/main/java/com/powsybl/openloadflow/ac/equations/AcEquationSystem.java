@@ -251,10 +251,6 @@ public final class AcEquationSystem {
         if (p1 != null) {
             equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
             branch.setP1(p1);
-
-            if (creationParameters.isPhaseControl()) {
-                createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.ONE, equationSystem, p1);
-            }
         }
         if (q1 != null) {
             equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q).addTerm(q1);
@@ -263,14 +259,20 @@ public final class AcEquationSystem {
         if (p2 != null) {
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
             branch.setP2(p2);
-
-            if (creationParameters.isPhaseControl()) {
-                createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.TWO, equationSystem, p2);
-            }
         }
         if (q2 != null) {
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
             branch.setQ2(q2);
+        }
+        // Is this branch controlled by another one.
+        if (creationParameters.isPhaseControl() && branch.getControllerBranch().isPresent()) {
+            PhaseControl phaseControl = branch.getControllerBranch().get().getPhaseControl().orElse(null);
+            if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.ONE && p1 != null) {
+                createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.ONE, equationSystem, p1);
+            }
+            if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.TWO && p2 != null) {
+                createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.TWO, equationSystem, p2);
+            }
         }
     }
 

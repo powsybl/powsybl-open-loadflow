@@ -27,20 +27,20 @@ public class PhaseControl {
     public enum ControlledSide {
         ONE,
         TWO,
-        THREE
     }
 
     private Mode mode;
 
-    private final ControlledSide controlledSide;
+    private ControlledSide controlledSide;
 
     private final double targetValue;
 
     private final Unit unit;
 
-    public PhaseControl(Mode mode, ControlledSide controlledSide, double targetValue, Unit unit) {
+    private LfBranch controlledBranch = null;
+
+    public PhaseControl(Mode mode, double targetValue, Unit unit) {
         this.mode = Objects.requireNonNull(mode);
-        this.controlledSide = Objects.requireNonNull(controlledSide);
         this.targetValue = targetValue;
         this.unit = Objects.requireNonNull(unit);
     }
@@ -57,11 +57,19 @@ public class PhaseControl {
         return controlledSide;
     }
 
+    public void setControlledSide(ControlledSide controlledSide) { this.controlledSide = Objects.requireNonNull(controlledSide); }
+
     public double getTargetValue() {
         return targetValue;
     }
 
     public Unit getUnit() {
         return unit;
+    }
+
+    public LfBranch getControlledBranch() { return controlledBranch; }
+
+    public void setControlledBranch(LfBranch branch) {
+        this.controlledBranch = Objects.requireNonNull(branch);
     }
 }
