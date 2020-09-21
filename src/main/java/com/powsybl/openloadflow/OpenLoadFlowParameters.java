@@ -7,13 +7,16 @@
 package com.powsybl.openloadflow;
 
 import com.google.auto.service.AutoService;
+import com.powsybl.commons.config.ModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.nr.AcLoadFlowObserver;
-import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.network.SlackBusSelector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -25,7 +28,7 @@ import static com.powsybl.openloadflow.util.ParameterConstants.*;
  */
 public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters> {
 
-    private SlackBusSelector slackBusSelector = new MostMeshedSlackBusSelector();
+    private SlackBusSelector slackBusSelector = SLACK_BUS_SELECTOR_DEFAULT_VALUE;
 
     private boolean distributedSlack = DISTRIBUTED_SLACK_DEFAULT_VALUE;
 
@@ -127,12 +130,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     @AutoService(LoadFlowParameters.ConfigLoader.class)
     public static class OpenLoadFlowConfigLoader implements LoadFlowParameters.ConfigLoader<OpenLoadFlowParameters> {
 
+        private static final Logger LOGGER = LoggerFactory.getLogger(OpenLoadFlowConfigLoader.class);
+
         @Override
         public OpenLoadFlowParameters load(PlatformConfig platformConfig) {
             OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
 
             platformConfig.getOptionalModuleConfig("open-loadflow-default-parameters")
                     .ifPresent(config -> {
+                        parameters.setSlackBusSelector(getSlackBusSelector(config));
                         parameters.setBalanceType(config.getEnumProperty(BALANCE_TYPE_PARAM_NAME, BalanceType.class, BALANCE_TYPE_DEFAULT_VALUE));
                         parameters.setDc(config.getBooleanProperty(DC_PARAM_NAME, DC_DEFAULT_VALUE));
                         parameters.setDistributedSlack(config.getBooleanProperty(DISTRIBUTED_SLACK_PARAM_NAME, DISTRIBUTED_SLACK_DEFAULT_VALUE));
@@ -143,6 +149,17 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                         );
                     });
             return parameters;
+        }
+
+        private SlackBusSelector getSlackBusSelector(ModuleConfig config) {
+            SlackBusSelector slackBusSelector = SLACK_BUS_SELECTOR_DEFAULT_VALUE;
+            Class<? extends SlackBusSelector> slackBusSelectorClass = config.getClassProperty(SLACK_BUS_SELECTOR_PARAM_NAME, SlackBusSelector.class, SLACK_BUS_SELECTOR_DEFAULT_VALUE.getClass());
+            try {
+                slackBusSelector = slackBusSelectorClass.getDeclaredConstructor().newInstance();
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                LOGGER.error("Fail to instantiate a SlackBusSelector '{}'", slackBusSelectorClass.getSimpleName());
+            }
+            return slackBusSelector;
         }
 
         @Override
