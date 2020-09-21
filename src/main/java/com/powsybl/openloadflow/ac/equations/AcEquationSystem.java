@@ -214,7 +214,7 @@ public final class AcEquationSystem {
         DcEquationSystem.createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
     }
 
-    private static void createBranchActivePowerTargetEquation(LfBranch branch, PhaseControl.ControlledSide controlledSide,
+    private static void createBranchActivePowerTargetEquation(LfBranch branch, AbstractControl.ControlledSide controlledSide,
                                                               EquationSystem equationSystem, EquationTerm p) {
         if (branch.hasControllerBranch()) {
             LfBranch controllerBranch = branch.getControllerBranch().get();
@@ -274,11 +274,11 @@ public final class AcEquationSystem {
             LfBranch controllerBranch = branch.getControllerBranch().get();
             if (controllerBranch.hasPhaseControl()) {
                 PhaseControl phaseControl = controllerBranch.getPhaseControl().get();
-                if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.ONE && p1 != null) {
-                    createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.ONE, equationSystem, p1);
+                if (phaseControl.getControlledSide() == AbstractControl.ControlledSide.ONE && p1 != null) {
+                    createBranchActivePowerTargetEquation(branch, AbstractControl.ControlledSide.ONE, equationSystem, p1);
                 }
-                if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.TWO && p2 != null) {
-                    createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.TWO, equationSystem, p2);
+                if (phaseControl.getControlledSide() == AbstractControl.ControlledSide.TWO && p2 != null) {
+                    createBranchActivePowerTargetEquation(branch, AbstractControl.ControlledSide.TWO, equationSystem, p2);
                 }
             } else {
                 throw new PowsyblException("Controller branch '" + controllerBranch.getId() + "' without Phase control");
