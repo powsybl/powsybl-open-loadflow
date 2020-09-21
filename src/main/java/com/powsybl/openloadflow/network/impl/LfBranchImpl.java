@@ -27,7 +27,7 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
 
-    private PhaseControl phaseControl;
+    private final PhaseControl phaseControl;
 
     private final Branch branch;
 

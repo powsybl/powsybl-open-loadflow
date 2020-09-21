@@ -215,10 +215,12 @@ public final class AcEquationSystem {
 
     private static void createBranchActivePowerTargetEquation(LfBranch branch, AbstractControl.ControlledSide controlledSide,
                                                               EquationSystem equationSystem, EquationTerm p) {
-        if (branch.hasControllerBranch()) {
-            LfBranch controllerBranch = branch.getControllerBranch().get();
-            if (controllerBranch.hasPhaseControl()) {
-                PhaseControl phaseControl = controllerBranch.getPhaseControl().get();
+        Optional<LfBranch> controllerBranchOptional = branch.getControllerBranch();
+        if (controllerBranchOptional.isPresent()) {
+            LfBranch controllerBranch = controllerBranchOptional.get();
+            Optional<PhaseControl> phaseControlOptional = controllerBranch.getPhaseControl();
+            if (phaseControlOptional.isPresent()) {
+                PhaseControl phaseControl = phaseControlOptional.get();
                 if (phaseControl.getMode() == PhaseControl.Mode.CONTROLLER &&
                     phaseControl.getControlledSide() == controlledSide) {
                     if (phaseControl.getUnit() == PhaseControl.Unit.A) {
@@ -269,10 +271,12 @@ public final class AcEquationSystem {
             branch.setQ2(q2);
         }
         // Is this branch controlled by another one.
-        if (creationParameters.isPhaseControl() && branch.hasControllerBranch()) {
-            LfBranch controllerBranch = branch.getControllerBranch().get();
-            if (controllerBranch.hasPhaseControl()) {
-                PhaseControl phaseControl = controllerBranch.getPhaseControl().get();
+        Optional<LfBranch> controllerBranchOptional = branch.getControllerBranch();
+        if (creationParameters.isPhaseControl() && controllerBranchOptional.isPresent()) {
+            LfBranch controllerBranch = controllerBranchOptional.get();
+            Optional<PhaseControl> phaseControlOptional = controllerBranch.getPhaseControl();
+            if (phaseControlOptional.isPresent()) {
+                PhaseControl phaseControl = phaseControlOptional.get();
                 if (phaseControl.getControlledSide() == AbstractControl.ControlledSide.ONE && p1 != null) {
                     createBranchActivePowerTargetEquation(branch, AbstractControl.ControlledSide.ONE, equationSystem, p1);
                 }
