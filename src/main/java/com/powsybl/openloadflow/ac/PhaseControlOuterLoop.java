@@ -19,6 +19,8 @@ import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Optional;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -38,10 +40,12 @@ public class PhaseControlOuterLoop implements OuterLoop {
         if (context.getIteration() == 0) {
             // at first iteration all branches controlling phase are switched off
             for (LfBranch branch : context.getNetwork().getBranches()) {
-                if (branch.hasControllerBranch()) {
-                    LfBranch controllerBranch = branch.getControllerBranch().get();
-                    if (controllerBranch.hasPhaseControl()) {
-                        PhaseControl phaseControl = controllerBranch.getPhaseControl().get();
+                Optional<LfBranch> controllerBranchOptional = branch.getControllerBranch();
+                if (controllerBranchOptional.isPresent()) {
+                    LfBranch controllerBranch = controllerBranchOptional.get();
+                    Optional<PhaseControl> phaseControlOptional = controllerBranch.getPhaseControl();
+                    if (phaseControlOptional.isPresent()) {
+                        PhaseControl phaseControl = phaseControlOptional.get();
                         if (phaseControl.getMode() == PhaseControl.Mode.CONTROLLER) {
 
                             // switch off phase shifter
@@ -72,10 +76,12 @@ public class PhaseControlOuterLoop implements OuterLoop {
             // at second iteration we switch on phase control for branches that are in limiter mode
             // and a current greater than the limit
             for (LfBranch branch : context.getNetwork().getBranches()) {
-                if (branch.hasControllerBranch()) {
-                    LfBranch controllerBranch = branch.getControllerBranch().get();
-                    if (controllerBranch.hasPhaseControl()) {
-                        PhaseControl phaseControl = controllerBranch.getPhaseControl().get();
+                Optional<LfBranch> controllerBranchOptional = branch.getControllerBranch();
+                if (controllerBranchOptional.isPresent()) {
+                    LfBranch controllerBranch = controllerBranchOptional.get();
+                    Optional<PhaseControl> phaseControlOptional = controllerBranch.getPhaseControl();
+                    if (phaseControlOptional.isPresent()) {
+                        PhaseControl phaseControl = phaseControlOptional.get();
                         if (phaseControl.getMode() == PhaseControl.Mode.LIMITER) {
                             // TODO
                             LOGGER.warn("Phase shifter in limiter mode not yet implemented");

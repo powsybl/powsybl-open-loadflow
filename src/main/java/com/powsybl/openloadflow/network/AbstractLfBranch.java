@@ -56,16 +56,6 @@ public abstract class AbstractLfBranch implements LfBranch {
     }
 
     @Override
-    public boolean hasPhaseControl() {
-        return getPhaseControl().isPresent();
-    }
-
-    @Override
-    public boolean hasControllerBranch() {
-        return getControllerBranch().isPresent();
-    }
-
-    @Override
     public Optional<LfBranch> getControllerBranch() {
         return Optional.ofNullable(controllerBranch);
     }
