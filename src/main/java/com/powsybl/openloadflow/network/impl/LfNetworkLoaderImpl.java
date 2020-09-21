@@ -194,29 +194,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             addBranch(lfNetwork, LfBranchImpl.create(branch, lfBus1, lfBus2, twtSplitShuntAdmittance), report);
         }
 
-        loadingContext.branchSet.stream().filter(b -> b instanceof TwoWindingsTransformer).forEach(b -> {
-            // Complete phase controls when controlled branch is remote.
-            // set controller -> controlled link
-            TwoWindingsTransformer t2wt = (TwoWindingsTransformer) b;
-            PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
-            if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
-                Connectable connectable = ptc.getRegulationTerminal().getConnectable();
-                String lfBranchId = connectable.getId();
-                LfBranch controlledBranch = lfNetwork.getBranchById(lfBranchId);
-                LfBranch controllerBranch = lfNetwork.getBranchById(t2wt.getId());
-                Optional<PhaseControl> phaseControl = controllerBranch.getPhaseControl();
-                if (phaseControl.isPresent()) {
-                    phaseControl.get().setControlledBranch(controlledBranch);
-                    controlledBranch.setControllerBranch(controllerBranch);
-                    LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
-                    if (controlledBus == controlledBranch.getBus1()) {
-                        phaseControl.get().setControlledSide(PhaseControl.ControlledSide.ONE);
-                    } else {
-                        phaseControl.get().setControlledSide(PhaseControl.ControlledSide.TWO);
-                    }
-                }
+        for (Branch branch : loadingContext.branchSet) {
+            if (branch instanceof TwoWindingsTransformer) {
+                // Complete phase controls when controlled branch is remote.
+                // set controller -> controlled link
+                TwoWindingsTransformer t2wt = (TwoWindingsTransformer) branch;
+                PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
+                updatePhaseControl(lfNetwork, ptc, t2wt.getId(), "");
             }
-        });
+        }
 
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
             LfDanglingLineBus lfBus2 = new LfDanglingLineBus(danglingLine);
@@ -246,29 +232,30 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             int legNumber = 1;
             for (ThreeWindingsTransformer.Leg leg : legs) {
                 PhaseTapChanger ptc = leg.getPhaseTapChanger();
-                if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
-                    Connectable connectable = ptc.getRegulationTerminal().getConnectable();
-                    String lfBranchId;
-                    if (connectable instanceof ThreeWindingsTransformer) {
-                        lfBranchId = connectable.getId() + "_leg_" + legNumber;
-                    } else {
-                        lfBranchId = connectable.getId();
-                    }
-                    LfBranch controlledBranch = lfNetwork.getBranchById(lfBranchId);
-                    LfBranch controllerBranch = lfNetwork.getBranchById(t3wt.getId() + "_leg_" + legNumber);
-                    Optional<PhaseControl> phaseControl = controllerBranch.getPhaseControl();
-                    if (phaseControl.isPresent()) {
-                        phaseControl.get().setControlledBranch(controlledBranch);
-                        controlledBranch.setControllerBranch(controllerBranch);
-                        LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
-                        if (controlledBus == controlledBranch.getBus1()) {
-                            phaseControl.get().setControlledSide(PhaseControl.ControlledSide.ONE);
-                        } else {
-                            phaseControl.get().setControlledSide(PhaseControl.ControlledSide.TWO);
-                        }
-                    }
-                }
+                updatePhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + legNumber);
                 legNumber++;
+            }
+        }
+    }
+
+    private static void updatePhaseControl(LfNetwork lfNetwork, PhaseTapChanger ptc, String controllerBranchId, String legId) {
+        if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
+            Connectable connectable = ptc.getRegulationTerminal().getConnectable();
+            String controlledBranchId = connectable.getId();
+            if (connectable instanceof ThreeWindingsTransformer) {
+                controlledBranchId += legId;
+            }
+            LfBranch controlledBranch = lfNetwork.getBranchById(controlledBranchId);
+            LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
+            if (controllerBranch.hasPhaseControl()) {
+                PhaseControl phaseControl = controllerBranch.getPhaseControl().get();
+                controlledBranch.setControllerBranch(controllerBranch);
+                LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
+                if (controlledBus == controlledBranch.getBus1()) {
+                    phaseControl.setControlledSide(AbstractControl.ControlledSide.ONE);
+                } else {
+                    phaseControl.setControlledSide(AbstractControl.ControlledSide.TWO);
+                }
             }
         }
     }
