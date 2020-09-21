@@ -7,12 +7,11 @@
 package com.powsybl.openloadflow.network;
 
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class PhaseControl {
+public class PhaseControl extends AbstractControl {
 
     public enum Mode {
         CONTROLLER,
@@ -25,24 +24,13 @@ public class PhaseControl {
         A
     }
 
-    public enum ControlledSide {
-        ONE,
-        TWO,
-    }
-
     private Mode mode;
-
-    private ControlledSide controlledSide;
-
-    private final double targetValue;
 
     private final Unit unit;
 
-    private LfBranch controlledBranch;
-
     public PhaseControl(Mode mode, double targetValue, Unit unit) {
+        super(targetValue);
         this.mode = Objects.requireNonNull(mode);
-        this.targetValue = targetValue;
         this.unit = Objects.requireNonNull(unit);
     }
 
@@ -54,27 +42,7 @@ public class PhaseControl {
         this.mode = Objects.requireNonNull(mode);
     }
 
-    public ControlledSide getControlledSide() {
-        return controlledSide;
-    }
-
-    public void setControlledSide(ControlledSide controlledSide) {
-        this.controlledSide = Objects.requireNonNull(controlledSide);
-    }
-
-    public double getTargetValue() {
-        return targetValue;
-    }
-
     public Unit getUnit() {
         return unit;
-    }
-
-    public Optional<LfBranch> getControlledBranch() {
-        return Optional.ofNullable(controlledBranch);
-    }
-
-    public void setControlledBranch(LfBranch branch) {
-        this.controlledBranch = Objects.requireNonNull(branch);
     }
 }

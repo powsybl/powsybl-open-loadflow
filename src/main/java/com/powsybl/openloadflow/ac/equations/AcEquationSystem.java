@@ -215,15 +215,19 @@ public final class AcEquationSystem {
 
     private static void createBranchActivePowerTargetEquation(LfBranch branch, PhaseControl.ControlledSide controlledSide,
                                                               EquationSystem equationSystem, EquationTerm p) {
-        PhaseControl phaseControl = branch.getControllerBranch().get().getPhaseControl().orElse(null);
-        if (phaseControl != null
-                && phaseControl.getMode() == PhaseControl.Mode.CONTROLLER
-                && phaseControl.getControlledSide() == controlledSide) {
-            if (phaseControl.getUnit() == PhaseControl.Unit.A) {
-                throw new PowsyblException("Phase control in A is not yet supported");
+        if (branch.hasControllerBranch()) {
+            LfBranch controllerBranch = branch.getControllerBranch().get();
+            if (controllerBranch.hasPhaseControl()) {
+                PhaseControl phaseControl = controllerBranch.getPhaseControl().get();
+                if (phaseControl.getMode() == PhaseControl.Mode.CONTROLLER &&
+                    phaseControl.getControlledSide() == controlledSide) {
+                    if (phaseControl.getUnit() == PhaseControl.Unit.A) {
+                        throw new PowsyblException("Phase control in A is not yet supported");
+                    }
+                    equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_P)
+                            .addTerm(p);
+                }
             }
-            equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_P)
-                    .addTerm(p);
         }
     }
 
@@ -265,18 +269,18 @@ public final class AcEquationSystem {
             branch.setQ2(q2);
         }
         // Is this branch controlled by another one.
-        Optional<LfBranch> controllerBranch = branch.getControllerBranch();
-        if (creationParameters.isPhaseControl() && controllerBranch.isPresent()) {
-            Optional<PhaseControl> phaseControl = controllerBranch.get().getPhaseControl();
-            if (phaseControl.isPresent()) {
-                if (phaseControl.get().getControlledSide() == PhaseControl.ControlledSide.ONE && p1 != null) {
+        if (creationParameters.isPhaseControl() && branch.hasControllerBranch()) {
+            LfBranch controllerBranch = branch.getControllerBranch().get();
+            if (controllerBranch.hasPhaseControl()) {
+                PhaseControl phaseControl = controllerBranch.getPhaseControl().get();
+                if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.ONE && p1 != null) {
                     createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.ONE, equationSystem, p1);
                 }
-                if (phaseControl.get().getControlledSide() == PhaseControl.ControlledSide.TWO && p2 != null) {
+                if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.TWO && p2 != null) {
                     createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.TWO, equationSystem, p2);
                 }
             } else {
-                throw new PowsyblException("Controller branch '" + controllerBranch.get().getId() + "' without Phase control");
+                throw new PowsyblException("Controller branch '" + controllerBranch.getId() + "' without Phase control");
             }
         }
     }

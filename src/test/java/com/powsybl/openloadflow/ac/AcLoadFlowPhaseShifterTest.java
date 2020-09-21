@@ -182,7 +182,7 @@ class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
-    void flowControl3WTTest() {
+    void flowControlT3wtTest() {
         selectNetwork(createNetworkWithT3wt());
         parameters.setPhaseShifterRegulationOn(true);
         t3wt.getLeg2().getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
@@ -196,11 +196,11 @@ class AcLoadFlowPhaseShifterTest {
         assertTrue(result.isOk());
         assertActivePowerEquals(-0.7403999884197101, line2.getTerminal1());
         assertActivePowerEquals(0.7428793087142719, line2.getTerminal2());
-        assertEquals(2, t3wt.getLeg2().getPhaseTapChanger().getTapPosition()); // 2
+        assertEquals(2, t3wt.getLeg2().getPhaseTapChanger().getTapPosition());
     }
 
     @Test
-    void remoteFlowControl3WTTest() {
+    void remoteFlowControlT3wtTest() {
         selectNetwork(createNetworkWithT3wt());
         parameters.setPhaseShifterRegulationOn(true);
         t3wt.getLeg2().getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
@@ -213,11 +213,11 @@ class AcLoadFlowPhaseShifterTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertActivePowerEquals(75.94143342722937, line1.getTerminal1());
-        assertEquals(2, t3wt.getLeg2().getPhaseTapChanger().getTapPosition()); // 2
+        assertEquals(2, t3wt.getLeg2().getPhaseTapChanger().getTapPosition());
     }
 
     /**
-     * A very small network to test a phase shifter on a T2WT.
+     * A very small network to test a phase shifter on a T2wt.
      *
      *     G1                   LD2
      *     |          L1        |
@@ -226,7 +226,6 @@ class AcLoadFlowPhaseShifterTest {
      *        --------B3-------
      *           PS1       L2
      */
-
     private static Network createNetworkWithT2wt() {
         Network network = PhaseShifterTestCaseFactory.create();
         TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
@@ -236,7 +235,7 @@ class AcLoadFlowPhaseShifterTest {
     }
 
     /**
-     * A very small network to test a phase shifter on a T3WT.
+     * A very small network to test a phase shifter on a T3wt.
      *
      *     G1                   LD2
      *     |          L1        |

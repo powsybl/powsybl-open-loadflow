@@ -38,31 +38,33 @@ public class PhaseControlOuterLoop implements OuterLoop {
         if (context.getIteration() == 0) {
             // at first iteration all branches controlling phase are switched off
             for (LfBranch branch : context.getNetwork().getBranches()) {
-                if (branch.getControllerBranch().isPresent()) {
+                if (branch.hasControllerBranch()) {
                     LfBranch controllerBranch = branch.getControllerBranch().get();
-                    PhaseControl phaseControl = controllerBranch.getPhaseControl().orElse(null);
-                    if (phaseControl != null && phaseControl.getMode() == PhaseControl.Mode.CONTROLLER) {
+                    if (controllerBranch.hasPhaseControl()) {
+                        PhaseControl phaseControl = controllerBranch.getPhaseControl().get();
+                        if (phaseControl.getMode() == PhaseControl.Mode.CONTROLLER) {
 
-                        // switch off phase shifter
-                        phaseControl.setMode(PhaseControl.Mode.OFF);
+                            // switch off phase shifter
+                            phaseControl.setMode(PhaseControl.Mode.OFF);
 
-                        // de-activate a1 variable for next outer loop run
-                        Variable a1 = context.getVariableSet().getVariable(controllerBranch.getNum(), VariableType.BRANCH_ALPHA1);
-                        a1.setActive(false);
+                            // de-activate a1 variable for next outer loop run
+                            Variable a1 = context.getVariableSet().getVariable(controllerBranch.getNum(), VariableType.BRANCH_ALPHA1);
+                            a1.setActive(false);
 
-                        // de-activate phase control equation
-                        Equation t = context.getEquationSystem().createEquation(branch.getNum(), EquationType.BRANCH_P);
-                        t.setActive(false);
+                            // de-activate phase control equation
+                            Equation t = context.getEquationSystem().createEquation(branch.getNum(), EquationType.BRANCH_P);
+                            t.setActive(false);
 
-                        // round the phase shift to the closest tap
-                        PiModel piModel = controllerBranch.getPiModel();
-                        double a1Value = piModel.getA1();
-                        piModel.roundA1ToClosestTap();
-                        double roundedA1Value = piModel.getA1();
-                        LOGGER.info("Round phase shift of '{}': {} -> {}", controllerBranch.getId(), a1Value, roundedA1Value);
+                            // round the phase shift to the closest tap
+                            PiModel piModel = controllerBranch.getPiModel();
+                            double a1Value = piModel.getA1();
+                            piModel.roundA1ToClosestTap();
+                            double roundedA1Value = piModel.getA1();
+                            LOGGER.info("Round phase shift of '{}': {} -> {}", controllerBranch.getId(), a1Value, roundedA1Value);
 
-                        // if at least one phase shifter has been switched off wee need to continue
-                        status = OuterLoopStatus.UNSTABLE;
+                            // if at least one phase shifter has been switched off wee need to continue
+                            status = OuterLoopStatus.UNSTABLE;
+                        }
                     }
                 }
             }
@@ -70,12 +72,14 @@ public class PhaseControlOuterLoop implements OuterLoop {
             // at second iteration we switch on phase control for branches that are in limiter mode
             // and a current greater than the limit
             for (LfBranch branch : context.getNetwork().getBranches()) {
-                if (branch.getControllerBranch().isPresent()) {
+                if (branch.hasControllerBranch()) {
                     LfBranch controllerBranch = branch.getControllerBranch().get();
-                    PhaseControl phaseControl = controllerBranch.getPhaseControl().orElse(null);
-                    if (phaseControl != null && phaseControl.getMode() == PhaseControl.Mode.LIMITER) {
-                        // TODO
-                        LOGGER.warn("Phase shifter in limiter mode not yet implemented");
+                    if (controllerBranch.hasPhaseControl()) {
+                        PhaseControl phaseControl = controllerBranch.getPhaseControl().get();
+                        if (phaseControl.getMode() == PhaseControl.Mode.LIMITER) {
+                            // TODO
+                            LOGGER.warn("Phase shifter in limiter mode not yet implemented");
+                        }
                     }
                 }
             }

@@ -137,7 +137,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     private static double getBranchTarget(LfBranch branch, PhaseControl.Unit unit) {
         Objects.requireNonNull(branch);
-        PhaseControl phaseControl = branch.getControllerBranch().get().getPhaseControl()
+        LfBranch controllerBranch = branch.getControllerBranch()
+                .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no controller branch"));
+        PhaseControl phaseControl = controllerBranch.getPhaseControl()
                 .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no phase control"));
         if (phaseControl.getUnit() != unit) {
             throw new PowsyblException("Branch '" + branch.getId() + "' has not a target in " + unit);
