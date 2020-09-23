@@ -10,6 +10,8 @@ import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
 import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.commons.config.MapModuleConfig;
+import com.powsybl.commons.config.PlatformConfig;
+import com.powsybl.commons.config.YamlModuleConfigRepository;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.SlackBusSelector;
@@ -19,6 +21,8 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.junit.Assert.*;
 import static com.powsybl.openloadflow.util.ParameterConstants.*;
@@ -40,7 +44,7 @@ public class OpenLoadFlowParametersTest {
         fileSystem = Jimfs.newFileSystem(Configuration.unix());
         platformConfig = new InMemoryPlatformConfig(fileSystem);
 
-        lfModuleConfig = platformConfig.createModuleConfig("load-flow-default-parameters");
+        lfModuleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
         lfModuleConfig.setStringProperty("voltageInitMode", LoadFlowParameters.VoltageInitMode.DC_VALUES.toString());
         lfModuleConfig.setStringProperty("transformerVoltageControlOn", Boolean.toString(true));
     }
@@ -101,4 +105,18 @@ public class OpenLoadFlowParametersTest {
         // Default value are selected and error log message is printed
         assertEquals(SLACK_BUS_SELECTOR_DEFAULT_VALUE, olfParameters.getSlackBusSelector());
     }
+
+    @Test
+    public void testSlackBusSelector() throws IOException {
+        Path cfgDir = Files.createDirectory(fileSystem.getPath("config"));
+        Path cfgFile = cfgDir.resolve("configFirstSlackBusSelector.yml");
+
+        Files.copy(getClass().getResourceAsStream("/configFirstSlackBusSelector.yml"), cfgFile);
+        PlatformConfig platformConfig = new PlatformConfig(new YamlModuleConfigRepository(cfgFile), cfgDir);
+
+        LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
+        OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
+        assertEquals(FirstSlackBusSelector.class, olfParameters.getSlackBusSelector().getClass());
+    }
+
 }
