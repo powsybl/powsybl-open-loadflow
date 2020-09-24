@@ -14,8 +14,6 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.nr.AcLoadFlowObserver;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 import com.powsybl.openloadflow.network.SlackBusSelectorParametersReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -130,8 +128,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     @AutoService(LoadFlowParameters.ConfigLoader.class)
     public static class OpenLoadFlowConfigLoader implements LoadFlowParameters.ConfigLoader<OpenLoadFlowParameters> {
-
-        private static final Logger LOGGER = LoggerFactory.getLogger(OpenLoadFlowConfigLoader.class);
 
         @Override
         public OpenLoadFlowParameters load(PlatformConfig platformConfig) {
