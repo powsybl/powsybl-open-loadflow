@@ -1,2 +1,2 @@
 open-loadflow-default-parameters:
-    slackBusSelector: com.powsybl.openloadflow.network.FirstSlackBusSelector
+    slackBusSelectorType: "First"

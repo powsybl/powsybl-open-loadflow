@@ -13,13 +13,14 @@ import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.nr.AcLoadFlowObserver;
 import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.network.SlackBusSelectorParametersReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.ServiceLoader;
 
 import static com.powsybl.openloadflow.util.ParameterConstants.*;
 
@@ -152,14 +153,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         }
 
         private SlackBusSelector getSlackBusSelector(ModuleConfig config) {
-            SlackBusSelector slackBusSelector = SLACK_BUS_SELECTOR_DEFAULT_VALUE;
-            Class<? extends SlackBusSelector> slackBusSelectorClass = config.getClassProperty(SLACK_BUS_SELECTOR_PARAM_NAME, SlackBusSelector.class, SLACK_BUS_SELECTOR_DEFAULT_VALUE.getClass());
-            try {
-                slackBusSelector = slackBusSelectorClass.getDeclaredConstructor().newInstance();
-            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                LOGGER.error("Fail to instantiate a SlackBusSelector '{}'", slackBusSelectorClass.getSimpleName());
+            String type = config.getStringProperty("slackBusSelectorType");
+            SlackBusSelector slackBusSelector = null;
+            for (SlackBusSelectorParametersReader reader : ServiceLoader.load(SlackBusSelectorParametersReader.class)) {
+                if (type.equals(reader.getName())) {
+                    slackBusSelector = reader.read(config);
+                }
             }
-            return slackBusSelector;
+            return slackBusSelector != null ? slackBusSelector : SLACK_BUS_SELECTOR_DEFAULT_VALUE;
         }
 
         @Override

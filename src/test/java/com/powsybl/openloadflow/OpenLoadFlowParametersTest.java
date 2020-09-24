@@ -14,7 +14,8 @@ import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.config.YamlModuleConfigRepository;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
+import com.powsybl.openloadflow.network.NameSlackBusSelector;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,14 +38,12 @@ public class OpenLoadFlowParametersTest {
 
     private FileSystem fileSystem;
 
-    private MapModuleConfig lfModuleConfig;
-
     @Before
     public void setUp() {
         fileSystem = Jimfs.newFileSystem(Configuration.unix());
         platformConfig = new InMemoryPlatformConfig(fileSystem);
 
-        lfModuleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
+        MapModuleConfig lfModuleConfig = platformConfig.createModuleConfig("load-flow-default-parameters");
         lfModuleConfig.setStringProperty("voltageInitMode", LoadFlowParameters.VoltageInitMode.DC_VALUES.toString());
         lfModuleConfig.setStringProperty("transformerVoltageControlOn", Boolean.toString(true));
     }
@@ -59,7 +58,7 @@ public class OpenLoadFlowParametersTest {
         MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
         olfModuleConfig.setStringProperty(BALANCE_TYPE_PARAM_NAME, OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD.toString());
         olfModuleConfig.setStringProperty(DC_PARAM_NAME, Boolean.toString(true));
-        olfModuleConfig.setClassProperty(SLACK_BUS_SELECTOR_PARAM_NAME, FirstSlackBusSelector.class);
+        olfModuleConfig.setStringProperty("slackBusSelectorType", "First");
 
         LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
 
@@ -96,8 +95,8 @@ public class OpenLoadFlowParametersTest {
     @Test
     public void testInvalidOpenLoadflowConfig() {
         MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
-        // Invalid -> SlackBusSelector cannot be instantiate
-        olfModuleConfig.setClassProperty(SLACK_BUS_SELECTOR_PARAM_NAME, SlackBusSelector.class);
+        // Invalid -> SlackBusSelectorParametersReader cannot be found
+        olfModuleConfig.setStringProperty("slackBusSelectorType", "Invalid");
 
         LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
@@ -107,7 +106,7 @@ public class OpenLoadFlowParametersTest {
     }
 
     @Test
-    public void testSlackBusSelector() throws IOException {
+    public void testFirstSlackBusSelector() throws IOException {
         Path cfgDir = Files.createDirectory(fileSystem.getPath("config"));
         Path cfgFile = cfgDir.resolve("configFirstSlackBusSelector.yml");
 
@@ -119,4 +118,29 @@ public class OpenLoadFlowParametersTest {
         assertEquals(FirstSlackBusSelector.class, olfParameters.getSlackBusSelector().getClass());
     }
 
+    @Test
+    public void testMostMeshedSlackBusSelector() throws IOException {
+        Path cfgDir = Files.createDirectory(fileSystem.getPath("config"));
+        Path cfgFile = cfgDir.resolve("configMostMeshedSlackBusSelector.yml");
+
+        Files.copy(getClass().getResourceAsStream("/configMostMeshedSlackBusSelector.yml"), cfgFile);
+        PlatformConfig platformConfig = new PlatformConfig(new YamlModuleConfigRepository(cfgFile), cfgDir);
+
+        LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
+        OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
+        assertEquals(MostMeshedSlackBusSelector.class, olfParameters.getSlackBusSelector().getClass());
+    }
+
+    @Test
+    public void testNameMeshedSlackBusSelector() throws IOException {
+        Path cfgDir = Files.createDirectory(fileSystem.getPath("config"));
+        Path cfgFile = cfgDir.resolve("configNameSlackBusSelector.yml");
+
+        Files.copy(getClass().getResourceAsStream("/configNameSlackBusSelector.yml"), cfgFile);
+        PlatformConfig platformConfig = new PlatformConfig(new YamlModuleConfigRepository(cfgFile), cfgDir);
+
+        LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
+        OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
+        assertEquals(NameSlackBusSelector.class, olfParameters.getSlackBusSelector().getClass());
+    }
 }

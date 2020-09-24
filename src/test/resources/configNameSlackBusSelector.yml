@@ -1,0 +1,3 @@
+open-loadflow-default-parameters:
+    slackBusSelectorType: "Name"
+    nameSlackBusSelectorBusId: "toto"
