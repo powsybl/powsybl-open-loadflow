@@ -51,7 +51,7 @@ public class LfBranchTripping extends BranchTripping {
             nodeBreakerView.traverse(initNode, (nodeBefore, sw, nodeAfter) -> {
                 if (sw != null) {
                     if (isOpenable(sw) || sw.isOpen()) {
-                        if (!sw.isOpen() && isSwitchLfNeeded(sw, nodeBefore, initNode)) {
+                        if (!sw.isOpen() && isSwitchLfNeeded(sw, nodeBefore, nodeAfter, initNode)) {
                             switchesToOpen.add(sw);
                         }
                         return false;
@@ -67,10 +67,22 @@ public class LfBranchTripping extends BranchTripping {
         }
     }
 
-    private static boolean isSwitchLfNeeded(Switch sw, int nodeBefore, int initNode) {
-        // TODO: find other rules to identify switches which don't need to be retained
+    private static boolean isSwitchLfNeeded(Switch sw, int nodeBefore, int nodeAfter, int initNode) {
         return nodeBefore != initNode
-            && !isLineBeforeSwitch(sw, nodeBefore);
+            && !isLineBeforeSwitch(sw, nodeBefore)
+            && !isEndNodeAfterSwitch(sw, nodeAfter);
+    }
+
+    private static boolean isEndNodeAfterSwitch(Switch sw, int nodeAfter) {
+        Terminal terminal2 = sw.getVoltageLevel().getNodeBreakerView().getTerminal(nodeAfter);
+        if (terminal2 != null) {
+            ConnectableType connectableAfter = terminal2.getConnectable().getType();
+            //TODO: check other connectable types
+            return connectableAfter == ConnectableType.GENERATOR
+                || connectableAfter == ConnectableType.LOAD
+                || connectableAfter == ConnectableType.DANGLING_LINE;
+        }
+        return false;
     }
 
     private static boolean isLineBeforeSwitch(Switch sw, int nodeBefore) {
