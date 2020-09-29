@@ -11,10 +11,7 @@ import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.tasks.AbstractTrippingTask;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.Terminal;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
@@ -154,7 +151,11 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                 allSwitchesToOpen.add(sw);
             }
 
-            terminalsToDisconnect.forEach(t -> contingencyContext.branchIdsToOpen.add(t.getConnectable().getId()));
+            for (Terminal terminal : terminalsToDisconnect) {
+                if (terminal.getConnectable() instanceof Branch) {
+                    contingencyContext.branchIdsToOpen.add(terminal.getConnectable().getId());
+                }
+            }
 
         }
         return contingencyContexts;
