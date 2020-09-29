@@ -8,12 +8,15 @@ package com.powsybl.openloadflow;
 
 import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.commons.config.MapModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.config.YamlModuleConfigRepository;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.network.NameSlackBusSelector;
 import org.junit.After;
@@ -28,6 +31,7 @@ import java.nio.file.Path;
 import static org.junit.Assert.*;
 import static com.powsybl.openloadflow.util.ParameterConstants.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Jérémy Labous <jlabous at silicom.fr>
@@ -132,7 +136,7 @@ public class OpenLoadFlowParametersTest {
     }
 
     @Test
-    public void testNameMeshedSlackBusSelector() throws IOException {
+    public void testNameSlackBusSelector() throws IOException {
         Path cfgDir = Files.createDirectory(fileSystem.getPath("config"));
         Path cfgFile = cfgDir.resolve("configNameSlackBusSelector.yml");
 
@@ -142,5 +146,8 @@ public class OpenLoadFlowParametersTest {
         LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         assertEquals(NameSlackBusSelector.class, olfParameters.getSlackBusSelector().getClass());
+        LfNetwork lfNetwork = LfNetwork.load(EurostagTutorialExample1Factory.create(), olfParameters.getSlackBusSelector()).get(0);
+        PowsyblException thrown = assertThrows(PowsyblException.class, lfNetwork::getSlackBus);
+        assertEquals("Slack bus '???' not found", thrown.getMessage());
     }
 }
