@@ -50,8 +50,11 @@ public class LfBranchTripping extends BranchTripping {
             VoltageLevel.NodeBreakerView nodeBreakerView = terminal.getVoltageLevel().getNodeBreakerView();
             nodeBreakerView.traverse(initNode, (nodeBefore, sw, nodeAfter) -> {
                 if (sw != null) {
-                    if (isOpenable(sw) || sw.isOpen()) {
-                        if (!sw.isOpen() && isSwitchLfNeeded(sw, nodeBefore, nodeAfter, initNode)) {
+                    if (sw.isOpen()) {
+                        return false;
+                    }
+                    if (isOpenable(sw)) {
+                        if (isSwitchLfNeeded(sw, nodeBefore, nodeAfter, initNode)) {
                             switchesToOpen.add(sw);
                         }
                         return false;
