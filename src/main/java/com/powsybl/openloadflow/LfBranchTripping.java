@@ -79,8 +79,10 @@ public class LfBranchTripping extends BranchTripping {
             ConnectableType connectableAfter = terminal2.getConnectable().getType();
             //TODO: check other connectable types
             return connectableAfter == ConnectableType.GENERATOR
-                || connectableAfter == ConnectableType.LOAD
-                || connectableAfter == ConnectableType.DANGLING_LINE;
+                    || connectableAfter == ConnectableType.LOAD
+                    || connectableAfter == ConnectableType.DANGLING_LINE
+                    || connectableAfter == ConnectableType.STATIC_VAR_COMPENSATOR
+                    || connectableAfter == ConnectableType.SHUNT_COMPENSATOR;
         }
         return false;
     }
