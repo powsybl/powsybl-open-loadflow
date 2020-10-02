@@ -14,6 +14,8 @@ import com.powsybl.contingency.tasks.AbstractTrippingTask;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.ac.DistributedSlackOnGenerationOuterLoop;
+import com.powsybl.openloadflow.ac.DistributedSlackOnLoadOuterLoop;
 import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
@@ -265,16 +267,28 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             while (contingencyIt.hasNext()) {
                 LfContingency lfContingency = contingencyIt.next();
 
+                double mismatch = 0;
+                for (LfBus bus : lfContingency.getBuses()) {
+                    mismatch += bus.getGenerationTargetP() - bus.getLoadTargetP();
+                }
+                if (openLoadFlowParameters.isDistributedSlack() && Math.abs(mismatch) > 0) {
+                    if (openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
+                            openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
+                        DistributedSlackOnLoadOuterLoop outerLoop = new DistributedSlackOnLoadOuterLoop(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure(),
+                                openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+                        outerLoop.run(outerLoop.getParticipatingElements(network), -1, mismatch);
+                    } else if (openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX ||
+                            openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P) {
+                        DistributedSlackOnGenerationOuterLoop outerLoop = new DistributedSlackOnGenerationOuterLoop(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
+                        outerLoop.run(outerLoop.getParticipatingElements(network), -1, mismatch);
+                    }
+                }
+
                 PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency);
                 postContingencyResults.add(postContingencyResult);
 
                 if (contingencyIt.hasNext()) {
                     LOGGER.info("Restore pre-contingency state");
-
-                    double mismatch = 0;
-                    for (LfBus bus : lfContingency.getBuses()) {
-                        mismatch += bus.getGenerationTargetP() - bus.getLoadTargetP();
-                    } //TODO: if mismatch different than zero, start with a slack distribution.
 
                     // restore base state
                     restoreBusStates(busStates, engine);
