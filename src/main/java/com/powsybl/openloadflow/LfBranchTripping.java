@@ -89,7 +89,16 @@ public class LfBranchTripping extends BranchTripping {
 
     private static boolean isEndNodeAfterSwitch(Switch sw, int nodeAfter) {
         Terminal terminal2 = sw.getVoltageLevel().getNodeBreakerView().getTerminal(nodeAfter);
-        return terminal2 != null && terminal2.getConnectable() instanceof Injection;
+        if (terminal2 != null) {
+            ConnectableType connectableAfter = terminal2.getConnectable().getType();
+            //TODO: check other connectable types
+            return connectableAfter == ConnectableType.GENERATOR
+                    || connectableAfter == ConnectableType.LOAD
+                    || connectableAfter == ConnectableType.DANGLING_LINE
+                    || connectableAfter == ConnectableType.STATIC_VAR_COMPENSATOR
+                    || connectableAfter == ConnectableType.SHUNT_COMPENSATOR;
+        }
+        return false;
     }
 
     private static boolean isLineBeforeSwitch(Switch sw, int nodeBefore) {
@@ -105,6 +114,9 @@ public class LfBranchTripping extends BranchTripping {
 
     private boolean isBeforeOtherOpenedOrOpenableSwitches(Switch aSwitch, int nodeAfter) {
         VoltageLevel.NodeBreakerView nbv = aSwitch.getVoltageLevel().getNodeBreakerView();
+        if (nbv.getOptionalTerminal(nodeAfter).isPresent()) {
+            return false;
+        }
         List<Switch> openableSwitchesAtNodeAfter = nbv.getSwitchStream()
             .filter(s -> s != aSwitch && s != null &&  (nbv.getNode1(s.getId()) == nodeAfter || nbv.getNode2(s.getId()) == nodeAfter))
             .collect(Collectors.toList());
