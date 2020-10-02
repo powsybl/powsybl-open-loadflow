@@ -5,8 +5,10 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.tasks.BranchTripping;
 import com.powsybl.iidm.network.*;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
@@ -53,10 +55,25 @@ public class LfBranchTripping extends BranchTripping {
                     if (sw.isOpen()) {
                         return false;
                     }
-                    if (isOpenable(sw)) {
-                        if (isSwitchLfNeeded(sw, nodeBefore, nodeAfter, initNode)) {
-                            switchesToOpen.add(sw);
+                    if (nodeBefore == initNode) {
+                        if (isOpenable(sw)) {
+                            return false;
                         }
+                        if (isBeforeOtherOpenedOrOpenableSwitches(sw, nodeAfter)) {
+                            return false;
+                        }
+                    }
+                    if (isOpenable(sw)) {
+                        if (isLineBeforeSwitch(sw, nodeBefore)) {
+                            return false;
+                        }
+                        if (isBeforeOtherOpenedOrOpenableSwitches(sw, nodeAfter)) {
+                            return true;
+                        }
+                        if (isEndNodeAfterSwitch(sw, nodeAfter)) {
+                            return false;
+                        }
+                        switchesToOpen.add(sw);
                         return false;
                     }
                 }
@@ -70,24 +87,9 @@ public class LfBranchTripping extends BranchTripping {
         }
     }
 
-    private static boolean isSwitchLfNeeded(Switch sw, int nodeBefore, int nodeAfter, int initNode) {
-        return nodeBefore != initNode
-            && !isLineBeforeSwitch(sw, nodeBefore)
-            && !isEndNodeAfterSwitch(sw, nodeAfter);
-    }
-
     private static boolean isEndNodeAfterSwitch(Switch sw, int nodeAfter) {
         Terminal terminal2 = sw.getVoltageLevel().getNodeBreakerView().getTerminal(nodeAfter);
-        if (terminal2 != null) {
-            ConnectableType connectableAfter = terminal2.getConnectable().getType();
-            //TODO: check other connectable types
-            return connectableAfter == ConnectableType.GENERATOR
-                    || connectableAfter == ConnectableType.LOAD
-                    || connectableAfter == ConnectableType.DANGLING_LINE
-                    || connectableAfter == ConnectableType.STATIC_VAR_COMPENSATOR
-                    || connectableAfter == ConnectableType.SHUNT_COMPENSATOR;
-        }
-        return false;
+        return terminal2 != null && terminal2.getConnectable() instanceof Injection;
     }
 
     private static boolean isLineBeforeSwitch(Switch sw, int nodeBefore) {
@@ -99,6 +101,19 @@ public class LfBranchTripping extends BranchTripping {
         return !aSwitch.isOpen() &&
             !aSwitch.isFictitious() &&
             aSwitch.getKind() == SwitchKind.BREAKER;
+    }
+
+    private boolean isBeforeOtherOpenedOrOpenableSwitches(Switch aSwitch, int nodeAfter) {
+        VoltageLevel.NodeBreakerView nbv = aSwitch.getVoltageLevel().getNodeBreakerView();
+        List<Switch> openableSwitchesAtNodeAfter = nbv.getSwitchStream()
+            .filter(s -> s != aSwitch && s != null &&  (nbv.getNode1(s.getId()) == nodeAfter || nbv.getNode2(s.getId()) == nodeAfter))
+            .collect(Collectors.toList());
+        return !openableSwitchesAtNodeAfter.isEmpty()
+            && openableSwitchesAtNodeAfter.stream().allMatch(LfBranchTripping::isOpenOrOpenable);
+    }
+
+    private static boolean isOpenOrOpenable(Switch aSwitch) {
+        return aSwitch.isOpen() || isOpenable(aSwitch);
     }
 
 }
