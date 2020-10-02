@@ -126,6 +126,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return additionalObservers;
     }
 
+    public static OpenLoadFlowParameters load() {
+        return new OpenLoadFlowConfigLoader().load(PlatformConfig.defaultConfig());
+    }
+
     @AutoService(LoadFlowParameters.ConfigLoader.class)
     public static class OpenLoadFlowConfigLoader implements LoadFlowParameters.ConfigLoader<OpenLoadFlowParameters> {
 
