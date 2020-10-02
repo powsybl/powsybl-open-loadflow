@@ -213,7 +213,7 @@ public final class AcEquationSystem {
         DcEquationSystem.createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
     }
 
-    private static void createBranchActivePowerTargetEquation(LfBranch branch, AbstractControl.ControlledSide controlledSide,
+    private static void createBranchActivePowerTargetEquation(LfBranch branch, RegulationControl.ControlledSide controlledSide,
                                                               EquationSystem equationSystem, EquationTerm p) {
         Optional<LfBranch> controllerBranchOptional = branch.getControllerBranch();
         if (controllerBranchOptional.isPresent()) {
@@ -277,11 +277,11 @@ public final class AcEquationSystem {
             Optional<PhaseControl> phaseControlOptional = controllerBranch.getPhaseControl();
             if (phaseControlOptional.isPresent()) {
                 PhaseControl phaseControl = phaseControlOptional.get();
-                if (phaseControl.getControlledSide() == AbstractControl.ControlledSide.ONE && p1 != null) {
-                    createBranchActivePowerTargetEquation(branch, AbstractControl.ControlledSide.ONE, equationSystem, p1);
+                if (phaseControl.getControlledSide() == RegulationControl.ControlledSide.ONE && p1 != null) {
+                    createBranchActivePowerTargetEquation(branch, RegulationControl.ControlledSide.ONE, equationSystem, p1);
                 }
-                if (phaseControl.getControlledSide() == AbstractControl.ControlledSide.TWO && p2 != null) {
-                    createBranchActivePowerTargetEquation(branch, AbstractControl.ControlledSide.TWO, equationSystem, p2);
+                if (phaseControl.getControlledSide() == RegulationControl.ControlledSide.TWO && p2 != null) {
+                    createBranchActivePowerTargetEquation(branch, RegulationControl.ControlledSide.TWO, equationSystem, p2);
                 }
             } else {
                 throw new PowsyblException("Controller branch '" + controllerBranch.getId() + "' without Phase control");

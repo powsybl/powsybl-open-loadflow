@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -27,7 +26,7 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     private Evaluable q = NAN;
 
     protected LfDanglingLineBranch(LfBus bus1, LfBus bus2, PiModel piModel, DanglingLine danglingLine) {
-        super(bus1, bus2, piModel);
+        super(bus1, bus2, piModel, null, null);
         this.danglingLine = danglingLine;
     }
 
@@ -91,11 +90,6 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     @Override
     public double getPermanentLimit2() {
         return Double.NaN;
-    }
-
-    @Override
-    public Optional<PhaseControl> getPhaseControl() {
-        return Optional.empty();
     }
 
     @Override

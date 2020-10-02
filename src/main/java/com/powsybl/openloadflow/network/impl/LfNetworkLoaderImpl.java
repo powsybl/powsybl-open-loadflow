@@ -257,9 +257,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 controlledBranch.setControllerBranch(controllerBranch);
                 LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
                 if (controlledBus == controlledBranch.getBus1()) {
-                    phaseControl.setControlledSide(AbstractControl.ControlledSide.ONE);
+                    phaseControl.setControlledSide(RegulationControl.ControlledSide.ONE);
                 } else {
-                    phaseControl.setControlledSide(AbstractControl.ControlledSide.TWO);
+                    phaseControl.setControlledSide(RegulationControl.ControlledSide.TWO);
                 }
             }
         }
