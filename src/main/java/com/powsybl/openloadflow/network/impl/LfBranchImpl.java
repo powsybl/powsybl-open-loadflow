@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -26,8 +25,6 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 public class LfBranchImpl extends AbstractLfBranch {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
-
-    private final PhaseControl phaseControl;
 
     private final Branch branch;
 
@@ -39,9 +36,8 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private Evaluable q2 = NAN;
 
-    protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, PhaseControl phaseControl, Branch branch) {
-        super(bus1, bus2, piModel);
-        this.phaseControl = phaseControl;
+    protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, PhaseControl phaseControl, VoltageControl voltageControl, Branch branch) {
+        super(bus1, bus2, piModel, phaseControl, voltageControl);
         this.branch = branch;
     }
 
@@ -54,13 +50,14 @@ public class LfBranchImpl extends AbstractLfBranch {
                 .setB1(line.getB1() * zb)
                 .setB2(line.getB2() * zb);
 
-        return new LfBranchImpl(bus1, bus2, piModel, null, line);
+        return new LfBranchImpl(bus1, bus2, piModel, null, null, line);
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfBus bus1, LfBus bus2, double nominalV1,
                                                   double nominalV2, double zb, boolean twtSplitShuntAdmittance) {
         PiModel piModel = null;
         PhaseControl phaseControl = null;
+        VoltageControl voltageControl = null;
 
         PhaseTapChanger ptc = twt.getPhaseTapChanger();
         if (ptc != null
@@ -110,7 +107,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                     .setA1(Transformers.getAngle(twt));
         }
 
-        return new LfBranchImpl(bus1, bus2, piModel, phaseControl, twt);
+        return new LfBranchImpl(bus1, bus2, piModel, phaseControl, voltageControl, twt);
     }
 
     public static LfBranchImpl create(Branch branch, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance) {
@@ -176,11 +173,6 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public Optional<PhaseControl> getPhaseControl() {
-        return Optional.ofNullable(phaseControl);
-    }
-
-    @Override
     public void updateState() {
         branch.getTerminal1().setP(p1.eval() * PerUnit.SB);
         branch.getTerminal1().setQ(q1.eval() * PerUnit.SB);
@@ -193,10 +185,10 @@ public class LfBranchImpl extends AbstractLfBranch {
             ptc.setTapPosition(tapPosition);
             double distance = 0; // we check if the target value deadband is respected.
             double p = Double.NaN;
-            if (phaseControl.getControlledSide() == AbstractControl.ControlledSide.ONE) {
+            if (phaseControl.getControlledSide() == RegulationControl.ControlledSide.ONE) {
                 p = p1.eval() * PerUnit.SB;
                 distance = Math.abs(p - phaseControl.getTargetValue() * PerUnit.SB);
-            } else if (phaseControl.getControlledSide() == AbstractControl.ControlledSide.TWO) {
+            } else if (phaseControl.getControlledSide() == RegulationControl.ControlledSide.TWO) {
                 p = p2.eval() * PerUnit.SB;
                 distance = Math.abs(p - phaseControl.getTargetValue() * PerUnit.SB);
             }

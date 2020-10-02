@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.commons.PowsyblException;
+
 import java.util.Objects;
 import java.util.Optional;
 
@@ -22,12 +24,22 @@ public abstract class AbstractLfBranch implements LfBranch {
 
     private final PiModel piModel;
 
+    protected final PhaseControl phaseControl;
+
+    protected final VoltageControl voltageControl;
+
     protected LfBranch controllerBranch;
 
-    protected AbstractLfBranch(LfBus bus1, LfBus bus2, PiModel piModel) {
+    protected AbstractLfBranch(LfBus bus1, LfBus bus2, PiModel piModel, PhaseControl phaseControl, VoltageControl voltageControl) {
         this.bus1 = bus1;
         this.bus2 = bus2;
         this.piModel = Objects.requireNonNull(piModel);
+        this.phaseControl = phaseControl;
+        this.voltageControl = voltageControl;
+
+        if (phaseControl != null && voltageControl != null) {
+            throw new PowsyblException("Only one regulating control enabled is allowed");
+        }
     }
 
     @Override
@@ -63,5 +75,15 @@ public abstract class AbstractLfBranch implements LfBranch {
     @Override
     public void setControllerBranch(LfBranch controllerBranch) {
         this.controllerBranch = Objects.requireNonNull(controllerBranch, "Controller branch cannot be null");
+    }
+
+    @Override
+    public Optional<PhaseControl> getPhaseControl() {
+        return Optional.ofNullable(phaseControl);
+    }
+
+    @Override
+    public Optional<VoltageControl> getVoltageControl() {
+        return Optional.ofNullable(voltageControl);
     }
 }

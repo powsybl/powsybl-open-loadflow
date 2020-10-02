@@ -9,29 +9,20 @@ package com.powsybl.openloadflow.network;
 import java.util.Objects;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class PhaseControl extends AbstractControl {
+public class VoltageControl extends AbstractControl {
 
     public enum Mode {
-        CONTROLLER,
-        LIMITER,
+        VOLTAGE,
         OFF
-    }
-
-    public enum Unit {
-        MW,
-        A
     }
 
     private Mode mode;
 
-    private final Unit unit;
-
-    public PhaseControl(PhaseControl.Mode mode, double targetValue, Unit unit) {
-        super(targetValue);
+    public VoltageControl(Mode mode, double targetValue, ControlledSide controlledSide) {
+        super(targetValue, controlledSide);
         this.mode = Objects.requireNonNull(mode);
-        this.unit = Objects.requireNonNull(unit);
     }
 
     public Mode getMode() {
@@ -40,9 +31,5 @@ public class PhaseControl extends AbstractControl {
 
     public void setMode(Mode mode) {
         this.mode = Objects.requireNonNull(mode);
-    }
-
-    public Unit getUnit() {
-        return unit;
     }
 }

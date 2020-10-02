@@ -11,12 +11,7 @@ import java.util.Objects;
 /**
  * @author Thomas Adam <tadam at silicom.fr>
  */
-public abstract class AbstractControl {
-
-    public enum ControlledSide {
-        ONE,
-        TWO,
-    }
+public abstract class AbstractControl implements RegulationControl {
 
     private ControlledSide controlledSide;
 
@@ -26,14 +21,22 @@ public abstract class AbstractControl {
         this.targetValue = targetValue;
     }
 
+    public AbstractControl(double targetValue, ControlledSide controlledSide) {
+        this(targetValue);
+        this.controlledSide = controlledSide;
+    }
+
+    @Override
     public ControlledSide getControlledSide() {
         return controlledSide;
     }
 
+    @Override
     public void setControlledSide(ControlledSide controlledSide) {
         this.controlledSide = Objects.requireNonNull(controlledSide);
     }
 
+    @Override
     public double getTargetValue() {
         return targetValue;
     }

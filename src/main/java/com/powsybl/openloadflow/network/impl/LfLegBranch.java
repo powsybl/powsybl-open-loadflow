@@ -14,7 +14,6 @@ import com.powsybl.openloadflow.util.Evaluable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -31,11 +30,8 @@ public class LfLegBranch extends AbstractLfBranch {
 
     private Evaluable q = NAN;
 
-    private final PhaseControl phaseControl;
-
-    protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, PhaseControl phaseControl, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
-        super(bus1, bus0, piModel);
-        this.phaseControl = phaseControl;
+    protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg, PhaseControl phaseControl, VoltageControl voltageControl) {
+        super(bus1, bus0, piModel, phaseControl, voltageControl);
         this.twt = twt;
         this.leg = leg;
     }
@@ -48,6 +44,7 @@ public class LfLegBranch extends AbstractLfBranch {
 
         PiModel piModel = null;
         PhaseControl phaseControl = null;
+        VoltageControl voltageControl = null;
 
         double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
         double nominalV2 = twt.getRatedU0();
@@ -99,7 +96,7 @@ public class LfLegBranch extends AbstractLfBranch {
                     .setR1(Transformers.getRatioLeg(twt, leg) / nominalV2 * nominalV1)
                     .setA1(Transformers.getAngleLeg(leg));
         }
-        return new LfLegBranch(bus1, bus0, piModel, phaseControl, twt, leg);
+        return new LfLegBranch(bus1, bus0, piModel, twt, leg, phaseControl, voltageControl);
     }
 
     private int getLegNum() {
@@ -146,11 +143,6 @@ public class LfLegBranch extends AbstractLfBranch {
     @Override
     public double getI2() {
         return Double.NaN;
-    }
-
-    @Override
-    public Optional<PhaseControl> getPhaseControl() {
-        return Optional.ofNullable(phaseControl);
     }
 
     @Override
