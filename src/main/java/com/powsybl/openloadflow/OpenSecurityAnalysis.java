@@ -327,6 +327,9 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         if (busState.hasVoltageControl && !bus.hasVoltageControl()) { // b is now PQ bus.
             ReactiveLimitsOuterLoop.switchPqPv(bus, engine.getEquationSystem(), engine.getVariableSet());
         }
+        if (!busState.hasVoltageControl && bus.hasVoltageControl()) { // b is now PV bus.
+            ReactiveLimitsOuterLoop.switchPvPq(bus, engine.getEquationSystem(), engine.getVariableSet(), busState.generationTargetQ);
+        }
         bus.setVoltageControlSwitchOffCount(0);
     }
 
@@ -491,6 +494,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         private final double loadTargetP;
         private final Map<String, Double> generatorsTargetP;
         private final boolean hasVoltageControl;
+        private final double generationTargetQ;
 
         public BusState(LfBus b) {
             this.v = b.getV();
@@ -498,6 +502,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             this.loadTargetP = b.getLoadTargetP();
             this.generatorsTargetP = b.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
             this.hasVoltageControl = b.hasVoltageControl();
+            this.generationTargetQ = b.getGenerationTargetQ();
         }
     }
 }
