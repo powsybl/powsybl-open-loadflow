@@ -180,11 +180,18 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             }
 
             Map<String, String> metrics = new HashMap<>();
+            List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
             for (AcLoadFlowResult result : results) {
                 // update network state
                 result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(), parameters.isWriteSlackBus());
 
                 metrics.putAll(createMetrics(result));
+
+                componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNum(),
+                                                                                result.getNewtonRaphsonStatus().name(),
+                                                                                result.getNewtonRaphsonIterations(),
+                                                                                result.getNetwork().getSlackBus().getId(),
+                                                                                result.getSlackBusActivePowerMismatch()));
             }
 
             // zero or low impedance branch flows computation
@@ -198,7 +205,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 }).complete();
             }
 
-            return new LoadFlowResultImpl(ok, metrics, null);
+            return new LoadFlowResultImpl(ok, metrics, null, componentResults);
         });
     }
 
