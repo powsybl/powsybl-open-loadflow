@@ -6,12 +6,18 @@
  */
 package com.powsybl.openloadflow.util;
 
+import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
+import com.powsybl.openloadflow.network.SlackBusSelector;
+
 import static com.powsybl.openloadflow.OpenLoadFlowParameters.*;
 
 /**
  * @author Jérémy Labous <jlabous at silicom.fr>
  */
 public final class ParameterConstants {
+
+    public static final String SLACK_BUS_SELECTOR_PARAM_NAME = "slackBusSelector";
+    public static final SlackBusSelector SLACK_BUS_SELECTOR_DEFAULT_VALUE = new MostMeshedSlackBusSelector();
 
     public static final String DISTRIBUTED_SLACK_PARAM_NAME = "distributedSlack";
     public static final boolean DISTRIBUTED_SLACK_DEFAULT_VALUE = true;
