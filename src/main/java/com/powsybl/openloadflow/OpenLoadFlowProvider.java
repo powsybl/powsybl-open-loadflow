@@ -187,8 +187,23 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
                 metrics.putAll(createMetrics(result));
 
+                LoadFlowResult.ComponentResult.Status status;
+                switch (result.getNewtonRaphsonStatus()) {
+                    case CONVERGED:
+                        status = LoadFlowResult.ComponentResult.Status.CONVERGED;
+                        break;
+                    case MAX_ITERATION_REACHED:
+                        status = LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
+                        break;
+                    case SOLVER_FAILED:
+                        status = LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
+                        break;
+                    default:
+                        status = LoadFlowResult.ComponentResult.Status.FAILED;
+                        break;
+                }
                 componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNum(),
-                                                                                result.getNewtonRaphsonStatus().name(),
+                                                                                status,
                                                                                 result.getNewtonRaphsonIterations(),
                                                                                 result.getNetwork().getSlackBus().getId(),
                                                                                 result.getSlackBusActivePowerMismatch() * PerUnit.SB));
