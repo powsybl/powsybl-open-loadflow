@@ -6,110 +6,195 @@
  */
 package com.powsybl.openloadflow;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.BranchContingency;
-import com.powsybl.contingency.ContingenciesProvider;
-import com.powsybl.contingency.Contingency;
-import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.tasks.AbstractTrippingTask;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
-import com.powsybl.openloadflow.OpenSecurityAnalysis.ContingencyContext;
-import org.junit.Assert;
-import org.junit.jupiter.api.BeforeEach;
+import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.iidm.network.test.FictitiousSwitchFactory;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
 class BranchTrippingTest {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(BranchTrippingTest.class);
+    @Test
+    void testLineTripping() {
+        Network network = OpenSecurityAnalysisTest.createNetwork();
 
-    private Network network;
-    private List<ContingencyContext> referenceLfTripping;
-    private List<ContingencyContext> referenceTripping;
+        BranchContingency lbc1 = new LfBranchContingency("L1");
+        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Terminal> terminalsToDisconnect = new HashSet<>();
+        lbc1.toTask().traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        checkSwitches(switchesToOpen, "C");
+        checkTerminals(terminalsToDisconnect, "BBS1");
 
-    @BeforeEach
-    void setUp() {
-        network = OpenSecurityAnalysisTest.createNetwork();
-        referenceLfTripping = getReferenceLfTripping();
-        referenceTripping = getReferenceTripping();
-    }
-
-    private List<ContingencyContext> getReferenceTripping() {
-        List<ContingencyContext> ref = Arrays.asList(
-            new ContingencyContext(new Contingency("L1")),
-            new ContingencyContext(new Contingency("L2")));
-        ref.get(0).branchIdsToOpen.addAll(Arrays.asList("C", "B3"));
-        ref.get(1).branchIdsToOpen.addAll(Arrays.asList("B1", "B4"));
-        return ref;
-
-    }
-
-    private List<ContingencyContext> getReferenceLfTripping() {
-        List<ContingencyContext> ref = Arrays.asList(
-            new ContingencyContext(new Contingency("L1")),
-            new ContingencyContext(new Contingency("L2")));
-        ref.get(0).branchIdsToOpen.add("C");
-        return ref;
+        BranchContingency lbc2 = new LfBranchContingency("L2");
+        switchesToOpen.clear();
+        terminalsToDisconnect.clear();
+        lbc2.toTask().traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        checkSwitches(switchesToOpen);
+        checkTerminals(terminalsToDisconnect);
     }
 
     @Test
-    void testBranchTripping() {
-        // Testing all contingencies
-        ContingenciesProvider contingenciesProvider = network -> network.getBranchStream()
-            .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId()))).collect(Collectors.toList());
-
-        List<ContingencyContext> contingencyContexts = computeBranchesToOpen(contingenciesProvider);
-        printResult(contingencyContexts);
-        checkResult(contingencyContexts, referenceTripping);
+    void testUnknownLineTripping() {
+        Network network = OpenSecurityAnalysisTest.createNetwork();
+        BranchContingency lbc3 = new LfBranchContingency("L9");
+        AbstractTrippingTask trippingTaskUnknownBranch = lbc3.toTask();
+        Exception unknownBranch = assertThrows(PowsyblException.class,
+            () -> trippingTaskUnknownBranch.traverse(network, null, new HashSet<>(), new HashSet<>()));
+        assertEquals("Branch 'L9' not found", unknownBranch.getMessage());
     }
 
     @Test
-    void testLfBranchTripping() {
-        // Testing all contingencies
-        ContingenciesProvider contingenciesProvider = network -> network.getBranchStream()
-            .map(b -> new Contingency(b.getId(), new LfBranchContingency(b.getId())))
-            .collect(Collectors.toList());
-
-        List<ContingencyContext> contingencyContexts = computeBranchesToOpen(contingenciesProvider);
-        printResult(contingencyContexts);
-        checkResult(contingencyContexts, referenceLfTripping);
+    void testUnconnectedVoltageLevel() {
+        Network network = OpenSecurityAnalysisTest.createNetwork();
+        AbstractTrippingTask trippingTaskUnconnectedVl = new LfBranchTripping("L1", "VL3");
+        Exception unknownVl = assertThrows(PowsyblException.class,
+            () -> trippingTaskUnconnectedVl.traverse(network, null, new HashSet<>(), new HashSet<>()));
+        assertEquals("VoltageLevel 'VL3' not connected to branch 'L1'", unknownVl.getMessage());
     }
 
-    private List<ContingencyContext> computeBranchesToOpen(ContingenciesProvider contingenciesProvider) {
-        List<ContingencyContext> contingencyContexts = new ArrayList<>();
-        for (Contingency contingency : contingenciesProvider.getContingencies(network)) {
-            ContingencyContext cc = new ContingencyContext(contingency);
-            Set<Switch> switchesToOpen = new HashSet<>();
-            for (ContingencyElement element : contingency.getElements()) {
-                AbstractTrippingTask task = element.toTask();
-                task.traverse(network, null, switchesToOpen, new HashSet<>());
-            }
-            switchesToOpen.forEach(s -> cc.branchIdsToOpen.add(s.getId()));
-            contingencyContexts.add(cc);
-        }
-        return contingencyContexts;
+    @Test
+    void testVoltageLevelFilter() {
+        Network network = OpenSecurityAnalysisTest.createNetwork();
+
+        AbstractTrippingTask trippingTaskVl1 = new LfBranchTripping("L1", "VL1");
+        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Terminal> terminalsToDisconnect = new HashSet<>();
+        trippingTaskVl1.traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        checkSwitches(switchesToOpen, "C");
+        checkTerminals(terminalsToDisconnect, "BBS1");
+
+        AbstractTrippingTask trippingTaskVl2 = new LfBranchTripping("L1", "VL2");
+        switchesToOpen.clear();
+        terminalsToDisconnect.clear();
+        trippingTaskVl2.traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        checkSwitches(switchesToOpen);
+        checkTerminals(terminalsToDisconnect);
     }
 
-    private void printResult(List<ContingencyContext> result) {
-        for (ContingencyContext cc : result) {
-            LOGGER.info("Contingency {} containing {} branches to open: {}",
-                cc.contingency.getId(), cc.branchIdsToOpen.size(), cc.branchIdsToOpen);
-        }
+    @Test
+    void testEurostagNetwork() {
+        Network network = EurostagTutorialExample1Factory.create();
+
+        LfBranchContingency lbc = new LfBranchContingency("NHV1_NHV2_1");
+        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Terminal> terminalsToDisconnect = new HashSet<>();
+
+        LfBranchTripping trippingTask = lbc.toTask();
+        Exception e = assertThrows(PowsyblException.class,
+            () -> trippingTask.traverse(network, null, switchesToOpen, terminalsToDisconnect));
+        assertEquals("Traverser yet to implement for bus breaker view", e.getMessage());
     }
 
-    private void checkResult(List<ContingencyContext> contingencyContexts, List<ContingencyContext> reference) {
-        Assert.assertEquals(reference.size(), contingencyContexts.size());
-        for (int i = 0; i < contingencyContexts.size(); i++) {
-            Assert.assertEquals(reference.get(i).contingency.getId(), contingencyContexts.get(i).contingency.getId());
-            Assert.assertEquals(reference.get(i).branchIdsToOpen, contingencyContexts.get(i).branchIdsToOpen);
-        }
+    @Test
+    public void testDisconnectorBeforeMultipleSwitches() {
+        Network network = FictitiousSwitchFactory.create();
+
+        BranchContingency lbc1 = new LfBranchContingency("CJ");
+        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Terminal> terminalsToDisconnect = new HashSet<>();
+        lbc1.toTask().traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        checkSwitches(switchesToOpen);
+        checkTerminals(terminalsToDisconnect, "D", "CI");
+    }
+
+    @Test
+    public void testSwitchBeforeOpenedDisconnector() {
+        Network network = FictitiousSwitchFactory.create();
+
+        // Close switches to traverse the voltage level further
+        network.getSwitch("BB").setOpen(false);
+        network.getSwitch("AZ").setOpen(false);
+        network.getSwitch("AH").setOpen(true); // the opened disconnector
+
+        BranchContingency lbc1 = new LfBranchContingency("CJ");
+        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Terminal> terminalsToDisconnect = new HashSet<>();
+        lbc1.toTask().traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        checkSwitches(switchesToOpen, "BL");
+        checkTerminals(terminalsToDisconnect, "D", "CI", "P");
+    }
+
+    @Test
+    public void testOpenedSwitches() {
+        // Testing disconnector and breaker opened just after contingency
+        Network network = FictitiousSwitchFactory.create();
+        network.getSwitch("L").setOpen(true); // breaker at C side of line CJ
+        network.getSwitch("BF").setOpen(true);  // disconnector at N side of line CJ
+
+        BranchContingency lbc1 = new LfBranchContingency("CJ");
+        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Terminal> terminalsToDisconnect = new HashSet<>();
+        lbc1.toTask().traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        checkSwitches(switchesToOpen);
+        checkTerminals(terminalsToDisconnect);
+    }
+
+    @Test
+    public void testEndNodeAfterSwitch() {
+        Network network = FictitiousSwitchFactory.create();
+
+        // Close switches to traverse the voltage level until encountering generator/loads
+        network.getSwitch("BB").setOpen(false); // BB fictitious breaker
+        network.getSwitch("AZ").setOpen(false); // AZ disconnector to BBS1
+        network.getSwitch("AV").setOpen(false); // AR disconnector to generator CD
+
+        // Adding a breaker between two loads to simulate the case of a branching of two switches at an end node
+        network.getVoltageLevel("N").getNodeBreakerView().newSwitch()
+            .setId("ZY")
+            .setName("ZZ")
+            .setKind(SwitchKind.BREAKER)
+            .setRetained(false)
+            .setOpen(false)
+            .setFictitious(true)
+            .setNode1(20)
+            .setNode2(18)
+            .add();
+
+        BranchContingency lbc1 = new LfBranchContingency("CJ");
+        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Terminal> terminalsToDisconnect = new HashSet<>();
+        lbc1.toTask().traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        checkSwitches(switchesToOpen, "BJ", "BL", "BV", "BX");
+        checkTerminals(terminalsToDisconnect, "D", "CI", "P", "O");
+    }
+
+    @Test
+    public void testInternalConnection() {
+        Network network = FictitiousSwitchFactory.create();
+
+        // Adding an internal connection
+        network.getVoltageLevel("N").getNodeBreakerView().newInternalConnection()
+            .setNode1(3)
+            .setNode2(9)
+            .add();
+
+        BranchContingency lbc1 = new LfBranchContingency("CJ");
+        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Terminal> terminalsToDisconnect = new HashSet<>();
+        lbc1.toTask().traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        checkSwitches(switchesToOpen, "BL");
+        checkTerminals(terminalsToDisconnect, "D", "CI");
+    }
+
+    private static void checkSwitches(Set<Switch> switches, String... sId) {
+        assertEquals(new HashSet<>(Arrays.asList(sId)), switches.stream().map(Switch::getId).collect(Collectors.toSet()));
+    }
+
+    private static void checkTerminals(Set<Terminal> terminals, String... tId) {
+        assertEquals(new HashSet<>(Arrays.asList(tId)), terminals.stream().map(t -> t.getConnectable().getId()).collect(Collectors.toSet()));
     }
 
 }

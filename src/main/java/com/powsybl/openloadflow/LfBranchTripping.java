@@ -79,6 +79,7 @@ public class LfBranchTripping extends BranchTripping {
                             return true;
                         }
                         if (isEndNodeAfterSwitch(sw, nodeAfter)) {
+                            // No need to retain switch if the node after the switch is an end node (e.g. load or generator)
                             return false;
                         }
                         switchesToOpen.add(sw);
