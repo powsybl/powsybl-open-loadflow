@@ -55,19 +55,27 @@ public class LfBranchTripping extends BranchTripping {
                     if (sw.isOpen()) {
                         return false;
                     }
+
                     if (nodeBefore == initNode) {
+                        // Current switch is just after the contingency
                         if (isOpenable(sw)) {
+                            // An openable switch just after a contingency does not need to be retained and the
+                            // traverser can stop
                             return false;
                         }
                         if (isBeforeOtherOpenedOrOpenableSwitches(sw, nodeAfter)) {
+                            // As all paths after current switch do start with an opened or openable switch, the
+                            // traverser can stop and no switches are retained
                             return false;
                         }
                     }
+
                     if (isOpenable(sw)) {
-                        if (isLineBeforeSwitch(sw, nodeBefore)) {
-                            return false;
-                        }
+                        // The current switch is openable: the traverser could stop and the switch could be retained;
+                        // but, to avoid unnecessary retained switches, the traverser does not retain it in two cases
                         if (isBeforeOtherOpenedOrOpenableSwitches(sw, nodeAfter)) {
+                            // This might lead in some cases to more retained switches, but in practice the switches
+                            // after are often opened and sometimes followed by an end node
                             return true;
                         }
                         if (isEndNodeAfterSwitch(sw, nodeAfter)) {
@@ -91,19 +99,40 @@ public class LfBranchTripping extends BranchTripping {
         Terminal terminal2 = sw.getVoltageLevel().getNodeBreakerView().getTerminal(nodeAfter);
         if (terminal2 != null) {
             ConnectableType connectableAfter = terminal2.getConnectable().getType();
-            //TODO: check other connectable types
-            return connectableAfter == ConnectableType.GENERATOR
-                    || connectableAfter == ConnectableType.LOAD
-                    || connectableAfter == ConnectableType.DANGLING_LINE
-                    || connectableAfter == ConnectableType.STATIC_VAR_COMPENSATOR
-                    || connectableAfter == ConnectableType.SHUNT_COMPENSATOR;
+            boolean endNodeAfter = connectableAfter == ConnectableType.GENERATOR
+                || connectableAfter == ConnectableType.LOAD
+                || connectableAfter == ConnectableType.DANGLING_LINE
+                || connectableAfter == ConnectableType.STATIC_VAR_COMPENSATOR
+                || connectableAfter == ConnectableType.SHUNT_COMPENSATOR;
+
+            if (endNodeAfter) { // check that there isn't another (closed) switch or internal connection at node after
+                VoltageLevel.NodeBreakerView nbv = sw.getVoltageLevel().getNodeBreakerView();
+                return nbv.getInternalConnectionStream().noneMatch(ic -> ic.getNode1() == nodeAfter || ic.getNode2() == nodeAfter)
+                    && nbv.getSwitchStream().noneMatch(s -> s != sw && switchAtNode(s, nodeAfter, nbv)  && !s.isOpen());
+            }
         }
         return false;
     }
 
-    private static boolean isLineBeforeSwitch(Switch sw, int nodeBefore) {
-        Terminal terminal1 = sw.getVoltageLevel().getNodeBreakerView().getTerminal(nodeBefore);
-        return terminal1 != null && terminal1.getConnectable().getType() == ConnectableType.LINE;
+    private boolean isBeforeOtherOpenedOrOpenableSwitches(Switch aSwitch, int nodeAfter) {
+        VoltageLevel.NodeBreakerView nbv = aSwitch.getVoltageLevel().getNodeBreakerView();
+
+        // Check that node after is a junction of switches only
+        if (!nbv.getOptionalTerminal(nodeAfter).isPresent()
+            && nbv.getInternalConnectionStream().noneMatch(ic -> ic.getNode1() == nodeAfter || ic.getNode2() == nodeAfter)) {
+            // Find all switches connected to node after
+            List<Switch> openableSwitchesAtNodeAfter = nbv.getSwitchStream()
+                .filter(s -> s != aSwitch && switchAtNode(s, nodeAfter, nbv))
+                .collect(Collectors.toList());
+            return !openableSwitchesAtNodeAfter.isEmpty()
+                && openableSwitchesAtNodeAfter.stream().allMatch(LfBranchTripping::isOpenOrOpenable);
+        }
+
+        return false;
+    }
+
+    private static boolean switchAtNode(Switch s, int nodeAfter, VoltageLevel.NodeBreakerView nbv) {
+        return s != null && (nbv.getNode1(s.getId()) == nodeAfter || nbv.getNode2(s.getId()) == nodeAfter);
     }
 
     private static boolean isOpenable(Switch aSwitch) {
@@ -112,20 +141,9 @@ public class LfBranchTripping extends BranchTripping {
             aSwitch.getKind() == SwitchKind.BREAKER;
     }
 
-    private boolean isBeforeOtherOpenedOrOpenableSwitches(Switch aSwitch, int nodeAfter) {
-        VoltageLevel.NodeBreakerView nbv = aSwitch.getVoltageLevel().getNodeBreakerView();
-        if (nbv.getOptionalTerminal(nodeAfter).isPresent()) {
-            return false;
-        }
-        List<Switch> openableSwitchesAtNodeAfter = nbv.getSwitchStream()
-            .filter(s -> s != aSwitch && s != null &&  (nbv.getNode1(s.getId()) == nodeAfter || nbv.getNode2(s.getId()) == nodeAfter))
-            .collect(Collectors.toList());
-        return !openableSwitchesAtNodeAfter.isEmpty()
-            && openableSwitchesAtNodeAfter.stream().allMatch(LfBranchTripping::isOpenOrOpenable);
-    }
-
     private static boolean isOpenOrOpenable(Switch aSwitch) {
-        return aSwitch.isOpen() || isOpenable(aSwitch);
+        return aSwitch.isOpen() ||
+            (!aSwitch.isFictitious() && aSwitch.getKind() == SwitchKind.BREAKER);
     }
 
 }
