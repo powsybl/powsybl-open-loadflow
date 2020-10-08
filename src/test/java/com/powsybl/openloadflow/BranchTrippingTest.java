@@ -99,7 +99,7 @@ class BranchTrippingTest {
     }
 
     @Test
-    public void testDisconnectorBeforeMultipleSwitches() {
+    void testDisconnectorBeforeMultipleSwitches() {
         Network network = FictitiousSwitchFactory.create();
 
         BranchContingency lbc1 = new LfBranchContingency("CJ");
@@ -111,7 +111,7 @@ class BranchTrippingTest {
     }
 
     @Test
-    public void testSwitchBeforeOpenedDisconnector() {
+    void testSwitchBeforeOpenedDisconnector() {
         Network network = FictitiousSwitchFactory.create();
 
         // Close switches to traverse the voltage level further
@@ -128,7 +128,7 @@ class BranchTrippingTest {
     }
 
     @Test
-    public void testOpenedSwitches() {
+    void testOpenedSwitches() {
         // Testing disconnector and breaker opened just after contingency
         Network network = FictitiousSwitchFactory.create();
         network.getSwitch("L").setOpen(true); // breaker at C side of line CJ
@@ -143,7 +143,7 @@ class BranchTrippingTest {
     }
 
     @Test
-    public void testEndNodeAfterSwitch() {
+    void testEndNodeAfterSwitch() {
         Network network = FictitiousSwitchFactory.create();
 
         // Close switches to traverse the voltage level until encountering generator/loads
@@ -172,7 +172,7 @@ class BranchTrippingTest {
     }
 
     @Test
-    public void testInternalConnection() {
+    void testInternalConnection() {
         Network network = FictitiousSwitchFactory.create();
 
         // Adding an internal connection

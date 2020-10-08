@@ -267,22 +267,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             while (contingencyIt.hasNext()) {
                 LfContingency lfContingency = contingencyIt.next();
 
-                double mismatch = 0;
-                for (LfBus bus : lfContingency.getBuses()) {
-                    mismatch += bus.getGenerationTargetP() - bus.getLoadTargetP();
-                }
-                if (openLoadFlowParameters.isDistributedSlack() && Math.abs(mismatch) > 0) {
-                    if (openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
-                            openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
-                        DistributedSlackOnLoadOuterLoop outerLoop = new DistributedSlackOnLoadOuterLoop(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure(),
-                                openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
-                        outerLoop.run(outerLoop.getParticipatingElements(network), -1, mismatch);
-                    } else if (openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX ||
-                            openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P) {
-                        DistributedSlackOnGenerationOuterLoop outerLoop = new DistributedSlackOnGenerationOuterLoop(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
-                        outerLoop.run(outerLoop.getParticipatingElements(network), -1, mismatch);
-                    }
-                }
+                distributedMismatch(network, lfContingency.getActivePowerLoss(), openLoadFlowParameters);
 
                 PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency);
                 postContingencyResults.add(postContingencyResult);
@@ -299,38 +284,22 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
     }
 
-    /**
-     * Get the map of the states of given buses, indexed by the bus itself
-     * @param buses the bus for which the state is returned
-     * @return the map of the states of given buses, indexed by the bus itself
-     */
-    private Map<LfBus, BusState> getBusStates(List<LfBus> buses) {
-        return buses.stream().collect(Collectors.toMap(Function.identity(), BusState::new));
-    }
+    private void distributedMismatch(LfNetwork network, double mismatch, OpenLoadFlowParameters openLoadFlowParameters) {
 
-    /**
-     * Set the bus states based on the given map of states
-     * @param busStates the map containing the bus states, indexed by buses
-     * @param engine AcLoadFlowEngine to operate the PqPv switching if the bus has lost its voltage control
-     */
-    private void restoreBusStates(Map<LfBus, BusState> busStates, AcloadFlowEngine engine) {
-        busStates.forEach((b, state) -> setBusState(b, state, engine));
-    }
+        if (openLoadFlowParameters.isDistributedSlack() && Math.abs(mismatch) > 0) {
 
-    private void setBusState(LfBus bus, BusState busState, AcloadFlowEngine engine) {
-        bus.setV(busState.v);
-        bus.setAngle(busState.angle);
-        bus.setLoadTargetP(busState.loadTargetP);
-        bus.getGenerators().forEach(g -> {
-            g.setTargetP(busState.generatorsTargetP.get(g.getId()));
-        });
-        if (busState.hasVoltageControl && !bus.hasVoltageControl()) { // b is now PQ bus.
-            ReactiveLimitsOuterLoop.switchPqPv(bus, engine.getEquationSystem(), engine.getVariableSet());
+            if (openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
+                    openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
+                DistributedSlackOnLoadOuterLoop outerLoop = new DistributedSlackOnLoadOuterLoop(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure(),
+                        openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+                outerLoop.run(outerLoop.getParticipatingElements(network), -1, mismatch);
+
+            } else if (openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX ||
+                    openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P) {
+                DistributedSlackOnGenerationOuterLoop outerLoop = new DistributedSlackOnGenerationOuterLoop(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
+                outerLoop.run(outerLoop.getParticipatingElements(network), -1, mismatch);
+            }
         }
-        if (!busState.hasVoltageControl && bus.hasVoltageControl()) { // b is now PV bus.
-            ReactiveLimitsOuterLoop.switchPvPq(bus, engine.getEquationSystem(), engine.getVariableSet(), busState.generationTargetQ);
-        }
-        bus.setVoltageControlSwitchOffCount(0);
     }
 
     private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcloadFlowEngine engine, LfContingency lfContingency) {
@@ -488,6 +457,38 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         return connectivity;
     }
 
+    /**
+     * Get the map of the states of given buses, indexed by the bus itself
+     * @param buses the bus for which the state is returned
+     * @return the map of the states of given buses, indexed by the bus itself
+     */
+    private Map<LfBus, BusState> getBusStates(List<LfBus> buses) {
+        return buses.stream().collect(Collectors.toMap(Function.identity(), BusState::new));
+    }
+
+    /**
+     * Set the bus states based on the given map of states
+     * @param busStates the map containing the bus states, indexed by buses
+     * @param engine AcLoadFlowEngine to operate the PqPv switching if the bus has lost its voltage control
+     */
+    private void restoreBusStates(Map<LfBus, BusState> busStates, AcloadFlowEngine engine) {
+        busStates.forEach((b, state) -> setBusState(b, state, engine));
+    }
+
+    private void setBusState(LfBus bus, BusState busState, AcloadFlowEngine engine) {
+        bus.setV(busState.v);
+        bus.setAngle(busState.angle);
+        bus.setLoadTargetP(busState.loadTargetP);
+        bus.getGenerators().forEach(g -> g.setTargetP(busState.generatorsTargetP.get(g.getId())));
+        if (busState.hasVoltageControl && !bus.hasVoltageControl()) { // b is now PQ bus.
+            ReactiveLimitsOuterLoop.switchPqPv(bus, engine.getEquationSystem(), engine.getVariableSet());
+        }
+        if (!busState.hasVoltageControl && bus.hasVoltageControl()) { // b is now PV bus.
+            ReactiveLimitsOuterLoop.switchPvPq(bus, engine.getEquationSystem(), engine.getVariableSet(), busState.generationTargetQ);
+        }
+        bus.setVoltageControlSwitchOffCount(0);
+    }
+
     private static class BusState {
         private final double v;
         private final double angle;
@@ -505,4 +506,5 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             this.generationTargetQ = b.getGenerationTargetQ();
         }
     }
+
 }

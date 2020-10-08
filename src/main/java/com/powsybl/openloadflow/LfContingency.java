@@ -29,10 +29,17 @@ public class LfContingency {
 
     private final Set<LfBranch> branches;
 
+    private double activePowerLoss;
+
     public LfContingency(Contingency contingency, Set<LfBus> buses, Set<LfBranch> branches) {
         this.contingency = Objects.requireNonNull(contingency);
         this.buses = Objects.requireNonNull(buses);
         this.branches = Objects.requireNonNull(branches);
+        double lose = 0;
+        for (LfBus bus : buses) {
+            lose += bus.getGenerationTargetP() - bus.getLoadTargetP();
+        }
+        this.activePowerLoss = lose;
     }
 
     public Contingency getContingency() {
@@ -45,6 +52,10 @@ public class LfContingency {
 
     public Set<LfBranch> getBranches() {
         return branches;
+    }
+
+    public double getActivePowerLoss() {
+        return activePowerLoss;
     }
 
     public void writeJson(Writer writer) {
