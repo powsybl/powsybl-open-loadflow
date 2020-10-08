@@ -264,11 +264,13 @@ class OpenSecurityAnalysisTest {
         ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
             .map(b -> new Contingency(b.getId(), new LfBranchContingency(b.getId())))
             .collect(Collectors.toList());
-
         OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
             new LimitViolationFilter(), new SparseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
         SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
         assertTrue(result.getPreContingencyResult().isComputationOk());
-    }
 
+        saParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setBalanceType(OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        SecurityAnalysisResult result2 = securityAnalysis.runSync(saParameters, contingenciesProvider);
+        assertTrue(result2.getPreContingencyResult().isComputationOk());
+    }
 }
