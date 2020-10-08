@@ -1,4 +1,4 @@
-package com.powsybl.openloadflow;
+package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.ComputationManager;

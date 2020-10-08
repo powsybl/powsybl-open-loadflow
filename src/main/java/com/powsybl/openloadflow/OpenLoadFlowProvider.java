@@ -100,7 +100,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
     }
 
-    static OpenLoadFlowParameters getParametersExt(LoadFlowParameters parameters) {
+    public static OpenLoadFlowParameters getParametersExt(LoadFlowParameters parameters) {
         OpenLoadFlowParameters parametersExt = parameters.getExtension(OpenLoadFlowParameters.class);
         if (parametersExt == null) {
             parametersExt = new OpenLoadFlowParameters();
@@ -113,7 +113,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                            : parametersExt.getSlackBusSelector();
     }
 
-    static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
+    public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
                                                    OpenLoadFlowParameters parametersExt, boolean breakers) {
 
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);

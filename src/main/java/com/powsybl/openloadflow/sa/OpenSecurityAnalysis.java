@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow;
+package com.powsybl.openloadflow.sa;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.contingency.ContingenciesProvider;
@@ -14,6 +14,8 @@ import com.powsybl.contingency.tasks.AbstractTrippingTask;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.DistributedSlackOnGenerationOuterLoop;
 import com.powsybl.openloadflow.ac.DistributedSlackOnLoadOuterLoop;
 import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
