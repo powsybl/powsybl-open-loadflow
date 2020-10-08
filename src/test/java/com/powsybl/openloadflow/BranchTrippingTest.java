@@ -51,8 +51,10 @@ class BranchTrippingTest {
         Network network = OpenSecurityAnalysisTest.createNetwork();
         BranchContingency lbc3 = new LfBranchContingency("L9");
         AbstractTrippingTask trippingTaskUnknownBranch = lbc3.toTask();
+        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Terminal> terminalsToDisconnect = new HashSet<>();
         Exception unknownBranch = assertThrows(PowsyblException.class,
-            () -> trippingTaskUnknownBranch.traverse(network, null, new HashSet<>(), new HashSet<>()));
+            () -> trippingTaskUnknownBranch.traverse(network, null, switchesToOpen, terminalsToDisconnect));
         assertEquals("Branch 'L9' not found", unknownBranch.getMessage());
     }
 
@@ -60,8 +62,10 @@ class BranchTrippingTest {
     void testUnconnectedVoltageLevel() {
         Network network = OpenSecurityAnalysisTest.createNetwork();
         AbstractTrippingTask trippingTaskUnconnectedVl = new LfBranchTripping("L1", "VL3");
+        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Terminal> terminalsToDisconnect = new HashSet<>();
         Exception unknownVl = assertThrows(PowsyblException.class,
-            () -> trippingTaskUnconnectedVl.traverse(network, null, new HashSet<>(), new HashSet<>()));
+            () -> trippingTaskUnconnectedVl.traverse(network, null, switchesToOpen, terminalsToDisconnect));
         assertEquals("VoltageLevel 'VL3' not connected to branch 'L1'", unknownVl.getMessage());
     }
 
@@ -93,7 +97,7 @@ class BranchTrippingTest {
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
 
         LfBranchTripping trippingTask = lbc.toTask();
-        Exception e = assertThrows(PowsyblException.class,
+        Exception e = assertThrows(UnsupportedOperationException.class,
             () -> trippingTask.traverse(network, null, switchesToOpen, terminalsToDisconnect));
         assertEquals("Traverser yet to implement for bus breaker view", e.getMessage());
     }
@@ -117,11 +121,19 @@ class BranchTrippingTest {
         // Close switches to traverse the voltage level further
         network.getSwitch("BB").setOpen(false);
         network.getSwitch("AZ").setOpen(false);
-        network.getSwitch("AH").setOpen(true); // the opened disconnector
 
+        // First without opening disconnector
         BranchContingency lbc1 = new LfBranchContingency("CJ");
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
+        lbc1.toTask().traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        checkSwitches(switchesToOpen, "BL", "BJ");
+        checkTerminals(terminalsToDisconnect, "D", "CI", "P");
+
+        // Then with the opened disconnector
+        network.getSwitch("AH").setOpen(true);
+        switchesToOpen.clear();
+        terminalsToDisconnect.clear();
         lbc1.toTask().traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BL");
         checkTerminals(terminalsToDisconnect, "D", "CI", "P");
@@ -151,7 +163,17 @@ class BranchTrippingTest {
         network.getSwitch("AZ").setOpen(false); // AZ disconnector to BBS1
         network.getSwitch("AV").setOpen(false); // AR disconnector to generator CD
 
-        // Adding a breaker between two loads to simulate the case of a branching of two switches at an end node
+        // Adding breakers between two loads to simulate the case of a branching of two switches at an end node
+        network.getVoltageLevel("N").getNodeBreakerView().newSwitch()
+            .setId("ZW")
+            .setName("ZX")
+            .setKind(SwitchKind.BREAKER)
+            .setRetained(false)
+            .setOpen(true)
+            .setFictitious(true)
+            .setNode1(22)
+            .setNode2(16)
+            .add();
         network.getVoltageLevel("N").getNodeBreakerView().newSwitch()
             .setId("ZY")
             .setName("ZZ")
@@ -169,16 +191,32 @@ class BranchTrippingTest {
         lbc1.toTask().traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BJ", "BL", "BV", "BX");
         checkTerminals(terminalsToDisconnect, "D", "CI", "P", "O");
+
+        // Adding an internal connection and open the ZW switch
+        network.getSwitch("ZY").setOpen(true);
+        network.getVoltageLevel("N").getNodeBreakerView().newInternalConnection()
+            .setNode1(20)
+            .setNode2(18)
+            .add();
+        switchesToOpen.clear();
+        terminalsToDisconnect.clear();
+        lbc1.toTask().traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        checkSwitches(switchesToOpen, "BJ", "BL", "BV", "BX");
+        checkTerminals(terminalsToDisconnect, "D", "CI", "P", "O");
     }
 
     @Test
     void testInternalConnection() {
         Network network = FictitiousSwitchFactory.create();
 
-        // Adding an internal connection
+        // Adding internal connections
         network.getVoltageLevel("N").getNodeBreakerView().newInternalConnection()
             .setNode1(3)
             .setNode2(9)
+            .add();
+        network.getVoltageLevel("C").getNodeBreakerView().newInternalConnection()
+            .setNode1(2)
+            .setNode2(3)
             .add();
 
         BranchContingency lbc1 = new LfBranchContingency("CJ");

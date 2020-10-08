@@ -56,6 +56,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
+    private static Bus getBus(Terminal regulatingTerminal, boolean breakers) {
+        return breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
+    }
+
     private static LfBusImpl createBus(Bus bus, boolean voltageRemoteControl, boolean breakers, LoadingContext loadingContext,
                                        LfNetworkLoadingReport report, Map<LfBusImpl, String> controllerBusToControlledBusId) {
         LfBusImpl lfBus = LfBusImpl.create(bus);
@@ -83,8 +87,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
             private double checkVoltageRemoteControl(Injection injection, Terminal regulatingTerminal, double previousTargetV) {
                 double scaleV = 1;
-                Bus controlledBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
-                Bus connectedBus = breakers ? injection.getTerminal().getBusBreakerView().getBus() : injection.getTerminal().getBusView().getBus();
+                Bus controlledBus = getBus(regulatingTerminal, breakers);
+                Bus connectedBus = getBus(injection.getTerminal(), breakers);
                 if (controlledBus == null || connectedBus == null) {
                     return scaleV;
                 }
@@ -214,8 +218,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     private static LfBus getLfBus(Terminal terminal, LfNetwork lfNetwork, boolean breakers) {
-        Bus bus = breakers ? terminal.getBusBreakerView().getBus()
-                           : terminal.getBusView().getBus();
+        Bus bus = getBus(terminal, breakers);
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 

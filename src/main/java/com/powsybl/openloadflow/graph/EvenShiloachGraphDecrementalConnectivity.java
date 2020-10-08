@@ -69,6 +69,9 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
     @Override
     public void cut(V vertex1, V vertex2) {
+        Objects.requireNonNull(vertex1);
+        Objects.requireNonNull(vertex2);
+
         sortedComponents = false;
         if (connectedComponents.isEmpty()) {
             initConnectedComponents();

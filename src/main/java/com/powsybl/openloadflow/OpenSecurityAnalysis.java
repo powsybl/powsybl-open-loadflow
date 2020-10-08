@@ -307,11 +307,33 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        EquationSystem equationSystem = engine.getEquationSystem();
-
         List<Equation> deactivatedEquations = new ArrayList<>();
         List<EquationTerm> deactivatedEquationTerms = new ArrayList<>();
 
+        deactivateEquations(lfContingency, engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
+
+        // restart LF on post contingency equation system
+        engine.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+        AcLoadFlowResult postContingencyLoadFlowResult = engine.run();
+        boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
+        List<LimitViolation> postContingencyLimitViolations = new ArrayList<>();
+        if (postContingencyComputationOk) {
+            detectViolations(
+                network.getBranches().stream().filter(b -> !lfContingency.getBranches().contains(b)),
+                network.getBuses().stream().filter(b -> !lfContingency.getBuses().contains(b)),
+                postContingencyLimitViolations);
+        }
+
+        reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
+
+        stopwatch.stop();
+        LOGGER.info("Post contingency '{}' simulation done in {} ms", lfContingency.getContingency().getId(),
+                stopwatch.elapsed(TimeUnit.MILLISECONDS));
+
+        return new PostContingencyResult(lfContingency.getContingency(), postContingencyComputationOk, postContingencyLimitViolations);
+    }
+
+    private void deactivateEquations(LfContingency lfContingency, EquationSystem equationSystem, List<Equation> deactivatedEquations, List<EquationTerm> deactivatedEquationTerms) {
         for (LfBranch branch : lfContingency.getBranches()) {
             LOGGER.trace("Remove equations and equations terms related to branch '{}'", branch.getId());
 
@@ -351,19 +373,9 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                 }
             }
         }
+    }
 
-        // restart LF on post contingency equation system
-        engine.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
-        AcLoadFlowResult postContingencyLoadFlowResult = engine.run();
-        boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
-        List<LimitViolation> postContingencyLimitViolations = new ArrayList<>();
-        if (postContingencyComputationOk) {
-            detectViolations(
-                network.getBranches().stream().filter(b -> !lfContingency.getBranches().contains(b)),
-                network.getBuses().stream().filter(b -> !lfContingency.getBuses().contains(b)),
-                postContingencyLimitViolations);
-        }
-
+    private void reactivateEquations(List<Equation> deactivatedEquations, List<EquationTerm> deactivatedEquationTerms) {
         // restore deactivated equations and equations terms from previous contingency
         if (!deactivatedEquations.isEmpty()) {
             for (Equation equation : deactivatedEquations) {
@@ -377,12 +389,6 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             }
             deactivatedEquationTerms.clear();
         }
-
-        stopwatch.stop();
-        LOGGER.info("Post contingency '{}' simulation done in {} ms", lfContingency.getContingency().getId(),
-                stopwatch.elapsed(TimeUnit.MILLISECONDS));
-
-        return new PostContingencyResult(lfContingency.getContingency(), postContingencyComputationOk, postContingencyLimitViolations);
     }
 
     List<LfContingency> createContingencies(List<ContingencyContext> contingencyContexts, LfNetwork network) {
@@ -419,11 +425,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
             // update connectivity with triggered branches
             for (LfBranch branch : branches) {
-                LfBus bus1 = branch.getBus1();
-                LfBus bus2 = branch.getBus2();
-                if (bus1 != null && bus2 != null) {
-                    connectivity.cut(bus1, bus2);
-                }
+                connectivity.cut(branch.getBus1(), branch.getBus2());
             }
 
             // add to contingency description buses and branches that won't be part of the main connected
@@ -448,11 +450,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             connectivity.addVertex(bus);
         }
         for (LfBranch branch : network.getBranches()) {
-            LfBus bus1 = branch.getBus1();
-            LfBus bus2 = branch.getBus2();
-            if (bus1 != null && bus2 != null) {
-                connectivity.addEdge(bus1, bus2);
-            }
+            connectivity.addEdge(branch.getBus1(), branch.getBus2());
         }
         return connectivity;
     }

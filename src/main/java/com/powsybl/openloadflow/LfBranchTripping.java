@@ -50,50 +50,55 @@ public class LfBranchTripping extends BranchTripping {
         if (terminal.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
             int initNode = terminal.getNodeBreakerView().getNode();
             VoltageLevel.NodeBreakerView nodeBreakerView = terminal.getVoltageLevel().getNodeBreakerView();
-            nodeBreakerView.traverse(initNode, (nodeBefore, sw, nodeAfter) -> {
-                if (sw != null) {
-                    if (sw.isOpen()) {
+            nodeBreakerView.traverse(initNode, getNodeBreakerTraverser(switchesToOpen, terminalsToDisconnect, initNode, nodeBreakerView));
+        } else {
+            // TODO: Traverser yet to implement for bus breaker view
+            throw new UnsupportedOperationException("Traverser yet to implement for bus breaker view");
+        }
+    }
+
+    private VoltageLevel.NodeBreakerView.Traverser getNodeBreakerTraverser(Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect,
+                                                                           int initNode, VoltageLevel.NodeBreakerView nodeBreakerView) {
+        return (nodeBefore, sw, nodeAfter) -> {
+            if (sw != null) {
+                if (sw.isOpen()) {
+                    return false;
+                }
+
+                if (nodeBefore == initNode) {
+                    // Current switch is just after the contingency
+                    if (isOpenable(sw)) {
+                        // An openable switch just after a contingency does not need to be retained and the
+                        // traverser can stop
                         return false;
                     }
-
-                    if (nodeBefore == initNode) {
-                        // Current switch is just after the contingency
-                        if (isOpenable(sw)) {
-                            // An openable switch just after a contingency does not need to be retained and the
-                            // traverser can stop
-                            return false;
-                        }
-                        if (isBeforeOtherOpenedOrOpenableSwitches(sw, nodeAfter)) {
-                            // As all paths after current switch do start with an opened or openable switch, the
-                            // traverser can stop and no switches are retained
-                            return false;
-                        }
-                    }
-
-                    if (isOpenable(sw)) {
-                        // The current switch is openable: the traverser could stop and the switch could be retained;
-                        // but, to avoid unnecessary retained switches, the traverser does not retain it in two cases
-                        if (isBeforeOtherOpenedOrOpenableSwitches(sw, nodeAfter)) {
-                            // This might lead in some cases to more retained switches, but in practice the switches
-                            // after are often opened and sometimes followed by an end node
-                            return true;
-                        }
-                        if (isEndNodeAfterSwitch(sw, nodeAfter)) {
-                            // No need to retain switch if the node after the switch is an end node (e.g. load or generator)
-                            return false;
-                        }
-                        switchesToOpen.add(sw);
+                    if (isBeforeOtherOpenedOrOpenableSwitches(sw, nodeAfter)) {
+                        // As all paths after current switch do start with an opened or openable switch, the
+                        // traverser can stop and no switches are retained
                         return false;
                     }
                 }
-                // nodeAfter is traversed and its terminal is therefore disconnected
-                nodeBreakerView.getOptionalTerminal(nodeAfter).ifPresent(terminalsToDisconnect::add);
-                return true;
-            });
-        } else {
-            // FIXME: Traverser yet to implement for bus breaker view
-            throw new PowsyblException("Traverser yet to implement for bus breaker view");
-        }
+
+                if (isOpenable(sw)) {
+                    // The current switch is openable: the traverser could stop and the switch could be retained,
+                    // but, to avoid unnecessary retained switches, the traverser does not retain it in two cases
+                    if (isBeforeOtherOpenedOrOpenableSwitches(sw, nodeAfter)) {
+                        // This might lead in some cases to more retained switches, but in practice the switches
+                        // after are often opened and sometimes followed by an end node
+                        return true;
+                    }
+                    if (isEndNodeAfterSwitch(sw, nodeAfter)) {
+                        // No need to retain switch if the node after the switch is an end node (e.g. load or generator)
+                        return false;
+                    }
+                    switchesToOpen.add(sw);
+                    return false;
+                }
+            }
+            // nodeAfter is traversed and its terminal is therefore disconnected
+            nodeBreakerView.getOptionalTerminal(nodeAfter).ifPresent(terminalsToDisconnect::add);
+            return true;
+        };
     }
 
     private static boolean isEndNodeAfterSwitch(Switch sw, int nodeAfter) {
@@ -122,11 +127,11 @@ public class LfBranchTripping extends BranchTripping {
         if (!nbv.getOptionalTerminal(nodeAfter).isPresent()
             && nbv.getInternalConnectionStream().noneMatch(ic -> ic.getNode1() == nodeAfter || ic.getNode2() == nodeAfter)) {
             // Find all switches connected to node after
-            List<Switch> openableSwitchesAtNodeAfter = nbv.getSwitchStream()
+            List<Switch> switchesAtNodeAfter = nbv.getSwitchStream()
                 .filter(s -> s != aSwitch && switchAtNode(s, nodeAfter, nbv))
                 .collect(Collectors.toList());
-            return !openableSwitchesAtNodeAfter.isEmpty()
-                && openableSwitchesAtNodeAfter.stream().allMatch(LfBranchTripping::isOpenOrOpenable);
+            return !switchesAtNodeAfter.isEmpty()
+                && switchesAtNodeAfter.stream().allMatch(LfBranchTripping::isOpenOrOpenable);
         }
 
         return false;
@@ -137,14 +142,11 @@ public class LfBranchTripping extends BranchTripping {
     }
 
     private static boolean isOpenable(Switch aSwitch) {
-        return !aSwitch.isOpen() &&
-            !aSwitch.isFictitious() &&
-            aSwitch.getKind() == SwitchKind.BREAKER;
+        return !aSwitch.isFictitious() && aSwitch.getKind() == SwitchKind.BREAKER;
     }
 
     private static boolean isOpenOrOpenable(Switch aSwitch) {
-        return aSwitch.isOpen() ||
-            (!aSwitch.isFictitious() && aSwitch.getKind() == SwitchKind.BREAKER);
+        return aSwitch.isOpen() || isOpenable(aSwitch);
     }
 
 }

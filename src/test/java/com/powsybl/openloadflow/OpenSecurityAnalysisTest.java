@@ -15,7 +15,6 @@ import com.powsybl.iidm.network.VoltageLevel;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBus;
@@ -209,8 +208,10 @@ class OpenSecurityAnalysisTest {
             .map(id -> new Contingency(id, new LfBranchContingency(id)))
             .collect(Collectors.toList());
 
-        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
-            new LimitViolationFilter(), new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(),
+            () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, null, 0);
+
         SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
         assertTrue(result.getPreContingencyResult().isComputationOk());
         assertEquals(0, result.getPreContingencyResult().getLimitViolations().size());
@@ -236,8 +237,9 @@ class OpenSecurityAnalysisTest {
                 .map(id -> new Contingency(id, new LfBranchContingency(id)))
                 .collect(Collectors.toList());
 
-        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
-                new LimitViolationFilter(), new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory();
+        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, new LimitViolationFilter(), null, 0);
+
         SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
         assertTrue(result.getPreContingencyResult().isComputationOk());
         assertEquals(0, result.getPreContingencyResult().getLimitViolations().size());
@@ -264,8 +266,11 @@ class OpenSecurityAnalysisTest {
         ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
             .map(b -> new Contingency(b.getId(), new LfBranchContingency(b.getId())))
             .collect(Collectors.toList());
-        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
-            new LimitViolationFilter(), new SparseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
+
+        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
+        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, new DefaultLimitViolationDetector(),
+            new LimitViolationFilter(), null, 0);
+
         SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
         assertTrue(result.getPreContingencyResult().isComputationOk());
 

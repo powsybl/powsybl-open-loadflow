@@ -15,7 +15,6 @@ import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.security.LimitViolationDetector;
 import com.powsybl.security.LimitViolationFilter;
-import com.powsybl.security.SecurityAnalysis;
 import com.powsybl.security.SecurityAnalysisFactory;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 
@@ -40,17 +39,17 @@ public class OpenSecurityAnalysisFactory implements SecurityAnalysisFactory {
     }
 
     @Override
-    public SecurityAnalysis create(Network network, ComputationManager computationManager, int priority) {
+    public OpenSecurityAnalysis create(Network network, ComputationManager computationManager, int priority) {
         return new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(), new LimitViolationFilter(), matrixFactory, connectivityProvider);
     }
 
     @Override
-    public SecurityAnalysis create(Network network, LimitViolationFilter filter, ComputationManager computationManager, int priority) {
+    public OpenSecurityAnalysis create(Network network, LimitViolationFilter filter, ComputationManager computationManager, int priority) {
         return new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(), filter, matrixFactory, connectivityProvider);
     }
 
     @Override
-    public SecurityAnalysis create(Network network, LimitViolationDetector detector, LimitViolationFilter filter, ComputationManager computationManager, int priority) {
+    public OpenSecurityAnalysis create(Network network, LimitViolationDetector detector, LimitViolationFilter filter, ComputationManager computationManager, int priority) {
         return new OpenSecurityAnalysis(network, detector, filter, matrixFactory, connectivityProvider);
     }
 }
