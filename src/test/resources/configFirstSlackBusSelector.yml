@@ -1,0 +1,2 @@
+open-loadflow-default-parameters:
+    slackBusSelectorType: "First"
