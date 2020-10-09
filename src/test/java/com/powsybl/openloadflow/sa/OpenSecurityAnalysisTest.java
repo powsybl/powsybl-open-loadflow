@@ -272,7 +272,7 @@ class OpenSecurityAnalysisTest {
         OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, new DefaultLimitViolationDetector(),
             new LimitViolationFilter(), null, 0);
 
-        SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
+        SecurityAnalysisResult result = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
         assertTrue(result.getPreContingencyResult().isComputationOk());
 
         saParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setBalanceType(OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
