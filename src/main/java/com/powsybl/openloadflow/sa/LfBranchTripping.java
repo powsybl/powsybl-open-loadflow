@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.ComputationManager;
-import com.powsybl.contingency.tasks.BranchTripping;
+import com.powsybl.contingency.tasks.AbstractTrippingTask;
 import com.powsybl.iidm.network.*;
 
 import java.util.*;
@@ -16,13 +16,16 @@ import java.util.*;
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class LfBranchTripping extends BranchTripping {
+public class LfBranchTripping extends AbstractTrippingTask {
 
     private final String branchId;
     private final String voltageLevelId;
 
+    public LfBranchTripping(String branchId) {
+        this(branchId, null);
+    }
+
     public LfBranchTripping(String branchId, String voltageLevelId) {
-        super(branchId, voltageLevelId);
         this.branchId = Objects.requireNonNull(branchId);
         this.voltageLevelId = voltageLevelId;
     }

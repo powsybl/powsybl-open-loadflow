@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
@@ -58,7 +59,7 @@ class OpenSecurityAnalysisGraphTest {
 
         // Testing all contingencies at once
         contingenciesProvider = network -> network.getBranchStream()
-            .map(b -> new Contingency(b.getId(), new LfBranchContingency(b.getId())))
+            .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
             .collect(Collectors.toList());
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();

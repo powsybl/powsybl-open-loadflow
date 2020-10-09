@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
@@ -206,7 +207,7 @@ class OpenSecurityAnalysisTest {
         lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
         saParameters.setLoadFlowParameters(lfParameters);
         ContingenciesProvider contingenciesProvider = network -> Stream.of("L1", "L2")
-            .map(id -> new Contingency(id, new LfBranchContingency(id)))
+            .map(id -> new Contingency(id, new BranchContingency(id)))
             .collect(Collectors.toList());
 
         OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(),
@@ -235,7 +236,7 @@ class OpenSecurityAnalysisTest {
         lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
         saParameters.setLoadFlowParameters(lfParameters);
         ContingenciesProvider contingenciesProvider = network -> Stream.of("L1", "L2")
-                .map(id -> new Contingency(id, new LfBranchContingency(id)))
+                .map(id -> new Contingency(id, new BranchContingency(id)))
                 .collect(Collectors.toList());
 
         OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory();
@@ -265,7 +266,7 @@ class OpenSecurityAnalysisTest {
 
         // Testing all contingencies at once
         ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
-            .map(b -> new Contingency(b.getId(), new LfBranchContingency(b.getId())))
+            .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
             .collect(Collectors.toList());
 
         OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);

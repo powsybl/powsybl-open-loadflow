@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.AbstractConverterTest;
+import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
@@ -54,7 +55,7 @@ class LfContingencyTest extends AbstractConverterTest {
         OpenSecurityAnalysis sa = new OpenSecurityAnalysisFactory().create(network, null, 0);
 
         String branchId = "LINE_S3S4";
-        Contingency contingency = new Contingency(branchId, new LfBranchContingency(branchId));
+        Contingency contingency = new Contingency(branchId, new BranchContingency(branchId));
         List<OpenSecurityAnalysis.ContingencyContext> contingencyContexts =
             sa.getContingencyContexts(Collections.singletonList(contingency), new HashSet<>());
 
