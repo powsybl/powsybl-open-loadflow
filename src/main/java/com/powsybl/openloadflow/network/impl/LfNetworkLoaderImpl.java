@@ -56,8 +56,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static Bus getBus(Terminal regulatingTerminal, boolean breakers) {
-        return breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
+    private static Bus getBus(Terminal terminal, boolean breakers) {
+        return breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
     }
 
     private static LfBusImpl createBus(Bus bus, boolean voltageRemoteControl, boolean breakers, LoadingContext loadingContext,

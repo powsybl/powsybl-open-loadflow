@@ -224,7 +224,7 @@ class BranchTrippingTest {
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         lbc1.toTask().traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BL");
-        checkTerminals(terminalsToDisconnect, "D", "CI");
+        checkTerminals(terminalsToDisconnect, "D", "CI", "CJ");
     }
 
     @Test
