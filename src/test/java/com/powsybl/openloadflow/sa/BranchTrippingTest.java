@@ -227,6 +227,40 @@ class BranchTrippingTest {
         checkTerminals(terminalsToDisconnect, "D", "CI");
     }
 
+    @Test
+    void testStopAtStartEdges() {
+        Network network = FictitiousSwitchFactory.create();
+
+        // Adding edges after CJ line
+        network.getVoltageLevel("N").getNodeBreakerView().newBreaker()
+            .setId("ZY")
+            .setName("ZZ")
+            .setRetained(false)
+            .setOpen(false)
+            .setFictitious(false)
+            .setNode1(5)
+            .setNode2(9)
+            .add();
+        network.getVoltageLevel("C").getNodeBreakerView().newInternalConnection()
+            .setNode1(1)
+            .setNode2(4)
+            .add();
+
+        BranchContingency lbc1 = new LfBranchContingency("CJ");
+        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Terminal> terminalsToDisconnect = new HashSet<>();
+        lbc1.toTask().traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        checkSwitches(switchesToOpen, "ZY");
+        checkTerminals(terminalsToDisconnect, "D", "CI");
+
+        network.getSwitch("ZY").setOpen(true);
+        switchesToOpen.clear();
+        terminalsToDisconnect.clear();
+        lbc1.toTask().traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        checkSwitches(switchesToOpen);
+        checkTerminals(terminalsToDisconnect, "D", "CI");
+    }
+
     private static void checkSwitches(Set<Switch> switches, String... sId) {
         assertEquals(new HashSet<>(Arrays.asList(sId)), switches.stream().map(Switch::getId).collect(Collectors.toSet()));
     }
