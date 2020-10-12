@@ -64,16 +64,18 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
 
     @Override
     public void addEdge(V vertex1, V vertex2) {
-        Objects.requireNonNull(vertex1);
-        Objects.requireNonNull(vertex2);
+        if (vertex1 == null || vertex2 == null) {
+            return;
+        }
         graph.addEdge(vertex1, vertex2, new Object());
         invalidateComponents();
     }
 
     @Override
     public void cut(V vertex1, V vertex2) {
-        Objects.requireNonNull(vertex1);
-        Objects.requireNonNull(vertex2);
+        if (vertex1 == null || vertex2 == null) {
+            return;
+        }
         graph.removeEdge(vertex1, vertex2);
         cutEdges.add(Pair.of(vertex1, vertex2));
         invalidateComponents();
