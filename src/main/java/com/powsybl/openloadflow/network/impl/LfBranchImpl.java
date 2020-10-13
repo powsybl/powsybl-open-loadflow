@@ -26,7 +26,7 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
 
-    private final Branch branch;
+    private final Branch<?> branch;
 
     private Evaluable p1 = NAN;
 
@@ -36,7 +36,7 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private Evaluable q2 = NAN;
 
-    protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, Branch branch) {
+    protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
         super(bus1, bus2, piModel);
         this.branch = branch;
     }
@@ -61,7 +61,6 @@ public class LfBranchImpl extends AbstractLfBranch {
         if (ptc != null
                 && ptc.isRegulating()
                 && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
-            PhaseTapChanger.RegulationMode regulationMode = ptc.getRegulationMode();
 
             Integer rtcPosition = Transformers.getCurrentPosition(twt.getRatioTapChanger());
             List<PiModel> models = new ArrayList<>();

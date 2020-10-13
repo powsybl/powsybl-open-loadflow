@@ -51,7 +51,6 @@ public class LfLegBranch extends AbstractLfBranch {
         if (ptc != null
                 && ptc.isRegulating()
                 && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
-            PhaseTapChanger.RegulationMode regulationMode = ptc.getRegulationMode();
 
             Integer rtcPosition = Transformers.getCurrentPosition(leg.getRatioTapChanger());
             List<PiModel> models = new ArrayList<>();
