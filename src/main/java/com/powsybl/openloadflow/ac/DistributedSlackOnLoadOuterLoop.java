@@ -36,7 +36,7 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
     }
 
     @Override
-    protected List<ParticipatingElement<LfBus>> getParticipatingElements(LfNetwork network) {
+    public List<ParticipatingElement<LfBus>> getParticipatingElements(LfNetwork network) {
         return network.getBuses()
             .stream()
             .filter(bus -> bus.getPositiveLoadCount() > 0 && getVariableLoadTargetP(bus) > 0)
@@ -49,7 +49,7 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
     }
 
     @Override
-    protected double run(List<ParticipatingElement<LfBus>> participatingElements, int iteration, double remainingMismatch) {
+    public double run(List<ParticipatingElement<LfBus>> participatingElements, int iteration, double remainingMismatch) {
         // normalize participation factors at each iteration start as some
         // loads might have reach zero and have been discarded.
         normalizeParticipationFactors(participatingElements, "load");

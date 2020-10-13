@@ -11,15 +11,14 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import org.jgrapht.Graph;
+import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
 import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -303,6 +302,16 @@ public final class AcEquationSystem {
                 nonImpedantSubGraph.addVertex(branch.getBus1());
                 nonImpedantSubGraph.addVertex(branch.getBus2());
                 nonImpedantSubGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
+            }
+
+            ConnectivityInspector<LfBus, LfBranch> ci = new ConnectivityInspector<>(nonImpedantSubGraph);
+            List<Set<LfBus>> connectedSets = ci.connectedSets();
+            for (Set<LfBus> connectedSet : connectedSets) {
+                if (connectedSet.size() > 2 && connectedSet.stream().filter(LfBus::hasVoltageControl).count() > 1) {
+                    String problBuses = connectedSet.stream().map(LfBus::getId).collect(Collectors.joining(", "));
+                    throw new PowsyblException(
+                        "Non impedant branches that connect at least two buses with voltage control (buses: " + problBuses + ")");
+                }
             }
 
             SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(nonImpedantSubGraph).getSpanningTree();

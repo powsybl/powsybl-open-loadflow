@@ -47,7 +47,7 @@ public class DcLoadFlowEngine {
     }
 
     public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters) {
-        this.networks = LfNetwork.load(network, new LfNetworkParameters(parameters.getSlackBusSelector(), false, false, parameters.isTwtSplitShuntAdmittance()));
+        this.networks = LfNetwork.load(network, new LfNetworkParameters(parameters.getSlackBusSelector(), false, false, parameters.isTwtSplitShuntAdmittance(), false));
         matrixFactory = parameters.getMatrixFactory();
         updateFlows = parameters.isUpdateFlows();
     }

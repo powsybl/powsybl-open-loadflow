@@ -44,7 +44,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt);
+        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt, false);
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
         LfBranch branch1 = lfNetwork.getBranchById("NHV1_NHV2_1");
@@ -65,7 +65,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt);
+        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt, false);
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
         LfBranch branch = lfNetwork.getBranchById("DL");
@@ -81,7 +81,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt);
+        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt, false);
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
         LfBranch branch1 = lfNetwork.getBranchById("3WT_leg_1");

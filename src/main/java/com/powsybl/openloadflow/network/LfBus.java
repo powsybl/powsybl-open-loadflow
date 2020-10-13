@@ -37,6 +37,8 @@ public interface LfBus {
      */
     int getVoltageControlSwitchOffCount();
 
+    void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount);
+
     void setVoltageControl(boolean voltageControl);
 
     Optional<LfBus> getControlledBus();
@@ -86,6 +88,10 @@ public interface LfBus {
      * @return nominal voltage in Kv
      */
     double getNominalV();
+
+    double getLowVoltageLimit();
+
+    double getHighVoltageLimit();
 
     List<LfGenerator> getGenerators();
 

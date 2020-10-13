@@ -58,8 +58,9 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
     @Override
     public void addEdge(V vertex1, V vertex2) {
-        Objects.requireNonNull(vertex1);
-        Objects.requireNonNull(vertex2);
+        if (vertex1 == null || vertex2 == null) {
+            return;
+        }
         if (vertex1 != vertex2) {
             graph.addEdge(vertex1, vertex2, new Object());
         } else {
@@ -69,6 +70,10 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
     @Override
     public void cut(V vertex1, V vertex2) {
+        if (vertex1 == null || vertex2 == null) {
+            return;
+        }
+
         sortedComponents = false;
         if (connectedComponents.isEmpty()) {
             initConnectedComponents();
