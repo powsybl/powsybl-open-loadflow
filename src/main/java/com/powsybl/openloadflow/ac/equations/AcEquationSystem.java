@@ -308,10 +308,9 @@ public final class AcEquationSystem {
             List<Set<LfBus>> connectedSets = ci.connectedSets();
             for (Set<LfBus> connectedSet : connectedSets) {
                 if (connectedSet.size() > 2 && connectedSet.stream().filter(LfBus::hasVoltageControl).count() > 1) {
-                    String problBuses = connectedSet.stream().map(LfBus::getId).collect(Collectors.joining(" | "));
+                    String problBuses = connectedSet.stream().map(LfBus::getId).collect(Collectors.joining(", "));
                     throw new PowsyblException(
-                        "open-loadflow does not support so far non impedant branches connected to several voltage-controlled buses;" +
-                            " id of the problematic buses are :" + problBuses);
+                        "Non impedant branches that connect at least two buses with voltage control (buses: " + problBuses + ")");
                 }
             }
 

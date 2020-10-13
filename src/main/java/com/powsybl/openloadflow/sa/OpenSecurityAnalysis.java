@@ -146,6 +146,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                         contingencyContext.branchIdsToOpen.add(element.getId());
                         break;
                     default:
+                        //TODO: support all kinds of contingencies
                         throw new UnsupportedOperationException("TODO");
                 }
                 new LfBranchTripping(element.getId(), null)
@@ -219,6 +220,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                     2147483647, branch.getPermanentLimit2() * scale, (float) 0., branch.getI2() * scale, Branch.Side.TWO);
             violations.add(limitViolation2);
         }
+        //TODO: temporary limit violation detection
     }
 
     /**
@@ -271,6 +273,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             while (contingencyIt.hasNext()) {
                 LfContingency lfContingency = contingencyIt.next();
 
+                // FIXME: loads and generations lost with the contingency have to be removed from the slack distribution
                 distributedMismatch(network, lfContingency.getActivePowerLoss(), openLoadFlowParameters);
 
                 PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency);
@@ -289,9 +292,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
     }
 
     private void distributedMismatch(LfNetwork network, double mismatch, OpenLoadFlowParameters openLoadFlowParameters) {
-
         if (openLoadFlowParameters.isDistributedSlack() && Math.abs(mismatch) > 0) {
-
             if (openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
                     openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
                 DistributedSlackOnLoadOuterLoop outerLoop = new DistributedSlackOnLoadOuterLoop(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure(),
