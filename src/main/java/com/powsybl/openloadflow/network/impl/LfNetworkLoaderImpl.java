@@ -200,11 +200,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
         for (Branch branch : loadingContext.branchSet) {
             if (branch instanceof TwoWindingsTransformer) {
-                // Complete phase controls when controlled branch is remote.
-                // set controller -> controlled link
+                // Create phase controls which link controller -> controlled
                 TwoWindingsTransformer t2wt = (TwoWindingsTransformer) branch;
                 PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
-                updatePhaseControl(lfNetwork, ptc, t2wt.getId(), "");
+                createPhaseControl(lfNetwork, ptc, t2wt.getId(), "");
             }
         }
 
@@ -227,41 +226,41 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
 
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
-            // Complete phase controls when controlled branch is remote.
-            // set controller -> controlled link
-            List<ThreeWindingsTransformer.Leg> legs = new ArrayList<>();
-            legs.add(t3wt.getLeg1());
-            legs.add(t3wt.getLeg2());
-            legs.add(t3wt.getLeg3());
+            // Create phase controls which link controller -> controlled
             int legNumber = 1;
-            for (ThreeWindingsTransformer.Leg leg : legs) {
+            for (ThreeWindingsTransformer.Leg leg : Arrays.asList(t3wt.getLeg1(), t3wt.getLeg2(), t3wt.getLeg3())) {
                 PhaseTapChanger ptc = leg.getPhaseTapChanger();
-                updatePhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + legNumber);
+                createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + legNumber);
                 legNumber++;
             }
         }
     }
 
-    private static void updatePhaseControl(LfNetwork lfNetwork, PhaseTapChanger ptc, String controllerBranchId, String legId) {
+    private static void createPhaseControl(LfNetwork lfNetwork, PhaseTapChanger ptc, String controllerBranchId, String legId) {
         if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
-            Connectable connectable = ptc.getRegulationTerminal().getConnectable();
-            String controlledBranchId = connectable.getId();
-            if (connectable instanceof ThreeWindingsTransformer) {
+            String controlledBranchId = ptc.getRegulationTerminal().getConnectable().getId();
+            if (controlledBranchId.equals(controllerBranchId)) {
+                // Local control: each leg is controlling its phase
                 controlledBranchId += legId;
             }
             LfBranch controlledBranch = lfNetwork.getBranchById(controlledBranchId);
             LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
-            Optional<PhaseControl> phaseControlOptional = controllerBranch.getPhaseControl();
-            if (phaseControlOptional.isPresent()) {
-                PhaseControl phaseControl = phaseControlOptional.get();
-                controlledBranch.setControllerBranch(controllerBranch);
-                LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
-                if (controlledBus == controlledBranch.getBus1()) {
-                    phaseControl.setControlledSide(RegulationControl.ControlledSide.ONE);
-                } else {
-                    phaseControl.setControlledSide(RegulationControl.ControlledSide.TWO);
-                }
+            LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
+            PhaseControl.ControlledSide controlledSide = controlledBus == controlledBranch.getBus1() ?
+                PhaseControl.ControlledSide.ONE : PhaseControl.ControlledSide.TWO;
+            double targetValue = ptc.getRegulationValue() / PerUnit.SB;
+
+            PhaseControl phaseControl = null;
+            if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
+                phaseControl = new PhaseControl(controllerBranch, controlledBranch, controlledSide,
+                    PhaseControl.Mode.LIMITER, targetValue, PhaseControl.Unit.A);
+            } else if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                phaseControl = new PhaseControl(controllerBranch, controlledBranch, controlledSide,
+                    PhaseControl.Mode.CONTROLLER, targetValue, PhaseControl.Unit.MW);
             }
+
+            controllerBranch.setPhaseControl(phaseControl);
+            controlledBranch.setPhaseControl(phaseControl);
         }
     }
 

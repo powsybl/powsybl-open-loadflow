@@ -11,27 +11,55 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class PhaseControl extends AbstractControl {
+public class PhaseControl {
+
+    public enum ControlledSide {
+        ONE,
+        TWO
+    }
 
     public enum Mode {
         CONTROLLER,
         LIMITER,
-        OFF
+        OFF;
     }
 
     public enum Unit {
         MW,
-        A
+        A;
     }
 
+    private final LfBranch controller;
+    private final LfBranch controlled;
+    private final double targetValue;
+    private final ControlledSide controlledSide;
     private Mode mode;
-
     private final Unit unit;
 
-    public PhaseControl(PhaseControl.Mode mode, double targetValue, Unit unit) {
-        super(targetValue);
+    public PhaseControl(LfBranch controller, LfBranch controlled, ControlledSide controlledSide, PhaseControl.Mode mode,
+                        double targetValue, Unit unit) {
+        this.controller = controller;
+        this.controlled = controlled;
+        this.targetValue = targetValue;
+        this.controlledSide = Objects.requireNonNull(controlledSide);
         this.mode = Objects.requireNonNull(mode);
         this.unit = Objects.requireNonNull(unit);
+    }
+
+    public ControlledSide getControlledSide() {
+        return controlledSide;
+    }
+
+    public double getTargetValue() {
+        return targetValue;
+    }
+
+    public LfBranch getController() {
+        return controller;
+    }
+
+    public LfBranch getControlled() {
+        return controlled;
     }
 
     public Mode getMode() {

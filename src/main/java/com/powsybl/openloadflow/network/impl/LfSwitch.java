@@ -7,11 +7,12 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Switch;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.AbstractLfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.SimplePiModel;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -68,11 +69,6 @@ public class LfSwitch extends AbstractLfBranch {
     @Override
     public double getPermanentLimit2() {
         return Double.NaN;
-    }
-
-    @Override
-    public Optional<PhaseControl> getPhaseControl() {
-        return Optional.empty();
     }
 
     @Override

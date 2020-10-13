@@ -30,8 +30,8 @@ public class LfLegBranch extends AbstractLfBranch {
 
     private Evaluable q = NAN;
 
-    protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg, PhaseControl phaseControl, VoltageControl voltageControl) {
-        super(bus1, bus0, piModel, phaseControl, voltageControl);
+    protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
+        super(bus1, bus0, piModel);
         this.twt = twt;
         this.leg = leg;
     }
@@ -42,9 +42,7 @@ public class LfLegBranch extends AbstractLfBranch {
         Objects.requireNonNull(twt);
         Objects.requireNonNull(leg);
 
-        PiModel piModel = null;
-        PhaseControl phaseControl = null;
-        VoltageControl voltageControl = null;
+        PiModel piModel;
 
         double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
         double nominalV2 = twt.getRatedU0();
@@ -78,14 +76,7 @@ public class LfLegBranch extends AbstractLfBranch {
             }
             piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
 
-            if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
-                phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A);
-            } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
-                phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW);
-            }
-        }
-
-        if (piModel == null) {
+        } else {
             piModel = new SimplePiModel()
                     .setR(Transformers.getR(leg) / zb)
                     .setX(Transformers.getX(leg) / zb)
@@ -96,7 +87,8 @@ public class LfLegBranch extends AbstractLfBranch {
                     .setR1(Transformers.getRatioLeg(twt, leg) / nominalV2 * nominalV1)
                     .setA1(Transformers.getAngleLeg(leg));
         }
-        return new LfLegBranch(bus1, bus0, piModel, twt, leg, phaseControl, voltageControl);
+
+        return new LfLegBranch(bus1, bus0, piModel, twt, leg);
     }
 
     private int getLegNum() {

@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.commons.PowsyblException;
-
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -24,22 +21,12 @@ public abstract class AbstractLfBranch implements LfBranch {
 
     private final PiModel piModel;
 
-    protected final PhaseControl phaseControl;
+    protected PhaseControl phaseControl;
 
-    protected final VoltageControl voltageControl;
-
-    protected LfBranch controllerBranch;
-
-    protected AbstractLfBranch(LfBus bus1, LfBus bus2, PiModel piModel, PhaseControl phaseControl, VoltageControl voltageControl) {
+    protected AbstractLfBranch(LfBus bus1, LfBus bus2, PiModel piModel) {
         this.bus1 = bus1;
         this.bus2 = bus2;
         this.piModel = Objects.requireNonNull(piModel);
-        this.phaseControl = phaseControl;
-        this.voltageControl = voltageControl;
-
-        if (phaseControl != null && voltageControl != null) {
-            throw new PowsyblException("Only one regulating control enabled is allowed");
-        }
     }
 
     @Override
@@ -68,22 +55,28 @@ public abstract class AbstractLfBranch implements LfBranch {
     }
 
     @Override
-    public Optional<LfBranch> getControllerBranch() {
-        return Optional.ofNullable(controllerBranch);
+    public PhaseControl getPhaseControl() {
+        return phaseControl;
     }
 
     @Override
-    public void setControllerBranch(LfBranch controllerBranch) {
-        this.controllerBranch = Objects.requireNonNull(controllerBranch, "Controller branch cannot be null");
+    public void setPhaseControl(PhaseControl phaseControl) {
+        this.phaseControl = phaseControl;
     }
 
     @Override
-    public Optional<PhaseControl> getPhaseControl() {
-        return Optional.ofNullable(phaseControl);
+    public boolean isPhaseController() {
+        return phaseControl != null && phaseControl.getController() == this;
     }
 
     @Override
-    public Optional<VoltageControl> getVoltageControl() {
-        return Optional.ofNullable(voltageControl);
+    public boolean isPhaseControlled() {
+        return phaseControl != null && phaseControl.getControlled() == this;
     }
+
+    @Override
+    public boolean isPhaseControlled(PhaseControl.ControlledSide controlledSide) {
+        return isPhaseControlled() && phaseControl.getControlledSide() == controlledSide;
+    }
+
 }
