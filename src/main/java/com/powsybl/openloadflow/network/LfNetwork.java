@@ -231,6 +231,8 @@ public class LfNetwork {
             try {
                 jsonGenerator.writeFieldName("phaseControl");
                 jsonGenerator.writeStartObject();
+                jsonGenerator.writeStringField("controller", phaseControl.getController().getId());
+                jsonGenerator.writeStringField("controlled", phaseControl.getController().getId());
                 jsonGenerator.writeStringField("mode", phaseControl.getMode().name());
                 jsonGenerator.writeStringField("unit", phaseControl.getUnit().name());
                 jsonGenerator.writeStringField("controlledSide", phaseControl.getControlledSide().name());
