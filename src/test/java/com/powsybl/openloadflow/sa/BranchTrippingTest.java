@@ -37,13 +37,13 @@ class BranchTrippingTest {
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         new LfBranchTripping("L1").traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "C");
-        checkTerminals(terminalsToDisconnect, "BBS1");
+        checkTerminals(terminalsToDisconnect, "BBS1", "L1");
 
         switchesToOpen.clear();
         terminalsToDisconnect.clear();
         new LfBranchTripping("L2").traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen);
-        checkTerminals(terminalsToDisconnect);
+        checkTerminals(terminalsToDisconnect, "L2");
     }
 
     @Test
@@ -77,14 +77,14 @@ class BranchTrippingTest {
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         trippingTaskVl1.traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "C");
-        checkTerminals(terminalsToDisconnect, "BBS1");
+        checkTerminals(terminalsToDisconnect, "BBS1", "L1");
 
         AbstractTrippingTask trippingTaskVl2 = new LfBranchTripping("L1", "VL2");
         switchesToOpen.clear();
         terminalsToDisconnect.clear();
         trippingTaskVl2.traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen);
-        checkTerminals(terminalsToDisconnect);
+        checkTerminals(terminalsToDisconnect, "L1");
     }
 
     @Test
@@ -108,7 +108,7 @@ class BranchTrippingTest {
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         new LfBranchTripping("CJ").traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen);
-        checkTerminals(terminalsToDisconnect, "D", "CI");
+        checkTerminals(terminalsToDisconnect, "D", "CI", "CJ");
     }
 
     @Test
@@ -125,7 +125,7 @@ class BranchTrippingTest {
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         lbt1.traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BL", "BJ");
-        checkTerminals(terminalsToDisconnect, "D", "CI", "P");
+        checkTerminals(terminalsToDisconnect, "D", "CI", "P", "CJ");
 
         // Then with the opened disconnector
         network.getSwitch("AH").setOpen(true);
@@ -133,7 +133,7 @@ class BranchTrippingTest {
         terminalsToDisconnect.clear();
         lbt1.traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BL");
-        checkTerminals(terminalsToDisconnect, "D", "CI", "P");
+        checkTerminals(terminalsToDisconnect, "D", "CI", "P", "CJ");
     }
 
     @Test
@@ -147,7 +147,7 @@ class BranchTrippingTest {
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         new LfBranchTripping("CJ").traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen);
-        checkTerminals(terminalsToDisconnect);
+        checkTerminals(terminalsToDisconnect, "CJ");
     }
 
     @Test
@@ -186,7 +186,7 @@ class BranchTrippingTest {
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         lbt1.traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BJ", "BL", "BV", "BX");
-        checkTerminals(terminalsToDisconnect, "D", "CI", "P", "O");
+        checkTerminals(terminalsToDisconnect, "D", "CI", "P", "O", "CJ");
 
         // Adding an internal connection and open the ZW switch
         network.getSwitch("ZY").setOpen(true);
@@ -198,7 +198,7 @@ class BranchTrippingTest {
         terminalsToDisconnect.clear();
         lbt1.traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BJ", "BL", "BV", "BX");
-        checkTerminals(terminalsToDisconnect, "D", "CI", "P", "O");
+        checkTerminals(terminalsToDisconnect, "D", "CI", "P", "O", "CJ");
     }
 
     @Test
@@ -246,14 +246,14 @@ class BranchTrippingTest {
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         lbt1.traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "ZY");
-        checkTerminals(terminalsToDisconnect, "D", "CI");
+        checkTerminals(terminalsToDisconnect, "D", "CI", "CJ");
 
         network.getSwitch("ZY").setOpen(true);
         switchesToOpen.clear();
         terminalsToDisconnect.clear();
         lbt1.traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen);
-        checkTerminals(terminalsToDisconnect, "D", "CI");
+        checkTerminals(terminalsToDisconnect, "D", "CI", "CJ");
     }
 
     private static void checkSwitches(Set<Switch> switches, String... sId) {

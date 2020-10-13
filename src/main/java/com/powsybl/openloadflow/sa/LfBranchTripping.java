@@ -34,26 +34,28 @@ public class LfBranchTripping extends AbstractTrippingTask {
     public void traverse(Network network, ComputationManager computationManager, Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect) {
         Objects.requireNonNull(network);
 
-        Branch branch = network.getBranch(branchId);
+        Branch<?> branch = network.getBranch(branchId);
         if (branch == null) {
             throw new PowsyblException("Branch '" + branchId + "' not found");
         }
+
+        Set<Terminal> traversedTerminals = new HashSet<>();
         if (voltageLevelId != null) {
             if (voltageLevelId.equals(branch.getTerminal1().getVoltageLevel().getId())) {
-                traverseFromTerminal(branch.getTerminal1(), switchesToOpen, terminalsToDisconnect, new HashSet<>());
+                traverseFromTerminal(branch.getTerminal1(), switchesToOpen, traversedTerminals);
             } else if (voltageLevelId.equals(branch.getTerminal2().getVoltageLevel().getId())) {
-                traverseFromTerminal(branch.getTerminal2(), switchesToOpen, terminalsToDisconnect, new HashSet<>());
+                traverseFromTerminal(branch.getTerminal2(), switchesToOpen, traversedTerminals);
             } else {
                 throw new PowsyblException("VoltageLevel '" + voltageLevelId + "' not connected to branch '" + branchId + "'");
             }
         } else {
-            Set<Terminal> traversedTerminals = new HashSet<>();
-            traverseFromTerminal(branch.getTerminal1(), switchesToOpen, terminalsToDisconnect, traversedTerminals);
-            traverseFromTerminal(branch.getTerminal2(), switchesToOpen, terminalsToDisconnect, traversedTerminals);
+            traverseFromTerminal(branch.getTerminal1(), switchesToOpen, traversedTerminals);
+            traverseFromTerminal(branch.getTerminal2(), switchesToOpen, traversedTerminals);
         }
+        terminalsToDisconnect.addAll(traversedTerminals);
     }
 
-    private void traverseFromTerminal(Terminal terminal, Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect, Set<Terminal> traversedTerminals) {
+    private void traverseFromTerminal(Terminal terminal, Set<Switch> switchesToOpen, Set<Terminal> traversedTerminals) {
 
         if (traversedTerminals.contains(terminal)) {
             return;
@@ -71,11 +73,10 @@ public class LfBranchTripping extends AbstractTrippingTask {
             // Recursive call to continue the traverser in affected neighbouring voltage levels
             List<Terminal> nextTerminals = new ArrayList<>();
             traverser.getTraversedTerminals().forEach(t -> {
-                addNextTerminals(t, nextTerminals);
+                nextTerminals.addAll(t.getConnectable().getTerminals()); // the already traversed terminal are also added for the sake of simplicity
                 traversedTerminals.add(t);
-                terminalsToDisconnect.add(t);
             });
-            nextTerminals.forEach(t -> traverseFromTerminal(t, switchesToOpen, terminalsToDisconnect, traversedTerminals));
+            nextTerminals.forEach(t -> traverseFromTerminal(t, switchesToOpen, traversedTerminals));
 
         } else {
             // TODO: Traverser yet to implement for bus breaker view
@@ -83,33 +84,4 @@ public class LfBranchTripping extends AbstractTrippingTask {
         }
     }
 
-    private static void addNextTerminals(Terminal otherTerminal, List<Terminal> nextTerminals) {
-        Objects.requireNonNull(otherTerminal);
-        Objects.requireNonNull(nextTerminals);
-        Connectable otherConnectable = otherTerminal.getConnectable();
-        if (otherConnectable instanceof Branch) {
-            Branch branch = (Branch) otherConnectable;
-            if (branch.getTerminal1() == otherTerminal) {
-                nextTerminals.add(branch.getTerminal2());
-            } else if (branch.getTerminal2() == otherTerminal) {
-                nextTerminals.add(branch.getTerminal1());
-            } else {
-                throw new AssertionError();
-            }
-        } else if (otherConnectable instanceof ThreeWindingsTransformer) {
-            ThreeWindingsTransformer ttc = (ThreeWindingsTransformer) otherConnectable;
-            if (ttc.getLeg1().getTerminal() == otherTerminal) {
-                nextTerminals.add(ttc.getLeg2().getTerminal());
-                nextTerminals.add(ttc.getLeg3().getTerminal());
-            } else if (ttc.getLeg2().getTerminal() == otherTerminal) {
-                nextTerminals.add(ttc.getLeg1().getTerminal());
-                nextTerminals.add(ttc.getLeg3().getTerminal());
-            } else if (ttc.getLeg3().getTerminal() == otherTerminal) {
-                nextTerminals.add(ttc.getLeg1().getTerminal());
-                nextTerminals.add(ttc.getLeg2().getTerminal());
-            } else {
-                throw new AssertionError();
-            }
-        }
-    }
 }
