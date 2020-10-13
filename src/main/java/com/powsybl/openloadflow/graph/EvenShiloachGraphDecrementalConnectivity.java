@@ -191,7 +191,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
             sortedComponents = true;
             connectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
         }
-        return connectedComponents.subList(1, connectedComponents.size());
+        return connectedComponents.isEmpty() ? Collections.emptyList() : connectedComponents.subList(1, connectedComponents.size());
     }
 
     private interface GraphProcess {

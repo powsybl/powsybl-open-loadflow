@@ -33,10 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Provider;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,7 +47,6 @@ class OpenSecurityAnalysisGraphTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(OpenSecurityAnalysisGraphTest.class);
 
     private Network network;
-    private List<List<LfContingency>> reference;
     private ContingenciesProvider contingenciesProvider;
     private SecurityAnalysisParameters securityAnalysisParameters;
 
@@ -68,9 +64,6 @@ class OpenSecurityAnalysisGraphTest {
         lfParameters.addExtension(OpenLoadFlowParameters.class,
             new OpenLoadFlowParameters().setSlackBusSelector(new FirstSlackBusSelector()));
         securityAnalysisParameters = new SecurityAnalysisParameters().setLoadFlowParameters(lfParameters);
-
-        reference = getLoadFlowContingencies(() -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
-        LOGGER.info("Reference established (naive connectivity calculation) on test network containing {} branches", network.getBranchCount());
     }
 
     @Test
@@ -78,7 +71,7 @@ class OpenSecurityAnalysisGraphTest {
         LOGGER.info("Test Even-Shiloach on test network containing {} branches", network.getBranchCount());
         List<List<LfContingency>> lfContingencies = getLoadFlowContingencies(EvenShiloachGraphDecrementalConnectivity::new);
         printResult(lfContingencies);
-        checkResult(lfContingencies);
+        checkResult(lfContingencies, computeReference());
     }
 
     @Test
@@ -86,10 +79,34 @@ class OpenSecurityAnalysisGraphTest {
         LOGGER.info("Test Minimum Spanning Tree on test network containing {} branches", network.getBranchCount());
         List<List<LfContingency>> lfContingencies = getLoadFlowContingencies(MinimumSpanningTreeGraphDecrementalConnectivity::new);
         printResult(lfContingencies);
-        checkResult(lfContingencies);
+        checkResult(lfContingencies, computeReference());
     }
 
-    private void checkResult(List<List<LfContingency>> result) {
+    private List<List<LfContingency>> computeReference() {
+        List<List<LfContingency>> result = getLoadFlowContingencies(() -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        LOGGER.info("Reference established (naive connectivity calculation) on test network containing {} branches", network.getBranchCount());
+        return result;
+    }
+
+    @Test
+    void testNullVertices() {
+        network.getSwitch("B3").setOpen(true);
+        contingenciesProvider = n -> Collections.singletonList(
+            new Contingency("L1", new BranchContingency("L1")));
+        List<List<LfContingency>> reference = computeReference();
+        checkResult(getLoadFlowContingencies(MinimumSpanningTreeGraphDecrementalConnectivity::new), reference);
+        checkResult(getLoadFlowContingencies(EvenShiloachGraphDecrementalConnectivity::new), reference);
+
+        contingenciesProvider = n -> Collections.singletonList(
+            new Contingency("L2", new BranchContingency("L2")));
+        network.getSwitch("B3").setOpen(false);
+        network.getSwitch("B1").setOpen(true);
+        reference = computeReference();
+        checkResult(getLoadFlowContingencies(MinimumSpanningTreeGraphDecrementalConnectivity::new), reference);
+        checkResult(getLoadFlowContingencies(EvenShiloachGraphDecrementalConnectivity::new), reference);
+    }
+
+    private static void checkResult(List<List<LfContingency>> result, List<List<LfContingency>> reference) {
         assertEquals(reference.size(), result.size());
         for (int iNetwork = 0; iNetwork < result.size(); iNetwork++) {
             assertEquals(reference.get(iNetwork).size(), result.get(iNetwork).size());
