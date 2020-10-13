@@ -226,7 +226,8 @@ public class LfNetwork {
         if (piModel.getA1() != 0) {
             jsonGenerator.writeNumberField("a1", piModel.getA1());
         }
-        branch.getPhaseControl().ifPresent(phaseControl -> {
+        if (branch.isPhaseController()) {
+            PhaseControl phaseControl = branch.getPhaseControl();
             try {
                 jsonGenerator.writeFieldName("phaseControl");
                 jsonGenerator.writeStartObject();
@@ -238,7 +239,7 @@ public class LfNetwork {
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
-        });
+        }
     }
 
     private void writeJson(LfShunt shunt, JsonGenerator jsonGenerator) throws IOException {
@@ -406,4 +407,5 @@ public class LfNetwork {
         }
         throw new PowsyblException("Cannot importer network of type: " + network.getClass().getName());
     }
+
 }

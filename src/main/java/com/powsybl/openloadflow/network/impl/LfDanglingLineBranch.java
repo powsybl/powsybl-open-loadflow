@@ -26,7 +26,7 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     private Evaluable q = NAN;
 
     protected LfDanglingLineBranch(LfBus bus1, LfBus bus2, PiModel piModel, DanglingLine danglingLine) {
-        super(bus1, bus2, piModel, null, null);
+        super(bus1, bus2, piModel);
         this.danglingLine = danglingLine;
     }
 

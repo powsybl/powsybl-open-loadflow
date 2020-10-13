@@ -36,8 +36,8 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private Evaluable q2 = NAN;
 
-    protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, PhaseControl phaseControl, VoltageControl voltageControl, Branch branch) {
-        super(bus1, bus2, piModel, phaseControl, voltageControl);
+    protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, Branch branch) {
+        super(bus1, bus2, piModel);
         this.branch = branch;
     }
 
@@ -50,14 +50,12 @@ public class LfBranchImpl extends AbstractLfBranch {
                 .setB1(line.getB1() * zb)
                 .setB2(line.getB2() * zb);
 
-        return new LfBranchImpl(bus1, bus2, piModel, null, null, line);
+        return new LfBranchImpl(bus1, bus2, piModel, line);
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfBus bus1, LfBus bus2, double nominalV1,
                                                   double nominalV2, double zb, boolean twtSplitShuntAdmittance) {
         PiModel piModel = null;
-        PhaseControl phaseControl = null;
-        VoltageControl voltageControl = null;
 
         PhaseTapChanger ptc = twt.getPhaseTapChanger();
         if (ptc != null
@@ -87,12 +85,6 @@ public class LfBranchImpl extends AbstractLfBranch {
                         .setA1(a1));
             }
             piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
-
-            if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
-                phaseControl = new PhaseControl(PhaseControl.Mode.LIMITER, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.A);
-            } else if (regulationMode == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
-                phaseControl = new PhaseControl(PhaseControl.Mode.CONTROLLER, ptc.getRegulationValue() / PerUnit.SB, PhaseControl.Unit.MW);
-            }
         }
 
         if (piModel == null) {
@@ -107,10 +99,10 @@ public class LfBranchImpl extends AbstractLfBranch {
                     .setA1(Transformers.getAngle(twt));
         }
 
-        return new LfBranchImpl(bus1, bus2, piModel, phaseControl, voltageControl, twt);
+        return new LfBranchImpl(bus1, bus2, piModel, twt);
     }
 
-    public static LfBranchImpl create(Branch branch, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance) {
+    public static LfBranchImpl create(Branch<?> branch, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance) {
         Objects.requireNonNull(branch);
         double nominalV1 = branch.getTerminal1().getVoltageLevel().getNominalV();
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
@@ -179,16 +171,16 @@ public class LfBranchImpl extends AbstractLfBranch {
         branch.getTerminal2().setP(p2.eval() * PerUnit.SB);
         branch.getTerminal2().setQ(q2.eval() * PerUnit.SB);
 
-        if (phaseControl != null) { // it means there is a regulating phase tap changer
+        if (isPhaseController()) { // it means there is a regulating phase tap changer
             PhaseTapChanger ptc = ((TwoWindingsTransformer) branch).getPhaseTapChanger();
             int tapPosition = Transformers.findTapPosition(ptc, Math.toDegrees(getPiModel().getA1()));
             ptc.setTapPosition(tapPosition);
             double distance = 0; // we check if the target value deadband is respected.
             double p = Double.NaN;
-            if (phaseControl.getControlledSide() == RegulationControl.ControlledSide.ONE) {
+            if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.ONE) {
                 p = p1.eval() * PerUnit.SB;
                 distance = Math.abs(p - phaseControl.getTargetValue() * PerUnit.SB);
-            } else if (phaseControl.getControlledSide() == RegulationControl.ControlledSide.TWO) {
+            } else if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.TWO) {
                 p = p2.eval() * PerUnit.SB;
                 distance = Math.abs(p - phaseControl.getTargetValue() * PerUnit.SB);
             }

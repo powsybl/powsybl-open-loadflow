@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -98,7 +97,7 @@ public final class AcEquationSystem {
                     q = EquationTerm.multiply(new DummyReactivePowerEquationTerm(branch, variableSet), -1);
                 }
             } else {
-                boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+                boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController();
                 if (branch.getBus1() == controllerBus) {
                     LfBus otherSideBus = branch.getBus2();
                     q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1)
@@ -215,22 +214,15 @@ public final class AcEquationSystem {
         DcEquationSystem.createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
     }
 
-    private static void createBranchActivePowerTargetEquation(LfBranch branch, RegulationControl.ControlledSide controlledSide,
+    private static void createBranchActivePowerTargetEquation(LfBranch branch, PhaseControl.ControlledSide controlledSide,
                                                               EquationSystem equationSystem, EquationTerm p) {
-        Optional<LfBranch> controllerBranchOptional = branch.getControllerBranch();
-        if (controllerBranchOptional.isPresent()) {
-            LfBranch controllerBranch = controllerBranchOptional.get();
-            Optional<PhaseControl> phaseControlOptional = controllerBranch.getPhaseControl();
-            if (phaseControlOptional.isPresent()) {
-                PhaseControl phaseControl = phaseControlOptional.get();
-                if (phaseControl.getMode() == PhaseControl.Mode.CONTROLLER &&
-                    phaseControl.getControlledSide() == controlledSide) {
-                    if (phaseControl.getUnit() == PhaseControl.Unit.A) {
-                        throw new PowsyblException("Phase control in A is not yet supported");
-                    }
-                    equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_P)
-                            .addTerm(p);
+        if (branch.isPhaseControlled(controlledSide)) {
+            PhaseControl phaseControl = branch.getPhaseControl();
+            if (phaseControl.getMode() == PhaseControl.Mode.CONTROLLER) {
+                if (phaseControl.getUnit() == PhaseControl.Unit.A) {
+                    throw new PowsyblException("Phase control in A is not yet supported");
                 }
+                equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_P).addTerm(p);
             }
         }
     }
@@ -243,7 +235,7 @@ public final class AcEquationSystem {
         EquationTerm p2 = null;
         EquationTerm q2 = null;
         if (bus1 != null && bus2 != null) {
-            boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+            boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController();
             p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
             q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
             p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
@@ -259,6 +251,9 @@ public final class AcEquationSystem {
         if (p1 != null) {
             equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
             branch.setP1(p1);
+            if (creationParameters.isPhaseControl()) {
+                createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.ONE, equationSystem, p1);
+            }
         }
         if (q1 != null) {
             equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q).addTerm(q1);
@@ -267,27 +262,13 @@ public final class AcEquationSystem {
         if (p2 != null) {
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
             branch.setP2(p2);
+            if (creationParameters.isPhaseControl()) {
+                createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.TWO, equationSystem, p2);
+            }
         }
         if (q2 != null) {
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
             branch.setQ2(q2);
-        }
-        // Is this branch controlled by another one.
-        Optional<LfBranch> controllerBranchOptional = branch.getControllerBranch();
-        if (creationParameters.isPhaseControl() && controllerBranchOptional.isPresent()) {
-            LfBranch controllerBranch = controllerBranchOptional.get();
-            Optional<PhaseControl> phaseControlOptional = controllerBranch.getPhaseControl();
-            if (phaseControlOptional.isPresent()) {
-                PhaseControl phaseControl = phaseControlOptional.get();
-                if (phaseControl.getControlledSide() == RegulationControl.ControlledSide.ONE && p1 != null) {
-                    createBranchActivePowerTargetEquation(branch, RegulationControl.ControlledSide.ONE, equationSystem, p1);
-                }
-                if (phaseControl.getControlledSide() == RegulationControl.ControlledSide.TWO && p2 != null) {
-                    createBranchActivePowerTargetEquation(branch, RegulationControl.ControlledSide.TWO, equationSystem, p2);
-                }
-            } else {
-                throw new PowsyblException("Controller branch '" + controllerBranch.getId() + "' without Phase control");
-            }
         }
     }
 
