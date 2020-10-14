@@ -188,10 +188,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static void createBranches(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkLoadingReport report,
                                        boolean twtSplitShuntAdmittance) {
-        for (Branch branch : loadingContext.branchSet) {
+        for (Branch<?> branch : loadingContext.branchSet) {
             LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork);
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork);
             addBranch(lfNetwork, LfBranchImpl.create(branch, lfBus1, lfBus2, twtSplitShuntAdmittance), report);
+        }
+
+        for (Branch<?> branch : loadingContext.branchSet) {
+            if (branch instanceof TwoWindingsTransformer) {
+                // Create phase controls which link controller -> controlled
+                TwoWindingsTransformer t2wt = (TwoWindingsTransformer) branch;
+                PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
+                createPhaseControl(lfNetwork, ptc, t2wt.getId(), "");
+            }
         }
 
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
@@ -210,6 +219,45 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             addBranch(lfNetwork, LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1(), twtSplitShuntAdmittance), report);
             addBranch(lfNetwork, LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2(), twtSplitShuntAdmittance), report);
             addBranch(lfNetwork, LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3(), twtSplitShuntAdmittance), report);
+        }
+
+        for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
+            // Create phase controls which link controller -> controlled
+            int legNumber = 1;
+            for (ThreeWindingsTransformer.Leg leg : Arrays.asList(t3wt.getLeg1(), t3wt.getLeg2(), t3wt.getLeg3())) {
+                PhaseTapChanger ptc = leg.getPhaseTapChanger();
+                createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + legNumber);
+                legNumber++;
+            }
+        }
+    }
+
+    private static void createPhaseControl(LfNetwork lfNetwork, PhaseTapChanger ptc, String controllerBranchId, String legId) {
+        if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
+            String controlledBranchId = ptc.getRegulationTerminal().getConnectable().getId();
+            if (controlledBranchId.equals(controllerBranchId)) {
+                // Local control: each leg is controlling its phase
+                controlledBranchId += legId;
+            }
+            LfBranch controlledBranch = lfNetwork.getBranchById(controlledBranchId);
+            LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
+            LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
+            PhaseControl.ControlledSide controlledSide = controlledBus == controlledBranch.getBus1() ?
+                PhaseControl.ControlledSide.ONE : PhaseControl.ControlledSide.TWO;
+
+            PhaseControl phaseControl = null;
+            if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
+                double targetValue = ptc.getRegulationValue() * ptc.getRegulationTerminal().getVoltageLevel().getNominalV() / PerUnit.SB;
+                phaseControl = new PhaseControl(controllerBranch, controlledBranch, controlledSide,
+                    PhaseControl.Mode.LIMITER, targetValue, PhaseControl.Unit.A);
+            } else if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                double targetValue = ptc.getRegulationValue() / PerUnit.SB;
+                phaseControl = new PhaseControl(controllerBranch, controlledBranch, controlledSide,
+                    PhaseControl.Mode.CONTROLLER, targetValue, PhaseControl.Unit.MW);
+            }
+
+            controllerBranch.setPhaseControl(phaseControl);
+            controlledBranch.setPhaseControl(phaseControl);
         }
     }
 

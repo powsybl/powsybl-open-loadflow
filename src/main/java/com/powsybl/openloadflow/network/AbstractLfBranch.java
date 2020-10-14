@@ -21,6 +21,8 @@ public abstract class AbstractLfBranch implements LfBranch {
 
     private final PiModel piModel;
 
+    protected PhaseControl phaseControl;
+
     protected AbstractLfBranch(LfBus bus1, LfBus bus2, PiModel piModel) {
         this.bus1 = bus1;
         this.bus2 = bus2;
@@ -51,4 +53,30 @@ public abstract class AbstractLfBranch implements LfBranch {
     public PiModel getPiModel() {
         return piModel;
     }
+
+    @Override
+    public PhaseControl getPhaseControl() {
+        return phaseControl;
+    }
+
+    @Override
+    public void setPhaseControl(PhaseControl phaseControl) {
+        this.phaseControl = phaseControl;
+    }
+
+    @Override
+    public boolean isPhaseController() {
+        return phaseControl != null && phaseControl.getController() == this;
+    }
+
+    @Override
+    public boolean isPhaseControlled() {
+        return phaseControl != null && phaseControl.getControlled() == this;
+    }
+
+    @Override
+    public boolean isPhaseControlled(PhaseControl.ControlledSide controlledSide) {
+        return isPhaseControlled() && phaseControl.getControlledSide() == controlledSide;
+    }
+
 }

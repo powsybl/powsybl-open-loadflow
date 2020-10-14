@@ -10,9 +10,9 @@ import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -23,8 +23,6 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  */
 public class LfLegBranch extends AbstractLfBranch {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LfLegBranch.class);
-
     private final ThreeWindingsTransformer twt;
 
     private final ThreeWindingsTransformer.Leg leg;
@@ -32,8 +30,6 @@ public class LfLegBranch extends AbstractLfBranch {
     private Evaluable p = NAN;
 
     private Evaluable q = NAN;
-
-    private PhaseControl phaseControl;
 
     private VoltageControl voltageControl;
 
@@ -48,6 +44,9 @@ public class LfLegBranch extends AbstractLfBranch {
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(twt);
         Objects.requireNonNull(leg);
+
+        PiModel piModel;
+
         double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
         double nominalV2 = twt.getRatedU0();
         double zb = nominalV2 * nominalV2 / PerUnit.SB;
@@ -55,17 +54,42 @@ public class LfLegBranch extends AbstractLfBranch {
         if (ptc != null
                 && ptc.isRegulating()
                 && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
-            LOGGER.error("3 windings transformer '{}' has a regulating phase tap changer which is not yet supported", twt.getId());
+
+            Integer rtcPosition = Transformers.getCurrentPosition(leg.getRatioTapChanger());
+            List<PiModel> models = new ArrayList<>();
+            for (int ptcPosition = ptc.getLowTapPosition(); ptcPosition <= ptc.getHighTapPosition(); ptcPosition++) {
+                double r = Transformers.getR(leg, rtcPosition, ptcPosition) / zb;
+                double x = Transformers.getX(leg, rtcPosition, ptcPosition) / zb;
+                double g1 = Transformers.getG1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                double g2 = twtSplitShuntAdmittance ? g1 : 0;
+                double b1 = Transformers.getB1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                double b2 = twtSplitShuntAdmittance ? b1 : 0;
+                double r1 = Transformers.getRatioLeg(twt, leg) / nominalV2 * nominalV1;
+                double a1 = Transformers.getAngleLeg(leg, ptcPosition);
+                models.add(new SimplePiModel()
+                        .setR(r)
+                        .setX(x)
+                        .setG1(g1)
+                        .setG2(g2)
+                        .setB1(b1)
+                        .setB2(b2)
+                        .setR1(r1)
+                        .setA1(a1));
+            }
+            piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
+
+        } else {
+            piModel = new SimplePiModel()
+                    .setR(Transformers.getR(leg) / zb)
+                    .setX(Transformers.getX(leg) / zb)
+                    .setG1(Transformers.getG1(leg, twtSplitShuntAdmittance) * zb)
+                    .setG2(twtSplitShuntAdmittance ? Transformers.getG1(leg, twtSplitShuntAdmittance) * zb : 0)
+                    .setB1(Transformers.getB1(leg, twtSplitShuntAdmittance) * zb)
+                    .setB2(twtSplitShuntAdmittance ? Transformers.getB1(leg, twtSplitShuntAdmittance) * zb : 0)
+                    .setR1(Transformers.getRatioLeg(twt, leg) / nominalV2 * nominalV1)
+                    .setA1(Transformers.getAngleLeg(leg));
         }
-        PiModel piModel = new SimplePiModel()
-                .setR(Transformers.getR(leg) / zb)
-                .setX(Transformers.getX(leg) / zb)
-                .setG1(Transformers.getG1(leg, twtSplitShuntAdmittance) * zb)
-                .setG2(twtSplitShuntAdmittance ? Transformers.getG1(leg, twtSplitShuntAdmittance) * zb : 0)
-                .setB1(Transformers.getB1(leg, twtSplitShuntAdmittance) * zb)
-                .setB2(twtSplitShuntAdmittance ? Transformers.getB1(leg, twtSplitShuntAdmittance) * zb : 0)
-                .setR1(Transformers.getRatioLeg(twt, leg) / nominalV2 * nominalV1)
-                .setA1(Transformers.getAngleLeg(leg));
+
         return new LfLegBranch(bus1, bus0, piModel, twt, leg);
     }
 
@@ -116,11 +140,6 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
-    public Optional<PhaseControl> getPhaseControl() {
-        return Optional.ofNullable(phaseControl);
-    }
-
-    @Override
     public double getPermanentLimit1() {
         return leg.getCurrentLimits() != null ? leg.getCurrentLimits().getPermanentLimit() * getBus1().getNominalV() / PerUnit.SB : Double.NaN;
     }
@@ -142,7 +161,7 @@ public class LfLegBranch extends AbstractLfBranch {
 
         if (phaseControl != null) {
             PhaseTapChanger ptc = leg.getPhaseTapChanger();
-            int tapPosition = Transformers.findTapPosition(ptc, Math.toRadians(getPiModel().getA1()));
+            int tapPosition = Transformers.findTapPosition(ptc, Math.toDegrees(getPiModel().getA1()));
             ptc.setTapPosition(tapPosition);
         }
     }

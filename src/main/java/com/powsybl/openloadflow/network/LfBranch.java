@@ -43,9 +43,17 @@ public interface LfBranch {
 
     double getPermanentLimit2();
 
-    Optional<PhaseControl> getPhaseControl();
+    PhaseControl getPhaseControl();
 
     Optional<VoltageControl> getVoltageControl();
 
     void updateState();
+
+    boolean isPhaseController();
+
+    boolean isPhaseControlled(PhaseControl.ControlledSide controlledSide);
+
+    boolean isPhaseControlled();
+
+    void setPhaseControl(PhaseControl phaseControl);
 }

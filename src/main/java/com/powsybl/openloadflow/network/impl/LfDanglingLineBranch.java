@@ -94,11 +94,6 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
-    public Optional<PhaseControl> getPhaseControl() {
-        return Optional.empty();
-    }
-
-    @Override
     public Optional<VoltageControl> getVoltageControl() {
         return Optional.empty();
     }

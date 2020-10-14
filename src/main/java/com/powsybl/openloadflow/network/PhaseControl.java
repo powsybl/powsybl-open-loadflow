@@ -13,43 +13,37 @@ import java.util.Objects;
  */
 public class PhaseControl {
 
-    public enum Mode {
-        CONTROLLER,
-        LIMITER,
-        OFF
-    }
-
-    public enum Unit {
-        MW,
-        A
-    }
-
     public enum ControlledSide {
         ONE,
         TWO
     }
 
-    private Mode mode;
+    public enum Mode {
+        CONTROLLER,
+        LIMITER,
+        OFF;
+    }
 
-    private final ControlledSide controlledSide;
+    public enum Unit {
+        MW,
+        A;
+    }
 
+    private final LfBranch controller;
+    private final LfBranch controlled;
     private final double targetValue;
-
+    private final ControlledSide controlledSide;
+    private Mode mode;
     private final Unit unit;
 
-    public PhaseControl(Mode mode, ControlledSide controlledSide, double targetValue, Unit unit) {
-        this.mode = Objects.requireNonNull(mode);
-        this.controlledSide = Objects.requireNonNull(controlledSide);
+    public PhaseControl(LfBranch controller, LfBranch controlled, ControlledSide controlledSide, PhaseControl.Mode mode,
+                        double targetValue, Unit unit) {
+        this.controller = controller;
+        this.controlled = controlled;
         this.targetValue = targetValue;
-        this.unit = Objects.requireNonNull(unit);
-    }
-
-    public Mode getMode() {
-        return mode;
-    }
-
-    public void setMode(Mode mode) {
+        this.controlledSide = Objects.requireNonNull(controlledSide);
         this.mode = Objects.requireNonNull(mode);
+        this.unit = Objects.requireNonNull(unit);
     }
 
     public ControlledSide getControlledSide() {
@@ -58,6 +52,22 @@ public class PhaseControl {
 
     public double getTargetValue() {
         return targetValue;
+    }
+
+    public LfBranch getController() {
+        return controller;
+    }
+
+    public LfBranch getControlled() {
+        return controlled;
+    }
+
+    public Mode getMode() {
+        return mode;
+    }
+
+    public void setMode(Mode mode) {
+        this.mode = Objects.requireNonNull(mode);
     }
 
     public Unit getUnit() {
