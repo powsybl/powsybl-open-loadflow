@@ -14,7 +14,6 @@ import com.powsybl.openloadflow.util.Evaluable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -30,8 +29,6 @@ public class LfLegBranch extends AbstractLfBranch {
     private Evaluable p = NAN;
 
     private Evaluable q = NAN;
-
-    private VoltageControl voltageControl;
 
     protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
         super(bus1, bus0, piModel);
@@ -147,11 +144,6 @@ public class LfLegBranch extends AbstractLfBranch {
     @Override
     public double getPermanentLimit2() {
         return Double.NaN;
-    }
-
-    @Override
-    public Optional<VoltageControl> getVoltageControl() {
-        return Optional.ofNullable(voltageControl);
     }
 
     @Override

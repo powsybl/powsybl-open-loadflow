@@ -200,6 +200,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 TwoWindingsTransformer t2wt = (TwoWindingsTransformer) branch;
                 PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
                 createPhaseControl(lfNetwork, ptc, t2wt.getId(), "");
+
+                RatioTapChanger rtc = t2wt.getRatioTapChanger();
+                createVoltageControl(lfNetwork, rtc, t2wt);
             }
         }
 
@@ -258,6 +261,30 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
             controllerBranch.setPhaseControl(phaseControl);
             controlledBranch.setPhaseControl(phaseControl);
+        }
+    }
+
+    private static void createVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, TwoWindingsTransformer twt) {
+        LfBranch controllerBranch = lfNetwork.getBranchById(twt.getId());
+        if (rtc != null && rtc.isRegulating()) {
+            Terminal regulationTerminal = rtc.getRegulationTerminal();
+            double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
+            LfBus controlledBus = null;
+            VoltageControl.ControlledSide controlledSide = null;
+            if (regulationTerminal == twt.getTerminal1()) {
+                controlledSide = VoltageControl.ControlledSide.ONE;
+                controlledBus = controllerBranch.getBus1();
+            } else if (rtc.getRegulationTerminal() == twt.getTerminal2()) {
+                controlledSide = VoltageControl.ControlledSide.ONE;
+                controlledBus = controllerBranch.getBus2();
+            } else {
+                LOGGER.error("2 windings transformer '{}' has a regulating ratio tap changer with a remote control which is not yet supported", twt.getId());
+            }
+
+            VoltageControl voltageControl = new VoltageControl(controllerBranch, controlledBus,
+                VoltageControl.Mode.VOLTAGE, controlledSide, rtc.getTargetV() / regulatingTerminalNominalV);
+
+            controllerBranch.setVoltageControl(voltageControl);
         }
     }
 

@@ -7,9 +7,11 @@
 package com.powsybl.openloadflow.network;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
 public class VoltageControl {
 
@@ -27,9 +29,23 @@ public class VoltageControl {
 
     private final ControlledSide controlledSide;
 
+    private final LfBus controlled;
+
+    private final Object controller;
+
     private final double targetValue;
 
-    public VoltageControl(VoltageControl.Mode mode, ControlledSide controlledSide, double targetValue) {
+    public VoltageControl(LfBranch controller, LfBus controlled, VoltageControl.Mode mode, ControlledSide controlledSide, double targetValue) {
+        this.controller = controller;
+        this.controlled = controlled;
+        this.mode = Objects.requireNonNull(mode);
+        this.controlledSide = Objects.requireNonNull(controlledSide);
+        this.targetValue = targetValue;
+    }
+
+    public VoltageControl(LfBus controller, LfBus controlled, VoltageControl.Mode mode, ControlledSide controlledSide, double targetValue) {
+        this.controller = controller;
+        this.controlled = controlled;
         this.mode = Objects.requireNonNull(mode);
         this.controlledSide = Objects.requireNonNull(controlledSide);
         this.targetValue = targetValue;
@@ -45,6 +61,18 @@ public class VoltageControl {
 
     public ControlledSide getControlledSide() {
         return controlledSide;
+    }
+
+    public LfBus getControlledBus() {
+        return controlled;
+    }
+
+    public Optional<LfBus> getControllerBus() {
+        return controller instanceof LfBus ? Optional.of((LfBus) controller) : Optional.empty();
+    }
+
+    public Optional<LfBranch> getControllerBranch() {
+        return controller instanceof LfBranch ? Optional.of((LfBranch) controller) : Optional.empty();
     }
 
     public double getTargetValue() {

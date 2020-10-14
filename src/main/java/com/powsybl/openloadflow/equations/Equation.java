@@ -149,9 +149,10 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     private static double getBranchTargetV(LfBranch branch) {
         Objects.requireNonNull(branch);
-        VoltageControl voltageControl = branch.getVoltageControl()
-                .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no voltage control"));
-        return voltageControl.getTargetValue();
+        if (!branch.isVoltageController()) {
+            throw new PowsyblException("Branch '" + branch.getId() + "' has no voltage control");
+        }
+        return branch.getVoltageControl().getTargetValue();
     }
 
     private static double getReactivePowerDistributionTarget(LfNetwork network, int num, ReactivePowerDistributionData data) {

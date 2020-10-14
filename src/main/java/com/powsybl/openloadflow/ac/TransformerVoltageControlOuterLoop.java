@@ -38,10 +38,9 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
         if (context.getIteration() == 0) {
            // at first iteration all branches controlling voltage are switched off
             for (LfBranch branch : context.getNetwork().getBranches()) {
-                VoltageControl voltageControl = branch.getVoltageControl().orElse(null);
-                if (voltageControl != null && voltageControl.getMode() == VoltageControl.Mode.VOLTAGE) {
+                if (branch.isVoltageController() && branch.getVoltageControl().getMode() == VoltageControl.Mode.VOLTAGE) {
                     // switch off regulating transformers
-                    voltageControl.setMode(VoltageControl.Mode.OFF);
+                    branch.getVoltageControl().setMode(VoltageControl.Mode.OFF);
 
                     // de-activate r1 variable for next outer loop run
                     Variable r1 = context.getVariableSet().getVariable(branch.getNum(), VariableType.BRANCH_RHO1);

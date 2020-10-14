@@ -98,7 +98,7 @@ public final class AcEquationSystem {
                 }
             } else {
                 boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController() && branch.getPhaseControl().getMode() == PhaseControl.Mode.CONTROLLER;
-                boolean deriveR1 = creationParameters.isVoltageRemoteControl() && branch.getVoltageControl().isPresent();
+                boolean deriveR1 = creationParameters.isVoltageRemoteControl() && branch.isVoltageController();
                 if (branch.getBus1() == controllerBus) {
                     LfBus otherSideBus = branch.getBus2();
                     q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1, deriveR1)
@@ -229,16 +229,9 @@ public final class AcEquationSystem {
     }
 
     private static void createBranchVoltageTargetEquation(LfBranch branch,  VariableSet variableSet, EquationSystem equationSystem) {
-        VoltageControl voltageControl = branch.getVoltageControl().orElse(null);
-        LfBus bus;
-        if (voltageControl != null) {
-            if (voltageControl.getControlledSide() == VoltageControl.ControlledSide.ONE) {
-                bus = branch.getBus1();
-                equationSystem.createEquation(branch.getNum(), EquationType.BUS_TRANSFO_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
-            } else {
-                bus = branch.getBus2();
-                equationSystem.createEquation(branch.getNum(), EquationType.BUS_TRANSFO_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
-            }
+        if (branch.isVoltageController()) {
+            LfBus controlledBus = branch.getVoltageControl().getControlledBus();
+            equationSystem.createEquation(branch.getNum(), EquationType.BUS_TRANSFO_V).addTerm(new BusVoltageEquationTerm(controlledBus, variableSet));
         }
     }
 
@@ -251,7 +244,7 @@ public final class AcEquationSystem {
         EquationTerm q2 = null;
         if (bus1 != null && bus2 != null) {
             boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController() && branch.getPhaseControl().getMode() == PhaseControl.Mode.CONTROLLER;
-            boolean deriveR1 = creationParameters.isTransformerVoltageControl() && branch.getVoltageControl().isPresent();
+            boolean deriveR1 = creationParameters.isTransformerVoltageControl() && branch.isVoltageController();
             p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
             q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
             p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);

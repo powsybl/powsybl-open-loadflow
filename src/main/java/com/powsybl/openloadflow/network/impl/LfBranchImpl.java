@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -26,8 +25,6 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 public class LfBranchImpl extends AbstractLfBranch {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
-
-    private VoltageControl voltageControl;
 
     private final Branch<?> branch;
 
@@ -39,11 +36,9 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private Evaluable q2 = NAN;
 
-    protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel,
-                           VoltageControl voltageControl, Branch<?> branch) {
+    protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
         super(bus1, bus2, piModel);
         this.branch = branch;
-        this.voltageControl = voltageControl;
     }
 
     private static LfBranchImpl createLine(Line line, LfBus bus1, LfBus bus2, double zb) {
@@ -55,7 +50,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                 .setB1(line.getB1() * zb)
                 .setB2(line.getB2() * zb);
 
-        return new LfBranchImpl(bus1, bus2, piModel, null, line);
+        return new LfBranchImpl(bus1, bus2, piModel, line);
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfBus bus1, LfBus bus2, double nominalV1,
@@ -93,20 +88,8 @@ public class LfBranchImpl extends AbstractLfBranch {
         }
 
         RatioTapChanger rtc = twt.getRatioTapChanger();
-        double regulatingTerminalNominalV = Double.NaN;
         if (rtc != null && rtc.isRegulating()) {
-            VoltageControl.ControlledSide controlledSide = null;
-            if (rtc.getRegulationTerminal() == twt.getTerminal1()) {
-                controlledSide = VoltageControl.ControlledSide.ONE;
-                regulatingTerminalNominalV = twt.getTerminal1().getVoltageLevel().getNominalV();
-            } else if (rtc.getRegulationTerminal() == twt.getTerminal2()) {
-                controlledSide = VoltageControl.ControlledSide.TWO;
-                regulatingTerminalNominalV = twt.getTerminal2().getVoltageLevel().getNominalV();
-            } else {
-                LOGGER.error("2 windings transformer '{}' has a regulating ratio tap changer with a remote control which is not yet supported", twt.getId());
-            }
-
-            if (controlledSide != null) {
+            if (rtc.getRegulationTerminal() == twt.getTerminal1() || rtc.getRegulationTerminal() == twt.getTerminal2()) {
                 Integer ptcPosition = Transformers.getCurrentPosition(twt.getPhaseTapChanger());
                 List<PiModel> models = new ArrayList<>();
                 for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= rtc.getHighTapPosition(); rtcPosition++) {
@@ -129,8 +112,8 @@ public class LfBranchImpl extends AbstractLfBranch {
                             .setA1(a1));
                 }
                 piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
-                voltageControl = new VoltageControl(VoltageControl.Mode.VOLTAGE, controlledSide,
-                        rtc.getTargetV() / regulatingTerminalNominalV);
+            } else {
+                LOGGER.error("2 windings transformer '{}' has a regulating ratio tap changer with a remote control which is not yet supported", twt.getId());
             }
         }
 
@@ -146,7 +129,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                     .setA1(Transformers.getAngle(twt));
         }
 
-        return new LfBranchImpl(bus1, bus2, piModel, voltageControl, twt);
+        return new LfBranchImpl(bus1, bus2, piModel, twt);
     }
 
     public static LfBranchImpl create(Branch<?> branch, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance) {
@@ -209,11 +192,6 @@ public class LfBranchImpl extends AbstractLfBranch {
     @Override
     public double getPermanentLimit2() {
         return branch.getCurrentLimits2() != null ? branch.getCurrentLimits2().getPermanentLimit() * getBus2().getNominalV() / PerUnit.SB : Double.NaN;
-    }
-
-    @Override
-    public Optional<VoltageControl> getVoltageControl() {
-        return Optional.ofNullable(voltageControl);
     }
 
     @Override

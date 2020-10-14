@@ -8,8 +8,6 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.util.Evaluable;
 
-import java.util.Optional;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -45,7 +43,7 @@ public interface LfBranch {
 
     PhaseControl getPhaseControl();
 
-    Optional<VoltageControl> getVoltageControl();
+    VoltageControl getVoltageControl();
 
     void updateState();
 
@@ -56,4 +54,8 @@ public interface LfBranch {
     boolean isPhaseControlled();
 
     void setPhaseControl(PhaseControl phaseControl);
+
+    boolean isVoltageController();
+
+    void setVoltageControl(VoltageControl voltageControl);
 }
