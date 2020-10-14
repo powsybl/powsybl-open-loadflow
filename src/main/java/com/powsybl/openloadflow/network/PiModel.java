@@ -42,4 +42,10 @@ public interface PiModel {
     PiModel setA1(double a1);
 
     void roundA1ToClosestTap();
+
+    int getTapPosition();
+
+    boolean decreaseA1WithTapPositionIncrement();
+
+    boolean increaseA1WithTapPositionIncrement();
 }

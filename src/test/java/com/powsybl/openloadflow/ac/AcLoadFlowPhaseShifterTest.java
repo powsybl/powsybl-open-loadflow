@@ -132,6 +132,50 @@ class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
+    void currentLimiterT2wtTest() {
+        selectNetwork(createNetworkWithT2wt());
+        parameters.setPhaseShifterRegulationOn(true);
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
+                .setTargetDeadband(1) // FIXME how to take this into account
+                .setRegulating(true)
+                .setTapPosition(2)
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setRegulationValue(83); // A
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertCurrentEquals(48.492, line2.getTerminal1());
+        assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
+
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
+                .setTargetDeadband(1) // FIXME how to take this into account
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setRegulationValue(90); // A
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertCurrentEquals(83.680, line2.getTerminal1());
+        assertEquals(1, t2wt.getPhaseTapChanger().getTapPosition());
+
+        t2wt.getPhaseTapChanger().getStep(0).setAlpha(5.);
+        t2wt.getPhaseTapChanger().getStep(1).setAlpha(0.);
+        t2wt.getPhaseTapChanger().getStep(2).setAlpha(-5.);
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
+                .setTargetDeadband(1) // FIXME how to take this into account
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setRegulationValue(83); // A
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertCurrentEquals(48.492, line2.getTerminal1());
+        assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
+    }
+
+    @Test
     void baseCaseT3wtTest() {
         selectNetwork(createNetworkWithT3wt());
         LoadFlowResult result = loadFlowRunner.run(network, parameters);

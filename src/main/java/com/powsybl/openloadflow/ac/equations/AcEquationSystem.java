@@ -97,7 +97,7 @@ public final class AcEquationSystem {
                     q = EquationTerm.multiply(new DummyReactivePowerEquationTerm(branch, variableSet), -1);
                 }
             } else {
-                boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController();
+                boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController() && branch.getPhaseControl().getMode() == PhaseControl.Mode.CONTROLLER;
                 if (branch.getBus1() == controllerBus) {
                     LfBus otherSideBus = branch.getBus2();
                     q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1)
@@ -235,7 +235,7 @@ public final class AcEquationSystem {
         EquationTerm p2 = null;
         EquationTerm q2 = null;
         if (bus1 != null && bus2 != null) {
-            boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController();
+            boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController() && branch.getPhaseControl().getMode() == PhaseControl.Mode.CONTROLLER;
             p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
             q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
             p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);

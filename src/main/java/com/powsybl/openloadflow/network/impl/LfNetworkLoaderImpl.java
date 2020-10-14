@@ -244,13 +244,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
             PhaseControl.ControlledSide controlledSide = controlledBus == controlledBranch.getBus1() ?
                 PhaseControl.ControlledSide.ONE : PhaseControl.ControlledSide.TWO;
-            double targetValue = ptc.getRegulationValue() / PerUnit.SB;
 
             PhaseControl phaseControl = null;
             if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
+                double targetValue = ptc.getRegulationValue() * ptc.getRegulationTerminal().getVoltageLevel().getNominalV() / PerUnit.SB;
                 phaseControl = new PhaseControl(controllerBranch, controlledBranch, controlledSide,
                     PhaseControl.Mode.LIMITER, targetValue, PhaseControl.Unit.A);
             } else if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                double targetValue = ptc.getRegulationValue() / PerUnit.SB;
                 phaseControl = new PhaseControl(controllerBranch, controlledBranch, controlledSide,
                     PhaseControl.Mode.CONTROLLER, targetValue, PhaseControl.Unit.MW);
             }
