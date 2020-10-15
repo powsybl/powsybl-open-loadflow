@@ -38,7 +38,9 @@ public interface AcLoadFlowObserver {
 
     void afterVoltageInitializerPreparation();
 
-    void stateVectorInitialized(double[] x);
+    void beforeStateVectorCreation(int iteration);
+
+    void afterStateVectorCreation(double[] x, int iteration);
 
     void beginIteration(int iteration);
 
@@ -50,9 +52,9 @@ public interface AcLoadFlowObserver {
 
     void afterEquationsUpdate(EquationSystem equationSystem, int iteration);
 
-    void beforeEquationVectorUpdate(int iteration);
+    void beforeEquationVectorCreation(int iteration);
 
-    void afterEquationVectorUpdate(double[] fx, EquationSystem equationSystem, int iteration);
+    void afterEquationVectorCreation(double[] fx, EquationSystem equationSystem, int iteration);
 
     void beforeJacobianBuild(int iteration);
 
@@ -83,4 +85,8 @@ public interface AcLoadFlowObserver {
     void beforeNetworkUpdate();
 
     void afterNetworkUpdate(LfNetwork network);
+
+    void beforeLoadFlow(LfNetwork network);
+
+    void afterLoadFlow(LfNetwork network);
 }

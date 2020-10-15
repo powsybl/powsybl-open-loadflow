@@ -71,12 +71,12 @@ public class JacobianMatrix {
         Matrix j = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
         List<JacobianMatrix.PartialDerivative> partialDerivatives = new ArrayList<>(estimatedNonZeroValueCount);
 
-        for (Map.Entry<Variable, NavigableMap<Equation, List<EquationTerm>>> e : equationSystem.getSortedVariablesToFind().entrySet()) {
-            Variable var = e.getKey();
-            int column = var.getColumn();
-            for (Map.Entry<Equation, List<EquationTerm>> e2 : e.getValue().entrySet()) {
-                Equation eq = e2.getKey();
-                int row = eq.getRow();
+        for (Map.Entry<Equation, NavigableMap<Variable, List<EquationTerm>>> e : equationSystem.getSortedEquationsToSolve().entrySet()) {
+            Equation eq = e.getKey();
+            int column = eq.getColumn();
+            for (Map.Entry<Variable, List<EquationTerm>> e2 : e.getValue().entrySet()) {
+                Variable var = e2.getKey();
+                int row = var.getRow();
                 for (EquationTerm equationTerm : e2.getValue()) {
                     double value = equationTerm.der(var);
                     Matrix.Element element = j.addAndGetElement(row, column, value);

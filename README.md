@@ -31,9 +31,31 @@ AC Newtow-Raphson and linear DC calculation methods:
  - Generator active and reactive power limits (reactive capability curve).
  - Generator and static var compensator voltage remote control.
  - 3 starting point modes: flat, warm and DC based.
+ - Phase shifter regulation. 
+ - Non impedant branches support.
+ - HVDC and multiple synchronous component calculation.
 
 Almost all of the code is written in Java. It only relies on native code for the [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html)
 sparse linear solver. Linux, Windows and MacOS are supported.
+
+## Native builds
+
+A native build (no need to Java runtime) can be download here:
+- [Linux](https://github.com/powsybl/powsybl-open-loadflow/releases/download/v0.6.0/olf-linux-0.6.0.zip)
+- [MacOS](https://github.com/powsybl/powsybl-open-loadflow/releases/download/v0.6.0/olf-darwin-0.6.0.zip)
+- [Windows](https://github.com/powsybl/powsybl-open-loadflow/releases/download/v0.6.0/olf-windows-0.6.0.zip)
+
+To run Open Load Flow on file ieee14cdf.txt :
+```bash
+$ olf loadflow --case-file ieee14cdf.txt
+Loading network 'ieee14cdf.txt'
+loadflow results:
++--------+------------------------------------------------------+
+| Result | Metrics                                              |
++--------+------------------------------------------------------+
+| true   | {network_0_iterations=3, network_0_status=CONVERGED} |
++--------+------------------------------------------------------+
+```
 
 ## Getting started
 
@@ -45,17 +67,17 @@ capabilities:
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-iidm-impl</artifactId>
-    <version>3.3.0</version>
+    <version>3.6.0</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-ieee-cdf-converter</artifactId>
-    <version>3.3.0</version>
+    <version>3.6.0</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-config-classic</artifactId>
-    <version>3.3.0</version>
+    <version>3.6.0</version>
 </dependency>
 <dependency>
     <groupId>org.slf4j</groupId>
@@ -74,7 +96,7 @@ After adding a last Maven dependency on Open Load Flow implementation:
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>0.3.0</version>
+    <version>0.6.0</version>
 </dependency>
 ```
 
@@ -101,5 +123,6 @@ We are thinking about increasing features of the loadflow engine:
 - Allow generators to regulate reactive power, locally or remotely.
 
 We are also thinking about services using the loadflow engine:
--The possibility to compute security analysis in an optimized way ; at this stage, a slow security analysis can be performed. After the contingency modeling on the IIDM network, a loadflow engine can be run. A new instance will be created after each contingency. This could be opimized by modeling the contingency directly in the equation system.
+- The possibility to compute security analysis in an optimized way ; at this stage, a slow security analysis can be performed. After the contingency modeling on the IIDM network, a loadflow engine can be run. A new instance will be created after each contingency. This could be opimized by modeling the contingency directly in the equation system.
+
 - The possibility to perform sensitivity analysis.

@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     private Network network;
+    Substation s;
     private Bus b1;
     private Bus b2;
     private Bus b3;
@@ -46,7 +47,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     @BeforeEach
     void setUp() {
         network = Network.create("generator-remote-control-test", "code");
-        Substation s = network.newSubstation()
+        s = network.newSubstation()
                 .setId("s")
                 .add();
         VoltageLevel vl1 = s.newVoltageLevel()
@@ -197,6 +198,47 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
+    void testWith3GeneratorsAndNonImpedantBranch() {
+        // add a non impedant branch going to a load at generator 3 connection bus.
+        VoltageLevel vl5 = s.newVoltageLevel()
+                .setId("vl5")
+                .setNominalV(20)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl5.getBusBreakerView().newBus()
+                .setId("b5")
+                .add();
+        vl5.newLoad()
+                .setId("ld5")
+                .setConnectableBus("b5")
+                .setBus("b5")
+                .setP0(0)
+                .setQ0(30)
+                .add();
+        network.newLine()
+                .setId("ln1")
+                .setVoltageLevel1("vl3")
+                .setConnectableBus1("b3")
+                .setBus1("b3")
+                .setVoltageLevel2("vl5")
+                .setConnectableBus2("b5")
+                .setBus2("b5")
+                .setR(0)
+                .setX(0)
+                .setB1(0)
+                .setG1(0)
+                .setB2(0)
+                .setG2(0)
+                .add();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(-79.891, g1.getTerminal());
+        assertReactivePowerEquals(-79.891, g2.getTerminal());
+        assertReactivePowerEquals(-79.891, g3.getTerminal());
+    }
+
+    @Test
     void testWithLoadConnectedToGeneratorBus() {
         // in that case we expect the generation reactive power to be equals for each of the controller buses
         b1.getVoltageLevel().newLoad()
@@ -236,9 +278,11 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setId("l")
                 .setBus(b1.getId())
                 .setConnectableBus(b1.getId())
-                .setbPerSection(Math.pow(10, -2))
-                .setMaximumSectionCount(1)
-                .setCurrentSectionCount(1)
+                .setSectionCount(1)
+                .newLinearModel()
+                    .setBPerSection(Math.pow(10, -2))
+                    .setMaximumSectionCount(1)
+                    .add()
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());

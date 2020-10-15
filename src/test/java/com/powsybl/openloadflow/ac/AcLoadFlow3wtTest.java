@@ -101,9 +101,11 @@ class AcLoadFlow3wtTest {
                 .setId("sc3")
                 .setConnectableBus("b3")
                 .setBus("b3")
-                .setbPerSection(-0.16)
-                .setMaximumSectionCount(1)
-                .setCurrentSectionCount(0)
+                .setSectionCount(0)
+                .newLinearModel()
+                    .setBPerSection(-0.16)
+                    .setMaximumSectionCount(1)
+                    .add()
                 .add();
 
         twt = s.newThreeWindingsTransformer()
@@ -233,5 +235,43 @@ class AcLoadFlow3wtTest {
         assertTrue(result.isOk());
         assertActivePowerEquals(121.691, twtParallel.getTerminal1());
         assertActivePowerEquals(-40.451, twt.getLeg2().getTerminal());
+    }
+
+    @Test
+    void testSplitShuntAdmittance() {
+        parameters.setTwtSplitShuntAdmittance(false);
+        twt.getLeg1().setB(0.00004);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(405, bus1);
+        LoadFlowAssert.assertAngleEquals(0, bus1);
+        assertVoltageEquals(235.132, bus2);
+        LoadFlowAssert.assertAngleEquals(-2.259241, bus2);
+        assertVoltageEquals(20.834, bus3);
+        LoadFlowAssert.assertAngleEquals(-2.721885, bus3);
+        assertActivePowerEquals(161.095, twt.getLeg1().getTerminal());
+        assertReactivePowerEquals(75.323, twt.getLeg1().getTerminal());
+        assertActivePowerEquals(-161, twt.getLeg2().getTerminal());
+        assertReactivePowerEquals(-74, twt.getLeg2().getTerminal());
+        assertActivePowerEquals(0, twt.getLeg3().getTerminal());
+        assertReactivePowerEquals(0, twt.getLeg3().getTerminal());
+
+        parameters.setTwtSplitShuntAdmittance(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(405, bus1);
+        LoadFlowAssert.assertAngleEquals(0, bus1);
+        assertVoltageEquals(235.358, bus2);
+        LoadFlowAssert.assertAngleEquals(-2.257583, bus2);
+        assertVoltageEquals(20.854, bus3);
+        LoadFlowAssert.assertAngleEquals(-2.719334, bus3);
+        assertActivePowerEquals(161.095, twt.getLeg1().getTerminal());
+        assertReactivePowerEquals(75.314, twt.getLeg1().getTerminal());
+        assertActivePowerEquals(-161, twt.getLeg2().getTerminal());
+        assertReactivePowerEquals(-74, twt.getLeg2().getTerminal());
+        assertActivePowerEquals(0, twt.getLeg3().getTerminal());
+        assertReactivePowerEquals(0, twt.getLeg3().getTerminal());
     }
 }

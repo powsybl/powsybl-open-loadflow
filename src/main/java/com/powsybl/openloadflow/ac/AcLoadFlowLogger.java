@@ -46,8 +46,8 @@ public class AcLoadFlowLogger extends DefaultAcLoadFlowObserver {
     public void logLargestMismatches(double[] mismatch, EquationSystem equationSystem, int count) {
         if (LOGGER.isTraceEnabled()) {
             Map<Equation, Double> mismatchByEquation = new HashMap<>(equationSystem.getSortedEquationsToSolve().size());
-            for (Equation equation : equationSystem.getSortedEquationsToSolve()) {
-                mismatchByEquation.put(equation, mismatch[equation.getRow()]);
+            for (Equation equation : equationSystem.getSortedEquationsToSolve().keySet()) {
+                mismatchByEquation.put(equation, mismatch[equation.getColumn()]);
             }
             mismatchByEquation.entrySet().stream()
                     .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))

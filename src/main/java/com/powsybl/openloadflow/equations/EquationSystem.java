@@ -6,7 +6,10 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.google.common.base.Stopwatch;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.util.Markers;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +18,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -26,35 +30,45 @@ public class EquationSystem {
 
     private final LfNetwork network;
 
+    private final boolean indexTerms;
+
     private final Map<Pair<Integer, EquationType>, Equation> equations = new HashMap<>();
+
+    private final Map<Pair<SubjectType, Integer>, List<Equation>> equationsBySubject = new HashMap<>();
+
+    private final Map<Pair<SubjectType, Integer>, List<EquationTerm>> equationTermsBySubject = new HashMap<>();
 
     private class EquationCache implements EquationSystemListener {
 
         private boolean invalide = false;
 
-        private final NavigableSet<Equation> sortedEquationsToSolve = new TreeSet<>();
+        private final NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> sortedEquationsToSolve = new TreeMap<>();
 
-        private final NavigableMap<Variable, NavigableMap<Equation, List<EquationTerm>>> sortedVariablesToFind = new TreeMap<>();
+        private final NavigableSet<Variable> sortedVariablesToFind = new TreeSet<>();
 
         private void update() {
             if (!invalide) {
                 return;
             }
 
-            LOGGER.info("Update equation system cache");
+            Stopwatch stopwatch = Stopwatch.createStarted();
 
             // index derivatives per variable then per equation
             reIndex();
 
-            int rowCount = 0;
-            for (Equation equation : sortedEquationsToSolve) {
-                equation.setRow(rowCount++);
+            int columnCount = 0;
+            for (Equation equation : sortedEquationsToSolve.keySet()) {
+                equation.setColumn(columnCount++);
             }
 
-            int columnCount = 0;
-            for (Variable variable : sortedVariablesToFind.keySet()) {
-                variable.setColumn(columnCount++);
+            int rowCount = 0;
+            for (Variable variable : sortedVariablesToFind) {
+                variable.setRow(rowCount++);
             }
+
+            stopwatch.stop();
+            LOGGER.debug(Markers.PERFORMANCE_MARKER, "Equation system ({} equations, {} variables) updated in {} ms",
+                    columnCount, rowCount, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
             invalide = false;
         }
@@ -63,33 +77,44 @@ public class EquationSystem {
             sortedEquationsToSolve.clear();
             sortedVariablesToFind.clear();
 
+            Set<Variable> variablesToFind = new HashSet<>();
             for (Equation equation : equations.values()) {
                 if (equation.isActive()) {
-                    sortedEquationsToSolve.add(equation);
+                    NavigableMap<Variable, List<EquationTerm>> equationTermsByVariable = null;
                     for (EquationTerm equationTerm : equation.getTerms()) {
-                        for (Variable variable : equationTerm.getVariables()) {
-                            if (variable.isActive()) {
-                                sortedVariablesToFind.computeIfAbsent(variable, k -> new TreeMap<>())
-                                        .computeIfAbsent(equation, k -> new ArrayList<>())
-                                        .add(equationTerm);
+                        if (equationTerm.isActive()) {
+                            if (equationTermsByVariable == null) {
+                                equationTermsByVariable = sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>());
+                            }
+                            for (Variable variable : equationTerm.getVariables()) {
+                                if (variable.isActive()) {
+                                    equationTermsByVariable.computeIfAbsent(variable, k -> new ArrayList<>())
+                                            .add(equationTerm);
+                                    variablesToFind.add(variable);
+                                }
                             }
                         }
                     }
                 }
             }
+            sortedVariablesToFind.addAll(variablesToFind);
+        }
+
+        private void invalidate() {
+            invalide = true;
         }
 
         @Override
         public void equationListChanged(Equation equation, EquationEventType eventType) {
-            invalide = true;
+            invalidate();
         }
 
-        private NavigableSet<Equation> getSortedEquationsToSolve() {
+        private NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> getSortedEquationsToSolve() {
             update();
             return sortedEquationsToSolve;
         }
 
-        private NavigableMap<Variable, NavigableMap<Equation, List<EquationTerm>>> getSortedVariablesToFind() {
+        private NavigableSet<Variable> getSortedVariablesToFind() {
             update();
             return sortedVariablesToFind;
         }
@@ -100,12 +125,35 @@ public class EquationSystem {
     private final List<EquationSystemListener> listeners = new ArrayList<>();
 
     public EquationSystem(LfNetwork network) {
+        this(network, false);
+    }
+
+    public EquationSystem(LfNetwork network, boolean indexTerms) {
         this.network = Objects.requireNonNull(network);
+        this.indexTerms = indexTerms;
         addListener(equationCache);
     }
 
     LfNetwork getNetwork() {
         return network;
+    }
+
+    void addEquationTerm(EquationTerm equationTerm) {
+        if (indexTerms) {
+            Objects.requireNonNull(equationTerm);
+            Pair<SubjectType, Integer> subject = Pair.of(equationTerm.getSubjectType(), equationTerm.getSubjectNum());
+            equationTermsBySubject.computeIfAbsent(subject, k -> new ArrayList<>())
+                    .add(equationTerm);
+        }
+    }
+
+    public List<EquationTerm> getEquationTerms(SubjectType subjectType, int subjectNum) {
+        if (!indexTerms) {
+            throw new PowsyblException("Equations terms have not been indexed");
+        }
+        Objects.requireNonNull(subjectType);
+        Pair<SubjectType, Integer> subject = Pair.of(subjectType, subjectNum);
+        return equationTermsBySubject.getOrDefault(subject, Collections.emptyList());
     }
 
     public Equation createEquation(int num, EquationType type) {
@@ -117,6 +165,11 @@ public class EquationSystem {
         return equation;
     }
 
+    public Optional<Equation> getEquation(int num, EquationType type) {
+        Pair<Integer, EquationType> p = Pair.of(num, type);
+        return Optional.ofNullable(equations.get(p));
+    }
+
     public boolean hasEquation(int num, EquationType type) {
         Pair<Integer, EquationType> p = Pair.of(num, type);
         return equations.containsKey(p);
@@ -126,6 +179,8 @@ public class EquationSystem {
         Pair<Integer, EquationType> p = Pair.of(num, type);
         Equation equation = equations.remove(p);
         if (equation != null) {
+            Pair<SubjectType, Integer> subject = Pair.of(type.getSubjectType(), num);
+            equationsBySubject.remove(subject);
             notifyListeners(equation, EquationEventType.EQUATION_REMOVED);
         }
         return equation;
@@ -134,33 +189,42 @@ public class EquationSystem {
     private Equation addEquation(Pair<Integer, EquationType> p) {
         Equation equation = new Equation(p.getLeft(), p.getRight(), EquationSystem.this);
         equations.put(p, equation);
+        Pair<SubjectType, Integer> subject = Pair.of(p.getRight().getSubjectType(), p.getLeft());
+        equationsBySubject.computeIfAbsent(subject, k -> new ArrayList<>())
+                .add(equation);
         notifyListeners(equation, EquationEventType.EQUATION_CREATED);
         return equation;
     }
 
-    public SortedSet<Equation> getSortedEquationsToSolve() {
-        return equationCache.getSortedEquationsToSolve();
+    public List<Equation> getEquations(SubjectType subjectType, int subjectNum) {
+        Objects.requireNonNull(subjectType);
+        Pair<SubjectType, Integer> subject = Pair.of(subjectType, subjectNum);
+        return equationsBySubject.getOrDefault(subject, Collections.emptyList());
     }
 
-    public NavigableMap<Variable, NavigableMap<Equation, List<EquationTerm>>> getSortedVariablesToFind() {
+    public SortedSet<Variable> getSortedVariablesToFind() {
         return equationCache.getSortedVariablesToFind();
     }
 
+    public NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> getSortedEquationsToSolve() {
+        return equationCache.getSortedEquationsToSolve();
+    }
+
     public List<String> getRowNames() {
-        return getSortedEquationsToSolve().stream()
+        return getSortedVariablesToFind().stream()
                 .map(eq -> network.getBus(eq.getNum()).getId() + "/" + eq.getType())
                 .collect(Collectors.toList());
     }
 
     public List<String> getColumnNames() {
-        return getSortedVariablesToFind().navigableKeySet().stream()
+        return getSortedEquationsToSolve().navigableKeySet().stream()
                 .map(v -> network.getBus(v.getNum()).getId() + "/" + v.getType())
                 .collect(Collectors.toList());
     }
 
     public double[] createStateVector(VoltageInitializer initializer) {
         double[] x = new double[getSortedVariablesToFind().size()];
-        for (Variable v : getSortedVariablesToFind().navigableKeySet()) {
+        for (Variable v : getSortedVariablesToFind()) {
             v.initState(initializer, network, x);
         }
         return x;
@@ -168,7 +232,7 @@ public class EquationSystem {
 
     public double[] createTargetVector() {
         double[] targets = new double[equationCache.getSortedEquationsToSolve().size()];
-        for (Equation equation : equationCache.getSortedEquationsToSolve()) {
+        for (Equation equation : equationCache.getSortedEquationsToSolve().keySet()) {
             equation.initTarget(network, targets);
         }
         return targets;
@@ -185,8 +249,8 @@ public class EquationSystem {
             throw new IllegalArgumentException("Bad equation vector length: " + fx.length);
         }
         Arrays.fill(fx, 0);
-        for (Equation equation : equationCache.getSortedEquationsToSolve()) {
-            fx[equation.getRow()] = equation.eval();
+        for (Equation equation : equationCache.getSortedEquationsToSolve().keySet()) {
+            fx[equation.getColumn()] = equation.eval();
         }
     }
 
@@ -198,7 +262,7 @@ public class EquationSystem {
 
     public void updateNetwork(double[] x) {
         // update state variable
-        for (Variable v : getSortedVariablesToFind().navigableKeySet()) {
+        for (Variable v : getSortedVariablesToFind()) {
             v.updateState(network, x);
         }
     }
@@ -208,17 +272,25 @@ public class EquationSystem {
         listeners.add(listener);
     }
 
+    public void removeListener(EquationSystemListener listener) {
+        listeners.remove(listener);
+    }
+
     void notifyListeners(Equation equation, EquationEventType eventType) {
         Objects.requireNonNull(equation);
         Objects.requireNonNull(eventType);
-        listeners.forEach(listener -> listener.equationListChanged(equation, eventType));
+        if (!listeners.isEmpty()) {
+            listeners.forEach(listener -> listener.equationListChanged(equation, eventType));
+        }
     }
 
     public void write(Writer writer) {
         try {
-            for (Equation equation : getSortedEquationsToSolve()) {
-                equation.write(writer);
-                writer.write(System.lineSeparator());
+            for (Equation equation : getSortedEquationsToSolve().navigableKeySet()) {
+                if (equation.isActive()) {
+                    equation.write(writer);
+                    writer.write(System.lineSeparator());
+                }
             }
             writer.flush();
         } catch (IOException e) {

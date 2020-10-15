@@ -37,8 +37,8 @@ public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBra
     @Override
     public void update(double[] x) {
         Objects.requireNonNull(x);
-        double ph1 = x[ph1Var.getColumn()];
-        double ph2 = x[ph2Var.getColumn()];
+        double ph1 = x[ph1Var.getRow()];
+        double ph2 = x[ph2Var.getRow()];
         double deltaPhase =  ph2 - ph1 + A2 - a1;
         p2 = power * deltaPhase;
     }

@@ -58,7 +58,7 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfBus bus1, LfBus bus2, double nominalV1,
-                                                  double nominalV2, double zb) {
+                                                  double nominalV2, double zb, boolean twtSplitShuntAdmittance) {
         PiModel piModel = null;
         PhaseControl phaseControl = null;
 
@@ -77,25 +77,27 @@ public class LfBranchImpl extends AbstractLfBranch {
             }
 
             if (controlledSide != null) {
+                Integer rtcPosition = Transformers.getCurrentPosition(twt.getRatioTapChanger());
                 List<PiModel> models = new ArrayList<>();
-
-                for (int position = ptc.getLowTapPosition(); position <= ptc.getHighTapPosition(); position++) {
-                    PhaseTapChangerStep step = ptc.getStep(position);
-                    double r = twt.getR() * (1 + step.getR() / 100) / zb;
-                    double x = twt.getX() * (1 + step.getX() / 100) / zb;
-                    double g1 = twt.getG() * (1 + step.getG() / 100) * zb;
-                    double b1 = twt.getB() * (1 + step.getB() / 100) * zb;
-                    double r1 = twt.getRatedU2() / twt.getRatedU1() * ptc.getCurrentStep().getRho() / nominalV2 * nominalV1;
-                    double a1 = Math.toRadians(step.getAlpha());
+                for (int ptcPosition = ptc.getLowTapPosition(); ptcPosition <= ptc.getHighTapPosition(); ptcPosition++) {
+                    double r = Transformers.getR(twt, rtcPosition, ptcPosition) / zb;
+                    double x = Transformers.getX(twt, rtcPosition, ptcPosition) / zb;
+                    double g1 = Transformers.getG1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                    double g2 = twtSplitShuntAdmittance ? g1 : 0;
+                    double b1 = Transformers.getB1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                    double b2 = twtSplitShuntAdmittance ? b1 : 0;
+                    double r1 = Transformers.getRatio(twt, rtcPosition, ptcPosition) / nominalV2 * nominalV1;
+                    double a1 = Transformers.getAngle(twt, ptcPosition);
                     models.add(new SimplePiModel()
                             .setR(r)
                             .setX(x)
                             .setG1(g1)
+                            .setG2(g2)
                             .setB1(b1)
+                            .setB2(b2)
                             .setR1(r1)
                             .setA1(a1));
                 }
-
                 piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
 
                 if (regulationMode == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
@@ -110,8 +112,10 @@ public class LfBranchImpl extends AbstractLfBranch {
             piModel = new SimplePiModel()
                     .setR(Transformers.getR(twt) / zb)
                     .setX(Transformers.getX(twt) / zb)
-                    .setG1(Transformers.getG1(twt) * zb)
-                    .setB1(Transformers.getB1(twt) * zb)
+                    .setG1(Transformers.getG1(twt, twtSplitShuntAdmittance) * zb)
+                    .setG2(twtSplitShuntAdmittance ? Transformers.getG1(twt, twtSplitShuntAdmittance) * zb : 0)
+                    .setB1(Transformers.getB1(twt, twtSplitShuntAdmittance) * zb)
+                    .setB2(twtSplitShuntAdmittance ? Transformers.getB1(twt, twtSplitShuntAdmittance) * zb : 0)
                     .setR1(Transformers.getRatio(twt) / nominalV2 * nominalV1)
                     .setA1(Transformers.getAngle(twt));
         }
@@ -119,7 +123,7 @@ public class LfBranchImpl extends AbstractLfBranch {
         return new LfBranchImpl(bus1, bus2, piModel, phaseControl, twt);
     }
 
-    public static LfBranchImpl create(Branch branch, LfBus bus1, LfBus bus2) {
+    public static LfBranchImpl create(Branch branch, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance) {
         Objects.requireNonNull(branch);
         double nominalV1 = branch.getTerminal1().getVoltageLevel().getNominalV();
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
@@ -128,7 +132,7 @@ public class LfBranchImpl extends AbstractLfBranch {
             return createLine((Line) branch, bus1, bus2, zb);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-            return createTransformer(twt, bus1, bus2, nominalV1, nominalV2, zb);
+            return createTransformer(twt, bus1, bus2, nominalV1, nominalV2, zb, twtSplitShuntAdmittance);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }
@@ -157,6 +161,28 @@ public class LfBranchImpl extends AbstractLfBranch {
     @Override
     public void setQ2(Evaluable q2) {
         this.q2 = Objects.requireNonNull(q2);
+    }
+
+    @Override
+    public double getI1() {
+        return getBus1() != null ? Math.hypot(p1.eval(), q1.eval())
+            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
+    }
+
+    @Override
+    public double getI2() {
+        return getBus2() != null ? Math.hypot(p2.eval(), q2.eval())
+            / (Math.sqrt(3.) * getBus2().getV() / 1000) : Double.NaN;
+    }
+
+    @Override
+    public double getPermanentLimit1() {
+        return branch.getCurrentLimits1() != null ? branch.getCurrentLimits1().getPermanentLimit() * getBus1().getNominalV() / PerUnit.SB : Double.NaN;
+    }
+
+    @Override
+    public double getPermanentLimit2() {
+        return branch.getCurrentLimits2() != null ? branch.getCurrentLimits2().getPermanentLimit() * getBus2().getNominalV() / PerUnit.SB : Double.NaN;
     }
 
     @Override

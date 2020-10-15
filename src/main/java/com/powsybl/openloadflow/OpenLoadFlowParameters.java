@@ -6,45 +6,52 @@
  */
 package com.powsybl.openloadflow;
 
+import com.google.auto.service.AutoService;
+import com.powsybl.commons.config.ModuleConfig;
+import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.nr.AcLoadFlowObserver;
-import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.network.SlackBusSelectorParametersReader;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.ServiceLoader;
+
+import static com.powsybl.openloadflow.util.ParameterConstants.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters> {
 
-    private SlackBusSelector slackBusSelector = new MostMeshedSlackBusSelector();
+    private SlackBusSelector slackBusSelector = SLACK_BUS_SELECTOR_DEFAULT_VALUE;
 
-    private boolean distributedSlack = true;
+    private boolean distributedSlack = DISTRIBUTED_SLACK_DEFAULT_VALUE;
 
-    private boolean throwsExceptionInCaseOfSlackDistributionFailure = true;
+    private boolean throwsExceptionInCaseOfSlackDistributionFailure = THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE;
 
-    private BalanceType balanceType = BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX; // Default slack distribution on generators.
+    private BalanceType balanceType = BALANCE_TYPE_DEFAULT_VALUE;
+
+    private boolean dc = DC_DEFAULT_VALUE;
+
+    private boolean voltageRemoteControl = VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE;
+
+    private LowImpedanceBranchMode lowImpedanceBranchMode = LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE;
 
     public enum BalanceType {
         PROPORTIONAL_TO_GENERATION_P, // Not implemented yet.
         PROPORTIONAL_TO_GENERATION_P_MAX,
         PROPORTIONAL_TO_LOAD,
+        PROPORTIONAL_TO_CONFORM_LOAD,
     }
-
-    private boolean dc = false;
-
-    private boolean voltageRemoteControl = false;
 
     public enum LowImpedanceBranchMode {
         REPLACE_BY_ZERO_IMPEDANCE_LINE,
         REPLACE_BY_MIN_IMPEDANCE_LINE
     }
-
-    private LowImpedanceBranchMode lowImpedanceBranchMode = LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE;
 
     private final List<AcLoadFlowObserver> additionalObservers = new ArrayList<>();
 
@@ -118,4 +125,58 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public List<AcLoadFlowObserver> getAdditionalObservers() {
         return additionalObservers;
     }
+
+    public static OpenLoadFlowParameters load() {
+        return new OpenLoadFlowConfigLoader().load(PlatformConfig.defaultConfig());
+    }
+
+    @AutoService(LoadFlowParameters.ConfigLoader.class)
+    public static class OpenLoadFlowConfigLoader implements LoadFlowParameters.ConfigLoader<OpenLoadFlowParameters> {
+
+        @Override
+        public OpenLoadFlowParameters load(PlatformConfig platformConfig) {
+            OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
+
+            platformConfig.getOptionalModuleConfig("open-loadflow-default-parameters")
+                    .ifPresent(config -> {
+                        parameters.setSlackBusSelector(getSlackBusSelector(config));
+                        parameters.setBalanceType(config.getEnumProperty(BALANCE_TYPE_PARAM_NAME, BalanceType.class, BALANCE_TYPE_DEFAULT_VALUE));
+                        parameters.setDc(config.getBooleanProperty(DC_PARAM_NAME, DC_DEFAULT_VALUE));
+                        parameters.setDistributedSlack(config.getBooleanProperty(DISTRIBUTED_SLACK_PARAM_NAME, DISTRIBUTED_SLACK_DEFAULT_VALUE));
+                        parameters.setLowImpedanceBranchMode(config.getEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class, LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE));
+                        parameters.setVoltageRemoteControl(config.getBooleanProperty(VOLTAGE_REMOTE_CONTROLE_PARAM_NAME, VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE));
+                        parameters.setThrowsExceptionInCaseOfSlackDistributionFailure(
+                                config.getBooleanProperty(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE)
+                        );
+                    });
+            return parameters;
+        }
+
+        private SlackBusSelector getSlackBusSelector(ModuleConfig config) {
+            String type = config.getStringProperty("slackBusSelectorType");
+            SlackBusSelector slackBusSelector = null;
+            for (SlackBusSelectorParametersReader reader : ServiceLoader.load(SlackBusSelectorParametersReader.class)) {
+                if (type.equals(reader.getName())) {
+                    slackBusSelector = reader.read(config);
+                }
+            }
+            return slackBusSelector != null ? slackBusSelector : SLACK_BUS_SELECTOR_DEFAULT_VALUE;
+        }
+
+        @Override
+        public String getExtensionName() {
+            return "openLoadflowParameters";
+        }
+
+        @Override
+        public String getCategoryName() {
+            return "loadflow-parameters";
+        }
+
+        @Override
+        public Class<? super OpenLoadFlowParameters> getExtensionClass() {
+            return OpenLoadFlowParameters.class;
+        }
+    }
+
 }

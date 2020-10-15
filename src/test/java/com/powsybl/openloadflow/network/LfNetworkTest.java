@@ -22,7 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -48,9 +48,11 @@ class LfNetworkTest extends AbstractConverterTest {
                 .setId("SC")
                 .setBus("NLOAD")
                 .setConnectableBus("NLOAD")
-                .setbPerSection(3.25 * Math.pow(10, -3))
-                .setMaximumSectionCount(1)
-                .setCurrentSectionCount(1)
+                .setSectionCount(1)
+                .newLinearModel()
+                    .setBPerSection(3.25 * Math.pow(10, -3))
+                    .setMaximumSectionCount(1)
+                    .add()
                 .add();
 
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
@@ -81,5 +83,15 @@ class LfNetworkTest extends AbstractConverterTest {
         try (InputStream is = Files.newInputStream(file)) {
             compareTxt(getClass().getResourceAsStream("/n2.json"), is);
         }
+    }
+
+    @Test
+    void getBranchByIdtest() {
+        Network network = EurostagTutorialExample1Factory.create();
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        assertNull(lfNetwork.getBranchById("AAA"));
+        assertNotNull(lfNetwork.getBranchById("NHV1_NHV2_1"));
     }
 }

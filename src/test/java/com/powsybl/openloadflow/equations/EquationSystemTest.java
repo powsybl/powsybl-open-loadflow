@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
+import com.powsybl.openloadflow.ac.equations.BusVoltageEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
@@ -19,8 +20,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -39,7 +39,7 @@ class EquationSystemTest {
     void test() {
         LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector()).get(0);
         LfBus bus = network.getBus(0);
-        EquationSystem equationSystem = new EquationSystem(network);
+        EquationSystem equationSystem = new EquationSystem(network, true);
         equationSystem.addListener((equation, eventType) -> {
             equations.add(equation);
             eventTypes.add(eventType);
@@ -50,9 +50,10 @@ class EquationSystemTest {
         assertTrue(equationSystem.getSortedEquationsToSolve().isEmpty());
 
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusPhaseEquationTerm(bus, variableSet));
-        assertEquals(1, equations.size());
-        assertEquals(1, eventTypes.size());
+        assertEquals(2, equations.size());
+        assertEquals(2, eventTypes.size());
         assertEquals(EquationEventType.EQUATION_CREATED, eventTypes.get(0));
+        assertEquals(EquationEventType.EQUATION_UPDATED, eventTypes.get(1));
         assertEquals(1, equationSystem.getSortedEquationsToSolve().size());
 
         clearEvents();
@@ -72,6 +73,28 @@ class EquationSystemTest {
         assertEquals(1, eventTypes.size());
         assertEquals(EquationEventType.EQUATION_ACTIVATED, eventTypes.get(0));
         assertEquals(1, equationSystem.getSortedEquationsToSolve().size());
+
+        assertTrue(equationSystem.getEquation(bus.getNum(), EquationType.BUS_V).isPresent());
+        assertEquals(1, equationSystem.getEquations(SubjectType.BUS, bus.getNum()).size());
+        assertFalse(equationSystem.getEquation(99, EquationType.BUS_V).isPresent());
+        assertTrue(equationSystem.getEquations(SubjectType.BUS, 99).isEmpty());
+
+        assertEquals(1, equationSystem.getEquationTerms(SubjectType.BUS, bus.getNum()).size());
+        assertTrue(equationSystem.getEquationTerms(SubjectType.BRANCH, 0).isEmpty());
+
+        clearEvents();
+        BusVoltageEquationTerm equationTerm = new BusVoltageEquationTerm(bus, variableSet);
+        equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(equationTerm);
+        assertEquals(2, equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).getTerms().size());
+        assertEquals(1, equations.size());
+        assertEquals(1, eventTypes.size());
+        assertEquals(EquationEventType.EQUATION_UPDATED, eventTypes.get(0));
+
+        clearEvents();
+        equationTerm.setActive(false);
+        assertEquals(1, equations.size());
+        assertEquals(1, eventTypes.size());
+        assertEquals(EquationEventType.EQUATION_UPDATED, eventTypes.get(0));
     }
 
     @Test

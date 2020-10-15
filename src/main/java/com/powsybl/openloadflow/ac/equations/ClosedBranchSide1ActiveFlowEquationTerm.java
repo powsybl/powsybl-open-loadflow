@@ -42,11 +42,11 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
     @Override
     public void update(double[] x) {
         Objects.requireNonNull(x);
-        double v1 = x[v1Var.getColumn()];
-        double v2 = x[v2Var.getColumn()];
-        double ph1 = x[ph1Var.getColumn()];
-        double ph2 = x[ph2Var.getColumn()];
-        double theta = ksi - (a1Var != null && a1Var.isActive() ? x[a1Var.getColumn()] : branch.getPiModel().getA1())
+        double v1 = x[v1Var.getRow()];
+        double v2 = x[v2Var.getRow()];
+        double ph1 = x[ph1Var.getRow()];
+        double ph2 = x[ph2Var.getRow()];
+        double theta = ksi - (a1Var != null && a1Var.isActive() ? x[a1Var.getRow()] : branch.getPiModel().getA1())
                 + A2 - ph1 + ph2;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);

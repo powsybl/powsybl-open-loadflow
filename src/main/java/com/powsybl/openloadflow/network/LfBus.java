@@ -37,6 +37,8 @@ public interface LfBus {
      */
     int getVoltageControlSwitchOffCount();
 
+    void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount);
+
     void setVoltageControl(boolean voltageControl);
 
     Optional<LfBus> getControlledBus();
@@ -50,6 +52,8 @@ public interface LfBus {
     double getLoadTargetP();
 
     void setLoadTargetP(double loadTargetP);
+
+    double getFixedLoadTargetP();
 
     int getPositiveLoadCount();
 
@@ -85,6 +89,10 @@ public interface LfBus {
      */
     double getNominalV();
 
+    double getLowVoltageLimit();
+
+    double getHighVoltageLimit();
+
     List<LfGenerator> getGenerators();
 
     List<LfShunt> getShunts();
@@ -93,5 +101,5 @@ public interface LfBus {
 
     void addBranch(LfBranch branch);
 
-    void updateState(boolean reactiveLimits);
+    void updateState(boolean reactiveLimits, boolean writeSlackBus);
 }

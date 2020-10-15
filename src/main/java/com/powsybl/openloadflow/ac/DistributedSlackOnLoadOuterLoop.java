@@ -23,8 +23,11 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOnLoadOuterLoop.class);
 
-    public DistributedSlackOnLoadOuterLoop(boolean throwsExceptionInCaseOfFailure) {
+    private boolean distributedSlackOnConformLoad = false;
+
+    public DistributedSlackOnLoadOuterLoop(boolean throwsExceptionInCaseOfFailure, boolean distributedSlackOnConformLoad) {
         super(throwsExceptionInCaseOfFailure);
+        this.distributedSlackOnConformLoad = distributedSlackOnConformLoad;
     }
 
     @Override
@@ -33,16 +36,20 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
     }
 
     @Override
-    protected List<ParticipatingElement<LfBus>> getParticipatingElements(LfNetwork network) {
+    public List<ParticipatingElement<LfBus>> getParticipatingElements(LfNetwork network) {
         return network.getBuses()
-                .stream()
-                .filter(bus -> bus.getPositiveLoadCount() > 0 && bus.getLoadTargetP() > 0)
-                .map(bus -> new ParticipatingElement<>(bus, bus.getLoadTargetP()))
-                .collect(Collectors.toList());
+            .stream()
+            .filter(bus -> bus.getPositiveLoadCount() > 0 && getVariableLoadTargetP(bus) > 0)
+            .map(bus -> new ParticipatingElement<>(bus, getVariableLoadTargetP(bus)))
+            .collect(Collectors.toList());
+    }
+
+    private double getVariableLoadTargetP(LfBus bus) {
+        return distributedSlackOnConformLoad ? bus.getLoadTargetP() - bus.getFixedLoadTargetP() : bus.getLoadTargetP();
     }
 
     @Override
-    protected double run(List<ParticipatingElement<LfBus>> participatingElements, int iteration, double remainingMismatch) {
+    public double run(List<ParticipatingElement<LfBus>> participatingElements, int iteration, double remainingMismatch) {
         // normalize participation factors at each iteration start as some
         // loads might have reach zero and have been discarded.
         normalizeParticipationFactors(participatingElements, "load");
@@ -57,7 +64,6 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
             double factor = participatingBus.factor;
 
             double targetP = bus.getLoadTargetP();
-
             double newTargetP = targetP - remainingMismatch * factor;
 
             // We stop when the load produces power.

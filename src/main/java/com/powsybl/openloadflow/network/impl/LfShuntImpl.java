@@ -22,6 +22,8 @@ public class LfShuntImpl implements LfShunt {
 
     private final ShuntCompensator shuntCompensator;
 
+    private int num = -1;
+
     private final double b;
 
     private Evaluable q = NAN;
@@ -30,12 +32,20 @@ public class LfShuntImpl implements LfShunt {
         this.shuntCompensator = Objects.requireNonNull(shuntCompensator);
         double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
         double zb = nominalV * nominalV / PerUnit.SB;
-        b = shuntCompensator.getCurrentB() * zb;
+        b = shuntCompensator.getB() * zb;
     }
 
     @Override
     public String getId() {
         return shuntCompensator.getId();
+    }
+
+    public int getNum() {
+        return num;
+    }
+
+    public void setNum(int num) {
+        this.num = num;
     }
 
     @Override

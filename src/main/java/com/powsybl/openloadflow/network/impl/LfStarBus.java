@@ -7,12 +7,11 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
-import com.powsybl.openloadflow.network.AbstractFictitiousLfBus;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfStarBus extends AbstractFictitiousLfBus {
+public class LfStarBus extends AbstractLfBus {
 
     private final ThreeWindingsTransformer t3wt;
 
@@ -30,13 +29,30 @@ public class LfStarBus extends AbstractFictitiousLfBus {
     }
 
     @Override
+    public boolean isFictitious() {
+        return true;
+    }
+
+    @Override
     public double getNominalV() {
         return nominalV;
     }
 
     @Override
-    public void updateState(boolean reactiveLimits) {
+    public double getLowVoltageLimit() {
+        return Double.NaN;
+    }
+
+    @Override
+    public double getHighVoltageLimit() {
+        return Double.NaN;
+    }
+
+    @Override
+    public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
         Networks.setPropertyV(t3wt, v);
         Networks.setPropertyAngle(t3wt, angle);
+
+        super.updateState(reactiveLimits, writeSlackBus);
     }
 }

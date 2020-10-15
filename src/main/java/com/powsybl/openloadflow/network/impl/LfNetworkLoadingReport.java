@@ -24,4 +24,6 @@ class LfNetworkLoadingReport {
     int branchesDiscardedBecauseConnectedToSameBusAtBothEnds = 0;
 
     int nonImpedantBranches = 0;
+
+    int voltageControllerCount = 0;
 }

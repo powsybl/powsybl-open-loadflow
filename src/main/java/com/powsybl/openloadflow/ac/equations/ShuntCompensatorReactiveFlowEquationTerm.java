@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.AbstractEquationTerm;
-import com.powsybl.openloadflow.equations.Variable;
-import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.equations.VariableType;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
 
@@ -20,7 +17,9 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractEquationTerm {
+public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquationTerm {
+
+    private final LfShunt shunt;
 
     private final Variable vVar;
 
@@ -33,12 +32,22 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractEquationTe
     private double dqdv;
 
     public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet variableSet) {
-        Objects.requireNonNull(shunt);
+        this.shunt = Objects.requireNonNull(shunt);
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
         vVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_V);
         variables = Collections.singletonList(vVar);
         b = shunt.getB();
+    }
+
+    @Override
+    public SubjectType getSubjectType() {
+        return SubjectType.SHUNT_COMPENSATOR;
+    }
+
+    @Override
+    public int getSubjectNum() {
+        return shunt.getNum();
     }
 
     @Override
@@ -49,7 +58,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractEquationTe
     @Override
     public void update(double[] x) {
         Objects.requireNonNull(x);
-        double v = x[vVar.getColumn()];
+        double v = x[vVar.getRow()];
         q = -b * v * v;
         dqdv = -2 * b * v;
     }

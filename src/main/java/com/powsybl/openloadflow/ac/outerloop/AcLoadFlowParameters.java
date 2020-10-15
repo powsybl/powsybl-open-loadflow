@@ -22,7 +22,7 @@ public class AcLoadFlowParameters {
 
     private final SlackBusSelector slackBusSelector;
 
-    private final VoltageInitializer voltageInitializer;
+    private VoltageInitializer voltageInitializer;
 
     private final NewtonRaphsonStoppingCriteria stoppingCriteria;
 
@@ -38,10 +38,15 @@ public class AcLoadFlowParameters {
 
     private final boolean minImpedance;
 
+    private final boolean twtSplitShuntAdmittance;
+
+    private final boolean breakers;
+
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
                                 MatrixFactory matrixFactory, AcLoadFlowObserver observer, boolean voltageRemoteControl,
-                                boolean phaseControl, boolean minImpedance) {
+                                boolean phaseControl, boolean minImpedance, boolean twtSplitShuntAdmittance,
+                                boolean breakers) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -51,6 +56,8 @@ public class AcLoadFlowParameters {
         this.voltageRemoteControl = voltageRemoteControl;
         this.phaseControl = phaseControl;
         this.minImpedance = minImpedance;
+        this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
+        this.breakers = breakers;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -59,6 +66,10 @@ public class AcLoadFlowParameters {
 
     public VoltageInitializer getVoltageInitializer() {
         return voltageInitializer;
+    }
+
+    public void setVoltageInitializer(VoltageInitializer voltageInitializer) {
+        this.voltageInitializer = voltageInitializer;
     }
 
     public NewtonRaphsonStoppingCriteria getStoppingCriteria() {
@@ -87,5 +98,13 @@ public class AcLoadFlowParameters {
 
     public boolean isMinImpedance() {
         return minImpedance;
+    }
+
+    public boolean isTwtSplitShuntAdmittance() {
+        return twtSplitShuntAdmittance;
+    }
+
+    public boolean isBreakers() {
+        return breakers;
     }
 }
