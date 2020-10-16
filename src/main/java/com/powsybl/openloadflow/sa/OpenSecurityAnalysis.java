@@ -293,16 +293,20 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
     private void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
         if (loadFlowParameters.isDistributedSlack() && Math.abs(mismatch) > 0) {
-            if (loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
-                    loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
-                DistributedSlackOnLoadOuterLoop outerLoop = new DistributedSlackOnLoadOuterLoop(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure(),
+            switch (loadFlowParameters.getBalanceType()) {
+                case PROPORTIONAL_TO_LOAD:
+                case PROPORTIONAL_TO_CONFORM_LOAD:
+                    DistributedSlackOnLoadOuterLoop onLoadOuterLoop = new DistributedSlackOnLoadOuterLoop(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure(),
                         loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
-                outerLoop.run(outerLoop.getParticipatingElements(network), -1, mismatch);
-
-            } else if (loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX ||
-                    loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P) {
-                DistributedSlackOnGenerationOuterLoop outerLoop = new DistributedSlackOnGenerationOuterLoop(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
-                outerLoop.run(outerLoop.getParticipatingElements(network), -1, mismatch);
+                    onLoadOuterLoop.run(onLoadOuterLoop.getParticipatingElements(network), -1, mismatch);
+                    break;
+                case PROPORTIONAL_TO_GENERATION_P:
+                case PROPORTIONAL_TO_GENERATION_P_MAX:
+                    DistributedSlackOnGenerationOuterLoop onGenerationOuterLoop = new DistributedSlackOnGenerationOuterLoop(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
+                    onGenerationOuterLoop.run(onGenerationOuterLoop.getParticipatingElements(network), -1, mismatch);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unknown balance type mode: " + loadFlowParameters.getBalanceType());
             }
         }
     }
