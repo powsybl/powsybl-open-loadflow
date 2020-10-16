@@ -77,6 +77,13 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
+    void testUnsupportedGenerationBalanceType() {
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
+        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
+            "java.lang.UnsupportedOperationException: Unsupported balance type mode: PROPORTIONAL_TO_GENERATION_P");
+    }
+
+    @Test
     void maxTest() {
         // decrease g1 max limit power, so that distributed slack algo reach the g1 max
         g1.setMaxP(105);
