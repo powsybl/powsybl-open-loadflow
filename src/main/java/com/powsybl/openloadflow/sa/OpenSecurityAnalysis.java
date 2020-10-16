@@ -124,7 +124,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         // run simulation on largest network
         LfNetwork largestNetwork = lfNetworks.get(0);
-        SecurityAnalysisResult result = runSimulations(largestNetwork, contingencyContexts, acParameters, lfParametersExt);
+        SecurityAnalysisResult result = runSimulations(largestNetwork, contingencyContexts, acParameters, lfParameters, lfParametersExt);
 
         stopwatch.stop();
         LOGGER.info("Security analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
@@ -244,7 +244,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
     }
 
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<ContingencyContext> contingencyContexts, AcLoadFlowParameters acParameters,
-                                                  OpenLoadFlowParameters openLoadFlowParameters) {
+                                                  LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
         // create a contingency list that impact the network
         List<LfContingency> contingencies = createContingencies(contingencyContexts, network);
 
@@ -274,7 +274,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                 LfContingency lfContingency = contingencyIt.next();
 
                 // FIXME: loads and generations lost with the contingency have to be removed from the slack distribution
-                distributedMismatch(network, lfContingency.getActivePowerLoss(), openLoadFlowParameters);
+                distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
                 PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency);
                 postContingencyResults.add(postContingencyResult);
@@ -291,16 +291,16 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
     }
 
-    private void distributedMismatch(LfNetwork network, double mismatch, OpenLoadFlowParameters openLoadFlowParameters) {
-        if (openLoadFlowParameters.isDistributedSlack() && Math.abs(mismatch) > 0) {
-            if (openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
-                    openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
+    private void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
+        if (loadFlowParameters.isDistributedSlack() && Math.abs(mismatch) > 0) {
+            if (loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
+                    loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
                 DistributedSlackOnLoadOuterLoop outerLoop = new DistributedSlackOnLoadOuterLoop(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure(),
-                        openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+                        loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
                 outerLoop.run(outerLoop.getParticipatingElements(network), -1, mismatch);
 
-            } else if (openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX ||
-                    openLoadFlowParameters.getBalanceType() == OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P) {
+            } else if (loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX ||
+                    loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P) {
                 DistributedSlackOnGenerationOuterLoop outerLoop = new DistributedSlackOnGenerationOuterLoop(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
                 outerLoop.run(outerLoop.getParticipatingElements(network), -1, mismatch);
             }
