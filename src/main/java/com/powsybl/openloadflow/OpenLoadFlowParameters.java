@@ -7,16 +7,18 @@
 package com.powsybl.openloadflow;
 
 import com.google.auto.service.AutoService;
+import com.powsybl.commons.config.ModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.nr.AcLoadFlowObserver;
-import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.network.SlackBusSelectorParametersReader;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.ServiceLoader;
 
 import static com.powsybl.openloadflow.util.ParameterConstants.*;
 
@@ -25,7 +27,7 @@ import static com.powsybl.openloadflow.util.ParameterConstants.*;
  */
 public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters> {
 
-    private SlackBusSelector slackBusSelector = new MostMeshedSlackBusSelector();
+    private SlackBusSelector slackBusSelector = SLACK_BUS_SELECTOR_DEFAULT_VALUE;
 
     private boolean distributedSlack = DISTRIBUTED_SLACK_DEFAULT_VALUE;
 
@@ -124,6 +126,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return additionalObservers;
     }
 
+    public static OpenLoadFlowParameters load() {
+        return new OpenLoadFlowConfigLoader().load(PlatformConfig.defaultConfig());
+    }
+
     @AutoService(LoadFlowParameters.ConfigLoader.class)
     public static class OpenLoadFlowConfigLoader implements LoadFlowParameters.ConfigLoader<OpenLoadFlowParameters> {
 
@@ -133,6 +139,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
             platformConfig.getOptionalModuleConfig("open-loadflow-default-parameters")
                     .ifPresent(config -> {
+                        parameters.setSlackBusSelector(getSlackBusSelector(config));
                         parameters.setBalanceType(config.getEnumProperty(BALANCE_TYPE_PARAM_NAME, BalanceType.class, BALANCE_TYPE_DEFAULT_VALUE));
                         parameters.setDc(config.getBooleanProperty(DC_PARAM_NAME, DC_DEFAULT_VALUE));
                         parameters.setDistributedSlack(config.getBooleanProperty(DISTRIBUTED_SLACK_PARAM_NAME, DISTRIBUTED_SLACK_DEFAULT_VALUE));
@@ -143,6 +150,17 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                         );
                     });
             return parameters;
+        }
+
+        private SlackBusSelector getSlackBusSelector(ModuleConfig config) {
+            String type = config.getStringProperty("slackBusSelectorType");
+            SlackBusSelector slackBusSelector = null;
+            for (SlackBusSelectorParametersReader reader : ServiceLoader.load(SlackBusSelectorParametersReader.class)) {
+                if (type.equals(reader.getName())) {
+                    slackBusSelector = reader.read(config);
+                }
+            }
+            return slackBusSelector != null ? slackBusSelector : SLACK_BUS_SELECTOR_DEFAULT_VALUE;
         }
 
         @Override

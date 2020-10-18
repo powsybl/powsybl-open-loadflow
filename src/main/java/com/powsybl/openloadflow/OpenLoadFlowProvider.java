@@ -100,7 +100,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
     }
 
-    static OpenLoadFlowParameters getParametersExt(LoadFlowParameters parameters) {
+    public static OpenLoadFlowParameters getParametersExt(LoadFlowParameters parameters) {
         OpenLoadFlowParameters parametersExt = parameters.getExtension(OpenLoadFlowParameters.class);
         if (parametersExt == null) {
             parametersExt = new OpenLoadFlowParameters();
@@ -113,8 +113,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                            : parametersExt.getSlackBusSelector();
     }
 
-    static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
-                                                   OpenLoadFlowParameters parametersExt) {
+    public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
+                                                   OpenLoadFlowParameters parametersExt, boolean breakers) {
 
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
@@ -161,14 +161,15 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 parametersExt.hasVoltageRemoteControl(),
                 parameters.isPhaseShifterRegulationOn(),
                 parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
-                parameters.isTwtSplitShuntAdmittance());
+                parameters.isTwtSplitShuntAdmittance(),
+                breakers);
     }
 
     private CompletableFuture<LoadFlowResult> runAc(Network network, String workingStateId, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
-            AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt);
+            AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt, false);
             List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, acParameters);
 
             Networks.resetState(network);

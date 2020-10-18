@@ -33,7 +33,7 @@ public class DistributedSlackOnGenerationOuterLoop extends AbstractDistributedSl
     }
 
     @Override
-    protected List<ParticipatingElement<LfGenerator>> getParticipatingElements(LfNetwork network) {
+    public List<ParticipatingElement<LfGenerator>> getParticipatingElements(LfNetwork network) {
         return network.getBuses()
                 .stream()
                 .flatMap(bus -> bus.getGenerators().stream())
@@ -43,7 +43,7 @@ public class DistributedSlackOnGenerationOuterLoop extends AbstractDistributedSl
     }
 
     @Override
-    protected double run(List<ParticipatingElement<LfGenerator>> participatingElements, int iteration, double remainingMismatch) {
+    public double run(List<ParticipatingElement<LfGenerator>> participatingElements, int iteration, double remainingMismatch) {
         // normalize participation factors at each iteration start as some
         // generators might have reach a limit and have been discarded
         normalizeParticipationFactors(participatingElements, "generator");

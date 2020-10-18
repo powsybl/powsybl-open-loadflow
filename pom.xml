@@ -151,6 +151,11 @@
             <artifactId>powsybl-math</artifactId>
             <version>${powsyblcore.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-security-analysis-api</artifactId>
+            <version>${powsyblcore.version}</version>
+        </dependency>
 
         <!-- Runtime dependencies -->
 

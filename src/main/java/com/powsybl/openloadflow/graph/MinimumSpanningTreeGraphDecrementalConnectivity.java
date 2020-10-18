@@ -41,13 +41,18 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements Graph
 
     @Override
     public void addEdge(V vertex1, V vertex2) {
-        Objects.requireNonNull(vertex1);
-        Objects.requireNonNull(vertex2);
+        if (vertex1 == null || vertex2 == null) {
+            return;
+        }
         graph.addEdge(vertex1, vertex2, new Object());
     }
 
     @Override
     public void cut(V vertex1, V vertex2) {
+        if (vertex1 == null || vertex2 == null) {
+            return;
+        }
+
         if (this.mstOrigin == null) {
             this.mstOrigin = new KruskalMinimumSpanningTrees().getSpanningTree();
             resetMst();
