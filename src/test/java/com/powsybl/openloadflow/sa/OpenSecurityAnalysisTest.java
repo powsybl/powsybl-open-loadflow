@@ -276,7 +276,7 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisResult result = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
         assertTrue(result.getPreContingencyResult().isComputationOk());
 
-        saParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setBalanceType(OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        saParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         SecurityAnalysisResult result2 = securityAnalysis.runSync(saParameters, contingenciesProvider);
         assertTrue(result2.getPreContingencyResult().isComputationOk());
     }

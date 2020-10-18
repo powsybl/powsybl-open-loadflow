@@ -53,11 +53,10 @@ class AcLoadFlowPhaseShifterTest {
         ps1.getPhaseTapChanger().getStep(2).setAlpha(5);
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters();
-        parameters.setNoGeneratorReactiveLimits(true);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new FirstSlackBusSelector())
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector());
         this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 

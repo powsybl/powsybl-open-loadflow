@@ -108,11 +108,10 @@ class AcLoadFlowDanglingLineTest {
     void setUp() {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters();
-        parameters.setNoGeneratorReactiveLimits(true);
-        parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector())
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
+        parametersExt = new OpenLoadFlowParameters()
+                .setSlackBusSelector(new MostMeshedSlackBusSelector());
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
@@ -150,8 +149,8 @@ class AcLoadFlowDanglingLineTest {
         assertActivePowerEquals(101.2, dl1.getTerminal());
         assertReactivePowerEquals(-0.202, dl1.getTerminal());
 
-        parametersExt.setDistributedSlack(true);
-        parameters.setNoGeneratorReactiveLimits(false);
+        parameters.setDistributedSlack(true)
+                  .setNoGeneratorReactiveLimits(false);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isOk());
 
