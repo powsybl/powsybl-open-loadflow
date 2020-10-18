@@ -48,11 +48,10 @@ class DistributedSlackOnLoadTest {
         l5 = network.getLoad("l5");
         l6 = network.getLoad("l6");
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters();
+        parameters = new LoadFlowParameters().setDistributedSlack(true)
+                  .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector())
-                .setDistributedSlack(true)
-                .setBalanceType(OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+                .setSlackBusSelector(new MostMeshedSlackBusSelector());
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
@@ -74,8 +73,7 @@ class DistributedSlackOnLoadTest {
                 .withVariableActivePower(40)
                 .withFixedActivePower(20)
                 .add();
-        OpenLoadFlowParameters parametersExt = parameters.getExtension(OpenLoadFlowParameters.class);
-        parametersExt.setBalanceType(OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertActivePowerEquals(38.182, l1.getTerminal());

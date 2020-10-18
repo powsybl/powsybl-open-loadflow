@@ -50,6 +50,8 @@ public class OpenLoadFlowParametersTest {
         MapModuleConfig lfModuleConfig = platformConfig.createModuleConfig("load-flow-default-parameters");
         lfModuleConfig.setStringProperty("voltageInitMode", LoadFlowParameters.VoltageInitMode.DC_VALUES.toString());
         lfModuleConfig.setStringProperty("transformerVoltageControlOn", Boolean.toString(true));
+        lfModuleConfig.setStringProperty("balanceType", LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD.toString());
+        lfModuleConfig.setStringProperty("dc", Boolean.toString(true));
     }
 
     @After
@@ -60,20 +62,19 @@ public class OpenLoadFlowParametersTest {
     @Test
     public void testConfig() {
         MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
-        olfModuleConfig.setStringProperty(BALANCE_TYPE_PARAM_NAME, OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD.toString());
-        olfModuleConfig.setStringProperty(DC_PARAM_NAME, Boolean.toString(true));
         olfModuleConfig.setStringProperty("slackBusSelectorType", "First");
 
         LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
 
         assertEquals(LoadFlowParameters.VoltageInitMode.DC_VALUES, parameters.getVoltageInitMode());
         assertTrue(parameters.isTransformerVoltageControlOn());
+        assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, parameters.getBalanceType());
+        assertTrue(parameters.isDc());
+        assertTrue(parameters.isDistributedSlack());
 
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
-        assertEquals(OpenLoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, olfParameters.getBalanceType());
-        assertTrue(olfParameters.isDc());
         assertTrue(olfParameters.getSlackBusSelector() instanceof FirstSlackBusSelector);
-        assertTrue(olfParameters.isDistributedSlack());
+
         assertTrue(olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
         assertFalse(olfParameters.hasVoltageRemoteControl());
         assertEquals(LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
@@ -85,12 +86,12 @@ public class OpenLoadFlowParametersTest {
 
         assertEquals(LoadFlowParameters.VoltageInitMode.DC_VALUES, parameters.getVoltageInitMode());
         assertTrue(parameters.isTransformerVoltageControlOn());
+        assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, parameters.getBalanceType());
+        assertTrue(parameters.isDc());
+        assertTrue(parameters.isDistributedSlack());
 
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         assertEquals(SLACK_BUS_SELECTOR_DEFAULT_VALUE, olfParameters.getSlackBusSelector());
-        assertEquals(BALANCE_TYPE_DEFAULT_VALUE, olfParameters.getBalanceType());
-        assertEquals(DC_DEFAULT_VALUE, olfParameters.isDc());
-        assertEquals(DISTRIBUTED_SLACK_DEFAULT_VALUE, olfParameters.isDistributedSlack());
         assertEquals(VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE, olfParameters.hasVoltageRemoteControl());
         assertEquals(LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
         assertEquals(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE, olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
