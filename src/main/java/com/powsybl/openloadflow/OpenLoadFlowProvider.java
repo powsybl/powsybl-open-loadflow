@@ -124,16 +124,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
         LOGGER.info("Voltage level initializer: {}", voltageInitializer.getClass().getSimpleName());
-        LOGGER.info("Distributed slack: {}", parametersExt.isDistributedSlack());
-        LOGGER.info("Balance type: {}", parametersExt.getBalanceType());
+        LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
+        LOGGER.info("Balance type: {}", parameters.getBalanceType());
         LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
         LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
         LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
         LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
+        LOGGER.info("Direct current: {}", parameters.isDc());
 
         List<OuterLoop> outerLoops = new ArrayList<>();
-        if (parametersExt.isDistributedSlack()) {
-            switch (parametersExt.getBalanceType()) {
+        if (parameters.isDistributedSlack()) {
+            switch (parameters.getBalanceType()) {
                 case PROPORTIONAL_TO_GENERATION_P_MAX:
                     outerLoops.add(new DistributedSlackOnGenerationOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure()));
                     break;
@@ -144,9 +145,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     outerLoops.add(new DistributedSlackOnLoadOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), true));
                     break;
                 case PROPORTIONAL_TO_GENERATION_P: // to be implemented.
-                    throw new UnsupportedOperationException("Unsupported balance type mode: " + parametersExt.getBalanceType());
+                    throw new UnsupportedOperationException("Unsupported balance type mode: " + parameters.getBalanceType());
                 default:
-                    throw new UnsupportedOperationException("Unknown balance type mode: " + parametersExt.getBalanceType());
+                    throw new UnsupportedOperationException("Unknown balance type mode: " + parameters.getBalanceType());
             }
         }
         if (parameters.isPhaseShifterRegulationOn()) {
@@ -181,11 +182,33 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             }
 
             Map<String, String> metrics = new HashMap<>();
+            List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
             for (AcLoadFlowResult result : results) {
                 // update network state
                 result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(), parameters.isWriteSlackBus());
 
                 metrics.putAll(createMetrics(result));
+
+                LoadFlowResult.ComponentResult.Status status;
+                switch (result.getNewtonRaphsonStatus()) {
+                    case CONVERGED:
+                        status = LoadFlowResult.ComponentResult.Status.CONVERGED;
+                        break;
+                    case MAX_ITERATION_REACHED:
+                        status = LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
+                        break;
+                    case SOLVER_FAILED:
+                        status = LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
+                        break;
+                    default:
+                        status = LoadFlowResult.ComponentResult.Status.FAILED;
+                        break;
+                }
+                componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNum(),
+                                                                                status,
+                                                                                result.getNewtonRaphsonIterations(),
+                                                                                result.getNetwork().getSlackBus().getId(),
+                                                                                result.getSlackBusActivePowerMismatch() * PerUnit.SB));
             }
 
             // zero or low impedance branch flows computation
@@ -199,7 +222,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 }).complete();
             }
 
-            return new LoadFlowResultImpl(ok, metrics, null);
+            return new LoadFlowResultImpl(ok, metrics, null, componentResults);
         });
     }
 
@@ -235,7 +258,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         OpenLoadFlowParameters parametersExt = getParametersExt(parameters);
 
-        return parametersExt.isDc() ? runDc(network, workingVariantId, parameters, parametersExt)
+        return parameters.isDc() ? runDc(network, workingVariantId, parameters, parametersExt)
                                     : runAc(network, workingVariantId, parameters, parametersExt);
     }
 }
