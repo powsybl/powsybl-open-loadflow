@@ -59,6 +59,8 @@ public class PhaseControlOuterLoop implements OuterLoop {
                     case LIMITER:
                         status = OuterLoopStatus.UNSTABLE;
                         break;
+                    default:
+                        // Nothing has to be done
                 }
             }
         }
