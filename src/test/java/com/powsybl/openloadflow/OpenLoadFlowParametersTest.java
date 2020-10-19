@@ -13,8 +13,12 @@ import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.commons.config.MapModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.config.YamlModuleConfigRepository;
+import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
@@ -150,5 +154,16 @@ public class OpenLoadFlowParametersTest {
         LfNetwork lfNetwork = LfNetwork.load(EurostagTutorialExample1Factory.create(), olfParameters.getSlackBusSelector()).get(0);
         PowsyblException thrown = assertThrows(PowsyblException.class, lfNetwork::getSlackBus);
         assertEquals("Slack bus '???' not found", thrown.getMessage());
+    }
+
+    @Test
+    public void testMaxIterationReached() throws IOException {
+        LoadFlowParameters parameters = LoadFlowParameters.load();
+        OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getGenerator("GEN").setTargetV(5);
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
     }
 }
