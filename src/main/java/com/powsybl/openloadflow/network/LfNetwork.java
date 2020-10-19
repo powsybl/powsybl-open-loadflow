@@ -227,9 +227,9 @@ public class LfNetwork {
             jsonGenerator.writeNumberField("a1", piModel.getA1());
         }
         if (branch.isPhaseController()) {
-            PhaseControl phaseControl = branch.getPhaseControl();
+            DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl();
             try {
-                jsonGenerator.writeFieldName("phaseControl");
+                jsonGenerator.writeFieldName("discretePhaseControl");
                 jsonGenerator.writeStartObject();
                 jsonGenerator.writeStringField("controller", phaseControl.getController().getId());
                 jsonGenerator.writeStringField("controlled", phaseControl.getController().getId());

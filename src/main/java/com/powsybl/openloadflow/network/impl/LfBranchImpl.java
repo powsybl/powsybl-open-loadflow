@@ -178,10 +178,10 @@ public class LfBranchImpl extends AbstractLfBranch {
         if (isPhaseControlled()) {
             double distance = 0; // we check if the target value deadband is respected.
             double p = Double.NaN;
-            if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.ONE) {
+            if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
                 p = p1.eval() * PerUnit.SB;
                 distance = Math.abs(p - phaseControl.getTargetValue() * PerUnit.SB);
-            } else if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.TWO) {
+            } else if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.TWO) {
                 p = p2.eval() * PerUnit.SB;
                 distance = Math.abs(p - phaseControl.getTargetValue() * PerUnit.SB);
             }

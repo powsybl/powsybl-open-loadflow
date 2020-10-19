@@ -46,7 +46,7 @@
     "num2" : 2,
     "r" : 0.0013850415512465374,
     "x" : 0.06925207756232687,
-    "phaseControl" : {
+    "discretePhaseControl" : {
       "controller" : "PS1",
       "controlled" : "PS1",
       "mode" : "CONTROLLER",

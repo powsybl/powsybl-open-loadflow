@@ -246,22 +246,22 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             LfBranch controlledBranch = lfNetwork.getBranchById(controlledBranchId);
             LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
             LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
-            PhaseControl.ControlledSide controlledSide = controlledBus == controlledBranch.getBus1() ?
-                PhaseControl.ControlledSide.ONE : PhaseControl.ControlledSide.TWO;
+            DiscretePhaseControl.ControlledSide controlledSide = controlledBus == controlledBranch.getBus1() ?
+                DiscretePhaseControl.ControlledSide.ONE : DiscretePhaseControl.ControlledSide.TWO;
             double targetValue = ptc.getRegulationValue() / PerUnit.SB;
             double targetDeadband = ptc.getTargetDeadband() /  PerUnit.SB;
 
-            PhaseControl phaseControl = null;
+            DiscretePhaseControl phaseControl = null;
             if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
-                phaseControl = new PhaseControl(controllerBranch, controlledBranch, controlledSide,
-                    PhaseControl.Mode.LIMITER, targetValue, targetDeadband, PhaseControl.Unit.A);
+                phaseControl = new DiscretePhaseControl(controllerBranch, controlledBranch, controlledSide,
+                    DiscretePhaseControl.Mode.LIMITER, targetValue, targetDeadband, DiscretePhaseControl.Unit.A);
             } else if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
-                phaseControl = new PhaseControl(controllerBranch, controlledBranch, controlledSide,
-                    PhaseControl.Mode.CONTROLLER, targetValue, targetDeadband, PhaseControl.Unit.MW);
+                phaseControl = new DiscretePhaseControl(controllerBranch, controlledBranch, controlledSide,
+                    DiscretePhaseControl.Mode.CONTROLLER, targetValue, targetDeadband, DiscretePhaseControl.Unit.MW);
             }
 
-            controllerBranch.setPhaseControl(phaseControl);
-            controlledBranch.setPhaseControl(phaseControl);
+            controllerBranch.setDiscretePhaseControl(phaseControl);
+            controlledBranch.setDiscretePhaseControl(phaseControl);
         }
     }
 

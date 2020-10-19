@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.equations.EquationType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.PhaseControl;
+import com.powsybl.openloadflow.network.DiscretePhaseControl;
 import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,26 +36,26 @@ public class PhaseControlOuterLoop implements OuterLoop {
 
         switch (context.getIteration()) {
             case 0:
-                // at first iteration all branches controlling phase are switched off
-                return switchOffPhaseControl(context);
+                // at first outerloop iteration all branches with active power control are switched off
+                return disableActivePowerControl(context);
             case 1:
-                // at second iteration we switch on phase control for branches that are in limiter mode
+                // at second outerloop iteration we switch on phase control for branches that are in limiter mode
                 // and a current greater than the limit
-                return swicthOnPhaseControl(context);
+                return enableCurrentLimiterControl(context);
             default:
                 return OuterLoopStatus.STABLE;
         }
     }
 
-    private OuterLoopStatus switchOffPhaseControl(OuterLoopContext context) {
+    private OuterLoopStatus disableActivePowerControl(OuterLoopContext context) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
         for (LfBranch branch : context.getNetwork().getBranches()) {
-            if (branch.isPhaseControlled() && branch.getPhaseControl().getMode() == PhaseControl.Mode.CONTROLLER) {
+            if (branch.isPhaseControlled() && branch.getDiscretePhaseControl().getMode() == DiscretePhaseControl.Mode.CONTROLLER) {
                 // switch off phase shifter
-                branch.getPhaseControl().setMode(PhaseControl.Mode.OFF);
+                branch.getDiscretePhaseControl().setMode(DiscretePhaseControl.Mode.OFF);
 
                 // de-activate a1 variable for next outer loop run
-                LfBranch controllerBranch = branch.getPhaseControl().getController();
+                LfBranch controllerBranch = branch.getDiscretePhaseControl().getController();
                 Variable a1 = context.getVariableSet().getVariable(controllerBranch.getNum(), VariableType.BRANCH_ALPHA1);
                 a1.setActive(false);
 
@@ -70,18 +70,18 @@ public class PhaseControlOuterLoop implements OuterLoop {
                 double roundedA1Value = piModel.getA1();
                 LOGGER.info("Round phase shift of '{}': {} -> {}", controllerBranch.getId(), a1Value, roundedA1Value);
 
-                // if at least one phase shifter has been switched off wee need to continue
+                // if at least one phase shifter has been switched off we need to continue
                 status = OuterLoopStatus.UNSTABLE;
             }
         }
         return status;
     }
 
-    private OuterLoopStatus swicthOnPhaseControl(OuterLoopContext context) {
+    private OuterLoopStatus enableCurrentLimiterControl(OuterLoopContext context) {
         for (LfBranch branch : context.getNetwork().getBranches()) {
             if (branch.isPhaseControlled()) {
-                PhaseControl phaseControl = branch.getPhaseControl();
-                if (phaseControl.getMode() == PhaseControl.Mode.LIMITER) {
+                DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl();
+                if (phaseControl.getMode() == DiscretePhaseControl.Mode.LIMITER) {
                     // TODO
                     LOGGER.warn("Phase shifter in limiter mode not yet implemented");
                 }

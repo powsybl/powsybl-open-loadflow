@@ -162,7 +162,7 @@ public class LfLegBranch extends AbstractLfBranch {
         }
         if (isPhaseControlled()) {
             double distance = 0; // we check if the target value deadband is respected.
-            if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.ONE) {
+            if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
                 distance = Math.abs(p.eval() * PerUnit.SB - phaseControl.getTargetValue() * PerUnit.SB);
             }
             if (distance > (phaseControl.getTargetDeadband() / 2)) {

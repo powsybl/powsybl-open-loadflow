@@ -41,15 +41,15 @@ public interface LfBranch {
 
     double getPermanentLimit2();
 
-    PhaseControl getPhaseControl();
+    DiscretePhaseControl getDiscretePhaseControl();
 
     void updateState();
 
     boolean isPhaseController();
 
-    boolean isPhaseControlled(PhaseControl.ControlledSide controlledSide);
+    boolean isPhaseControlled(DiscretePhaseControl.ControlledSide controlledSide);
 
     boolean isPhaseControlled();
 
-    void setPhaseControl(PhaseControl phaseControl);
+    void setDiscretePhaseControl(DiscretePhaseControl discretePhaseControl);
 }
