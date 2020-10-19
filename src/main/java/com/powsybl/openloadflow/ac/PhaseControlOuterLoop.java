@@ -36,48 +36,38 @@ public class PhaseControlOuterLoop implements OuterLoop {
 
         switch (context.getIteration()) {
             case 0:
-                // at first outerloop iteration all branches with active power control are switched off
-                return disableActivePowerControl(context);
+                return checkAtFirstIteration(context);
             case 1:
-                // at second outerloop iteration we switch on phase control for branches that are in limiter mode
-                // and a current greater than the limit
-                return enableCurrentLimiterControl(context);
+                return checkAtSecondIteration(context);
             default:
                 return OuterLoopStatus.STABLE;
         }
     }
 
-    private OuterLoopStatus disableActivePowerControl(OuterLoopContext context) {
+    private OuterLoopStatus checkAtFirstIteration(OuterLoopContext context) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
         for (LfBranch branch : context.getNetwork().getBranches()) {
-            if (branch.isPhaseControlled() && branch.getDiscretePhaseControl().getMode() == DiscretePhaseControl.Mode.CONTROLLER) {
-                // switch off phase shifter
-                branch.getDiscretePhaseControl().setMode(DiscretePhaseControl.Mode.OFF);
+            if (branch.isPhaseControlled()) {
+                switch (branch.getDiscretePhaseControl().getMode()) {
+                    case CONTROLLER:
+                        // at first outerloop iteration all branches with active power control are switched off
+                        disableActivePowerControl(context, branch);
 
-                // de-activate a1 variable for next outer loop run
-                LfBranch controllerBranch = branch.getDiscretePhaseControl().getController();
-                Variable a1 = context.getVariableSet().getVariable(controllerBranch.getNum(), VariableType.BRANCH_ALPHA1);
-                a1.setActive(false);
-
-                // de-activate phase control equation
-                Equation t = context.getEquationSystem().createEquation(branch.getNum(), EquationType.BRANCH_P);
-                t.setActive(false);
-
-                // round the phase shift to the closest tap
-                PiModel piModel = controllerBranch.getPiModel();
-                double a1Value = piModel.getA1();
-                piModel.roundA1ToClosestTap();
-                double roundedA1Value = piModel.getA1();
-                LOGGER.info("Round phase shift of '{}': {} -> {}", controllerBranch.getId(), a1Value, roundedA1Value);
-
-                // if at least one phase shifter has been switched off we need to continue
-                status = OuterLoopStatus.UNSTABLE;
+                        // if at least one phase shifter has been switched off we need to continue
+                        status = OuterLoopStatus.UNSTABLE;
+                        break;
+                    case LIMITER:
+                        status = OuterLoopStatus.UNSTABLE;
+                        break;
+                }
             }
         }
         return status;
     }
 
-    private OuterLoopStatus enableCurrentLimiterControl(OuterLoopContext context) {
+    private OuterLoopStatus checkAtSecondIteration(OuterLoopContext context) {
+        // at second outerloop iteration we switch on phase control for branches that are in limiter mode
+        // and a current greater than the limit
         for (LfBranch branch : context.getNetwork().getBranches()) {
             if (branch.isPhaseControlled()) {
                 DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl();
@@ -88,6 +78,27 @@ public class PhaseControlOuterLoop implements OuterLoop {
             }
         }
         return OuterLoopStatus.STABLE;
+    }
+
+    private void disableActivePowerControl(OuterLoopContext context, LfBranch branch) {
+        // switch off phase shifter
+        branch.getDiscretePhaseControl().setMode(DiscretePhaseControl.Mode.OFF);
+
+        // de-activate a1 variable for next outer loop run
+        LfBranch controllerBranch = branch.getDiscretePhaseControl().getController();
+        Variable a1 = context.getVariableSet().getVariable(controllerBranch.getNum(), VariableType.BRANCH_ALPHA1);
+        a1.setActive(false);
+
+        // de-activate phase control equation
+        Equation t = context.getEquationSystem().createEquation(branch.getNum(), EquationType.BRANCH_P);
+        t.setActive(false);
+
+        // round the phase shift to the closest tap
+        PiModel piModel = controllerBranch.getPiModel();
+        double a1Value = piModel.getA1();
+        piModel.roundA1ToClosestTap();
+        double roundedA1Value = piModel.getA1();
+        LOGGER.info("Round phase shift of '{}': {} -> {}", controllerBranch.getId(), a1Value, roundedA1Value);
     }
 
 }
