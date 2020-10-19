@@ -174,6 +174,8 @@ public class LfBranchImpl extends AbstractLfBranch {
             PhaseTapChanger ptc = ((TwoWindingsTransformer) branch).getPhaseTapChanger();
             int tapPosition = Transformers.findTapPosition(ptc, Math.toDegrees(getPiModel().getA1()));
             ptc.setTapPosition(tapPosition);
+        }
+        if (isPhaseControlled()) {
             double distance = 0; // we check if the target value deadband is respected.
             double p = Double.NaN;
             if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.ONE) {
@@ -183,9 +185,9 @@ public class LfBranchImpl extends AbstractLfBranch {
                 p = p2.eval() * PerUnit.SB;
                 distance = Math.abs(p - phaseControl.getTargetValue() * PerUnit.SB);
             }
-            if (distance > (ptc.getTargetDeadband() / 2)) {
+            if (distance > (phaseControl.getTargetDeadband() / 2)) {
                 LOGGER.warn("The active power on side {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
-                        phaseControl.getControlledSide(), this.getId(), p, phaseControl.getTargetValue() * PerUnit.SB, ptc.getTargetDeadband() / 2);
+                        phaseControl.getControlledSide(), this.getId(), p, phaseControl.getTargetValue() * PerUnit.SB, phaseControl.getTargetDeadband() / 2);
             }
         }
     }

@@ -10,6 +10,8 @@ import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +23,8 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class LfLegBranch extends AbstractLfBranch {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfLegBranch.class);
 
     private final ThreeWindingsTransformer twt;
 
@@ -151,10 +155,20 @@ public class LfLegBranch extends AbstractLfBranch {
         leg.getTerminal().setP(p.eval() * PerUnit.SB);
         leg.getTerminal().setQ(q.eval() * PerUnit.SB);
 
-        if (phaseControl != null) {
+        if (isPhaseController()) {
             PhaseTapChanger ptc = leg.getPhaseTapChanger();
             int tapPosition = Transformers.findTapPosition(ptc, Math.toDegrees(getPiModel().getA1()));
             ptc.setTapPosition(tapPosition);
+        }
+        if (isPhaseControlled()) {
+            double distance = 0; // we check if the target value deadband is respected.
+            if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.ONE) {
+                distance = Math.abs(p.eval() * PerUnit.SB - phaseControl.getTargetValue() * PerUnit.SB);
+            }
+            if (distance > (phaseControl.getTargetDeadband() / 2)) {
+                LOGGER.warn("The active power on side {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
+                        phaseControl.getControlledSide(), this.getId(), p, phaseControl.getTargetValue() * PerUnit.SB, phaseControl.getTargetDeadband() / 2);
+            }
         }
     }
 }
