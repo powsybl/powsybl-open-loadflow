@@ -158,10 +158,9 @@ public class OpenLoadFlowParametersTest {
     }
 
     @Test
-    public void testMaxIterationReached() throws IOException {
+    public void testMaxIterationReached() {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         parameters.setWriteSlackBus(true);
-        OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         Network network = EurostagTutorialExample1Factory.create();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
         network.getGenerator("GEN").setTargetV(5);
@@ -170,10 +169,9 @@ public class OpenLoadFlowParametersTest {
     }
 
     @Test
-    public void testIsWriteSlackBus() throws IOException {
+    public void testIsWriteSlackBus() {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         parameters.setWriteSlackBus(true);
-        OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         Network network = EurostagTutorialExample1Factory.create();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
