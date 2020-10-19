@@ -6,12 +6,18 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.util.Evaluable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public abstract class AbstractLfBranch implements LfBranch {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBranch.class);
 
     private int num = -1;
 
@@ -77,6 +83,16 @@ public abstract class AbstractLfBranch implements LfBranch {
     @Override
     public boolean isPhaseControlled(DiscretePhaseControl.ControlledSide controlledSide) {
         return isPhaseControlled() && phaseControl.getControlledSide() == controlledSide;
+    }
+
+    protected void checkTargetDeadband(Evaluable p) {
+        // NOTE: calculation is done in per unit
+        double distance = Math.abs(p.eval() - phaseControl.getTargetValue());
+        if (distance > phaseControl.getTargetDeadband() / 2) {
+            LOGGER.warn("The active power on side {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
+                phaseControl.getControlledSide(), getId(), p,
+                phaseControl.getTargetValue() * PerUnit.SB, phaseControl.getTargetDeadband() / 2 * PerUnit.SB);
+        }
     }
 
 }
