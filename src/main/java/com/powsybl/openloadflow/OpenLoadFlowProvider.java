@@ -182,11 +182,33 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             }
 
             Map<String, String> metrics = new HashMap<>();
+            List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
             for (AcLoadFlowResult result : results) {
                 // update network state
                 result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(), parameters.isWriteSlackBus());
 
                 metrics.putAll(createMetrics(result));
+
+                LoadFlowResult.ComponentResult.Status status;
+                switch (result.getNewtonRaphsonStatus()) {
+                    case CONVERGED:
+                        status = LoadFlowResult.ComponentResult.Status.CONVERGED;
+                        break;
+                    case MAX_ITERATION_REACHED:
+                        status = LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
+                        break;
+                    case SOLVER_FAILED:
+                        status = LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
+                        break;
+                    default:
+                        status = LoadFlowResult.ComponentResult.Status.FAILED;
+                        break;
+                }
+                componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNum(),
+                                                                                status,
+                                                                                result.getNewtonRaphsonIterations(),
+                                                                                result.getNetwork().getSlackBus().getId(),
+                                                                                result.getSlackBusActivePowerMismatch() * PerUnit.SB));
             }
 
             // zero or low impedance branch flows computation
@@ -200,7 +222,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 }).complete();
             }
 
-            return new LoadFlowResultImpl(ok, metrics, null);
+            return new LoadFlowResultImpl(ok, metrics, null, componentResults);
         });
     }
 
