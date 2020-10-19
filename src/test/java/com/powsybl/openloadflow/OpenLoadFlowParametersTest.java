@@ -14,6 +14,7 @@ import com.powsybl.commons.config.MapModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.config.YamlModuleConfigRepository;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -159,11 +160,24 @@ public class OpenLoadFlowParametersTest {
     @Test
     public void testMaxIterationReached() throws IOException {
         LoadFlowParameters parameters = LoadFlowParameters.load();
+        parameters.setWriteSlackBus(true);
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         Network network = EurostagTutorialExample1Factory.create();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
         network.getGenerator("GEN").setTargetV(5);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
+    }
+
+    @Test
+    public void testIsWriteSlackBus() throws IOException {
+        LoadFlowParameters parameters = LoadFlowParameters.load();
+        parameters.setWriteSlackBus(true);
+        OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
+        Network network = EurostagTutorialExample1Factory.create();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertEquals(result.getComponentResults().get(0).getStatus(), LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED);
+        assertEquals(network.getVoltageLevel("VLHV1").getExtension(SlackTerminal.class).getTerminal().getBusView().getBus().getId(),
+                result.getComponentResults().get(0).getSlackBusId());
     }
 }
