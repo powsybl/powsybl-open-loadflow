@@ -161,13 +161,15 @@ public class LfLegBranch extends AbstractLfBranch {
             ptc.setTapPosition(tapPosition);
         }
         if (isPhaseControlled()) {
-            double distance = 0; // we check if the target value deadband is respected.
+            // we check if the target value deadband is respected (NOTE: calculation is done in per unit)
+            double distance = 0;
             if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
-                distance = Math.abs(p.eval() * PerUnit.SB - phaseControl.getTargetValue() * PerUnit.SB);
+                distance = Math.abs(p.eval() - phaseControl.getTargetValue());
             }
             if (distance > (phaseControl.getTargetDeadband() / 2)) {
                 LOGGER.warn("The active power on side {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
-                        phaseControl.getControlledSide(), this.getId(), p, phaseControl.getTargetValue() * PerUnit.SB, phaseControl.getTargetDeadband() / 2);
+                        phaseControl.getControlledSide(), this.getId(), p,
+                    phaseControl.getTargetValue() * PerUnit.SB, phaseControl.getTargetDeadband() / 2 * PerUnit.SB);
             }
         }
     }

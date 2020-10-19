@@ -175,19 +175,14 @@ public class LfBranchImpl extends AbstractLfBranch {
             int tapPosition = Transformers.findTapPosition(ptc, Math.toDegrees(getPiModel().getA1()));
             ptc.setTapPosition(tapPosition);
         }
+
         if (isPhaseControlled()) {
-            double distance = 0; // we check if the target value deadband is respected.
-            double p = Double.NaN;
-            if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
-                p = p1.eval() * PerUnit.SB;
-                distance = Math.abs(p - phaseControl.getTargetValue() * PerUnit.SB);
-            } else if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.TWO) {
-                p = p2.eval() * PerUnit.SB;
-                distance = Math.abs(p - phaseControl.getTargetValue() * PerUnit.SB);
-            }
-            if (distance > (phaseControl.getTargetDeadband() / 2)) {
+            // we check if the target value deadband is respected (NOTE: calculation is done in per unit)
+            double p = phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE ? p1.eval() : p2.eval();
+            double distance = Math.abs(p - phaseControl.getTargetValue());
+            if (distance > phaseControl.getTargetDeadband() / 2) {
                 LOGGER.warn("The active power on side {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
-                        phaseControl.getControlledSide(), this.getId(), p, phaseControl.getTargetValue() * PerUnit.SB, phaseControl.getTargetDeadband() / 2);
+                        phaseControl.getControlledSide(), this.getId(), p, phaseControl.getTargetValue() * PerUnit.SB, phaseControl.getTargetDeadband() / 2 * PerUnit.SB);
             }
         }
     }
