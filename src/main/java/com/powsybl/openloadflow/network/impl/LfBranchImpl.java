@@ -169,10 +169,9 @@ public class LfBranchImpl extends AbstractLfBranch {
         branch.getTerminal2().setP(p2.eval() * PerUnit.SB);
         branch.getTerminal2().setQ(q2.eval() * PerUnit.SB);
 
-        if (isPhaseController()) { // it means there is a regulating phase tap changer
-            PhaseTapChanger ptc = ((TwoWindingsTransformer) branch).getPhaseTapChanger();
-            int tapPosition = Transformers.findTapPosition(ptc, Math.toDegrees(getPiModel().getA1()));
-            ptc.setTapPosition(tapPosition);
+        if (isPhaseController()  && phaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
+            // it means there is a regulating phase tap changer
+            updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
         }
 
         if (isPhaseControlled()) {

@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.PhaseTapChanger;
+import com.powsybl.openloadflow.network.impl.Transformers;
 import com.powsybl.openloadflow.util.Evaluable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,6 +95,11 @@ public abstract class AbstractLfBranch implements LfBranch {
                 phaseControl.getControlledSide(), getId(), p,
                 phaseControl.getTargetValue() * PerUnit.SB, phaseControl.getTargetDeadband() / 2 * PerUnit.SB);
         }
+    }
+
+    protected void updateTapPosition(PhaseTapChanger ptc) {
+        int tapPosition = Transformers.findTapPosition(ptc, Math.toDegrees(getPiModel().getA1()));
+        ptc.setTapPosition(tapPosition);
     }
 
 }

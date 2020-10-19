@@ -151,17 +151,14 @@ public class LfLegBranch extends AbstractLfBranch {
         leg.getTerminal().setP(p.eval() * PerUnit.SB);
         leg.getTerminal().setQ(q.eval() * PerUnit.SB);
 
-        if (isPhaseController()) {
-            PhaseTapChanger ptc = leg.getPhaseTapChanger();
-            int tapPosition = Transformers.findTapPosition(ptc, Math.toDegrees(getPiModel().getA1()));
-            ptc.setTapPosition(tapPosition);
+        if (isPhaseController() && phaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
+            // it means there is a regulating phase tap changer
+            updateTapPosition(leg.getPhaseTapChanger());
         }
 
-        if (isPhaseControlled()) {
-            if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
-                // Check if the target value deadband is respected
-                checkTargetDeadband(p);
-            }
+        if (isPhaseControlled() && phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
+            // Check if the target value deadband is respected
+            checkTargetDeadband(p);
         }
     }
 }
