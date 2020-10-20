@@ -196,7 +196,7 @@ public class LfLegBranch extends AbstractLfBranch {
             checkTargetDeadband(p);
         }
 
-        if (voltageControl != null) { // it means there is a regulating ratio tap changer
+        if (discreteVoltageControl != null) { // it means there is a regulating ratio tap changer
             RatioTapChanger rtc = leg.getRatioTapChanger();
             double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
             double nominalV2 = twt.getRatedU0();
@@ -205,11 +205,11 @@ public class LfLegBranch extends AbstractLfBranch {
             rtc.setTapPosition(tapPosition);
             double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
             double v = getBus1().getV();
-            double distance = Math.abs(v - voltageControl.getTargetValue()); // we check if the target value deadband is respected.
+            double distance = Math.abs(v - discreteVoltageControl.getTargetValue()); // we check if the target value deadband is respected.
 
             if (distance > (rtc.getTargetDeadband() / 2)) {
                 LOGGER.warn("The voltage on bus {} ({} kV) is out of the target value ({} kV) +/- deadband/2 ({} kV)",
-                        voltageControl.getControlled().getId(), v * nominalV, voltageControl.getTargetValue() * nominalV, rtc.getTargetDeadband() / 2);
+                        discreteVoltageControl.getControlled().getId(), v * nominalV, discreteVoltageControl.getTargetValue() * nominalV, rtc.getTargetDeadband() / 2);
             }
         }
     }

@@ -53,9 +53,9 @@ public interface LfBranch {
 
     void setDiscretePhaseControl(DiscretePhaseControl discretePhaseControl);
 
-    VoltageControl getVoltageControl();
+    DiscreteVoltageControl getDiscreteVoltageControl();
 
     boolean isVoltageController();
 
-    void setVoltageControl(VoltageControl voltageControl);
+    void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
 }

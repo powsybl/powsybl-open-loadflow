@@ -12,14 +12,14 @@ import java.util.Objects;
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class VoltageControl {
+public class DiscreteVoltageControl {
 
     public enum Mode {
         VOLTAGE,
         OFF
     }
 
-    private VoltageControl.Mode mode;
+    private DiscreteVoltageControl.Mode mode;
 
     private final LfBus controlled;
 
@@ -27,7 +27,7 @@ public class VoltageControl {
 
     private final double targetValue;
 
-    public VoltageControl(LfBranch controller, LfBus controlled, VoltageControl.Mode mode, double targetValue) {
+    public DiscreteVoltageControl(LfBranch controller, LfBus controlled, DiscreteVoltageControl.Mode mode, double targetValue) {
         this.controller = controller;
         this.controlled = controlled;
         this.targetValue = targetValue;

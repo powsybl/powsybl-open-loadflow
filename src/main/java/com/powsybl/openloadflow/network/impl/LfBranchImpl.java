@@ -211,7 +211,7 @@ public class LfBranchImpl extends AbstractLfBranch {
             checkTargetDeadband(phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE ? p1 : p2);
         }
 
-        if (voltageControl != null) { // it means there is a regulating ratio tap changer
+        if (discreteVoltageControl != null) { // it means there is a regulating ratio tap changer
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
             RatioTapChanger rtc = twt.getRatioTapChanger();
             double nominalV1 = twt.getTerminal1().getVoltageLevel().getNominalV();
@@ -221,11 +221,11 @@ public class LfBranchImpl extends AbstractLfBranch {
             rtc.setTapPosition(tapPosition);
             double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
             double v = rtc.getRegulationTerminal().getBusView().getBus() == getBus1() ? getBus1().getV() : getBus2().getV();
-            double distance = Math.abs(v - voltageControl.getTargetValue()); // we check if the target value deadband is respected.
+            double distance = Math.abs(v - discreteVoltageControl.getTargetValue()); // we check if the target value deadband is respected.
 
             if (distance > (rtc.getTargetDeadband() / 2)) {
                 LOGGER.warn("The voltage on bus {} ({} kV) is out of the target value ({} kV) +/- deadband/2 ({} kV)",
-                        voltageControl.getControlled().getId(), v * nominalV, voltageControl.getTargetValue() * nominalV, rtc.getTargetDeadband() / 2);
+                        discreteVoltageControl.getControlled().getId(), v * nominalV, discreteVoltageControl.getTargetValue() * nominalV, rtc.getTargetDeadband() / 2);
             }
         }
     }

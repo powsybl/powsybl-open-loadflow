@@ -10,12 +10,12 @@ import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableType;
+import com.powsybl.openloadflow.network.DiscreteVoltageControl;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.VoltageControl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,9 +38,9 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
         if (context.getIteration() == 0) {
            // at first iteration all branches controlling voltage are switched off
             for (LfBranch branch : context.getNetwork().getBranches()) {
-                if (branch.isVoltageController() && branch.getVoltageControl().getMode() == VoltageControl.Mode.VOLTAGE) {
+                if (branch.isVoltageController() && branch.getDiscreteVoltageControl().getMode() == DiscreteVoltageControl.Mode.VOLTAGE) {
                     // switch off regulating transformers
-                    branch.getVoltageControl().setMode(VoltageControl.Mode.OFF);
+                    branch.getDiscreteVoltageControl().setMode(DiscreteVoltageControl.Mode.OFF);
 
                     // de-activate r1 variable for next outer loop run
                     Variable r1 = context.getVariableSet().getVariable(branch.getNum(), VariableType.BRANCH_RHO1);
