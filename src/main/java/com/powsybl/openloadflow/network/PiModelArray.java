@@ -6,6 +6,9 @@
  */
 package com.powsybl.openloadflow.network;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -13,6 +16,8 @@ import java.util.Objects;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class PiModelArray implements PiModel {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PiModelArray.class);
 
     private final List<PiModel> models;
 
@@ -127,8 +132,10 @@ public class PiModelArray implements PiModel {
     @Override
     public void roundR1ToClosestTap() {
 
-        for (int p = 0; p < models.size(); p++) {
-            System.out.println(models.get(p).getR1());
+        for (PiModel model : models) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(String.valueOf(model.getR1()));
+            }
         }
 
         if (Double.isNaN(r1)) {
