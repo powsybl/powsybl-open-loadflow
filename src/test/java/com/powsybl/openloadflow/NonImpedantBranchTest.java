@@ -80,8 +80,8 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertAngleEquals(0, b3);
 
         // test in DC mode
-        parametersExt.setDc(true)
-                .setSlackBusSelector(new FirstSlackBusSelector());
+        parameters.setDc(true);
+        parametersExt.setSlackBusSelector(new FirstSlackBusSelector());
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertTrue(Double.isNaN(b1.getV()));
@@ -116,8 +116,8 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertAngleEquals(0, b3);
         assertAngleEquals(-7.248787, b4);
 
-        parametersExt.setDc(true)
-                .setSlackBusSelector(new FirstSlackBusSelector());
+        parameters.setDc(true);
+        parametersExt.setSlackBusSelector(new FirstSlackBusSelector());
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertTrue(Double.isNaN(b1.getV()));
@@ -223,7 +223,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(result.isOk());
 
         // also test that it works in DC mode
-        parametersExt.setDc(true);
+        parameters.setDc(true);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
     }

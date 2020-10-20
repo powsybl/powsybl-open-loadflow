@@ -42,11 +42,13 @@ public class AcLoadFlowParameters {
 
     private final boolean twtSplitShuntAdmittance;
 
+    private final boolean breakers;
+
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
                                 MatrixFactory matrixFactory, AcLoadFlowObserver observer, boolean voltageRemoteControl,
                                 boolean phaseControl, boolean transformerVoltageControlOn, boolean minImpedance,
-                                boolean twtSplitShuntAdmittance) {
+                                boolean twtSplitShuntAdmittance, boolean breakers) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -58,6 +60,7 @@ public class AcLoadFlowParameters {
         this.transformerVoltageControlOn = transformerVoltageControlOn;
         this.minImpedance = minImpedance;
         this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
+        this.breakers = breakers;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -106,5 +109,9 @@ public class AcLoadFlowParameters {
 
     public boolean isTwtSplitShuntAdmittance() {
         return twtSplitShuntAdmittance;
+    }
+
+    public boolean isBreakers() {
+        return breakers;
     }
 }

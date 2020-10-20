@@ -272,6 +272,10 @@ public class EquationSystem {
         listeners.add(listener);
     }
 
+    public void removeListener(EquationSystemListener listener) {
+        listeners.remove(listener);
+    }
+
     void notifyListeners(Equation equation, EquationEventType eventType) {
         Objects.requireNonNull(equation);
         Objects.requireNonNull(eventType);

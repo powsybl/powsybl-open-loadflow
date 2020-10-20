@@ -201,27 +201,16 @@ public class LfBranchImpl extends AbstractLfBranch {
         branch.getTerminal2().setP(p2.eval() * PerUnit.SB);
         branch.getTerminal2().setQ(q2.eval() * PerUnit.SB);
 
-        if (isPhaseController() && phaseControl.getMode() == PhaseControl.Mode.OFF) { // it means there is a regulating phase tap changer
-            PhaseTapChanger ptc = ((TwoWindingsTransformer) branch).getPhaseTapChanger();
-            int tapPosition = Transformers.findTapPosition(ptc, Math.toDegrees(getPiModel().getA1()));
-            ptc.setTapPosition(tapPosition);
-            double distance = 0; // we check if the target value deadband is respected.
-            double p = Double.NaN;
-            if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.ONE) {
-                p = p1.eval() * PerUnit.SB;
-                distance = Math.abs(p - phaseControl.getTargetValue() * PerUnit.SB);
-            } else if (phaseControl.getControlledSide() == PhaseControl.ControlledSide.TWO) {
-                p = p2.eval() * PerUnit.SB;
-                distance = Math.abs(p - phaseControl.getTargetValue() * PerUnit.SB);
-            }
-            if (distance > (ptc.getTargetDeadband() / 2)) {
-                LOGGER.warn("The active power on side {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
-                        phaseControl.getControlledSide(), this.getId(), p, phaseControl.getTargetValue() * PerUnit.SB, ptc.getTargetDeadband() / 2);
-            }
-        } else if (isPhaseController() && phaseControl.getMode() == PhaseControl.Mode.LIMITER) {
-            PhaseTapChanger ptc = ((TwoWindingsTransformer) branch).getPhaseTapChanger();
-            ptc.setTapPosition(getPiModel().getTapPosition());
+        if (isPhaseController()  && phaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
+            // it means there is a regulating phase tap changer located on that branch
+            updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
         }
+
+        if (isPhaseControlled()) {
+            // check if the target value deadband is respected
+            checkTargetDeadband(phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE ? p1 : p2);
+        }
+
         if (voltageControl != null) { // it means there is a regulating ratio tap changer
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
             RatioTapChanger rtc = twt.getRatioTapChanger();

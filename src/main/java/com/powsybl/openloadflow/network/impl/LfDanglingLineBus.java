@@ -56,6 +56,16 @@ public class LfDanglingLineBus extends AbstractLfBus {
     }
 
     @Override
+    public double getLowVoltageLimit() {
+        return Double.NaN;
+    }
+
+    @Override
+    public double getHighVoltageLimit() {
+        return Double.NaN;
+    }
+
+    @Override
     public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
         Networks.setPropertyV(danglingLine, v);
         Networks.setPropertyAngle(danglingLine, angle);

@@ -49,11 +49,10 @@ class DistributedSlackOnGenerationTest {
         g3 = network.getGenerator("g3");
         g4 = network.getGenerator("g4");
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters();
-        parameters.setNoGeneratorReactiveLimits(true);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector())
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(true);
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+                .setSlackBusSelector(new MostMeshedSlackBusSelector());
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
@@ -75,6 +74,13 @@ class DistributedSlackOnGenerationTest {
         assertActivePowerEquals(-245, l24.getTerminal2());
         assertActivePowerEquals(240, l34.getTerminal1());
         assertActivePowerEquals(-240, l34.getTerminal2());
+    }
+
+    @Test
+    void testUnsupportedGenerationBalanceType() {
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
+        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
+            "java.lang.UnsupportedOperationException: Unsupported balance type mode: PROPORTIONAL_TO_GENERATION_P");
     }
 
     @Test

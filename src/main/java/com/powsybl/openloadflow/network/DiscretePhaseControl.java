@@ -11,7 +11,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class PhaseControl {
+public class DiscretePhaseControl {
 
     public enum ControlledSide {
         ONE,
@@ -32,15 +32,17 @@ public class PhaseControl {
     private final LfBranch controller;
     private final LfBranch controlled;
     private final double targetValue;
+    private final double targetDeadband;
     private final ControlledSide controlledSide;
     private Mode mode;
     private final Unit unit;
 
-    public PhaseControl(LfBranch controller, LfBranch controlled, ControlledSide controlledSide, PhaseControl.Mode mode,
-                        double targetValue, Unit unit) {
+    public DiscretePhaseControl(LfBranch controller, LfBranch controlled, ControlledSide controlledSide, DiscretePhaseControl.Mode mode,
+                                double targetValue, double targetDeadband, Unit unit) {
         this.controller = controller;
         this.controlled = controlled;
         this.targetValue = targetValue;
+        this.targetDeadband = targetDeadband;
         this.controlledSide = Objects.requireNonNull(controlledSide);
         this.mode = Objects.requireNonNull(mode);
         this.unit = Objects.requireNonNull(unit);
@@ -52,6 +54,10 @@ public class PhaseControl {
 
     public double getTargetValue() {
         return targetValue;
+    }
+
+    public double getTargetDeadband() {
+        return targetDeadband;
     }
 
     public LfBranch getController() {

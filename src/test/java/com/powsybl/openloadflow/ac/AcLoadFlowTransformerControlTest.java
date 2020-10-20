@@ -172,9 +172,9 @@ class AcLoadFlowTransformerControlTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
         parameters.setTransformerVoltageControlOn(false);
+        parameters.setDistributedSlack(false);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new FirstSlackBusSelector())
-                .setDistributedSlack(false);
+                .setSlackBusSelector(new FirstSlackBusSelector());
         this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 

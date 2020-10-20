@@ -135,12 +135,12 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return PiModel.A2 - piModel.getA1();
     }
 
-    private static double getBranchTarget(LfBranch branch, PhaseControl.Unit unit) {
+    private static double getBranchTarget(LfBranch branch, DiscretePhaseControl.Unit unit) {
         Objects.requireNonNull(branch);
         if (!branch.isPhaseControlled()) {
             throw new PowsyblException("Branch '" + branch.getId() + "' is not phase-controlled");
         }
-        PhaseControl phaseControl = branch.getPhaseControl();
+        DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl();
         if (phaseControl.getUnit() != unit) {
             throw new PowsyblException("Branch '" + branch.getId() + "' has not a target in " + unit);
         }
@@ -186,11 +186,11 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case BRANCH_P:
-                targets[column] = getBranchTarget(network.getBranch(num), PhaseControl.Unit.MW);
+                targets[column] = getBranchTarget(network.getBranch(num), DiscretePhaseControl.Unit.MW);
                 break;
 
             case BRANCH_I:
-                targets[column] = getBranchTarget(network.getBranch(num), PhaseControl.Unit.A);
+                targets[column] = getBranchTarget(network.getBranch(num), DiscretePhaseControl.Unit.A);
                 break;
 
             case ZERO_Q:
