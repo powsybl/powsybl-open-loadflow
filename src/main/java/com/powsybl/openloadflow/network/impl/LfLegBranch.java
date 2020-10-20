@@ -152,12 +152,12 @@ public class LfLegBranch extends AbstractLfBranch {
         leg.getTerminal().setQ(q.eval() * PerUnit.SB);
 
         if (isPhaseController() && phaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
-            // it means there is a regulating phase tap changer
+            // it means there is a regulating phase tap changer located on that leg
             updateTapPosition(leg.getPhaseTapChanger());
         }
 
         if (isPhaseControlled() && phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
-            // Check if the target value deadband is respected
+            // check if the target value deadband is respected
             checkTargetDeadband(p);
         }
     }

@@ -248,6 +248,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
             DiscretePhaseControl.ControlledSide controlledSide = controlledBus == controlledBranch.getBus1() ?
                 DiscretePhaseControl.ControlledSide.ONE : DiscretePhaseControl.ControlledSide.TWO;
+            if (controlledBranch instanceof LfLegBranch && controlledBus == controlledBranch.getBus2()) {
+                throw new IllegalStateException("Leg " + controlledBranch.getId() + " has a non supported control at star bus side");
+            }
             double targetValue = ptc.getRegulationValue() / PerUnit.SB;
             double targetDeadband = ptc.getTargetDeadband() /  PerUnit.SB;
 

@@ -170,12 +170,12 @@ public class LfBranchImpl extends AbstractLfBranch {
         branch.getTerminal2().setQ(q2.eval() * PerUnit.SB);
 
         if (isPhaseController()  && phaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
-            // it means there is a regulating phase tap changer
+            // it means there is a regulating phase tap changer located on that branch
             updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
         }
 
         if (isPhaseControlled()) {
-            // Check if the target value deadband is respected
+            // check if the target value deadband is respected
             checkTargetDeadband(phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE ? p1 : p2);
         }
     }
