@@ -91,8 +91,25 @@ class AcLoadFlowTransformerControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(34.433, bus3);
-        assertEquals(t2wt.getRatioTapChanger().getTapPosition(), 2);
+        assertVoltageEquals(34.433, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void remoteVoltageControlT2wtTest() {
+        selectNetwork(createNetworkWithT2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(line12.getTerminal1())
+                .setTargetV(130.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -103,9 +120,9 @@ class AcLoadFlowTransformerControlTest {
         assertTrue(result.isOk());
 
         assertVoltageEquals(135.0, bus1);
-        assertVoltageEquals(126.34929541025967, bus2);
-        assertVoltageEquals(7.21539536461829, bus3);
-        assertVoltageEquals(62.382561919196974, bus4);
+        assertVoltageEquals(134.265, bus2);
+        assertVoltageEquals(34.402, bus3);
+        assertVoltageEquals(10.320, bus4);
     }
 
     @Test
@@ -117,9 +134,9 @@ class AcLoadFlowTransformerControlTest {
         assertTrue(result.isOk());
 
         assertVoltageEquals(135.0, bus1);
-        assertVoltageEquals(126.34938989871459, bus2);
-        assertVoltageEquals(5.903824611027713, bus3);
-        assertVoltageEquals(62.38345345764132, bus4);
+        assertVoltageEquals(134.264, bus2);
+        assertVoltageEquals(28.147, bus3);
+        assertVoltageEquals(10.320, bus4);
     }
 
     @Test
@@ -130,15 +147,33 @@ class AcLoadFlowTransformerControlTest {
                 .setTargetDeadband(0)
                 .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t3wt.getLeg1().getTerminal())
-                .setTargetV(34.0);
+                .setRegulationTerminal(t3wt.getLeg2().getTerminal())
+                .setTargetV(28.);
 
         parameters.setTransformerVoltageControlOn(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(34.433, bus3);
+        assertVoltageEquals(28.147, bus3);
         assertEquals(t3wt.getLeg2().getRatioTapChanger().getTapPosition(), 2);
+    }
+
+    @Test
+    void remoteVoltageControlT3wtTest() {
+        selectNetwork(createNetworkWithT3wt());
+
+        t3wt.getLeg2().getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t3wt.getLeg1().getTerminal())
+                .setTargetV(28.);
+
+        parameters.setTransformerVoltageControlOn(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(t3wt.getLeg2().getRatioTapChanger().getTapPosition(), 0);
     }
 
     /**
@@ -164,9 +199,9 @@ class AcLoadFlowTransformerControlTest {
 
         VoltageLevel vl4 = network.getSubstation("SUBSTATION").newVoltageLevel()
                 .setId("VL_4")
-                .setNominalV(132.0)
-                .setLowVoltageLimit(118.8)
-                .setHighVoltageLimit(145.2)
+                .setNominalV(10.0)
+                .setLowVoltageLimit(5.0)
+                .setHighVoltageLimit(15.0)
                 .setTopologyKind(TopologyKind.BUS_BREAKER)
                 .add();
         bus4 = vl4.getBusBreakerView().newBus()
@@ -185,30 +220,30 @@ class AcLoadFlowTransformerControlTest {
                 .setRatedU0(200.0)
                 .newLeg1()
                     .setR(2.0)
-                    .setX(100.0)
+                    .setX(10.0)
                     .setG(0.0)
                     .setB(0.0)
-                    .setRatedU(180.0)
+                    .setRatedU(130.0)
                     .setVoltageLevel("VL_2")
                     .setConnectableBus("BUS_2")
                     .setBus("BUS_2")
                 .add()
                 .newLeg2()
                     .setR(2.0)
-                    .setX(100.0)
+                    .setX(10.0)
                     .setG(0.0)
                     .setB(0.0)
-                    .setRatedU(180.0)
+                    .setRatedU(30.0)
                     .setVoltageLevel("VL_3")
                     .setConnectableBus("BUS_3")
                     .setBus("BUS_3")
                 .add()
                 .newLeg3()
                     .setR(2.0)
-                    .setX(100.0)
+                    .setX(10.0)
                     .setG(0.0)
                     .setB(0.0)
-                    .setRatedU(180.0)
+                    .setRatedU(10.0)
                     .setVoltageLevel("VL_4")
                     .setConnectableBus("BUS_4")
                     .setBus("BUS_4")

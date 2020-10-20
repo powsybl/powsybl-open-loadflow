@@ -56,7 +56,6 @@ public class LfBranchImpl extends AbstractLfBranch {
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfBus bus1, LfBus bus2, double nominalV1,
                                                   double nominalV2, double zb, boolean twtSplitShuntAdmittance) {
         PiModel piModel = null;
-        VoltageControl voltageControl = null;
 
         PhaseTapChanger ptc = twt.getPhaseTapChanger();
         if (ptc != null
@@ -89,7 +88,8 @@ public class LfBranchImpl extends AbstractLfBranch {
 
         RatioTapChanger rtc = twt.getRatioTapChanger();
         if (rtc != null && rtc.isRegulating()) {
-            if (rtc.getRegulationTerminal() == twt.getTerminal1() || rtc.getRegulationTerminal() == twt.getTerminal2()) {
+            Bus regulatingBus = rtc.getRegulationTerminal().getBusView().getBus();
+            if (regulatingBus == twt.getTerminal1().getBusView().getBus() || regulatingBus == twt.getTerminal2().getBusView().getBus()) {
                 Integer ptcPosition = Transformers.getCurrentPosition(twt.getPhaseTapChanger());
                 List<PiModel> models = new ArrayList<>();
                 for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= rtc.getHighTapPosition(); rtcPosition++) {
@@ -216,16 +216,16 @@ public class LfBranchImpl extends AbstractLfBranch {
             RatioTapChanger rtc = twt.getRatioTapChanger();
             double nominalV1 = twt.getTerminal1().getVoltageLevel().getNominalV();
             double nominalV2 = twt.getTerminal2().getVoltageLevel().getNominalV();
-            double rho = getPiModel().getR1() * (nominalV2 / nominalV1) * (twt.getRatedU1() / twt.getRatedU2());
+            double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * nominalV2 / nominalV1;
             int tapPosition = Transformers.findTapPosition(rtc, rho);
             rtc.setTapPosition(tapPosition);
             double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-            double v = nominalV * voltageControl.getControlled().getNominalV();
-            double distance = Math.abs(v - voltageControl.getTargetValue() * nominalV); // we check if the target value deadband is respected.
+            double v = rtc.getRegulationTerminal().getBusView().getBus() == getBus1() ? getBus1().getV() : getBus2().getV();
+            double distance = Math.abs(v - voltageControl.getTargetValue()); // we check if the target value deadband is respected.
 
             if (distance > (rtc.getTargetDeadband() / 2)) {
-                LOGGER.warn("The active power on bus {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
-                        voltageControl.getControlled().getId(), this.getId(), v, voltageControl.getTargetValue() * nominalV, rtc.getTargetDeadband() / 2);
+                LOGGER.warn("The voltage on bus {} ({} kV) is out of the target value ({} kV) +/- deadband/2 ({} kV)",
+                        voltageControl.getControlled().getId(), v * nominalV, voltageControl.getTargetValue() * nominalV, rtc.getTargetDeadband() / 2);
             }
         }
     }

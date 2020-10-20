@@ -126,6 +126,11 @@ public class PiModelArray implements PiModel {
 
     @Override
     public void roundR1ToClosestTap() {
+
+        for (int p = 0; p < models.size(); p++) {
+            System.out.println(models.get(p).getR1());
+        }
+
         if (Double.isNaN(r1)) {
             return; // nothing to do because a1 has not been modified
         }
