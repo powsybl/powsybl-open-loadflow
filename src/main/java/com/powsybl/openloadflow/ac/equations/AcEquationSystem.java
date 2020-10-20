@@ -53,6 +53,10 @@ public final class AcEquationSystem {
             }
 
             createShuntEquations(variableSet, equationSystem, bus);
+
+            if (creationParameters.isTransformerVoltageControl()) {
+                createDiscreteVoltageControlEquation(bus, variableSet, equationSystem);
+            }
         }
     }
 
@@ -228,10 +232,9 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createBranchVoltageTargetEquation(LfBranch branch,  VariableSet variableSet, EquationSystem equationSystem) {
-        if (branch.isVoltageController()) {
-            LfBus controlledBus = branch.getDiscreteVoltageControl().getControlled();
-            equationSystem.createEquation(branch.getNum(), EquationType.BUS_TRANSFO_V).addTerm(new BusVoltageEquationTerm(controlledBus, variableSet));
+    private static void createDiscreteVoltageControlEquation(LfBus bus,  VariableSet variableSet, EquationSystem equationSystem) {
+        if (bus.isDiscreteVoltageControlled()) {
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
         }
     }
 
@@ -279,10 +282,6 @@ public final class AcEquationSystem {
         if (q2 != null) {
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
             branch.setQ2(q2);
-        }
-
-        if (creationParameters.isTransformerVoltageControl()) {
-            createBranchVoltageTargetEquation(branch, variableSet, equationSystem);
         }
     }
 

@@ -102,4 +102,10 @@ public interface LfBus {
     void addBranch(LfBranch branch);
 
     void updateState(boolean reactiveLimits, boolean writeSlackBus);
+
+    public DiscreteVoltageControl getDiscreteVoltageControl();
+
+    public boolean isDiscreteVoltageControlled();
+
+    void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
 }

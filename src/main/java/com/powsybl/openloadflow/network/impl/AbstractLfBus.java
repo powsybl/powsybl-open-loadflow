@@ -75,6 +75,8 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected final List<LfBranch> branches = new ArrayList<>();
 
+    protected DiscreteVoltageControl discreteVoltageControl;
+
     protected AbstractLfBus(double v, double angle) {
         this.v = v;
         this.angle = angle;
@@ -484,5 +486,20 @@ public abstract class AbstractLfBus implements LfBus {
                     .setP(p)
                     .setQ(q);
         }
+    }
+
+    @Override
+    public DiscreteVoltageControl getDiscreteVoltageControl() {
+        return discreteVoltageControl;
+    }
+
+    @Override
+    public boolean isDiscreteVoltageControlled() {
+        return discreteVoltageControl != null;
+    }
+
+    @Override
+    public void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl) {
+        this.discreteVoltageControl = discreteVoltageControl;
     }
 }

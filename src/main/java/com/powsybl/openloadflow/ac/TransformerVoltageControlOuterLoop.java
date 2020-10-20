@@ -47,7 +47,7 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
                     r1.setActive(false);
 
                     // de-activate transformer voltage control equation
-                    Equation t = context.getEquationSystem().createEquation(branch.getNum(), EquationType.BUS_TRANSFO_V);
+                    Equation t = context.getEquationSystem().createEquation(branch.getDiscreteVoltageControl().getControlled().getNum(), EquationType.BUS_V);
                     t.setActive(false);
 
                     // round the rho shift to the closest tap
