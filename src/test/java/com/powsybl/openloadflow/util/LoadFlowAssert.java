@@ -20,7 +20,6 @@ public final class LoadFlowAssert {
     public static final double DELTA_ANGLE = 1E-6d;
     public static final double DELTA_V = 1E-3d;
     public static final double DELTA_POWER = 1E-3d;
-    public static final double DELTA_CURRENT = 1E-3d;
 
     private LoadFlowAssert() {
     }
@@ -47,9 +46,5 @@ public final class LoadFlowAssert {
 
     public static void assertUndefinedReactivePower(Terminal terminal) {
         assertTrue(Double.isNaN(terminal.getQ()));
-    }
-
-    public static void assertCurrentEquals(double current, Terminal terminal) {
-        assertEquals(current, terminal.getI(), DELTA_CURRENT);
     }
 }
