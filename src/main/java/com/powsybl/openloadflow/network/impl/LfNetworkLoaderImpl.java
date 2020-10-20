@@ -205,7 +205,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
                 createPhaseControl(lfNetwork, ptc, t2wt.getId(), "");
                 RatioTapChanger rtc = t2wt.getRatioTapChanger();
-                createVoltageControl(lfNetwork, rtc, t2wt);
+                createVoltageControl(lfNetwork, rtc, t2wt.getId(), "");
             }
         }
 
@@ -233,6 +233,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             for (ThreeWindingsTransformer.Leg leg : Arrays.asList(t3wt.getLeg1(), t3wt.getLeg2(), t3wt.getLeg3())) {
                 PhaseTapChanger ptc = leg.getPhaseTapChanger();
                 createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + legNumber);
+
+                RatioTapChanger rtc = leg.getRatioTapChanger();
+                createVoltageControl(lfNetwork, rtc, t3wt.getId(), "_leg_" + legNumber);
                 legNumber++;
             }
         }
@@ -270,25 +273,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void createVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, TwoWindingsTransformer twt) {
-        LfBranch controllerBranch = lfNetwork.getBranchById(twt.getId());
+    private static void createVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId, String legId) {
         if (rtc != null && rtc.isRegulating()) {
+            LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
             Terminal regulationTerminal = rtc.getRegulationTerminal();
-            double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
-            LfBus controlledBus = null;
-            VoltageControl.ControlledSide controlledSide = null;
-            if (regulationTerminal == twt.getTerminal1()) {
-                controlledSide = VoltageControl.ControlledSide.ONE;
-                controlledBus = controllerBranch.getBus1();
-            } else if (rtc.getRegulationTerminal() == twt.getTerminal2()) {
-                controlledSide = VoltageControl.ControlledSide.ONE;
-                controlledBus = controllerBranch.getBus2();
-            } else {
-                LOGGER.error("2 windings transformer '{}' has a regulating ratio tap changer with a remote control which is not yet supported", twt.getId());
-            }
+            LfBus controlledBus = lfNetwork.getBusById(regulationTerminal.getBusView().getBus().getId());
 
+            double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
             VoltageControl voltageControl = new VoltageControl(controllerBranch, controlledBus,
-                    VoltageControl.Mode.VOLTAGE, controlledSide, rtc.getTargetV() / regulatingTerminalNominalV);
+                    VoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
 
             controllerBranch.setVoltageControl(voltageControl);
         }

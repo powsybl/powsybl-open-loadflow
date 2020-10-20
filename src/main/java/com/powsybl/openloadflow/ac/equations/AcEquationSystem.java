@@ -230,7 +230,7 @@ public final class AcEquationSystem {
 
     private static void createBranchVoltageTargetEquation(LfBranch branch,  VariableSet variableSet, EquationSystem equationSystem) {
         if (branch.isVoltageController()) {
-            LfBus controlledBus = branch.getVoltageControl().getControlledBus();
+            LfBus controlledBus = branch.getVoltageControl().getControlled();
             equationSystem.createEquation(branch.getNum(), EquationType.BUS_TRANSFO_V).addTerm(new BusVoltageEquationTerm(controlledBus, variableSet));
         }
     }

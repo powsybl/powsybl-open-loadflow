@@ -219,19 +219,13 @@ public class LfBranchImpl extends AbstractLfBranch {
             double rho = getPiModel().getR1() * (nominalV2 / nominalV1) * (twt.getRatedU1() / twt.getRatedU2());
             int tapPosition = Transformers.findTapPosition(rtc, rho);
             rtc.setTapPosition(tapPosition);
-            double distance = 0; // we check if the target value deadband is respected.
-            double v = Double.NaN;
             double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-            if (voltageControl.getControlledSide() == VoltageControl.ControlledSide.ONE) {
-                v = nominalV1 * nominalV;
-                distance = Math.abs(v - voltageControl.getTargetValue() * nominalV);
-            } else if (voltageControl.getControlledSide() == VoltageControl.ControlledSide.TWO) {
-                v = nominalV2 * nominalV;
-                distance = Math.abs(v - voltageControl.getTargetValue() * rtc.getRegulationTerminal().getVoltageLevel().getNominalV());
-            }
+            double v = nominalV * voltageControl.getControlled().getNominalV();
+            double distance = Math.abs(v - voltageControl.getTargetValue() * nominalV); // we check if the target value deadband is respected.
+
             if (distance > (rtc.getTargetDeadband() / 2)) {
-                LOGGER.warn("The active power on side {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
-                        voltageControl.getControlledSide(), this.getId(), v, voltageControl.getTargetValue() * nominalV, rtc.getTargetDeadband() / 2);
+                LOGGER.warn("The active power on bus {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
+                        voltageControl.getControlled().getId(), this.getId(), v, voltageControl.getTargetValue() * nominalV, rtc.getTargetDeadband() / 2);
             }
         }
     }
