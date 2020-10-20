@@ -43,6 +43,11 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
+    public String getVoltageLevelId() {
+        return bus.getVoltageLevel().getId();
+    }
+
+    @Override
     public boolean isFictitious() {
         return false;
     }

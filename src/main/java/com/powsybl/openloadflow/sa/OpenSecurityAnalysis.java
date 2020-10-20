@@ -232,12 +232,12 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         // detect violation limits on a bus
         double scale = bus.getNominalV();
         if (!Double.isNaN(bus.getHighVoltageLimit()) && bus.getV() > bus.getHighVoltageLimit()) {
-            LimitViolation limitViolation1 = new LimitViolation(bus.getId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit() * scale,
+            LimitViolation limitViolation1 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit() * scale,
                     (float) 0., bus.getV() * scale);
             violations.add(limitViolation1);
         }
         if (!Double.isNaN(bus.getLowVoltageLimit()) && bus.getV() < bus.getLowVoltageLimit()) {
-            LimitViolation limitViolation2 = new LimitViolation(bus.getId(), LimitViolationType.LOW_VOLTAGE, bus.getHighVoltageLimit() * scale,
+            LimitViolation limitViolation2 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.LOW_VOLTAGE, bus.getHighVoltageLimit() * scale,
                     (float) 0., bus.getV() * scale);
             violations.add(limitViolation2);
         }
