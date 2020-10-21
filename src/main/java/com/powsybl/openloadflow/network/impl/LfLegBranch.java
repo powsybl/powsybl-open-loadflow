@@ -65,7 +65,7 @@ public class LfLegBranch extends AbstractLfBranch {
                 double g2 = twtSplitShuntAdmittance ? g1 : 0;
                 double b1 = Transformers.getB1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
                 double b2 = twtSplitShuntAdmittance ? b1 : 0;
-                double r1 = Transformers.getRatioLeg(twt, leg) / nominalV2 * nominalV1;
+                double r1 = Transformers.getRatioLeg(twt, leg, rtcPosition, ptcPosition) / nominalV2 * nominalV1;
                 double a1 = Transformers.getAngleLeg(leg, ptcPosition);
                 models.add(new SimplePiModel()
                         .setR(r)
@@ -200,7 +200,7 @@ public class LfLegBranch extends AbstractLfBranch {
             int tapPosition = Transformers.findTapPosition(rtc, rho);
             rtc.setTapPosition(tapPosition);
             double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-            double v = getBus1().getV();
+            double v = discreteVoltageControl.getControlled().getV();
             double distance = Math.abs(v - discreteVoltageControl.getTargetValue()); // we check if the target value deadband is respected.
 
             if (distance > (rtc.getTargetDeadband() / 2)) {

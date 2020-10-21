@@ -102,7 +102,7 @@ public final class AcEquationSystem {
             } else {
                 boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
                     && branch.getDiscretePhaseControl().getMode() == DiscretePhaseControl.Mode.CONTROLLER;
-                boolean deriveR1 = creationParameters.isVoltageRemoteControl() && branch.isVoltageController();
+                boolean deriveR1 = creationParameters.isTransformerVoltageControl() && branch.isVoltageController();
                 if (branch.getBus1() == controllerBus) {
                     LfBus otherSideBus = branch.getBus2();
                     q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1, deriveR1)

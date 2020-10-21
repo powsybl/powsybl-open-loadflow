@@ -215,7 +215,7 @@ public class LfBranchImpl extends AbstractLfBranch {
             int tapPosition = Transformers.findTapPosition(rtc, rho);
             rtc.setTapPosition(tapPosition);
             double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-            double v = rtc.getRegulationTerminal().getBusView().getBus() == getBus1() ? getBus1().getV() : getBus2().getV();
+            double v = discreteVoltageControl.getControlled().getV();
             double distance = Math.abs(v - discreteVoltageControl.getTargetValue()); // we check if the target value deadband is respected.
 
             if (distance > (rtc.getTargetDeadband() / 2)) {

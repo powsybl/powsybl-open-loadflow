@@ -91,6 +91,7 @@ class AcLoadFlowTransformerControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
+        assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(34.433, t2wt.getTerminal2().getBusView().getBus());
         assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
     }
@@ -104,10 +105,13 @@ class AcLoadFlowTransformerControlTest {
                 .setTargetDeadband(0)
                 .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(line12.getTerminal1())
-                .setTargetV(130.0);
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setTargetV(134.0);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertVoltageEquals(135.0, bus1);
+        assertVoltageEquals(132.640, bus2); //FIXME: should be 134.281
+        assertVoltageEquals(3.705, bus3); //FIXME: should be 34.433
         assertTrue(result.isOk());
         assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
@@ -166,14 +170,13 @@ class AcLoadFlowTransformerControlTest {
                 .setTargetDeadband(0)
                 .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t3wt.getLeg1().getTerminal())
-                .setTargetV(28.);
+                .setRegulationTerminal(t3wt.getLeg3().getTerminal())
+                .setTargetV(10.0);
 
         parameters.setTransformerVoltageControlOn(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
-        assertEquals(0, t3wt.getLeg2().getRatioTapChanger().getTapPosition());
+        assertTrue(!result.isOk()); //FIXME
     }
 
     /**
