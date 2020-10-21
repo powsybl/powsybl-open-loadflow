@@ -282,12 +282,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
             DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controllerBranch, controlledBus,
                     DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
-            if (controlledBus == controllerBranch.getBus1() || controlledBus == controllerBranch.getBus2()) {
-                controllerBranch.setDiscreteVoltageControl(voltageControl);
-                controlledBus.setDiscreteVoltageControl(voltageControl);
-            } else {
-                LOGGER.warn("Branch {} has a voltage remote regulation that is not yet supported", controllerBranch.getId());
-            }
+            controllerBranch.setDiscreteVoltageControl(voltageControl);
+            controlledBus.setDiscreteVoltageControl(voltageControl);
         }
     }
 

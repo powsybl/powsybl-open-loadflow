@@ -82,32 +82,28 @@ public class LfLegBranch extends AbstractLfBranch {
 
         RatioTapChanger rtc = leg.getRatioTapChanger();
         if (rtc != null && rtc.isRegulating()) {
-            if (rtc.getRegulationTerminal().getBusView().getBus() == leg.getTerminal().getBusView().getBus()) {
-                Integer ptcPosition = Transformers.getCurrentPosition(leg.getPhaseTapChanger());
-                List<PiModel> models = new ArrayList<>();
-                for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= rtc.getHighTapPosition(); rtcPosition++) {
-                    double r = Transformers.getR(leg, rtcPosition, ptcPosition) / zb;
-                    double x = Transformers.getX(leg, rtcPosition, ptcPosition) / zb;
-                    double g1 = Transformers.getG1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
-                    double g2 = twtSplitShuntAdmittance ? g1 : 0;
-                    double b1 = Transformers.getB1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
-                    double b2 = twtSplitShuntAdmittance ? b1 : 0;
-                    double r1 = Transformers.getRatioLeg(twt, leg, rtcPosition, ptcPosition) / nominalV2 * nominalV1;
-                    double a1 = Transformers.getAngleLeg(leg, ptcPosition);
-                    models.add(new SimplePiModel()
-                            .setR(r)
-                            .setX(x)
-                            .setG1(g1)
-                            .setG2(g2)
-                            .setB1(b1)
-                            .setB2(b2)
-                            .setR1(r1)
-                            .setA1(a1));
-                }
-                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
-            } else {
-                LOGGER.error("2 windings transformer '{}' has a regulating ratio tap changer with a remote control which is not yet supported", twt.getId());
+            Integer ptcPosition = Transformers.getCurrentPosition(leg.getPhaseTapChanger());
+            List<PiModel> models = new ArrayList<>();
+            for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= rtc.getHighTapPosition(); rtcPosition++) {
+                double r = Transformers.getR(leg, rtcPosition, ptcPosition) / zb;
+                double x = Transformers.getX(leg, rtcPosition, ptcPosition) / zb;
+                double g1 = Transformers.getG1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                double g2 = twtSplitShuntAdmittance ? g1 : 0;
+                double b1 = Transformers.getB1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                double b2 = twtSplitShuntAdmittance ? b1 : 0;
+                double r1 = Transformers.getRatioLeg(twt, leg, rtcPosition, ptcPosition) / nominalV2 * nominalV1;
+                double a1 = Transformers.getAngleLeg(leg, ptcPosition);
+                models.add(new SimplePiModel()
+                        .setR(r)
+                        .setX(x)
+                        .setG1(g1)
+                        .setG2(g2)
+                        .setB1(b1)
+                        .setB2(b2)
+                        .setR1(r1)
+                        .setA1(a1));
             }
+            piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
         }
 
         if (piModel == null) {
@@ -196,7 +192,7 @@ public class LfLegBranch extends AbstractLfBranch {
             checkTargetDeadband(p);
         }
 
-        if (discreteVoltageControl != null) { // it means there is a regulating ratio tap changer
+        if (isVoltageController()) { // it means there is a regulating ratio tap changer
             RatioTapChanger rtc = leg.getRatioTapChanger();
             double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
             double nominalV2 = twt.getRatedU0();
