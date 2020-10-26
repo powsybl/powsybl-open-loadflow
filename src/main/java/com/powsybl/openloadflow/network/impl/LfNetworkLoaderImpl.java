@@ -192,10 +192,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static void createBranches(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkLoadingReport report,
                                        boolean twtSplitShuntAdmittance, boolean breakers) {
-        for (Branch branch : loadingContext.branchSet) {
+        for (Branch<?> branch : loadingContext.branchSet) {
             LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork, breakers);
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork, breakers);
             addBranch(lfNetwork, LfBranchImpl.create(branch, lfBus1, lfBus2, twtSplitShuntAdmittance), report);
+        }
+
+        for (Branch<?> branch : loadingContext.branchSet) {
+            if (branch instanceof TwoWindingsTransformer) {
+                // Create phase controls which link controller -> controlled
+                TwoWindingsTransformer t2wt = (TwoWindingsTransformer) branch;
+                PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
+                createPhaseControl(lfNetwork, ptc, t2wt.getId(), "");
+            }
         }
 
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
@@ -214,6 +223,48 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             addBranch(lfNetwork, LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1(), twtSplitShuntAdmittance), report);
             addBranch(lfNetwork, LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2(), twtSplitShuntAdmittance), report);
             addBranch(lfNetwork, LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3(), twtSplitShuntAdmittance), report);
+        }
+
+        for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
+            // Create phase controls which link controller -> controlled
+            int legNumber = 1;
+            for (ThreeWindingsTransformer.Leg leg : Arrays.asList(t3wt.getLeg1(), t3wt.getLeg2(), t3wt.getLeg3())) {
+                PhaseTapChanger ptc = leg.getPhaseTapChanger();
+                createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + legNumber);
+                legNumber++;
+            }
+        }
+    }
+
+    private static void createPhaseControl(LfNetwork lfNetwork, PhaseTapChanger ptc, String controllerBranchId, String legId) {
+        if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
+            String controlledBranchId = ptc.getRegulationTerminal().getConnectable().getId();
+            if (controlledBranchId.equals(controllerBranchId)) {
+                // Local control: each leg is controlling its phase
+                controlledBranchId += legId;
+            }
+            LfBranch controlledBranch = lfNetwork.getBranchById(controlledBranchId);
+            LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
+            LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
+            DiscretePhaseControl.ControlledSide controlledSide = controlledBus == controlledBranch.getBus1() ?
+                DiscretePhaseControl.ControlledSide.ONE : DiscretePhaseControl.ControlledSide.TWO;
+            if (controlledBranch instanceof LfLegBranch && controlledBus == controlledBranch.getBus2()) {
+                throw new IllegalStateException("Leg " + controlledBranch.getId() + " has a non supported control at star bus side");
+            }
+            double targetValue = ptc.getRegulationValue() / PerUnit.SB;
+            double targetDeadband = ptc.getTargetDeadband() /  PerUnit.SB;
+
+            DiscretePhaseControl phaseControl = null;
+            if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
+                phaseControl = new DiscretePhaseControl(controllerBranch, controlledBranch, controlledSide,
+                    DiscretePhaseControl.Mode.LIMITER, targetValue, targetDeadband, DiscretePhaseControl.Unit.A);
+            } else if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                phaseControl = new DiscretePhaseControl(controllerBranch, controlledBranch, controlledSide,
+                    DiscretePhaseControl.Mode.CONTROLLER, targetValue, targetDeadband, DiscretePhaseControl.Unit.MW);
+            }
+
+            controllerBranch.setDiscretePhaseControl(phaseControl);
+            controlledBranch.setDiscretePhaseControl(phaseControl);
         }
     }
 

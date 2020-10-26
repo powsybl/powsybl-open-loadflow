@@ -96,7 +96,8 @@ public final class AcEquationSystem {
                     q = EquationTerm.multiply(new DummyReactivePowerEquationTerm(branch, variableSet), -1);
                 }
             } else {
-                boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+                boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
+                    && branch.getDiscretePhaseControl().getMode() == DiscretePhaseControl.Mode.CONTROLLER;
                 if (branch.getBus1() == controllerBus) {
                     LfBus otherSideBus = branch.getBus2();
                     q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1)
@@ -213,17 +214,16 @@ public final class AcEquationSystem {
         DcEquationSystem.createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
     }
 
-    private static void createBranchActivePowerTargetEquation(LfBranch branch, PhaseControl.ControlledSide controlledSide,
+    private static void createBranchActivePowerTargetEquation(LfBranch branch, DiscretePhaseControl.ControlledSide controlledSide,
                                                               EquationSystem equationSystem, EquationTerm p) {
-        PhaseControl phaseControl = branch.getPhaseControl().orElse(null);
-        if (phaseControl != null
-                && phaseControl.getMode() == PhaseControl.Mode.CONTROLLER
-                && phaseControl.getControlledSide() == controlledSide) {
-            if (phaseControl.getUnit() == PhaseControl.Unit.A) {
-                throw new PowsyblException("Phase control in A is not yet supported");
+        if (branch.isPhaseControlled(controlledSide)) {
+            DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl();
+            if (phaseControl.getMode() == DiscretePhaseControl.Mode.CONTROLLER) {
+                if (phaseControl.getUnit() == DiscretePhaseControl.Unit.A) {
+                    throw new PowsyblException("Phase control in A is not yet supported");
+                }
+                equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_P).addTerm(p);
             }
-            equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_P)
-                    .addTerm(p);
         }
     }
 
@@ -235,7 +235,8 @@ public final class AcEquationSystem {
         EquationTerm p2 = null;
         EquationTerm q2 = null;
         if (bus1 != null && bus2 != null) {
-            boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+            boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
+                && branch.getDiscretePhaseControl().getMode() == DiscretePhaseControl.Mode.CONTROLLER;
             p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
             q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
             p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
@@ -251,9 +252,8 @@ public final class AcEquationSystem {
         if (p1 != null) {
             equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
             branch.setP1(p1);
-
             if (creationParameters.isPhaseControl()) {
-                createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.ONE, equationSystem, p1);
+                createBranchActivePowerTargetEquation(branch, DiscretePhaseControl.ControlledSide.ONE, equationSystem, p1);
             }
         }
         if (q1 != null) {
@@ -263,9 +263,8 @@ public final class AcEquationSystem {
         if (p2 != null) {
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
             branch.setP2(p2);
-
             if (creationParameters.isPhaseControl()) {
-                createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.TWO, equationSystem, p2);
+                createBranchActivePowerTargetEquation(branch, DiscretePhaseControl.ControlledSide.TWO, equationSystem, p2);
             }
         }
         if (q2 != null) {

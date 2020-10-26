@@ -8,8 +8,6 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.util.Evaluable;
 
-import java.util.Optional;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -43,7 +41,15 @@ public interface LfBranch {
 
     double getPermanentLimit2();
 
-    Optional<PhaseControl> getPhaseControl();
+    DiscretePhaseControl getDiscretePhaseControl();
 
     void updateState();
+
+    boolean isPhaseController();
+
+    boolean isPhaseControlled(DiscretePhaseControl.ControlledSide controlledSide);
+
+    boolean isPhaseControlled();
+
+    void setDiscretePhaseControl(DiscretePhaseControl discretePhaseControl);
 }
