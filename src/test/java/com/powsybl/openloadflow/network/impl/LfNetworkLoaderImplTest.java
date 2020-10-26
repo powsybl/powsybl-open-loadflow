@@ -6,14 +6,11 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Generator;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
-import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
+import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
+import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -101,5 +98,31 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         g.remove();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
         assertTrue(lfNetworks.isEmpty());
+    }
+
+    @Test
+    void networkWithDanglingLineTest() {
+        network = DanglingLineNetworkFactory.create();
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+
+        LfBus lfDanglingLineBus = lfNetworks.get(0).getBusById("DL_BUS");
+        assertTrue(lfDanglingLineBus instanceof LfDanglingLineBus);
+        assertEquals("VL", lfDanglingLineBus.getVoltageLevelId());
+    }
+
+    @Test
+    void networkWith3wtTest() {
+        network = ThreeWindingsTransformerNetworkFactory.create();
+        ThreeWindingsTransformer transformer = network.getThreeWindingsTransformer("3WT");
+        assertNotNull(transformer);
+        VoltageLevel voltageLevelLeg1 = transformer.getLeg1().getTerminal().getVoltageLevel();
+
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+
+        LfBus lfStarBus = lfNetworks.get(0).getBusById("3WT_BUS0");
+        assertTrue(lfStarBus instanceof LfStarBus);
+        assertEquals(voltageLevelLeg1.getId(), lfStarBus.getVoltageLevelId());
     }
 }

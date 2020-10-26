@@ -225,7 +225,7 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
-    void testVoltageLimitViolations() {
+    void testLowVoltageLimitViolations() {
 
         network.getGenerator("G").setTargetV(393);
 
@@ -250,6 +250,34 @@ class OpenSecurityAnalysisTest {
         assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
         assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
         assertEquals(3, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+    }
+
+    @Test
+    void testHighVoltageLimitViolations() {
+
+        network.getGenerator("G").setTargetV(425);
+
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelector(new NameSlackBusSelector("VL1_1"));
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+        ContingenciesProvider contingenciesProvider = network -> Stream.of("L1", "L2")
+                .map(id -> new Contingency(id, new BranchContingency(id)))
+                .collect(Collectors.toList());
+
+        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory();
+        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, new LimitViolationFilter(), null, 0);
+
+        SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
+        assertTrue(result.getPreContingencyResult().isComputationOk());
+        assertEquals(2, result.getPreContingencyResult().getLimitViolations().size());
+        assertEquals(2, result.getPostContingencyResults().size());
+        assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
+        assertEquals(1, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
+        assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
     }
 
     @Test
