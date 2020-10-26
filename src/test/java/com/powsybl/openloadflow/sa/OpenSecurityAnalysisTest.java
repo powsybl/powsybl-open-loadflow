@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.commons.io.table.AsciiTableFormatterFactory;
+import com.powsybl.commons.io.table.TableFormatterConfig;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
@@ -23,12 +25,14 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.network.NameSlackBusSelector;
 import com.powsybl.security.LimitViolationFilter;
+import com.powsybl.security.Security;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisResult;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.StringWriter;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -250,12 +254,16 @@ class OpenSecurityAnalysisTest {
         assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
         assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
         assertEquals(3, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+
+        StringWriter writer = new StringWriter();
+        Security.print(result, network, writer, new AsciiTableFormatterFactory(), new TableFormatterConfig());
+        System.out.println(writer.toString());
     }
 
     @Test
     void testHighVoltageLimitViolations() {
 
-        network.getGenerator("G").setTargetV(425);
+        network.getGenerator("G").setTargetV(421);
 
         SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
         LoadFlowParameters lfParameters = new LoadFlowParameters();
@@ -278,6 +286,10 @@ class OpenSecurityAnalysisTest {
         assertEquals(1, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
         assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+
+        StringWriter writer = new StringWriter();
+        Security.print(result, network, writer, new AsciiTableFormatterFactory(), new TableFormatterConfig());
+        System.out.println(writer.toString());
     }
 
     @Test
