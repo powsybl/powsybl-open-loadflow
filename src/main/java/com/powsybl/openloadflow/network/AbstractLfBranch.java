@@ -118,5 +118,4 @@ public abstract class AbstractLfBranch implements LfBranch {
     public void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl) {
         this.discreteVoltageControl = discreteVoltageControl;
     }
-
 }

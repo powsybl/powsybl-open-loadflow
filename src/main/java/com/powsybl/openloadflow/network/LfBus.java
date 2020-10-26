@@ -20,6 +20,8 @@ public interface LfBus {
 
     void setNum(int num);
 
+    String getVoltageLevelId();
+
     boolean isFictitious();
 
     boolean isSlack();

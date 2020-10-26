@@ -409,4 +409,5 @@ public class LfNetwork {
         }
         throw new PowsyblException("Cannot importer network of type: " + network.getClass().getName());
     }
+
 }

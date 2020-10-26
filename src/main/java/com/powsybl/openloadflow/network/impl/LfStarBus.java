@@ -29,6 +29,11 @@ public class LfStarBus extends AbstractLfBus {
     }
 
     @Override
+    public String getVoltageLevelId() {
+        return t3wt.getLeg1().getTerminal().getVoltageLevel().getId();
+    }
+
+    @Override
     public boolean isFictitious() {
         return true;
     }

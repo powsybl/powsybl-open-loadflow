@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.commons.io.table.AsciiTableFormatterFactory;
+import com.powsybl.commons.io.table.TableFormatterConfig;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
@@ -23,12 +25,14 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.network.NameSlackBusSelector;
 import com.powsybl.security.LimitViolationFilter;
+import com.powsybl.security.Security;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisResult;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.StringWriter;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -225,7 +229,7 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
-    void testVoltageLimitViolations() {
+    void testLowVoltageLimitViolations() {
 
         network.getGenerator("G").setTargetV(393);
 
@@ -250,6 +254,42 @@ class OpenSecurityAnalysisTest {
         assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
         assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
         assertEquals(3, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+
+        StringWriter writer = new StringWriter();
+        Security.print(result, network, writer, new AsciiTableFormatterFactory(), new TableFormatterConfig());
+        System.out.println(writer.toString());
+    }
+
+    @Test
+    void testHighVoltageLimitViolations() {
+
+        network.getGenerator("G").setTargetV(421);
+
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelector(new NameSlackBusSelector("VL1_1"));
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+        ContingenciesProvider contingenciesProvider = network -> Stream.of("L1", "L2")
+                .map(id -> new Contingency(id, new BranchContingency(id)))
+                .collect(Collectors.toList());
+
+        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory();
+        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, new LimitViolationFilter(), null, 0);
+
+        SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
+        assertTrue(result.getPreContingencyResult().isComputationOk());
+        assertEquals(2, result.getPreContingencyResult().getLimitViolations().size());
+        assertEquals(2, result.getPostContingencyResults().size());
+        assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
+        assertEquals(1, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
+        assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+
+        StringWriter writer = new StringWriter();
+        Security.print(result, network, writer, new AsciiTableFormatterFactory(), new TableFormatterConfig());
+        System.out.println(writer.toString());
     }
 
     @Test
