@@ -91,12 +91,17 @@ public class Equation implements Evaluable, Comparable<Equation> {
     public Equation addTerm(EquationTerm term) {
         Objects.requireNonNull(term);
         terms.add(term);
+        term.setEquation(this);
+        equationSystem.addEquationTerm(term);
+        equationSystem.notifyListeners(this, EquationEventType.EQUATION_UPDATED);
         return this;
     }
 
     public Equation addTerms(List<EquationTerm> terms) {
         Objects.requireNonNull(terms);
-        this.terms.addAll(terms);
+        for (EquationTerm term : terms) {
+            addTerm(term);
+        }
         return this;
     }
 
@@ -130,10 +135,12 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return PiModel.A2 - piModel.getA1();
     }
 
-    private static double getBranchTarget(LfBranch branch, PhaseControl.Unit unit) {
+    private static double getBranchTarget(LfBranch branch, DiscretePhaseControl.Unit unit) {
         Objects.requireNonNull(branch);
-        PhaseControl phaseControl = branch.getPhaseControl()
-                .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no phase control"));
+        if (!branch.isPhaseControlled()) {
+            throw new PowsyblException("Branch '" + branch.getId() + "' is not phase-controlled");
+        }
+        DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl();
         if (phaseControl.getUnit() != unit) {
             throw new PowsyblException("Branch '" + branch.getId() + "' has not a target in " + unit);
         }
@@ -167,11 +174,11 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case BRANCH_P:
-                targets[column] = getBranchTarget(network.getBranch(num), PhaseControl.Unit.MW);
+                targets[column] = getBranchTarget(network.getBranch(num), DiscretePhaseControl.Unit.MW);
                 break;
 
             case BRANCH_I:
-                targets[column] = getBranchTarget(network.getBranch(num), PhaseControl.Unit.A);
+                targets[column] = getBranchTarget(network.getBranch(num), DiscretePhaseControl.Unit.A);
                 break;
 
             case ZERO_Q:
@@ -191,7 +198,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
         }
 
         for (EquationTerm term : terms) {
-            if (term.hasRhs()) {
+            if (term.isActive() && term.hasRhs()) {
                 targets[column] -= term.rhs();
             }
         }
@@ -199,7 +206,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     public void update(double[] x) {
         for (EquationTerm term : terms) {
-            term.update(x);
+            if (term.isActive()) {
+                term.update(x);
+            }
         }
     }
 
@@ -207,9 +216,11 @@ public class Equation implements Evaluable, Comparable<Equation> {
     public double eval() {
         double value = 0;
         for (EquationTerm term : terms) {
-            value += term.eval();
-            if (term.hasRhs()) {
-                value -= term.rhs();
+            if (term.isActive()) {
+                value += term.eval();
+                if (term.hasRhs()) {
+                    value -= term.rhs();
+                }
             }
         }
         return value;
@@ -247,7 +258,8 @@ public class Equation implements Evaluable, Comparable<Equation> {
         writer.write(type.getSymbol());
         writer.append(Integer.toString(num));
         writer.append(" = ");
-        for (Iterator<EquationTerm> it = terms.iterator(); it.hasNext();) {
+        List<EquationTerm> activeTerms = terms.stream().filter(EquationTerm::isActive).collect(Collectors.toList());
+        for (Iterator<EquationTerm> it = activeTerms.iterator(); it.hasNext();) {
             EquationTerm term = it.next();
             term.write(writer);
             if (it.hasNext()) {

@@ -11,15 +11,14 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import org.jgrapht.Graph;
+import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
 import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -97,7 +96,8 @@ public final class AcEquationSystem {
                     q = EquationTerm.multiply(new DummyReactivePowerEquationTerm(branch, variableSet), -1);
                 }
             } else {
-                boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+                boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
+                    && branch.getDiscretePhaseControl().getMode() == DiscretePhaseControl.Mode.CONTROLLER;
                 if (branch.getBus1() == controllerBus) {
                     LfBus otherSideBus = branch.getBus2();
                     q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1)
@@ -214,17 +214,16 @@ public final class AcEquationSystem {
         DcEquationSystem.createNonImpedantBranch(variableSet, equationSystem, branch, bus1, bus2);
     }
 
-    private static void createBranchActivePowerTargetEquation(LfBranch branch, PhaseControl.ControlledSide controlledSide,
+    private static void createBranchActivePowerTargetEquation(LfBranch branch, DiscretePhaseControl.ControlledSide controlledSide,
                                                               EquationSystem equationSystem, EquationTerm p) {
-        PhaseControl phaseControl = branch.getPhaseControl().orElse(null);
-        if (phaseControl != null
-                && phaseControl.getMode() == PhaseControl.Mode.CONTROLLER
-                && phaseControl.getControlledSide() == controlledSide) {
-            if (phaseControl.getUnit() == PhaseControl.Unit.A) {
-                throw new PowsyblException("Phase control in A is not yet supported");
+        if (branch.isPhaseControlled(controlledSide)) {
+            DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl();
+            if (phaseControl.getMode() == DiscretePhaseControl.Mode.CONTROLLER) {
+                if (phaseControl.getUnit() == DiscretePhaseControl.Unit.A) {
+                    throw new PowsyblException("Phase control in A is not yet supported");
+                }
+                equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_P).addTerm(p);
             }
-            equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_P)
-                    .addTerm(p);
         }
     }
 
@@ -236,7 +235,8 @@ public final class AcEquationSystem {
         EquationTerm p2 = null;
         EquationTerm q2 = null;
         if (bus1 != null && bus2 != null) {
-            boolean deriveA1 = creationParameters.isPhaseControl() && branch.getPhaseControl().isPresent();
+            boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
+                && branch.getDiscretePhaseControl().getMode() == DiscretePhaseControl.Mode.CONTROLLER;
             p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
             q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
             p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
@@ -252,9 +252,8 @@ public final class AcEquationSystem {
         if (p1 != null) {
             equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
             branch.setP1(p1);
-
             if (creationParameters.isPhaseControl()) {
-                createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.ONE, equationSystem, p1);
+                createBranchActivePowerTargetEquation(branch, DiscretePhaseControl.ControlledSide.ONE, equationSystem, p1);
             }
         }
         if (q1 != null) {
@@ -264,9 +263,8 @@ public final class AcEquationSystem {
         if (p2 != null) {
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
             branch.setP2(p2);
-
             if (creationParameters.isPhaseControl()) {
-                createBranchActivePowerTargetEquation(branch, PhaseControl.ControlledSide.TWO, equationSystem, p2);
+                createBranchActivePowerTargetEquation(branch, DiscretePhaseControl.ControlledSide.TWO, equationSystem, p2);
             }
         }
         if (q2 != null) {
@@ -305,6 +303,16 @@ public final class AcEquationSystem {
                 nonImpedantSubGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
             }
 
+            ConnectivityInspector<LfBus, LfBranch> ci = new ConnectivityInspector<>(nonImpedantSubGraph);
+            List<Set<LfBus>> connectedSets = ci.connectedSets();
+            for (Set<LfBus> connectedSet : connectedSets) {
+                if (connectedSet.size() > 2 && connectedSet.stream().filter(LfBus::hasVoltageControl).count() > 1) {
+                    String problBuses = connectedSet.stream().map(LfBus::getId).collect(Collectors.joining(", "));
+                    throw new PowsyblException(
+                        "Non impedant branches that connect at least two buses with voltage control (buses: " + problBuses + ")");
+                }
+            }
+
             SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(nonImpedantSubGraph).getSpanningTree();
             for (LfBranch branch : spanningTree.getEdges()) {
                 createNonImpedantBranch(variableSet, equationSystem, branch, branch.getBus1(), branch.getBus2());
@@ -325,7 +333,7 @@ public final class AcEquationSystem {
         Objects.requireNonNull(variableSet);
         Objects.requireNonNull(creationParameters);
 
-        EquationSystem equationSystem = new EquationSystem(network);
+        EquationSystem equationSystem = new EquationSystem(network, true);
 
         createBusEquations(network, variableSet, creationParameters, equationSystem);
         createBranchEquations(network, variableSet, creationParameters, equationSystem);

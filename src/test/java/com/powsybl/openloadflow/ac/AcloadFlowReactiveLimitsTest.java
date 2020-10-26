@@ -109,10 +109,9 @@ class AcloadFlowReactiveLimitsTest {
     void setUp() {
         createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters();
-        parameters.setNoGeneratorReactiveLimits(false);
-        parametersExt = new OpenLoadFlowParameters()
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
                 .setDistributedSlack(false);
+        parametersExt = new OpenLoadFlowParameters();
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 

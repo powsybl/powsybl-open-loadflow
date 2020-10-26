@@ -50,6 +50,8 @@ public class LfNetwork {
 
     private final Map<String, LfBranch> branchesById = new HashMap<>();
 
+    private int shuntCount = 0;
+
     public LfNetwork(int num, SlackBusSelector slackBusSelector) {
         this.num = num;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
@@ -107,6 +109,9 @@ public class LfNetwork {
     public void addBus(LfBus bus) {
         Objects.requireNonNull(bus);
         busesById.put(bus.getId(), bus);
+        for (LfShunt shunt : bus.getShunts()) {
+            shunt.setNum(shuntCount++);
+        }
         invalidateCache();
     }
 
@@ -221,10 +226,13 @@ public class LfNetwork {
         if (piModel.getA1() != 0) {
             jsonGenerator.writeNumberField("a1", piModel.getA1());
         }
-        branch.getPhaseControl().ifPresent(phaseControl -> {
+        if (branch.isPhaseController()) {
+            DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl();
             try {
-                jsonGenerator.writeFieldName("phaseControl");
+                jsonGenerator.writeFieldName("discretePhaseControl");
                 jsonGenerator.writeStartObject();
+                jsonGenerator.writeStringField("controller", phaseControl.getController().getId());
+                jsonGenerator.writeStringField("controlled", phaseControl.getController().getId());
                 jsonGenerator.writeStringField("mode", phaseControl.getMode().name());
                 jsonGenerator.writeStringField("unit", phaseControl.getUnit().name());
                 jsonGenerator.writeStringField("controlledSide", phaseControl.getControlledSide().name());
@@ -233,11 +241,12 @@ public class LfNetwork {
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
-        });
+        }
     }
 
     private void writeJson(LfShunt shunt, JsonGenerator jsonGenerator) throws IOException {
         jsonGenerator.writeStringField("id", shunt.getId());
+        jsonGenerator.writeNumberField("num", shunt.getNum());
         jsonGenerator.writeNumberField("b", shunt.getB());
     }
 
@@ -380,19 +389,18 @@ public class LfNetwork {
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
-        return load(network, slackBusSelector, false, false, false);
+        return load(network, new LfNetworkParameters(slackBusSelector, false, false, false, false));
     }
 
-    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, boolean voltageRemoteControl,
-                                       boolean minImpedance, boolean twtSplitShuntAdmittance) {
+    public static List<LfNetwork> load(Object network, LfNetworkParameters parameters) {
         Objects.requireNonNull(network);
-        Objects.requireNonNull(slackBusSelector);
+        Objects.requireNonNull(parameters);
         for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
-            List<LfNetwork> lfNetworks = importer.load(network, slackBusSelector, voltageRemoteControl, twtSplitShuntAdmittance).orElse(null);
+            List<LfNetwork> lfNetworks = importer.load(network, parameters).orElse(null);
             if (lfNetworks != null) {
                 for (LfNetwork lfNetwork : lfNetworks) {
-                    fix(lfNetwork, minImpedance);
-                    validate(lfNetwork, minImpedance);
+                    fix(lfNetwork, parameters.isMinImpedance());
+                    validate(lfNetwork, parameters.isMinImpedance());
                     lfNetwork.logSize();
                     lfNetwork.logBalance();
                 }
@@ -401,4 +409,5 @@ public class LfNetwork {
         }
         throw new PowsyblException("Cannot importer network of type: " + network.getClass().getName());
     }
+
 }

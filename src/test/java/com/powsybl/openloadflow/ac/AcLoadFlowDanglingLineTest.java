@@ -108,11 +108,10 @@ class AcLoadFlowDanglingLineTest {
     void setUp() {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters();
-        parameters.setNoGeneratorReactiveLimits(true);
-        parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector())
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
+        parametersExt = new OpenLoadFlowParameters()
+                .setSlackBusSelector(new MostMeshedSlackBusSelector());
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
@@ -125,8 +124,8 @@ class AcLoadFlowDanglingLineTest {
         assertAngleEquals(0.058104, bus1);
         assertVoltageEquals(388.582864, bus2);
         assertAngleEquals(0, bus2);
-        assertActivePowerEquals(101, dl1.getTerminal());
-        assertReactivePowerEquals(150, dl1.getTerminal());
+        assertActivePowerEquals(101.302, dl1.getTerminal());
+        assertReactivePowerEquals(149.764, dl1.getTerminal());
     }
 
     @Test
@@ -147,11 +146,11 @@ class AcLoadFlowDanglingLineTest {
         assertAngleEquals(0.114371, bus1);
         assertVoltageEquals(390.181, bus2);
         assertAngleEquals(0, bus2);
-        assertActivePowerEquals(101, dl1.getTerminal());
-        assertReactivePowerEquals(0.187604, dl1.getTerminal());
+        assertActivePowerEquals(101.2, dl1.getTerminal());
+        assertReactivePowerEquals(-0.202, dl1.getTerminal());
 
-        parametersExt.setDistributedSlack(true);
-        parameters.setNoGeneratorReactiveLimits(false);
+        parameters.setDistributedSlack(true)
+                  .setNoGeneratorReactiveLimits(false);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isOk());
 
@@ -159,7 +158,7 @@ class AcLoadFlowDanglingLineTest {
         assertAngleEquals(0.114259, bus1);
         assertVoltageEquals(390.181, bus2);
         assertAngleEquals(0, bus2);
-        assertActivePowerEquals(101, dl1.getTerminal());
-        assertReactivePowerEquals(0.187604, dl1.getTerminal());
+        assertActivePowerEquals(101.2, dl1.getTerminal());
+        assertReactivePowerEquals(-0.202, dl1.getTerminal());
     }
 }

@@ -20,6 +20,8 @@ public interface LfBus {
 
     void setNum(int num);
 
+    String getVoltageLevelId();
+
     boolean isFictitious();
 
     boolean isSlack();
@@ -37,6 +39,8 @@ public interface LfBus {
      */
     int getVoltageControlSwitchOffCount();
 
+    void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount);
+
     void setVoltageControl(boolean voltageControl);
 
     Optional<LfBus> getControlledBus();
@@ -50,6 +54,8 @@ public interface LfBus {
     double getLoadTargetP();
 
     void setLoadTargetP(double loadTargetP);
+
+    double getFixedLoadTargetP();
 
     int getPositiveLoadCount();
 
@@ -84,6 +90,10 @@ public interface LfBus {
      * @return nominal voltage in Kv
      */
     double getNominalV();
+
+    double getLowVoltageLimit();
+
+    double getHighVoltageLimit();
 
     List<LfGenerator> getGenerators();
 

@@ -159,11 +159,10 @@ class AcLoadFlowVscTest {
     void setUp() {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters();
-        parameters.setNoGeneratorReactiveLimits(true);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector())
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+                .setSlackBusSelector(new MostMeshedSlackBusSelector());
         this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 

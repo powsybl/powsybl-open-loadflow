@@ -18,6 +18,7 @@ import com.powsybl.openloadflow.equations.EquationType;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,19 +36,44 @@ public class AcloadFlowEngine {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AcloadFlowEngine.class);
 
-    private final List<LfNetwork> networks;
+    private final LfNetwork network;
 
     private final AcLoadFlowParameters parameters;
 
-    public AcloadFlowEngine(Object network, AcLoadFlowParameters parameters) {
-        this.parameters = Objects.requireNonNull(parameters);
+    private VariableSet variableSet;
 
+    private EquationSystem equationSystem;
+
+    public AcloadFlowEngine(LfNetwork network, AcLoadFlowParameters parameters) {
+        this.network = Objects.requireNonNull(network);
+        this.parameters = Objects.requireNonNull(parameters);
+    }
+
+    public static List<LfNetwork> createNetworks(Object network, AcLoadFlowParameters parameters) {
         parameters.getObserver().beforeNetworksCreation();
 
-        networks = LfNetwork.load(network, parameters.getSlackBusSelector(), parameters.isVoltageRemoteControl(),
-                parameters.isMinImpedance(), parameters.isTwtSplitShuntAdmittance());
+        List<LfNetwork> networks = LfNetwork.load(network, new LfNetworkParameters(parameters.getSlackBusSelector(), parameters.isVoltageRemoteControl(),
+                parameters.isMinImpedance(), parameters.isTwtSplitShuntAdmittance(), parameters.isBreakers()));
 
         parameters.getObserver().afterNetworksCreation(networks);
+
+        return networks;
+    }
+
+    public LfNetwork getNetwork() {
+        return network;
+    }
+
+    public AcLoadFlowParameters getParameters() {
+        return parameters;
+    }
+
+    public VariableSet getVariableSet() {
+        return variableSet;
+    }
+
+    public EquationSystem getEquationSystem() {
+        return equationSystem;
     }
 
     private void updatePvBusesReactivePower(NewtonRaphsonResult lastNrResult, LfNetwork network, EquationSystem equationSystem) {
@@ -107,19 +133,23 @@ public class AcloadFlowEngine {
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE);
     }
 
-    private AcLoadFlowResult run(LfNetwork network) {
-        LOGGER.info("Start Ac loadflow on network {}", network.getNum());
-
+    public AcLoadFlowResult run() {
         parameters.getObserver().beforeLoadFlow(network);
 
-        parameters.getObserver().beforeEquationSystemCreation();
+        if (equationSystem == null) {
+            LOGGER.info("Start AC loadflow on network {}", network.getNum());
 
-        VariableSet variableSet = new VariableSet();
-        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(parameters.isVoltageRemoteControl(),
-                                                                                                       parameters.isPhaseControl());
-        EquationSystem equationSystem = AcEquationSystem.create(network, variableSet, creationParameters);
+            parameters.getObserver().beforeEquationSystemCreation();
 
-        parameters.getObserver().afterEquationSystemCreation();
+            variableSet = new VariableSet();
+            AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(parameters.isVoltageRemoteControl(),
+                    parameters.isPhaseControl());
+            equationSystem = AcEquationSystem.create(network, variableSet, creationParameters);
+
+            parameters.getObserver().afterEquationSystemCreation();
+        } else {
+            LOGGER.info("Restart AC loadflow on network {}", network.getNum());
+        }
 
         RunningContext runningContext = new RunningContext();
         try (NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getMatrixFactory(), parameters.getObserver(), equationSystem, parameters.getStoppingCriteria())) {
@@ -165,7 +195,11 @@ public class AcloadFlowEngine {
         return result;
     }
 
-    public List<AcLoadFlowResult> run() {
-        return networks.stream().map(this::run).collect(Collectors.toList());
+    public static List<AcLoadFlowResult> run(Object network, AcLoadFlowParameters parameters) {
+        return createNetworks(network, parameters)
+                .stream()
+                .map(n -> new AcloadFlowEngine(n, parameters))
+                .map(AcloadFlowEngine::run)
+                .collect(Collectors.toList());
     }
 }

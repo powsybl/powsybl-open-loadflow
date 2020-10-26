@@ -8,6 +8,7 @@
     {"pattern":"META-INF/services/com.powsybl.iidm.network.NetworkFactoryService"},
     {"pattern":"META-INF/services/com.powsybl.loadflow.LoadFlowProvider"},
     {"pattern":"META-INF/services/com.powsybl.openloadflow.network.LfNetworkLoader"},
+    {"pattern":"META-INF/services/com.powsybl.openloadflow.network.SlackBusSelectorParametersReader"},
     {"pattern":"META-INF/services/com.powsybl.tools.Tool"},
     {"pattern":"META-INF/services/com.powsybl.cgmes.conversion.CgmesImportPostProcessor"},
     {"pattern":"META-INF/services/com.powsybl.triplestore.api.TripleStoreFactoryService"},

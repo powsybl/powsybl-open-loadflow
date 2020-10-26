@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.equations;
 
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Markers;
 import org.apache.commons.lang3.tuple.Pair;
@@ -29,9 +30,13 @@ public class EquationSystem {
 
     private final LfNetwork network;
 
+    private final boolean indexTerms;
+
     private final Map<Pair<Integer, EquationType>, Equation> equations = new HashMap<>();
 
     private final Map<Pair<SubjectType, Integer>, List<Equation>> equationsBySubject = new HashMap<>();
+
+    private final Map<Pair<SubjectType, Integer>, List<EquationTerm>> equationTermsBySubject = new HashMap<>();
 
     private class EquationCache implements EquationSystemListener {
 
@@ -75,13 +80,18 @@ public class EquationSystem {
             Set<Variable> variablesToFind = new HashSet<>();
             for (Equation equation : equations.values()) {
                 if (equation.isActive()) {
-                    NavigableMap<Variable, List<EquationTerm>> equationTermsByVariable = sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>());
+                    NavigableMap<Variable, List<EquationTerm>> equationTermsByVariable = null;
                     for (EquationTerm equationTerm : equation.getTerms()) {
-                        for (Variable variable : equationTerm.getVariables()) {
-                            if (variable.isActive()) {
-                                equationTermsByVariable.computeIfAbsent(variable, k -> new ArrayList<>())
-                                        .add(equationTerm);
-                                variablesToFind.add(variable);
+                        if (equationTerm.isActive()) {
+                            if (equationTermsByVariable == null) {
+                                equationTermsByVariable = sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>());
+                            }
+                            for (Variable variable : equationTerm.getVariables()) {
+                                if (variable.isActive()) {
+                                    equationTermsByVariable.computeIfAbsent(variable, k -> new ArrayList<>())
+                                            .add(equationTerm);
+                                    variablesToFind.add(variable);
+                                }
                             }
                         }
                     }
@@ -90,9 +100,13 @@ public class EquationSystem {
             sortedVariablesToFind.addAll(variablesToFind);
         }
 
+        private void invalidate() {
+            invalide = true;
+        }
+
         @Override
         public void equationListChanged(Equation equation, EquationEventType eventType) {
-            invalide = true;
+            invalidate();
         }
 
         private NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> getSortedEquationsToSolve() {
@@ -111,12 +125,35 @@ public class EquationSystem {
     private final List<EquationSystemListener> listeners = new ArrayList<>();
 
     public EquationSystem(LfNetwork network) {
+        this(network, false);
+    }
+
+    public EquationSystem(LfNetwork network, boolean indexTerms) {
         this.network = Objects.requireNonNull(network);
+        this.indexTerms = indexTerms;
         addListener(equationCache);
     }
 
     LfNetwork getNetwork() {
         return network;
+    }
+
+    void addEquationTerm(EquationTerm equationTerm) {
+        if (indexTerms) {
+            Objects.requireNonNull(equationTerm);
+            Pair<SubjectType, Integer> subject = Pair.of(equationTerm.getSubjectType(), equationTerm.getSubjectNum());
+            equationTermsBySubject.computeIfAbsent(subject, k -> new ArrayList<>())
+                    .add(equationTerm);
+        }
+    }
+
+    public List<EquationTerm> getEquationTerms(SubjectType subjectType, int subjectNum) {
+        if (!indexTerms) {
+            throw new PowsyblException("Equations terms have not been indexed");
+        }
+        Objects.requireNonNull(subjectType);
+        Pair<SubjectType, Integer> subject = Pair.of(subjectType, subjectNum);
+        return equationTermsBySubject.getOrDefault(subject, Collections.emptyList());
     }
 
     public Equation createEquation(int num, EquationType type) {
@@ -235,10 +272,16 @@ public class EquationSystem {
         listeners.add(listener);
     }
 
+    public void removeListener(EquationSystemListener listener) {
+        listeners.remove(listener);
+    }
+
     void notifyListeners(Equation equation, EquationEventType eventType) {
         Objects.requireNonNull(equation);
         Objects.requireNonNull(eventType);
-        listeners.forEach(listener -> listener.equationListChanged(equation, eventType));
+        if (!listeners.isEmpty()) {
+            listeners.forEach(listener -> listener.equationListChanged(equation, eventType));
+        }
     }
 
     public void write(Writer writer) {

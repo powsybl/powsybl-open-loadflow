@@ -15,6 +15,10 @@ public interface LfShunt {
 
     String getId();
 
+    int getNum();
+
+    void setNum(int num);
+
     double getB();
 
     void setQ(Evaluable q);
