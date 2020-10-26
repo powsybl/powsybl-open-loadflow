@@ -111,18 +111,8 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
-    public Evaluable getP1() {
-        return NAN;
-    }
-
-    @Override
     public void setP2(Evaluable p2) {
         // nothing to do
-    }
-
-    @Override
-    public Evaluable getP2() {
-        return p;
     }
 
     @Override

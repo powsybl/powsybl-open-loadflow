@@ -212,13 +212,13 @@ public class EquationSystem {
 
     public List<String> getRowNames() {
         return getSortedVariablesToFind().stream()
-                .map(v -> v.getType() + "('" + network.getBus(v.getNum()).getId() + "')")
+                .map(eq -> network.getBus(eq.getNum()).getId() + "/" + eq.getType())
                 .collect(Collectors.toList());
     }
 
     public List<String> getColumnNames() {
         return getSortedEquationsToSolve().navigableKeySet().stream()
-                .map(eq -> eq.getType() + "('" + network.getBus(eq.getNum()).getId() + "')")
+                .map(v -> network.getBus(v.getNum()).getId() + "/" + v.getType())
                 .collect(Collectors.toList());
     }
 

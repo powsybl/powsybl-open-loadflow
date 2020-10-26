@@ -6,11 +6,14 @@
  */
 package com.powsybl.openloadflow;
 
+import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ActiveFlowEquationTerm;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -28,7 +31,7 @@ import java.util.concurrent.CompletableFuture;
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class OpenSensitivityAnalysis implements SensitivityComputation {
+public class OpenSensitivityAnalysis implements SensitivityAnalysisProvider {
 
     private static final String NAME = "OpenSensitivityAnalysis";
 
@@ -51,7 +54,7 @@ public class OpenSensitivityAnalysis implements SensitivityComputation {
         return new PowsyblCoreVersion().getMavenProjectVersion();
     }
 
-    public void run(List<String> branchIds) {
+    public void runAc(List<String> branchIds) {
         Objects.requireNonNull(branchIds);
 
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
@@ -80,11 +83,19 @@ public class OpenSensitivityAnalysis implements SensitivityComputation {
             }
 
             double[] targets = new double[equationSystem.getSortedEquationsToSolve().size()];
-            EquationTerm p1 = (EquationTerm) branch.getP1();
+            EquationTerm p1 = equationSystem.getEquationTerms(SubjectType.BRANCH, branch.getNum())
+                    .stream()
+                    .filter(term -> term instanceof ClosedBranchSide1ActiveFlowEquationTerm)
+                    .findFirst()
+                    .orElseThrow(IllegalStateException::new);
             for (Variable variable : p1.getVariables()) {
                 targets[variable.getRow()] += p1.der(variable);
             }
-            EquationTerm p2 = (EquationTerm) branch.getP2();
+            EquationTerm p2 = equationSystem.getEquationTerms(SubjectType.BRANCH, branch.getNum())
+                    .stream()
+                    .filter(term -> term instanceof ClosedBranchSide2ActiveFlowEquationTerm)
+                    .findFirst()
+                    .orElseThrow(IllegalStateException::new);
             for (Variable variable : p2.getVariables()) {
                 targets[variable.getRow()] += p2.der(variable);
             }
@@ -106,12 +117,15 @@ public class OpenSensitivityAnalysis implements SensitivityComputation {
     }
 
     @Override
-    public CompletableFuture<SensitivityComputationResults> run(SensitivityFactorsProvider factorsProvider, String workingStateId,
-                                                                SensitivityComputationParameters sensiParameters) {
+    public CompletableFuture<SensitivityAnalysisResult> run(Network network, String workingStateId,
+                                                            SensitivityFactorsProvider sensitivityFactorsProvider,
+                                                            ContingenciesProvider contingenciesProvider,
+                                                            SensitivityAnalysisParameters sensitivityAnalysisParameters,
+                                                            ComputationManager computationManager) {
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
-            List<SensitivityFactor> factors = factorsProvider.getFactors(network);
+            List<SensitivityFactor> factors = sensitivityFactorsProvider.getFactors(network);
             for (SensitivityFactor factor : factors) {
                 if (factor instanceof BranchFlowPerInjectionIncrease) {
                     BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
@@ -127,13 +141,7 @@ public class OpenSensitivityAnalysis implements SensitivityComputation {
             Map<String, String> metrics = new HashMap<>();
             String logs = "";
             List<SensitivityValue> sensitivityValues = new ArrayList<>();
-            return new SensitivityComputationResults(ok, metrics, logs, sensitivityValues);
+            return new SensitivityAnalysisResult(ok, metrics, logs, sensitivityValues);
         });
-    }
-
-    @Override
-    public CompletableFuture<SensitivityComputationResults> run(SensitivityFactorsProvider factorsProvider, ContingenciesProvider contingenciesProvider,
-                                                                String workingStateId, SensitivityComputationParameters sensiParameters) {
-        throw new UnsupportedOperationException("TODO");
     }
 }

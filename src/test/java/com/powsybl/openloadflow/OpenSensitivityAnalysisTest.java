@@ -28,15 +28,15 @@ class OpenSensitivityAnalysisTest {
 
         DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(matrixFactory));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new FirstSlackBusSelector())
+        LoadFlowParameters parameters = new LoadFlowParameters()
                 .setDistributedSlack(false);
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector());
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
         loadFlowRunner.run(network, parameters);
 
         List<String> branchIds = Arrays.asList("NHV1_NHV2_1", "NHV1_NHV2_2");
         new OpenSensitivityAnalysis(network, matrixFactory)
-                .run(branchIds);
+                .runAc(branchIds);
     }
 }

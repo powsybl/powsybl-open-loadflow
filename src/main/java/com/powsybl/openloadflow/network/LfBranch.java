@@ -25,11 +25,7 @@ public interface LfBranch {
 
     void setP1(Evaluable p1);
 
-    Evaluable getP1();
-
     void setP2(Evaluable p2);
-
-    Evaluable getP2();
 
     void setQ1(Evaluable q1);
 
