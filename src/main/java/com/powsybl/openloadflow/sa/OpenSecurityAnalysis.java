@@ -211,13 +211,13 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         if (branch.getBus1() != null && branch.getI1() > branch.getPermanentLimit1()) {
             scale = PerUnit.SB / branch.getBus1().getNominalV();
             LimitViolation limitViolation1 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
-                    2147483647, branch.getPermanentLimit1() * scale, (float) 0., branch.getI1() * scale, Branch.Side.ONE);
+                    2147483647, branch.getPermanentLimit1() * scale, (float) 1., branch.getI1() * scale, Branch.Side.ONE);
             violations.add(limitViolation1);
         }
         if (branch.getBus2() != null && branch.getI2() > branch.getPermanentLimit2()) {
             scale = PerUnit.SB / branch.getBus2().getNominalV();
             LimitViolation limitViolation2 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
-                    2147483647, branch.getPermanentLimit2() * scale, (float) 0., branch.getI2() * scale, Branch.Side.TWO);
+                    2147483647, branch.getPermanentLimit2() * scale, (float) 1., branch.getI2() * scale, Branch.Side.TWO);
             violations.add(limitViolation2);
         }
         //TODO: temporary limit violation detection
@@ -232,13 +232,13 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         // detect violation limits on a bus
         double scale = bus.getNominalV();
         if (!Double.isNaN(bus.getHighVoltageLimit()) && bus.getV() > bus.getHighVoltageLimit()) {
-            LimitViolation limitViolation1 = new LimitViolation(bus.getId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit() * scale,
-                    (float) 0., bus.getV() * scale);
+            LimitViolation limitViolation1 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit() * scale,
+                    (float) 1., bus.getV() * scale);
             violations.add(limitViolation1);
         }
         if (!Double.isNaN(bus.getLowVoltageLimit()) && bus.getV() < bus.getLowVoltageLimit()) {
-            LimitViolation limitViolation2 = new LimitViolation(bus.getId(), LimitViolationType.LOW_VOLTAGE, bus.getHighVoltageLimit() * scale,
-                    (float) 0., bus.getV() * scale);
+            LimitViolation limitViolation2 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.LOW_VOLTAGE, bus.getHighVoltageLimit() * scale,
+                    (float) 1., bus.getV() * scale);
             violations.add(limitViolation2);
         }
     }
