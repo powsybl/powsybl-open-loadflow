@@ -122,7 +122,11 @@ public final class DcEquationSystem {
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean updateFlows) {
-        EquationSystem equationSystem = new EquationSystem(network);
+        return create(network, variableSet, updateFlows, false);
+    }
+
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean updateFlows, boolean indexTerms) {
+        EquationSystem equationSystem = new EquationSystem(network, indexTerms);
 
         createBuses(network, variableSet, equationSystem);
         createBranches(network, variableSet, updateFlows, equationSystem);
