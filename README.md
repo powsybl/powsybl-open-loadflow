@@ -26,14 +26,14 @@ By participating, you are expected to uphold this code. Please report unacceptab
 
 PowSyBl Open Load Flow is an open source implementation of the load flow API that can be found in PowSyBl Core. It supports 
 AC Newton-Raphson and linear DC calculation methods:
- - Fast and robust convergence, based on [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html) numerical solver ; we support either dense and sparse matrix ;
- - Distributed slack (on generation or on load) ; we also support non distributed slack ; in both case, the slack bus selector is configurable as explained [here](https://www.powsybl.org/pages/documentation/simulation/powerflow/openlf.html#parameters) ;
+ - Fast and robust convergence, based on [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html) numerical solver ; it supports either dense and sparse matrix ;
+ - Distributed slack (on generation or on load) ; it also supports non distributed slack ; in both case, the slack bus selector is configurable as explained [here](https://www.powsybl.org/pages/documentation/simulation/powerflow/openlf.html#parameters) ;
  - Generator active and reactive power limits (support of reactive capability curves) ;
  - Generator and static var compensator voltage remote control through PQV bus modelling ; 
  - Shared voltage control involving generators and static var compensators ;
  - 3 starting point modes: flat, warm and DC based ;
  - Local and remote phase control: phase tap changers can regulate active power flows ; 
- - Non impedant branches support ; we do not support loops of non impedant branches: in that case, a short number of non impedante lines will be treated with a minimal impedance ;
+ - Non impedant branches support ; we do not support loops of non impedant branches: in that case, a short number of non impedant lines will be treated with a minimal impedance ;
  - HVDC and multiple synchronous component calculation.
  
 Powsybl Open Load Flow has also an implementation of the security analysis API that can be found in Powsybl Core. It supports:
@@ -41,7 +41,7 @@ Powsybl Open Load Flow has also an implementation of the security analysis API t
  - Contingency on branches only ;
  - Permanent current limits violations detection on branches ;
  - High and low voltage violations detection on buses ;
- - Complex cases where the contingency leads to another synchronous component where a new resolution has to be performed.
+ - Complex cases where the contingency leads to another synchronous component where a new resolution has to be performed are not supported at that stage.
 
 Almost all of the code is written in Java. It only relies on native code for the [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html)
 sparse linear solver. Linux, Windows and MacOS are supported.
@@ -124,14 +124,14 @@ network.getBusView().getBusStream().forEach(b -> System.out.println(b.getId() + 
 PowSyBl Open Load Flow could support more features. The following list is not exhaustive and is an invitation to collaborate:
 
 We are thinking about increasing features of the loadflow engine:
-- A distributed slack that can be configured by country;
-- Operational limits management;
-- Improve the voltage regulation: only generators and static var compensators are regulating at that stage. Shunts and ratio tap changers can regulate too (local and remote). We want to model these regulations in outer loops ;
+- A distributed slack that can be configured by country ;
+- Operational limits management ;
+- Improve the voltage regulation: only generators and static var compensators are regulating at that stage. Switched shunts and ratio tap changers can regulate too (local and remote). We want to model these regulations in outer loops but any suggestion is welcome ;
 - Allow generators to regulate reactive power, locally or remotely ;
 - Support the extension ```VoltagePerReactivePowerControl``` of static var compensators as another alternative of voltage regulation (remotely and locally) ;
 - Phase control: support of current limiter mode.  
 
 We are also thinking about services using the loadflow engine:
-- PowSyBl offers the possibility to run a slow security analysis through its [load flow based implementation](https://www.powsybl.org/pages/documentation/simulation/securityanalysis/security-analysis-impl.html#load-flow-based-implementation) ; Open Load Flow offers now its own implementation  of security analysis API called ```OpenSecurityAnalysis```: this version is minimal and could be improved, functionally and in terms of performances ; please look at the issues if you want to help us!
+- PowSyBl offers the possibility to run a slow security analysis through its [load flow based implementation](https://www.powsybl.org/pages/documentation/simulation/securityanalysis/security-analysis-impl.html#load-flow-based-implementation) ; Open Load Flow offers now its own implementation  of security analysis API called ```OpenSecurityAnalysis```: this version is minimal and could be improved, functionally and in terms of performances ; please look at the issues if you want to help us.
 
-- The possibility to perform sensitivity analysis: we are working on a prototype to compute what we call Power Transfer Distribution Factor (PTDF) ; do not hesitate to contact us for more details!   
+- The possibility to perform sensitivity analysis: we are working on a prototype to compute what we call Power Transfer Distribution Factor (PTDF) ; do not hesitate to contact us for more details.   
