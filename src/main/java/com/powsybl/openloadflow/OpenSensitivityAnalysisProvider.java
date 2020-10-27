@@ -9,10 +9,11 @@ package com.powsybl.openloadflow;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
+import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Generator;
-import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
@@ -31,7 +32,6 @@ import com.powsybl.tools.PowsyblCoreVersion;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 /**
  * http://www.montefiore.ulg.ac.be/~vct/elec0029/lf.pdf
@@ -136,10 +136,19 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return generator;
     }
 
-    public List<SensitivityValue> runDc(Network network, List<BranchFlowPerInjectionIncrease> injectionFactors,
+    private JacobianMatrix createJacobianMatrix(EquationSystem equationSystem, OpenSensitivityAnalysisParameters sensiParametersExt) {
+        // initialize state vector with base case voltages or nominal voltages
+        VoltageInitializer voltageInitializer = sensiParametersExt.isUseBaseCaseVoltage() ? new PreviousValueVoltageInitializer()
+                : new UniformValueVoltageInitializer();
+        double[] x = equationSystem.createStateVector(voltageInitializer);
+        equationSystem.updateEquations(x);
+        return JacobianMatrix.create(equationSystem, matrixFactory);
+    }
+
+    public List<SensitivityValue> runDc(Network network, List<SensitivityFactor> factors,
                                         OpenLoadFlowParameters lfParametersExt, OpenSensitivityAnalysisParameters sensiParametersExt) {
         Objects.requireNonNull(network);
-        Objects.requireNonNull(injectionFactors);
+        Objects.requireNonNull(factors);
         Objects.requireNonNull(lfParametersExt);
         Objects.requireNonNull(sensiParametersExt);
 
@@ -160,49 +169,54 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         VariableSet variableSet = new VariableSet();
         EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, variableSet, false, true);
 
-        // initialize state vector with base case voltages or nominal voltages
-        VoltageInitializer voltageInitializer = sensiParametersExt.isUseBaseCaseVoltage() ? new PreviousValueVoltageInitializer()
-                : new UniformValueVoltageInitializer();
-        double[] x = equationSystem.createStateVector(voltageInitializer);
-
-        // find list of bus id to to compute sensitivity
-        Set<String> busIds = injectionFactors
-                .stream()
-                .map(injectionFactor -> getGenerator(network, injectionFactor.getVariable().getInjectionId()))
-                .map(generator -> generator.getTerminal().getBusView().getBus())
-                .filter(Objects::nonNull)
-                .map(Identifiable::getId)
-                .collect(Collectors.toSet());
-        if (busIds.isEmpty()) {
-            throw new PowsyblException("Empty PTDF region");
+        Map<String, List<BranchFlowPerInjectionIncrease>> injectionFactorsByBusId = new LinkedHashMap<>(factors.size());
+        for (SensitivityFactor<?, ?> factor : factors) {
+            if (factor instanceof BranchFlowPerInjectionIncrease) {
+                BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
+                Generator generator = getGenerator(network, injectionFactor.getVariable().getInjectionId());
+                Bus bus = generator.getTerminal().getBusView().getBus();
+                if (bus != null) {
+                    injectionFactorsByBusId.computeIfAbsent(bus.getId(), k -> new ArrayList<>())
+                            .add(injectionFactor);
+                }
+            } else {
+                throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
+            }
+        }
+        if (injectionFactorsByBusId.isEmpty()) {
+            return Collections.emptyList();
         }
 
         // initialize targets
-        double[] targets = new double[equationSystem.getSortedEquationsToSolve().size()];
-        for (String busId : busIds) {
+        DenseMatrix targets = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), injectionFactorsByBusId.size());
+        int row = 0;
+        for (Map.Entry<String, List<BranchFlowPerInjectionIncrease>> e : injectionFactorsByBusId.entrySet()) {
+            String busId = e.getKey();
             LfBus lfBus = lfNetwork.getBusById(busId);
             Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-            targets[p.getColumn()] = 1d / PerUnit.SB;
+            targets.set(row, p.getColumn(), 1d / PerUnit.SB);
+            row++;
         }
 
-        equationSystem.updateEquations(x);
-        JacobianMatrix j = JacobianMatrix.create(equationSystem, matrixFactory);
+        // initialize state vector with base case voltages or nominal voltages
+        JacobianMatrix j = createJacobianMatrix(equationSystem, sensiParametersExt);
         try {
-            double[] dx = Arrays.copyOf(targets, targets.length);
-
             LUDecomposition lu = j.decomposeLU();
-            lu.solveTransposed(dx);
-
-            equationSystem.updateEquations(dx);
+            lu.solveTransposed(targets); // targets now contains state matrix
         } finally {
             j.cleanLU();
         }
 
-        for (BranchFlowPerInjectionIncrease injectionFactor :  injectionFactors) {
-            LfBranch lfBranch = lfNetwork.getBranchById(injectionFactor.getFunction().getBranchId());
-            EquationTerm p1 = getP1(equationSystem, lfBranch);
-            double value = Math.abs(p1.eval() * PerUnit.SB);
-            sensitivityValues.add(new SensitivityValue(injectionFactor, value, 0, 0));
+        int column = 0;
+        for (Map.Entry<String, List<BranchFlowPerInjectionIncrease>> e : injectionFactorsByBusId.entrySet()) {
+            for (BranchFlowPerInjectionIncrease injectionFactor : e.getValue()) {
+                LfBranch lfBranch = lfNetwork.getBranchById(injectionFactor.getFunction().getBranchId());
+                ClosedBranchSide1DcFlowEquationTerm p1 = (ClosedBranchSide1DcFlowEquationTerm) getP1(equationSystem, lfBranch);
+                p1.update(targets, column);
+                double value = Math.abs(p1.eval() * PerUnit.SB);
+                sensitivityValues.add(new SensitivityValue(injectionFactor, value, 0, 0));
+            }
+            column++;
         }
 
         return sensitivityValues;
@@ -217,15 +231,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
-            List<BranchFlowPerInjectionIncrease> injectionFactors = new ArrayList<>();
-            for (SensitivityFactor factor : sensitivityFactorsProvider.getFactors(network)) {
-                if (factor instanceof BranchFlowPerInjectionIncrease) {
-                    BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
-                    injectionFactors.add(injectionFactor);
-                } else {
-                    throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
-                }
-            }
+            List<SensitivityFactor> factors = sensitivityFactorsProvider.getFactors(network);
 
             LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
             OpenLoadFlowParameters lfParametersExt = lfParameters.getExtension(OpenLoadFlowParameters.class);
@@ -239,7 +245,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
             List<SensitivityValue> sensitivityValues;
             if (lfParameters.isDc()) {
-                sensitivityValues = runDc(network, injectionFactors, lfParametersExt, sensiParametersExt);
+                sensitivityValues = runDc(network, factors, lfParametersExt, sensiParametersExt);
             } else {
                 sensitivityValues = Collections.emptyList();
             }

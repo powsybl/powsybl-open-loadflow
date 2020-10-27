@@ -17,14 +17,16 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.NameSlackBusSelector;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
-import com.powsybl.sensitivity.*;
+import com.powsybl.sensitivity.SensitivityAnalysisParameters;
+import com.powsybl.sensitivity.SensitivityAnalysisResult;
+import com.powsybl.sensitivity.SensitivityFactorsProvider;
+import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -51,15 +53,20 @@ class OpenSensitivityAnalysisProviderTest {
         Network network = EurostagTutorialExample1Factory.create();
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
         OpenSensitivityAnalysisProvider sensiProvider = new OpenSensitivityAnalysisProvider(matrixFactory);
-        BranchFlowPerInjectionIncrease factor = new BranchFlowPerInjectionIncrease(new BranchFlow("NHV1_NHV2_1", "NHV1_NHV2_1", "NHV1_NHV2_1"),
-                                                                                   new InjectionIncrease("GEN", "GEN", "GEN"));
-        SensitivityFactorsProvider factorsProvider = network1 -> Collections.singletonList(factor);
+        InjectionIncrease genIncrease = new InjectionIncrease("GEN", "GEN", "GEN");
+        BranchFlowPerInjectionIncrease factor1 = new BranchFlowPerInjectionIncrease(new BranchFlow("NHV1_NHV2_1", "NHV1_NHV2_1", "NHV1_NHV2_1"),
+                                                                                    genIncrease);
+        BranchFlowPerInjectionIncrease factor2 = new BranchFlowPerInjectionIncrease(new BranchFlow("NHV1_NHV2_2", "NHV1_NHV2_2", "NHV1_NHV2_2"),
+                                                                                    genIncrease);
+        SensitivityFactorsProvider factorsProvider = n -> Arrays.asList(factor1, factor2);
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
                                                              sensiParameters, LocalComputationManager.getDefault())
                 .join();
-        assertEquals(1, result.getSensitivityValues().size());
-        SensitivityValue sensiValue = result.getSensitivityValue(factor);
-        assertEquals(0.5d, sensiValue.getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(2, result.getSensitivityValues().size());
+        SensitivityValue sensiValue1 = result.getSensitivityValue(factor1);
+        assertEquals(0.5d, sensiValue1.getValue(), LoadFlowAssert.DELTA_POWER);
+        SensitivityValue sensiValue2 = result.getSensitivityValue(factor2);
+        assertEquals(0.5d, sensiValue2.getValue(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test

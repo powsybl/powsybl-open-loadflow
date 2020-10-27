@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
@@ -126,6 +127,10 @@ public interface EquationTerm extends Evaluable {
      * @param x variables values vector
      */
     void update(double[] x);
+
+    default void update(DenseMatrix x, int column) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
 
     /**
      * Evaluate equation term.

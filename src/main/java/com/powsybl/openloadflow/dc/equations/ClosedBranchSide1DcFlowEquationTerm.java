@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -39,6 +40,15 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
         Objects.requireNonNull(x);
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
+        double deltaPhase =  ph2 - ph1 + A2 - a1;
+        p1 = -power * deltaPhase;
+    }
+
+    @Override
+    public void update(DenseMatrix x, int column) {
+        Objects.requireNonNull(x);
+        double ph1 = x.get(ph1Var.getRow(), column);
+        double ph2 = x.get(ph2Var.getRow(), column);
         double deltaPhase =  ph2 - ph1 + A2 - a1;
         p1 = -power * deltaPhase;
     }
