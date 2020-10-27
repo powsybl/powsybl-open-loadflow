@@ -43,7 +43,7 @@ public interface LfBranch {
 
     DiscretePhaseControl getDiscretePhaseControl();
 
-    void updateState();
+    void updateState(boolean phaseRegulation);
 
     boolean isPhaseController();
 

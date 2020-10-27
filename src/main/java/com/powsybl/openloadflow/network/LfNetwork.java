@@ -135,7 +135,7 @@ public class LfNetwork {
         return slackBus;
     }
 
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
+    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseRegulation) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         for (LfBus bus : busesById.values()) {
@@ -148,7 +148,7 @@ public class LfNetwork {
             }
         }
         for (LfBranch branch : branches) {
-            branch.updateState();
+            branch.updateState(phaseRegulation);
         }
 
         stopwatch.stop();
