@@ -10,7 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Generator;
+import com.powsybl.iidm.network.Injection;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
@@ -128,12 +128,15 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }
     }
 
-    private static Generator getGenerator(Network network, String generatorId) {
-        Generator generator = network.getGenerator(generatorId);
-        if (generator == null) {
-            throw new PowsyblException("Generator '" + generatorId + "' not found");
+    private static Injection getInjection(Network network, String injectionId) {
+        Injection injection = network.getGenerator(injectionId);
+        if (injection == null) {
+            injection = network.getLoad(injectionId);
+            if (injection == null) {
+                throw new PowsyblException("Injection '" + injectionId + "' not found");
+            }
         }
-        return generator;
+        return injection;
     }
 
     private JacobianMatrix createJacobianMatrix(EquationSystem equationSystem, OpenSensitivityAnalysisParameters sensiParametersExt) {
@@ -152,13 +155,12 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         Objects.requireNonNull(lfParametersExt);
         Objects.requireNonNull(sensiParametersExt);
 
-        List<SensitivityValue> sensitivityValues = new ArrayList<>();
-
+        // create LF network
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParametersExt.getSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
 
+        // run DC loadflow
         if (sensiParametersExt.isUseBaseCaseVoltage() && sensiParametersExt.isRunLf()) {
-            // run DC loadflow
             DcLoadFlowResult result = new DcLoadFlowEngine(lfNetwork, matrixFactory)
                     .run();
             if (!result.isOk()) {
@@ -166,15 +168,17 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             }
         }
 
+        // create DC equation system
         VariableSet variableSet = new VariableSet();
         EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, variableSet, false, true);
 
+        // index injection factors by bus id to compute minimal number of DC state
         Map<String, List<BranchFlowPerInjectionIncrease>> injectionFactorsByBusId = new LinkedHashMap<>(factors.size());
         for (SensitivityFactor<?, ?> factor : factors) {
             if (factor instanceof BranchFlowPerInjectionIncrease) {
                 BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
-                Generator generator = getGenerator(network, injectionFactor.getVariable().getInjectionId());
-                Bus bus = generator.getTerminal().getBusView().getBus();
+                Injection injection = getInjection(network, injectionFactor.getVariable().getInjectionId());
+                Bus bus = injection.getTerminal().getBusView().getBus();
                 if (bus != null) {
                     injectionFactorsByBusId.computeIfAbsent(bus.getId(), k -> new ArrayList<>())
                             .add(injectionFactor);
@@ -188,31 +192,37 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }
 
         // initialize targets
-        DenseMatrix targets = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), injectionFactorsByBusId.size());
+        DenseMatrix transposedTargets = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), injectionFactorsByBusId.size());
         int row = 0;
         for (Map.Entry<String, List<BranchFlowPerInjectionIncrease>> e : injectionFactorsByBusId.entrySet()) {
             String busId = e.getKey();
             LfBus lfBus = lfNetwork.getBusById(busId);
             Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-            targets.set(row, p.getColumn(), 1d / PerUnit.SB);
+            transposedTargets.set(row, p.getColumn(), 1d / PerUnit.SB);
             row++;
         }
 
-        // initialize state vector with base case voltages or nominal voltages
+        // create jacobian matrix
         JacobianMatrix j = createJacobianMatrix(equationSystem, sensiParametersExt);
+
+        // solve system
         try {
             LUDecomposition lu = j.decomposeLU();
-            lu.solveTransposed(targets); // targets now contains state matrix
+            lu.solveTransposed(transposedTargets);
         } finally {
             j.cleanLU();
         }
+        DenseMatrix states = transposedTargets; // targets now contains state matrix
+
+        // compute branch sensitivity
+        List<SensitivityValue> sensitivityValues = new ArrayList<>();
 
         int column = 0;
         for (Map.Entry<String, List<BranchFlowPerInjectionIncrease>> e : injectionFactorsByBusId.entrySet()) {
             for (BranchFlowPerInjectionIncrease injectionFactor : e.getValue()) {
                 LfBranch lfBranch = lfNetwork.getBranchById(injectionFactor.getFunction().getBranchId());
                 ClosedBranchSide1DcFlowEquationTerm p1 = (ClosedBranchSide1DcFlowEquationTerm) getP1(equationSystem, lfBranch);
-                p1.update(targets, column);
+                p1.update(states, column);
                 double value = Math.abs(p1.eval() * PerUnit.SB);
                 sensitivityValues.add(new SensitivityValue(injectionFactor, value, 0, 0));
             }
