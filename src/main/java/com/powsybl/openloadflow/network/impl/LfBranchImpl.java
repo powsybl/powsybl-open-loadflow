@@ -163,18 +163,18 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseRegulation) {
+    public void updateState(boolean phaseShifterRegulationOn) {
         branch.getTerminal1().setP(p1.eval() * PerUnit.SB);
         branch.getTerminal1().setQ(q1.eval() * PerUnit.SB);
         branch.getTerminal2().setP(p2.eval() * PerUnit.SB);
         branch.getTerminal2().setQ(q2.eval() * PerUnit.SB);
 
-        if (phaseRegulation && isPhaseController()  && phaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
+        if (phaseShifterRegulationOn && isPhaseController()  && phaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
             // it means there is a regulating phase tap changer located on that branch
             updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
         }
 
-        if (phaseRegulation && isPhaseControlled()) {
+        if (phaseShifterRegulationOn && isPhaseControlled()) {
             // check if the target value deadband is respected
             checkTargetDeadband(phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE ? p1 : p2);
         }

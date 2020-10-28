@@ -72,7 +72,7 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseRegulation) {
+    public void updateState(boolean phaseShifterRegulationOn) {
         // nothing to do
     }
 }
