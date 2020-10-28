@@ -53,9 +53,10 @@ public class LfBranchImpl extends AbstractLfBranch {
         return new LfBranchImpl(bus1, bus2, piModel, line);
     }
 
-    private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfBus bus1, LfBus bus2, double nominalV1,
-                                                  double nominalV2, double zb, boolean twtSplitShuntAdmittance) {
+    private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfBus bus1, LfBus bus2, double zb, boolean twtSplitShuntAdmittance) {
         PiModel piModel = null;
+
+        double baseRatio = Transformers.getRatioPerUnitBase(twt);
 
         PhaseTapChanger ptc = twt.getPhaseTapChanger();
         if (ptc != null
@@ -71,7 +72,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                 double g2 = twtSplitShuntAdmittance ? g1 : 0;
                 double b1 = Transformers.getB1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
                 double b2 = twtSplitShuntAdmittance ? b1 : 0;
-                double r1 = Transformers.getRatio(twt, rtcPosition, ptcPosition) / nominalV2 * nominalV1;
+                double r1 = Transformers.getRatio(twt, rtcPosition, ptcPosition) / baseRatio;
                 double a1 = Transformers.getAngle(twt, ptcPosition);
                 models.add(new SimplePiModel()
                         .setR(r)
@@ -97,7 +98,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                 double g2 = twtSplitShuntAdmittance ? g1 : 0;
                 double b1 = Transformers.getB1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
                 double b2 = twtSplitShuntAdmittance ? b1 : 0;
-                double r1 = Transformers.getRatio(twt, rtcPosition, ptcPosition) / nominalV2 * nominalV1;
+                double r1 = Transformers.getRatio(twt, rtcPosition, ptcPosition) / baseRatio;
                 double a1 = Transformers.getAngle(twt, ptcPosition);
                 models.add(new SimplePiModel()
                         .setR(r)
@@ -120,7 +121,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                     .setG2(twtSplitShuntAdmittance ? Transformers.getG1(twt, twtSplitShuntAdmittance) * zb : 0)
                     .setB1(Transformers.getB1(twt, twtSplitShuntAdmittance) * zb)
                     .setB2(twtSplitShuntAdmittance ? Transformers.getB1(twt, twtSplitShuntAdmittance) * zb : 0)
-                    .setR1(Transformers.getRatio(twt) / nominalV2 * nominalV1)
+                    .setR1(Transformers.getRatio(twt) / baseRatio)
                     .setA1(Transformers.getAngle(twt));
         }
 
@@ -129,14 +130,13 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     public static LfBranchImpl create(Branch<?> branch, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance) {
         Objects.requireNonNull(branch);
-        double nominalV1 = branch.getTerminal1().getVoltageLevel().getNominalV();
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
         double zb = nominalV2 * nominalV2 / PerUnit.SB;
         if (branch instanceof Line) {
             return createLine((Line) branch, bus1, bus2, zb);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-            return createTransformer(twt, bus1, bus2, nominalV1, nominalV2, zb, twtSplitShuntAdmittance);
+            return createTransformer(twt, bus1, bus2, zb, twtSplitShuntAdmittance);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }
@@ -190,7 +190,7 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn) {
+    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn) {
         branch.getTerminal1().setP(p1.eval() * PerUnit.SB);
         branch.getTerminal1().setQ(q1.eval() * PerUnit.SB);
         branch.getTerminal2().setP(p2.eval() * PerUnit.SB);
@@ -203,25 +203,16 @@ public class LfBranchImpl extends AbstractLfBranch {
 
         if (phaseShifterRegulationOn && isPhaseControlled()) {
             // check if the target value deadband is respected
-            checkTargetDeadband(phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE ? p1 : p2);
+            checkTargetDeadband(phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE ? p1.eval() : p2.eval());
         }
 
-        if (discreteVoltageControl != null) { // it means there is a regulating ratio tap changer
+        if (isTransformerVoltageControlOn && isVoltageController()) { // it means there is a regulating ratio tap changer
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
             RatioTapChanger rtc = twt.getRatioTapChanger();
-            double nominalV1 = twt.getTerminal1().getVoltageLevel().getNominalV();
-            double nominalV2 = twt.getTerminal2().getVoltageLevel().getNominalV();
-            double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * nominalV2 / nominalV1;
-            int tapPosition = Transformers.findTapPosition(rtc, rho);
-            rtc.setTapPosition(tapPosition);
-            double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-            double v = discreteVoltageControl.getControlled().getV();
-            double distance = Math.abs(v - discreteVoltageControl.getTargetValue()); // we check if the target value deadband is respected.
-
-            if (distance > (rtc.getTargetDeadband() / 2)) {
-                LOGGER.warn("The voltage on bus {} ({} kV) is out of the target value ({} kV) +/- deadband/2 ({} kV)",
-                        discreteVoltageControl.getControlled().getId(), v * nominalV, discreteVoltageControl.getTargetValue() * nominalV, rtc.getTargetDeadband() / 2);
-            }
+            double baseRatio = Transformers.getRatioPerUnitBase(twt);
+            double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
+            updateTapPosition(rtc, rho);
+            checkTargetDeadband(rtc);
         }
     }
 }

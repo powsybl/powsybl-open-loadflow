@@ -49,9 +49,9 @@ public class LfLegBranch extends AbstractLfBranch {
 
         PiModel piModel = null;
 
-        double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
         double nominalV2 = twt.getRatedU0();
         double zb = nominalV2 * nominalV2 / PerUnit.SB;
+        double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
         PhaseTapChanger ptc = leg.getPhaseTapChanger();
         if (ptc != null
                 && ptc.isRegulating()
@@ -65,7 +65,7 @@ public class LfLegBranch extends AbstractLfBranch {
                 double g2 = twtSplitShuntAdmittance ? g1 : 0;
                 double b1 = Transformers.getB1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
                 double b2 = twtSplitShuntAdmittance ? b1 : 0;
-                double r1 = Transformers.getRatioLeg(twt, leg, rtcPosition, ptcPosition) / nominalV2 * nominalV1;
+                double r1 = Transformers.getRatioLeg(twt, leg, rtcPosition, ptcPosition) / baseRatio;
                 double a1 = Transformers.getAngleLeg(leg, ptcPosition);
                 models.add(new SimplePiModel()
                         .setR(r)
@@ -91,7 +91,7 @@ public class LfLegBranch extends AbstractLfBranch {
                 double g2 = twtSplitShuntAdmittance ? g1 : 0;
                 double b1 = Transformers.getB1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
                 double b2 = twtSplitShuntAdmittance ? b1 : 0;
-                double r1 = Transformers.getRatioLeg(twt, leg, rtcPosition, ptcPosition) / nominalV2 * nominalV1;
+                double r1 = Transformers.getRatioLeg(twt, leg, rtcPosition, ptcPosition) / baseRatio;
                 double a1 = Transformers.getAngleLeg(leg, ptcPosition);
                 models.add(new SimplePiModel()
                         .setR(r)
@@ -114,7 +114,7 @@ public class LfLegBranch extends AbstractLfBranch {
                     .setG2(twtSplitShuntAdmittance ? Transformers.getG1(leg, twtSplitShuntAdmittance) * zb : 0)
                     .setB1(Transformers.getB1(leg, twtSplitShuntAdmittance) * zb)
                     .setB2(twtSplitShuntAdmittance ? Transformers.getB1(leg, twtSplitShuntAdmittance) * zb : 0)
-                    .setR1(Transformers.getRatioLeg(twt, leg) / nominalV2 * nominalV1)
+                    .setR1(Transformers.getRatioLeg(twt, leg) / baseRatio)
                     .setA1(Transformers.getAngleLeg(leg));
         }
 
@@ -178,7 +178,7 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn) {
+    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn) {
         leg.getTerminal().setP(p.eval() * PerUnit.SB);
         leg.getTerminal().setQ(q.eval() * PerUnit.SB);
 
@@ -189,24 +189,15 @@ public class LfLegBranch extends AbstractLfBranch {
 
         if (phaseShifterRegulationOn && isPhaseControlled() && phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
             // check if the target value deadband is respected
-            checkTargetDeadband(p);
+            checkTargetDeadband(p.eval());
         }
 
-        if (isVoltageController()) { // it means there is a regulating ratio tap changer
+        if (isTransformerVoltageControlOn && isVoltageController()) { // it means there is a regulating ratio tap changer
             RatioTapChanger rtc = leg.getRatioTapChanger();
-            double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
-            double nominalV2 = twt.getRatedU0();
-            double rho = getPiModel().getR1() * leg.getRatedU() / twt.getRatedU0() * nominalV2 / nominalV1;
-            int tapPosition = Transformers.findTapPosition(rtc, rho);
-            rtc.setTapPosition(tapPosition);
-            double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-            double v = discreteVoltageControl.getControlled().getV();
-            double distance = Math.abs(v - discreteVoltageControl.getTargetValue()); // we check if the target value deadband is respected.
-
-            if (distance > (rtc.getTargetDeadband() / 2)) {
-                LOGGER.warn("The voltage on bus {} ({} kV) is out of the target value ({} kV) +/- deadband/2 ({} kV)",
-                        discreteVoltageControl.getControlled().getId(), v * nominalV, discreteVoltageControl.getTargetValue() * nominalV, rtc.getTargetDeadband() / 2);
-            }
+            double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
+            double rho = getPiModel().getR1() * leg.getRatedU() / twt.getRatedU0() * baseRatio;
+            updateTapPosition(rtc, rho);
+            checkTargetDeadband(rtc);
         }
     }
 }
