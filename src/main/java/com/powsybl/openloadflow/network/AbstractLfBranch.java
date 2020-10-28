@@ -94,7 +94,7 @@ public abstract class AbstractLfBranch implements LfBranch {
         double distance = Math.abs(p.eval() - phaseControl.getTargetValue());
         if (distance > phaseControl.getTargetDeadband() / 2) {
             LOGGER.warn("The active power on side {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
-                phaseControl.getControlledSide(), getId(), p,
+                phaseControl.getControlledSide(), getId(), p.eval(),
                 phaseControl.getTargetValue() * PerUnit.SB, phaseControl.getTargetDeadband() / 2 * PerUnit.SB);
         }
     }

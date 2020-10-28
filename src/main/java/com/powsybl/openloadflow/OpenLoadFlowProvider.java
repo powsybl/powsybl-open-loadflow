@@ -190,7 +190,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
             for (AcLoadFlowResult result : results) {
                 // update network state
-                result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(), parameters.isWriteSlackBus());
+                result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(), parameters.isWriteSlackBus(),
+                    parameters.isPhaseShifterRegulationOn());
 
                 metrics.putAll(createMetrics(result));
 
@@ -248,7 +249,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 SlackTerminal.reset(network);
             }
 
-            result.getNetwork().updateState(false, parameters.isWriteSlackBus());
+            result.getNetwork().updateState(false, parameters.isWriteSlackBus(), parameters.isPhaseShifterRegulationOn());
 
             return new LoadFlowResultImpl(result.isOk(), Collections.emptyMap(), null);
         });
