@@ -198,7 +198,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             String busId = e.getKey();
             LfBus lfBus = lfNetwork.getBusById(busId);
             Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-            transposedTargets.set(row, p.getColumn(), 1d / PerUnit.SB);
+            transposedTargets.set(p.getColumn(), row, 1d / PerUnit.SB);
             row++;
         }
 

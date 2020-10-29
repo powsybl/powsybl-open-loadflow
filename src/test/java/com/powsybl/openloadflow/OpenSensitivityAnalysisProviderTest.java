@@ -8,7 +8,10 @@ package com.powsybl.openloadflow;
 
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.EmptyContingencyListProvider;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Branch;
+import com.powsybl.iidm.network.Injection;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -17,10 +20,7 @@ import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.NameSlackBusSelector;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
-import com.powsybl.sensitivity.SensitivityAnalysisParameters;
-import com.powsybl.sensitivity.SensitivityAnalysisResult;
-import com.powsybl.sensitivity.SensitivityFactorsProvider;
-import com.powsybl.sensitivity.SensitivityValue;
+import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -71,27 +72,49 @@ class OpenSensitivityAnalysisProviderTest {
         assertEquals(0.5d, sensiValue2.getValue(), LoadFlowAssert.DELTA_POWER);
     }
 
-    private static List<BranchFlowPerInjectionIncrease> createFactorMatrix(List<Injection> injections, List<Branch> branches) {
-        return null;
+    private static <T extends Injection<T>> List<SensitivityFactor> createFactorMatrix(List<T> injections, List<Branch> branches) {
+        Objects.requireNonNull(injections);
+        Objects.requireNonNull(branches);
+        return injections.stream().flatMap(injection -> {
+            InjectionIncrease injIncrease = new InjectionIncrease(injection.getId(), injection.getId(), injection.getId());
+            return branches.stream().map(branch -> new BranchFlowPerInjectionIncrease(new BranchFlow(branch.getId(), branch.getNameOrId(), branch.getId()), injIncrease));
+        }).collect(Collectors.toList());
+    }
+
+    private static double getValue(SensitivityAnalysisResult result, String variableId, String functionId) {
+        return result.getSensitivityValues().stream().filter(value -> value.getFactor().getVariable().getId().equals(variableId) && value.getFactor().getFunction().getId().equals(functionId))
+                .findFirst()
+                .map(SensitivityValue::getValue)
+                .orElse(Double.NaN);
     }
 
     @Test
-    void testDc2() {
+    void testDc4buses() {
         Network network = FourBusNetworkFactory.create();
-        for (VoltageLevel vl : network.getVoltageLevels()) {
-            System.out.println(vl.getId());
-        }
-        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b4_vl_0");
-        InjectionIncrease genIncrease = new InjectionIncrease("g1", "g1", "g1");
-        SensitivityFactorsProvider factorsProvider = n -> network.getLineStream()
-                .map(l -> new BranchFlowPerInjectionIncrease(new BranchFlow(l.getId(), l.getNameOrId(), l.getId()), genIncrease))
-                .collect(Collectors.toList());
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0");
+        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                                                                             network.getBranchStream().collect(Collectors.toList()));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
-        for (SensitivityValue value : result.getSensitivityValues()) {
-            System.out.println(value.getFactor().getFunction().getId() + " " + value.getValue());
-        }
+
+        assertEquals(0.25d, getValue(result, "g1", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, getValue(result, "g1", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, getValue(result, "g1", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, getValue(result, "g1", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.5d, getValue(result, "g1", "l13"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0.125d, getValue(result, "g2", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.375d, getValue(result, "g2", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.625d, getValue(result, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.125d, getValue(result, "g2", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, getValue(result, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0.375d, getValue(result, "g4", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.125d, getValue(result, "g4", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.125d, getValue(result, "g4", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.625d, getValue(result, "g4", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, getValue(result, "g4", "l13"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
