@@ -16,11 +16,7 @@ public class OpenSensitivityAnalysisParameters extends AbstractExtension<Sensiti
 
     private static final boolean DEFAULT_USE_BASE_CASE_VOLTAGE = true;
 
-    private static final boolean DEFAULT_RUN_LF = true;
-
     private boolean useBaseCaseVoltage = DEFAULT_USE_BASE_CASE_VOLTAGE;
-
-    private boolean runLf = DEFAULT_RUN_LF;
 
     public boolean isUseBaseCaseVoltage() {
         return useBaseCaseVoltage;
@@ -28,15 +24,6 @@ public class OpenSensitivityAnalysisParameters extends AbstractExtension<Sensiti
 
     public OpenSensitivityAnalysisParameters setUseBaseCaseVoltage(boolean useBaseCaseVoltage) {
         this.useBaseCaseVoltage = useBaseCaseVoltage;
-        return this;
-    }
-
-    public boolean isRunLf() {
-        return runLf;
-    }
-
-    public OpenSensitivityAnalysisParameters setRunLf(boolean runLf) {
-        this.runLf = runLf;
         return this;
     }
 

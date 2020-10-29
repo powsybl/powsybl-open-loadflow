@@ -19,8 +19,6 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ActiveFlowEquationTerm;
-import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
-import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide2DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
@@ -159,15 +157,6 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParametersExt.getSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
 
-        // run DC loadflow
-        if (sensiParametersExt.isUseBaseCaseVoltage() && sensiParametersExt.isRunLf()) {
-            DcLoadFlowResult result = new DcLoadFlowEngine(lfNetwork, matrixFactory)
-                    .run();
-            if (!result.isOk()) {
-                throw new PowsyblException("Initial DC loadflow diverged");
-            }
-        }
-
         // create DC equation system
         VariableSet variableSet = new VariableSet();
         EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, variableSet, false, true);
@@ -197,6 +186,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         for (Map.Entry<String, List<BranchFlowPerInjectionIncrease>> e : injectionFactorsByBusId.entrySet()) {
             String busId = e.getKey();
             LfBus lfBus = lfNetwork.getBusById(busId);
+            if (lfBus.isSlack()) {
+                throw new PowsyblException("Cannot analyse sensitivity of slack bus");
+            }
             Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
             transposedTargets.set(p.getColumn(), row, 1d / PerUnit.SB);
             row++;

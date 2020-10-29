@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.EmptyContingencyListProvider;
 import com.powsybl.iidm.network.Branch;
@@ -15,6 +16,7 @@ import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
@@ -52,9 +54,20 @@ class OpenSensitivityAnalysisProviderTest {
         return sensiParameters;
     }
 
+    private void runAcLf(Network network) {
+        LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
+                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, new LoadFlowParameters())
+                .join();
+        if (!result.isOk()) {
+            throw new PowsyblException("AC LF diverged");
+        }
+    }
+
     @Test
     void testDc() {
         Network network = EurostagTutorialExample1Factory.create();
+        runAcLf(network);
+
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
         InjectionIncrease genIncrease = new InjectionIncrease("GEN", "GEN", "GEN");
         BranchFlowPerInjectionIncrease factor1 = new BranchFlowPerInjectionIncrease(new BranchFlow("NHV1_NHV2_1", "NHV1_NHV2_1", "NHV1_NHV2_1"),
@@ -91,11 +104,13 @@ class OpenSensitivityAnalysisProviderTest {
     @Test
     void testDc4buses() {
         Network network = FourBusNetworkFactory.create();
+        runAcLf(network);
+
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0");
         SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                                                                              network.getBranchStream().collect(Collectors.toList()));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
-                sensiParameters, LocalComputationManager.getDefault())
+                                                             sensiParameters, LocalComputationManager.getDefault())
                 .join();
 
         assertEquals(0.25d, getValue(result, "g1", "l14"), LoadFlowAssert.DELTA_POWER);
@@ -118,7 +133,7 @@ class OpenSensitivityAnalysisProviderTest {
     }
 
     @Test
-    public void testAc() {
+    void testAc() {
         Network network = EurostagTutorialExample1Factory.create();
 
         DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
