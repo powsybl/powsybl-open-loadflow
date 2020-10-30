@@ -18,11 +18,13 @@ import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ActiveFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import com.powsybl.tools.PowsyblCoreVersion;
@@ -53,60 +55,6 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     @Override
     public String getVersion() {
         return new PowsyblCoreVersion().getMavenProjectVersion();
-    }
-
-    public void runAc(Network network, List<String> branchIds) {
-        Objects.requireNonNull(branchIds);
-
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
-        LfNetwork lfNetwork = lfNetworks.get(0);
-
-        VariableSet variableSet = new VariableSet();
-        EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, variableSet);
-
-        // initialize equations with current state
-        double[] x = equationSystem.createStateVector(new PreviousValueVoltageInitializer());
-
-        equationSystem.updateEquations(x);
-
-        JacobianMatrix j = JacobianMatrix.create(equationSystem, matrixFactory);
-
-        for (String branchId : branchIds) {
-            LfBranch branch = lfNetwork.getBranchById(branchId);
-            if (branch == null) {
-                throw new IllegalArgumentException("Branch '" + branchId + "' not found");
-            }
-
-            LfBus bus1 = branch.getBus1();
-            LfBus bus2 = branch.getBus2();
-            if (bus1 == null || bus2 == null) {
-                continue;
-            }
-
-            double[] targets = new double[equationSystem.getSortedEquationsToSolve().size()];
-            EquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, branch.getNum(), ClosedBranchSide1ActiveFlowEquationTerm.class);
-            for (Variable variable : p1.getVariables()) {
-                targets[variable.getRow()] += p1.der(variable);
-            }
-            EquationTerm p2 = equationSystem.getEquationTerm(SubjectType.BRANCH, branch.getNum(), ClosedBranchSide2ActiveFlowEquationTerm.class);
-            for (Variable variable : p2.getVariables()) {
-                targets[variable.getRow()] += p2.der(variable);
-            }
-//            System.out.println(equationSystem.getRowNames());
-//            System.out.println(Arrays.toString(targets));
-
-            double[] dx = Arrays.copyOf(targets, targets.length);
-            try (LUDecomposition lu = j.decomposeLU()) {
-                lu.solve(dx);
-//                System.out.println(equationSystem.getColumnNames());
-//                System.out.println(Arrays.toString(dx));
-            }
-            for (LfBus bus : lfNetwork.getBuses()) {
-                Variable variable = variableSet.getVariable(bus.getNum(), VariableType.BUS_PHI);
-                double s = dx[variable.getRow()];
-                System.out.println(bus.getId() + ": " + s);
-            }
-        }
     }
 
     private static Injection<?> getInjection(Network network, String injectionId) {
@@ -265,6 +213,77 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return calculateSensitivityValues(lfNetwork, equationSystem, factorsByVarConfig, states);
     }
 
+    public List<SensitivityValue> runAc(Network network, List<SensitivityFactor> factors, OpenLoadFlowParameters lfParametersExt) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(factors);
+        Objects.requireNonNull(lfParametersExt);
+
+        List<SensitivityValue> sensitivityValues = new ArrayList<>();
+
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParametersExt.getSlackBusSelector());
+        LfNetwork lfNetwork = lfNetworks.get(0);
+
+        EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, new VariableSet());
+
+        // initialize equations with current state
+        double[] x = equationSystem.createStateVector(new PreviousValueVoltageInitializer());
+        equationSystem.updateEquations(x);
+
+        JacobianMatrix j = JacobianMatrix.create(equationSystem, matrixFactory);
+
+        for (SensitivityFactor<?, ?> factor : factors) {
+            if (factor instanceof BranchFlowPerInjectionIncrease) {
+                BranchFlowPerInjectionIncrease injectionIncrease = (BranchFlowPerInjectionIncrease) factor;
+
+                String branchId = injectionIncrease.getFunction().getBranchId();
+                String injectionId = injectionIncrease.getVariable().getInjectionId();
+
+                LfBranch branch = lfNetwork.getBranchById(branchId);
+                if (branch == null) {
+                    throw new IllegalArgumentException("Branch '" + branchId + "' not found");
+                }
+
+                // skip open branches
+                LfBus bus1 = branch.getBus1();
+                LfBus bus2 = branch.getBus2();
+                if (bus1 == null || bus2 == null) {
+                    continue;
+                }
+
+                Injection<?> injection = getInjection(network, injectionId);
+                Bus bus = injection.getTerminal().getBusView().getBus();
+
+                // skip disconnected injections
+                if (bus == null) {
+                    continue;
+                }
+
+                LfBus lfBus = lfNetwork.getBusById(bus.getId());
+                if (lfBus.isSlack()) {
+                    throw new PowsyblException("Cannot analyse sensitivity of slack bus");
+                }
+
+                double[] rhs = new double[equationSystem.getSortedEquationsToSolve().size()];
+                EquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, branch.getNum(), ClosedBranchSide1ActiveFlowEquationTerm.class);
+                for (Variable variable : p1.getVariables()) {
+                    rhs[variable.getRow()] = p1.der(variable);
+                }
+
+                try (LUDecomposition lu = j.decomposeLU()) {
+                    lu.solve(rhs);
+                }
+
+                Equation injEq = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
+                double value = rhs[injEq.getColumn()];
+                sensitivityValues.add(new SensitivityValue(factor, value, Double.NaN, Double.NaN));
+            } else {
+                throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
+            }
+        }
+
+        return sensitivityValues;
+    }
+
     private static OpenSensitivityAnalysisParameters getSensitivityAnalysisParametersExtension(SensitivityAnalysisParameters sensitivityAnalysisParameters) {
         OpenSensitivityAnalysisParameters sensiParametersExt = sensitivityAnalysisParameters.getExtension(OpenSensitivityAnalysisParameters.class);
         if (sensiParametersExt == null) {
@@ -300,7 +319,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             if (lfParameters.isDc()) {
                 sensitivityValues = runDc(network, factors, lfParametersExt, sensiParametersExt);
             } else {
-                sensitivityValues = Collections.emptyList();
+                sensitivityValues = runAc(network, factors, lfParametersExt);
             }
 
             boolean ok = true;

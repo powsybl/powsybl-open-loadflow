@@ -14,11 +14,9 @@ import com.powsybl.iidm.network.Injection;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.NameSlackBusSelector;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
@@ -28,7 +26,6 @@ import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -69,20 +66,14 @@ class OpenSensitivityAnalysisProviderTest {
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
-        InjectionIncrease genIncrease = new InjectionIncrease("GEN", "GEN", "GEN");
-        BranchFlowPerInjectionIncrease factor1 = new BranchFlowPerInjectionIncrease(new BranchFlow("NHV1_NHV2_1", "NHV1_NHV2_1", "NHV1_NHV2_1"),
-                                                                                    genIncrease);
-        BranchFlowPerInjectionIncrease factor2 = new BranchFlowPerInjectionIncrease(new BranchFlow("NHV1_NHV2_2", "NHV1_NHV2_2", "NHV1_NHV2_2"),
-                                                                                    genIncrease);
-        SensitivityFactorsProvider factorsProvider = n -> Arrays.asList(factor1, factor2);
+        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                                                                             network.getLineStream().collect(Collectors.toList()));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
                                                              sensiParameters, LocalComputationManager.getDefault())
                 .join();
         assertEquals(2, result.getSensitivityValues().size());
-        SensitivityValue sensiValue1 = result.getSensitivityValue(factor1);
-        assertEquals(0.5d, sensiValue1.getValue(), LoadFlowAssert.DELTA_POWER);
-        SensitivityValue sensiValue2 = result.getSensitivityValue(factor2);
-        assertEquals(0.5d, sensiValue2.getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.5d, getValue(result, "GEN", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.5d, getValue(result, "GEN", "NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
     }
 
     private static <T extends Injection<T>> List<SensitivityFactor> createFactorMatrix(List<T> injections, List<Branch> branches) {
@@ -113,6 +104,7 @@ class OpenSensitivityAnalysisProviderTest {
                                                              sensiParameters, LocalComputationManager.getDefault())
                 .join();
 
+        assertEquals(15, result.getSensitivityValues().size());
         assertEquals(0.25d, getValue(result, "g1", "l14"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.25d, getValue(result, "g1", "l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.25d, getValue(result, "g1", "l23"), LoadFlowAssert.DELTA_POWER);
@@ -135,18 +127,17 @@ class OpenSensitivityAnalysisProviderTest {
     @Test
     void testAc() {
         Network network = EurostagTutorialExample1Factory.create();
+        runAcLf(network);
 
-        DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(matrixFactory));
-        LoadFlowParameters parameters = new LoadFlowParameters()
-                .setDistributedSlack(false);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new FirstSlackBusSelector());
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
-        loadFlowRunner.run(network, parameters);
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
+        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                                                                             network.getLineStream().collect(Collectors.toList()));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
+                                                             sensiParameters, LocalComputationManager.getDefault())
+                .join();
 
-        List<String> branchIds = Arrays.asList("NHV1_NHV2_1", "NHV1_NHV2_2");
-        new OpenSensitivityAnalysisProvider(matrixFactory)
-                .runAc(network, branchIds);
+        assertEquals(2, result.getSensitivityValues().size());
+        assertEquals(0.498d, getValue(result, "GEN", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.498d, getValue(result, "GEN", "NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
     }
 }
