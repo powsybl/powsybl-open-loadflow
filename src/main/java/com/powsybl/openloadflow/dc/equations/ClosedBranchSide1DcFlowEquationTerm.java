@@ -35,22 +35,24 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
         return new ClosedBranchSide1DcFlowEquationTerm(branch, bus1, bus2, variableSet);
     }
 
+    private double calculate(double ph1, double ph2) {
+        double deltaPhase =  ph2 - ph1 + A2 - a1;
+        return -power * deltaPhase;
+    }
+
+    public double calculate(DenseMatrix x, int column) {
+        Objects.requireNonNull(x);
+        double ph1 = x.get(ph1Var.getRow(), column);
+        double ph2 = x.get(ph2Var.getRow(), column);
+        return calculate(ph1, ph2);
+    }
+
     @Override
     public void update(double[] x) {
         Objects.requireNonNull(x);
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
-        double deltaPhase =  ph2 - ph1 + A2 - a1;
-        p1 = -power * deltaPhase;
-    }
-
-    @Override
-    public void update(DenseMatrix x, int column) {
-        Objects.requireNonNull(x);
-        double ph1 = x.get(ph1Var.getRow(), column);
-        double ph2 = x.get(ph2Var.getRow(), column);
-        double deltaPhase =  ph2 - ph1 + A2 - a1;
-        p1 = -power * deltaPhase;
+        p1 = calculate(ph1, ph2);
     }
 
     @Override

@@ -20,7 +20,6 @@ import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ActiveFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
-import com.powsybl.openloadflow.dc.equations.ClosedBranchSide2DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
@@ -56,22 +55,6 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return new PowsyblCoreVersion().getMavenProjectVersion();
     }
 
-    private static EquationTerm getP1(EquationSystem equationSystem, LfBranch branch) {
-        return equationSystem.getEquationTerms(SubjectType.BRANCH, branch.getNum())
-                .stream()
-                .filter(term -> term instanceof ClosedBranchSide1ActiveFlowEquationTerm || term instanceof ClosedBranchSide1DcFlowEquationTerm)
-                .findFirst()
-                .orElseThrow(IllegalStateException::new);
-    }
-
-    private static EquationTerm getP2(EquationSystem equationSystem, LfBranch branch) {
-        return equationSystem.getEquationTerms(SubjectType.BRANCH, branch.getNum())
-                .stream()
-                .filter(term -> term instanceof ClosedBranchSide2ActiveFlowEquationTerm || term instanceof ClosedBranchSide2DcFlowEquationTerm)
-                .findFirst()
-                .orElseThrow(IllegalStateException::new);
-    }
-
     public void runAc(Network network, List<String> branchIds) {
         Objects.requireNonNull(branchIds);
 
@@ -101,11 +84,11 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             }
 
             double[] targets = new double[equationSystem.getSortedEquationsToSolve().size()];
-            EquationTerm p1 = getP1(equationSystem, branch);
+            EquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, branch.getNum(), ClosedBranchSide1ActiveFlowEquationTerm.class);
             for (Variable variable : p1.getVariables()) {
                 targets[variable.getRow()] += p1.der(variable);
             }
-            EquationTerm p2 = getP2(equationSystem, branch);
+            EquationTerm p2 = equationSystem.getEquationTerm(SubjectType.BRANCH, branch.getNum(), ClosedBranchSide2ActiveFlowEquationTerm.class);
             for (Variable variable : p2.getVariables()) {
                 targets[variable.getRow()] += p2.der(variable);
             }
@@ -213,9 +196,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         for (Map.Entry<String, List<BranchFlowPerInjectionIncrease>> e : injectionFactorsByBusId.entrySet()) {
             for (BranchFlowPerInjectionIncrease injectionFactor : e.getValue()) {
                 LfBranch lfBranch = lfNetwork.getBranchById(injectionFactor.getFunction().getBranchId());
-                ClosedBranchSide1DcFlowEquationTerm p1 = (ClosedBranchSide1DcFlowEquationTerm) getP1(equationSystem, lfBranch);
-                p1.update(states, column);
-                double value = Math.abs(p1.eval() * PerUnit.SB);
+                ClosedBranchSide1DcFlowEquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
+                double value = Math.abs(p1.calculate(states, column) * PerUnit.SB);
                 sensitivityValues.add(new SensitivityValue(injectionFactor, value, 0, 0));
             }
             column++;

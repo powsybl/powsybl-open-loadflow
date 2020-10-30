@@ -156,6 +156,15 @@ public class EquationSystem {
         return equationTermsBySubject.getOrDefault(subject, Collections.emptyList());
     }
 
+    public <T extends EquationTerm> T getEquationTerm(SubjectType subjectType, int subjectNum, Class<T> clazz) {
+        return getEquationTerms(subjectType, subjectNum)
+                .stream()
+                .filter(term -> clazz.isAssignableFrom(term.getClass()))
+                .map(clazz::cast)
+                .findFirst()
+                .orElseThrow(() -> new PowsyblException("Equation term not found"));
+    }
+
     public Equation createEquation(int num, EquationType type) {
         Pair<Integer, EquationType> p = Pair.of(num, type);
         Equation equation = equations.get(p);
