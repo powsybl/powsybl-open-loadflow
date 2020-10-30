@@ -123,7 +123,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     private JacobianMatrix createJacobianMatrix(EquationSystem equationSystem, OpenSensitivityAnalysisParameters sensiParametersExt) {
         // initialize state vector with base case voltages or nominal voltages
         VoltageInitializer voltageInitializer = sensiParametersExt.isUseBaseCaseVoltage() ? new PreviousValueVoltageInitializer()
-                : new UniformValueVoltageInitializer();
+                                                                                          : new UniformValueVoltageInitializer();
         double[] x = equationSystem.createStateVector(voltageInitializer);
         equationSystem.updateEquations(x);
         return JacobianMatrix.create(equationSystem, matrixFactory);
@@ -213,22 +213,22 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     }
 
     private Map<SensitivityVariableConfiguration, List<SensitivityFactor<?, ?>>> indexFactorsByVariableConfig(Network network, List<SensitivityFactor> factors) {
-        Map<SensitivityVariableConfiguration, List<SensitivityFactor<?, ?>>> factorsByConfiguration = new LinkedHashMap<>(factors.size());
+        Map<SensitivityVariableConfiguration, List<SensitivityFactor<?, ?>>> factorsByVarConfig = new LinkedHashMap<>(factors.size());
         for (SensitivityFactor<?, ?> factor : factors) {
             if (factor instanceof BranchFlowPerInjectionIncrease) {
                 BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
                 Injection<?> injection = getInjection(network, injectionFactor.getVariable().getInjectionId());
                 Bus bus = injection.getTerminal().getBusView().getBus();
                 if (bus != null) {
-                    SensitivityVariableConfiguration configuration = new SensitivityVariableConfiguration(Collections.singleton(bus.getId()));
-                    factorsByConfiguration.computeIfAbsent(configuration, k -> new ArrayList<>())
+                    SensitivityVariableConfiguration varConfig = new SensitivityVariableConfiguration(Collections.singleton(bus.getId()));
+                    factorsByVarConfig.computeIfAbsent(varConfig, k -> new ArrayList<>())
                             .add(injectionFactor);
                 }
             } else {
                 throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
             }
         }
-        return factorsByConfiguration;
+        return factorsByVarConfig;
     }
 
     public List<SensitivityValue> runDc(Network network, List<SensitivityFactor> factors, OpenLoadFlowParameters lfParametersExt,
