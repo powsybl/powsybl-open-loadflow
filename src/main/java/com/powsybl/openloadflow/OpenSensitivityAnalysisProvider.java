@@ -18,6 +18,7 @@ import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ActiveFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
@@ -33,7 +34,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * http://www.montefiore.ulg.ac.be/~vct/elec0029/lf.pdf
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -107,7 +107,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }
     }
 
-    private List<SensitivityValue> calculateSensitivityValues(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, List<SensitivityFactor<?, ?>>> factorsByVarConfig, DenseMatrix states) {
+    private List<SensitivityValue> calculateDcSensitivityValues(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, List<SensitivityFactor<?, ?>>> factorsByVarConfig, DenseMatrix states) {
         List<SensitivityValue> sensitivityValues = new ArrayList<>();
 
         int column = 0;
@@ -139,7 +139,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return transposedRhs; // rhs now contains state matrix
     }
 
-    private DenseMatrix initTransposedRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, List<SensitivityFactor<?, ?>>> factorsByVarConfig) {
+    private DenseMatrix initDcTransposedRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, List<SensitivityFactor<?, ?>>> factorsByVarConfig) {
         DenseMatrix transposedRhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), factorsByVarConfig.size());
         int row = 0;
         for (Map.Entry<SensitivityVariableConfiguration, List<SensitivityFactor<?, ?>>> e : factorsByVarConfig.entrySet()) {
@@ -198,7 +198,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }
 
         // initialize right hand side
-        DenseMatrix transposedRhs = initTransposedRhs(lfNetwork, equationSystem, factorsByVarConfig);
+        DenseMatrix transposedRhs = initDcTransposedRhs(lfNetwork, equationSystem, factorsByVarConfig);
 
         // create jacobian matrix
         // initialize state vector with base case voltages or nominal voltages
@@ -210,11 +210,14 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         DenseMatrix states = solve(transposedRhs, j);
 
         // calculate sensitivity values
-        return calculateSensitivityValues(lfNetwork, equationSystem, factorsByVarConfig, states);
+        return calculateDcSensitivityValues(lfNetwork, equationSystem, factorsByVarConfig, states);
     }
 
+    /**
+     * http://www.montefiore.ulg.ac.be/~vct/elec0029/lf.pdf
+     */
     private SensitivityValue calculateAcSensitivityValue(Network network, LfNetwork lfNetwork, EquationSystem equationSystem,
-                                               JacobianMatrix j, String branchId, String injectionId, SensitivityFactor factor) {
+                                                         JacobianMatrix j, String branchId, String injectionId, SensitivityFactor<?, ?> factor) {
         LfBranch branch = lfNetwork.getBranchById(branchId);
         if (branch == null) {
             throw new IllegalArgumentException("Branch '" + branchId + "' not found");
@@ -241,9 +244,13 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }
 
         double[] rhs = new double[equationSystem.getSortedEquationsToSolve().size()];
-        EquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, branch.getNum(), ClosedBranchSide1ActiveFlowEquationTerm.class);
-        for (Variable variable : p1.getVariables()) {
-            rhs[variable.getRow()] = p1.der(variable);
+        // compute sensitivity regarding side with positive active power flow
+        EquationTerm p = equationSystem.getEquationTerm(SubjectType.BRANCH, branch.getNum(), ClosedBranchSide1ActiveFlowEquationTerm.class);
+        if (p.eval() < 0) {
+            p = equationSystem.getEquationTerm(SubjectType.BRANCH, branch.getNum(), ClosedBranchSide2ActiveFlowEquationTerm.class);
+        }
+        for (Variable variable : p.getVariables()) {
+            rhs[variable.getRow()] = p.der(variable);
         }
 
         try (LUDecomposition lu = j.decomposeLU()) {
