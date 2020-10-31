@@ -18,7 +18,6 @@ import com.powsybl.tools.PowsyblCoreVersion;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -29,14 +28,11 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
     private static final String NAME = "OpenSensitivityAnalysis";
 
-    private final MatrixFactory matrixFactory;
-
     private final DcSensitivityAnalysis dcSensitivityAnalysis;
 
     private final AcSensitivityAnalysis acSensitivityAnalysis;
 
     public OpenSensitivityAnalysisProvider(MatrixFactory matrixFactory) {
-        this.matrixFactory = Objects.requireNonNull(matrixFactory);
         dcSensitivityAnalysis = new DcSensitivityAnalysis(matrixFactory);
         acSensitivityAnalysis = new AcSensitivityAnalysis(matrixFactory);
     }
