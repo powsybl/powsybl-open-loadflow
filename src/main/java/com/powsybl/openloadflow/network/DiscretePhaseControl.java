@@ -21,7 +21,7 @@ public class DiscretePhaseControl {
     public enum Mode {
         CONTROLLER,
         LIMITER,
-        OFF;
+        OFF
     }
 
     public enum Unit {

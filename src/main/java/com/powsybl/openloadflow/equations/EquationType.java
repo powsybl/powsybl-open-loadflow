@@ -16,6 +16,7 @@ public enum EquationType {
     BUS_PHI("\u03C6", SubjectType.BUS),
     BRANCH_P("t", SubjectType.BRANCH),
     BRANCH_I("i", SubjectType.BRANCH),
+    BRANCH_ALPHA1("\u03B1" + "1", SubjectType.BRANCH),
     ZERO_Q("z_q", SubjectType.BUS),
     ZERO_V("z_v", SubjectType.BRANCH),
     ZERO_PHI("z_\u03C6", SubjectType.BRANCH);

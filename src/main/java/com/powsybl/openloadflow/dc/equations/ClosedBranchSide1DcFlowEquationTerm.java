@@ -23,19 +23,22 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
 
     private double p1;
 
-    private ClosedBranchSide1DcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet) {
-        super(branch, bus1, bus2, variableSet);
+    private double rhs;
+
+    private ClosedBranchSide1DcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet, boolean deriveA1) {
+        super(branch, bus1, bus2, variableSet, deriveA1);
     }
 
-    public static ClosedBranchSide1DcFlowEquationTerm create(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet) {
+    public static ClosedBranchSide1DcFlowEquationTerm create(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
+                                                             boolean deriveA1) {
         Objects.requireNonNull(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);
-        return new ClosedBranchSide1DcFlowEquationTerm(branch, bus1, bus2, variableSet);
+        return new ClosedBranchSide1DcFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
     }
 
-    private double calculate(double ph1, double ph2) {
+    private double calculate(double ph1, double ph2, double a1) {
         double deltaPhase =  ph2 - ph1 + A2 - a1;
         return -power * deltaPhase;
     }
@@ -44,7 +47,8 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
         Objects.requireNonNull(x);
         double ph1 = x.get(ph1Var.getRow(), column);
         double ph2 = x.get(ph2Var.getRow(), column);
-        return calculate(ph1, ph2);
+        double a1 = a1Var != null ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
+        return calculate(ph1, ph2, a1);
     }
 
     @Override
@@ -52,7 +56,9 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
         Objects.requireNonNull(x);
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
-        p1 = calculate(ph1, ph2);
+        double a1 = a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1();
+        p1 = calculate(ph1, ph2, a1);
+        rhs = -power * (A2 - a1);
     }
 
     @Override
@@ -67,6 +73,8 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
             return power;
         } else if (variable.equals(ph2Var)) {
             return -power;
+        } else if (variable.equals(a1Var)) {
+            return power;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
@@ -74,7 +82,7 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
 
     @Override
     public double rhs() {
-        return -power * (A2 - a1);
+        return rhs;
     }
 
     @Override

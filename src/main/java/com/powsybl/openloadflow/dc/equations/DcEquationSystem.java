@@ -68,15 +68,20 @@ public final class DcEquationSystem {
     }
 
     private static void createImpedantBranch(VariableSet variableSet, boolean updateFlows, EquationSystem equationSystem,
-                                             LfBranch branch, LfBus bus1, LfBus bus2) {
+                                             LfBranch branch, LfBus bus1, LfBus bus2, boolean forceCreateA1) {
         if (bus1 != null && bus2 != null) {
-            ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, variableSet);
-            ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet);
+            boolean deriveA1 = forceCreateA1 && branch.getDiscretePhaseControl() != null;
+            ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, deriveA1);
+            ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, deriveA1);
             equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
             if (updateFlows) {
                 branch.setP1(p1);
                 branch.setP2(p2);
+            }
+            if (deriveA1) {
+                equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_ALPHA1)
+                        .addTerm(new BranchA1EquationTerm(branch, variableSet));
             }
         } else if (bus1 != null) {
             if (updateFlows) {
@@ -89,7 +94,8 @@ public final class DcEquationSystem {
         }
     }
 
-    private static void createBranches(LfNetwork network, VariableSet variableSet, boolean updateFlows, EquationSystem equationSystem) {
+    private static void createBranches(LfNetwork network, VariableSet variableSet, boolean updateFlows, EquationSystem equationSystem,
+                                       boolean forceCreateA1) {
         List<LfBranch> nonImpedantBranches = new ArrayList<>();
 
         for (LfBranch branch : network.getBranches()) {
@@ -101,7 +107,7 @@ public final class DcEquationSystem {
                     nonImpedantBranches.add(branch);
                 }
             } else {
-                createImpedantBranch(variableSet, updateFlows, equationSystem, branch, bus1, bus2);
+                createImpedantBranch(variableSet, updateFlows, equationSystem, branch, bus1, bus2, forceCreateA1);
             }
         }
 
@@ -122,14 +128,15 @@ public final class DcEquationSystem {
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean updateFlows) {
-        return create(network, variableSet, updateFlows, false);
+        return create(network, variableSet, updateFlows, false, false);
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean updateFlows, boolean indexTerms) {
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean updateFlows, boolean indexTerms,
+                                        boolean forceCreateA1) {
         EquationSystem equationSystem = new EquationSystem(network, indexTerms);
 
         createBuses(network, variableSet, equationSystem);
-        createBranches(network, variableSet, updateFlows, equationSystem);
+        createBranches(network, variableSet, updateFlows, equationSystem, forceCreateA1);
 
         return equationSystem;
     }
