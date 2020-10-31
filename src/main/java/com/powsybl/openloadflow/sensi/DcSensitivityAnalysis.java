@@ -35,14 +35,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         private final Set<String> busIds;
 
-        public SensitivityVariableConfiguration(Set<String> busIds) {
+        SensitivityVariableConfiguration(Set<String> busIds) {
             this.busIds = Objects.requireNonNull(busIds);
             if (busIds.isEmpty()) {
                 throw new IllegalArgumentException("Bus ID list is empty");
             }
         }
 
-        public Set<String> getBusIds() {
+        Set<String> getBusIds() {
             return busIds;
         }
 
@@ -64,66 +64,94 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
     }
 
+    static class SensitivityFactorGroup {
+
+        private final List<SensitivityFactor<?, ?>> factors = new ArrayList<>();
+
+        private int index = -1;
+
+        List<SensitivityFactor<?, ?>> getFactors() {
+            return factors;
+        }
+
+        int getIndex() {
+            return index;
+        }
+
+        void setIndex(int index) {
+            this.index = index;
+        }
+    }
+
     public DcSensitivityAnalysis(MatrixFactory matrixFactory) {
         super(matrixFactory);
     }
 
-    private List<SensitivityValue> calculateSensitivityValues(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, List<SensitivityFactor<?, ?>>> factorsByVarConfig, DenseMatrix states) {
+    private List<SensitivityValue> calculateSensitivityValues(LfNetwork lfNetwork, EquationSystem equationSystem,
+                                                              Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig, DenseMatrix states) {
         List<SensitivityValue> sensitivityValues = new ArrayList<>();
 
-        int column = 0;
-        for (Map.Entry<SensitivityVariableConfiguration, List<SensitivityFactor<?, ?>>> e : factorsByVarConfig.entrySet()) {
-            for (SensitivityFactor<?, ?> factor : e.getValue()) {
+        for (Map.Entry<SensitivityVariableConfiguration, SensitivityFactorGroup> e : factorsByVarConfig.entrySet()) {
+            SensitivityFactorGroup factorGroup = e.getValue();
+            for (SensitivityFactor<?, ?> factor : factorGroup.getFactors()) {
                 if (factor instanceof BranchFlowPerInjectionIncrease) {
                     BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
                     LfBranch lfBranch = lfNetwork.getBranchById(injectionFactor.getFunction().getBranchId());
                     ClosedBranchSide1DcFlowEquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-                    double value = Math.abs(p1.calculate(states, column) * PerUnit.SB);
+                    double value = Math.abs(p1.calculate(states, factorGroup.getIndex()) * PerUnit.SB);
                     sensitivityValues.add(new SensitivityValue(injectionFactor, value, 0, 0));
                 } else {
                     throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
                 }
             }
-            column++;
         }
 
         return sensitivityValues;
     }
 
-    private DenseMatrix initTransposedRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, List<SensitivityFactor<?, ?>>> factorsByVarConfig) {
+    private DenseMatrix initTransposedRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig) {
         DenseMatrix transposedRhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), factorsByVarConfig.size());
-        int row = 0;
-        for (Map.Entry<SensitivityVariableConfiguration, List<SensitivityFactor<?, ?>>> e : factorsByVarConfig.entrySet()) {
+        for (Map.Entry<SensitivityVariableConfiguration, SensitivityFactorGroup> e : factorsByVarConfig.entrySet()) {
             SensitivityVariableConfiguration configuration = e.getKey();
+            SensitivityFactorGroup factorGroup = e.getValue();
             for (String busId : configuration.getBusIds()) {
                 LfBus lfBus = lfNetwork.getBusById(busId);
                 if (lfBus.isSlack()) {
                     throw new PowsyblException("Cannot analyse sensitivity of slack bus");
                 }
                 Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                transposedRhs.set(p.getColumn(), row, 1d / PerUnit.SB);
+                transposedRhs.set(p.getColumn(), factorGroup.getIndex(), 1d / PerUnit.SB);
             }
-            row++;
         }
         return transposedRhs;
     }
 
-    private Map<SensitivityVariableConfiguration, List<SensitivityFactor<?, ?>>> indexFactorsByVariableConfig(Network network, List<SensitivityFactor> factors) {
-        Map<SensitivityVariableConfiguration, List<SensitivityFactor<?, ?>>> factorsByVarConfig = new LinkedHashMap<>(factors.size());
+    private Map<SensitivityVariableConfiguration, SensitivityFactorGroup> indexFactorsByVariableConfig(Network network, List<SensitivityFactor> factors) {
+        Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = new LinkedHashMap<>(factors.size());
+
+        // index factors by variable config
         for (SensitivityFactor<?, ?> factor : factors) {
             if (factor instanceof BranchFlowPerInjectionIncrease) {
                 BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
                 Injection<?> injection = getInjection(network, injectionFactor.getVariable().getInjectionId());
                 Bus bus = injection.getTerminal().getBusView().getBus();
+                // skip disconnected injections
                 if (bus != null) {
                     SensitivityVariableConfiguration varConfig = new SensitivityVariableConfiguration(Collections.singleton(bus.getId()));
-                    factorsByVarConfig.computeIfAbsent(varConfig, k -> new ArrayList<>())
-                            .add(injectionFactor);
+                    factorsByVarConfig.computeIfAbsent(varConfig, k -> new SensitivityFactorGroup())
+                            .getFactors().add(injectionFactor);
                 }
             } else {
                 throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
             }
         }
+
+        // assign an index to each factor group
+        int index = 0;
+        for (SensitivityFactorGroup factorGroup : factorsByVarConfig.values()) {
+            factorGroup.setIndex(index++);
+        }
+
         return factorsByVarConfig;
     }
 
@@ -142,7 +170,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet(), false, true);
 
         // index factors by variable configuration to compute minimal number of DC state
-        Map<SensitivityVariableConfiguration, List<SensitivityFactor<?, ?>>> factorsByVarConfig
+        Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig
                 = indexFactorsByVariableConfig(network, factors);
         if (factorsByVarConfig.isEmpty()) {
             return Collections.emptyList();
