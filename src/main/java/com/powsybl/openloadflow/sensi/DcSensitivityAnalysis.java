@@ -16,6 +16,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -96,6 +97,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         super(matrixFactory);
     }
 
+    private SensitivityValue createBranchSensitivityValue(LfNetwork lfNetwork, EquationSystem equationSystem, String branchId,
+                                                          SensitivityFactor<?, ?> factor, SensitivityFactorGroup factorGroup,
+                                                          DenseMatrix states) {
+        LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+        ClosedBranchSide1DcFlowEquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
+        double value = Math.abs(p1.calculate(states, factorGroup.getIndex()) * PerUnit.SB);
+        return new SensitivityValue(factor, value, 0, 0);
+    }
+
     private List<SensitivityValue> calculateSensitivityValues(LfNetwork lfNetwork, EquationSystem equationSystem,
                                                               Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig, DenseMatrix states) {
         List<SensitivityValue> sensitivityValues = new ArrayList<>();
@@ -105,16 +115,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             for (SensitivityFactor<?, ?> factor : factorGroup.getFactors()) {
                 if (factor instanceof BranchFlowPerInjectionIncrease) {
                     BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
-                    LfBranch lfBranch = lfNetwork.getBranchById(injectionFactor.getFunction().getBranchId());
-                    ClosedBranchSide1DcFlowEquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-                    double value = Math.abs(p1.calculate(states, factorGroup.getIndex()) * PerUnit.SB);
-                    sensitivityValues.add(new SensitivityValue(injectionFactor, value, 0, 0));
+                    sensitivityValues.add(createBranchSensitivityValue(lfNetwork, equationSystem, injectionFactor.getFunction().getBranchId(),
+                                                                       factor, factorGroup, states));
                 }  else if (factor instanceof BranchFlowPerPSTAngle) {
                     BranchFlowPerPSTAngle pstAngleFactor = (BranchFlowPerPSTAngle) factor;
-                    LfBranch lfBranch = lfNetwork.getBranchById(pstAngleFactor.getFunction().getBranchId());
-                    ClosedBranchSide1DcFlowEquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-                    double value = Math.abs(p1.calculate(states, factorGroup.getIndex()) * PerUnit.SB);
-                    sensitivityValues.add(new SensitivityValue(pstAngleFactor, value, 0, 0));
+                    sensitivityValues.add(createBranchSensitivityValue(lfNetwork, equationSystem, pstAngleFactor.getFunction().getBranchId(),
+                                                                       factor, factorGroup, states));
                 } else {
                     throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
                 }
@@ -197,7 +203,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         LfNetwork lfNetwork = lfNetworks.get(0);
 
         // create DC equation system
-        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet(), false, true, true);
+        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet(), new DcEquationSystemCreationParameters(false, true, true));
 
         // index factors by variable configuration to compute minimal number of DC state
         Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig

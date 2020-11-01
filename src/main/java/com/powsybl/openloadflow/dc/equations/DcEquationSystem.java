@@ -67,35 +67,36 @@ public final class DcEquationSystem {
         }
     }
 
-    private static void createImpedantBranch(VariableSet variableSet, boolean updateFlows, EquationSystem equationSystem,
-                                             LfBranch branch, LfBus bus1, LfBus bus2, boolean forceCreateA1) {
+    private static void createImpedantBranch(VariableSet variableSet, EquationSystem equationSystem,
+                                             DcEquationSystemCreationParameters creationParameters, LfBranch branch,
+                                             LfBus bus1, LfBus bus2) {
         if (bus1 != null && bus2 != null) {
-            boolean deriveA1 = forceCreateA1 && branch.getDiscretePhaseControl() != null;
+            boolean deriveA1 = creationParameters.isForcePhaseControlOffAndAddAngle1Var() && branch.getDiscretePhaseControl() != null;
             ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, deriveA1);
             ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, deriveA1);
             equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
-            if (updateFlows) {
-                branch.setP1(p1);
-                branch.setP2(p2);
-            }
             if (deriveA1) {
                 equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_ALPHA1)
                         .addTerm(new BranchA1EquationTerm(branch, variableSet));
             }
+            if (creationParameters.isUpdateFlows()) {
+                branch.setP1(p1);
+                branch.setP2(p2);
+            }
         } else if (bus1 != null) {
-            if (updateFlows) {
+            if (creationParameters.isUpdateFlows()) {
                 branch.setP1(EvaluableConstants.ZERO);
             }
         } else if (bus2 != null) {
-            if (updateFlows) {
+            if (creationParameters.isUpdateFlows()) {
                 branch.setP2(EvaluableConstants.ZERO);
             }
         }
     }
 
-    private static void createBranches(LfNetwork network, VariableSet variableSet, boolean updateFlows, EquationSystem equationSystem,
-                                       boolean forceCreateA1) {
+    private static void createBranches(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem,
+                                       DcEquationSystemCreationParameters creationParameters) {
         List<LfBranch> nonImpedantBranches = new ArrayList<>();
 
         for (LfBranch branch : network.getBranches()) {
@@ -107,7 +108,7 @@ public final class DcEquationSystem {
                     nonImpedantBranches.add(branch);
                 }
             } else {
-                createImpedantBranch(variableSet, updateFlows, equationSystem, branch, bus1, bus2, forceCreateA1);
+                createImpedantBranch(variableSet, equationSystem, creationParameters, branch, bus1, bus2);
             }
         }
 
@@ -128,15 +129,18 @@ public final class DcEquationSystem {
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean updateFlows) {
-        return create(network, variableSet, updateFlows, false, false);
+        return create(network, variableSet, new DcEquationSystemCreationParameters(updateFlows, false, false));
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean updateFlows, boolean indexTerms,
-                                        boolean forceCreateA1) {
-        EquationSystem equationSystem = new EquationSystem(network, indexTerms);
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean updateFlows, boolean indexTerms) {
+        return create(network, variableSet, new DcEquationSystemCreationParameters(updateFlows, indexTerms, false));
+    }
+
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet, DcEquationSystemCreationParameters creationParameters) {
+        EquationSystem equationSystem = new EquationSystem(network, creationParameters.isIndexTerms());
 
         createBuses(network, variableSet, equationSystem);
-        createBranches(network, variableSet, updateFlows, equationSystem, forceCreateA1);
+        createBranches(network, variableSet, equationSystem, creationParameters);
 
         return equationSystem;
     }
