@@ -46,13 +46,23 @@ abstract class AbstractSensitivityAnalysis {
         return JacobianMatrix.create(equationSystem, matrixFactory);
     }
 
-    protected DenseMatrix solve(DenseMatrix transposedRhs, JacobianMatrix j) {
+    protected DenseMatrix solve(DenseMatrix rhs, JacobianMatrix j) {
         try {
             LUDecomposition lu = j.decomposeLU();
-            lu.solveTransposed(transposedRhs);
+            lu.solve(rhs);
         } finally {
             j.cleanLU();
         }
-        return transposedRhs; // rhs now contains state matrix
+        return rhs; // rhs now contains state matrix
+    }
+
+    protected DenseMatrix solveTransposed(DenseMatrix rhs, JacobianMatrix j) {
+        try {
+            LUDecomposition lu = j.decomposeLU();
+            lu.solveTransposed(rhs);
+        } finally {
+            j.cleanLU();
+        }
+        return rhs; // rhs now contains state matrix
     }
 }

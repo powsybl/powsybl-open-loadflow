@@ -222,7 +222,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer);
 
         // solve system
-        DenseMatrix states = solve(rhs, j);
+        DenseMatrix states = solveTransposed(rhs, j);
 
         // calculate sensitivity values
         return calculateSensitivityValues(lfNetwork, equationSystem, factorsByVarConfig, states);

@@ -120,7 +120,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 LfBus lfBus = lfNetwork.getBusById(bus.getId());
 
                 Equation injEq = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                double value = states.get(index, injEq.getColumn()) * PerUnit.SB;
+                double value = states.get(injEq.getColumn(), index);
                 sensitivityValues.add(new SensitivityValue(factor, value, Double.NaN, Double.NaN));
             }
         }
@@ -155,8 +155,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         // solve system
         DenseMatrix states = solve(rhs, j);
-
-        states.print(System.out);
 
         // calculate sensitivity values
         return calculateSensitivityValues(network, factors, lfNetwork, equationSystem, states);
