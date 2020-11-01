@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.google.auto.service.AutoService;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Network;
@@ -24,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
+@AutoService(SensitivityAnalysisProvider.class)
 public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvider {
 
     private static final String NAME = "OpenSensitivityAnalysis";
@@ -69,6 +71,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                                                             ContingenciesProvider contingenciesProvider,
                                                             SensitivityAnalysisParameters sensitivityAnalysisParameters,
                                                             ComputationManager computationManager) {
+        if (!contingenciesProvider.getContingencies(network).isEmpty()) {
+            throw new UnsupportedOperationException("Contingencies not yet supported");
+        }
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
