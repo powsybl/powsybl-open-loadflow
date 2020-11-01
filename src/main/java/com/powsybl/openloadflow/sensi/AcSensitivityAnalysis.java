@@ -20,7 +20,6 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
