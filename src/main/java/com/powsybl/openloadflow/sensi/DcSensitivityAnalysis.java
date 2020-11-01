@@ -107,7 +107,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     }
 
     private List<SensitivityValue> calculateSensitivityValues(LfNetwork lfNetwork, EquationSystem equationSystem,
-                                                              Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig, DenseMatrix states) {
+                                                              Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig,
+                                                              DenseMatrix states) {
         List<SensitivityValue> sensitivityValues = new ArrayList<>();
 
         for (Map.Entry<SensitivityVariableConfiguration, SensitivityFactorGroup> e : factorsByVarConfig.entrySet()) {
@@ -130,8 +131,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return sensitivityValues;
     }
 
-    private DenseMatrix initTransposedRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig) {
-        DenseMatrix transposedRhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), factorsByVarConfig.size());
+    private DenseMatrix initRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig) {
+        DenseMatrix rhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), factorsByVarConfig.size());
         for (Map.Entry<SensitivityVariableConfiguration, SensitivityFactorGroup> e : factorsByVarConfig.entrySet()) {
             SensitivityVariableConfiguration configuration = e.getKey();
             SensitivityFactorGroup factorGroup = e.getValue();
@@ -141,15 +142,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     throw new PowsyblException("Cannot analyse sensitivity of slack bus");
                 }
                 Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                transposedRhs.set(p.getColumn(), factorGroup.getIndex(), 1d / PerUnit.SB);
+                rhs.set(p.getColumn(), factorGroup.getIndex(), 1d / PerUnit.SB);
             }
             for (String phaseTapChangerHolderId : configuration.getPhaseTapChangerHolderIds()) {
                 LfBranch lfBranch = lfNetwork.getBranchById(phaseTapChangerHolderId);
                 Equation a1 = equationSystem.getEquation(lfBranch.getNum(), EquationType.BRANCH_ALPHA1).orElseThrow(IllegalStateException::new);
-                transposedRhs.set(a1.getColumn(), factorGroup.getIndex(), Math.toRadians(1d));
+                rhs.set(a1.getColumn(), factorGroup.getIndex(), Math.toRadians(1d));
             }
         }
-        return transposedRhs;
+        return rhs;
     }
 
     private Map<SensitivityVariableConfiguration, SensitivityFactorGroup> indexFactorsByVariableConfig(Network network, List<SensitivityFactor> factors) {
@@ -213,17 +214,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
 
         // initialize right hand side
-        DenseMatrix transposedRhs = initTransposedRhs(lfNetwork, equationSystem, factorsByVarConfig);
+        DenseMatrix rhs = initRhs(lfNetwork, equationSystem, factorsByVarConfig);
 
-        // initialize state vector with base case voltages or nominal voltages
+        // create jacobian matrix either using base network calculated voltages or nominal voltages
         VoltageInitializer voltageInitializer = sensiParametersExt.isUseBaseCaseVoltage() ? new PreviousValueVoltageInitializer()
                                                                                           : new UniformValueVoltageInitializer();
-
-        // create jacobian matrix
         JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer);
 
         // solve system
-        DenseMatrix states = solve(transposedRhs, j);
+        DenseMatrix states = solve(rhs, j);
 
         // calculate sensitivity values
         return calculateSensitivityValues(lfNetwork, equationSystem, factorsByVarConfig, states);
