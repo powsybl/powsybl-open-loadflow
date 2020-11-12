@@ -28,7 +28,7 @@ public class LfDanglingLineBus extends AbstractLfBus {
         DanglingLine.Generation generation = danglingLine.getGeneration();
         if (generation != null) {
             if (generation.isVoltageRegulationOn()) {
-                this.targetV = generation.getTargetV();
+                this.targetV = generation.getTargetV() / nominalV;
                 this.voltageControl = true;
                 this.voltageControlCapacility = true;
             } else {

@@ -8,8 +8,10 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import net.jafama.FastMath;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -28,6 +30,8 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetworkLoaderImpl.class);
+
+    private static final double TARGET_V_EPSILON = 1e-2;
 
     private static class LoadingContext {
 
@@ -50,12 +54,58 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     private static void createVoltageControls(LfNetwork lfNetwork, List<AbstractLfBus> lfBuses, boolean voltageRemoteControl, boolean breakers) {
         // set controller -> controlled link
         for (AbstractLfBus controllerBus : lfBuses) {
+
+            LfBus controlledBus = null;
+            double controllerTargetV = Double.NaN;
+
             for (LfGenerator lfGenerator : controllerBus.getGenerators()) {
-                LfBus controlledBus = lfNetwork.getBusById(lfGenerator.getControlledBusId(breakers));
-                if (voltageRemoteControl && lfGenerator.hasVoltageControl() && controlledBus != controllerBus) {
-                    controllerBus.setControlledBus((LfBusImpl) controlledBus);
+                LfBus controlledBusGen = lfNetwork.getBusById(lfGenerator.getControlledBusId(breakers));
+
+                // check that remote control bus is the same for all generators of current controller bus
+                checkControlledBusUnicity(controlledBus, controlledBusGen, controllerBus);
+
+                // check target voltage
+                checkGeneratorTargetV(lfGenerator, controllerTargetV,
+                    controllerBus, controlledBusGen, voltageRemoteControl);
+                controllerTargetV = lfGenerator.getTargetV();
+
+                if (voltageRemoteControl && lfGenerator.hasVoltageControl() && controlledBusGen != controllerBus) {
+                    controlledBus = controlledBusGen;
                 }
             }
+
+            controllerBus.setTargetV(controllerTargetV);
+            if (controlledBus != null) {
+                controllerBus.setControlledBus((LfBusImpl) controlledBus);
+            }
+        }
+    }
+
+    private static void checkControlledBusUnicity(LfBus controlledBus, LfBus controlledBusGen, LfBus controller) {
+        Objects.requireNonNull(controlledBusGen);
+        if (controlledBus != null && controlledBus.getNum() != controlledBusGen.getNum()) {
+            String generatorIds = controller.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
+            throw new PowsyblException("Generators [" + generatorIds
+                + "] connected to bus '" + controller.getId() + "' must control the voltage of the same bus");
+        }
+    }
+
+    private static void checkGeneratorTargetV(LfGenerator lfGenerator, double previousTargetV, LfBus controllerBus,
+                                              LfBus controlledBus, boolean voltageRemoteControl) {
+        double targetV = lfGenerator.getTargetV();
+        if (!Double.isNaN(previousTargetV) && FastMath.abs(previousTargetV - targetV) > TARGET_V_EPSILON) {
+            String generatorIds = controllerBus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
+            throw new PowsyblException("Generators [" + generatorIds + "] are connected to the same bus '" + controllerBus.getId()
+                + "' with a different target voltages: " + targetV * controlledBus.getNominalV() + " and " + previousTargetV * controlledBus.getNominalV());
+        }
+        if (voltageRemoteControl && controlledBus != controllerBus) {
+            double remoteNominalV = controlledBus.getNominalV();
+            double localNominalV = controllerBus.getNominalV();
+            double scaleV = localNominalV / remoteNominalV;
+            double updatedTargetV = lfGenerator.getTargetV() * scaleV;
+            LOGGER.warn("Remote voltage control is not activated. The voltage target of " +
+                    "{} ({}) with remote control is rescaled from {} to {}",
+                controllerBus.getId(), lfGenerator.getClass().getSimpleName(), lfGenerator.getTargetV(), updatedTargetV);
         }
     }
 
@@ -88,26 +138,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 loadingContext.t3wtSet.add(transformer);
             }
 
-            private double checkVoltageRemoteControl(Injection injection, Terminal regulatingTerminal, double previousTargetV) {
-                double scaleV = 1;
-                Bus controlledBus = getBus(regulatingTerminal, breakers);
-                Bus connectedBus = getBus(injection.getTerminal(), breakers);
-                if (controlledBus != null && connectedBus != null
-                    && controlledBus != connectedBus && !voltageRemoteControl) {
-                    double remoteNominalV = regulatingTerminal.getVoltageLevel().getNominalV();
-                    double localNominalV = injection.getTerminal().getVoltageLevel().getNominalV();
-                    scaleV = localNominalV / remoteNominalV;
-                    LOGGER.warn("Remote voltage control is not activated. The voltage target of " +
-                            "{} ({}) with remote control is rescaled from {} to {}",
-                        injection.getId(), injection.getType(), previousTargetV, previousTargetV * scaleV);
-                }
-                return scaleV;
-            }
-
             @Override
             public void visitGenerator(Generator generator) {
-                double scaleV = checkVoltageRemoteControl(generator, generator.getRegulatingTerminal(), generator.getTargetV());
-                lfBus.addGenerator(generator, scaleV, report);
+                lfBus.addGenerator(generator, report);
                 if (generator.isVoltageRegulatorOn()) {
                     report.voltageControllerCount++;
                 }
@@ -134,9 +167,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
             @Override
             public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
-                double scaleV = checkVoltageRemoteControl(staticVarCompensator, staticVarCompensator.getRegulatingTerminal(),
-                        staticVarCompensator.getVoltageSetPoint());
-                lfBus.addStaticVarCompensator(staticVarCompensator, scaleV, report);
+                lfBus.addStaticVarCompensator(staticVarCompensator, report);
                 if (staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
                     report.voltageControllerCount++;
                 }

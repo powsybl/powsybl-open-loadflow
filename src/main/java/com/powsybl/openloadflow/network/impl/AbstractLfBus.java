@@ -145,15 +145,10 @@ public abstract class AbstractLfBus implements LfBus {
 
     public void setControlledBus(AbstractLfBus controlledBus) {
         Objects.requireNonNull(controlledBus);
-        // check that remote control bus is still the same
-        if (this.controlledBus != null && this.controlledBus.getNum() != controlledBus.getNum()) {
-            throw new PowsyblException("Generators " + getGeneratorIds()
-                    + " connected to bus '" + getId() + "' must control the voltage of the same bus");
-        }
 
         if (voltageControl) {
             // check that targetV has a plausible value (wrong nominal voltage issue)
-            double targetVPu = targetV / controlledBus.getNominalV();
+            double targetVPu = targetV;
             if (targetVPu < PlausibleValues.MIN_TARGET_VOLTAGE_PU || targetVPu > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
                 throw new PowsyblException("Controller bus '" + getId() + "' has an inconsistent remote target voltage: "
                         + targetVPu + " pu");
@@ -161,11 +156,12 @@ public abstract class AbstractLfBus implements LfBus {
 
             // check target voltage consistency between local and remote control
             if (controlledBus.isVoltageController()) { // controlled bus has also local voltage control
-                double localTargetV = controlledBus.getTargetV() * controlledBus.getNominalV();
-                if (FastMath.abs(this.targetV - localTargetV) > TARGET_V_EPSILON) {
+                double localTargetV = controlledBus.getTargetV();
+                double deltaTargetV = FastMath.abs(this.targetV - controlledBus.getTargetV());
+                if (deltaTargetV * controlledBus.getNominalV() > TARGET_V_EPSILON) {
                     throw new PowsyblException("Bus '" + controlledBus.getId()
                             + "' controlled by bus '" + getId() + "' has also a local voltage control with a different value: "
-                            + localTargetV + " and " + this.targetV);
+                            + localTargetV * controlledBus.getNominalV() + " and " + this.targetV * controlledBus.getNominalV());
                 }
             }
 
@@ -177,10 +173,11 @@ public abstract class AbstractLfBus implements LfBus {
                         .filter(LfBus::isVoltageController)
                         .findFirst()
                         .ifPresent(otherControllerBus -> {
-                            double otherTargetV = otherControllerBus.getTargetV() * controlledBus.getNominalV();
-                            if (FastMath.abs(otherTargetV - this.targetV) > TARGET_V_EPSILON) {
+                            double otherTargetV = otherControllerBus.getTargetV();
+                            double deltaTargetV = FastMath.abs(otherTargetV - this.targetV);
+                            if (deltaTargetV * controlledBus.getNominalV() > TARGET_V_EPSILON) {
                                 LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by at least the bus '{}' with a different target voltage: {} (kept) and {} (ignored)",
-                                        getId(), controlledBus.getId(), otherControllerBus.getId(), otherTargetV, this.targetV);
+                                        getId(), controlledBus.getId(), otherControllerBus.getId(), otherTargetV * controlledBus.getNominalV(), this.targetV * controlledBus.getNominalV());
                                 this.targetV = otherTargetV;
                             }
                         });
@@ -199,18 +196,6 @@ public abstract class AbstractLfBus implements LfBus {
     public void addControllerBus(LfBus controllerBus) {
         Objects.requireNonNull(controllerBus);
         controllerBuses.add(controllerBus);
-    }
-
-    private double checkTargetV(double targetV) {
-        if (!Double.isNaN(this.targetV) && FastMath.abs(this.targetV - targetV) > TARGET_V_EPSILON) {
-            throw new PowsyblException("Generators " + getGeneratorIds() + " are connected to the same bus '" + getId()
-                    + "' with a different target voltages: " + targetV + " and " + this.targetV);
-        }
-        return targetV;
-    }
-
-    private List<String> getGeneratorIds() {
-        return generators.stream().map(LfGenerator::getId).collect(Collectors.toList());
     }
 
     void addLoad(Load load) {
@@ -250,7 +235,7 @@ public abstract class AbstractLfBus implements LfBus {
         loadTargetQ += q;
     }
 
-    private void add(LfGenerator generator, boolean voltageControl, double targetV, double targetQ,
+    private void add(LfGenerator generator, boolean voltageControl, double targetQ,
                      LfNetworkLoadingReport report) {
         generators.add(generator);
         boolean modifiedVoltageControl = voltageControl;
@@ -268,7 +253,6 @@ public abstract class AbstractLfBus implements LfBus {
             modifiedVoltageControl = false;
         }
         if (modifiedVoltageControl) {
-            this.targetV = checkTargetV(targetV);
             this.voltageControl = true;
             this.voltageControlCapacility = true;
         } else {
@@ -278,23 +262,23 @@ public abstract class AbstractLfBus implements LfBus {
         }
     }
 
-    void addGenerator(Generator generator, double scaleV, LfNetworkLoadingReport report) {
-        add(LfGeneratorImpl.create(generator, report), generator.isVoltageRegulatorOn(), generator.getTargetV() * scaleV,
-                generator.getTargetQ(), report);
+    void addGenerator(Generator generator, LfNetworkLoadingReport report) {
+        add(LfGeneratorImpl.create(generator, report), generator.isVoltageRegulatorOn(),
+            generator.getTargetQ(), report);
     }
 
-    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, double scaleV, LfNetworkLoadingReport report) {
+    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, LfNetworkLoadingReport report) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
             add(LfStaticVarCompensatorImpl.create(staticVarCompensator),
                     staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE,
-                    staticVarCompensator.getVoltageSetPoint() * scaleV, -staticVarCompensator.getReactivePowerSetPoint(),
+                -staticVarCompensator.getReactivePowerSetPoint(),
                     report);
         }
     }
 
     void addVscConverterStation(VscConverterStation vscCs, LfNetworkLoadingReport report) {
-        add(LfVscConverterStationImpl.create(vscCs), vscCs.isVoltageRegulatorOn(), vscCs.getVoltageSetpoint(),
-                vscCs.getReactivePowerSetpoint(), report);
+        add(LfVscConverterStationImpl.create(vscCs), vscCs.isVoltageRegulatorOn(),
+            vscCs.getReactivePowerSetpoint(), report);
     }
 
     void addShuntCompensator(ShuntCompensator sc) {
@@ -360,7 +344,7 @@ public abstract class AbstractLfBus implements LfBus {
 
     @Override
     public double getTargetV() {
-        return targetV / (controlledBus != null ? controlledBus.getNominalV() : getNominalV());
+        return targetV;
     }
 
     @Override
@@ -485,4 +469,9 @@ public abstract class AbstractLfBus implements LfBus {
                     .setQ(q);
         }
     }
+
+    public void setTargetV(double targetV) { // FIXME: remove; only temporary added on the way to refactoring voltage remote control
+        this.targetV = targetV;
+    }
+
 }
