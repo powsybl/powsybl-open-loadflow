@@ -46,4 +46,6 @@ public interface LfGenerator {
     void setCalculatedQ(double calculatedQ);
 
     void updateState();
+
+    String getControlledBusId(boolean breakers);
 }

@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.MinMaxReactiveLimits;
-import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.iidm.network.ReactiveLimitsKind;
-import com.powsybl.iidm.network.StaticVarCompensator;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.PerUnit;
 
 import java.util.Objects;
@@ -112,6 +109,13 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
         return Optional.of(reactiveLimits);
+    }
+
+    @Override
+    public String getControlledBusId(boolean breakers) {
+        Terminal terminal = svc.getRegulatingTerminal();
+        Bus controlled = breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
+        return controlled.getId();
     }
 
     @Override

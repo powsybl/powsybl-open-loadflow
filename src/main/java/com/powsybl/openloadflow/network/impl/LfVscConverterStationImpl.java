@@ -6,9 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.HvdcLine;
-import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.iidm.network.VscConverterStation;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.PerUnit;
 
 import java.util.Objects;
@@ -91,6 +89,13 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
         return Optional.of(station.getReactiveLimits());
+    }
+
+    @Override
+    public String getControlledBusId(boolean breakers) {
+        Terminal terminal = station.getTerminal();
+        Bus controlled = breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
+        return controlled.getId();
     }
 
     @Override

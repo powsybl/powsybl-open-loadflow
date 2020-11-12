@@ -6,8 +6,10 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
+import com.powsybl.iidm.network.Terminal;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.openloadflow.network.PerUnit;
@@ -131,6 +133,13 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     @Override
     public double getParticipationFactor() {
         return participationFactor;
+    }
+
+    @Override
+    public String getControlledBusId(boolean breakers) {
+        Terminal terminal = generator.getRegulatingTerminal();
+        Bus controlled = breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
+        return controlled.getId();
     }
 
     @Override

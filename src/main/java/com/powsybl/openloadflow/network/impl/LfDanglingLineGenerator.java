@@ -82,6 +82,11 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
     }
 
     @Override
+    public String getControlledBusId(boolean breakers) {
+        return null; // Not available (no terminal in DanglingLine.Generation) but not used so far
+    }
+
+    @Override
     public void updateState() {
         // nothing to update
     }
