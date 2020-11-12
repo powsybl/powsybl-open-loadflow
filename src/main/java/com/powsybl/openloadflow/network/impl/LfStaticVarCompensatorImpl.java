@@ -24,6 +24,8 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     private final ReactiveLimits reactiveLimits;
 
+    private double targetV = Double.NaN;
+
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc) {
         super(0);
         this.svc = svc;
@@ -58,6 +60,10 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
                 return getMaxQ();
             }
         };
+        if (hasVoltageControl()) {
+            // compute targetV in per-unit system
+            targetV = svc.getVoltageSetpoint() / svc.getRegulatingTerminal().getVoltageLevel().getNominalV();
+        }
     }
 
     public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc) {
@@ -73,6 +79,11 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     @Override
     public boolean hasVoltageControl() {
         return svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE;
+    }
+
+    @Override
+    public double getTargetV() {
+        return targetV;
     }
 
     @Override

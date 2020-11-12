@@ -20,9 +20,17 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     private final DanglingLine danglingLine;
 
+    private double targetV = Double.NaN;
+
     public LfDanglingLineGenerator(DanglingLine danglingLine) {
         super(danglingLine.getGeneration().getTargetP());
         this.danglingLine = danglingLine;
+
+        if (hasVoltageControl()) {
+            // compute targetV in per-unit system
+            // local control only
+            targetV = danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV();
+        }
     }
 
     @Override
@@ -33,6 +41,11 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
     @Override
     public boolean hasVoltageControl() {
         return danglingLine.getGeneration().isVoltageRegulationOn();
+    }
+
+    @Override
+    public double getTargetV() {
+        return targetV;
     }
 
     @Override

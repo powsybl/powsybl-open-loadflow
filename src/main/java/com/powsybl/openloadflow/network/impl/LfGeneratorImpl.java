@@ -34,6 +34,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double participationFactor;
 
+    private double targetV = Double.NaN;
+
     private LfGeneratorImpl(Generator generator, LfNetworkLoadingReport report) {
         super(generator.getTargetP());
         this.generator = generator;
@@ -66,6 +68,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
             participating = false;
         }
+
+        if (generator.isVoltageRegulatorOn()) {
+            // compute targetV in per-unit system
+            targetV = generator.getTargetV() / generator.getRegulatingTerminal().getVoltageLevel().getNominalV();
+        }
     }
 
     public static LfGeneratorImpl create(Generator generator, LfNetworkLoadingReport report) {
@@ -82,6 +89,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     @Override
     public boolean hasVoltageControl() {
         return generator.isVoltageRegulatorOn();
+    }
+
+    @Override
+    public double getTargetV() {
+        return targetV;
     }
 
     @Override

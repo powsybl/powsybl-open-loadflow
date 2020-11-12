@@ -21,9 +21,17 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
 
     private final VscConverterStation station;
 
+    private double targetV = Double.NaN;
+
     private LfVscConverterStationImpl(VscConverterStation station) {
         super(getHvdcLineTargetP(station));
         this.station = station;
+
+        if (hasVoltageControl()) {
+            // compute targetV in per-unit system
+            // local control only
+            targetV = station.getVoltageSetpoint() / station.getTerminal().getVoltageLevel().getNominalV();
+        }
     }
 
     public static LfVscConverterStationImpl create(VscConverterStation station) {
@@ -50,6 +58,11 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     @Override
     public boolean hasVoltageControl() {
         return station.isVoltageRegulatorOn();
+    }
+
+    @Override
+    public double getTargetV() {
+        return targetV;
     }
 
     @Override
