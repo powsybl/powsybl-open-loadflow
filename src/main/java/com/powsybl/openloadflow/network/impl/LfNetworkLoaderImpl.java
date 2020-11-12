@@ -38,16 +38,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         private final Set<ThreeWindingsTransformer> t3wtSet = new LinkedHashSet<>();
     }
 
-    private static void createBuses(List<Bus> buses, boolean voltageRemoteControl, boolean breakers, LfNetwork lfNetwork,
+    private static void createBuses(List<Bus> buses, LfNetwork lfNetwork, List<AbstractLfBus> lfBuses, boolean voltageRemoteControl, boolean breakers,
                                     LoadingContext loadingContext, LfNetworkLoadingReport report) {
-        List<AbstractLfBus> lfBuses = new ArrayList<>();
-
         for (Bus bus : buses) {
             LfBusImpl lfBus = createBus(bus, voltageRemoteControl, breakers, loadingContext, report);
             lfNetwork.addBus(lfBus);
             lfBuses.add(lfBus);
         }
+    }
 
+    private static void createVoltageControls(LfNetwork lfNetwork, List<AbstractLfBus> lfBuses, boolean voltageRemoteControl, boolean breakers) {
         // set controller -> controlled link
         for (AbstractLfBus controllerBus : lfBuses) {
             for (LfGenerator lfGenerator : controllerBus.getGenerators()) {
@@ -183,8 +183,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void createBranches(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkLoadingReport report,
-                                       boolean twtSplitShuntAdmittance, boolean breakers) {
+    private static void createBranches(List<AbstractLfBus> lfBuses, LfNetwork lfNetwork, boolean twtSplitShuntAdmittance, boolean breakers, LoadingContext loadingContext, LfNetworkLoadingReport report) {
         for (Branch<?> branch : loadingContext.branchSet) {
             LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork, breakers);
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork, breakers);
@@ -203,6 +202,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
             LfDanglingLineBus lfBus2 = new LfDanglingLineBus(danglingLine);
             lfNetwork.addBus(lfBus2);
+            lfBuses.add(lfBus2);
             LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, breakers);
             addBranch(lfNetwork, LfDanglingLineBranch.create(danglingLine, lfBus1, lfBus2), report);
         }
@@ -273,8 +273,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
 
-        createBuses(buses, parameters.isGeneratorVoltageRemoteControl(), parameters.isBreakers(), lfNetwork, loadingContext, report);
-        createBranches(lfNetwork, loadingContext, report, parameters.isTwtSplitShuntAdmittance(), parameters.isBreakers());
+        List<AbstractLfBus> lfBuses = new ArrayList<>();
+        createBuses(buses, lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isBreakers(), loadingContext, report);
+        createBranches(lfBuses, lfNetwork, parameters.isTwtSplitShuntAdmittance(), parameters.isBreakers(), loadingContext, report);
+        createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isBreakers());
         if (switches != null) {
             for (Switch sw : switches) {
                 VoltageLevel vl = sw.getVoltageLevel();

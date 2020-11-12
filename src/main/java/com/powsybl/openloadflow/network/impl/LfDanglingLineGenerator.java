@@ -20,9 +20,15 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     private final DanglingLine danglingLine;
 
-    public LfDanglingLineGenerator(DanglingLine danglingLine) {
+    private final String controlledLfBusId;
+
+    public LfDanglingLineGenerator(DanglingLine danglingLine, String controlledLfBusId) {
         super(danglingLine.getGeneration().getTargetP());
         this.danglingLine = danglingLine;
+
+        // The controlled bus cannot be reached from the DanglingLine parameters (there is no terminal in DanglingLine.Generation)
+        // hence the id of the controlled LfBus needs to be remembered
+        this.controlledLfBusId = controlledLfBusId;
 
         if (hasVoltageControl()) {
             // compute targetV in per-unit system
@@ -83,7 +89,7 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     @Override
     public String getControlledBusId(boolean breakers) {
-        return null; // Not available (no terminal in DanglingLine.Generation) but not used so far
+        return controlledLfBusId;
     }
 
     @Override

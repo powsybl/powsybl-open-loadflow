@@ -36,7 +36,7 @@ public class LfDanglingLineBus extends AbstractLfBus {
                     generationTargetQ += generation.getTargetQ();
                 }
             }
-            generators.add(new LfDanglingLineGenerator(danglingLine));
+            generators.add(new LfDanglingLineGenerator(danglingLine, getId()));
         }
     }
 
