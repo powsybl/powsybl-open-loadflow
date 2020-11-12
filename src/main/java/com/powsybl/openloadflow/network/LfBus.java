@@ -30,7 +30,7 @@ public interface LfBus {
 
     boolean hasVoltageControlCapability();
 
-    boolean hasVoltageControl();
+    boolean isVoltageController();
 
     /**
      * Get the number of time, voltage control status has be set from true to false.

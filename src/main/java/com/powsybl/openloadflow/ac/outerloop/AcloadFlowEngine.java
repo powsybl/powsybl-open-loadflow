@@ -81,7 +81,7 @@ public class AcloadFlowEngine {
             parameters.getObserver().beforePvBusesReactivePowerUpdate();
 
             for (LfBus bus : network.getBuses()) {
-                if (bus.hasVoltageControl()) {
+                if (bus.isVoltageController()) {
                     Equation q = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
                     bus.setCalculatedQ(q.eval());
                 } else {

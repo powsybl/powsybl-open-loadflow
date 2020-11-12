@@ -487,10 +487,10 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         bus.setAngle(busState.angle);
         bus.setLoadTargetP(busState.loadTargetP);
         bus.getGenerators().forEach(g -> g.setTargetP(busState.generatorsTargetP.get(g.getId())));
-        if (busState.hasVoltageControl && !bus.hasVoltageControl()) { // b is now PQ bus.
+        if (busState.hasVoltageControl && !bus.isVoltageController()) { // b is now PQ bus.
             ReactiveLimitsOuterLoop.switchPqPv(bus, engine.getEquationSystem(), engine.getVariableSet());
         }
-        if (!busState.hasVoltageControl && bus.hasVoltageControl()) { // b is now PV bus.
+        if (!busState.hasVoltageControl && bus.isVoltageController()) { // b is now PV bus.
             ReactiveLimitsOuterLoop.switchPvPq(bus, engine.getEquationSystem(), engine.getVariableSet(), busState.generationTargetQ);
         }
         bus.setVoltageControlSwitchOffCount(0);
@@ -509,7 +509,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             this.angle = b.getAngle();
             this.loadTargetP = b.getLoadTargetP();
             this.generatorsTargetP = b.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
-            this.hasVoltageControl = b.hasVoltageControl();
+            this.hasVoltageControl = b.isVoltageController();
             this.generationTargetQ = b.getGenerationTargetQ();
         }
     }

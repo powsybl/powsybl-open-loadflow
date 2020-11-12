@@ -39,7 +39,7 @@ public final class AcEquationSystem {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
 
-            if (bus.hasVoltageControl()) {
+            if (bus.isVoltageController()) {
                 // local voltage control
                 if (!(creationParameters.isVoltageRemoteControl() && bus.getControlledBus().isPresent()) && bus.getControllerBuses().isEmpty()) {
                     equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
@@ -70,11 +70,11 @@ public final class AcEquationSystem {
                 .addTerm(new BusVoltageEquationTerm(controlledBus, variableSet));
 
         List<LfBus> controllerBuses = controlledBus.getControllerBuses().stream()
-                .filter(LfBus::hasVoltageControl)
+                .filter(LfBus::isVoltageController)
                 .collect(Collectors.toList());
         // if controlled bus also control voltage locally, we add it the the controller list to create reactive power
         // distribution equation for the controlled bus too
-        if (controlledBus.hasVoltageControl()) {
+        if (controlledBus.isVoltageController()) {
             controllerBuses.add(controlledBus);
         }
         if (controllerBuses.isEmpty()) {
@@ -306,7 +306,7 @@ public final class AcEquationSystem {
             ConnectivityInspector<LfBus, LfBranch> ci = new ConnectivityInspector<>(nonImpedantSubGraph);
             List<Set<LfBus>> connectedSets = ci.connectedSets();
             for (Set<LfBus> connectedSet : connectedSets) {
-                if (connectedSet.size() > 2 && connectedSet.stream().filter(LfBus::hasVoltageControl).count() > 1) {
+                if (connectedSet.size() > 2 && connectedSet.stream().filter(LfBus::isVoltageController).count() > 1) {
                     String problBuses = connectedSet.stream().map(LfBus::getId).collect(Collectors.joining(", "));
                     throw new PowsyblException(
                         "Non impedant branches that connect at least two buses with voltage control (buses: " + problBuses + ")");

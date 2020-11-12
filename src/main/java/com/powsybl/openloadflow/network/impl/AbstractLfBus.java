@@ -116,7 +116,7 @@ public abstract class AbstractLfBus implements LfBus {
     }
 
     @Override
-    public boolean hasVoltageControl() {
+    public boolean isVoltageController() {
         return voltageControl;
     }
 
@@ -160,7 +160,7 @@ public abstract class AbstractLfBus implements LfBus {
             }
 
             // check target voltage consistency between local and remote control
-            if (controlledBus.hasVoltageControl()) { // controlled bus has also local voltage control
+            if (controlledBus.isVoltageController()) { // controlled bus has also local voltage control
                 double localTargetV = controlledBus.getTargetV() * controlledBus.getNominalV();
                 if (FastMath.abs(this.targetV - localTargetV) > TARGET_V_EPSILON) {
                     throw new PowsyblException("Bus '" + controlledBus.getId()
@@ -174,7 +174,7 @@ public abstract class AbstractLfBus implements LfBus {
             if (!otherControllerBuses.isEmpty()) {
                 // just need to check first bus that control voltage
                 otherControllerBuses.stream()
-                        .filter(LfBus::hasVoltageControl)
+                        .filter(LfBus::isVoltageController)
                         .findFirst()
                         .ifPresent(otherControllerBus -> {
                             double otherTargetV = otherControllerBus.getTargetV() * controlledBus.getNominalV();

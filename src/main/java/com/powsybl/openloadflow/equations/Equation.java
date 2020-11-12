@@ -116,9 +116,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
         } else {
             List<LfBus> controllerBuses = bus.getControllerBuses()
                     .stream()
-                    .filter(LfBus::hasVoltageControl)
+                    .filter(LfBus::isVoltageController)
                     .collect(Collectors.toList());
-            if (bus.hasVoltageControl()) {
+            if (bus.isVoltageController()) {
                 controllerBuses.add(bus);
             }
             if (controllerBuses.isEmpty()) {

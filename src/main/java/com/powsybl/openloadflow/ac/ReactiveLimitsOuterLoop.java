@@ -73,7 +73,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
         // controlled bus has a voltage equation only if one of the controller bus has voltage control on
         List<LfBus> controllerBusesWithVoltageControlOn = controlledBus.getControllerBuses().stream()
-                .filter(LfBus::hasVoltageControl)
+                .filter(LfBus::isVoltageController)
                 .collect(Collectors.toList());
         equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
 
@@ -249,7 +249,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         MutableInt remainingPvBusCount = new MutableInt();
         for (LfBus bus : context.getNetwork().getBuses()) {
-            if (bus.hasVoltageControl()) {
+            if (bus.isVoltageController()) {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
             } else if (bus.hasVoltageControlCapability()) {
                 checkPqBus(bus, pqToPvBuses);
