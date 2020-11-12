@@ -24,6 +24,8 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     protected double calculatedQ = Double.NaN;
 
+    protected double targetV = Double.NaN;
+
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
     }

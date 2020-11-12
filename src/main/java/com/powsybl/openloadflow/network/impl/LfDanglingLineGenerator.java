@@ -20,8 +20,6 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     private final DanglingLine danglingLine;
 
-    private double targetV = Double.NaN;
-
     public LfDanglingLineGenerator(DanglingLine danglingLine) {
         super(danglingLine.getGeneration().getTargetP());
         this.danglingLine = danglingLine;

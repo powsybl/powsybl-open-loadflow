@@ -24,8 +24,6 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     private final ReactiveLimits reactiveLimits;
 
-    private double targetV = Double.NaN;
-
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc) {
         super(0);
         this.svc = svc;

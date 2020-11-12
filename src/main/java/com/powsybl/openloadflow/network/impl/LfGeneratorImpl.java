@@ -34,8 +34,6 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double participationFactor;
 
-    private double targetV = Double.NaN;
-
     private LfGeneratorImpl(Generator generator, LfNetworkLoadingReport report) {
         super(generator.getTargetP());
         this.generator = generator;

@@ -21,8 +21,6 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
 
     private final VscConverterStation station;
 
-    private double targetV = Double.NaN;
-
     private LfVscConverterStationImpl(VscConverterStation station) {
         super(getHvdcLineTargetP(station));
         this.station = station;
