@@ -59,18 +59,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             double controllerTargetV = Double.NaN;
 
             for (LfGenerator lfGenerator : controllerBus.getGenerators()) {
-                LfBus controlledBusGen = lfNetwork.getBusById(lfGenerator.getControlledBusId(breakers));
+                LfBus generatorControlledBus = lfNetwork.getBusById(lfGenerator.getControlledBusId(breakers));
 
                 // check that remote control bus is the same for all generators of current controller bus
-                checkControlledBusUnicity(controlledBus, controlledBusGen, controllerBus);
+                checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus);
 
                 // check target voltage
                 checkGeneratorTargetV(lfGenerator, controllerTargetV,
-                    controllerBus, controlledBusGen, voltageRemoteControl);
-                controllerTargetV = lfGenerator.getTargetV();
+                    controllerBus, generatorControlledBus, voltageRemoteControl);
+                controllerTargetV = lfGenerator.getTargetV(); // in per-unit system
 
                 if (lfGenerator.hasVoltageControl()) {
-                    controlledBus = voltageRemoteControl ? controlledBusGen : controllerBus;
+                    controlledBus = voltageRemoteControl ? generatorControlledBus : controllerBus;
                 }
             }
 
@@ -81,7 +81,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void checkControlledBusUnicity(LfBus controlledBus, LfBus controlledBusGen, LfBus controller) {
+    private static void checkUniqueControlledBus(LfBus controlledBus, LfBus controlledBusGen, LfBus controller) {
         Objects.requireNonNull(controlledBusGen);
         if (controlledBus != null && controlledBus.getNum() != controlledBusGen.getNum()) {
             String generatorIds = controller.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));

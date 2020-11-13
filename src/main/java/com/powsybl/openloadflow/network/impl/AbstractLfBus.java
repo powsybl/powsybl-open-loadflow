@@ -149,12 +149,8 @@ public abstract class AbstractLfBus implements LfBus {
             // check that targetV has a plausible value (wrong nominal voltage issue)
             double targetVPu = targetV;
             if (targetVPu < PlausibleValues.MIN_TARGET_VOLTAGE_PU || targetVPu > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
-                if (controlledBus != this) {
-                    throw new PowsyblException("Controller bus '" + getId() + "' has an inconsistent remote target voltage: "
+                throw new PowsyblException("Controller bus '" + getId() + "' has an inconsistent target voltage: "
                         + targetVPu + " pu");
-                } else {
-                    // TODO: also raise an exception if local targetV is not plausible
-                }
             }
 
             // check target voltage consistency between local and remote control

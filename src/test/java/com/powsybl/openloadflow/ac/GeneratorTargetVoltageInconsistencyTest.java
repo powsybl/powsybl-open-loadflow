@@ -194,7 +194,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false);
         PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, parameters));
-        assertEquals("Controller bus 'vl2_0' has an inconsistent remote target voltage: 0.5625 pu", exception.getMessage());
+        assertEquals("Controller bus 'vl2_0' has an inconsistent target voltage: 0.5625 pu", exception.getMessage());
     }
 
     @Test
