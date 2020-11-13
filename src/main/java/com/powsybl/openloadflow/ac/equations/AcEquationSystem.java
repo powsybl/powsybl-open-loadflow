@@ -31,8 +31,7 @@ public final class AcEquationSystem {
     private AcEquationSystem() {
     }
 
-    private static void createBusEquations(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters,
-                                           EquationSystem equationSystem) {
+    private static void createBusEquations(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem) {
         for (LfBus bus : network.getBuses()) {
             if (bus.isSlack()) {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_PHI).addTerm(new BusPhaseEquationTerm(bus, variableSet));
@@ -42,7 +41,7 @@ public final class AcEquationSystem {
             boolean hasLocalControlOnly = bus.getControllerBuses().size() == 1 && bus.getControllerBuses().contains(bus);
             if (bus.isVoltageController()) {
                 // local voltage control (local only)
-                if (!creationParameters.isVoltageRemoteControl() || hasLocalControlOnly) {
+                if (hasLocalControlOnly) {
                     equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
                 }
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
@@ -50,7 +49,7 @@ public final class AcEquationSystem {
 
             // in case voltage remote control is activated, set voltage equation on this controlled bus
             boolean hasRemoteControl = !bus.getControllerBuses().isEmpty() && !hasLocalControlOnly;
-            if (creationParameters.isVoltageRemoteControl() && hasRemoteControl) {
+            if (hasRemoteControl) {
                 createVoltageControlledBusEquations(bus, equationSystem, variableSet);
             }
 
@@ -120,7 +119,7 @@ public final class AcEquationSystem {
 
         // we choose first controller bus as reference for reactive power
         LfBus firstControllerBus = controllerBuses.get(0);
-        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false); // TODO could not be the right parameters
+        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false); // TODO could not be the right parameters
         List<EquationTerm> firstControllerBusReactiveTerms = createReactiveTerms(firstControllerBus, variableSet, creationParameters);
 
         // create a reactive power distribution equation for all the other controller buses
@@ -322,7 +321,7 @@ public final class AcEquationSystem {
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
-        return create(network, variableSet, new AcEquationSystemCreationParameters(false, false));
+        return create(network, variableSet, new AcEquationSystemCreationParameters(false));
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {
@@ -332,7 +331,7 @@ public final class AcEquationSystem {
 
         EquationSystem equationSystem = new EquationSystem(network, true);
 
-        createBusEquations(network, variableSet, creationParameters, equationSystem);
+        createBusEquations(network, variableSet, equationSystem);
         createBranchEquations(network, variableSet, creationParameters, equationSystem);
 
         return equationSystem;

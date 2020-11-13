@@ -11,17 +11,10 @@ package com.powsybl.openloadflow.ac.equations;
  */
 public class AcEquationSystemCreationParameters {
 
-    private final boolean voltageRemoteControl;
-
     private final boolean phaseControl;
 
-    public AcEquationSystemCreationParameters(boolean voltageRemoteControl, boolean phaseControl) {
-        this.voltageRemoteControl = voltageRemoteControl;
+    public AcEquationSystemCreationParameters(boolean phaseControl) {
         this.phaseControl = phaseControl;
-    }
-
-    public boolean isVoltageRemoteControl() {
-        return voltageRemoteControl;
     }
 
     public boolean isPhaseControl() {

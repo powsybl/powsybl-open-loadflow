@@ -69,14 +69,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                     controllerBus, controlledBusGen, voltageRemoteControl);
                 controllerTargetV = lfGenerator.getTargetV();
 
-                if (voltageRemoteControl && lfGenerator.hasVoltageControl()) {
-                    controlledBus = controlledBusGen;
+                if (lfGenerator.hasVoltageControl()) {
+                    controlledBus = voltageRemoteControl ? controlledBusGen : controllerBus;
                 }
             }
 
             controllerBus.setTargetV(controllerTargetV);
             if (controlledBus != null) {
-                controllerBus.setControlledBus((LfBusImpl) controlledBus);
+                controllerBus.setControlledBus((AbstractLfBus) controlledBus);
             }
         }
     }

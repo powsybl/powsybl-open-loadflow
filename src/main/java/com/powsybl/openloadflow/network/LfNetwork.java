@@ -177,10 +177,12 @@ public class LfNetwork {
             jsonGenerator.writeNumberField("loadTargetQ", bus.getLoadTargetQ());
         }
         bus.getControlledBus().ifPresent(lfBus -> {
-            try {
-                jsonGenerator.writeNumberField("remoteControlTargetBus", lfBus.getNum());
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
+            if (lfBus != bus) {
+                try {
+                    jsonGenerator.writeNumberField("remoteControlTargetBus", lfBus.getNum());
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
             }
         });
         if (!Double.isNaN(bus.getTargetV())) {

@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ToDoubleFunction;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -150,8 +149,12 @@ public abstract class AbstractLfBus implements LfBus {
             // check that targetV has a plausible value (wrong nominal voltage issue)
             double targetVPu = targetV;
             if (targetVPu < PlausibleValues.MIN_TARGET_VOLTAGE_PU || targetVPu > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
-                throw new PowsyblException("Controller bus '" + getId() + "' has an inconsistent remote target voltage: "
+                if (controlledBus != this) {
+                    throw new PowsyblException("Controller bus '" + getId() + "' has an inconsistent remote target voltage: "
                         + targetVPu + " pu");
+                } else {
+                    // TODO: also raise an exception if local targetV is not plausible
+                }
             }
 
             // check target voltage consistency between local and remote control
