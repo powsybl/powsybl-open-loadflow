@@ -39,16 +39,18 @@ public final class AcEquationSystem {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
 
+            boolean hasLocalControlOnly = bus.getControllerBuses().size() == 1 && bus.getControllerBuses().contains(bus);
             if (bus.isVoltageController()) {
-                // local voltage control
-                if (!(creationParameters.isVoltageRemoteControl() && bus.getControlledBus().isPresent()) && bus.getControllerBuses().isEmpty()) {
+                // local voltage control (local only)
+                if (!creationParameters.isVoltageRemoteControl() || hasLocalControlOnly) {
                     equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
                 }
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
             }
 
             // in case voltage remote control is activated, set voltage equation on this controlled bus
-            if (creationParameters.isVoltageRemoteControl() && !bus.getControllerBuses().isEmpty()) {
+            boolean hasRemoteControl = !bus.getControllerBuses().isEmpty() && !hasLocalControlOnly;
+            if (creationParameters.isVoltageRemoteControl() && hasRemoteControl) {
                 createVoltageControlledBusEquations(bus, equationSystem, variableSet);
             }
 
@@ -72,11 +74,6 @@ public final class AcEquationSystem {
         List<LfBus> controllerBuses = controlledBus.getControllerBuses().stream()
                 .filter(LfBus::isVoltageController)
                 .collect(Collectors.toList());
-        // if controlled bus also control voltage locally, we add it the the controller list to create reactive power
-        // distribution equation for the controlled bus too
-        if (controlledBus.isVoltageController()) {
-            controllerBuses.add(controlledBus);
-        }
         if (controllerBuses.isEmpty()) {
             vEq.setActive(false);
         } else {
