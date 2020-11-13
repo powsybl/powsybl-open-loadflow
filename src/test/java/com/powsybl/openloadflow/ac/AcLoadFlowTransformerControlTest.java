@@ -18,9 +18,10 @@ import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.CompletionException;
+
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -199,6 +200,21 @@ class AcLoadFlowTransformerControlTest {
                 .add();
 
         //FIXME
+    }
+
+    @Test
+    void nonSupportedVoltageControlT2wtTest() {
+        selectNetwork(createNetworkWithT2wt());
+
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(2)
+                .setRegulationTerminal(network.getGenerator("GEN_1").getTerminal())
+                .setTargetV(33.0);
+
+        CompletionException exception = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("The bus 'VL_1_0'has both generator and transformer voltage control on", exception.getCause().getMessage());
     }
 
     @Test

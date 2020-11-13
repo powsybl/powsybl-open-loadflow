@@ -279,6 +279,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             Terminal regulationTerminal = rtc.getRegulationTerminal();
             LfBus controlledBus = lfNetwork.getBusById(regulationTerminal.getBusView().getBus().getId());
 
+            if ((controlledBus.getControllerBuses().isEmpty() && controlledBus.hasVoltageControl()) || !controlledBus.getControllerBuses().isEmpty()) {
+                throw new IllegalStateException("The bus '" + controlledBus.getId()
+                        + "'has both generator and transformer voltage control on");
+            }
+
             double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
             DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controllerBranch, controlledBus,
                     DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
