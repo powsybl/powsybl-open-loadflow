@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
@@ -82,28 +83,32 @@ public class LfLegBranch extends AbstractLfBranch {
 
         RatioTapChanger rtc = leg.getRatioTapChanger();
         if (rtc != null && rtc.isRegulating()) {
-            Integer ptcPosition = Transformers.getCurrentPosition(leg.getPhaseTapChanger());
-            List<PiModel> models = new ArrayList<>();
-            for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= rtc.getHighTapPosition(); rtcPosition++) {
-                double r = Transformers.getR(leg, rtcPosition, ptcPosition) / zb;
-                double x = Transformers.getX(leg, rtcPosition, ptcPosition) / zb;
-                double g1 = Transformers.getG1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
-                double g2 = twtSplitShuntAdmittance ? g1 : 0;
-                double b1 = Transformers.getB1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
-                double b2 = twtSplitShuntAdmittance ? b1 : 0;
-                double r1 = Transformers.getRatioLeg(twt, leg, rtcPosition, ptcPosition) / baseRatio;
-                double a1 = Transformers.getAngleLeg(leg, ptcPosition);
-                models.add(new SimplePiModel()
-                        .setR(r)
-                        .setX(x)
-                        .setG1(g1)
-                        .setG2(g2)
-                        .setB1(b1)
-                        .setB2(b2)
-                        .setR1(r1)
-                        .setA1(a1));
+            if (piModel == null) {
+                Integer ptcPosition = Transformers.getCurrentPosition(leg.getPhaseTapChanger());
+                List<PiModel> models = new ArrayList<>();
+                for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= rtc.getHighTapPosition(); rtcPosition++) {
+                    double r = Transformers.getR(leg, rtcPosition, ptcPosition) / zb;
+                    double x = Transformers.getX(leg, rtcPosition, ptcPosition) / zb;
+                    double g1 = Transformers.getG1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                    double g2 = twtSplitShuntAdmittance ? g1 : 0;
+                    double b1 = Transformers.getB1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                    double b2 = twtSplitShuntAdmittance ? b1 : 0;
+                    double r1 = Transformers.getRatioLeg(twt, leg, rtcPosition, ptcPosition) / baseRatio;
+                    double a1 = Transformers.getAngleLeg(leg, ptcPosition);
+                    models.add(new SimplePiModel()
+                            .setR(r)
+                            .setX(x)
+                            .setG1(g1)
+                            .setG2(g2)
+                            .setB1(b1)
+                            .setB2(b2)
+                            .setR1(r1)
+                            .setA1(a1));
+                }
+                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
+            } else {
+                throw new PowsyblException("Unsupported type of branch for voltage and phase controls of branch: " + twt.getId());
             }
-            piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
         }
 
         if (piModel == null) {

@@ -89,28 +89,32 @@ public class LfBranchImpl extends AbstractLfBranch {
 
         RatioTapChanger rtc = twt.getRatioTapChanger();
         if (rtc != null && rtc.isRegulating()) {
-            Integer ptcPosition = Transformers.getCurrentPosition(twt.getPhaseTapChanger());
-            List<PiModel> models = new ArrayList<>();
-            for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= rtc.getHighTapPosition(); rtcPosition++) {
-                double r = Transformers.getR(twt, rtcPosition, ptcPosition) / zb;
-                double x = Transformers.getX(twt, rtcPosition, ptcPosition) / zb;
-                double g1 = Transformers.getG1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
-                double g2 = twtSplitShuntAdmittance ? g1 : 0;
-                double b1 = Transformers.getB1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
-                double b2 = twtSplitShuntAdmittance ? b1 : 0;
-                double r1 = Transformers.getRatio(twt, rtcPosition, ptcPosition) / baseRatio;
-                double a1 = Transformers.getAngle(twt, ptcPosition);
-                models.add(new SimplePiModel()
-                        .setR(r)
-                        .setX(x)
-                        .setG1(g1)
-                        .setG2(g2)
-                        .setB1(b1)
-                        .setB2(b2)
-                        .setR1(r1)
-                        .setA1(a1));
+            if (piModel == null) {
+                Integer ptcPosition = Transformers.getCurrentPosition(twt.getPhaseTapChanger());
+                List<PiModel> models = new ArrayList<>();
+                for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= rtc.getHighTapPosition(); rtcPosition++) {
+                    double r = Transformers.getR(twt, rtcPosition, ptcPosition) / zb;
+                    double x = Transformers.getX(twt, rtcPosition, ptcPosition) / zb;
+                    double g1 = Transformers.getG1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                    double g2 = twtSplitShuntAdmittance ? g1 : 0;
+                    double b1 = Transformers.getB1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                    double b2 = twtSplitShuntAdmittance ? b1 : 0;
+                    double r1 = Transformers.getRatio(twt, rtcPosition, ptcPosition) / baseRatio;
+                    double a1 = Transformers.getAngle(twt, ptcPosition);
+                    models.add(new SimplePiModel()
+                            .setR(r)
+                            .setX(x)
+                            .setG1(g1)
+                            .setG2(g2)
+                            .setB1(b1)
+                            .setB2(b2)
+                            .setR1(r1)
+                            .setA1(a1));
+                }
+                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
+            } else {
+                throw new PowsyblException("Unsupported type of branch for voltage and phase controls of branch: " + twt.getId());
             }
-            piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
         }
 
         if (piModel == null) {
