@@ -24,30 +24,29 @@ import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.network.NameSlackBusSelector;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static org.junit.Assert.*;
 import static com.powsybl.openloadflow.util.ParameterConstants.*;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Jérémy Labous <jlabous at silicom.fr>
  */
-public class OpenLoadFlowParametersTest {
+class OpenLoadFlowParametersTest {
 
     private InMemoryPlatformConfig platformConfig;
 
     private FileSystem fileSystem;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         fileSystem = Jimfs.newFileSystem(Configuration.unix());
         platformConfig = new InMemoryPlatformConfig(fileSystem);
@@ -59,13 +58,13 @@ public class OpenLoadFlowParametersTest {
         lfModuleConfig.setStringProperty("dc", Boolean.toString(true));
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws IOException {
         fileSystem.close();
     }
 
     @Test
-    public void testConfig() {
+    void testConfig() {
         MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
         olfModuleConfig.setStringProperty("slackBusSelectorType", "First");
 
@@ -86,7 +85,7 @@ public class OpenLoadFlowParametersTest {
     }
 
     @Test
-    public void testDefaultOpenLoadflowConfig() {
+    void testDefaultOpenLoadflowConfig() {
         LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
 
         assertEquals(LoadFlowParameters.VoltageInitMode.DC_VALUES, parameters.getVoltageInitMode());
@@ -103,7 +102,7 @@ public class OpenLoadFlowParametersTest {
     }
 
     @Test
-    public void testInvalidOpenLoadflowConfig() {
+    void testInvalidOpenLoadflowConfig() {
         MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
         // Invalid -> SlackBusSelectorParametersReader cannot be found
         olfModuleConfig.setStringProperty("slackBusSelectorType", "Invalid");
@@ -116,7 +115,7 @@ public class OpenLoadFlowParametersTest {
     }
 
     @Test
-    public void testFirstSlackBusSelector() throws IOException {
+    void testFirstSlackBusSelector() throws IOException {
         Path cfgDir = Files.createDirectory(fileSystem.getPath("config"));
         Path cfgFile = cfgDir.resolve("configFirstSlackBusSelector.yml");
 
@@ -129,7 +128,7 @@ public class OpenLoadFlowParametersTest {
     }
 
     @Test
-    public void testMostMeshedSlackBusSelector() throws IOException {
+    void testMostMeshedSlackBusSelector() throws IOException {
         Path cfgDir = Files.createDirectory(fileSystem.getPath("config"));
         Path cfgFile = cfgDir.resolve("configMostMeshedSlackBusSelector.yml");
 
@@ -142,7 +141,7 @@ public class OpenLoadFlowParametersTest {
     }
 
     @Test
-    public void testNameSlackBusSelector() throws IOException {
+    void testNameSlackBusSelector() throws IOException {
         Path cfgDir = Files.createDirectory(fileSystem.getPath("config"));
         Path cfgFile = cfgDir.resolve("configNameSlackBusSelector.yml");
 
@@ -158,7 +157,7 @@ public class OpenLoadFlowParametersTest {
     }
 
     @Test
-    public void testMaxIterationReached() {
+    void testMaxIterationReached() {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         parameters.setWriteSlackBus(true);
         Network network = EurostagTutorialExample1Factory.create();
@@ -169,7 +168,7 @@ public class OpenLoadFlowParametersTest {
     }
 
     @Test
-    public void testIsWriteSlackBus() {
+    void testIsWriteSlackBus() {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         parameters.setWriteSlackBus(true);
         Network network = EurostagTutorialExample1Factory.create();
