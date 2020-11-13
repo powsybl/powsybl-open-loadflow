@@ -162,6 +162,46 @@ class AcLoadFlowTransformerControlTest {
     }
 
     @Test
+    void phaseVoltageControlT2wtTest() {
+        selectNetwork(createNetworkWithT2wt());
+
+        t2wt.newPhaseTapChanger()
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setRegulating(true)
+                .setRegulationValue(200)
+                .setTargetDeadband(0.)
+                .beginStep()
+                .setAlpha(-5.0)
+                .setRho(1.0)
+                .setR(0.0)
+                .setX(0.0)
+                .setG(0.0)
+                .setB(0.0)
+                .endStep()
+                .beginStep()
+                .setAlpha(0.0)
+                .setRho(1.0)
+                .setR(0.0)
+                .setX(0.0)
+                .setG(0.0)
+                .setB(0.0)
+                .endStep()
+                .beginStep()
+                .setAlpha(5)
+                .setRho(1.0)
+                .setR(0.0)
+                .setX(0.0)
+                .setG(0.0)
+                .setB(0.0)
+                .endStep()
+                .add();
+
+        //FIXME
+    }
+
+    @Test
     void baseCaseT3wtTest() {
         selectNetwork(createNetworkWithT3wt());
 
