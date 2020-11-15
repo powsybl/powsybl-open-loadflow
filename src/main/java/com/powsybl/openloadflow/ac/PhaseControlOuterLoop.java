@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.equations.EquationType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.PhaseControl;
+import com.powsybl.openloadflow.network.DiscretePhaseControl;
 import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,47 +33,76 @@ public class PhaseControlOuterLoop implements OuterLoop {
 
     @Override
     public OuterLoopStatus check(OuterLoopContext context) {
-        OuterLoopStatus status = OuterLoopStatus.STABLE;
-
         if (context.getIteration() == 0) {
-            // at first iteration all branches controlling phase are switched off
-            for (LfBranch branch : context.getNetwork().getBranches()) {
-                PhaseControl phaseControl = branch.getPhaseControl().orElse(null);
-                if (phaseControl != null && phaseControl.getMode() == PhaseControl.Mode.CONTROLLER) {
-                    // switch off phase shifter
-                    phaseControl.setMode(PhaseControl.Mode.OFF);
+            // at first outerloop iteration:
+            // branches with active power control are switched off and taps are rounded
+            // branches with current limiter control will wait for second iteration
+            return  firstIteration(context);
+        } else if (context.getIteration() > 0) {
+            // at second outerloop iteration:
+            // flow of branches with fixed tap are recomputed
+            return nextIteration(context);
+        }
+        return OuterLoopStatus.STABLE;
+    }
 
-                    // de-activate a1 variable for next outer loop run
-                    Variable a1 = context.getVariableSet().getVariable(branch.getNum(), VariableType.BRANCH_ALPHA1);
-                    a1.setActive(false);
-
-                    // de-activate phase control equation
-                    Equation t = context.getEquationSystem().createEquation(branch.getNum(), EquationType.BRANCH_P);
-                    t.setActive(false);
-
-                    // round the phase shift to the closest tap
-                    PiModel piModel = branch.getPiModel();
-                    double a1Value = piModel.getA1();
-                    piModel.roundA1ToClosestTap();
-                    double roundedA1Value = piModel.getA1();
-                    LOGGER.info("Round phase shift of '{}': {} -> {}", branch.getId(), a1Value, roundedA1Value);
-
-                    // if at least one phase shifter has been switched off wee need to continue
-                    status = OuterLoopStatus.UNSTABLE;
-                }
-            }
-        } else if (context.getIteration() == 1) {
-            // at second iteration we switch on phase control for branches that are in limiter mode
-            // and a current greater than the limit
-            for (LfBranch branch : context.getNetwork().getBranches()) {
-                PhaseControl phaseControl = branch.getPhaseControl().orElse(null);
-                if (phaseControl != null && phaseControl.getMode() == PhaseControl.Mode.LIMITER) {
-                    // TODO
-                    LOGGER.warn("Phase shifter in limiter mode not yet implemented");
+    private OuterLoopStatus firstIteration(OuterLoopContext context) {
+        OuterLoopStatus status = OuterLoopStatus.STABLE;
+        for (LfBranch branch : context.getNetwork().getBranches()) {
+            if (branch.isPhaseControlled()) {
+                switch (branch.getDiscretePhaseControl().getMode()) {
+                    case CONTROLLER:
+                        // at firall branches with active power control are switched off
+                        desactivateActivePowerControlEquation(context, branch);
+                        // if at least one phase shifter has been switched off we need to continue
+                        status = OuterLoopStatus.UNSTABLE;
+                        break;
+                    case LIMITER:
+                        status = OuterLoopStatus.UNSTABLE;
+                        break;
+                    default:
+                        // nothing has to be done
                 }
             }
         }
-
         return status;
+    }
+
+    private OuterLoopStatus nextIteration(OuterLoopContext context) {
+        // at second outerloop iteration we switch on phase control for branches that are in limiter mode
+        // and a current greater than the limit
+        for (LfBranch branch : context.getNetwork().getBranches()) {
+            if (branch.isPhaseControlled()) {
+                switch (branch.getDiscretePhaseControl().getMode()) {
+                    case LIMITER:
+                        // TODO
+                        LOGGER.warn("Phase shifter in limiter mode not yet implemented");
+                    default:
+                        // nothing has to be done
+                }
+            }
+        }
+        return OuterLoopStatus.STABLE;
+    }
+
+    private void desactivateActivePowerControlEquation(OuterLoopContext context, LfBranch branch) {
+        // switch off phase shifter
+        branch.getDiscretePhaseControl().setMode(DiscretePhaseControl.Mode.OFF);
+
+        // de-activate a1 variable for next outer loop run
+        LfBranch controllerBranch = branch.getDiscretePhaseControl().getController();
+        Variable a1 = context.getVariableSet().getVariable(controllerBranch.getNum(), VariableType.BRANCH_ALPHA1);
+        a1.setActive(false);
+
+        // de-activate phase control equation
+        Equation t = context.getEquationSystem().createEquation(branch.getNum(), EquationType.BRANCH_P);
+        t.setActive(false);
+
+        // round the phase shift to the closest tap
+        PiModel piModel = controllerBranch.getPiModel();
+        double a1Value = piModel.getA1();
+        piModel.roundA1ToClosestTap();
+        double roundedA1Value = piModel.getA1();
+        LOGGER.info("Round phase shift of '{}': {} -> {}", controllerBranch.getId(), a1Value, roundedA1Value);
     }
 }

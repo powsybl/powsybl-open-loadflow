@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -73,12 +72,28 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
-    public Optional<PhaseControl> getPhaseControl() {
-        return Optional.empty();
+    public double getI1() {
+        return getBus1() != null ? Math.hypot(p.eval(), q.eval())
+            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
     }
 
     @Override
-    public void updateState() {
+    public double getI2() {
+        return Double.NaN;
+    }
+
+    @Override
+    public double getPermanentLimit1() {
+        return danglingLine.getCurrentLimits() != null ? danglingLine.getCurrentLimits().getPermanentLimit() * getBus1().getNominalV() / PerUnit.SB : Double.NaN;
+    }
+
+    @Override
+    public double getPermanentLimit2() {
+        return Double.NaN;
+    }
+
+    @Override
+    public void updateState(boolean phaseShifterRegulationOn) {
         danglingLine.getTerminal().setP(p.eval() * PerUnit.SB);
         danglingLine.getTerminal().setQ(q.eval() * PerUnit.SB);
     }

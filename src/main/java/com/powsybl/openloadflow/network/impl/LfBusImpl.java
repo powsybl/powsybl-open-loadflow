@@ -20,10 +20,16 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final double nominalV;
 
+    private final double lowVoltageLimit;
+
+    private final double highVoltageLimit;
+
     protected LfBusImpl(Bus bus, double v, double angle) {
         super(v, angle);
         this.bus = bus;
         nominalV = bus.getVoltageLevel().getNominalV();
+        lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
+        highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
     }
 
     public static LfBusImpl create(Bus bus) {
@@ -37,6 +43,11 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
+    public String getVoltageLevelId() {
+        return bus.getVoltageLevel().getId();
+    }
+
+    @Override
     public boolean isFictitious() {
         return false;
     }
@@ -44,6 +55,16 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public double getNominalV() {
         return nominalV;
+    }
+
+    @Override
+    public double getLowVoltageLimit() {
+        return lowVoltageLimit / nominalV;
+    }
+
+    @Override
+    public double getHighVoltageLimit() {
+        return highVoltageLimit / nominalV;
     }
 
     @Override

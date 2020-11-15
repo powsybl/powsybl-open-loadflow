@@ -46,6 +46,11 @@ public class LfDanglingLineBus extends AbstractLfBus {
     }
 
     @Override
+    public String getVoltageLevelId() {
+        return danglingLine.getTerminal().getVoltageLevel().getId();
+    }
+
+    @Override
     public boolean isFictitious() {
         return true;
     }
@@ -53,6 +58,16 @@ public class LfDanglingLineBus extends AbstractLfBus {
     @Override
     public double getNominalV() {
         return nominalV;
+    }
+
+    @Override
+    public double getLowVoltageLimit() {
+        return Double.NaN;
+    }
+
+    @Override
+    public double getHighVoltageLimit() {
+        return Double.NaN;
     }
 
     @Override

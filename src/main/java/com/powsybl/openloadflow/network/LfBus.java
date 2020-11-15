@@ -20,6 +20,8 @@ public interface LfBus {
 
     void setNum(int num);
 
+    String getVoltageLevelId();
+
     boolean isFictitious();
 
     boolean isSlack();
@@ -36,6 +38,8 @@ public interface LfBus {
      * @return the number of time, voltage control status has be set from true to false
      */
     int getVoltageControlSwitchOffCount();
+
+    void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount);
 
     void setVoltageControl(boolean voltageControl);
 
@@ -86,6 +90,10 @@ public interface LfBus {
      * @return nominal voltage in Kv
      */
     double getNominalV();
+
+    double getLowVoltageLimit();
+
+    double getHighVoltageLimit();
 
     List<LfGenerator> getGenerators();
 
