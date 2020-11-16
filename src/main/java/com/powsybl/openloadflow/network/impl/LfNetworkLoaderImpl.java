@@ -280,15 +280,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             LfBus controlledBus = lfNetwork.getBusById(regulationTerminal.getBusView().getBus().getId());
 
             if ((controlledBus.getControllerBuses().isEmpty() && controlledBus.hasVoltageControl()) || !controlledBus.getControllerBuses().isEmpty()) {
-                throw new IllegalStateException("The bus '" + controlledBus.getId()
-                        + "'has both generator and transformer voltage control on");
+                LOGGER.error("The bus '" + controlledBus.getId() + "' has both generator and transformer voltage control on. Only generator control is kept");
+            } else if (controlledBus.isDiscreteVoltageControlled()) {
+                LOGGER.error("The bus '" + controlledBus.getId() + "' already has a transformer voltage control. First one is kept");
+            } else {
+                double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
+                DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controllerBranch, controlledBus,
+                        DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
+                controllerBranch.setDiscreteVoltageControl(voltageControl);
+                controlledBus.setDiscreteVoltageControl(voltageControl);
             }
-
-            double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
-            DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controllerBranch, controlledBus,
-                    DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
-            controllerBranch.setDiscreteVoltageControl(voltageControl);
-            controlledBus.setDiscreteVoltageControl(voltageControl);
         }
     }
 

@@ -18,8 +18,6 @@ import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.concurrent.CompletionException;
-
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -163,46 +161,6 @@ class AcLoadFlowTransformerControlTest {
     }
 
     @Test
-    void phaseVoltageControlT2wtTest() {
-        selectNetwork(createNetworkWithT2wt());
-
-        t2wt.newPhaseTapChanger()
-                .setTapPosition(1)
-                .setRegulationTerminal(t2wt.getTerminal2())
-                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
-                .setRegulating(true)
-                .setRegulationValue(200)
-                .setTargetDeadband(0.)
-                .beginStep()
-                .setAlpha(-5.0)
-                .setRho(1.0)
-                .setR(0.0)
-                .setX(0.0)
-                .setG(0.0)
-                .setB(0.0)
-                .endStep()
-                .beginStep()
-                .setAlpha(0.0)
-                .setRho(1.0)
-                .setR(0.0)
-                .setX(0.0)
-                .setG(0.0)
-                .setB(0.0)
-                .endStep()
-                .beginStep()
-                .setAlpha(5)
-                .setRho(1.0)
-                .setR(0.0)
-                .setX(0.0)
-                .setG(0.0)
-                .setB(0.0)
-                .endStep()
-                .add();
-
-        //FIXME
-    }
-
-    @Test
     void nonSupportedVoltageControlT2wtTest() {
         selectNetwork(createNetworkWithT2wt());
 
@@ -213,8 +171,9 @@ class AcLoadFlowTransformerControlTest {
                 .setRegulationTerminal(network.getGenerator("GEN_1").getTerminal())
                 .setTargetV(33.0);
 
-        CompletionException exception = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("The bus 'VL_1_0'has both generator and transformer voltage control on", exception.getCause().getMessage());
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(135.0, bus1);
     }
 
     @Test
