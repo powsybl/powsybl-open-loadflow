@@ -248,7 +248,7 @@
                 <plugin>
                     <groupId>org.graalvm.nativeimage</groupId>
                     <artifactId>native-image-maven-plugin</artifactId>
-                    <version>${graalvm.version}</version>
+                    <version>20.1.0</version>
                     <executions>
                         <execution>
                             <goals>
