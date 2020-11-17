@@ -33,7 +33,7 @@ jobs:
         with:
           java-version: 11
           architecture: x64
-          jdkFile: graalvm-ce-java11-${{ matrix.config.name }}-amd64-20.3.0.tar.gz
+          jdkFile: graalvm-ce-java11-${{ matrix.config.name }}-amd64-20.3.0${{ matrix.config.ext }}
 
       - name: Fix JAVA_HOME on MacOS
         if: matrix.config.os == 'macos-latest'
@@ -72,7 +72,7 @@ jobs:
         with:
           java-version: 11
           architecture: x64
-          jdkFile: graalvm-ce-java11-windows-amd64-20.3.0.zip
+          jdkFile: graalvm-ce-java11-windows-amd64-20.3.0-signed.zip
 
       - name: Install GraalVM Native Image
         shell: cmd
