@@ -254,7 +254,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
 
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
-            LfDanglingLineBus lfBus2 = new LfDanglingLineBus(danglingLine);
+            LfDanglingLineBus lfBus2 = new LfDanglingLineBus(danglingLine, report);
             lfNetwork.addBus(lfBus2);
             lfBuses.add(lfBus2);
             LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, breakers);
