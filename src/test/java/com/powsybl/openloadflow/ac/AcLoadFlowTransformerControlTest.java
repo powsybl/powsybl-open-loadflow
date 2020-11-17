@@ -177,6 +177,75 @@ class AcLoadFlowTransformerControlTest {
     }
 
     @Test
+    void sharedVoltageControlT2wtTest() {
+        selectNetwork(createNetworkWithT2wt());
+
+        TwoWindingsTransformer t2wt2 = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
+                .setId("T2wT2")
+                .setVoltageLevel1("VL_2")
+                .setVoltageLevel2("VL_3")
+                .setRatedU1(132.0)
+                .setRatedU2(33.0)
+                .setR(17.0)
+                .setX(10.0)
+                .setG(0.00573921028466483)
+                .setB(0.000573921028466483)
+                .setBus1("BUS_2")
+                .setBus2("BUS_3")
+                .add();
+
+        t2wt2.newRatioTapChanger()
+                .beginStep()
+                .setRho(0.9)
+                .setR(0.1089)
+                .setX(0.01089)
+                .setG(0.8264462809917356)
+                .setB(0.08264462809917356)
+                .endStep()
+                .beginStep()
+                .setRho(1.0)
+                .setR(0.121)
+                .setX(0.0121)
+                .setG(0.8264462809917356)
+                .setB(0.08264462809917356)
+                .endStep()
+                .beginStep()
+                .setRho(1.1)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .setTapPosition(0)
+                .setLoadTapChangingCapabilities(true)
+                .setRegulating(false)
+                .setTargetV(33.0)
+                .setRegulationTerminal(load3.getTerminal())
+                .add();
+
+        parameters.setTransformerVoltageControlOn(true);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(false)
+                .setTapPosition(2)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+        t2wt2.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(false)
+                .setTapPosition(2)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(134.279, bus2);
+        assertVoltageEquals(35.730, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
     void baseCaseT3wtTest() {
         selectNetwork(createNetworkWithT3wt());
 
