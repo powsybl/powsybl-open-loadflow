@@ -236,6 +236,24 @@ public final class AcEquationSystem {
         if (bus.isDiscreteVoltageControlled()) {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
         }
+        if (bus.isDiscreteVoltageControlled() && bus.getDiscreteVoltageControl().getControllers().size() > 1) {
+            createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
+        }
+    }
+
+    public static void createR1DistributionEquations(EquationSystem equationSystem, VariableSet variableSet,
+                                                     List<LfBranch> controllerBranches) {
+        // we choose first controller bus as reference for reactive power
+        LfBranch firstControllerBranch = controllerBranches.get(0);
+
+        // create a R1 distribution equation for all the other controller branches
+        for (int i = 1; i < controllerBranches.size(); i++) {
+            LfBranch controllerBranch = controllerBranches.get(i);
+            Equation zero = equationSystem.createEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1)
+                    .addTerm(new BranchRho1EquationTerm(controllerBranch, variableSet))
+                    .addTerm(EquationTerm.multiply(new BranchRho1EquationTerm(firstControllerBranch, variableSet), -1));
+            zero.setData(new ReactivePowerDistributionData(firstControllerBranch.getNum(), 1)); // for later use
+        }
     }
 
     private static void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,

@@ -282,11 +282,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             if ((controlledBus.getControllerBuses().isEmpty() && controlledBus.hasVoltageControl()) || !controlledBus.getControllerBuses().isEmpty()) {
                 LOGGER.error("The bus '" + controlledBus.getId() + "' has both generator and transformer voltage control on. Only generator control is kept");
             } else if (controlledBus.isDiscreteVoltageControlled()) {
-                LOGGER.error("The bus '" + controlledBus.getId() + "' already has a transformer voltage control. First one is kept");
+                LOGGER.info("The bus '" + controlledBus.getId() + "' already has a transformer voltage control. A shared control is created");
+                controlledBus.getDiscreteVoltageControl().addController(controllerBranch);
             } else {
                 double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
-                DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controllerBranch, controlledBus,
+                DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
                         DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
+                voltageControl.addController(controllerBranch);
                 controllerBranch.setDiscreteVoltageControl(voltageControl);
                 controlledBus.setDiscreteVoltageControl(voltageControl);
             }

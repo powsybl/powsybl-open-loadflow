@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -23,12 +25,11 @@ public class DiscreteVoltageControl {
 
     private final LfBus controlled;
 
-    private final LfBranch controller;
+    protected final List<LfBranch> controllers = new ArrayList<>();
 
     private final double targetValue;
 
-    public DiscreteVoltageControl(LfBranch controller, LfBus controlled, DiscreteVoltageControl.Mode mode, double targetValue) {
-        this.controller = controller;
+    public DiscreteVoltageControl(LfBus controlled, DiscreteVoltageControl.Mode mode, double targetValue) {
         this.controlled = controlled;
         this.targetValue = targetValue;
         this.mode = Objects.requireNonNull(mode);
@@ -46,8 +47,13 @@ public class DiscreteVoltageControl {
         return targetValue;
     }
 
-    public LfBranch getController() {
-        return controller;
+    public List<LfBranch> getControllers() {
+        return controllers;
+    }
+
+    public void addController(LfBranch controllerBranch) {
+        Objects.requireNonNull(controllerBranch);
+        controllers.add(controllerBranch);
     }
 
     public LfBus getControlled() {

@@ -158,6 +158,13 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 - firstControllerBus.getLoadTargetQ() - firstControllerBus.getGenerationTargetQ();
     }
 
+    private static double getRho1DistributionTarget(LfNetwork network, int num, ReactivePowerDistributionData data) {
+        LfBranch controllerBranch = network.getBranch(num);
+        LfBranch firstControllerBranch = network.getBranch(data.getFirstControllerBusNum()); //FIXME: refactor ReactivePowerDistributionData
+        double factor = controllerBranch.getPiModel().getRangeR1() / firstControllerBranch.getPiModel().getRangeR1();
+        return factor * (controllerBranch.getPiModel().getR1() - firstControllerBranch.getPiModel().getR1());
+    }
+
     void initTarget(LfNetwork network, double[] targets) {
         switch (type) {
             case BUS_P:
@@ -194,6 +201,10 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
             case ZERO_PHI:
                 targets[column] = getBranchA(network.getBranch(num));
+                break;
+
+            case ZERO_RHO1:
+                targets[column] = getRho1DistributionTarget(network, num, getData());
                 break;
 
             default:

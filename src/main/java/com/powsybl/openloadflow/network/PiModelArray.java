@@ -153,4 +153,9 @@ public class PiModelArray implements PiModel {
         }
         r1 = Double.NaN;
     }
+
+    @Override
+    public double getRangeR1() {
+        return Math.abs(models.get(0).getR1() - models.get(models.size() - 1).getR1());
+    }
 }

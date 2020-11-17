@@ -46,4 +46,6 @@ public interface PiModel {
     void roundA1ToClosestTap();
 
     void roundR1ToClosestTap();
+
+    double getRangeR1();
 }
