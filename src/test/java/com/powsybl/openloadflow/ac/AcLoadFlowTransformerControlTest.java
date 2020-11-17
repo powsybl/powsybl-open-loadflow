@@ -226,14 +226,14 @@ class AcLoadFlowTransformerControlTest {
         parameters.setTransformerVoltageControlOn(true);
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
-                .setRegulating(false)
-                .setTapPosition(2)
+                .setRegulating(true)
+                .setTapPosition(0)
                 .setRegulationTerminal(t2wt.getTerminal2())
                 .setTargetV(34.0);
         t2wt2.getRatioTapChanger()
                 .setTargetDeadband(0)
-                .setRegulating(false)
-                .setTapPosition(2)
+                .setRegulating(true)
+                .setTapPosition(0)
                 .setRegulationTerminal(t2wt.getTerminal2())
                 .setTargetV(34.0);
 
