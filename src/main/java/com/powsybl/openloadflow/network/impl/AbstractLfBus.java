@@ -341,6 +341,11 @@ public abstract class AbstractLfBus implements LfBus {
         return loadTargetQ / PerUnit.SB;
     }
 
+    @Override
+    public void setLoadTargetQ(double loadTargetQ) {
+        this.loadTargetQ = loadTargetQ * PerUnit.SB;
+    }
+
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
         return generators.stream()
                 .mapToDouble(generator -> generator.hasVoltageControl() ? limitQ.applyAsDouble(generator)

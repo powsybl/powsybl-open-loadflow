@@ -8,6 +8,9 @@ package com.powsybl.openloadflow.util;
 
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Terminal;
+import com.powsybl.loadflow.LoadFlowResult;
+
+import java.util.Iterator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -46,5 +49,23 @@ public final class LoadFlowAssert {
 
     public static void assertUndefinedReactivePower(Terminal terminal) {
         assertTrue(Double.isNaN(terminal.getQ()));
+    }
+
+    public static void assertBetterResults(LoadFlowResult loadFlowResult, LoadFlowResult loadFlowResultBetter) {
+        assertTrue(loadFlowResult.isOk(), "results should be ok");
+        assertTrue(loadFlowResultBetter.isOk(), "results should be ok");
+        assertEquals(loadFlowResult.getComponentResults().size(), loadFlowResultBetter.getComponentResults().size(), "results should have same subnetwork count");
+        Iterator<LoadFlowResult.ComponentResult> componentResultIterator = loadFlowResult.getComponentResults().iterator();
+        Iterator<LoadFlowResult.ComponentResult> componentResultIteratorBetter = loadFlowResultBetter.getComponentResults().iterator();
+        // loop over sub networks
+        while (componentResultIterator.hasNext()) {
+            LoadFlowResult.ComponentResult componentResult = componentResultIterator.next();
+            LoadFlowResult.ComponentResult componentResultBetter = componentResultIteratorBetter.next();
+            assertEquals(componentResult.getComponentNum(), componentResultBetter.getComponentNum(), "this assert has a bug, please fix it");
+            assertEquals(componentResult.getSlackBusId(), componentResultBetter.getSlackBusId(), "this assert has a bug, please fix it");
+            assertEquals(componentResult.getStatus(), componentResultBetter.getStatus(), "status results should be the same");
+            assertEquals(componentResult.getIterationCount(), componentResultBetter.getIterationCount(), "iteration count results should be the same");
+            assertTrue(Math.abs(componentResult.getSlackBusActivePowerMismatch()) > Math.abs(componentResultBetter.getSlackBusActivePowerMismatch()), "it was expected that improved process returns a better result");
+        }
     }
 }

@@ -42,6 +42,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private final List<AcLoadFlowObserver> additionalObservers = new ArrayList<>();
 
+    private boolean powerFactorConstant = POWER_FACTOR_CONSTANT_DEFAULT_VALUE;
+
     @Override
     public String getName() {
         return "SimpleLoadFlowParameters";
@@ -87,6 +89,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return additionalObservers;
     }
 
+    public boolean isPowerFactorConstant() {
+        return powerFactorConstant;
+    }
+
+    public void setPowerFactorConstant(boolean powerFactorConstant) {
+        this.powerFactorConstant = powerFactorConstant;
+    }
+
     public static OpenLoadFlowParameters load() {
         return new OpenLoadFlowConfigLoader().load(PlatformConfig.defaultConfig());
     }
@@ -106,6 +116,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                         parameters.setThrowsExceptionInCaseOfSlackDistributionFailure(
                                 config.getBooleanProperty(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE)
                         );
+                        parameters.setPowerFactorConstant(config.getBooleanProperty(POWER_FACTOR_CONSTANT_PARAM_NAME, VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE));
                     });
             return parameters;
         }

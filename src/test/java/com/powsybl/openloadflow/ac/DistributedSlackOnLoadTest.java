@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.iidm.import_.Importers;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
@@ -20,7 +21,10 @@ import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Paths;
+
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertBetterResults;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -37,6 +41,7 @@ class DistributedSlackOnLoadTest {
     private Load l6;
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
     void setUp() {
@@ -49,8 +54,8 @@ class DistributedSlackOnLoadTest {
         l6 = network.getLoad("l6");
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setDistributedSlack(true)
-                  .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new MostMeshedSlackBusSelector());
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
@@ -82,5 +87,22 @@ class DistributedSlackOnLoadTest {
         assertActivePowerEquals(178.182, l4.getTerminal());
         assertActivePowerEquals(12.727, l5.getTerminal());
         assertActivePowerEquals(-50, l6.getTerminal()); // same as p0 because p0 < 0
+    }
+
+    @Test
+    void testPowerFactorConstant() {
+        // given
+        Network testNetwork = Importers.loadNetwork(Paths.get("src", "test", "resources", "2.xiidm"));
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+
+        // when
+        parametersExt.setPowerFactorConstant(false);
+        LoadFlowResult loadFlowResult1 = loadFlowRunner.run(testNetwork, parameters);
+
+        parametersExt.setPowerFactorConstant(true);
+        LoadFlowResult loadFlowResult2 = loadFlowRunner.run(testNetwork, parameters);
+
+        // then
+        assertBetterResults(loadFlowResult1, loadFlowResult2);
     }
 }

@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PerUnit;
@@ -24,10 +26,15 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOnLoadOuterLoop.class);
 
     private boolean distributedSlackOnConformLoad = false;
+    private LoadFlowParameters loadFlowParameters;
+    private OpenLoadFlowParameters openLoadFlowParameters;
 
-    public DistributedSlackOnLoadOuterLoop(boolean throwsExceptionInCaseOfFailure, boolean distributedSlackOnConformLoad) {
-        super(throwsExceptionInCaseOfFailure);
-        this.distributedSlackOnConformLoad = distributedSlackOnConformLoad;
+    public DistributedSlackOnLoadOuterLoop(LoadFlowParameters loadFlowParameters,
+                                           OpenLoadFlowParameters openLoadFlowParameters) {
+        super(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
+        this.loadFlowParameters = loadFlowParameters;
+        this.openLoadFlowParameters = openLoadFlowParameters;
+        this.distributedSlackOnConformLoad = loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD;
     }
 
     @Override
@@ -63,24 +70,34 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
             LfBus bus = participatingBus.element;
             double factor = participatingBus.factor;
 
-            double targetP = bus.getLoadTargetP();
-            double newTargetP = targetP - remainingMismatch * factor;
+            double loadTargetP = bus.getLoadTargetP();
+            double newLoadTargetP = loadTargetP - remainingMismatch * factor;
 
             // We stop when the load produces power.
-            if (newTargetP <= 0) {
-                newTargetP = 0;
+            if (newLoadTargetP <= 0) {
+                newLoadTargetP = 0;
                 loadsAtMin++;
                 it.remove();
             }
 
-            if (newTargetP != targetP) {
+            if (newLoadTargetP != loadTargetP) {
                 if (LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Rescale '{}' active power target: {} -> {}",
-                            bus.getId(), targetP * PerUnit.SB, newTargetP * PerUnit.SB);
+                            bus.getId(), loadTargetP * PerUnit.SB, newLoadTargetP * PerUnit.SB);
+                }
+                if (this.openLoadFlowParameters.isPowerFactorConstant()) { // https://github.com/powsybl/powsybl-open-loadflow/issues/110
+                    double loadTargetQ = bus.getLoadTargetQ();
+                    // keep power factor constant by using rule of three
+                    double newLoadTargetQ = loadTargetQ * newLoadTargetP / loadTargetP;
+                    if (LOGGER.isTraceEnabled()) {
+                        LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
+                                bus.getId(), loadTargetQ * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
+                    }
+                    bus.setLoadTargetQ(newLoadTargetQ);
                 }
 
-                bus.setLoadTargetP(newTargetP);
-                done += targetP - newTargetP;
+                bus.setLoadTargetP(newLoadTargetP);
+                done += loadTargetP - newLoadTargetP;
                 modifiedBuses++;
             }
         }

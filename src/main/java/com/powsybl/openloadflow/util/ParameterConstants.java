@@ -28,6 +28,9 @@ public final class ParameterConstants {
     public static final String LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME = "lowImpedanceBranchMode";
     public static final LowImpedanceBranchMode LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE = LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE;
 
+    public static final String POWER_FACTOR_CONSTANT_PARAM_NAME = "powerFactorConstant";
+    public static final boolean POWER_FACTOR_CONSTANT_DEFAULT_VALUE = false;
+
     private ParameterConstants() {
     }
 }
