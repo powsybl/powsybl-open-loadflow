@@ -71,7 +71,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
         if (generator.isVoltageRegulatorOn()) {
             // compute targetV in per-unit system
-            targetV = generator.getTargetV() / generator.getRegulatingTerminal().getVoltageLevel().getNominalV();
+            setTargetV(generator.getTargetV() / generator.getRegulatingTerminal().getVoltageLevel().getNominalV());
         }
     }
 
@@ -89,11 +89,6 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     @Override
     public boolean hasVoltageControl() {
         return generator.isVoltageRegulatorOn();
-    }
-
-    @Override
-    public double getTargetV() {
-        return targetV;
     }
 
     @Override

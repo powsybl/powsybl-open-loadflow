@@ -6,11 +6,13 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.MinMaxReactiveLimits;
 import com.powsybl.iidm.network.ReactiveCapabilityCurve;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.openloadflow.network.PlausibleValues;
 
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -24,7 +26,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     protected double calculatedQ = Double.NaN;
 
-    protected double targetV = Double.NaN;
+    private double targetV = Double.NaN;
 
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
@@ -38,6 +40,19 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public void setTargetP(double targetP) {
         this.targetP = targetP * PerUnit.SB;
+    }
+
+    @Override
+    public double getTargetV() {
+        return targetV;
+    }
+
+    protected void setTargetV(double targetV) {
+        // check that targetV has a plausible value (wrong nominal voltage issue)
+        if (targetV < PlausibleValues.MIN_TARGET_VOLTAGE_PU || targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
+            throw new PowsyblException(getClass().getSimpleName() + " '" + getId() + "' has an inconsistent target voltage: " + targetV + " pu");
+        }
+        this.targetV = targetV;
     }
 
     @Override

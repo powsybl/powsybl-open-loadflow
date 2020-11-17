@@ -44,7 +44,7 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(413)
+                .setTargetV(23)
                 .setVoltageRegulatorOn(true)
                 .add();
         vl1.newGenerator()
@@ -55,7 +55,7 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(412)
+                .setTargetV(22)
                 .setVoltageRegulatorOn(true)
                 .add();
 
@@ -92,7 +92,7 @@ class GeneratorTargetVoltageInconsistencyTest {
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, slackBusSelector));
-        assertEquals("Generators [g1, g2] are connected to the same bus 'vl1_0' with a different target voltages: 412.0 and 413.0", exception.getMessage());
+        assertEquals("Generators [g1, g2] are connected to the same bus 'vl1_0' with a different target voltages: 22.0 and 23.0", exception.getMessage());
     }
 
     @Test
@@ -194,7 +194,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false);
         PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, parameters));
-        assertEquals("Controller bus 'vl2_0' has an inconsistent target voltage: 0.5625 pu", exception.getMessage());
+        assertEquals("LfGeneratorImpl 'g2' has an inconsistent target voltage: 0.5625 pu", exception.getMessage());
     }
 
     @Test

@@ -6,11 +6,9 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.*;
-import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +24,6 @@ public abstract class AbstractLfBus implements LfBus {
 
     private static final double POWER_EPSILON_SI = 1e-4;
     private static final double Q_DISPATCH_EPSILON = 1e-3;
-    private static final double TARGET_V_EPSILON = 1e-2;
 
     private int num = -1;
 
@@ -144,45 +141,6 @@ public abstract class AbstractLfBus implements LfBus {
 
     public void setControlledBus(AbstractLfBus controlledBus) {
         Objects.requireNonNull(controlledBus);
-
-        if (voltageControl) {
-            // check that targetV has a plausible value (wrong nominal voltage issue)
-            double targetVPu = targetV;
-            if (targetVPu < PlausibleValues.MIN_TARGET_VOLTAGE_PU || targetVPu > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
-                throw new PowsyblException("Controller bus '" + getId() + "' has an inconsistent target voltage: "
-                        + targetVPu + " pu");
-            }
-
-            // check target voltage consistency between local and remote control
-            if (controlledBus.isVoltageController()) { // controlled bus has also local voltage control
-                double localTargetV = controlledBus.getTargetV();
-                double deltaTargetV = FastMath.abs(this.targetV - controlledBus.getTargetV());
-                if (deltaTargetV * controlledBus.getNominalV() > TARGET_V_EPSILON) {
-                    throw new PowsyblException("Bus '" + controlledBus.getId()
-                            + "' controlled by bus '" + getId() + "' has also a local voltage control with a different value: "
-                            + localTargetV * controlledBus.getNominalV() + " and " + this.targetV * controlledBus.getNominalV());
-                }
-            }
-
-            // check that if target voltage is consistent with other already existing controller buses
-            List<LfBus> otherControllerBuses = controlledBus.getControllerBuses();
-            if (!otherControllerBuses.isEmpty()) {
-                // just need to check first bus that control voltage
-                otherControllerBuses.stream()
-                        .filter(LfBus::isVoltageController)
-                        .findFirst()
-                        .ifPresent(otherControllerBus -> {
-                            double otherTargetV = otherControllerBus.getTargetV();
-                            double deltaTargetV = FastMath.abs(otherTargetV - this.targetV);
-                            if (deltaTargetV * controlledBus.getNominalV() > TARGET_V_EPSILON) {
-                                LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by at least the bus '{}' with a different target voltage: {} (kept) and {} (ignored)",
-                                        getId(), controlledBus.getId(), otherControllerBus.getId(), otherTargetV * controlledBus.getNominalV(), this.targetV * controlledBus.getNominalV());
-                                this.targetV = otherTargetV;
-                            }
-                        });
-            }
-        }
-
         this.controlledBus = controlledBus;
         controlledBus.addControllerBus(this);
     }

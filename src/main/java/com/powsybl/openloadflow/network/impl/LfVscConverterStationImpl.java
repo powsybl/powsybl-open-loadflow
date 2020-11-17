@@ -26,7 +26,7 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
         if (hasVoltageControl()) {
             // compute targetV in per-unit system
             // local control only
-            targetV = station.getVoltageSetpoint() / station.getTerminal().getVoltageLevel().getNominalV();
+            setTargetV(station.getVoltageSetpoint() / station.getTerminal().getVoltageLevel().getNominalV());
         }
     }
 
@@ -54,11 +54,6 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     @Override
     public boolean hasVoltageControl() {
         return station.isVoltageRegulatorOn();
-    }
-
-    @Override
-    public double getTargetV() {
-        return targetV;
     }
 
     @Override

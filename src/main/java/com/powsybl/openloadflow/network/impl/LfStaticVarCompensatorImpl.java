@@ -57,7 +57,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
         };
         if (hasVoltageControl()) {
             // compute targetV in per-unit system
-            targetV = svc.getVoltageSetpoint() / svc.getRegulatingTerminal().getVoltageLevel().getNominalV();
+            setTargetV(svc.getVoltageSetpoint() / svc.getRegulatingTerminal().getVoltageLevel().getNominalV());
         }
     }
 
@@ -74,11 +74,6 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     @Override
     public boolean hasVoltageControl() {
         return svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE;
-    }
-
-    @Override
-    public double getTargetV() {
-        return targetV;
     }
 
     @Override
