@@ -231,7 +231,7 @@
             <activeByDefault>false</activeByDefault>
         </activation>
         <properties>
-            <graalvm.version>20.2.0</graalvm.version>
+            <graalvm.version>20.3.0</graalvm.version>
             <janino.version>3.1.0</janino.version>
             <mapdb.version>3.0.8</mapdb.version>
         </properties>
