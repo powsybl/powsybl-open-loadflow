@@ -65,18 +65,23 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus);
 
                 // check target voltage
-                checkGeneratorTargetV(lfGenerator, controllerTargetV,
-                    controllerBus, generatorControlledBus, voltageRemoteControl);
+                checkUniqueTargetV(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
                 controllerTargetV = lfGenerator.getTargetV(); // in per-unit system
 
                 if (lfGenerator.hasVoltageControl()) {
-                    controlledBus = voltageRemoteControl ? generatorControlledBus : controllerBus;
+                    controlledBus = generatorControlledBus;
                 }
             }
 
-            controllerBus.setTargetV(controllerTargetV);
             if (controlledBus != null) {
+                if (!voltageRemoteControl && controlledBus != controllerBus) {
+                    // if voltage remote control deactivated and remote control, set local control instead
+                    LOGGER.warn("Remote voltage control is not activated. The voltage target of {} with remote control is rescaled from {} to {}",
+                        controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
+                    controlledBus = controllerBus;
+                }
                 checkBusTargetV(controllerTargetV, controllerBus, controlledBus);
+                controllerBus.setTargetV(controllerTargetV);
                 controllerBus.setControlledBus((AbstractLfBus) controlledBus);
             }
         }
@@ -124,19 +129,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void checkGeneratorTargetV(LfGenerator lfGenerator, double previousTargetV, LfBus controllerBus,
-                                              LfBus controlledBus, boolean voltageRemoteControl) {
+    private static void checkUniqueTargetV(LfGenerator lfGenerator, double previousTargetV, LfBus controllerBus, LfBus controlledBus) {
         double targetV = lfGenerator.getTargetV();
         if (!Double.isNaN(previousTargetV) && FastMath.abs(previousTargetV - targetV) > TARGET_V_EPSILON) {
             String generatorIds = controllerBus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
             throw new PowsyblException("Generators [" + generatorIds + "] are connected to the same bus '" + controllerBus.getId()
                 + "' with a different target voltages: " + targetV * controlledBus.getNominalV() + " and " + previousTargetV * controlledBus.getNominalV());
-        }
-        if (voltageRemoteControl && controlledBus != controllerBus) {
-            LOGGER.warn("Remote voltage control is not activated. The voltage target of " +
-                    "{} ({}) with remote control is rescaled from {} to {}",
-                controllerBus.getId(), lfGenerator.getClass().getSimpleName(), lfGenerator.getTargetV(),
-                lfGenerator.getTargetV() * controllerBus.getNominalV() / controlledBus.getNominalV());
         }
     }
 
