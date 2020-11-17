@@ -35,9 +35,9 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected double calculatedQ = Double.NaN;
 
-    protected boolean voltageControlCapacility = false;
+    protected boolean voltageControlCapability = false;
 
-    protected boolean voltageControl = false;
+    protected boolean voltageControlEnabled = false;
 
     protected int voltageControlSwitchOffCount = 0;
 
@@ -53,12 +53,6 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected double generationTargetQ = 0;
 
-    protected double targetV = Double.NaN;
-
-    protected LfBus controlledBus;
-
-    protected final List<LfBus> controllerBuses = new ArrayList<>();
-
     protected final List<LfGenerator> generators = new ArrayList<>();
 
     protected final List<LfShunt> shunts = new ArrayList<>();
@@ -70,6 +64,8 @@ public abstract class AbstractLfBus implements LfBus {
     protected final List<LccConverterStation> lccCss = new ArrayList<>();
 
     protected final List<LfBranch> branches = new ArrayList<>();
+
+    private VoltageControl voltageControl;
 
     protected AbstractLfBus(double v, double angle) {
         this.v = v;
@@ -107,21 +103,36 @@ public abstract class AbstractLfBus implements LfBus {
     }
 
     @Override
-    public boolean hasVoltageControlCapability() {
-        return voltageControlCapacility;
+    public boolean hasVoltageControllerCapability() {
+        return voltageControlCapability;
     }
 
     @Override
-    public boolean isVoltageController() {
+    public VoltageControl getVoltageControl() {
         return voltageControl;
     }
 
     @Override
+    public void setVoltageControl(VoltageControl voltageControl) {
+        this.voltageControl = voltageControl;
+    }
+
+    @Override
+    public boolean isVoltageControlled() {
+        return voltageControl != null && voltageControl.getControlledBus() == this;
+    }
+
+    @Override
+    public boolean isVoltageController() {
+        return voltageControlEnabled;
+    }
+
+    @Override
     public void setVoltageControl(boolean voltageControl) {
-        if (this.voltageControl && !voltageControl) {
+        if (this.voltageControlEnabled && !voltageControl) {
             voltageControlSwitchOffCount++;
         }
-        this.voltageControl = voltageControl;
+        this.voltageControlEnabled = voltageControl;
     }
 
     @Override
@@ -132,27 +143,6 @@ public abstract class AbstractLfBus implements LfBus {
     @Override
     public void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount) {
         this.voltageControlSwitchOffCount = voltageControlSwitchOffCount;
-    }
-
-    @Override
-    public Optional<LfBus> getControlledBus() {
-        return Optional.ofNullable(controlledBus);
-    }
-
-    public void setControlledBus(AbstractLfBus controlledBus) {
-        Objects.requireNonNull(controlledBus);
-        this.controlledBus = controlledBus;
-        controlledBus.addControllerBus(this);
-    }
-
-    @Override
-    public List<LfBus> getControllerBuses() {
-        return controllerBuses;
-    }
-
-    public void addControllerBus(LfBus controllerBus) {
-        Objects.requireNonNull(controllerBus);
-        controllerBuses.add(controllerBus);
     }
 
     void addLoad(Load load) {
@@ -195,23 +185,23 @@ public abstract class AbstractLfBus implements LfBus {
     private void add(LfGenerator generator, boolean voltageControl, double targetQ,
                      LfNetworkLoadingReport report) {
         generators.add(generator);
-        boolean modifiedVoltageControl = voltageControl;
         double maxRangeQ = generator.getMaxRangeQ();
+        boolean discardGenerator = false;
         if (voltageControl && maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
             LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small",
                     generator.getId(), maxRangeQ);
             report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
-            modifiedVoltageControl = false;
+            discardGenerator = true;
         }
         if (voltageControl && Math.abs(generator.getTargetP()) < POWER_EPSILON_SI && generator.getMinP() > POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)",
                     generator.getId(), generator.getTargetP(), generator.getMinP());
             report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
-            modifiedVoltageControl = false;
+            discardGenerator = true;
         }
-        if (modifiedVoltageControl) {
-            this.voltageControl = true;
-            this.voltageControlCapacility = true;
+        if (voltageControl && !discardGenerator) {
+            this.voltageControlEnabled = true;
+            this.voltageControlCapability = true;
         } else {
             if (!Double.isNaN(targetQ)) {
                 generationTargetQ += targetQ;
@@ -297,11 +287,6 @@ public abstract class AbstractLfBus implements LfBus {
     @Override
     public double getMaxQ() {
         return getLimitQ(LfGenerator::getMaxQ);
-    }
-
-    @Override
-    public double getTargetV() {
-        return targetV;
     }
 
     @Override
@@ -397,7 +382,7 @@ public abstract class AbstractLfBus implements LfBus {
     @Override
     public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
         // update generator reactive power
-        updateGeneratorsState(voltageControl ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
+        updateGeneratorsState(voltageControlEnabled ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
 
         // update load power
         double factor = initialLoadTargetP != 0 ? loadTargetP / initialLoadTargetP : 1;
@@ -425,10 +410,6 @@ public abstract class AbstractLfBus implements LfBus {
                     .setP(p)
                     .setQ(q);
         }
-    }
-
-    public void setTargetV(double targetV) { // FIXME: remove; only temporary added on the way to refactoring voltage remote control
-        this.targetV = targetV;
     }
 
 }

@@ -111,21 +111,13 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     private static double getBusTargetV(LfBus bus) {
         Objects.requireNonNull(bus);
-        if (bus.getControllerBuses().isEmpty()) {
-            return bus.getTargetV();
+        if (bus.isVoltageControlled()) {
+            if (bus.getVoltageControl().getControllerBuses().stream().noneMatch(LfBus::isVoltageController)) {
+                throw new IllegalStateException("None of the controller buses of bus '" + bus.getId() + "'has voltage control on");
+            }
+            return bus.getVoltageControl().getTargetValue();
         } else {
-            List<LfBus> controllerBuses = bus.getControllerBuses()
-                    .stream()
-                    .filter(LfBus::isVoltageController)
-                    .collect(Collectors.toList());
-            if (bus.isVoltageController()) {
-                controllerBuses.add(bus);
-            }
-            if (controllerBuses.isEmpty()) {
-                throw new IllegalStateException("None of the controller buses of bus '" + bus.getId()
-                        + "'has voltage control on");
-            }
-            return controllerBuses.get(0).getTargetV();
+            return Double.NaN;
         }
     }
 

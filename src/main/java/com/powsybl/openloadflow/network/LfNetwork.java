@@ -176,17 +176,18 @@ public class LfNetwork {
         if (bus.getLoadTargetQ() != 0) {
             jsonGenerator.writeNumberField("loadTargetQ", bus.getLoadTargetQ());
         }
-        bus.getControlledBus().ifPresent(lfBus -> {
-            if (lfBus != bus) {
+        if (bus.isVoltageController()) {
+            VoltageControl vc = bus.getVoltageControl();
+            if (vc.getControlledBus() != bus) {
                 try {
-                    jsonGenerator.writeNumberField("remoteControlTargetBus", lfBus.getNum());
+                    jsonGenerator.writeNumberField("remoteControlTargetBus", vc.getControlledBus().getNum());
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }
             }
-        });
-        if (!Double.isNaN(bus.getTargetV())) {
-            jsonGenerator.writeNumberField("targetV", bus.getTargetV());
+        }
+        if (bus.isVoltageController()) {
+            jsonGenerator.writeNumberField("targetV", bus.getVoltageControl().getTargetValue());
         }
         if (!Double.isNaN(bus.getV())) {
             jsonGenerator.writeNumberField("v", bus.getV());
@@ -329,16 +330,8 @@ public class LfNetwork {
     }
 
     private void logSize() {
-        int controlledBusCount = 0;
-        int controllerBusCount = 0;
-        for (LfBus bus : busesById.values()) {
-            if (bus.getControlledBus().isPresent()) {
-                controlledBusCount++;
-            }
-            if (!bus.getControllerBuses().isEmpty()) {
-                controllerBusCount++;
-            }
-        }
+        long controllerBusCount = busesById.values().stream().filter(LfBus::isVoltageController).count();
+        long controlledBusCount = busesById.values().stream().filter(LfBus::isVoltageControlled).count();
         LOGGER.info("Network {} has {} buses (voltage remote control: {} controllers, {} controlled) and {} branches",
                 num, busesById.values().size(), controlledBusCount, controllerBusCount, branches.size());
     }
@@ -380,10 +373,10 @@ public class LfNetwork {
                     LfBus bus2 = branch.getBus2();
                     // ensure target voltages are consistent
                     if (bus1 != null && bus2 != null && bus1.isVoltageController() && bus2.isVoltageController()
-                            && FastMath.abs((bus1.getTargetV() / bus2.getTargetV()) - piModel.getR1() / PiModel.R2) > TARGET_VOLTAGE_EPSILON) {
+                            && FastMath.abs((bus1.getVoltageControl().getTargetValue() / bus2.getVoltageControl().getTargetValue()) - piModel.getR1() / PiModel.R2) > TARGET_VOLTAGE_EPSILON) {
                         throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
                                 + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
-                                + bus1.getTargetV() + " and " + bus2.getTargetV());
+                                + bus1.getVoltageControl().getTargetValue() + " and " + bus2.getVoltageControl().getTargetValue());
                     }
                 }
             }

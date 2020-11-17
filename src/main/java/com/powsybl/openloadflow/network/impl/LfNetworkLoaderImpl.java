@@ -42,7 +42,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         private final Set<ThreeWindingsTransformer> t3wtSet = new LinkedHashSet<>();
     }
 
-    private static void createBuses(List<Bus> buses, LfNetwork lfNetwork, List<AbstractLfBus> lfBuses,
+    private static void createBuses(List<Bus> buses, LfNetwork lfNetwork, List<LfBus> lfBuses,
                                     LoadingContext loadingContext, LfNetworkLoadingReport report) {
         for (Bus bus : buses) {
             LfBusImpl lfBus = createBus(bus, loadingContext, report);
@@ -51,9 +51,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void createVoltageControls(LfNetwork lfNetwork, List<AbstractLfBus> lfBuses, boolean voltageRemoteControl, boolean breakers) {
+    private static void createVoltageControls(LfNetwork lfNetwork, List<LfBus> lfBuses, boolean voltageRemoteControl, boolean breakers) {
         // set controller -> controlled link
-        for (AbstractLfBus controllerBus : lfBuses) {
+        for (LfBus controllerBus : lfBuses) {
 
             LfBus controlledBus = null;
             double controllerTargetV = Double.NaN;
@@ -65,7 +65,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus);
 
                 // check target voltage
-                checkUniqueTargetV(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
+                checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
                 controllerTargetV = lfGenerator.getTargetV(); // in per-unit system
 
                 if (lfGenerator.hasVoltageControl()) {
@@ -74,49 +74,43 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             }
 
             if (controlledBus != null) {
+
                 if (!voltageRemoteControl && controlledBus != controllerBus) {
                     // if voltage remote control deactivated and remote control, set local control instead
                     LOGGER.warn("Remote voltage control is not activated. The voltage target of {} with remote control is rescaled from {} to {}",
                         controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
                     controlledBus = controllerBus;
                 }
-                checkBusTargetV(controllerTargetV, controllerBus, controlledBus);
-                controllerBus.setTargetV(controllerTargetV);
-                controllerBus.setControlledBus((AbstractLfBus) controlledBus);
+
+                VoltageControl voltageControl = controlledBus.getVoltageControl();
+                if (voltageControl == null) {
+                    voltageControl = new VoltageControl(controlledBus, controllerTargetV);
+                    controlledBus.setVoltageControl(voltageControl);
+                } else {
+                    checkUniqueTargetVControlledBus(controllerTargetV, controllerBus, voltageControl);
+                }
+
+                voltageControl.addControllerBus(controllerBus);
             }
         }
     }
 
-    private static void checkBusTargetV(double targetV, AbstractLfBus controllerBus, LfBus controlledBus) {
-        // check target voltage consistency between local and remote control
-        if (controlledBus.isVoltageController()) { // controlled bus has also local voltage control
-            double localTargetV = controlledBus.getTargetV();
-            double deltaTargetV = FastMath.abs(targetV - controlledBus.getTargetV());
-            if (deltaTargetV * controlledBus.getNominalV() > TARGET_V_EPSILON) {
+    private static void checkUniqueTargetVControlledBus(double controllerTargetV, LfBus controllerBus, VoltageControl vc) {
+        // check if target voltage is consistent with other already existing controller buses
+        double voltageControlTargetV = vc.getTargetValue();
+        double deltaTargetV = FastMath.abs(voltageControlTargetV - controllerTargetV);
+        LfBus controlledBus = vc.getControlledBus();
+        if (deltaTargetV * controlledBus.getNominalV() > TARGET_V_EPSILON) {
+            if (controlledBus.isVoltageController()) { // controlled bus has also local voltage control
                 throw new PowsyblException("Bus '" + controlledBus.getId()
                     + "' controlled by bus '" + controllerBus.getId() + "' has also a local voltage control with a different value: "
-                    + localTargetV * controlledBus.getNominalV() + " and " + targetV * controlledBus.getNominalV());
+                    + voltageControlTargetV * controlledBus.getNominalV() + " and " + controllerTargetV * controlledBus.getNominalV());
+            } else {
+                String busesId = vc.getControllers().stream().map(LfBus::getId).collect(Collectors.joining(", "));
+                LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by buses '{}' with a different target voltage: {} (kept) and {} (ignored)",
+                    controllerBus.getId(), controlledBus.getId(), busesId,
+                    voltageControlTargetV * controlledBus.getNominalV(), controllerTargetV * controlledBus.getNominalV());
             }
-        }
-
-        // check that if target voltage is consistent with other already existing controller buses
-        List<LfBus> otherControllerBuses = controlledBus.getControllerBuses();
-        if (!otherControllerBuses.isEmpty()) {
-            // just need to check first bus that control voltage
-            otherControllerBuses.stream()
-                .filter(LfBus::isVoltageController)
-                .findFirst()
-                .ifPresent(otherControllerBus -> {
-                    double otherTargetV = otherControllerBus.getTargetV();
-                    double deltaTargetV = FastMath.abs(otherTargetV - targetV);
-                    if (deltaTargetV * controlledBus.getNominalV() > TARGET_V_EPSILON) {
-                        LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by at least the bus '{}' with a different target voltage: {} (kept) and {} (ignored)",
-                            controllerBus.getId(), controlledBus.getId(), otherControllerBus.getId(),
-                            otherTargetV * controlledBus.getNominalV(),
-                            targetV * controlledBus.getNominalV());
-                        controllerBus.setTargetV(otherTargetV);
-                    }
-                });
         }
     }
 
@@ -129,7 +123,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void checkUniqueTargetV(LfGenerator lfGenerator, double previousTargetV, LfBus controllerBus, LfBus controlledBus) {
+    private static void checkUniqueTargetVControllerBus(LfGenerator lfGenerator, double previousTargetV, LfBus controllerBus, LfBus controlledBus) {
         double targetV = lfGenerator.getTargetV();
         if (!Double.isNaN(previousTargetV) && FastMath.abs(previousTargetV - targetV) > TARGET_V_EPSILON) {
             String generatorIds = controllerBus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
@@ -243,7 +237,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void createBranches(List<AbstractLfBus> lfBuses, LfNetwork lfNetwork, boolean twtSplitShuntAdmittance, boolean breakers, LoadingContext loadingContext, LfNetworkLoadingReport report) {
+    private static void createBranches(List<LfBus> lfBuses, LfNetwork lfNetwork, boolean twtSplitShuntAdmittance, boolean breakers, LoadingContext loadingContext, LfNetworkLoadingReport report) {
         for (Branch<?> branch : loadingContext.branchSet) {
             LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork, breakers);
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork, breakers);
@@ -333,7 +327,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
 
-        List<AbstractLfBus> lfBuses = new ArrayList<>();
+        List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, lfNetwork, lfBuses, loadingContext, report);
         createBranches(lfBuses, lfNetwork, parameters.isTwtSplitShuntAdmittance(), parameters.isBreakers(), loadingContext, report);
         createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isBreakers());

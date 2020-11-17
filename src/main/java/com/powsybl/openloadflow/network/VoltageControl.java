@@ -37,7 +37,7 @@ public class VoltageControl {
     }
 
     public double getTargetValue() {
-        return targetValue / controlled.getNominalV();
+        return targetValue;
     }
 
     public LfBus getControlledBus() {
@@ -51,6 +51,7 @@ public class VoltageControl {
     public void addControllerBus(LfBus controllerBus) {
         Objects.requireNonNull(controllerBus);
         controllers.add(controllerBus);
+        controllerBus.setVoltageControl(this);
     }
 
     public boolean isVoltageControlLocal() {

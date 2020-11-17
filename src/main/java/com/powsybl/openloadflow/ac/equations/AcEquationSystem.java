@@ -38,17 +38,18 @@ public final class AcEquationSystem {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
 
-            boolean hasLocalControlOnly = bus.getControllerBuses().size() == 1 && bus.getControllerBuses().contains(bus);
+            boolean hasLocalControl = bus.isVoltageController() && bus.getVoltageControl().isVoltageControlLocal();
+            boolean hasLocalControlOnly = hasLocalControl && bus.getVoltageControl().getControllerBuses().size() == 1;
+            if (hasLocalControlOnly) {
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+            }
+
             if (bus.isVoltageController()) {
-                // local voltage control (local only)
-                if (hasLocalControlOnly) {
-                    equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
-                }
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
             }
 
             // in case voltage remote control is activated, set voltage equation on this controlled bus
-            boolean hasRemoteControl = !bus.getControllerBuses().isEmpty() && !hasLocalControlOnly;
+            boolean hasRemoteControl = bus.isVoltageControlled() && !hasLocalControlOnly;
             if (hasRemoteControl) {
                 createVoltageControlledBusEquations(bus, equationSystem, variableSet);
             }
@@ -70,7 +71,7 @@ public final class AcEquationSystem {
         Equation vEq = equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V)
                 .addTerm(new BusVoltageEquationTerm(controlledBus, variableSet));
 
-        List<LfBus> controllerBuses = controlledBus.getControllerBuses().stream()
+        List<LfBus> controllerBuses = controlledBus.getVoltageControl().getControllerBuses().stream()
                 .filter(LfBus::isVoltageController)
                 .collect(Collectors.toList());
         if (controllerBuses.isEmpty()) {

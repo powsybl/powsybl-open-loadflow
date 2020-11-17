@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.network;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -28,9 +27,11 @@ public interface LfBus {
 
     void setSlack(boolean slack);
 
-    boolean hasVoltageControlCapability();
+    boolean hasVoltageControllerCapability();
 
     boolean isVoltageController();
+
+    boolean isVoltageControlled();
 
     /**
      * Get the number of time, voltage control status has be set from true to false.
@@ -43,9 +44,9 @@ public interface LfBus {
 
     void setVoltageControl(boolean voltageControl);
 
-    Optional<LfBus> getControlledBus();
+    VoltageControl getVoltageControl();
 
-    List<LfBus> getControllerBuses();
+    void setVoltageControl(VoltageControl voltageControl);
 
     double getTargetP();
 
@@ -66,8 +67,6 @@ public interface LfBus {
     double getGenerationTargetQ();
 
     void setGenerationTargetQ(double generationTargetQ);
-
-    double getTargetV();
 
     double getMinQ();
 
