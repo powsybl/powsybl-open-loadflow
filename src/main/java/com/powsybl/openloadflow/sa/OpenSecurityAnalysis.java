@@ -296,7 +296,9 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             switch (loadFlowParameters.getBalanceType()) {
                 case PROPORTIONAL_TO_LOAD:
                 case PROPORTIONAL_TO_CONFORM_LOAD:
-                    DistributedSlackOnLoadOuterLoop onLoadOuterLoop = new DistributedSlackOnLoadOuterLoop(loadFlowParameters, openLoadFlowParameters);
+                    DistributedSlackOnLoadOuterLoop onLoadOuterLoop = new DistributedSlackOnLoadOuterLoop(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure(),
+                            loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                            openLoadFlowParameters.isPowerFactorConstant());
                     onLoadOuterLoop.run(onLoadOuterLoop.getParticipatingElements(network), -1, mismatch);
                     break;
                 case PROPORTIONAL_TO_GENERATION_P:

@@ -53,6 +53,8 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected int positiveLoadCount = 0;
 
+    protected double initialLoadTargetQ = 0;
+
     protected double loadTargetQ = 0;
 
     protected double generationTargetQ = 0;
@@ -216,6 +218,7 @@ public abstract class AbstractLfBus implements LfBus {
     void addLoad(Load load) {
         loads.add(load);
         initialLoadTargetP += load.getP0();
+        initialLoadTargetQ += load.getQ0();
         loadTargetP += load.getP0();
         LoadDetail loadDetail = load.getExtension(LoadDetail.class);
         if (loadDetail != null) {
@@ -230,6 +233,7 @@ public abstract class AbstractLfBus implements LfBus {
     void addBattery(Battery battery) {
         batteries.add(battery);
         initialLoadTargetP += battery.getP0();
+        initialLoadTargetQ += battery.getQ0();
         loadTargetP += battery.getP0();
         loadTargetQ += battery.getQ0();
     }
@@ -464,11 +468,12 @@ public abstract class AbstractLfBus implements LfBus {
         updateGeneratorsState(voltageControl ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
 
         // update load power
-        double factor = initialLoadTargetP != 0 ? loadTargetP / initialLoadTargetP : 1;
+        double factorP = initialLoadTargetP != 0 ? loadTargetP / initialLoadTargetP : 1;
+        double factorQ = initialLoadTargetQ != 0 ? loadTargetQ / initialLoadTargetQ : 1;
         for (Load load : loads) {
             load.getTerminal()
-                    .setP(load.getP0() >= 0 ? factor * load.getP0() : load.getP0())
-                    .setQ(load.getQ0());
+                    .setP(load.getP0() >= 0 ? factorP * load.getP0() : load.getP0())
+                    .setQ(load.getQ0() >= 0 ? factorQ * load.getQ0() : load.getQ0());
         }
 
         // update battery power (which are not part of slack distribution)

@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PerUnit;
@@ -26,15 +24,12 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOnLoadOuterLoop.class);
 
     private boolean distributedSlackOnConformLoad = false;
-    private LoadFlowParameters loadFlowParameters;
-    private OpenLoadFlowParameters openLoadFlowParameters;
+    private boolean powerFactorConstant = false;
 
-    public DistributedSlackOnLoadOuterLoop(LoadFlowParameters loadFlowParameters,
-                                           OpenLoadFlowParameters openLoadFlowParameters) {
-        super(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
-        this.loadFlowParameters = loadFlowParameters;
-        this.openLoadFlowParameters = openLoadFlowParameters;
-        this.distributedSlackOnConformLoad = loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD;
+    public DistributedSlackOnLoadOuterLoop(boolean throwsExceptionInCaseOfFailure, boolean distributedSlackOnConformLoad, boolean powerFactorConstant) {
+        super(throwsExceptionInCaseOfFailure);
+        this.distributedSlackOnConformLoad = distributedSlackOnConformLoad;
+        this.powerFactorConstant = powerFactorConstant;
     }
 
     @Override
@@ -81,18 +76,14 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
             }
 
             if (newLoadTargetP != loadTargetP) {
-                if (LOGGER.isTraceEnabled()) {
-                    LOGGER.trace("Rescale '{}' active power target: {} -> {}",
-                            bus.getId(), loadTargetP * PerUnit.SB, newLoadTargetP * PerUnit.SB);
-                }
-                if (this.openLoadFlowParameters.isPowerFactorConstant()) { // https://github.com/powsybl/powsybl-open-loadflow/issues/110
+                LOGGER.trace("Rescale '{}' active power target: {} -> {}",
+                        bus.getId(), loadTargetP * PerUnit.SB, newLoadTargetP * PerUnit.SB);
+                if (powerFactorConstant) { // https://github.com/powsybl/powsybl-open-loadflow/issues/110
                     double loadTargetQ = bus.getLoadTargetQ();
                     // keep power factor constant by using rule of three
                     double newLoadTargetQ = loadTargetQ * newLoadTargetP / loadTargetP;
-                    if (LOGGER.isTraceEnabled()) {
-                        LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
-                                bus.getId(), loadTargetQ * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
-                    }
+                    LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
+                            bus.getId(), loadTargetQ * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
                     bus.setLoadTargetQ(newLoadTargetQ);
                 }
 

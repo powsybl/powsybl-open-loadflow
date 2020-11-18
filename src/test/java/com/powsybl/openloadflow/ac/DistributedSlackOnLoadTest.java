@@ -6,10 +6,10 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.import_.Importers;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -21,10 +21,7 @@ import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.nio.file.Paths;
-
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertBetterResults;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -92,17 +89,20 @@ class DistributedSlackOnLoadTest {
     @Test
     void testPowerFactorConstant() {
         // given
-        Network testNetwork = Importers.loadNetwork(Paths.get("src", "test", "resources", "2.xiidm"));
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+        Network networkWithoutPowerFactorConstant = EurostagTutorialExample1Factory.create();
+        Network networkWithPowerFactorConstant = EurostagTutorialExample1Factory.create();
 
         // when
         parametersExt.setPowerFactorConstant(false);
-        LoadFlowResult loadFlowResult1 = loadFlowRunner.run(testNetwork, parameters);
+        LoadFlowResult loadFlowResultWithoutPowerFactorConstant = loadFlowRunner.run(networkWithoutPowerFactorConstant, parameters);
 
         parametersExt.setPowerFactorConstant(true);
-        LoadFlowResult loadFlowResult2 = loadFlowRunner.run(testNetwork, parameters);
+        LoadFlowResult loadFlowResultWithPowerFactorConstant = loadFlowRunner.run(networkWithPowerFactorConstant, parameters);
 
         // then
-        assertBetterResults(loadFlowResult1, loadFlowResult2);
+        assertPowerFactorNotConstant(networkWithoutPowerFactorConstant);
+        assertPowerFactorConstant(networkWithPowerFactorConstant);
+        assertBetterLoadFlowResults(loadFlowResultWithoutPowerFactorConstant, loadFlowResultWithPowerFactorConstant);
     }
 }

@@ -93,8 +93,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return powerFactorConstant;
     }
 
-    public void setPowerFactorConstant(boolean powerFactorConstant) {
+    public OpenLoadFlowParameters setPowerFactorConstant(boolean powerFactorConstant) {
         this.powerFactorConstant = powerFactorConstant;
+        return this;
     }
 
     public static OpenLoadFlowParameters load() {
@@ -110,13 +111,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
             platformConfig.getOptionalModuleConfig("open-loadflow-default-parameters")
                     .ifPresent(config -> {
-                        parameters.setSlackBusSelector(getSlackBusSelector(config));
-                        parameters.setLowImpedanceBranchMode(config.getEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class, LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE));
-                        parameters.setVoltageRemoteControl(config.getBooleanProperty(VOLTAGE_REMOTE_CONTROLE_PARAM_NAME, VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE));
-                        parameters.setThrowsExceptionInCaseOfSlackDistributionFailure(
-                                config.getBooleanProperty(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE)
-                        );
-                        parameters.setPowerFactorConstant(config.getBooleanProperty(POWER_FACTOR_CONSTANT_PARAM_NAME, VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE));
+                        parameters
+                            .setSlackBusSelector(getSlackBusSelector(config))
+                            .setLowImpedanceBranchMode(config.getEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class, LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE))
+                            .setVoltageRemoteControl(config.getBooleanProperty(VOLTAGE_REMOTE_CONTROLE_PARAM_NAME, VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE))
+                            .setThrowsExceptionInCaseOfSlackDistributionFailure(
+                                    config.getBooleanProperty(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE)
+                            )
+                            .setPowerFactorConstant(config.getBooleanProperty(POWER_FACTOR_CONSTANT_PARAM_NAME, VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE));
                     });
             return parameters;
         }
