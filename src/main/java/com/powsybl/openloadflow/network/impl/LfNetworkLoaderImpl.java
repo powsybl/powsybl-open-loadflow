@@ -284,6 +284,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             } else if (controlledBus.isDiscreteVoltageControlled()) {
                 LOGGER.info("The bus '" + controlledBus.getId() + "' already has a transformer voltage control. A shared control is created");
                 controlledBus.getDiscreteVoltageControl().addController(controllerBranch);
+                controllerBranch.setDiscreteVoltageControl(controlledBus.getDiscreteVoltageControl());
             } else {
                 double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
                 DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
