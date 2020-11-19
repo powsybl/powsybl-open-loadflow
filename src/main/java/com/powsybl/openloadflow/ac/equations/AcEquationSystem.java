@@ -138,7 +138,7 @@ public final class AcEquationSystem {
 
             // l0 - c * li = q0 - c * qi
             Equation zero = equationSystem.createEquation(controllerBus.getNum(), EquationType.ZERO_Q);
-            zero.setData(new ReactivePowerDistributionData(firstControllerBus.getNum(), c)); // for later use
+            zero.setData(new DistributionData(firstControllerBus.getNum(), c)); // for later use
             zero.addTerms(firstControllerBusReactiveTerms);
             zero.addTerms(createReactiveTerms(controllerBus, variableSet, creationParameters).stream().map(term -> EquationTerm.multiply(term, -c)).collect(Collectors.toList()));
         }
@@ -252,7 +252,7 @@ public final class AcEquationSystem {
             Equation zero = equationSystem.createEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1)
                     .addTerm(new BranchRho1EquationTerm(controllerBranch, variableSet))
                     .addTerm(EquationTerm.multiply(new BranchRho1EquationTerm(firstControllerBranch, variableSet), -1));
-            zero.setData(new ReactivePowerDistributionData(firstControllerBranch.getNum(), 1)); // for later use
+            zero.setData(new DistributionData(firstControllerBranch.getNum(), 1)); // for later use
         }
     }
 

@@ -150,17 +150,17 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return phaseControl.getTargetValue();
     }
 
-    private static double getReactivePowerDistributionTarget(LfNetwork network, int num, ReactivePowerDistributionData data) {
+    private static double getReactivePowerDistributionTarget(LfNetwork network, int num, DistributionData data) {
         LfBus controllerBus = network.getBus(num);
-        LfBus firstControllerBus = network.getBus(data.getFirstControllerBusNum());
+        LfBus firstControllerBus = network.getBus(data.getFirstControllerElementNum());
         double c = data.getC();
         return c * (controllerBus.getLoadTargetQ() - controllerBus.getGenerationTargetQ())
                 - firstControllerBus.getLoadTargetQ() - firstControllerBus.getGenerationTargetQ();
     }
 
-    private static double getRho1DistributionTarget(LfNetwork network, int num, ReactivePowerDistributionData data) {
+    private static double getRho1DistributionTarget(LfNetwork network, int num, DistributionData data) {
         LfBranch controllerBranch = network.getBranch(num);
-        LfBranch firstControllerBranch = network.getBranch(data.getFirstControllerBusNum()); //FIXME: refactor ReactivePowerDistributionData
+        LfBranch firstControllerBranch = network.getBranch(data.getFirstControllerElementNum());
         return controllerBranch.getPiModel().getR1() - firstControllerBranch.getPiModel().getR1();
     }
 
