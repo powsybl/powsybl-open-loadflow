@@ -6,15 +6,16 @@
  */
 package com.powsybl.openloadflow.util;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowResult;
-
 import java.util.Iterator;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -24,6 +25,7 @@ public final class LoadFlowAssert {
     public static final double DELTA_ANGLE = 1E-6d;
     public static final double DELTA_V = 1E-3d;
     public static final double DELTA_POWER = 1E-3d;
+    private static final double ONE_MILLION = 1000000;
 
     private LoadFlowAssert() {
     }
@@ -56,14 +58,13 @@ public final class LoadFlowAssert {
         Iterator<Load> loads = network.getLoads().iterator();
         while (loads.hasNext()) {
             Load load = loads.next();
-            load.getTerminal().getQ();
             if (isPowerFactorConstant) {
-                assertEquals(Math.round(1000000 * load.getP0() / load.getQ0()),
-                        Math.round(1000000 * load.getTerminal().getP() / load.getTerminal().getQ()),
+                assertEquals(Math.round(ONE_MILLION * load.getP0() / load.getQ0()),
+                        Math.round(ONE_MILLION * load.getTerminal().getP() / load.getTerminal().getQ()),
                         "power factor should be a constant value");
             } else {
-                assertNotEquals(Math.round(1000000 * load.getP0() / load.getQ0()),
-                        Math.round(1000000 * load.getTerminal().getP() / load.getTerminal().getQ()),
+                assertNotEquals(Math.round(ONE_MILLION * load.getP0() / load.getQ0()),
+                        Math.round(ONE_MILLION * load.getTerminal().getP() / load.getTerminal().getQ()),
                         "power factor should not be a constant value");
             }
         }

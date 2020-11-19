@@ -9,12 +9,11 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PerUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -23,8 +22,8 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOnLoadOuterLoop.class);
 
-    private boolean distributedSlackOnConformLoad = false;
-    private boolean powerFactorConstant = false;
+    private final boolean distributedSlackOnConformLoad;
+    private final boolean powerFactorConstant;
 
     public DistributedSlackOnLoadOuterLoop(boolean throwsExceptionInCaseOfFailure, boolean distributedSlackOnConformLoad, boolean powerFactorConstant) {
         super(throwsExceptionInCaseOfFailure);
@@ -78,7 +77,10 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
             if (newLoadTargetP != loadTargetP) {
                 LOGGER.trace("Rescale '{}' active power target: {} -> {}",
                         bus.getId(), loadTargetP * PerUnit.SB, newLoadTargetP * PerUnit.SB);
-                if (powerFactorConstant) { // https://github.com/powsybl/powsybl-open-loadflow/issues/110
+                // if powerFactorConstant is true, when updating P value on loads,
+                // we have to keep powerFactor a constant value by updating Q value too
+                // for more details, see https://github.com/powsybl/powsybl-open-loadflow/issues/110#issuecomment-726812696
+                if (powerFactorConstant) {
                     double loadTargetQ = bus.getLoadTargetQ();
                     // keep power factor constant by using rule of three
                     double newLoadTargetQ = loadTargetQ * newLoadTargetP / loadTargetP;
