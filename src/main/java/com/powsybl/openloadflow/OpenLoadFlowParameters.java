@@ -110,16 +110,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
 
             platformConfig.getOptionalModuleConfig("open-loadflow-default-parameters")
-                    .ifPresent(config -> {
-                        parameters
-                            .setSlackBusSelector(getSlackBusSelector(config))
-                            .setLowImpedanceBranchMode(config.getEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class, LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE))
-                            .setVoltageRemoteControl(config.getBooleanProperty(VOLTAGE_REMOTE_CONTROLE_PARAM_NAME, VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE))
-                            .setThrowsExceptionInCaseOfSlackDistributionFailure(
-                                    config.getBooleanProperty(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE)
-                            )
-                            .setPowerFactorConstant(config.getBooleanProperty(POWER_FACTOR_CONSTANT_PARAM_NAME, VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE));
-                    });
+                .ifPresent(config -> parameters
+                        .setSlackBusSelector(getSlackBusSelector(config))
+                        .setLowImpedanceBranchMode(config.getEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class, LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE))
+                        .setVoltageRemoteControl(config.getBooleanProperty(VOLTAGE_REMOTE_CONTROLE_PARAM_NAME, VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE))
+                        .setThrowsExceptionInCaseOfSlackDistributionFailure(
+                                config.getBooleanProperty(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE)
+                        )
+                        .setPowerFactorConstant(config.getBooleanProperty(POWER_FACTOR_CONSTANT_PARAM_NAME, VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE))
+                );
             return parameters;
         }
 
