@@ -304,6 +304,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
             case ZERO_V:
             case ZERO_PHI:
+            default:
                 break;
         }
         builder.append(", type=").append(type)
