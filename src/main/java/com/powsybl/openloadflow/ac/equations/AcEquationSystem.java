@@ -235,9 +235,9 @@ public final class AcEquationSystem {
     private static void createDiscreteVoltageControlEquation(LfBus bus,  VariableSet variableSet, EquationSystem equationSystem) {
         if (bus.isDiscreteVoltageControlled()) {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
-        }
-        if (bus.isDiscreteVoltageControlled() && bus.getDiscreteVoltageControl().getControllers().size() > 1) {
-            createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
+            if (bus.getDiscreteVoltageControl().getControllers().size() > 1) {
+                createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
+            }
         }
     }
 
