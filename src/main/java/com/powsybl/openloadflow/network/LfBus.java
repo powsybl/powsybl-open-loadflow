@@ -63,6 +63,8 @@ public interface LfBus {
 
     void setLoadTargetQ(double loadTargetQ);
 
+    double getFixedLoadTargetQ();
+
     double getGenerationTargetP();
 
     double getGenerationTargetQ();

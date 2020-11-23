@@ -57,6 +57,8 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected double loadTargetQ = 0;
 
+    protected double fixedLoadTargetQ = 0;
+
     protected double generationTargetQ = 0;
 
     protected double targetV = Double.NaN;
@@ -223,6 +225,7 @@ public abstract class AbstractLfBus implements LfBus {
         LoadDetail loadDetail = load.getExtension(LoadDetail.class);
         if (loadDetail != null) {
             fixedLoadTargetP = loadDetail.getFixedActivePower();
+            fixedLoadTargetQ = loadDetail.getFixedReactivePower();
         }
         loadTargetQ += load.getQ0();
         if (load.getP0() >= 0) {
@@ -348,6 +351,11 @@ public abstract class AbstractLfBus implements LfBus {
     @Override
     public void setLoadTargetQ(double loadTargetQ) {
         this.loadTargetQ = loadTargetQ * PerUnit.SB;
+    }
+
+    @Override
+    public double getFixedLoadTargetQ() {
+        return fixedLoadTargetQ / PerUnit.SB;
     }
 
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {

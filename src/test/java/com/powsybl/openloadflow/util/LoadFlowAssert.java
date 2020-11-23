@@ -7,14 +7,12 @@
 package com.powsybl.openloadflow.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Load;
-import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowResult;
+
 import java.util.Iterator;
 
 /**
@@ -25,7 +23,6 @@ public final class LoadFlowAssert {
     public static final double DELTA_ANGLE = 1E-6d;
     public static final double DELTA_V = 1E-3d;
     public static final double DELTA_POWER = 1E-3d;
-    private static final double ONE_MILLION = 1000000;
 
     private LoadFlowAssert() {
     }
@@ -54,54 +51,27 @@ public final class LoadFlowAssert {
         assertTrue(Double.isNaN(terminal.getQ()));
     }
 
-    private static void assertPowerFactor(Network network, boolean isPowerFactorConstant) {
-        Iterator<Load> loads = network.getLoads().iterator();
-        while (loads.hasNext()) {
-            Load load = loads.next();
-            if (isPowerFactorConstant) {
-                assertEquals(Math.round(ONE_MILLION * load.getP0() / load.getQ0()),
-                        Math.round(ONE_MILLION * load.getTerminal().getP() / load.getTerminal().getQ()),
-                        "power factor should be a constant value");
-            } else {
-                assertNotEquals(Math.round(ONE_MILLION * load.getP0() / load.getQ0()),
-                        Math.round(ONE_MILLION * load.getTerminal().getP() / load.getTerminal().getQ()),
-                        "power factor should not be a constant value");
-            }
-        }
-
-    }
-
-    public static void assertPowerFactorNotConstant(Network network) {
-        assertPowerFactor(network, false);
-    }
-
-    public static void assertPowerFactorConstant(Network network) {
-        assertPowerFactor(network, true);
-    }
-
-    public static void assertBetterLoadFlowResults(LoadFlowResult loadFlowResult, LoadFlowResult loadFlowResultBetter) {
-        assertTrue(loadFlowResult.isOk(), "results should be ok");
-        assertTrue(loadFlowResultBetter.isOk(), "results should be ok");
-        assertEquals(loadFlowResult.getComponentResults().size(),
-                loadFlowResultBetter.getComponentResults().size(),
-                "results should have same subnetwork count");
+    public static void assertLoadFlowResultsEquals(LoadFlowResult loadFlowResultExpected, LoadFlowResult loadFlowResult) {
+        assertEquals(loadFlowResultExpected.isOk(), loadFlowResult.isOk(),
+                "wrong result summary");
+        assertEquals(loadFlowResultExpected.getComponentResults().size(),
+                loadFlowResult.getComponentResults().size(),
+                "wrong subnetwork count");
+        Iterator<LoadFlowResult.ComponentResult> componentResultIteratorExpected = loadFlowResultExpected.getComponentResults().iterator();
         Iterator<LoadFlowResult.ComponentResult> componentResultIterator = loadFlowResult.getComponentResults().iterator();
-        Iterator<LoadFlowResult.ComponentResult> componentResultIteratorBetter = loadFlowResultBetter.getComponentResults().iterator();
         // loop over sub networks
-        while (componentResultIterator.hasNext()) {
+        while (componentResultIteratorExpected.hasNext()) {
+            LoadFlowResult.ComponentResult componentResultExpected = componentResultIteratorExpected.next();
             LoadFlowResult.ComponentResult componentResult = componentResultIterator.next();
-            LoadFlowResult.ComponentResult componentResultBetter = componentResultIteratorBetter.next();
-            assertEquals(componentResult.getComponentNum(),
-                    componentResultBetter.getComponentNum(),
-                    "this assert has a bug, please fix it");
-            assertEquals(componentResult.getSlackBusId(),
-                    componentResultBetter.getSlackBusId(),
-                    "this assert has a bug, please fix it");
-            assertEquals(componentResult.getStatus(),
-                    componentResultBetter.getStatus(),
-                    "status results should be the same");
-            assertTrue(componentResult.getIterationCount() >= componentResultBetter.getIterationCount(), "iteration count should be the same or lower for improved result");
-            assertTrue(Math.abs(componentResult.getSlackBusActivePowerMismatch()) >= Math.abs(componentResultBetter.getSlackBusActivePowerMismatch()), "mismatch should be the same or lower for improved result");
+            assertEquals(componentResultExpected.getStatus(),
+                    componentResult.getStatus(),
+                    "wrong result status");
+            assertEquals(componentResultExpected.getIterationCount(),
+                    componentResult.getIterationCount(),
+                    "wrong iteration count");
+            assertEquals(componentResultExpected.getSlackBusActivePowerMismatch(),
+                    componentResult.getSlackBusActivePowerMismatch(),
+                    "wrong mismatch");
         }
     }
 }

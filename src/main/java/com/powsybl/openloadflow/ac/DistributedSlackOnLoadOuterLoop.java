@@ -82,8 +82,16 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
                 // for more details, see https://github.com/powsybl/powsybl-open-loadflow/issues/110#issuecomment-726812696
                 if (powerFactorConstant) {
                     double loadTargetQ = bus.getLoadTargetQ();
-                    // keep power factor constant by using rule of three
-                    double newLoadTargetQ = loadTargetQ * newLoadTargetP / loadTargetP;
+                    double newLoadTargetQ;
+                    if (distributedSlackOnConformLoad) {
+                        // keep variable power factor constant by using rule of three
+                        newLoadTargetQ = bus.getFixedLoadTargetQ()
+                                + ((loadTargetQ - bus.getFixedLoadTargetQ()) * (newLoadTargetP - bus.getFixedLoadTargetP()))
+                                / (loadTargetP - bus.getFixedLoadTargetP());
+                    } else {
+                        // keep power factor constant by using rule of three
+                        newLoadTargetQ = loadTargetQ * newLoadTargetP / loadTargetP;
+                    }
                     LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
                             bus.getId(), loadTargetQ * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
                     bus.setLoadTargetQ(newLoadTargetQ);
