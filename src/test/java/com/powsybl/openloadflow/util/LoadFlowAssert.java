@@ -70,7 +70,7 @@ public final class LoadFlowAssert {
                     componentResult.getIterationCount(),
                     "wrong iteration count");
             assertEquals(componentResultExpected.getSlackBusActivePowerMismatch(),
-                    componentResult.getSlackBusActivePowerMismatch(),
+                    componentResult.getSlackBusActivePowerMismatch(), 1e-12,
                     "wrong mismatch");
         }
     }
