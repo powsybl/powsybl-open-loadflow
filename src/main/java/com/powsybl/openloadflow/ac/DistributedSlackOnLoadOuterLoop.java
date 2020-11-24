@@ -97,8 +97,8 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
                         if (LOGGER.isTraceEnabled()) {
                             LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
                                     bus.getId(), loadTargetQ * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
-                            bus.setLoadTargetQ(newLoadTargetQ);
                         }
+                        bus.setLoadTargetQ(newLoadTargetQ);
                     }
                 }
 
