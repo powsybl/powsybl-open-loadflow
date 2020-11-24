@@ -50,7 +50,7 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
         return distributedSlackOnConformLoad ? bus.getLoadTargetP() - bus.getFixedLoadTargetP() : bus.getLoadTargetP();
     }
 
-    private double getPowerFactor(LfBus bus) {
+    private double getVariableLoadTargetQAgainstVariableLoadTargetP(LfBus bus) {
         return distributedSlackOnConformLoad ? (bus.getLoadTargetQ() - bus.getFixedLoadTargetQ()) / (bus.getLoadTargetP() - bus.getFixedLoadTargetP())
                 : bus.getLoadTargetQ() / bus.getLoadTargetP();
     }
@@ -90,9 +90,8 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
                 // we have to keep the power factor constant by updating targetQ.
                 double loadTargetQ = bus.getLoadTargetQ();
                 double newLoadTargetQ;
-                double loadPowerFactor = getPowerFactor(bus);
-                newLoadTargetQ = distributedSlackOnConformLoad ? bus.getFixedLoadTargetQ() + loadPowerFactor * (newLoadTargetP - bus.getFixedLoadTargetP())
-                        : newLoadTargetP * getPowerFactor(bus);
+                newLoadTargetQ = distributedSlackOnConformLoad ? bus.getFixedLoadTargetQ() + getVariableLoadTargetQAgainstVariableLoadTargetP(bus) * (newLoadTargetP - bus.getFixedLoadTargetP())
+                        : newLoadTargetP * getVariableLoadTargetQAgainstVariableLoadTargetP(bus);
                 if (newLoadTargetQ != loadTargetQ) {
                     LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
                             bus.getId(), loadTargetQ * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
