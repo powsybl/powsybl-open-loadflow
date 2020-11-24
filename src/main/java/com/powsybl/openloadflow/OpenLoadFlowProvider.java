@@ -131,7 +131,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
         LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
         LOGGER.info("Direct current: {}", parameters.isDc());
-        LOGGER.info("Power factor constant: {}", parametersExt.isPowerFactorConstant());
+        LOGGER.info("Power factor constant: {}", parametersExt.isRemainsLoadPowerFactorConstant());
 
         List<OuterLoop> outerLoops = new ArrayList<>();
         if (parameters.isDistributedSlack()) {
@@ -140,10 +140,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     outerLoops.add(new DistributedSlackOnGenerationOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure()));
                     break;
                 case PROPORTIONAL_TO_LOAD:
-                    outerLoops.add(new DistributedSlackOnLoadOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), false, parametersExt.isPowerFactorConstant()));
+                    outerLoops.add(new DistributedSlackOnLoadOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), false, parametersExt.isRemainsLoadPowerFactorConstant()));
                     break;
                 case PROPORTIONAL_TO_CONFORM_LOAD:
-                    outerLoops.add(new DistributedSlackOnLoadOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), true, parametersExt.isPowerFactorConstant()));
+                    outerLoops.add(new DistributedSlackOnLoadOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), true, parametersExt.isRemainsLoadPowerFactorConstant()));
                     break;
                 case PROPORTIONAL_TO_GENERATION_P: // to be implemented.
                     throw new UnsupportedOperationException("Unsupported balance type mode: " + parameters.getBalanceType());

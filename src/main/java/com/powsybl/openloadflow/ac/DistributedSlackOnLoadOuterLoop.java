@@ -9,11 +9,12 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PerUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -23,12 +24,12 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOnLoadOuterLoop.class);
 
     private final boolean distributedSlackOnConformLoad;
-    private final boolean powerFactorConstant;
+    private final boolean remainsLoadPowerFactorConstant;
 
-    public DistributedSlackOnLoadOuterLoop(boolean throwsExceptionInCaseOfFailure, boolean distributedSlackOnConformLoad, boolean powerFactorConstant) {
+    public DistributedSlackOnLoadOuterLoop(boolean throwsExceptionInCaseOfFailure, boolean distributedSlackOnConformLoad, boolean remainsLoadPowerFactorConstant) {
         super(throwsExceptionInCaseOfFailure);
         this.distributedSlackOnConformLoad = distributedSlackOnConformLoad;
-        this.powerFactorConstant = powerFactorConstant;
+        this.remainsLoadPowerFactorConstant = remainsLoadPowerFactorConstant;
     }
 
     @Override
@@ -39,14 +40,19 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
     @Override
     public List<ParticipatingElement<LfBus>> getParticipatingElements(LfNetwork network) {
         return network.getBuses()
-            .stream()
-            .filter(bus -> bus.getPositiveLoadCount() > 0 && getVariableLoadTargetP(bus) > 0)
-            .map(bus -> new ParticipatingElement<>(bus, getVariableLoadTargetP(bus)))
-            .collect(Collectors.toList());
+                .stream()
+                .filter(bus -> bus.getPositiveLoadCount() > 0 && getVariableLoadTargetP(bus) > 0)
+                .map(bus -> new ParticipatingElement<>(bus, getVariableLoadTargetP(bus)))
+                .collect(Collectors.toList());
     }
 
     private double getVariableLoadTargetP(LfBus bus) {
         return distributedSlackOnConformLoad ? bus.getLoadTargetP() - bus.getFixedLoadTargetP() : bus.getLoadTargetP();
+    }
+
+    private double getPowerFactor(LfBus bus) {
+        return distributedSlackOnConformLoad ? (bus.getLoadTargetQ() - bus.getFixedLoadTargetQ()) / (bus.getLoadTargetP() - bus.getFixedLoadTargetP())
+                : bus.getLoadTargetQ() / bus.getLoadTargetP();
     }
 
     @Override
@@ -77,30 +83,26 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
             if (newLoadTargetP != loadTargetP) {
                 LOGGER.trace("Rescale '{}' active power target: {} -> {}",
                         bus.getId(), loadTargetP * PerUnit.SB, newLoadTargetP * PerUnit.SB);
-                // if powerFactorConstant is true, when updating P value on loads,
-                // we have to keep powerFactor a constant value by updating Q value too
-                // for more details, see https://github.com/powsybl/powsybl-open-loadflow/issues/110#issuecomment-726812696
-                if (powerFactorConstant) {
-                    double loadTargetQ = bus.getLoadTargetQ();
-                    double newLoadTargetQ;
-                    if (distributedSlackOnConformLoad) {
-                        // keep variable power factor constant by using rule of three
-                        newLoadTargetQ = bus.getFixedLoadTargetQ()
-                                + ((loadTargetQ - bus.getFixedLoadTargetQ()) * (newLoadTargetP - bus.getFixedLoadTargetP()))
-                                / (loadTargetP - bus.getFixedLoadTargetP());
-                    } else {
-                        // keep power factor constant by using rule of three
-                        newLoadTargetQ = loadTargetQ * newLoadTargetP / loadTargetP;
-                    }
+            }
+
+            if (remainsLoadPowerFactorConstant) {
+                // if remainsLoadPowerFactorConstant is true, when updating targetP on loads,
+                // we have to keep the power factor constant by updating targetQ.
+                double loadTargetQ = bus.getLoadTargetQ();
+                double newLoadTargetQ;
+                double loadPowerFactor = getPowerFactor(bus);
+                newLoadTargetQ = distributedSlackOnConformLoad ? bus.getFixedLoadTargetQ() + loadPowerFactor * (newLoadTargetP - bus.getFixedLoadTargetP())
+                        : newLoadTargetP * getPowerFactor(bus);
+                if (newLoadTargetQ != loadTargetQ) {
                     LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
                             bus.getId(), loadTargetQ * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
-                    bus.setLoadTargetQ(newLoadTargetQ);
                 }
-
-                bus.setLoadTargetP(newLoadTargetP);
-                done += loadTargetP - newLoadTargetP;
-                modifiedBuses++;
+                bus.setLoadTargetQ(newLoadTargetQ);
             }
+
+            bus.setLoadTargetP(newLoadTargetP);
+            done += loadTargetP - newLoadTargetP;
+            modifiedBuses++;
         }
 
         LOGGER.debug("{} MW / {} MW distributed at iteration {} to {} loads ({} at min consumption)",

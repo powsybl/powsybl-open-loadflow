@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.ac;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertLoadFlowResultsEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.powsybl.iidm.network.Load;
@@ -26,7 +25,6 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.util.LoadFlowResultBuilder;
-import java.util.Iterator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -74,7 +72,10 @@ class DistributedSlackOnLoadTest {
         assertActivePowerEquals(175, l4.getTerminal());
         assertActivePowerEquals(12.5, l5.getTerminal());
         assertActivePowerEquals(-50, l6.getTerminal()); // same as p0 because p0 < 0
-        LoadFlowResult loadFlowResultExpected = new LoadFlowResultBuilder(true).addMetrics("3", "CONVERGED").addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 1.6895598253796607E-7).build();
+        LoadFlowResult loadFlowResultExpected = new LoadFlowResultBuilder(true)
+                .addMetrics("3", "CONVERGED")
+                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 1.6895598253796607E-7)
+                .build();
         assertLoadFlowResultsEquals(loadFlowResultExpected, result);
     }
 
@@ -93,23 +94,17 @@ class DistributedSlackOnLoadTest {
         assertActivePowerEquals(178.182, l4.getTerminal());
         assertActivePowerEquals(12.727, l5.getTerminal());
         assertActivePowerEquals(-50, l6.getTerminal()); // same as p0 because p0 < 0
-        LoadFlowResult loadFlowResultExpected = new LoadFlowResultBuilder(true).addMetrics("3", "CONVERGED").addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 9.726437433243973E-8).build();
+        LoadFlowResult loadFlowResultExpected = new LoadFlowResultBuilder(true)
+                .addMetrics("3", "CONVERGED")
+                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 9.726437433243973E-8)
+                .build();
         assertLoadFlowResultsEquals(loadFlowResultExpected, result);
     }
 
     private void assertPowerFactor(Network network) {
-        Iterator<Load> loads = network.getLoads().iterator();
-        while (loads.hasNext()) {
-            Load load = loads.next();
-            if (parametersExt.isPowerFactorConstant()
-                    && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
-                    || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)) {
-                if (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
-                    // there is precision loss here, use round on value previously multiplied by one million
-                    assertEquals(load.getP0() / load.getQ0(),
-                            load.getTerminal().getP() / load.getTerminal().getQ(),
-                            1e-12, "power factor should be a constant value");
-                } else {
+        switch (parameters.getBalanceType()) {
+            case PROPORTIONAL_TO_CONFORM_LOAD:
+                for (Load load : network.getLoads()) {
                     LoadDetail loadDetail = load.getExtension(LoadDetail.class);
                     double fixedLoadTargetP = 0;
                     double fixedLoadTargetQ = 0;
@@ -121,80 +116,56 @@ class DistributedSlackOnLoadTest {
                             (load.getTerminal().getP() - fixedLoadTargetP) / (load.getTerminal().getQ() - fixedLoadTargetQ),
                             1e-12, "power factor should be a constant value");
                 }
-            } else {
-                assertNotEquals(load.getP0() / load.getQ0(),
-                        load.getTerminal().getP() / load.getTerminal().getQ(),
-                        1e-12, "power factor should not be a constant value");
-            }
-        }
+                break;
 
+            case PROPORTIONAL_TO_LOAD:
+                for (Load load : network.getLoads()) {
+                    // there is precision loss here, use round on value previously multiplied by one million
+                    assertEquals(load.getP0() / load.getQ0(),
+                            load.getTerminal().getP() / load.getTerminal().getQ(),
+                            1e-12, "power factor should be a constant value");
+                }
+                break;
+
+            default:
+                break;
+        }
     }
 
     @Test
     void testPowerFactorConstant() {
-        // 1a -> test case 1a : PROPORTIONAL_TO_LOAD + not remain power factor constant
-        // given
+        // PROPORTIONAL_TO_LOAD and remains power factor constant for loads
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        parametersExt.setPowerFactorConstant(false);
-        Network network1a = EurostagTutorialExample1Factory.create();
+        parametersExt.setRemainsLoadPowerFactorConstant(true);
+        Network network1 = EurostagTutorialExample1Factory.create();
 
-        // when
-        LoadFlowResult loadFlowResult1a = loadFlowRunner.run(network1a, parameters);
+        LoadFlowResult loadFlowResult1 = loadFlowRunner.run(network1, parameters);
 
-        // then
-        assertPowerFactor(network1a);
-        LoadFlowResult loadFlowResultExpected1a = new LoadFlowResultBuilder(true).addMetrics("5", "CONVERGED").addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "VLHV1_0", -1.241543164276493E-4).build();
-        assertLoadFlowResultsEquals(loadFlowResultExpected1a, loadFlowResult1a);
+        assertPowerFactor(network1);
+        LoadFlowResult loadFlowResultExpected1 = new LoadFlowResultBuilder(true)
+                .addMetrics("5", "CONVERGED")
+                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "VLHV1_0", -3.06844963660069E-5)
+                .build();
+        assertLoadFlowResultsEquals(loadFlowResultExpected1, loadFlowResult1);
 
-        // 1b -> test case 1b : PROPORTIONAL_TO_LOAD + not remain power factor constant
-        // given
+        // PROPORTIONAL_TO_CONFORM_LOAD and remains power factor constant for loads
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
-        parametersExt.setPowerFactorConstant(false);
-        Network network1b = EurostagTutorialExample1Factory.create();
-        network1b.getLoad("LOAD").newExtension(LoadDetailAdder.class)
-                .withFixedActivePower(400).withVariableActivePower(200)
-                .withFixedReactivePower(150).withVariableReactivePower(50)
-                .add();
-
-        // when
-        LoadFlowResult loadFlowResult1b = loadFlowRunner.run(network1b, parameters);
-
-        // then
-        assertPowerFactor(network1b);
-        LoadFlowResult loadFlowResultExpected1b = new LoadFlowResultBuilder(true).addMetrics("5", "CONVERGED").addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "VLHV1_0", -1.241543164276493E-4).build();
-        assertLoadFlowResultsEquals(loadFlowResultExpected1b, loadFlowResult1b);
-
-        // 2a -> test case 2a : PROPORTIONAL_TO_LOAD + remain power factor constant
-        // given
-        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        parametersExt.setPowerFactorConstant(true);
-        Network network2a = EurostagTutorialExample1Factory.create();
-
-        //when
-        LoadFlowResult loadFlowResult2a = loadFlowRunner.run(network2a, parameters);
-
-        // then
-        assertPowerFactor(network2a);
-        LoadFlowResult loadFlowResultExpected2a = new LoadFlowResultBuilder(true).addMetrics("5", "CONVERGED").addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "VLHV1_0", -3.06844963660069E-5).build();
-        assertLoadFlowResultsEquals(loadFlowResultExpected2a, loadFlowResult2a);
-
-        // 2b -> test case 2b : PROPORTIONAL_TO_CONFORM_LOAD + remain power factor constant
-        // given
-        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
-        parametersExt.setPowerFactorConstant(true);
-        Network network2b = EurostagTutorialExample1Factory.create();
+        parametersExt.setRemainsLoadPowerFactorConstant(true);
+        Network network2 = EurostagTutorialExample1Factory.create();
         // fixedActivePower and FixedReactivePower are unbalanced
-        network2b.getLoad("LOAD").newExtension(LoadDetailAdder.class)
+        network2.getLoad("LOAD").newExtension(LoadDetailAdder.class)
                 .withFixedActivePower(500).withVariableActivePower(100)
                 .withFixedReactivePower(150).withVariableReactivePower(50)
                 .add();
 
         //when
-        LoadFlowResult loadFlowResult2b = loadFlowRunner.run(network2b, parameters);
+        LoadFlowResult loadFlowResult2 = loadFlowRunner.run(network2, parameters);
 
         // then
-        assertPowerFactor(network2b);
-        LoadFlowResult loadFlowResultExpected2b = new LoadFlowResultBuilder(true).addMetrics("5", "CONVERGED").addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "VLHV1_0", 1.340823176931849E-5).build();
-        assertLoadFlowResultsEquals(loadFlowResultExpected2b, loadFlowResult2b);
+        assertPowerFactor(network2);
+        LoadFlowResult loadFlowResultExpected2 = new LoadFlowResultBuilder(true).addMetrics("5", "CONVERGED")
+                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "VLHV1_0", 1.340823176931849E-5)
+                .build();
+        assertLoadFlowResultsEquals(loadFlowResultExpected2, loadFlowResult2);
     }
 }

@@ -222,12 +222,12 @@ public abstract class AbstractLfBus implements LfBus {
         initialLoadTargetP += load.getP0();
         initialLoadTargetQ += load.getQ0();
         loadTargetP += load.getP0();
+        loadTargetQ += load.getQ0();
         LoadDetail loadDetail = load.getExtension(LoadDetail.class);
         if (loadDetail != null) {
             fixedLoadTargetP = loadDetail.getFixedActivePower();
             fixedLoadTargetQ = loadDetail.getFixedReactivePower();
         }
-        loadTargetQ += load.getQ0();
         if (load.getP0() >= 0) {
             positiveLoadCount++;
         }
