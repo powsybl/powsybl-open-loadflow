@@ -120,7 +120,6 @@ class DistributedSlackOnLoadTest {
 
             case PROPORTIONAL_TO_LOAD:
                 for (Load load : network.getLoads()) {
-                    // there is precision loss here, use round on value previously multiplied by one million
                     assertEquals(load.getP0() / load.getQ0(),
                             load.getTerminal().getP() / load.getTerminal().getQ(),
                             1e-12, "power factor should be a constant value");

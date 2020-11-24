@@ -131,7 +131,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
         LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
         LOGGER.info("Direct current: {}", parameters.isDc());
-        LOGGER.info("Power factor constant: {}", parametersExt.isRemainsLoadPowerFactorConstant());
+        LOGGER.info("Remains load power factor constant: {}", parametersExt.isRemainsLoadPowerFactorConstant());
 
         List<OuterLoop> outerLoops = new ArrayList<>();
         if (parameters.isDistributedSlack()) {
