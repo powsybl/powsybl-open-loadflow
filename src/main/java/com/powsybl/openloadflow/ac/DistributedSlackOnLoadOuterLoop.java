@@ -81,8 +81,10 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
             }
 
             if (newLoadTargetP != loadTargetP) {
-                LOGGER.trace("Rescale '{}' active power target: {} -> {}",
-                        bus.getId(), loadTargetP * PerUnit.SB, newLoadTargetP * PerUnit.SB);
+                if (LOGGER.isTraceEnabled()) {
+                    LOGGER.trace("Rescale '{}' active power target: {} -> {}",
+                            bus.getId(), loadTargetP * PerUnit.SB, newLoadTargetP * PerUnit.SB);
+                }
 
                 if (remainsLoadPowerFactorConstant) {
                     // if remainsLoadPowerFactorConstant is true, when updating targetP on loads,
@@ -92,9 +94,11 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
                     newLoadTargetQ = distributedSlackOnConformLoad ? bus.getFixedLoadTargetQ() + getVariableLoadTargetQAgainstVariableLoadTargetP(bus) * (newLoadTargetP - bus.getFixedLoadTargetP())
                             : newLoadTargetP * getVariableLoadTargetQAgainstVariableLoadTargetP(bus);
                     if (newLoadTargetQ != loadTargetQ) {
-                        LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
-                                bus.getId(), loadTargetQ * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
-                        bus.setLoadTargetQ(newLoadTargetQ);
+                        if (LOGGER.isTraceEnabled()) {
+                            LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
+                                    bus.getId(), loadTargetQ * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
+                            bus.setLoadTargetQ(newLoadTargetQ);
+                        }
                     }
                 }
 
