@@ -46,7 +46,6 @@ class DistributedSlackOnLoadTest {
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
     private OpenLoadFlowParameters parametersExt;
-    private static final double ONE_BILLION = 1000000000;
 
     @BeforeEach
     void setUp() {
@@ -107,9 +106,9 @@ class DistributedSlackOnLoadTest {
                     || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)) {
                 if (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
                     // there is precision loss here, use round on value previously multiplied by one million
-                    assertEquals(Math.round(ONE_BILLION * load.getP0() / load.getQ0()),
-                            Math.round(ONE_BILLION * load.getTerminal().getP() / load.getTerminal().getQ()),
-                            "power factor should be a constant value");
+                    assertEquals(load.getP0() / load.getQ0(),
+                            load.getTerminal().getP() / load.getTerminal().getQ(),
+                            1e-12, "power factor should be a constant value");
                 } else {
                     LoadDetail loadDetail = load.getExtension(LoadDetail.class);
                     double fixedLoadTargetP = 0;
@@ -118,14 +117,14 @@ class DistributedSlackOnLoadTest {
                         fixedLoadTargetP = loadDetail.getFixedActivePower();
                         fixedLoadTargetQ = loadDetail.getFixedReactivePower();
                     }
-                    assertEquals(Math.round(ONE_BILLION * ((load.getP0() - fixedLoadTargetP) / (load.getQ0() - fixedLoadTargetQ))),
-                            Math.round(ONE_BILLION * (load.getTerminal().getP() - fixedLoadTargetP) / (load.getTerminal().getQ() - fixedLoadTargetQ)),
-                            "power factor should be a constant value");
+                    assertEquals((load.getP0() - fixedLoadTargetP) / (load.getQ0() - fixedLoadTargetQ),
+                            (load.getTerminal().getP() - fixedLoadTargetP) / (load.getTerminal().getQ() - fixedLoadTargetQ),
+                            1e-12, "power factor should be a constant value");
                 }
             } else {
-                assertNotEquals(Math.round(ONE_BILLION * load.getP0() / load.getQ0()),
-                        Math.round(ONE_BILLION * load.getTerminal().getP() / load.getTerminal().getQ()),
-                        "power factor should not be a constant value");
+                assertNotEquals(load.getP0() / load.getQ0(),
+                        load.getTerminal().getP() / load.getTerminal().getQ(),
+                        1e-12, "power factor should not be a constant value");
             }
         }
 
