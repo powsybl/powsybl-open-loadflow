@@ -83,25 +83,25 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
             if (newLoadTargetP != loadTargetP) {
                 LOGGER.trace("Rescale '{}' active power target: {} -> {}",
                         bus.getId(), loadTargetP * PerUnit.SB, newLoadTargetP * PerUnit.SB);
-            }
 
-            if (remainsLoadPowerFactorConstant) {
-                // if remainsLoadPowerFactorConstant is true, when updating targetP on loads,
-                // we have to keep the power factor constant by updating targetQ.
-                double loadTargetQ = bus.getLoadTargetQ();
-                double newLoadTargetQ;
-                newLoadTargetQ = distributedSlackOnConformLoad ? bus.getFixedLoadTargetQ() + getVariableLoadTargetQAgainstVariableLoadTargetP(bus) * (newLoadTargetP - bus.getFixedLoadTargetP())
-                        : newLoadTargetP * getVariableLoadTargetQAgainstVariableLoadTargetP(bus);
-                if (newLoadTargetQ != loadTargetQ) {
-                    LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
-                            bus.getId(), loadTargetQ * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
+                if (remainsLoadPowerFactorConstant) {
+                    // if remainsLoadPowerFactorConstant is true, when updating targetP on loads,
+                    // we have to keep the power factor constant by updating targetQ.
+                    double loadTargetQ = bus.getLoadTargetQ();
+                    double newLoadTargetQ;
+                    newLoadTargetQ = distributedSlackOnConformLoad ? bus.getFixedLoadTargetQ() + getVariableLoadTargetQAgainstVariableLoadTargetP(bus) * (newLoadTargetP - bus.getFixedLoadTargetP())
+                            : newLoadTargetP * getVariableLoadTargetQAgainstVariableLoadTargetP(bus);
+                    if (newLoadTargetQ != loadTargetQ) {
+                        LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
+                                bus.getId(), loadTargetQ * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
+                        bus.setLoadTargetQ(newLoadTargetQ);
+                    }
                 }
-                bus.setLoadTargetQ(newLoadTargetQ);
-            }
 
-            bus.setLoadTargetP(newLoadTargetP);
-            done += loadTargetP - newLoadTargetP;
-            modifiedBuses++;
+                bus.setLoadTargetP(newLoadTargetP);
+                done += loadTargetP - newLoadTargetP;
+                modifiedBuses++;
+            }
         }
 
         LOGGER.debug("{} MW / {} MW distributed at iteration {} to {} loads ({} at min consumption)",
