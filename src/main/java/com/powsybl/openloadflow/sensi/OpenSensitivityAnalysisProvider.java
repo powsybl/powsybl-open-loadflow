@@ -12,6 +12,7 @@ import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.sensitivity.*;
 import com.powsybl.tools.PowsyblCoreVersion;
@@ -33,6 +34,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     private final DcSensitivityAnalysis dcSensitivityAnalysis;
 
     private final AcSensitivityAnalysis acSensitivityAnalysis;
+
+    public OpenSensitivityAnalysisProvider() {
+        this(new SparseMatrixFactory());
+    }
 
     public OpenSensitivityAnalysisProvider(MatrixFactory matrixFactory) {
         dcSensitivityAnalysis = new DcSensitivityAnalysis(matrixFactory);
