@@ -6,6 +6,9 @@
  */
 package com.powsybl.openloadflow.network;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -14,6 +17,8 @@ import java.util.Objects;
  */
 public class PiModelArray implements PiModel {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(PiModelArray.class);
+
     private final List<PiModel> models;
 
     private final int lowTapPosition;
@@ -21,6 +26,8 @@ public class PiModelArray implements PiModel {
     private int tapPosition;
 
     private double a1 = Double.NaN;
+
+    private double r1 = Double.NaN;
 
     public PiModelArray(List<PiModel> models, int lowTapPosition, int tapPosition) {
         this.models = Objects.requireNonNull(models);
@@ -84,7 +91,7 @@ public class PiModelArray implements PiModel {
 
     @Override
     public double getR1() {
-        return getModel().getR1();
+        return Double.isNaN(r1) ? getModel().getR1() : r1;
     }
 
     @Override
@@ -95,6 +102,12 @@ public class PiModelArray implements PiModel {
     @Override
     public PiModelArray setA1(double a1) {
         this.a1 = a1;
+        return this;
+    }
+
+    @Override
+    public PiModelArray setR1(double r1) {
+        this.r1 = r1;
         return this;
     }
 
@@ -114,5 +127,23 @@ public class PiModelArray implements PiModel {
             }
         }
         a1 = Double.NaN;
+    }
+
+    @Override
+    public void roundR1ToClosestTap() {
+        if (Double.isNaN(r1)) {
+            return; // nothing to do because a1 has not been modified
+        }
+
+        // find tap position with the closest r1 value
+        double smallestDistance = Math.abs(r1 - getModel().getR1());
+        for (int p = 0; p < models.size(); p++) {
+            double distance = Math.abs(r1 - models.get(p).getR1());
+            if (distance < smallestDistance) {
+                tapPosition = lowTapPosition + p;
+                smallestDistance = distance;
+            }
+        }
+        r1 = Double.NaN;
     }
 }

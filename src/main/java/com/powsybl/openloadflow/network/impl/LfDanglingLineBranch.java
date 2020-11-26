@@ -93,7 +93,7 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
-    public void updateState() {
+    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn) {
         danglingLine.getTerminal().setP(p.eval() * PerUnit.SB);
         danglingLine.getTerminal().setQ(q.eval() * PerUnit.SB);
     }

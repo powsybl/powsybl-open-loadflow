@@ -25,8 +25,9 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenBranchAcF
 
     private double dp1dv1;
 
-    public OpenBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, VariableSet variableSet) {
-        super(branch, VariableType.BUS_V, bus1, variableSet);
+    public OpenBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, VariableSet variableSet,
+                                                 boolean deriveA1, boolean deriveR1) {
+        super(branch, VariableType.BUS_V, bus1, variableSet, deriveA1, deriveR1);
         v1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_V);
     }
 
@@ -34,6 +35,7 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenBranchAcF
     public void update(double[] x) {
         Objects.requireNonNull(x);
         double v1 = x[v1Var.getRow()];
+        double r1 = branch.getPiModel().getR1();
         p1 = r1 * r1 * v1 * v1 * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * sinKsi / shunt);
         dp1dv1 = 2 * r1 * r1 * v1 * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * sinKsi / shunt);
     }

@@ -131,6 +131,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
         LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
         LOGGER.info("Direct current: {}", parameters.isDc());
+        LOGGER.info("Transformer voltage control: {}", parameters.isTransformerVoltageControlOn());
 
         List<OuterLoop> outerLoops = new ArrayList<>();
         if (parameters.isDistributedSlack()) {
@@ -156,11 +157,15 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         if (!parameters.isNoGeneratorReactiveLimits()) {
             outerLoops.add(new ReactiveLimitsOuterLoop());
         }
+        if (parameters.isTransformerVoltageControlOn()) {
+            outerLoops.add(new TransformerVoltageControlOuterLoop());
+        }
 
         return new AcLoadFlowParameters(slackBusSelector, voltageInitializer, stoppingCriteria,
                 outerLoops, matrixFactory, getObserver(parametersExt),
                 parametersExt.hasVoltageRemoteControl(),
                 parameters.isPhaseShifterRegulationOn(),
+                parameters.isTransformerVoltageControlOn(),
                 parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
                 parameters.isTwtSplitShuntAdmittance(),
                 breakers);
@@ -185,7 +190,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
             for (AcLoadFlowResult result : results) {
                 // update network state
-                result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(), parameters.isWriteSlackBus());
+                result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(), parameters.isWriteSlackBus(),
+                    parameters.isPhaseShifterRegulationOn(), parameters.isTransformerVoltageControlOn());
 
                 metrics.putAll(createMetrics(result));
 
@@ -243,7 +249,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 SlackTerminal.reset(network);
             }
 
-            result.getNetwork().updateState(false, parameters.isWriteSlackBus());
+            result.getNetwork().updateState(false, parameters.isWriteSlackBus(), parameters.isPhaseShifterRegulationOn(),
+                    parameters.isTransformerVoltageControlOn());
 
             return new LoadFlowResultImpl(result.isOk(), Collections.emptyMap(), null);
         });

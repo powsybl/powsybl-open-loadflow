@@ -19,7 +19,8 @@ public enum EquationType {
     BRANCH_ALPHA1("\u03B1" + "1", SubjectType.BRANCH),
     ZERO_Q("z_q", SubjectType.BUS),
     ZERO_V("z_v", SubjectType.BRANCH),
-    ZERO_PHI("z_\u03C6", SubjectType.BRANCH);
+    ZERO_PHI("z_\u03C6", SubjectType.BRANCH),
+    ZERO_RHO1("z_\u03C1", SubjectType.BRANCH);
 
     private final String symbol;
 

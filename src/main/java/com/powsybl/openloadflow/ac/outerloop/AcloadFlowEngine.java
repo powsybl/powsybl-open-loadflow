@@ -143,7 +143,7 @@ public class AcloadFlowEngine {
 
             variableSet = new VariableSet();
             AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(parameters.isVoltageRemoteControl(),
-                    parameters.isPhaseControl());
+                    parameters.isPhaseControl(), parameters.isTransformerVoltageControlOn());
             equationSystem = AcEquationSystem.create(network, variableSet, creationParameters);
 
             parameters.getObserver().afterEquationSystemCreation();

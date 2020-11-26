@@ -6,7 +6,9 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.PhaseTapChanger;
+import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -42,16 +44,15 @@ public class LfLegBranch extends AbstractLfBranch {
         Objects.requireNonNull(twt);
         Objects.requireNonNull(leg);
 
-        PiModel piModel;
+        PiModel piModel = null;
 
-        double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
         double nominalV2 = twt.getRatedU0();
         double zb = nominalV2 * nominalV2 / PerUnit.SB;
+        double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
         PhaseTapChanger ptc = leg.getPhaseTapChanger();
         if (ptc != null
                 && ptc.isRegulating()
                 && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
-
             Integer rtcPosition = Transformers.getCurrentPosition(leg.getRatioTapChanger());
             List<PiModel> models = new ArrayList<>();
             for (int ptcPosition = ptc.getLowTapPosition(); ptcPosition <= ptc.getHighTapPosition(); ptcPosition++) {
@@ -61,7 +62,7 @@ public class LfLegBranch extends AbstractLfBranch {
                 double g2 = twtSplitShuntAdmittance ? g1 : 0;
                 double b1 = Transformers.getB1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
                 double b2 = twtSplitShuntAdmittance ? b1 : 0;
-                double r1 = Transformers.getRatioLeg(twt, leg) / nominalV2 * nominalV1;
+                double r1 = Transformers.getRatioLeg(twt, leg, rtcPosition, ptcPosition) / baseRatio;
                 double a1 = Transformers.getAngleLeg(leg, ptcPosition);
                 models.add(new SimplePiModel()
                         .setR(r)
@@ -74,8 +75,39 @@ public class LfLegBranch extends AbstractLfBranch {
                         .setA1(a1));
             }
             piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
+        }
 
-        } else {
+        RatioTapChanger rtc = leg.getRatioTapChanger();
+        if (rtc != null && rtc.isRegulating()) {
+            if (piModel == null) {
+                Integer ptcPosition = Transformers.getCurrentPosition(leg.getPhaseTapChanger());
+                List<PiModel> models = new ArrayList<>();
+                for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= rtc.getHighTapPosition(); rtcPosition++) {
+                    double r = Transformers.getR(leg, rtcPosition, ptcPosition) / zb;
+                    double x = Transformers.getX(leg, rtcPosition, ptcPosition) / zb;
+                    double g1 = Transformers.getG1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                    double g2 = twtSplitShuntAdmittance ? g1 : 0;
+                    double b1 = Transformers.getB1(leg, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
+                    double b2 = twtSplitShuntAdmittance ? b1 : 0;
+                    double r1 = Transformers.getRatioLeg(twt, leg, rtcPosition, ptcPosition) / baseRatio;
+                    double a1 = Transformers.getAngleLeg(leg, ptcPosition);
+                    models.add(new SimplePiModel()
+                            .setR(r)
+                            .setX(x)
+                            .setG1(g1)
+                            .setG2(g2)
+                            .setB1(b1)
+                            .setB2(b2)
+                            .setR1(r1)
+                            .setA1(a1));
+                }
+                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
+            } else {
+                throw new PowsyblException("Unsupported type of branch for voltage and phase controls of branch: " + twt.getId());
+            }
+        }
+
+        if (piModel == null) {
             piModel = new SimplePiModel()
                     .setR(Transformers.getR(leg) / zb)
                     .setX(Transformers.getX(leg) / zb)
@@ -83,7 +115,7 @@ public class LfLegBranch extends AbstractLfBranch {
                     .setG2(twtSplitShuntAdmittance ? Transformers.getG1(leg, twtSplitShuntAdmittance) * zb : 0)
                     .setB1(Transformers.getB1(leg, twtSplitShuntAdmittance) * zb)
                     .setB2(twtSplitShuntAdmittance ? Transformers.getB1(leg, twtSplitShuntAdmittance) * zb : 0)
-                    .setR1(Transformers.getRatioLeg(twt, leg) / nominalV2 * nominalV1)
+                    .setR1(Transformers.getRatioLeg(twt, leg) / baseRatio)
                     .setA1(Transformers.getAngleLeg(leg));
         }
 
@@ -147,18 +179,26 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
-    public void updateState() {
+    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn) {
         leg.getTerminal().setP(p.eval() * PerUnit.SB);
         leg.getTerminal().setQ(q.eval() * PerUnit.SB);
 
-        if (isPhaseController() && phaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
+        if (phaseShifterRegulationOn && isPhaseController() && phaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
             // it means there is a regulating phase tap changer located on that leg
             updateTapPosition(leg.getPhaseTapChanger());
         }
 
-        if (isPhaseControlled() && phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
+        if (phaseShifterRegulationOn && isPhaseControlled() && phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
             // check if the target value deadband is respected
-            checkTargetDeadband(p);
+            checkTargetDeadband(p.eval());
+        }
+
+        if (isTransformerVoltageControlOn && isVoltageController()) { // it means there is a regulating ratio tap changer
+            RatioTapChanger rtc = leg.getRatioTapChanger();
+            double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
+            double rho = getPiModel().getR1() * leg.getRatedU() / twt.getRatedU0() * baseRatio;
+            updateTapPosition(rtc, rho);
+            checkTargetDeadband(rtc);
         }
     }
 }
