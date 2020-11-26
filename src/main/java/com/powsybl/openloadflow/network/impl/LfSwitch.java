@@ -32,6 +32,11 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
+    public boolean canControlPhase() {
+        return false;
+    }
+
+    @Override
     public void setP1(Evaluable p1) {
         // nothing to do
     }

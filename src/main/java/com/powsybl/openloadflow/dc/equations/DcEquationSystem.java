@@ -71,7 +71,7 @@ public final class DcEquationSystem {
                                              DcEquationSystemCreationParameters creationParameters, LfBranch branch,
                                              LfBus bus1, LfBus bus2) {
         if (bus1 != null && bus2 != null) {
-            boolean deriveA1 = creationParameters.isForcePhaseControlOffAndAddAngle1Var() && branch.getDiscretePhaseControl() != null;
+            boolean deriveA1 = creationParameters.isForcePhaseControlOffAndAddAngle1Var() && branch.canControlPhase();
             ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, deriveA1);
             ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, deriveA1);
             equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
