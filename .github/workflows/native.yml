@@ -52,7 +52,9 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: olf-${{ matrix.config.name }}
-          path: olf*
+          path: |
+            olf
+            olf.exe
 
   package:
     name: Package binaries
@@ -68,5 +70,5 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
-          name: gridpy-wheels
+          name: olf-all
           path: download/*
