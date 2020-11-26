@@ -41,7 +41,7 @@ jobs:
         run: native-image -jar target/powsybl-open-loadflow-*-standalone.jar -H:Name=olf --no-fallback --allow-incomplete-classpath -H:Class=com.powsybl.tools.Main
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
           name: olf-${{ matrix.config.name }}
           path: olf*
