@@ -104,4 +104,10 @@ public interface LfBus {
     void addBranch(LfBranch branch);
 
     void updateState(boolean reactiveLimits, boolean writeSlackBus);
+
+    DiscreteVoltageControl getDiscreteVoltageControl();
+
+    boolean isDiscreteVoltageControlled();
+
+    void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
 }

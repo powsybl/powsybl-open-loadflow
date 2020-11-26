@@ -8,22 +8,24 @@ package com.powsybl.openloadflow.equations;
 
 /**
  * Additional data for {@link EquationType#ZERO_Q} equation.
+ * Additional data for {@link EquationType#ZERO_RHO1} equation.
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class ReactivePowerDistributionData {
+public class DistributionData {
 
-    private final int firstControllerBusNum;
+    private final int firstControllerElementNum;
 
     private final double c;
 
-    public ReactivePowerDistributionData(int firstControllerBusNum, double c) {
-        this.firstControllerBusNum = firstControllerBusNum;
+    public DistributionData(int firstControllerBusNum, double c) {
+        this.firstControllerElementNum = firstControllerBusNum;
         this.c = c;
     }
 
-    public int getFirstControllerBusNum() {
-        return firstControllerBusNum;
+    public int getFirstControllerElementNum() {
+        return firstControllerElementNum;
     }
 
     public double getC() {

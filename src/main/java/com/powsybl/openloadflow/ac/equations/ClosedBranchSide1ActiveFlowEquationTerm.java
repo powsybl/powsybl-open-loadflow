@@ -34,9 +34,11 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
 
     private double dp1da1;
 
+    private double dp1dr1;
+
     public ClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
-                                                   boolean deriveA1) {
-        super(branch, bus1, bus2, variableSet, deriveA1);
+                                                   boolean deriveA1, boolean deriveR1) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
 
     @Override
@@ -50,6 +52,7 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
                 + A2 - ph1 + ph2;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
+        double r1 = r1Var != null && r1Var.isActive() ? x[r1Var.getRow()] : branch.getPiModel().getR1();
         p1 = r1 * v1 * (g1 * r1 * v1 + y * r1 * v1 * sinKsi - y * R2 * v2 * sinTheta);
         dp1dv1 = r1 * (2 * g1 * r1 * v1 + 2 * y * r1 * v1 * sinKsi - y * R2 * v2 * sinTheta);
         dp1dv2 = -y * r1 * R2 * v1 * sinTheta;
@@ -57,6 +60,9 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         dp1dph2 = -dp1dph1;
         if (a1Var != null) {
             dp1da1 = dp1dph1;
+        }
+        if (r1Var != null) {
+            dp1dr1 = v1 * (2 * r1 * v1 * (g1 + y * sinKsi) - y * R2 * v2 * sinTheta);
         }
     }
 
@@ -78,6 +84,8 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
             return dp1dph2;
         } else if (variable.equals(a1Var)) {
             return dp1da1;
+        } else if (variable.equals(r1Var)) {
+            return dp1dr1;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

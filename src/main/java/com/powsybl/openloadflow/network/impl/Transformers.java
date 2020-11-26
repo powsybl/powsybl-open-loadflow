@@ -271,4 +271,27 @@ public final class Transformers {
         throw new PowsyblException("No tap position found (should never happen)");
     }
 
+    /**
+     * Find the tap position of a ratio tap changer corresponding to a given rho shift.
+     */
+    public static int findTapPosition(RatioTapChanger rtc, double rho) {
+        for (int position = rtc.getLowTapPosition(); position <= rtc.getHighTapPosition(); position++) {
+            if (Math.abs(rho - rtc.getStep(position).getRho()) < EPS_ALPHA) {
+                return position;
+            }
+        }
+        throw new PowsyblException("No tap position found (should never happen)");
+    }
+
+    public static double getRatioPerUnitBase(ThreeWindingsTransformer.Leg leg, ThreeWindingsTransformer twt) {
+        double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
+        double nominalV2 = twt.getRatedU0();
+        return nominalV2 / nominalV1;
+    }
+
+    public static double getRatioPerUnitBase(TwoWindingsTransformer twt) {
+        double nominalV1 = twt.getTerminal1().getVoltageLevel().getNominalV();
+        double nominalV2 = twt.getTerminal2().getVoltageLevel().getNominalV();
+        return nominalV2 / nominalV1;
+    }
 }
