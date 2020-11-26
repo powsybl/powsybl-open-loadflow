@@ -250,26 +250,26 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             }
             LfBranch controlledBranch = lfNetwork.getBranchById(controlledBranchId);
             LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
-            LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
-            DiscretePhaseControl.ControlledSide controlledSide = controlledBus == controlledBranch.getBus1() ?
-                DiscretePhaseControl.ControlledSide.ONE : DiscretePhaseControl.ControlledSide.TWO;
-            if (controlledBranch instanceof LfLegBranch && controlledBus == controlledBranch.getBus2()) {
-                throw new IllegalStateException("Leg " + controlledBranch.getId() + " has a non supported control at star bus side");
+            if (ptc.getRegulationTerminal().getBusView().getBus() != null) {
+                LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
+                DiscretePhaseControl.ControlledSide controlledSide = controlledBus == controlledBranch.getBus1() ?
+                        DiscretePhaseControl.ControlledSide.ONE : DiscretePhaseControl.ControlledSide.TWO;
+                if (controlledBranch instanceof LfLegBranch && controlledBus == controlledBranch.getBus2()) {
+                    throw new IllegalStateException("Leg " + controlledBranch.getId() + " has a non supported control at star bus side");
+                }
+                double targetValue = ptc.getRegulationValue() / PerUnit.SB;
+                double targetDeadband = ptc.getTargetDeadband() / PerUnit.SB;
+                DiscretePhaseControl phaseControl = null;
+                if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
+                    phaseControl = new DiscretePhaseControl(controllerBranch, controlledBranch, controlledSide,
+                            DiscretePhaseControl.Mode.LIMITER, targetValue, targetDeadband, DiscretePhaseControl.Unit.A);
+                } else if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                    phaseControl = new DiscretePhaseControl(controllerBranch, controlledBranch, controlledSide,
+                            DiscretePhaseControl.Mode.CONTROLLER, targetValue, targetDeadband, DiscretePhaseControl.Unit.MW);
+                }
+                controllerBranch.setDiscretePhaseControl(phaseControl);
+                controlledBranch.setDiscretePhaseControl(phaseControl);
             }
-            double targetValue = ptc.getRegulationValue() / PerUnit.SB;
-            double targetDeadband = ptc.getTargetDeadband() /  PerUnit.SB;
-
-            DiscretePhaseControl phaseControl = null;
-            if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
-                phaseControl = new DiscretePhaseControl(controllerBranch, controlledBranch, controlledSide,
-                    DiscretePhaseControl.Mode.LIMITER, targetValue, targetDeadband, DiscretePhaseControl.Unit.A);
-            } else if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
-                phaseControl = new DiscretePhaseControl(controllerBranch, controlledBranch, controlledSide,
-                    DiscretePhaseControl.Mode.CONTROLLER, targetValue, targetDeadband, DiscretePhaseControl.Unit.MW);
-            }
-
-            controllerBranch.setDiscretePhaseControl(phaseControl);
-            controlledBranch.setDiscretePhaseControl(phaseControl);
         }
     }
 
@@ -277,21 +277,22 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         if (rtc != null && rtc.isRegulating()) {
             LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
             Terminal regulationTerminal = rtc.getRegulationTerminal();
-            LfBus controlledBus = lfNetwork.getBusById(regulationTerminal.getBusView().getBus().getId());
-
-            if ((controlledBus.getControllerBuses().isEmpty() && controlledBus.hasVoltageControl()) || !controlledBus.getControllerBuses().isEmpty()) {
-                LOGGER.error("The bus '" + controlledBus.getId() + "' has both generator and transformer voltage control on. Only generator control is kept");
-            } else if (controlledBus.isDiscreteVoltageControlled()) {
-                LOGGER.trace("The bus '" + controlledBus.getId() + "' already has a transformer voltage control. A shared control is created");
-                controlledBus.getDiscreteVoltageControl().addController(controllerBranch);
-                controllerBranch.setDiscreteVoltageControl(controlledBus.getDiscreteVoltageControl());
-            } else {
-                double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
-                DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
-                        DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
-                voltageControl.addController(controllerBranch);
-                controllerBranch.setDiscreteVoltageControl(voltageControl);
-                controlledBus.setDiscreteVoltageControl(voltageControl);
+            if (regulationTerminal.getBusView().getBus() != null) {
+                LfBus controlledBus = lfNetwork.getBusById(regulationTerminal.getBusView().getBus().getId());
+                if ((controlledBus.getControllerBuses().isEmpty() && controlledBus.hasVoltageControl()) || !controlledBus.getControllerBuses().isEmpty()) {
+                    LOGGER.warn("The bus '" + controlledBus.getId() + "' has both generator and transformer voltage control on. Only generator control is kept");
+                } else if (controlledBus.isDiscreteVoltageControlled()) {
+                    LOGGER.trace("The bus '" + controlledBus.getId() + "' already has a transformer voltage control. A shared control is created");
+                    controlledBus.getDiscreteVoltageControl().addController(controllerBranch);
+                    controllerBranch.setDiscreteVoltageControl(controlledBus.getDiscreteVoltageControl());
+                } else {
+                    double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
+                    DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
+                            DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
+                    voltageControl.addController(controllerBranch);
+                    controllerBranch.setDiscreteVoltageControl(voltageControl);
+                    controlledBus.setDiscreteVoltageControl(voltageControl);
+                }
             }
         }
     }
