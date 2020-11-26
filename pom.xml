@@ -267,6 +267,7 @@
                                         </excludes>
                                     </filter>
                                 </filters>
+                                <finalName>olf</finalName>
                                 <shadedArtifactAttached>true</shadedArtifactAttached>
                                 <shadedClassifierName>standalone</shadedClassifierName>
                                 <createDependencyReducedPom>false</createDependencyReducedPom>
