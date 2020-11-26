@@ -64,12 +64,12 @@ jobs:
     needs: build
 
     steps:
-      - name: Download wheels
+      - name: Download binaries
         uses: actions/download-artifact@v2
         with:
           path: download
 
-      - name: Upload wheels
+      - name: Upload binaries
         uses: actions/upload-artifact@v2
         with:
           name: olf-all
