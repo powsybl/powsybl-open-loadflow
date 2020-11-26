@@ -109,7 +109,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                 }
                 piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
             } else {
-                throw new PowsyblException("Unsupported type of branch for voltage and phase controls of branch: " + twt.getId());
+                throw new PowsyblException("Voltage and phase control on same branch '" + twt.getId() + "' is not yet supported");
             }
         }
 
