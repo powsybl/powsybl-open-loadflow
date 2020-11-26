@@ -25,10 +25,15 @@ abstract class AbstractOpenBranchAcFlowEquationTerm extends AbstractBranchAcFlow
     protected double shunt;
 
     protected AbstractOpenBranchAcFlowEquationTerm(LfBranch branch, VariableType variableType,
-                                                   LfBus bus, VariableSet variableSet) {
+                                                   LfBus bus, VariableSet variableSet,
+                                                   boolean deriveA1, boolean deriveR1) {
         super(branch);
         variables = Collections.singletonList(variableSet.getVariable(bus.getNum(), variableType));
         shunt = (g1 + y * sinKsi) * (g1 + y * sinKsi) + (-b1 + y * cosKsi) * (-b1 + y * cosKsi);
+
+        if (deriveA1 || deriveR1) {
+            throw new IllegalArgumentException("Variable A1 or R1 on open branch not supported: " + branch.getId());
+        }
     }
 
     @Override
