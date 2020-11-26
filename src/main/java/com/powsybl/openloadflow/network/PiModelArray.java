@@ -131,13 +131,6 @@ public class PiModelArray implements PiModel {
 
     @Override
     public void roundR1ToClosestTap() {
-
-        for (PiModel model : models) {
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug(String.valueOf(model.getR1()));
-            }
-        }
-
         if (Double.isNaN(r1)) {
             return; // nothing to do because a1 has not been modified
         }

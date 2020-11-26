@@ -105,9 +105,9 @@ public interface LfBus {
 
     void updateState(boolean reactiveLimits, boolean writeSlackBus);
 
-    public DiscreteVoltageControl getDiscreteVoltageControl();
+    DiscreteVoltageControl getDiscreteVoltageControl();
 
-    public boolean isDiscreteVoltageControlled();
+    boolean isDiscreteVoltageControlled();
 
     void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
 }
