@@ -42,6 +42,8 @@
     </developers>
 
     <properties>
+        <maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
+
         <commonscompress.version>1.19</commonscompress.version>
         <commonsio.version>2.5</commonsio.version>
         <jafama.version>2.3.1</jafama.version>
@@ -231,8 +233,6 @@
             <activeByDefault>false</activeByDefault>
         </activation>
         <properties>
-            <graalvm.version>20.1.0</graalvm.version>
-            <janino.version>3.1.0</janino.version>
             <mapdb.version>3.0.8</mapdb.version>
         </properties>
         <build>
@@ -246,26 +246,39 @@
             </resources>
             <plugins>
                 <plugin>
-                    <groupId>org.graalvm.nativeimage</groupId>
-                    <artifactId>native-image-maven-plugin</artifactId>
-                    <version>${graalvm.version}</version>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>${maven-shade-plugin.version}</version>
                     <executions>
+                        <!-- Run shade goal on package phase -->
                         <execution>
-                            <goals>
-                                <goal>native-image</goal>
-                            </goals>
                             <phase>package</phase>
+                            <goals>
+                                <goal>shade</goal>
+                            </goals>
+                            <configuration>
+                                <filters>
+                                    <filter>
+                                        <artifact>*</artifact>
+                                        <excludes>
+                                            <exclude>META-INF/*.SF</exclude>
+                                            <exclude>META-INF/*.DSA</exclude>
+                                            <exclude>META-INF/*.RSA</exclude>
+                                        </excludes>
+                                    </filter>
+                                </filters>
+                                <shadedArtifactAttached>true</shadedArtifactAttached>
+                                <shadedClassifierName>standalone</shadedClassifierName>
+                                <createDependencyReducedPom>false</createDependencyReducedPom>
+                                <transformers>
+                                    <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                        <mainClass>com.powsybl.tools.Main</mainClass>
+                                    </transformer>
+                                    <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                </transformers>
+                            </configuration>
                         </execution>
                     </executions>
-                    <configuration>
-                        <skip>false</skip>
-                        <imageName>olf</imageName>
-                        <mainClass>com.powsybl.tools.Main</mainClass>
-                        <buildArgs>
-                            --no-fallback
-                            --allow-incomplete-classpath
-                        </buildArgs>
-                    </configuration>
                 </plugin>
             </plugins>
         </build>
@@ -274,18 +287,6 @@
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
                 <version>${logback.version}</version>
-            </dependency>
-            <!-- workaround for https://github.com/oracle/graal/issues/1943 -->
-            <dependency>
-                <groupId>org.codehaus.janino</groupId>
-                <artifactId>janino</artifactId>
-                <version>${janino.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.graalvm.sdk</groupId>
-                <artifactId>graal-sdk</artifactId>
-                <version>${graalvm.version}</version>
-                <scope>provided</scope>
             </dependency>
             <!--
               rdf4j depends on a very old version of mapdb. It is using ObjectStream which is not yet supported
