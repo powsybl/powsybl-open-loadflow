@@ -57,8 +57,7 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
                         double r1Value = piModel.getR1();
                         piModel.roundR1ToClosestTap();
                         double roundedR1Value = piModel.getR1();
-                        LOGGER.info("Round voltage shift of '{}': {} -> {}", controllerBranch.getId(), r1Value, roundedR1Value);
-
+                        LOGGER.trace("Round voltage shift of '{}': {} -> {}", controllerBranch.getId(), r1Value, roundedR1Value);
                     }
 
                     // switch off regulating transformers

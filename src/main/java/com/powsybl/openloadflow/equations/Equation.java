@@ -161,6 +161,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
     private static double getRho1DistributionTarget(LfNetwork network, int num, DistributionData data) {
         LfBranch controllerBranch = network.getBranch(num);
         LfBranch firstControllerBranch = network.getBranch(data.getFirstControllerElementNum());
+        // as a first and very simple ratio distribution strategy, we keep the gap between the 2 ratios constant
         return controllerBranch.getPiModel().getR1() - firstControllerBranch.getPiModel().getR1();
     }
 
