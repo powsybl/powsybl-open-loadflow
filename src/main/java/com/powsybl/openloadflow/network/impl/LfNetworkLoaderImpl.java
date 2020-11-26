@@ -285,7 +285,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
         createBuses(buses, parameters.isGeneratorVoltageRemoteControl(), parameters.isBreakers(), lfNetwork, loadingContext, report);
         createBranches(lfNetwork, loadingContext, report, parameters.isTwtSplitShuntAdmittance(), parameters.isBreakers());
-        createPhaseControls(lfNetwork, loadingContext, parameters.isPhaseControl());
+        createPhaseControls(lfNetwork, loadingContext, parameters.isPhaseShifterRegulationOn());
         if (switches != null) {
             for (Switch sw : switches) {
                 VoltageLevel vl = sw.getVoltageLevel();
