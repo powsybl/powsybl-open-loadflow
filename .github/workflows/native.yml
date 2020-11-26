@@ -38,7 +38,15 @@ jobs:
         run: mvn --batch-mode -DskipTests=true -Pnative-image package
 
       - name: Build native image
+        if: matrix.config.name != 'windows'
         run: native-image -jar target/olf.jar -H:Name=olf --no-fallback --allow-incomplete-classpath -H:Class=com.powsybl.tools.Main
+
+      - name: Build native image
+        if: matrix.config.name == 'windows'
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          call native-image -jar target/olf.jar -H:Name=olf --no-fallback --allow-incomplete-classpath -H:Class=com.powsybl.tools.Main
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
