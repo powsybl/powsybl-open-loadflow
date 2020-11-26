@@ -76,7 +76,10 @@ class LfNetworkTest extends AbstractConverterTest {
                 .setRegulationTerminal(ps1.getTerminal1())
                 .setRegulationValue(83);
 
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        LfNetworkParameters lfParameters = new LfNetworkParameters(new MostMeshedSlackBusSelector(),
+            false, true,
+            false, false, false);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParameters);
         assertEquals(1, lfNetworks.size());
         Path file = fileSystem.getPath("/work/n2.json");
         lfNetworks.get(0).writeJson(file);

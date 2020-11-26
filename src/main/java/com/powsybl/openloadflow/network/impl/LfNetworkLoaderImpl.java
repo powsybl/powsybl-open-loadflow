@@ -198,15 +198,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             addBranch(lfNetwork, LfBranchImpl.create(branch, lfBus1, lfBus2, twtSplitShuntAdmittance), report);
         }
 
-        for (Branch<?> branch : loadingContext.branchSet) {
-            if (branch instanceof TwoWindingsTransformer) {
-                // Create phase controls which link controller -> controlled
-                TwoWindingsTransformer t2wt = (TwoWindingsTransformer) branch;
-                PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
-                createPhaseControl(lfNetwork, ptc, t2wt.getId(), "");
-            }
-        }
-
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
             LfDanglingLineBus lfBus2 = new LfDanglingLineBus(danglingLine);
             lfNetwork.addBus(lfBus2);
@@ -224,14 +215,26 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             addBranch(lfNetwork, LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2(), twtSplitShuntAdmittance), report);
             addBranch(lfNetwork, LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3(), twtSplitShuntAdmittance), report);
         }
+    }
 
-        for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
-            // Create phase controls which link controller -> controlled
-            int legNumber = 1;
-            for (ThreeWindingsTransformer.Leg leg : Arrays.asList(t3wt.getLeg1(), t3wt.getLeg2(), t3wt.getLeg3())) {
-                PhaseTapChanger ptc = leg.getPhaseTapChanger();
-                createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + legNumber);
-                legNumber++;
+    private static void createPhaseControls(LfNetwork lfNetwork, LoadingContext loadingContext, boolean phaseControl) {
+        if (phaseControl) {
+            for (Branch<?> branch : loadingContext.branchSet) {
+                if (branch instanceof TwoWindingsTransformer) {
+                    // Create phase controls which link controller -> controlled
+                    TwoWindingsTransformer t2wt = (TwoWindingsTransformer) branch;
+                    PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
+                    createPhaseControl(lfNetwork, ptc, t2wt.getId(), "");
+                }
+            }
+            for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
+                // Create phase controls which link controller -> controlled
+                int legNumber = 1;
+                for (ThreeWindingsTransformer.Leg leg : Arrays.asList(t3wt.getLeg1(), t3wt.getLeg2(), t3wt.getLeg3())) {
+                    PhaseTapChanger ptc = leg.getPhaseTapChanger();
+                    createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + legNumber);
+                    legNumber++;
+                }
             }
         }
     }
@@ -282,6 +285,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
         createBuses(buses, parameters.isGeneratorVoltageRemoteControl(), parameters.isBreakers(), lfNetwork, loadingContext, report);
         createBranches(lfNetwork, loadingContext, report, parameters.isTwtSplitShuntAdmittance(), parameters.isBreakers());
+        createPhaseControls(lfNetwork, loadingContext, parameters.isPhaseControl());
         if (switches != null) {
             for (Switch sw : switches) {
                 VoltageLevel vl = sw.getVoltageLevel();
