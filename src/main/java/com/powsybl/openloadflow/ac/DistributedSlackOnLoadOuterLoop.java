@@ -85,17 +85,7 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
                         bus.getId(), loadTargetP * PerUnit.SB, newLoadTargetP * PerUnit.SB);
 
                 if (remainsLoadPowerFactorConstant) {
-                    // if remainsLoadPowerFactorConstant is true, when updating targetP on loads,
-                    // we have to keep the power factor constant by updating targetQ.
-                    double loadTargetQ = bus.getLoadTargetQ();
-                    double newLoadTargetQ;
-                    newLoadTargetQ = distributedSlackOnConformLoad ? bus.getFixedLoadTargetQ() + getVariableLoadTargetQAgainstVariableLoadTargetP(bus) * (newLoadTargetP - bus.getFixedLoadTargetP())
-                            : newLoadTargetP * getVariableLoadTargetQAgainstVariableLoadTargetP(bus);
-                    if (newLoadTargetQ != loadTargetQ) {
-                        LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
-                                bus.getId(), loadTargetQ * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
-                        bus.setLoadTargetQ(newLoadTargetQ);
-                    }
+                    remainsLoadPowerFactorConstant(bus, newLoadTargetP);
                 }
 
                 bus.setLoadTargetP(newLoadTargetP);
@@ -108,5 +98,19 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
                 done * PerUnit.SB, -remainingMismatch * PerUnit.SB, iteration, modifiedBuses, loadsAtMin);
 
         return done;
+    }
+
+    private void remainsLoadPowerFactorConstant(LfBus bus, double newLoadTargetP) {
+        // if remainsLoadPowerFactorConstant is true, when updating targetP on loads,
+        // we have to keep the power factor constant by updating targetQ.
+        double loadTargetQ = bus.getLoadTargetQ();
+        double newLoadTargetQ;
+        newLoadTargetQ = distributedSlackOnConformLoad ? bus.getFixedLoadTargetQ() + getVariableLoadTargetQAgainstVariableLoadTargetP(bus) * (newLoadTargetP - bus.getFixedLoadTargetP())
+                : newLoadTargetP * getVariableLoadTargetQAgainstVariableLoadTargetP(bus);
+        if (newLoadTargetQ != loadTargetQ) {
+            LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
+                    bus.getId(), loadTargetQ * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
+            bus.setLoadTargetQ(newLoadTargetQ);
+        }
     }
 }
