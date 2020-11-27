@@ -246,6 +246,41 @@ class AcLoadFlowTransformerControlTest {
     }
 
     @Test
+    void openT2wtTest() {
+        selectNetwork(createNetworkWithT2wt());
+
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(2)
+                .setRegulationTerminal(network.getGenerator("GEN_1").getTerminal())
+                .setTargetV(33.0);
+        t2wt.getTerminal2().disconnect();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void regulatingTerminalDisconnectedTest() {
+        selectNetwork(createNetworkWithT2wt());
+        Load load = network.getLoad("LOAD_2");
+        load.getTerminal().disconnect();
+
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(2)
+                .setRegulationTerminal(load.getTerminal())
+                .setTargetV(33.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
     void baseCaseT3wtTest() {
         selectNetwork(createNetworkWithT3wt());
 
