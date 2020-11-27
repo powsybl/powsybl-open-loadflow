@@ -45,6 +45,8 @@ class DistributedSlackOnLoadTest {
     private LoadFlowParameters parameters;
     private OpenLoadFlowParameters parametersExt;
 
+    public static final double DELTA_MISMATCH = 1E-4d;
+
     @BeforeEach
     void setUp() {
         network = DistributedSlackNetworkFactory.createNetworkWithLoads();
@@ -114,7 +116,7 @@ class DistributedSlackOnLoadTest {
                     }
                     assertEquals((load.getP0() - fixedLoadTargetP) / (load.getQ0() - fixedLoadTargetQ),
                             (load.getTerminal().getP() - fixedLoadTargetP) / (load.getTerminal().getQ() - fixedLoadTargetQ),
-                            1e-12, "power factor should be a constant value");
+                            DELTA_MISMATCH, "Power factor should be a constant value");
                 }
                 break;
 
@@ -122,7 +124,7 @@ class DistributedSlackOnLoadTest {
                 for (Load load : network.getLoads()) {
                     assertEquals(load.getP0() / load.getQ0(),
                             load.getTerminal().getP() / load.getTerminal().getQ(),
-                            1e-12, "power factor should be a constant value");
+                            DELTA_MISMATCH, "Power factor should be a constant value");
                 }
                 break;
 

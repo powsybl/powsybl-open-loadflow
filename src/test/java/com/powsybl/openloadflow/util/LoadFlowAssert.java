@@ -23,6 +23,7 @@ public final class LoadFlowAssert {
     public static final double DELTA_ANGLE = 1E-6d;
     public static final double DELTA_V = 1E-3d;
     public static final double DELTA_POWER = 1E-3d;
+    public static final double DELTA_MISMATCH = 1E-4d;
 
     private LoadFlowAssert() {
     }
@@ -53,10 +54,10 @@ public final class LoadFlowAssert {
 
     public static void assertLoadFlowResultsEquals(LoadFlowResult loadFlowResultExpected, LoadFlowResult loadFlowResult) {
         assertEquals(loadFlowResultExpected.isOk(), loadFlowResult.isOk(),
-                "wrong result summary");
+                "Wrong load flow result summary");
         assertEquals(loadFlowResultExpected.getComponentResults().size(),
                 loadFlowResult.getComponentResults().size(),
-                "wrong subnetwork count");
+                "Wrong sub network count");
         Iterator<LoadFlowResult.ComponentResult> componentResultIteratorExpected = loadFlowResultExpected.getComponentResults().iterator();
         Iterator<LoadFlowResult.ComponentResult> componentResultIterator = loadFlowResult.getComponentResults().iterator();
         // loop over sub networks
@@ -65,13 +66,13 @@ public final class LoadFlowAssert {
             LoadFlowResult.ComponentResult componentResult = componentResultIterator.next();
             assertEquals(componentResultExpected.getStatus(),
                     componentResult.getStatus(),
-                    "wrong result status");
+                    "Wrong load flow result status");
             assertEquals(componentResultExpected.getIterationCount(),
                     componentResult.getIterationCount(),
-                    "wrong iteration count");
+                    "Wrong iteration count");
             assertEquals(componentResultExpected.getSlackBusActivePowerMismatch(),
-                    componentResult.getSlackBusActivePowerMismatch(), 1e-12,
-                    "wrong mismatch");
+                    componentResult.getSlackBusActivePowerMismatch(), DELTA_MISMATCH,
+                    "Wrong active power mismatch");
         }
     }
 }
