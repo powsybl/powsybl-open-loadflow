@@ -74,8 +74,9 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
             double newLoadTargetP = loadTargetP - remainingMismatch * factor;
 
             // We stop when the load produces power.
-            if (newLoadTargetP <= 0) {
-                newLoadTargetP = 0;
+            double minLoadTargetP = distributedSlackOnConformLoad ? bus.getFixedLoadTargetP() : 0;
+            if (newLoadTargetP <= minLoadTargetP) {
+                newLoadTargetP = minLoadTargetP;
                 loadsAtMin++;
                 it.remove();
             }
