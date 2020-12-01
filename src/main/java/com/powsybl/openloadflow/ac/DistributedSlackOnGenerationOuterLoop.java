@@ -81,11 +81,8 @@ public class DistributedSlackOnGenerationOuterLoop extends AbstractDistributedSl
             }
 
             if (newTargetP != targetP) {
-                if (LOGGER.isTraceEnabled()) {
-                    LOGGER.trace("Rescale '{}' active power target: {} -> {}",
-                            generator.getId(), targetP * PerUnit.SB, newTargetP * PerUnit.SB);
-                }
-
+                LOGGER.trace("Rescale '{}' active power target: {} -> {}",
+                        generator.getId(), targetP * PerUnit.SB, newTargetP * PerUnit.SB);
                 generator.setTargetP(newTargetP);
                 done += newTargetP - targetP;
                 modifiedBuses++;
