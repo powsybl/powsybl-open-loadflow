@@ -50,10 +50,6 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
         return distributedSlackOnConformLoad ? bus.getLoadTargetP() - bus.getFixedLoadTargetP() : bus.getLoadTargetP();
     }
 
-    private double getVariableLoadTargetQAgainstVariableLoadTargetP(LfBus bus) {
-        return bus.getLoadTargetQ() / bus.getLoadTargetP();
-    }
-
     @Override
     public double run(List<ParticipatingElement<LfBus>> participatingElements, int iteration, double remainingMismatch) {
         // normalize participation factors at each iteration start as some
@@ -103,12 +99,11 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
     private void remainsLoadPowerFactorConstant(LfBus bus, double newLoadTargetP) {
         // if remainsLoadPowerFactorConstant is true, when updating targetP on loads,
         // we have to keep the power factor constant by updating targetQ.
-        double loadTargetQ = bus.getLoadTargetQ();
-        double newLoadTargetQ;
-        newLoadTargetQ = newLoadTargetP * getVariableLoadTargetQAgainstVariableLoadTargetP(bus);
-        if (newLoadTargetQ != loadTargetQ) {
+        double constantRatio = bus.getLoadTargetQ() / bus.getLoadTargetP(); // power factor constant is equivalent to P/Q ratio constant
+        double newLoadTargetQ = newLoadTargetP * constantRatio;
+        if (newLoadTargetQ != bus.getLoadTargetQ()) {
             LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
-                    bus.getId(), loadTargetQ * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
+                    bus.getId(), bus.getLoadTargetQ() * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
             bus.setLoadTargetQ(newLoadTargetQ);
         }
     }
