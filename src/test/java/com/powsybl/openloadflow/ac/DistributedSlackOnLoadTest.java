@@ -13,7 +13,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
@@ -106,20 +105,6 @@ class DistributedSlackOnLoadTest {
     private void assertPowerFactor(Network network) {
         switch (parameters.getBalanceType()) {
             case PROPORTIONAL_TO_CONFORM_LOAD:
-                for (Load load : network.getLoads()) {
-                    LoadDetail loadDetail = load.getExtension(LoadDetail.class);
-                    double fixedLoadTargetP = 0;
-                    double fixedLoadTargetQ = 0;
-                    if (loadDetail != null) {
-                        fixedLoadTargetP = loadDetail.getFixedActivePower();
-                        fixedLoadTargetQ = loadDetail.getFixedReactivePower();
-                    }
-                    assertEquals((load.getP0() - fixedLoadTargetP) / (load.getQ0() - fixedLoadTargetQ),
-                            (load.getTerminal().getP() - fixedLoadTargetP) / (load.getTerminal().getQ() - fixedLoadTargetQ),
-                            DELTA_MISMATCH, "Power factor should be a constant value");
-                }
-                break;
-
             case PROPORTIONAL_TO_LOAD:
                 for (Load load : network.getLoads()) {
                     assertEquals(load.getP0() / load.getQ0(),
@@ -127,7 +112,6 @@ class DistributedSlackOnLoadTest {
                             DELTA_MISMATCH, "Power factor should be a constant value");
                 }
                 break;
-
             default:
                 break;
         }
