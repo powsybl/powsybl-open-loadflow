@@ -24,12 +24,12 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOnLoadOuterLoop.class);
 
     private final boolean distributedSlackOnConformLoad;
-    private final boolean remainsLoadPowerFactorConstant;
+    private final boolean loadPowerFactorConstant;
 
-    public DistributedSlackOnLoadOuterLoop(boolean throwsExceptionInCaseOfFailure, boolean distributedSlackOnConformLoad, boolean remainsLoadPowerFactorConstant) {
+    public DistributedSlackOnLoadOuterLoop(boolean throwsExceptionInCaseOfFailure, boolean distributedSlackOnConformLoad, boolean loadPowerFactorConstant) {
         super(throwsExceptionInCaseOfFailure);
         this.distributedSlackOnConformLoad = distributedSlackOnConformLoad;
-        this.remainsLoadPowerFactorConstant = remainsLoadPowerFactorConstant;
+        this.loadPowerFactorConstant = loadPowerFactorConstant;
     }
 
     @Override
@@ -80,8 +80,8 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
                 LOGGER.trace("Rescale '{}' active power target: {} -> {}",
                         bus.getId(), loadTargetP * PerUnit.SB, newLoadTargetP * PerUnit.SB);
 
-                if (remainsLoadPowerFactorConstant) {
-                    remainsLoadPowerFactorConstant(bus, newLoadTargetP);
+                if (loadPowerFactorConstant) {
+                    ensurePowerFactorConstant(bus, newLoadTargetP);
                 }
 
                 bus.setLoadTargetP(newLoadTargetP);
@@ -96,8 +96,8 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
         return done;
     }
 
-    private void remainsLoadPowerFactorConstant(LfBus bus, double newLoadTargetP) {
-        // if remainsLoadPowerFactorConstant is true, when updating targetP on loads,
+    private void ensurePowerFactorConstant(LfBus bus, double newLoadTargetP) {
+        // if loadPowerFactorConstant is true, when updating targetP on loads,
         // we have to keep the power factor constant by updating targetQ.
         double constantRatio = bus.getLoadTargetQ() / bus.getLoadTargetP(); // power factor constant is equivalent to P/Q ratio constant
         double newLoadTargetQ = newLoadTargetP * constantRatio;

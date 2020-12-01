@@ -42,7 +42,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private final List<AcLoadFlowObserver> additionalObservers = new ArrayList<>();
 
-    private boolean remainsLoadPowerFactorConstant = REMAINS_LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE;
+    private boolean loadPowerFactorConstant = LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -89,12 +89,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return additionalObservers;
     }
 
-    public boolean isRemainsLoadPowerFactorConstant() {
-        return remainsLoadPowerFactorConstant;
+    public boolean isLoadPowerFactorConstant() {
+        return loadPowerFactorConstant;
     }
 
-    public OpenLoadFlowParameters setRemainsLoadPowerFactorConstant(boolean remainsLoadPowerFactorConstant) {
-        this.remainsLoadPowerFactorConstant = remainsLoadPowerFactorConstant;
+    public OpenLoadFlowParameters setLoadPowerFactorConstant(boolean loadPowerFactorConstant) {
+        this.loadPowerFactorConstant = loadPowerFactorConstant;
         return this;
     }
 
@@ -117,7 +117,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                         .setThrowsExceptionInCaseOfSlackDistributionFailure(
                                 config.getBooleanProperty(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE)
                         )
-                        .setRemainsLoadPowerFactorConstant(config.getBooleanProperty(REMAINS_LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, REMAINS_LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE))
+                        .setLoadPowerFactorConstant(config.getBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE))
                 );
             return parameters;
         }

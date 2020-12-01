@@ -132,7 +132,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
         LOGGER.info("Direct current: {}", parameters.isDc());
         LOGGER.info("Transformer voltage control: {}", parameters.isTransformerVoltageControlOn());
-        LOGGER.info("Remains load power factor constant: {}", parametersExt.isRemainsLoadPowerFactorConstant());
+        LOGGER.info("Load power factor constant: {}", parametersExt.isLoadPowerFactorConstant());
 
         List<OuterLoop> outerLoops = new ArrayList<>();
         if (parameters.isDistributedSlack()) {
@@ -141,10 +141,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     outerLoops.add(new DistributedSlackOnGenerationOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure()));
                     break;
                 case PROPORTIONAL_TO_LOAD:
-                    outerLoops.add(new DistributedSlackOnLoadOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), false, parametersExt.isRemainsLoadPowerFactorConstant()));
+                    outerLoops.add(new DistributedSlackOnLoadOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), false, parametersExt.isLoadPowerFactorConstant()));
                     break;
                 case PROPORTIONAL_TO_CONFORM_LOAD:
-                    outerLoops.add(new DistributedSlackOnLoadOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), true, parametersExt.isRemainsLoadPowerFactorConstant()));
+                    outerLoops.add(new DistributedSlackOnLoadOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), true, parametersExt.isLoadPowerFactorConstant()));
                     break;
                 case PROPORTIONAL_TO_GENERATION_P: // to be implemented.
                     throw new UnsupportedOperationException("Unsupported balance type mode: " + parameters.getBalanceType());

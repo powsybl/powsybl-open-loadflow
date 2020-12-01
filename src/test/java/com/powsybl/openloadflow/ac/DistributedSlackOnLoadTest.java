@@ -119,9 +119,9 @@ class DistributedSlackOnLoadTest {
 
     @Test
     void testPowerFactorConstant() {
-        // PROPORTIONAL_TO_LOAD and remains power factor constant for loads
+        // PROPORTIONAL_TO_LOAD and power factor constant for loads
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        parametersExt.setRemainsLoadPowerFactorConstant(true);
+        parametersExt.setLoadPowerFactorConstant(true);
         Network network1 = EurostagTutorialExample1Factory.create();
 
         LoadFlowResult loadFlowResult1 = loadFlowRunner.run(network1, parameters);
@@ -133,9 +133,9 @@ class DistributedSlackOnLoadTest {
                 .build();
         assertLoadFlowResultsEquals(loadFlowResultExpected1, loadFlowResult1);
 
-        // PROPORTIONAL_TO_CONFORM_LOAD and remains power factor constant for loads
+        // PROPORTIONAL_TO_CONFORM_LOAD and power factor constant for loads
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
-        parametersExt.setRemainsLoadPowerFactorConstant(true);
+        parametersExt.setLoadPowerFactorConstant(true);
         Network network2 = EurostagTutorialExample1Factory.create();
         // fixedActivePower and FixedReactivePower are unbalanced
         network2.getLoad("LOAD").newExtension(LoadDetailAdder.class)
