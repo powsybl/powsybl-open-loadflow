@@ -31,9 +31,10 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -70,26 +71,28 @@ class OpenSensitivityAnalysisProviderTest {
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
         SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
-                                                                             network.getLineStream().collect(Collectors.toList()));
+                network.getLineStream().collect(Collectors.toList()));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
-                                                             sensiParameters, LocalComputationManager.getDefault())
+                sensiParameters, LocalComputationManager.getDefault())
                 .join();
         assertEquals(2, result.getSensitivityValues().size());
         assertEquals(0.5d, getValue(result, "GEN", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.5d, getValue(result, "GEN", "NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
     }
 
-    private static BranchFlow createBranchFlow(Branch branch) {
-        return new BranchFlow(branch.getId(), branch.getNameOrId(), branch.getId());
+    private static <T extends Injection<T>> InjectionIncrease createInjectionIncrease(T injection) {
+        return new InjectionIncrease(injection.getId(), injection.getId(), injection.getId());
     }
 
     private static <T extends Injection<T>> List<SensitivityFactor> createFactorMatrix(List<T> injections, List<Branch> branches) {
         Objects.requireNonNull(injections);
         Objects.requireNonNull(branches);
-        return injections.stream().flatMap(injection -> {
-            InjectionIncrease injIncrease = new InjectionIncrease(injection.getId(), injection.getId(), injection.getId());
-            return branches.stream().map(branch -> new BranchFlowPerInjectionIncrease(createBranchFlow(branch), injIncrease));
-        }).collect(Collectors.toList());
+        return injections.stream().flatMap(injection -> branches.stream().map(branch -> new BranchFlowPerInjectionIncrease(createBranchFlow(branch),
+                                                                                                                           createInjectionIncrease(injection)))).collect(Collectors.toList());
+    }
+
+    private static BranchFlow createBranchFlow(Branch branch) {
+        return new BranchFlow(branch.getId(), branch.getNameOrId(), branch.getId());
     }
 
     private static double getValue(SensitivityAnalysisResult result, String variableId, String functionId) {
@@ -106,9 +109,9 @@ class OpenSensitivityAnalysisProviderTest {
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0");
         SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
-                                                                             network.getBranchStream().collect(Collectors.toList()));
+                network.getBranchStream().collect(Collectors.toList()));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
-                                                             sensiParameters, LocalComputationManager.getDefault())
+                sensiParameters, LocalComputationManager.getDefault())
                 .join();
 
         assertEquals(15, result.getSensitivityValues().size());
@@ -141,7 +144,7 @@ class OpenSensitivityAnalysisProviderTest {
         TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
         SensitivityFactorsProvider factorsProvider
                 = n -> Collections.singletonList(new BranchFlowPerPSTAngle(createBranchFlow(l1),
-                                                                           new PhaseTapChangerAngle(ps1.getId(), ps1.getNameOrId(), ps1.getId())));
+                new PhaseTapChangerAngle(ps1.getId(), ps1.getNameOrId(), ps1.getId())));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
@@ -155,13 +158,49 @@ class OpenSensitivityAnalysisProviderTest {
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
         SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
-                                                                             network.getLineStream().collect(Collectors.toList()));
+                network.getLineStream().collect(Collectors.toList()));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
-                                                             sensiParameters, LocalComputationManager.getDefault())
+                sensiParameters, LocalComputationManager.getDefault())
                 .join();
 
         assertEquals(2, result.getSensitivityValues().size());
         assertEquals(0.498d, getValue(result, "GEN", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.498d, getValue(result, "GEN", "NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testDcInjectionNotFound() {
+        Network network = EurostagTutorialExample1Factory.create();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+        SensitivityFactorsProvider factorsProvider = n -> {
+            Branch branch = n.getBranch("NHV1_NHV2_1");
+            return Collections.singletonList(new BranchFlowPerInjectionIncrease(createBranchFlow(branch),
+                                             new InjectionIncrease("a", "a", "a")));
+        };
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
+                                                                                                sensiParameters, LocalComputationManager.getDefault())
+                                                                                           .join());
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Injection 'a' not found", e.getCause().getMessage());
+    }
+
+    @Test
+    void testDcBranchNotFound() {
+        Network network = EurostagTutorialExample1Factory.create();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+        SensitivityFactorsProvider factorsProvider = n -> {
+            Generator gen = n.getGenerator("GEN");
+            return Collections.singletonList(new BranchFlowPerInjectionIncrease(new BranchFlow("b", "b", "b"),
+                                                                                createInjectionIncrease(gen)));
+        };
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
+                sensiParameters, LocalComputationManager.getDefault())
+                .join());
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Branch 'b' not found", e.getCause().getMessage());
     }
 }

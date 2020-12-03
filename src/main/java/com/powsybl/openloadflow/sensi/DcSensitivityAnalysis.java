@@ -101,6 +101,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                                                           SensitivityFactor<?, ?> factor, SensitivityFactorGroup factorGroup,
                                                           DenseMatrix states) {
         LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+        if (lfBranch == null) {
+            throw new PowsyblException("Branch '" + branchId + "' not found");
+        }
         ClosedBranchSide1DcFlowEquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
         double value = p1.calculate(states, factorGroup.getIndex()) * PerUnit.SB;
         return new SensitivityValue(factor, value, 0, 0);
