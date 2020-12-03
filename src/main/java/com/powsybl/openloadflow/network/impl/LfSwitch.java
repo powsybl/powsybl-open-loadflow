@@ -32,7 +32,7 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public boolean canControlPhase() {
+    public boolean hasPhaseControlCapability() {
         return false;
     }
 

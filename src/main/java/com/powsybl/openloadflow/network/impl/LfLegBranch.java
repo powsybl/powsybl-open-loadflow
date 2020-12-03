@@ -138,7 +138,7 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
-    public boolean canControlPhase() {
+    public boolean hasPhaseControlCapability() {
         return leg.getPhaseTapChanger() != null;
     }
 

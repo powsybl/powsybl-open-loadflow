@@ -41,7 +41,7 @@ public interface LfBranch {
 
     double getPermanentLimit2();
 
-    boolean canControlPhase();
+    boolean hasPhaseControlCapability();
 
     DiscretePhaseControl getDiscretePhaseControl();
 
