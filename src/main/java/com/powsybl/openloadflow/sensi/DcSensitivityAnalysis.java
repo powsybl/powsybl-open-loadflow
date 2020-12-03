@@ -14,7 +14,6 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AbstractDistributedSlackOuterLoop;
 import com.powsybl.openloadflow.ac.DistributedSlackOnGenerationOuterLoop;
-import com.powsybl.openloadflow.ac.DistributedSlackOnLoadOuterLoop;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
@@ -29,8 +28,6 @@ import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.stream.Collectors;
-
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -202,14 +199,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
      * @param oldFactors
      * @return
      */
-    private List<SensitivityFactor> getDistributedFactors(Network network, LfNetwork lfNetwork, List<SensitivityFactor> oldFactors) {
+    private List<SensitivityFactor> getDistributedFactors(Network network, LfNetwork lfNetwork,
+                                                          List<SensitivityFactor> oldFactors) {
         // todo: load ?
         // todo: use only lfnetwork ?
 
         List<SensitivityFactor> factors = new ArrayList<>();
 
         Set<String> monitoredLines = new HashSet<>();
-        for (SensitivityFactor oldFactor: oldFactors) {
+        for (SensitivityFactor oldFactor : oldFactors) {
             // if the factor if an injection then we will compute it with distribution, otherwise we just keep it as it is
             if (oldFactor instanceof BranchFlowPerInjectionIncrease) {
                 BranchFlowPerInjectionIncrease branchFactor = (BranchFlowPerInjectionIncrease) oldFactor;
@@ -220,19 +218,24 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
 
         monitoredLines.forEach(
-                lineId -> {
-                    // todo: check that the line is still in the connected component ?
-                    BranchFlow branchFlow = new BranchFlow(lineId, lineId, lineId);
-                    network.getGenerators().forEach( // todo: not all generators, only those who have an impact in compensation
-                            generator -> {
-                                if (generator.getTerminal().getBusView().getBus() == null) return;
-                                if (lfNetwork.getBusById(generator.getTerminal().getBusView().getBus().getId()) == null) return; // check connected component
-                                String genId = generator.getId();
-                                factors.add(new BranchFlowPerInjectionIncrease(branchFlow,
-                                        new InjectionIncrease(genId, genId, genId)));
-                            }
-                    );
-                }
+            lineId -> {
+                // todo: check that the line is still in the connected component ?
+                BranchFlow branchFlow = new BranchFlow(lineId, lineId, lineId);
+                network.getGenerators().forEach(// todo: not all generators, only those who have an impact in compensation
+                    generator -> {
+                        if (generator.getTerminal().getBusView().getBus() == null) {
+                            return;
+                        }
+                        // check connected component
+                        if (lfNetwork.getBusById(generator.getTerminal().getBusView().getBus().getId()) == null) {
+                            return;
+                        }
+                        String genId = generator.getId();
+                        factors.add(new BranchFlowPerInjectionIncrease(branchFlow,
+                                new InjectionIncrease(genId, genId, genId)));
+                    }
+                );
+            }
         );
         return factors;
     }
@@ -299,7 +302,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         // index factors by variable configuration to compute minimal number of DC state
         Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = lfParameters.isDistributedSlack()
                 ? indexFactorsByVariableConfig(network, getDistributedFactors(network, lfNetwork, factors)) // if the slack is distributed we need to compute sensi for all generators
-                : indexFactorsByVariableConfig(network, factors);;
+                : indexFactorsByVariableConfig(network, factors);
 
         if (factorsByVarConfig.isEmpty()) {
             return Collections.emptyList();
