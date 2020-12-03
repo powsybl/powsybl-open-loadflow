@@ -172,40 +172,56 @@ class OpenSensitivityAnalysisProviderTest {
         assertEquals(0.498d, getValue(result, "GEN", "NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testDcInjectionNotFound() {
+    private void testInjectionNotFound(boolean dc) {
         Network network = EurostagTutorialExample1Factory.create();
         runAcLf(network);
 
-        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+        SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
         SensitivityFactorsProvider factorsProvider = n -> {
             Branch branch = n.getBranch("NHV1_NHV2_1");
             return Collections.singletonList(new BranchFlowPerInjectionIncrease(createBranchFlow(branch),
-                                             new InjectionIncrease("a", "a", "a")));
+                    new InjectionIncrease("a", "a", "a")));
         };
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
-                                                                                                sensiParameters, LocalComputationManager.getDefault())
-                                                                                           .join());
+        CompletionException e = assertThrows(CompletionException.class,
+            () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join());
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Injection 'a' not found", e.getCause().getMessage());
     }
 
     @Test
-    void testDcBranchNotFound() {
+    void testDcInjectionNotFound() {
+        testInjectionNotFound(true);
+    }
+
+    @Test
+    void testAcInjectionNotFound() {
+        testInjectionNotFound(false);
+    }
+
+    private void testBranchNotFound(boolean dc) {
         Network network = EurostagTutorialExample1Factory.create();
         runAcLf(network);
 
-        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+        SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
         SensitivityFactorsProvider factorsProvider = n -> {
             Generator gen = n.getGenerator("GEN");
             return Collections.singletonList(new BranchFlowPerInjectionIncrease(new BranchFlow("b", "b", "b"),
                                                                                 createInjectionIncrease(gen)));
         };
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
-                sensiParameters, LocalComputationManager.getDefault())
-                .join());
+        CompletionException e = assertThrows(CompletionException.class,
+            () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join());
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Branch 'b' not found", e.getCause().getMessage());
+    }
+
+    @Test
+    void testDcBranchNotFound() {
+        testBranchNotFound(true);
+    }
+
+    @Test
+    void testAcBranchNotFound() {
+        testBranchNotFound(false);
     }
 
     @Test

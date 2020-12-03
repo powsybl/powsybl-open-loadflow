@@ -41,7 +41,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     private LfBranch getLfBranch(LfNetwork lfNetwork, String branchId) {
         LfBranch branch = lfNetwork.getBranchById(branchId);
         if (branch == null) {
-            throw new IllegalArgumentException("Branch '" + branchId + "' not found");
+            throw new PowsyblException("Branch '" + branchId + "' not found");
         }
         return branch;
     }
