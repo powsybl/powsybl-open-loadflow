@@ -38,6 +38,14 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         super(matrixFactory);
     }
 
+    private LfBranch getLfBranch(LfNetwork lfNetwork, String branchId) {
+        LfBranch branch = lfNetwork.getBranchById(branchId);
+        if (branch == null) {
+            throw new IllegalArgumentException("Branch '" + branchId + "' not found");
+        }
+        return branch;
+    }
+
     private List<SensitivityFactor> validateFactors(Network network, List<SensitivityFactor> factors, LfNetwork lfNetwork) {
         return factors.stream().filter(factor -> {
             if (factor instanceof BranchFlowPerInjectionIncrease) {
@@ -46,10 +54,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 String branchId = injectionIncrease.getFunction().getBranchId();
                 String injectionId = injectionIncrease.getVariable().getInjectionId();
 
-                LfBranch branch = lfNetwork.getBranchById(branchId);
-                if (branch == null) {
-                    throw new IllegalArgumentException("Branch '" + branchId + "' not found");
-                }
+                LfBranch branch = getLfBranch(lfNetwork, branchId);
 
                 // skip open branches
                 LfBus bus1 = branch.getBus1();
