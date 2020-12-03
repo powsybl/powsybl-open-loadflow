@@ -71,4 +71,8 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
     public boolean hasRhs() {
         return true;
     }
+
+    public double getPower() {
+        return power;
+    }
 }

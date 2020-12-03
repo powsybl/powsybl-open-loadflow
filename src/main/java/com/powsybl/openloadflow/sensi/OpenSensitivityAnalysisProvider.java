@@ -90,7 +90,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
             List<SensitivityValue> sensitivityValues;
             if (lfParameters.isDc()) {
-                sensitivityValues = dcSensitivityAnalysis.analyse(network, factors, lfParametersExt, sensiParametersExt);
+                sensitivityValues = dcSensitivityAnalysis.analyse(network, factors, lfParameters, lfParametersExt, sensiParametersExt);
             } else {
                 sensitivityValues = acSensitivityAnalysis.analyse(network, factors, lfParametersExt);
             }
