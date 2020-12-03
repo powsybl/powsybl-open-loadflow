@@ -43,9 +43,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         SensitivityVariableConfiguration(Set<String> busIds, Set<String> phaseTapChangerHolderIds) {
             this.busIds = Objects.requireNonNull(busIds);
             this.phaseTapChangerHolderIds = Objects.requireNonNull(phaseTapChangerHolderIds);
-            if (busIds.isEmpty() && phaseTapChangerHolderIds.isEmpty()) {
-                throw new IllegalArgumentException("Bus ID and phase tap changer holder ID list is empty");
-            }
         }
 
         Set<String> getBusIds() {

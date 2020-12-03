@@ -180,7 +180,7 @@ class OpenSensitivityAnalysisProviderTest {
         SensitivityFactorsProvider factorsProvider = n -> {
             Branch branch = n.getBranch("NHV1_NHV2_1");
             return Collections.singletonList(new BranchFlowPerInjectionIncrease(createBranchFlow(branch),
-                    new InjectionIncrease("a", "a", "a")));
+                                                                                new InjectionIncrease("a", "a", "a")));
         };
         CompletionException e = assertThrows(CompletionException.class,
             () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join());
@@ -222,6 +222,26 @@ class OpenSensitivityAnalysisProviderTest {
     @Test
     void testAcBranchNotFound() {
         testBranchNotFound(false);
+    }
+
+    private void testEmptyFactors(boolean dc) {
+        Network network = EurostagTutorialExample1Factory.create();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
+        SensitivityFactorsProvider factorsProvider = n -> Collections.emptyList();
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join();
+        assertTrue(result.getSensitivityValues().isEmpty());
+    }
+
+    @Test
+    void testDcEmptyFactors() {
+        testEmptyFactors(true);
+    }
+
+    @Test
+    void testAcEmptyFactors() {
+        testEmptyFactors(false);
     }
 
     @Test
