@@ -249,6 +249,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 controlledBranchId += legId;
             }
             LfBranch controlledBranch = lfNetwork.getBranchById(controlledBranchId);
+            if (controlledBranch == null) {
+                LOGGER.warn("Phase controlled branch {} is null: no phase control created", controlledBranchId);
+                return;
+            }
+            if (controlledBranch.getBus1() == null || controlledBranch.getBus2() == null) {
+                LOGGER.warn("Phase controlled branch {} is open: no phase control created", controlledBranch.getId());
+                return;
+            }
             LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
             if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
                 LOGGER.warn("Phase controller branch {} is open: no phase control created", controllerBranch.getId());
