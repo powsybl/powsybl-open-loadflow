@@ -6,9 +6,15 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertLoadFlowResultsEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -17,11 +23,10 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
+import com.powsybl.openloadflow.util.LoadFlowResultBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -37,6 +42,9 @@ class DistributedSlackOnLoadTest {
     private Load l6;
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
+
+    public static final double DELTA_MISMATCH = 1E-4d;
 
     @BeforeEach
     void setUp() {
@@ -49,8 +57,8 @@ class DistributedSlackOnLoadTest {
         l6 = network.getLoad("l6");
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setDistributedSlack(true)
-                  .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new MostMeshedSlackBusSelector());
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
@@ -65,6 +73,11 @@ class DistributedSlackOnLoadTest {
         assertActivePowerEquals(175, l4.getTerminal());
         assertActivePowerEquals(12.5, l5.getTerminal());
         assertActivePowerEquals(-50, l6.getTerminal()); // same as p0 because p0 < 0
+        LoadFlowResult loadFlowResultExpected = new LoadFlowResultBuilder(true)
+                .addMetrics("3", "CONVERGED")
+                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 1.6895598253796607E-7)
+                .build();
+        assertLoadFlowResultsEquals(loadFlowResultExpected, result);
     }
 
     @Test
@@ -82,5 +95,62 @@ class DistributedSlackOnLoadTest {
         assertActivePowerEquals(178.182, l4.getTerminal());
         assertActivePowerEquals(12.727, l5.getTerminal());
         assertActivePowerEquals(-50, l6.getTerminal()); // same as p0 because p0 < 0
+        LoadFlowResult loadFlowResultExpected = new LoadFlowResultBuilder(true)
+                .addMetrics("3", "CONVERGED")
+                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 9.726437433243973E-8)
+                .build();
+        assertLoadFlowResultsEquals(loadFlowResultExpected, result);
+    }
+
+    private void assertPowerFactor(Network network) {
+        switch (parameters.getBalanceType()) {
+            case PROPORTIONAL_TO_CONFORM_LOAD:
+            case PROPORTIONAL_TO_LOAD:
+                for (Load load : network.getLoads()) {
+                    assertEquals(load.getP0() / load.getQ0(),
+                            load.getTerminal().getP() / load.getTerminal().getQ(),
+                            DELTA_MISMATCH, "Power factor should be a constant value");
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    @Test
+    void testPowerFactorConstant() {
+        // PROPORTIONAL_TO_LOAD and power factor constant for loads
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        parametersExt.setLoadPowerFactorConstant(true);
+        Network network1 = EurostagTutorialExample1Factory.create();
+
+        LoadFlowResult loadFlowResult1 = loadFlowRunner.run(network1, parameters);
+
+        assertPowerFactor(network1);
+        LoadFlowResult loadFlowResultExpected1 = new LoadFlowResultBuilder(true)
+                .addMetrics("5", "CONVERGED")
+                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "VLHV1_0", -3.06844963660069E-5)
+                .build();
+        assertLoadFlowResultsEquals(loadFlowResultExpected1, loadFlowResult1);
+
+        // PROPORTIONAL_TO_CONFORM_LOAD and power factor constant for loads
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+        parametersExt.setLoadPowerFactorConstant(true);
+        Network network2 = EurostagTutorialExample1Factory.create();
+        // fixedActivePower and FixedReactivePower are unbalanced
+        network2.getLoad("LOAD").newExtension(LoadDetailAdder.class)
+                .withFixedActivePower(500).withVariableActivePower(100)
+                .withFixedReactivePower(150).withVariableReactivePower(50)
+                .add();
+
+        //when
+        LoadFlowResult loadFlowResult2 = loadFlowRunner.run(network2, parameters);
+
+        // then
+        assertPowerFactor(network2);
+        LoadFlowResult loadFlowResultExpected2 = new LoadFlowResultBuilder(true).addMetrics("5", "CONVERGED")
+                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "VLHV1_0", 1.340823176931849E-5)
+                .build();
+        assertLoadFlowResultsEquals(loadFlowResultExpected2, loadFlowResult2);
     }
 }
