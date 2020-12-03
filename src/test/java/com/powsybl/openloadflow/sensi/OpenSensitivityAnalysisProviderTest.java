@@ -8,6 +8,9 @@ package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
+import com.powsybl.contingency.BranchContingency;
+import com.powsybl.contingency.ContingenciesProvider;
+import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.EmptyContingencyListProvider;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -26,6 +29,7 @@ import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
+import com.powsybl.tools.PowsyblCoreVersion;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -202,5 +206,27 @@ class OpenSensitivityAnalysisProviderTest {
                 .join());
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Branch 'b' not found", e.getCause().getMessage());
+    }
+
+    @Test
+    void testContingenciesNotSupported() {
+        Network network = EurostagTutorialExample1Factory.create();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+        SensitivityFactorsProvider factorsProvider = n -> Collections.emptyList();
+        ContingenciesProvider contingenciesProvider = n -> Collections.singletonList(new Contingency("c", new BranchContingency("NHV1_NHV2_1")));
+        UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+                                                                                                                    factorsProvider, contingenciesProvider,
+                                                                                                                    sensiParameters, LocalComputationManager.getDefault())
+                                                                                                               .join());
+        assertEquals("Contingencies not yet supported", e.getMessage());
+    }
+
+    @Test
+    void testGeneralInfos() {
+        OpenSensitivityAnalysisProvider provider = new OpenSensitivityAnalysisProvider(new DenseMatrixFactory());
+        assertEquals("OpenSensitivityAnalysis", provider.getName());
+        assertEquals(new PowsyblCoreVersion().getMavenProjectVersion(), provider.getVersion());
     }
 }
