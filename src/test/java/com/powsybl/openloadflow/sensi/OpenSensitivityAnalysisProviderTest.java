@@ -6,242 +6,34 @@
  */
 package com.powsybl.openloadflow.sensi;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
-import com.powsybl.contingency.EmptyContingencyListProvider;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
-import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.FourBusNetworkFactory;
-import com.powsybl.openloadflow.network.NameSlackBusSelector;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
-import com.powsybl.sensitivity.*;
-import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
-import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
-import com.powsybl.sensitivity.factors.functions.BranchFlow;
-import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
-import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
+import com.powsybl.sensitivity.SensitivityAnalysisParameters;
+import com.powsybl.sensitivity.SensitivityFactorsProvider;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.CompletionException;
-import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-class OpenSensitivityAnalysisProviderTest {
-
-    private final DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
-
-    private final OpenSensitivityAnalysisProvider sensiProvider = new OpenSensitivityAnalysisProvider(matrixFactory);
-
-    private static SensitivityAnalysisParameters createParameters(boolean dc, String slackBusId) {
-        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
-        LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
-        lfParameters.setDc(dc);
-        OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new NameSlackBusSelector(slackBusId));
-        lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
-        return sensiParameters;
-    }
-
-    private void runAcLf(Network network) {
-        LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
-                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, new LoadFlowParameters())
-                .join();
-        if (!result.isOk()) {
-            throw new PowsyblException("AC LF diverged");
-        }
-    }
+class OpenSensitivityAnalysisProviderTest extends AbstractSensitivityAnalysisTest {
 
     @Test
-    void testDc() {
-        Network network = EurostagTutorialExample1Factory.create();
-        runAcLf(network);
-
-        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
-                network.getLineStream().collect(Collectors.toList()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
-                sensiParameters, LocalComputationManager.getDefault())
-                .join();
-        assertEquals(2, result.getSensitivityValues().size());
-        assertEquals(0.5d, getValue(result, "GEN", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.5d, getValue(result, "GEN", "NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
-    }
-
-    private static <T extends Injection<T>> InjectionIncrease createInjectionIncrease(T injection) {
-        return new InjectionIncrease(injection.getId(), injection.getId(), injection.getId());
-    }
-
-    private static <T extends Injection<T>> List<SensitivityFactor> createFactorMatrix(List<T> injections, List<Branch> branches) {
-        Objects.requireNonNull(injections);
-        Objects.requireNonNull(branches);
-        return injections.stream().flatMap(injection -> branches.stream().map(branch -> new BranchFlowPerInjectionIncrease(createBranchFlow(branch),
-                                                                                                                           createInjectionIncrease(injection)))).collect(Collectors.toList());
-    }
-
-    private static BranchFlow createBranchFlow(Branch branch) {
-        return new BranchFlow(branch.getId(), branch.getNameOrId(), branch.getId());
-    }
-
-    private static double getValue(SensitivityAnalysisResult result, String variableId, String functionId) {
-        return result.getSensitivityValues().stream().filter(value -> value.getFactor().getVariable().getId().equals(variableId) && value.getFactor().getFunction().getId().equals(functionId))
-                .findFirst()
-                .map(SensitivityValue::getValue)
-                .orElse(Double.NaN);
-    }
-
-    @Test
-    void testDc4buses() {
-        Network network = FourBusNetworkFactory.create();
-        runAcLf(network);
-
-        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0");
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
-                network.getBranchStream().collect(Collectors.toList()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
-                sensiParameters, LocalComputationManager.getDefault())
-                .join();
-
-        assertEquals(15, result.getSensitivityValues().size());
-        assertEquals(0.25d, getValue(result, "g1", "l14"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.25d, getValue(result, "g1", "l12"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.25d, getValue(result, "g1", "l23"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-0.25d, getValue(result, "g1", "l34"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.5d, getValue(result, "g1", "l13"), LoadFlowAssert.DELTA_POWER);
-
-        assertEquals(0.125d, getValue(result, "g2", "l14"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-0.375d, getValue(result, "g2", "l12"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.625d, getValue(result, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-0.125d, getValue(result, "g2", "l34"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.25d, getValue(result, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
-
-        assertEquals(-0.375d, getValue(result, "g4", "l14"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.125d, getValue(result, "g4", "l12"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.125d, getValue(result, "g4", "l23"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-0.625d, getValue(result, "g4", "l34"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.25d, getValue(result, "g4", "l13"), LoadFlowAssert.DELTA_POWER);
-    }
-
-    @Test
-    void testDcPhaseShifter() {
-        Network network = PhaseShifterTestCaseFactory.create();
-        runAcLf(network);
-
-        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL2_0");
-        Branch<?> l1 = network.getBranch("L1");
-        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
-        SensitivityFactorsProvider factorsProvider
-                = n -> Collections.singletonList(new BranchFlowPerPSTAngle(createBranchFlow(l1),
-                new PhaseTapChangerAngle(ps1.getId(), ps1.getNameOrId(), ps1.getId())));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
-                sensiParameters, LocalComputationManager.getDefault())
-                .join();
-        assertEquals(-6.3d, getValue(result, "PS1", "L1"), LoadFlowAssert.DELTA_POWER);
-    }
-
-    @Test
-    void testAc() {
-        Network network = EurostagTutorialExample1Factory.create();
-        runAcLf(network);
-
-        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
-                network.getLineStream().collect(Collectors.toList()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
-                sensiParameters, LocalComputationManager.getDefault())
-                .join();
-
-        assertEquals(2, result.getSensitivityValues().size());
-        assertEquals(0.498d, getValue(result, "GEN", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.498d, getValue(result, "GEN", "NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
-    }
-
-    private void testInjectionNotFound(boolean dc) {
-        Network network = EurostagTutorialExample1Factory.create();
-        runAcLf(network);
-
-        SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
-        SensitivityFactorsProvider factorsProvider = n -> {
-            Branch branch = n.getBranch("NHV1_NHV2_1");
-            return Collections.singletonList(new BranchFlowPerInjectionIncrease(createBranchFlow(branch),
-                                                                                new InjectionIncrease("a", "a", "a")));
-        };
-        CompletionException e = assertThrows(CompletionException.class,
-            () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join());
-        assertTrue(e.getCause() instanceof PowsyblException);
-        assertEquals("Injection 'a' not found", e.getCause().getMessage());
-    }
-
-    @Test
-    void testDcInjectionNotFound() {
-        testInjectionNotFound(true);
-    }
-
-    @Test
-    void testAcInjectionNotFound() {
-        testInjectionNotFound(false);
-    }
-
-    private void testBranchNotFound(boolean dc) {
-        Network network = EurostagTutorialExample1Factory.create();
-        runAcLf(network);
-
-        SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
-        SensitivityFactorsProvider factorsProvider = n -> {
-            Generator gen = n.getGenerator("GEN");
-            return Collections.singletonList(new BranchFlowPerInjectionIncrease(new BranchFlow("b", "b", "b"),
-                                                                                createInjectionIncrease(gen)));
-        };
-        CompletionException e = assertThrows(CompletionException.class,
-            () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join());
-        assertTrue(e.getCause() instanceof PowsyblException);
-        assertEquals("Branch 'b' not found", e.getCause().getMessage());
-    }
-
-    @Test
-    void testDcBranchNotFound() {
-        testBranchNotFound(true);
-    }
-
-    @Test
-    void testAcBranchNotFound() {
-        testBranchNotFound(false);
-    }
-
-    private void testEmptyFactors(boolean dc) {
-        Network network = EurostagTutorialExample1Factory.create();
-        runAcLf(network);
-
-        SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
-        SensitivityFactorsProvider factorsProvider = n -> Collections.emptyList();
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join();
-        assertTrue(result.getSensitivityValues().isEmpty());
-    }
-
-    @Test
-    void testDcEmptyFactors() {
-        testEmptyFactors(true);
-    }
-
-    @Test
-    void testAcEmptyFactors() {
-        testEmptyFactors(false);
+    void testGeneralInfos() {
+        OpenSensitivityAnalysisProvider provider = new OpenSensitivityAnalysisProvider(new DenseMatrixFactory());
+        assertEquals("OpenSensitivityAnalysis", provider.getName());
+        assertEquals(new PowsyblCoreVersion().getMavenProjectVersion(), provider.getVersion());
     }
 
     @Test
@@ -257,12 +49,5 @@ class OpenSensitivityAnalysisProviderTest {
                                                                                                                     sensiParameters, LocalComputationManager.getDefault())
                                                                                                                .join());
         assertEquals("Contingencies not yet supported", e.getMessage());
-    }
-
-    @Test
-    void testGeneralInfos() {
-        OpenSensitivityAnalysisProvider provider = new OpenSensitivityAnalysisProvider(new DenseMatrixFactory());
-        assertEquals("OpenSensitivityAnalysis", provider.getName());
-        assertEquals(new PowsyblCoreVersion().getMavenProjectVersion(), provider.getVersion());
     }
 }
