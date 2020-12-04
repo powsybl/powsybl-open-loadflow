@@ -133,7 +133,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     }
 
     /**
-     * http://www.montefiore.ulg.ac.be/~vct/elec0029/lf.pdf
+     * https://people.montefiore.uliege.be/vct/elec0029/lf.pdf
      */
     public List<SensitivityValue> analyse(Network network, List<SensitivityFactor> factors, OpenLoadFlowParameters lfParametersExt) {
         Objects.requireNonNull(network);

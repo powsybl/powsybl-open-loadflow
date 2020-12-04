@@ -71,14 +71,19 @@ public final class DcEquationSystem {
                                              DcEquationSystemCreationParameters creationParameters, LfBranch branch,
                                              LfBus bus1, LfBus bus2) {
         if (bus1 != null && bus2 != null) {
-            boolean deriveA1 = creationParameters.isForcePhaseControlOffAndAddAngle1Var() && branch.hasPhaseControlCapability();
+            boolean deriveA1 = creationParameters.isForcePhaseControlOffAndAddAngle1Var() && branch.hasPhaseControlCapability(); //TODO: phase control outer loop
             ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, deriveA1);
             ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, deriveA1);
             equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
             if (deriveA1) {
-                equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_ALPHA1)
-                        .addTerm(new BranchA1EquationTerm(branch, variableSet));
+                if (creationParameters.isForcePhaseControlOffAndAddAngle1Var()) {
+                    // use for sensitiviy analysis only: with this equation term, we force the a1 variable to be constant.
+                    equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_ALPHA1)
+                            .addTerm(new BranchA1EquationTerm(branch, variableSet));
+                } else {
+                    //TODO
+                }
             }
             if (creationParameters.isUpdateFlows()) {
                 branch.setP1(p1);
