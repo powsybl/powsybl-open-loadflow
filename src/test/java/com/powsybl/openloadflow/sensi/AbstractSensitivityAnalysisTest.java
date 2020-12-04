@@ -25,6 +25,7 @@ import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
@@ -90,8 +91,9 @@ abstract class AbstractSensitivityAnalysisTest {
             return Collections.singletonList(new BranchFlowPerInjectionIncrease(createBranchFlow(branch),
                     new InjectionIncrease("a", "a", "a")));
         };
-        CompletionException e = assertThrows(CompletionException.class,
-            () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join());
+        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+                factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault());
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Injection 'a' not found", e.getCause().getMessage());
     }
@@ -106,8 +108,9 @@ abstract class AbstractSensitivityAnalysisTest {
             return Collections.singletonList(new BranchFlowPerInjectionIncrease(new BranchFlow("b", "b", "b"),
                     createInjectionIncrease(gen)));
         };
-        CompletionException e = assertThrows(CompletionException.class,
-            () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join());
+        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+                factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault());
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Branch 'b' not found", e.getCause().getMessage());
     }

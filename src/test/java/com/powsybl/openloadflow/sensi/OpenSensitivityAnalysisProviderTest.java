@@ -45,9 +45,7 @@ class OpenSensitivityAnalysisProviderTest extends AbstractSensitivityAnalysisTes
         SensitivityFactorsProvider factorsProvider = n -> Collections.emptyList();
         ContingenciesProvider contingenciesProvider = n -> Collections.singletonList(new Contingency("c", new BranchContingency("NHV1_NHV2_1")));
         UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
-                                                                                                                    factorsProvider, contingenciesProvider,
-                                                                                                                    sensiParameters, LocalComputationManager.getDefault())
-                                                                                                               .join());
+                factorsProvider, contingenciesProvider, sensiParameters, LocalComputationManager.getDefault()));
         assertEquals("Contingencies not yet supported", e.getMessage());
     }
 }
