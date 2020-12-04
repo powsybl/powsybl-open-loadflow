@@ -89,14 +89,10 @@ public final class DcEquationSystem {
                 branch.setP1(p1);
                 branch.setP2(p2);
             }
-        } else if (bus1 != null) {
-            if (creationParameters.isUpdateFlows()) {
-                branch.setP1(EvaluableConstants.ZERO);
-            }
-        } else if (bus2 != null) {
-            if (creationParameters.isUpdateFlows()) {
-                branch.setP2(EvaluableConstants.ZERO);
-            }
+        } else if (bus1 != null && creationParameters.isUpdateFlows()) {
+            branch.setP1(EvaluableConstants.ZERO);
+        } else if (bus2 != null && creationParameters.isUpdateFlows()) {
+            branch.setP2(EvaluableConstants.ZERO);
         }
     }
 
