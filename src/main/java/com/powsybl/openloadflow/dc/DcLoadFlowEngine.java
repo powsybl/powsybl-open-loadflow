@@ -62,9 +62,10 @@ public class DcLoadFlowEngine {
 
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
 
+        equationSystem.updateEquations(x);
+
         double[] targets = equationSystem.createTargetVector();
 
-        equationSystem.updateEquations(x);
         JacobianMatrix j = JacobianMatrix.create(equationSystem, matrixFactory);
         try {
             double[] dx = Arrays.copyOf(targets, targets.length);

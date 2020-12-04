@@ -41,6 +41,8 @@ public interface LfBranch {
 
     double getPermanentLimit2();
 
+    boolean hasPhaseControlCapability();
+
     DiscretePhaseControl getDiscretePhaseControl();
 
     void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn);

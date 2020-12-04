@@ -148,6 +148,12 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
+    public boolean hasPhaseControlCapability() {
+        return branch.getType() == ConnectableType.TWO_WINDINGS_TRANSFORMER
+                && ((TwoWindingsTransformer) branch).getPhaseTapChanger() != null;
+    }
+
+    @Override
     public void setP1(Evaluable p1) {
         this.p1 = Objects.requireNonNull(p1);
     }

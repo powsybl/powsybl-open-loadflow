@@ -52,6 +52,11 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
+    public boolean hasPhaseControlCapability() {
+        return false;
+    }
+
+    @Override
     public void setP1(Evaluable p1) {
         this.p = Objects.requireNonNull(p1);
     }

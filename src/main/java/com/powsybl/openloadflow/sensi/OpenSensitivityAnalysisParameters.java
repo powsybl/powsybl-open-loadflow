@@ -1,0 +1,34 @@
+/**
+ * Copyright (c) 2020, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+package com.powsybl.openloadflow.sensi;
+
+import com.powsybl.commons.extensions.AbstractExtension;
+import com.powsybl.sensitivity.SensitivityAnalysisParameters;
+
+/**
+ * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ */
+public class OpenSensitivityAnalysisParameters extends AbstractExtension<SensitivityAnalysisParameters> {
+
+    private static final boolean DEFAULT_USE_BASE_CASE_VOLTAGE = true;
+
+    private boolean useBaseCaseVoltage = DEFAULT_USE_BASE_CASE_VOLTAGE;
+
+    public boolean isUseBaseCaseVoltage() {
+        return useBaseCaseVoltage;
+    }
+
+    public OpenSensitivityAnalysisParameters setUseBaseCaseVoltage(boolean useBaseCaseVoltage) {
+        this.useBaseCaseVoltage = useBaseCaseVoltage;
+        return this;
+    }
+
+    @Override
+    public String getName() {
+        return "OpenSensitivityAnalysisParameters";
+    }
+}
