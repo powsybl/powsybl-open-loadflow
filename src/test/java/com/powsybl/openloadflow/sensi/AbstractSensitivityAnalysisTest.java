@@ -40,14 +40,19 @@ abstract class AbstractSensitivityAnalysisTest {
 
     protected final OpenSensitivityAnalysisProvider sensiProvider = new OpenSensitivityAnalysisProvider(matrixFactory);
 
-    protected static SensitivityAnalysisParameters createParameters(boolean dc, String slackBusId) {
+    protected static SensitivityAnalysisParameters createParameters(boolean dc, String slackBusId, boolean distributedSlack) {
         SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
         LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
         lfParameters.setDc(dc);
+        lfParameters.setDistributedSlack(distributedSlack);
         OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new NameSlackBusSelector(slackBusId));
         lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
         return sensiParameters;
+    }
+
+    protected static SensitivityAnalysisParameters createParameters(boolean dc, String slackBusId) {
+        return createParameters(dc, slackBusId, false);
     }
 
     protected static <T extends Injection<T>> InjectionIncrease createInjectionIncrease(T injection) {
@@ -78,6 +83,16 @@ abstract class AbstractSensitivityAnalysisTest {
                 .join();
         if (!result.isOk()) {
             throw new PowsyblException("AC LF diverged");
+        }
+    }
+
+    protected void runDcLf(Network network) {
+        LoadFlowParameters parameters =  new LoadFlowParameters().setDc(true);
+        LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
+                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, parameters)
+                .join();
+        if (!result.isOk()) {
+            throw new PowsyblException("DC LF failed");
         }
     }
 
