@@ -201,6 +201,54 @@ class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
+    void nullControlledBranchTest() {
+        selectNetwork(createNetworkWithT2wt());
+        parameters.setPhaseShifterRegulationOn(true);
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setTapPosition(2)
+                .setRegulationTerminal(network.getLoad("LD2").getTerminal())
+                .setRegulationValue(83);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
+    }
+
+    @Test
+    void openControlledBranchTest() {
+        selectNetwork(createNetworkWithT2wt());
+        network.newLine()
+                .setId("L3")
+                .setVoltageLevel1("VL1")
+                .setConnectableBus1("B1")
+                .setBus1("B1")
+                .setVoltageLevel2("VL2")
+                .setConnectableBus2("B2")
+                .setBus2("B2")
+                .setR(4.0)
+                .setX(10.0)
+                .setG1(0.0)
+                .setB1(0.0)
+                .setG2(0.0)
+                .setB2(0.0)
+                .add();
+        line1.getTerminal1().disconnect();
+        parameters.setPhaseShifterRegulationOn(true);
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setTapPosition(2)
+                .setRegulationTerminal(line1.getTerminal1())
+                .setRegulationValue(83);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
+    }
+
+    @Test
     void baseCaseT3wtTest() {
         selectNetwork(createNetworkWithT3wt());
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
