@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.contingency.EmptyContingencyListProvider;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -92,7 +91,7 @@ abstract class AbstractSensitivityAnalysisTest {
                     new InjectionIncrease("a", "a", "a")));
         };
         CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
-                factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault());
+                factorsProvider, null, sensiParameters, LocalComputationManager.getDefault());
         CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Injection 'a' not found", e.getCause().getMessage());
@@ -109,7 +108,7 @@ abstract class AbstractSensitivityAnalysisTest {
                     createInjectionIncrease(gen)));
         };
         CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
-                factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault());
+                factorsProvider, null, sensiParameters, LocalComputationManager.getDefault());
         CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Branch 'b' not found", e.getCause().getMessage());
@@ -121,7 +120,8 @@ abstract class AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
         SensitivityFactorsProvider factorsProvider = n -> Collections.emptyList();
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join();
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider,
+                null, sensiParameters, LocalComputationManager.getDefault()).join();
         assertTrue(result.getSensitivityValues().isEmpty());
     }
 }

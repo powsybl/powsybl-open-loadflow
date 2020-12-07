@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.sensi;
 
 import com.google.auto.service.AutoService;
 import com.powsybl.computation.ComputationManager;
-import com.powsybl.contingency.ContingenciesProvider;
+import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -73,10 +73,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     @Override
     public CompletableFuture<SensitivityAnalysisResult> run(Network network, String workingStateId,
                                                             SensitivityFactorsProvider sensitivityFactorsProvider,
-                                                            ContingenciesProvider contingenciesProvider,
+                                                            List<Contingency> contingencies,
                                                             SensitivityAnalysisParameters sensitivityAnalysisParameters,
                                                             ComputationManager computationManager) {
-        if (!contingenciesProvider.getContingencies(network).isEmpty()) {
+        if (contingencies != null) {
             throw new UnsupportedOperationException("Contingencies not yet supported");
         }
         return CompletableFuture.supplyAsync(() -> {
@@ -101,4 +101,5 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             return new SensitivityAnalysisResult(ok, metrics, logs, sensitivityValues);
         });
     }
+
 }

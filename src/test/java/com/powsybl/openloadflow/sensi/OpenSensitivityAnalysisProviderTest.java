@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
-import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
@@ -20,6 +19,7 @@ import com.powsybl.tools.PowsyblCoreVersion;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -43,9 +43,9 @@ class OpenSensitivityAnalysisProviderTest extends AbstractSensitivityAnalysisTes
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
         SensitivityFactorsProvider factorsProvider = n -> Collections.emptyList();
-        ContingenciesProvider contingenciesProvider = n -> Collections.singletonList(new Contingency("c", new BranchContingency("NHV1_NHV2_1")));
+        List<Contingency> contingencies = Collections.singletonList(new Contingency("c", new BranchContingency("NHV1_NHV2_1")));
         UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
-                factorsProvider, contingenciesProvider, sensiParameters, LocalComputationManager.getDefault()));
+                factorsProvider, contingencies, sensiParameters, LocalComputationManager.getDefault()));
         assertEquals("Contingencies not yet supported", e.getMessage());
     }
 }
