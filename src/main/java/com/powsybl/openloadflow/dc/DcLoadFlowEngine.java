@@ -10,6 +10,7 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
@@ -40,16 +41,20 @@ public class DcLoadFlowEngine {
 
     private final boolean updateFlows;
 
+    private final boolean useTransformerRatio;
+
     public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory) {
         this.networks = Collections.singletonList(network);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.updateFlows = false;
+        this.useTransformerRatio = true;
     }
 
     public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters) {
         this.networks = LfNetwork.load(network, new LfNetworkParameters(parameters.getSlackBusSelector(), false, false, parameters.isTwtSplitShuntAdmittance(), false));
         matrixFactory = parameters.getMatrixFactory();
         updateFlows = parameters.isUpdateFlows();
+        useTransformerRatio = parameters.isUseTransformerRatio();
     }
 
     public DcLoadFlowResult run() {
@@ -58,7 +63,7 @@ public class DcLoadFlowEngine {
         // only process main (largest) connected component
         LfNetwork network = networks.get(0);
 
-        EquationSystem equationSystem = DcEquationSystem.create(network, new VariableSet(), updateFlows);
+        EquationSystem equationSystem = DcEquationSystem.create(network, new VariableSet(), new DcEquationSystemCreationParameters(updateFlows, false, false, useTransformerRatio));
 
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
 
