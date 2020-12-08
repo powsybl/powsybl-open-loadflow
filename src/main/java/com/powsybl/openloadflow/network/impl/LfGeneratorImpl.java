@@ -28,6 +28,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private static final double DEFAULT_DROOP = 4; // why not
 
+    private static final double TARGET_P_EPSILON = 1e-2;
+
     private final Generator generator;
 
     private boolean participating;
@@ -48,10 +50,10 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             }
         }
         participationFactor = generator.getMaxP() / droop;
-        if (generator.getTargetP() <= 0) {
-            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) <= 0",
+        if (Math.abs(generator.getTargetP()) < TARGET_P_EPSILON) {
+            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) equals 0",
                     generator.getId(), generator.getTargetP());
-            report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero++;
+            report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero++;
             participating = false;
         }
         if (generator.getTargetP() > generator.getMaxP()) {

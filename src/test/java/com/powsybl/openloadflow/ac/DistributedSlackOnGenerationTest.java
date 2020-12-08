@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -126,5 +127,17 @@ class DistributedSlackOnGenerationTest {
         assertThrows(CompletionException.class,
             () -> loadFlowRunner.run(network, parameters),
             "Failed to distribute slack bus active power mismatch");
+    }
+
+    @Test
+    void generatorWithNegativeTargetP() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getGenerator("GEN").setMaxP(1000);
+        network.getGenerator("GEN").setTargetP(-607);
+        network.getLoad("LOAD").setP0(-600);
+        network.getLoad("LOAD").setQ0(-200);
+        LoadFlowResult result = LoadFlow.find("OpenLoadFlow").run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(595.350, network.getGenerator("GEN").getTerminal());
     }
 }
