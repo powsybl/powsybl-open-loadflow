@@ -58,6 +58,12 @@ public class DcLoadFlowEngine {
         activePowerDistribution.run(network, mismatch);
     }
 
+    public DcLoadFlowEngine(List<LfNetwork> networks, DcLoadFlowParameters parameters) {
+        this.networks = networks;
+        matrixFactory = parameters.getMatrixFactory();
+        updateFlows = parameters.isUpdateFlows();
+    }
+
     public DcLoadFlowResult run() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 

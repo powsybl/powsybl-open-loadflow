@@ -148,8 +148,18 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
+    public double getP1() {
+        return p.eval() * PerUnit.SB;
+    }
+
+    @Override
     public void setP2(Evaluable p2) {
         // nothing to do
+    }
+
+    @Override
+    public double getP2() {
+        return Double.NaN;
     }
 
     @Override

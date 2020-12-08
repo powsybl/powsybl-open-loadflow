@@ -159,8 +159,18 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
+    public double getP1() {
+        return p1.eval() * PerUnit.SB;
+    }
+
+    @Override
     public void setP2(Evaluable p2) {
         this.p2 = Objects.requireNonNull(p2);
+    }
+
+    @Override
+    public double getP2() {
+        return p2.eval() * PerUnit.SB;
     }
 
     @Override

@@ -77,6 +77,13 @@ abstract class AbstractSensitivityAnalysisTest {
                 .orElse(Double.NaN);
     }
 
+    protected static double getFunctionReference(SensitivityAnalysisResult result, String functionId) {
+        return result.getSensitivityValues().stream().filter(value -> value.getFactor().getFunction().getId().equals(functionId))
+                .findFirst()
+                .map(SensitivityValue::getFunctionReference)
+                .orElse(Double.NaN);
+    }
+
     protected void runAcLf(Network network) {
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
                 .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, new LoadFlowParameters())

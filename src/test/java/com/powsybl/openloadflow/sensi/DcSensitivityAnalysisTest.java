@@ -8,10 +8,7 @@ package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.EmptyContingencyListProvider;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
-import com.powsybl.iidm.network.VariantManagerConstants;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -25,6 +22,8 @@ import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,7 +52,11 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     @Test
     void test4buses() {
         Network network = FourBusNetworkFactory.create();
-        runAcLf(network);
+        runDcLf(network);
+        Map<String, Double> functionReferenceByLine = new HashMap<>();
+        for (Line line : network.getLines()) {
+            functionReferenceByLine.put(line.getId(), line.getTerminal1().getP());
+        }
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0");
         SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
@@ -80,6 +83,10 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0.125d, getValue(result, "g4", "l23"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.625d, getValue(result, "g4", "l34"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.25d, getValue(result, "g4", "l13"), LoadFlowAssert.DELTA_POWER);
+
+        for (Line line : network.getLines()) {
+            assertEquals(functionReferenceByLine.get(line.getId()).doubleValue(), getFunctionReference(result, line.getId()), LoadFlowAssert.DELTA_POWER);
+        }
     }
 
     @Test
