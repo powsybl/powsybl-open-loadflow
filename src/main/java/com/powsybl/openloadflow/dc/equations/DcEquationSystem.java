@@ -32,10 +32,6 @@ public final class DcEquationSystem {
     private DcEquationSystem() {
     }
 
-    public static EquationSystem create(LfNetwork network) {
-        return create(network, new VariableSet(), true);
-    }
-
     private static void createBuses(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem) {
         for (LfBus bus : network.getBuses()) {
             if (bus.isSlack()) {
@@ -129,12 +125,8 @@ public final class DcEquationSystem {
         }
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean updateFlows) {
-        return create(network, variableSet, new DcEquationSystemCreationParameters(updateFlows, false, false, true));
-    }
-
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean updateFlows, boolean indexTerms) {
-        return create(network, variableSet, new DcEquationSystemCreationParameters(updateFlows, indexTerms, false, false));
+    public static EquationSystem create(LfNetwork network, DcEquationSystemCreationParameters creationParameters) {
+        return create(network, new VariableSet(), creationParameters);
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet, DcEquationSystemCreationParameters creationParameters) {
