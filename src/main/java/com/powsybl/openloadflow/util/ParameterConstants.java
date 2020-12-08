@@ -32,7 +32,7 @@ public final class ParameterConstants {
     public static final boolean LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE = false;
 
     public static final String DC_USE_TRANSFORMER_RATIO_PARAM_NAME = "dcUseTransformerRatio";
-    public static final boolean DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE = true;
+    public static final boolean DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE = false;
 
     private ParameterConstants() {
     }
