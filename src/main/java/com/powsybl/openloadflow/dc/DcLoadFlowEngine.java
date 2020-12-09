@@ -62,6 +62,7 @@ public class DcLoadFlowEngine {
         this.networks = networks;
         matrixFactory = parameters.getMatrixFactory();
         updateFlows = parameters.isUpdateFlows();
+        useTransformerRatio = parameters.isUseTransformerRatio();
     }
 
     public DcLoadFlowResult run() {
