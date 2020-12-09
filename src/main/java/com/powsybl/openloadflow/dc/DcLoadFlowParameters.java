@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.dc;
 
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 
@@ -22,17 +23,20 @@ public class DcLoadFlowParameters {
 
     private final boolean updateFlows;
 
-    private final boolean twtSplitShuntAdmittance;
-
     boolean useTransformerRatio;
 
+    private boolean distributedSlack;
+
+    private LoadFlowParameters.BalanceType balanceType;
+
     public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory, boolean updateFlows,
-                                boolean twtSplitShuntAdmittance, boolean useTransformerRatio) {
+                                boolean useTransformerRatio, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.updateFlows = updateFlows;
-        this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
         this.useTransformerRatio = useTransformerRatio;
+        this.distributedSlack = distributedSlack;
+        this.balanceType = balanceType;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -47,8 +51,12 @@ public class DcLoadFlowParameters {
         return updateFlows;
     }
 
-    public boolean isTwtSplitShuntAdmittance() {
-        return twtSplitShuntAdmittance;
+    public boolean isDistributedSlack() {
+        return distributedSlack;
+    }
+
+    public LoadFlowParameters.BalanceType getBalanceType() {
+        return balanceType;
     }
 
     public boolean isUseTransformerRatio() {

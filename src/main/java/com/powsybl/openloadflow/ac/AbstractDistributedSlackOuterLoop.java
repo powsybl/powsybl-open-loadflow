@@ -28,7 +28,7 @@ public abstract class AbstractDistributedSlackOuterLoop<T> implements OuterLoop 
     /**
      * Slack active power residue epsilon: 10^-5 in p.u => 10^-3 in Mw
      */
-    private static final double SLACK_P_RESIDUE_EPS = Math.pow(10, -5);
+    public static final double SLACK_P_RESIDUE_EPS = Math.pow(10, -5);
 
     protected static class ParticipatingElement<T> {
 

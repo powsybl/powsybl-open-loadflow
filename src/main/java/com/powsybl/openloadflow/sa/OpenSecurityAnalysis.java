@@ -291,7 +291,8 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
     }
 
-    private void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
+    public static void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
+        //FIXME: refactoring needed.
         if (loadFlowParameters.isDistributedSlack() && Math.abs(mismatch) > 0) {
             switch (loadFlowParameters.getBalanceType()) {
                 case PROPORTIONAL_TO_LOAD:

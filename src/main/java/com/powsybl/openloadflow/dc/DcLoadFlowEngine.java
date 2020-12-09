@@ -7,8 +7,11 @@
 package com.powsybl.openloadflow.dc;
 
 import com.google.common.base.Stopwatch;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AbstractDistributedSlackOuterLoop;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -18,6 +21,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.sa.OpenSecurityAnalysis;
 import com.powsybl.openloadflow.util.Markers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,18 +47,45 @@ public class DcLoadFlowEngine {
 
     private final boolean useTransformerRatio;
 
+    private final boolean isDistributedSlack;
+
+    private final LoadFlowParameters.BalanceType balanceType;
+
     public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory) {
         this.networks = Collections.singletonList(network);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.updateFlows = false;
         this.useTransformerRatio = true;
+        this.isDistributedSlack = false;
+        this.balanceType = LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX; // not used
     }
 
     public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters) {
-        this.networks = LfNetwork.load(network, new LfNetworkParameters(parameters.getSlackBusSelector(), false, false, parameters.isTwtSplitShuntAdmittance(), false));
+        this.networks = LfNetwork.load(network, new LfNetworkParameters(parameters.getSlackBusSelector(), false,
+                false, false, false));
         matrixFactory = parameters.getMatrixFactory();
         updateFlows = parameters.isUpdateFlows();
         useTransformerRatio = parameters.isUseTransformerRatio();
+        isDistributedSlack = parameters.isDistributedSlack();
+        balanceType = parameters.getBalanceType();
+    }
+
+    private void distributeSlack() {
+        //FIXME: a refactoring is needed for slack distribution methods.
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters();
+        loadFlowParameters.setDistributedSlack(isDistributedSlack);
+        loadFlowParameters.setBalanceType(balanceType);
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setThrowsExceptionInCaseOfSlackDistributionFailure(true);
+        openLoadFlowParameters.setLoadPowerFactorConstant(false);
+
+        for (LfNetwork lfNetwork : this.networks) {
+            double mismatch = lfNetwork.getActivePowerMismatch();
+            while (Math.abs(mismatch) > AbstractDistributedSlackOuterLoop.SLACK_P_RESIDUE_EPS) {
+                OpenSecurityAnalysis.distributedMismatch(lfNetwork, -mismatch, loadFlowParameters, openLoadFlowParameters);
+                mismatch = lfNetwork.getActivePowerMismatch();
+            }
+        }
     }
 
     public DcLoadFlowResult run() {
@@ -62,6 +93,10 @@ public class DcLoadFlowEngine {
 
         // only process main (largest) connected component
         LfNetwork network = networks.get(0);
+
+        if (isDistributedSlack) {
+            distributeSlack();
+        }
 
         EquationSystem equationSystem = DcEquationSystem.create(network, new VariableSet(), new DcEquationSystemCreationParameters(updateFlows, false, false, useTransformerRatio));
 
