@@ -28,9 +28,6 @@ import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
-import com.powsybl.sensitivity.factors.functions.BranchFlow;
-import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 
@@ -41,17 +38,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     static class SensitivityVariableConfiguration {
 
-        private final Set<String> busIds;
+        private final Map<String, Number> busParticipationById;
 
         private final Set<String> phaseTapChangerHolderIds;
 
-        SensitivityVariableConfiguration(Set<String> busIds, Set<String> phaseTapChangerHolderIds) {
-            this.busIds = Objects.requireNonNull(busIds);
+        SensitivityVariableConfiguration(Map<String, Number> busParticipationById, Set<String> phaseTapChangerHolderIds) {
+            this.busParticipationById = Objects.requireNonNull(busParticipationById);
             this.phaseTapChangerHolderIds = Objects.requireNonNull(phaseTapChangerHolderIds);
         }
 
-        Set<String> getBusIds() {
-            return busIds;
+        Map<String, Number> getBusParticipationById() {
+            return busParticipationById;
         }
 
         Set<String> getPhaseTapChangerHolderIds() {
@@ -67,12 +64,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 return false;
             }
             SensitivityVariableConfiguration that = (SensitivityVariableConfiguration) o;
-            return busIds.equals(that.busIds) && phaseTapChangerHolderIds.equals(that.phaseTapChangerHolderIds);
+            return busParticipationById.equals(that.busParticipationById) && phaseTapChangerHolderIds.equals(that.phaseTapChangerHolderIds);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(busIds);
+            return Objects.hash(busParticipationById);
         }
     }
 
@@ -141,13 +138,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         for (Map.Entry<SensitivityVariableConfiguration, SensitivityFactorGroup> e : factorsByVarConfig.entrySet()) {
             SensitivityVariableConfiguration configuration = e.getKey();
             SensitivityFactorGroup factorGroup = e.getValue();
-            for (String busId : configuration.getBusIds()) {
-                LfBus lfBus = lfNetwork.getBusById(busId);
+            for (Map.Entry<String, Number> busAndParticipation : configuration.getBusParticipationById().entrySet()) {
+                LfBus lfBus = lfNetwork.getBusById(busAndParticipation.getKey());
                 if (lfBus.isSlack()) {
                     throw new PowsyblException("Cannot analyse sensitivity of slack bus");
                 }
                 Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p.getColumn(), factorGroup.getIndex(), 1d / PerUnit.SB);
+                rhs.set(p.getColumn(), factorGroup.getIndex(), busAndParticipation.getValue().doubleValue() / PerUnit.SB);
             }
             for (String phaseTapChangerHolderId : configuration.getPhaseTapChangerHolderIds()) {
                 LfBranch lfBranch = lfNetwork.getBranchById(phaseTapChangerHolderId);
@@ -158,8 +155,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return rhs;
     }
 
-    private Map<SensitivityVariableConfiguration, SensitivityFactorGroup> indexFactorsByVariableConfig(Network network, List<SensitivityFactor> factors) {
+    private Map<SensitivityVariableConfiguration, SensitivityFactorGroup> indexFactorsByVariableConfig(Network network, List<SensitivityFactor> factors, LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
         Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = new LinkedHashMap<>(factors.size());
+        final Map<String, Number> participationMap = getParticipatingElements(network, lfNetwork, loadFlowParameters);
 
         // index factors by variable config
         for (SensitivityFactor<?, ?> factor : factors) {
@@ -169,7 +167,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 Bus bus = injection.getTerminal().getBusView().getBus();
                 // skip disconnected injections
                 if (bus != null) {
-                    SensitivityVariableConfiguration varConfig = new SensitivityVariableConfiguration(Collections.singleton(bus.getId()), Collections.emptySet());
+                    Map<String, Number> busParticipation;
+                    if (loadFlowParameters.isDistributedSlack()) {
+                        busParticipation = new HashMap<>(participationMap);
+                        // add 1 where we are making the injection
+                        busParticipation.put(bus.getId(), busParticipation.getOrDefault(bus.getId(), 0).doubleValue() + 1);
+                    } else {
+                        busParticipation = Collections.singletonMap(bus.getId(), 1d);
+                    }
+                    SensitivityVariableConfiguration varConfig = new SensitivityVariableConfiguration(busParticipation, Collections.emptySet());
                     factorsByVarConfig.computeIfAbsent(varConfig, k -> new SensitivityFactorGroup())
                             .getFactors().add(injectionFactor);
                 }
@@ -180,7 +186,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 if (twt == null) {
                     throw new PowsyblException("Phase shifter '" + phaseTapChangerHolderId + "' not found");
                 }
-                SensitivityVariableConfiguration varConfig = new SensitivityVariableConfiguration(Collections.emptySet(), Collections.singleton(phaseTapChangerHolderId));
+                SensitivityVariableConfiguration varConfig = new SensitivityVariableConfiguration(Collections.emptyMap(), Collections.singleton(phaseTapChangerHolderId));
                 factorsByVarConfig.computeIfAbsent(varConfig, k -> new SensitivityFactorGroup())
                         .getFactors().add(pstAngleFactor);
             } else {
@@ -197,68 +203,20 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return factorsByVarConfig;
     }
 
-    /**
-     * If the slack is distributed, we need to create a factor for every participating generator
-     *
-     * @param lfNetwork
-     * @param initialFactors
-     * @return
-     */
-    private List<SensitivityFactor> getAllFactors(LfNetwork lfNetwork, List<SensitivityFactor> initialFactors,
-                                                  LoadFlowParameters.BalanceType balanceType) {
-        List<SensitivityFactor> factors = new ArrayList<>();
-
-        Set<String> monitoredLines = new HashSet<>();
-        for (SensitivityFactor initialFactor : initialFactors) {
-            // if the factor if an injection then we will compute it with distribution, otherwise we just keep it as it is
-            if (initialFactor instanceof BranchFlowPerInjectionIncrease) {
-                BranchFlowPerInjectionIncrease branchFactor = (BranchFlowPerInjectionIncrease) initialFactor;
-                monitoredLines.add(branchFactor.getFunction().getBranchId());
-            } else {
-                factors.add(initialFactor);
-            }
-        }
-
-        switch (balanceType) {
-            case PROPORTIONAL_TO_GENERATION_P_MAX:
-                monitoredLines.forEach(lineId -> {
-                    BranchFlow branchFlow = new BranchFlow(lineId, lineId, lineId);
-                    lfNetwork.getBuses().forEach(bus ->
-                            bus.getGenerators().forEach(generator -> {
-                                String genId = generator.getId();
-                                if (generator.isParticipating() && generator.getParticipationFactor() != 0) {
-                                    factors.add(new BranchFlowPerInjectionIncrease(branchFlow,
-                                            new InjectionIncrease(genId, genId, genId)));
-                                }
-                            }));
-                });
-                break;
-            case PROPORTIONAL_TO_LOAD:
-                monitoredLines.forEach(lineId -> {
-                    BranchFlow branchFlow = new BranchFlow(lineId, lineId, lineId);
-                    lfNetwork.getBuses().forEach(bus -> {
-                        String busId = bus.getId();
-                        if (bus.getPositiveLoadCount() > 0 && bus.getLoadTargetP() > 0) {
-                            factors.add(new BranchFlowPerInjectionIncrease(branchFlow,
-                                    new InjectionIncrease(busId, busId, busId)));
-                        }
-                    });
-                });
-                break;
-        }
-        return factors;
+    static Bus getBus(Network network, LfGenerator generator) {
+        return network.getGenerator(generator.getId()).getTerminal().getBusView().getBus();
     }
 
     /**
-     * Return a list of id from participating element, and its participation value
-     *
+     * Return a mapping between the participating element (bus !) id, and its participation value
+     * (the map does not contain the slack bus)
      * @param lfNetwork
      * @param loadFlowParameters
      * @return
      */
-    private List<Pair<String, Number>> getParticipatingElements(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
+    private Map<String, Number> getParticipatingElements(Network network, LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
 
-        List<Pair<String, Number>> participationList = new ArrayList<>();
+        Map<String, Number> participationMap = new HashMap<>();
 
         if (loadFlowParameters.isDistributedSlack()) {
             switch (loadFlowParameters.getBalanceType()) {
@@ -266,74 +224,24 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     DistributedSlackOnGenerationOuterLoop onGenerationOuterLoop = new DistributedSlackOnGenerationOuterLoop(true);
                     List<AbstractDistributedSlackOuterLoop.ParticipatingElement<LfGenerator>> participatingGenerators = onGenerationOuterLoop.getParticipatingElements(lfNetwork);
                     onGenerationOuterLoop.normalizeParticipationFactors(participatingGenerators, "generator");
-                    participatingGenerators.forEach(participatingElement -> participationList.add(Pair.of(participatingElement.element.getId(), participatingElement.factor)));
+                    participatingGenerators.stream()
+                        .filter(participatingElement -> !lfNetwork.getBusById(getBus(network, participatingElement.element).getId()).isSlack())
+                        .forEach(participatingElement -> {
+                            String busId = getBus(network, participatingElement.element).getId();
+                            participationMap.put(busId, participationMap.getOrDefault(busId, 0).doubleValue() - participatingElement.factor);
+                        });
                     break;
                 case PROPORTIONAL_TO_LOAD:
                     DistributedSlackOnLoadOuterLoop onLoadOuterLoop = new DistributedSlackOnLoadOuterLoop(true, false, false);
                     List<AbstractDistributedSlackOuterLoop.ParticipatingElement<LfBus>> participatingBuses = onLoadOuterLoop.getParticipatingElements(lfNetwork);
                     onLoadOuterLoop.normalizeParticipationFactors(participatingBuses, "load");
-                    participatingBuses.forEach(participatingElement -> participationList.add(Pair.of(participatingElement.element.getId(), participatingElement.factor)));
+                    participatingBuses.stream().filter(participatingElement -> !participatingElement.element.isSlack()).forEach(participatingElement ->  participationMap.put(participatingElement.element.getId(), -participatingElement.factor));
                     break;
                 default:
                     throw new UnsupportedOperationException("Balance type not yet supported: " + loadFlowParameters.getBalanceType());
             }
         }
-        return participationList;
-    }
-
-    /**
-     * Create a map containing sensibility values, indexed first by FunctionId, then by factorId
-     *
-     * @param sensitivityValues
-     * @param remainder
-     * @return
-     */
-    public static Map<String, Map<String, SensitivityValue>> convertSensitivityValuesToMap(List<SensitivityValue> sensitivityValues, List<SensitivityValue> remainder) {
-        Map<String, Map<String, SensitivityValue>> sensitivityValuesMap = new HashMap<>();
-        for (SensitivityValue sensitivityValue : sensitivityValues) {
-            SensitivityFactor factor = sensitivityValue.getFactor();
-            if (factor instanceof BranchFlowPerInjectionIncrease) {
-                Map<String, SensitivityValue> branchSentivityMap = sensitivityValuesMap.computeIfAbsent(factor.getFunction().getId(), branch -> new HashMap<>());
-                branchSentivityMap.put(factor.getVariable().getId(), sensitivityValue);
-            } else {
-                remainder.add(sensitivityValue); // todo: if this is not an injection, I do not know how to do
-            }
-        }
-        return sensitivityValuesMap;
-    }
-
-    public List<SensitivityValue> correctSensitivityValues(List<SensitivityValue> sensitivityValues, LfNetwork lfNetwork, LoadFlowParameters lfParameters) {
-
-        // if the slack is distributed, we need to compute sensitivities corrected from the distribution effects.
-        List<SensitivityValue> correctedSensitivityValues = new ArrayList<>();
-
-        // map indexed by functionid, then variableid
-        Map<String, Map<String, SensitivityValue>> sensitivityValuesMap = convertSensitivityValuesToMap(sensitivityValues, correctedSensitivityValues);
-
-        List<Pair<String, Number>> participatingElements = getParticipatingElements(lfNetwork, lfParameters);
-
-        // compute the slack distribution correction by branch
-        Map<String, Number> slackDistributionCorrection = new HashMap<>();
-        for (String lfBranchId : sensitivityValuesMap.keySet()) {
-            Map<String, SensitivityValue> sensitivitiesByBranch = sensitivityValuesMap.get(lfBranchId);
-            double sum = participatingElements.stream()
-                    .mapToDouble(element -> element.getRight().doubleValue() * sensitivitiesByBranch.get(element.getLeft()).getValue())
-                    .sum();
-            slackDistributionCorrection.put(lfBranchId, sum);
-        }
-
-        // compute sensitivities corrected from the slack distribution effects
-        for (SensitivityValue sensitivityValue : sensitivityValues) {
-            if (sensitivityValue.getFactor() instanceof BranchFlowPerInjectionIncrease) {
-                BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) sensitivityValue.getFactor();
-                correctedSensitivityValues.add(new SensitivityValue(
-                        sensitivityValue.getFactor(),
-                        sensitivityValue.getValue() - slackDistributionCorrection.get(injectionFactor.getFunction().getBranchId()).doubleValue(),
-                        sensitivityValue.getVariableReference(),
-                        sensitivityValue.getFunctionReference()));
-            }
-        }
-        return correctedSensitivityValues;
+        return participationMap;
     }
 
     public List<SensitivityValue> analyse(Network network, List<SensitivityFactor> factors, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
@@ -361,9 +269,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 new DcEquationSystemCreationParameters(false, true, true, lfParametersExt.isDcUseTransformerRatio()));
 
         // index factors by variable configuration to compute minimal number of DC state
-        Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = lfParameters.isDistributedSlack()
-                ? indexFactorsByVariableConfig(network, getAllFactors(lfNetwork, factors, lfParameters.getBalanceType())) // if the slack is distributed we need to compute sensi for all generators
-                : indexFactorsByVariableConfig(network, factors);
+        Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = indexFactorsByVariableConfig(network, factors, lfNetwork, lfParameters);
 
         if (factorsByVarConfig.isEmpty()) {
             return Collections.emptyList();
@@ -384,6 +290,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         List<SensitivityValue> sensitivityValues = calculateSensitivityValues(lfNetwork, equationSystem, factorsByVarConfig, states, functionReferenceByBranch);
 
         // correct sensitivity values from slack distribution effects
-        return lfParameters.isDistributedSlack() ? correctSensitivityValues(sensitivityValues, lfNetwork, lfParameters) : sensitivityValues;
+        return sensitivityValues;
     }
 }
