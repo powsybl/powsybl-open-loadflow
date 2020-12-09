@@ -21,6 +21,8 @@ class LfNetworkLoadingReport {
 
     int generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible = 0;
 
+    int generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP = 0;
+
     int branchesDiscardedBecauseConnectedToSameBusAtBothEnds = 0;
 
     int nonImpedantBranches = 0;

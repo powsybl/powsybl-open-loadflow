@@ -362,6 +362,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of maxP not plausible",
                     lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
         }
+        if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP > 0) {
+            LOGGER.warn("Network {}: {} generators have been discarded from active power control because of maxP equals to minP",
+                    lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP);
+        }
         if (report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds > 0) {
             LOGGER.warn("Network {}: {} branches have been discarded because connected to same bus at both ends",
                     lfNetwork.getNum(), report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds);
