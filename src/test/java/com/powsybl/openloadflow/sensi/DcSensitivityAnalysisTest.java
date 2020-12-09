@@ -91,7 +91,6 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testDc4busesDistributed() {
-        // todo: make this test pass (compute expected results by hand)
         Network network = FourBusNetworkFactory.create();
         runDcLf(network);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
@@ -120,6 +119,27 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(-0.25d, getValue(result, "g4", "l23"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.35d, getValue(result, "g4", "l34"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.1d, getValue(result, "g4", "l13"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testDc4busesDistributedPartialFactors() {
+        // test that the sensitivity computation does not make assumption about the presence of all factors
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().filter(gen -> gen.getId().equals("g1")).collect(Collectors.toList()),
+                network.getBranchStream().collect(Collectors.toList()));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
+                sensiParameters, LocalComputationManager.getDefault())
+                                                        .join();
+
+        assertEquals(5, result.getSensitivityValues().size());
+        assertEquals(0.175d, getValue(result, "g1", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.275d, getValue(result, "g1", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.125d, getValue(result, "g1", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.025d, getValue(result, "g1", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.15d, getValue(result, "g1", "l13"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
