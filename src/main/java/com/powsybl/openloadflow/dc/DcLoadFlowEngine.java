@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -39,38 +40,21 @@ public class DcLoadFlowEngine {
 
     private final List<LfNetwork> networks;
 
-    private final MatrixFactory matrixFactory;
-
-    private final boolean updateFlows;
-
-    private final boolean useTransformerRatio;
-
-    private final boolean isDistributedSlack;
-
-    private final LoadFlowParameters.BalanceType balanceType;
+    private final DcLoadFlowParameters parameters;
 
     public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory) {
         this.networks = Collections.singletonList(network);
-        this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        this.updateFlows = false;
-        this.useTransformerRatio = true;
-        this.isDistributedSlack = false;
-        this.balanceType = LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX; // not used
+        parameters = new DcLoadFlowParameters(new FirstSlackBusSelector(), matrixFactory, false, true, false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
     }
 
     public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters) {
-        this.networks = LfNetwork.load(network, new LfNetworkParameters(parameters.getSlackBusSelector(), false,
-                false, false, false));
-        matrixFactory = parameters.getMatrixFactory();
-        updateFlows = parameters.isUpdateFlows();
-        useTransformerRatio = parameters.isUseTransformerRatio();
-        isDistributedSlack = parameters.isDistributedSlack();
-        balanceType = parameters.getBalanceType();
+        this.networks = LfNetwork.load(network, new LfNetworkParameters(parameters.getSlackBusSelector(), false, false, false, false));
+        this.parameters = Objects.requireNonNull(parameters);
     }
 
     private void distributeSlack(LfNetwork network) {
         double mismatch = network.getActivePowerMismatch();
-        ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, false);
+        ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), false);
         activePowerDistribution.run(network, -mismatch);
     }
 
@@ -80,11 +64,11 @@ public class DcLoadFlowEngine {
         // only process main (largest) connected component
         LfNetwork network = networks.get(0);
 
-        if (isDistributedSlack) {
+        if (parameters.isDistributedSlack()) {
             distributeSlack(network);
         }
 
-        EquationSystem equationSystem = DcEquationSystem.create(network, new VariableSet(), new DcEquationSystemCreationParameters(updateFlows, false, false, useTransformerRatio));
+        EquationSystem equationSystem = DcEquationSystem.create(network, new VariableSet(), new DcEquationSystemCreationParameters(parameters.isUpdateFlows(), false, false, parameters.isUseTransformerRatio()));
 
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
 
@@ -92,7 +76,7 @@ public class DcLoadFlowEngine {
 
         double[] targets = equationSystem.createTargetVector();
 
-        JacobianMatrix j = JacobianMatrix.create(equationSystem, matrixFactory);
+        JacobianMatrix j = JacobianMatrix.create(equationSystem, parameters.getMatrixFactory());
         try {
             double[] dx = Arrays.copyOf(targets, targets.length);
 
