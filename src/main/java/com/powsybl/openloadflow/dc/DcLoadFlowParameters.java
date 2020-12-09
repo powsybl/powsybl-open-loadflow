@@ -24,12 +24,15 @@ public class DcLoadFlowParameters {
 
     private final boolean twtSplitShuntAdmittance;
 
+    boolean useTransformerRatio;
+
     public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory, boolean updateFlows,
-                                boolean twtSplitShuntAdmittance) {
+                                boolean twtSplitShuntAdmittance, boolean useTransformerRatio) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.updateFlows = updateFlows;
         this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
+        this.useTransformerRatio = useTransformerRatio;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -46,5 +49,9 @@ public class DcLoadFlowParameters {
 
     public boolean isTwtSplitShuntAdmittance() {
         return twtSplitShuntAdmittance;
+    }
+
+    public boolean isUseTransformerRatio() {
+        return useTransformerRatio;
     }
 }

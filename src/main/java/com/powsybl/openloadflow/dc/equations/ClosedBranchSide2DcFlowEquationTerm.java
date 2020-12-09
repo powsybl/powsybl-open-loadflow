@@ -26,17 +26,17 @@ public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBra
     private double rhs;
 
     private ClosedBranchSide2DcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
-                                                boolean deriveA1) {
-        super(branch, bus1, bus2, variableSet, deriveA1);
+                                                boolean deriveA1, boolean useTransformerRatio) {
+        super(branch, bus1, bus2, variableSet, deriveA1, useTransformerRatio);
     }
 
     public static ClosedBranchSide2DcFlowEquationTerm create(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
-                                                             boolean deriveA1) {
+                                                             boolean deriveA1, boolean useTransformerRatio) {
         Objects.requireNonNull(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);
-        return new ClosedBranchSide2DcFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1);
+        return new ClosedBranchSide2DcFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, useTransformerRatio);
     }
 
     private double calculate(double ph1, double ph2, double a1) {
