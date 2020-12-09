@@ -10,8 +10,6 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.ac.AbstractDistributedSlackOuterLoop;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -21,7 +19,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.sa.OpenSecurityAnalysis;
+import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.Markers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,22 +68,10 @@ public class DcLoadFlowEngine {
         balanceType = parameters.getBalanceType();
     }
 
-    private void distributeSlack() {
-        //FIXME: a refactoring is needed for slack distribution methods.
-        LoadFlowParameters loadFlowParameters = new LoadFlowParameters();
-        loadFlowParameters.setDistributedSlack(isDistributedSlack);
-        loadFlowParameters.setBalanceType(balanceType);
-        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
-        openLoadFlowParameters.setThrowsExceptionInCaseOfSlackDistributionFailure(true);
-        openLoadFlowParameters.setLoadPowerFactorConstant(false);
-
-        for (LfNetwork lfNetwork : this.networks) {
-            double mismatch = lfNetwork.getActivePowerMismatch();
-            while (Math.abs(mismatch) > AbstractDistributedSlackOuterLoop.SLACK_P_RESIDUE_EPS) {
-                OpenSecurityAnalysis.distributedMismatch(lfNetwork, -mismatch, loadFlowParameters, openLoadFlowParameters);
-                mismatch = lfNetwork.getActivePowerMismatch();
-            }
-        }
+    private void distributeSlack(LfNetwork network) {
+        double mismatch = network.getActivePowerMismatch();
+        ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, false);
+        activePowerDistribution.run(network, -mismatch);
     }
 
     public DcLoadFlowResult run() {
@@ -95,7 +81,7 @@ public class DcLoadFlowEngine {
         LfNetwork network = networks.get(0);
 
         if (isDistributedSlack) {
-            distributeSlack();
+            distributeSlack(network);
         }
 
         EquationSystem equationSystem = DcEquationSystem.create(network, new VariableSet(), new DcEquationSystemCreationParameters(updateFlows, false, false, useTransformerRatio));
