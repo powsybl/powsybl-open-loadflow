@@ -239,7 +239,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
             SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
-            DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector, matrixFactory, true, parameters.isTwtSplitShuntAdmittance());
+            DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector, matrixFactory, true, parameters.isTwtSplitShuntAdmittance(), parametersExt.isDcUseTransformerRatio());
 
             DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters)
                     .run();
