@@ -182,7 +182,6 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0.2d, getValue(result, "g4", "l13"), LoadFlowAssert.DELTA_POWER);
     }
 
-
     @Test
     void testDc4busesDistributedPartialFactors() {
         // test that the sensitivity computation does not make assumption about the presence of all factors
