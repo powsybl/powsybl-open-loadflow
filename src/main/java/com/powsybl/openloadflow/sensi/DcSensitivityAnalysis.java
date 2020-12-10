@@ -13,9 +13,6 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.ac.AbstractDistributedSlackOuterLoop;
-import com.powsybl.openloadflow.ac.DistributedSlackOnGenerationOuterLoop;
-import com.powsybl.openloadflow.ac.DistributedSlackOnLoadOuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
@@ -24,6 +21,10 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.network.util.GenerationActionPowerDistributionStep;
+import com.powsybl.openloadflow.network.util.LoadActivePowerDistributionStep;
+import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
@@ -202,10 +203,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return factorsByVarConfig;
     }
 
-    static Bus getBus(Network network, LfGenerator generator) {
-        return network.getGenerator(generator.getId()).getTerminal().getBusView().getBus();
-    }
-
     /**
      * Return a mapping between the participating element (bus !) id, and its participation value
      * @param lfNetwork
@@ -217,25 +214,34 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         Map<String, Number> participationMap = new HashMap<>();
 
         if (loadFlowParameters.isDistributedSlack()) {
+            ActivePowerDistribution.Step step;
+            List<ParticipatingElement> participatingElements;
+
             switch (loadFlowParameters.getBalanceType()) {
                 case PROPORTIONAL_TO_GENERATION_P_MAX:
-                    DistributedSlackOnGenerationOuterLoop onGenerationOuterLoop = new DistributedSlackOnGenerationOuterLoop(true);
-                    List<AbstractDistributedSlackOuterLoop.ParticipatingElement<LfGenerator>> participatingGenerators = onGenerationOuterLoop.getParticipatingElements(lfNetwork);
-                    onGenerationOuterLoop.normalizeParticipationFactors(participatingGenerators, "generator");
-                    participatingGenerators.forEach(participatingElement -> {
-                        String busId = getBus(network, participatingElement.element).getId();
-                        participationMap.put(busId, participationMap.getOrDefault(busId, 0).doubleValue() + participatingElement.factor);
-                    });
+                    step = new GenerationActionPowerDistributionStep();
                     break;
                 case PROPORTIONAL_TO_LOAD:
-                    DistributedSlackOnLoadOuterLoop onLoadOuterLoop = new DistributedSlackOnLoadOuterLoop(true, false, false);
-                    List<AbstractDistributedSlackOuterLoop.ParticipatingElement<LfBus>> participatingBuses = onLoadOuterLoop.getParticipatingElements(lfNetwork);
-                    onLoadOuterLoop.normalizeParticipationFactors(participatingBuses, "load");
-                    participatingBuses.forEach(participatingElement ->  participationMap.put(participatingElement.element.getId(), participatingElement.factor));
+                    step = new LoadActivePowerDistributionStep(false, false);
                     break;
                 default:
                     throw new UnsupportedOperationException("Balance type not yet supported: " + loadFlowParameters.getBalanceType());
             }
+
+            participatingElements = step.getParticipatingElements(lfNetwork);
+            ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
+
+            participatingElements.forEach(participatingElement -> {
+                String busId;
+                if (participatingElement.getElement() instanceof LfGenerator) {
+                    busId = network.getGenerator(((LfGenerator) participatingElement.getElement()).getId()).getTerminal().getBusView().getBus().getId();
+                } else if (participatingElement.getElement() instanceof LfBus) {
+                    busId = ((LfBus) participatingElement.getElement()).getId();
+                } else {
+                    throw new UnsupportedOperationException("Only buses can have an impact in slack distribution");
+                }
+                participationMap.put(busId, participationMap.getOrDefault(busId, 0).doubleValue() + participatingElement.getFactor());
+            });
         }
         return participationMap;
     }
@@ -254,7 +260,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         // run DC load
         Map<String, Double> functionReferenceByBranch = new HashMap<>();
         DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfParametersExt.getSlackBusSelector(),
-                new SparseMatrixFactory(), true, lfParameters.isTwtSplitShuntAdmittance(),  lfParametersExt.isDcUseTransformerRatio());
+                new SparseMatrixFactory(), true, lfParametersExt.isDcUseTransformerRatio(), lfParameters.isDistributedSlack(),  lfParameters.getBalanceType());
         DcLoadFlowResult dcLoadFlowResult = new DcLoadFlowEngine(lfNetworks, dcLoadFlowParameters).run();
         for (LfBranch branch : dcLoadFlowResult.getNetwork().getBranches()) {
             functionReferenceByBranch.put(branch.getId(), branch.getP1());

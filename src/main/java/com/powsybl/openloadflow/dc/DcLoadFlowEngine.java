@@ -52,17 +52,15 @@ public class DcLoadFlowEngine {
         this.parameters = Objects.requireNonNull(parameters);
     }
 
+    public DcLoadFlowEngine(List<LfNetwork> networks, DcLoadFlowParameters parameters) {
+        this.networks = networks;
+        this.parameters = Objects.requireNonNull(parameters);
+    }
+
     private void distributeSlack(LfNetwork network) {
         double mismatch = network.getActivePowerMismatch();
         ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), false);
         activePowerDistribution.run(network, mismatch);
-    }
-
-    public DcLoadFlowEngine(List<LfNetwork> networks, DcLoadFlowParameters parameters) {
-        this.networks = networks;
-        matrixFactory = parameters.getMatrixFactory();
-        updateFlows = parameters.isUpdateFlows();
-        useTransformerRatio = parameters.isUseTransformerRatio();
     }
 
     public DcLoadFlowResult run() {
