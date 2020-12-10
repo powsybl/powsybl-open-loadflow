@@ -363,7 +363,7 @@ public class LfNetwork {
         for (LfBus b : busesById.values()) {
             mismatch += b.getGenerationTargetP() - b.getLoadTargetP();
         }
-        return mismatch;
+        return -mismatch;
     }
 
     private static void fix(LfNetwork network, boolean minImpedance) {

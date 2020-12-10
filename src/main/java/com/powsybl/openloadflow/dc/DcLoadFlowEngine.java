@@ -55,7 +55,7 @@ public class DcLoadFlowEngine {
     private void distributeSlack(LfNetwork network) {
         double mismatch = network.getActivePowerMismatch();
         ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), false);
-        activePowerDistribution.run(network, -mismatch);
+        activePowerDistribution.run(network, mismatch);
     }
 
     public DcLoadFlowResult run() {
