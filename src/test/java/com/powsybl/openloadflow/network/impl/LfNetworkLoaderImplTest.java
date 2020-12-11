@@ -49,9 +49,9 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    void generatorNegativeActivePowerTargetTest() {
-        // targetP < 0, generator is discarded from active power control
-        g.setTargetP(-10);
+    void generatorZeroActivePowerTargetTest() {
+        // targetP == 0, generator is discarded from active power control
+        g.setTargetP(0);
         LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
         assertFalse(lfNetwork.getBus(0).getGenerators().get(0).isParticipating());
     }

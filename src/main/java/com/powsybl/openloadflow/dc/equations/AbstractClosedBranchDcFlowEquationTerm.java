@@ -35,7 +35,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
     protected final double power;
 
     protected AbstractClosedBranchDcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
-                                                     boolean deriveA1) {
+                                                     boolean deriveA1, boolean useTransformerRatio) {
         this.branch = Objects.requireNonNull(branch);
         PiModel piModel = branch.getPiModel();
         if (piModel.getX() == 0) {
@@ -44,7 +44,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
         ph1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_PHI);
         ImmutableList.Builder<Variable> variablesBuilder = ImmutableList.<Variable>builder().add(ph1Var, ph2Var);
-        power =  1 / piModel.getX() * piModel.getR1() * R2;
+        power =  1 / piModel.getX() * (useTransformerRatio ? piModel.getR1() * R2 : 1);
         if (deriveA1) {
             a1Var = variableSet.getVariable(branch.getNum(), VariableType.BRANCH_ALPHA1);
             variablesBuilder.add(a1Var);

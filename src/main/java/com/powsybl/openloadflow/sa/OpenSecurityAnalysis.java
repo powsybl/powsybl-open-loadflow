@@ -18,8 +18,6 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ac.DistributedSlackOnGenerationOuterLoop;
-import com.powsybl.openloadflow.ac.DistributedSlackOnLoadOuterLoop;
 import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
@@ -28,6 +26,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import org.slf4j.Logger;
@@ -291,24 +290,10 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
     }
 
-    private void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
+    public static void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
         if (loadFlowParameters.isDistributedSlack() && Math.abs(mismatch) > 0) {
-            switch (loadFlowParameters.getBalanceType()) {
-                case PROPORTIONAL_TO_LOAD:
-                case PROPORTIONAL_TO_CONFORM_LOAD:
-                    DistributedSlackOnLoadOuterLoop onLoadOuterLoop = new DistributedSlackOnLoadOuterLoop(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure(),
-                            loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                            openLoadFlowParameters.isLoadPowerFactorConstant());
-                    onLoadOuterLoop.run(onLoadOuterLoop.getParticipatingElements(network), -1, mismatch);
-                    break;
-                case PROPORTIONAL_TO_GENERATION_P:
-                case PROPORTIONAL_TO_GENERATION_P_MAX:
-                    DistributedSlackOnGenerationOuterLoop onGenerationOuterLoop = new DistributedSlackOnGenerationOuterLoop(openLoadFlowParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
-                    onGenerationOuterLoop.run(onGenerationOuterLoop.getParticipatingElements(network), -1, mismatch);
-                    break;
-                default:
-                    throw new UnsupportedOperationException("Unknown balance type mode: " + loadFlowParameters.getBalanceType());
-            }
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(loadFlowParameters.getBalanceType(), openLoadFlowParameters.isLoadPowerFactorConstant());
+            activePowerDistribution.run(network, mismatch);
         }
     }
 

@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac;
+package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -19,44 +19,40 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DistributedSlackOnGenerationOuterLoop extends AbstractDistributedSlackOuterLoop<LfGenerator> {
+public class GenerationActionPowerDistributionStep implements ActivePowerDistribution.Step {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOnGenerationOuterLoop.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(GenerationActionPowerDistributionStep.class);
 
-    public DistributedSlackOnGenerationOuterLoop(boolean throwsExceptionInCaseOfFailure) {
-        super(throwsExceptionInCaseOfFailure);
+    @Override
+    public String getElementType() {
+        return "generation";
     }
 
     @Override
-    public String getType() {
-        return "Distributed slack on generation";
-    }
-
-    @Override
-    public List<ParticipatingElement<LfGenerator>> getParticipatingElements(LfNetwork network) {
+    public List<ParticipatingElement> getParticipatingElements(LfNetwork network) {
         return network.getBuses()
                 .stream()
                 .flatMap(bus -> bus.getGenerators().stream())
                 .filter(generator -> generator.isParticipating() && generator.getParticipationFactor() != 0)
-                .map(generator -> new ParticipatingElement<>(generator, generator.getParticipationFactor()))
+                .map(generator -> new ParticipatingElement(generator, generator.getParticipationFactor()))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public double run(List<ParticipatingElement<LfGenerator>> participatingElements, int iteration, double remainingMismatch) {
+    public double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch) {
         // normalize participation factors at each iteration start as some
         // generators might have reach a limit and have been discarded
-        normalizeParticipationFactors(participatingElements, "generator");
+        ParticipatingElement.normalizeParticipationFactors(participatingElements, "generator");
 
         double done = 0d;
         int modifiedBuses = 0;
         int generatorsAtMax = 0;
         int generatorsAtMin = 0;
-        Iterator<ParticipatingElement<LfGenerator>> it = participatingElements.iterator();
+        Iterator<ParticipatingElement> it = participatingElements.iterator();
         while (it.hasNext()) {
-            ParticipatingElement<LfGenerator> participatingGenerator = it.next();
-            LfGenerator generator = participatingGenerator.element;
-            double factor = participatingGenerator.factor;
+            ParticipatingElement participatingGenerator = it.next();
+            LfGenerator generator = (LfGenerator) participatingGenerator.getElement();
+            double factor = participatingGenerator.getFactor();
 
             double minP = generator.getMinP();
             double maxP = generator.getMaxP();

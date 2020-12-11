@@ -35,6 +35,7 @@ import com.powsybl.openloadflow.network.NetworkSlackBusSelector;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
@@ -136,21 +137,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         List<OuterLoop> outerLoops = new ArrayList<>();
         if (parameters.isDistributedSlack()) {
-            switch (parameters.getBalanceType()) {
-                case PROPORTIONAL_TO_GENERATION_P_MAX:
-                    outerLoops.add(new DistributedSlackOnGenerationOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure()));
-                    break;
-                case PROPORTIONAL_TO_LOAD:
-                    outerLoops.add(new DistributedSlackOnLoadOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), false, parametersExt.isLoadPowerFactorConstant()));
-                    break;
-                case PROPORTIONAL_TO_CONFORM_LOAD:
-                    outerLoops.add(new DistributedSlackOnLoadOuterLoop(parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), true, parametersExt.isLoadPowerFactorConstant()));
-                    break;
-                case PROPORTIONAL_TO_GENERATION_P: // to be implemented.
-                    throw new UnsupportedOperationException("Unsupported balance type mode: " + parameters.getBalanceType());
-                default:
-                    throw new UnsupportedOperationException("Unknown balance type mode: " + parameters.getBalanceType());
-            }
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant());
+            outerLoops.add(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure()));
         }
         if (parameters.isPhaseShifterRegulationOn()) {
             outerLoops.add(new PhaseControlOuterLoop());
@@ -239,7 +227,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
             SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
-            DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector, matrixFactory, true, parameters.isTwtSplitShuntAdmittance());
+            DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector, matrixFactory, true,
+                    parametersExt.isDcUseTransformerRatio(), parameters.isDistributedSlack(), parameters.getBalanceType());
 
             DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters)
                     .run();

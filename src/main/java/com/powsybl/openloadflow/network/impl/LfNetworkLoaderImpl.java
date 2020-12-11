@@ -249,6 +249,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 controlledBranchId += legId;
             }
             LfBranch controlledBranch = lfNetwork.getBranchById(controlledBranchId);
+            if (controlledBranch == null) {
+                LOGGER.warn("Phase controlled branch {} is null: no phase control created", controlledBranchId);
+                return;
+            }
+            if (controlledBranch.getBus1() == null || controlledBranch.getBus2() == null) {
+                LOGGER.warn("Phase controlled branch {} is open: no phase control created", controlledBranch.getId());
+                return;
+            }
             LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
             if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
                 LOGGER.warn("Phase controller branch {} is open: no phase control created", controllerBranch.getId());
@@ -342,9 +350,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because of a too small max reactive range",
                     lfNetwork.getNum(), report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
         }
-        if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero > 0) {
-            LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP <= 0",
-                    lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero);
+        if (report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero > 0) {
+            LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP equals 0",
+                    lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP > maxP",
@@ -353,6 +361,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of maxP not plausible",
                     lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
+        }
+        if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP > 0) {
+            LOGGER.warn("Network {}: {} generators have been discarded from active power control because of maxP equals to minP",
+                    lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP);
         }
         if (report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds > 0) {
             LOGGER.warn("Network {}: {} branches have been discarded because connected to same bus at both ends",
