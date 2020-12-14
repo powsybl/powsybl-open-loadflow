@@ -294,7 +294,7 @@ public abstract class AbstractLfBus implements LfBus {
 
     void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, double scaleV, LfNetworkLoadingReport report) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
-            add(LfStaticVarCompensatorImpl.create(staticVarCompensator),
+            add(LfStaticVarCompensatorImpl.create(staticVarCompensator, this),
                     staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE,
                     staticVarCompensator.getVoltageSetPoint() * scaleV, -staticVarCompensator.getReactivePowerSetPoint(),
                     report);
