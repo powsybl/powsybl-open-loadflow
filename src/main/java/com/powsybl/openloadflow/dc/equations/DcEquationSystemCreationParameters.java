@@ -21,10 +21,14 @@ public class DcEquationSystemCreationParameters {
      */
     private final boolean forcePhaseControlOffAndAddAngle1Var;
 
-    public DcEquationSystemCreationParameters(boolean updateFlows, boolean indexTerms, boolean forcePhaseControlOffAndAddAngle1Var) {
+    private final boolean useTransformerRatio;
+
+    public DcEquationSystemCreationParameters(boolean updateFlows, boolean indexTerms, boolean forcePhaseControlOffAndAddAngle1Var,
+                                              boolean useTransformerRatio) {
         this.updateFlows = updateFlows;
         this.indexTerms = indexTerms;
         this.forcePhaseControlOffAndAddAngle1Var = forcePhaseControlOffAndAddAngle1Var;
+        this.useTransformerRatio = useTransformerRatio;
     }
 
     public boolean isUpdateFlows() {
@@ -37,5 +41,9 @@ public class DcEquationSystemCreationParameters {
 
     public boolean isForcePhaseControlOffAndAddAngle1Var() {
         return forcePhaseControlOffAndAddAngle1Var;
+    }
+
+    public boolean isUseTransformerRatio() {
+        return useTransformerRatio;
     }
 }

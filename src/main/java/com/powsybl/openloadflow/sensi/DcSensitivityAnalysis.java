@@ -204,7 +204,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         LfNetwork lfNetwork = lfNetworks.get(0);
 
         // create DC equation system
-        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet(), new DcEquationSystemCreationParameters(false, true, true));
+        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet(), new DcEquationSystemCreationParameters(false, true, true, lfParametersExt.isDcUseTransformerRatio()));
 
         // index factors by variable configuration to compute minimal number of DC state
         Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig

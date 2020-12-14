@@ -32,10 +32,6 @@ public final class DcEquationSystem {
     private DcEquationSystem() {
     }
 
-    public static EquationSystem create(LfNetwork network) {
-        return create(network, new VariableSet(), true);
-    }
-
     private static void createBuses(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem) {
         for (LfBus bus : network.getBuses()) {
             if (bus.isSlack()) {
@@ -72,8 +68,8 @@ public final class DcEquationSystem {
                                              LfBus bus1, LfBus bus2) {
         if (bus1 != null && bus2 != null) {
             boolean deriveA1 = creationParameters.isForcePhaseControlOffAndAddAngle1Var() && branch.hasPhaseControlCapability(); //TODO: phase control outer loop
-            ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, deriveA1);
-            ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, deriveA1);
+            ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, deriveA1, creationParameters.isUseTransformerRatio());
+            ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, deriveA1, creationParameters.isUseTransformerRatio());
             equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
             if (deriveA1) {
@@ -129,12 +125,8 @@ public final class DcEquationSystem {
         }
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean updateFlows) {
-        return create(network, variableSet, new DcEquationSystemCreationParameters(updateFlows, false, false));
-    }
-
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean updateFlows, boolean indexTerms) {
-        return create(network, variableSet, new DcEquationSystemCreationParameters(updateFlows, indexTerms, false));
+    public static EquationSystem create(LfNetwork network, DcEquationSystemCreationParameters creationParameters) {
+        return create(network, new VariableSet(), creationParameters);
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet, DcEquationSystemCreationParameters creationParameters) {

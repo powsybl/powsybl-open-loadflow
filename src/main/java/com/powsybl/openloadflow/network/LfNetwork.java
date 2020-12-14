@@ -358,6 +358,14 @@ public class LfNetwork {
                 num, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
+    public double getActivePowerMismatch() {
+        double mismatch = 0;
+        for (LfBus b : busesById.values()) {
+            mismatch += b.getGenerationTargetP() - b.getLoadTargetP();
+        }
+        return -mismatch;
+    }
+
     private static void fix(LfNetwork network, boolean minImpedance) {
         if (minImpedance) {
             for (LfBranch branch : network.getBranches()) {

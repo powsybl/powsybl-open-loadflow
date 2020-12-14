@@ -15,11 +15,13 @@ class LfNetworkLoadingReport {
 
     int generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall = 0;
 
-    int generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero = 0;
+    int generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero = 0;
 
     int generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP = 0;
 
     int generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible = 0;
+
+    int generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP = 0;
 
     int branchesDiscardedBecauseConnectedToSameBusAtBothEnds = 0;
 

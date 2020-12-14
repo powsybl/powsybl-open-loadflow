@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac;
+package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -19,57 +19,57 @@ import java.util.stream.Collectors;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOuterLoop<LfBus> {
+public class LoadActivePowerDistributionStep implements ActivePowerDistribution.Step {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOnLoadOuterLoop.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoadActivePowerDistributionStep.class);
 
-    private final boolean distributedSlackOnConformLoad;
+    private final boolean distributedOnConformLoad;
+
     private final boolean loadPowerFactorConstant;
 
-    public DistributedSlackOnLoadOuterLoop(boolean throwsExceptionInCaseOfFailure, boolean distributedSlackOnConformLoad, boolean loadPowerFactorConstant) {
-        super(throwsExceptionInCaseOfFailure);
-        this.distributedSlackOnConformLoad = distributedSlackOnConformLoad;
+    public LoadActivePowerDistributionStep(boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
+        this.distributedOnConformLoad = distributedOnConformLoad;
         this.loadPowerFactorConstant = loadPowerFactorConstant;
     }
 
     @Override
-    public String getType() {
-        return "Distributed slack on load";
+    public String getElementType() {
+        return "load";
     }
 
     @Override
-    public List<ParticipatingElement<LfBus>> getParticipatingElements(LfNetwork network) {
+    public List<ParticipatingElement> getParticipatingElements(LfNetwork network) {
         return network.getBuses()
                 .stream()
                 .filter(bus -> bus.getPositiveLoadCount() > 0 && getVariableLoadTargetP(bus) > 0)
-                .map(bus -> new ParticipatingElement<>(bus, getVariableLoadTargetP(bus)))
+                .map(bus -> new ParticipatingElement(bus, getVariableLoadTargetP(bus)))
                 .collect(Collectors.toList());
     }
 
     private double getVariableLoadTargetP(LfBus bus) {
-        return distributedSlackOnConformLoad ? bus.getLoadTargetP() - bus.getFixedLoadTargetP() : bus.getLoadTargetP();
+        return distributedOnConformLoad ? bus.getLoadTargetP() - bus.getFixedLoadTargetP() : bus.getLoadTargetP();
     }
 
     @Override
-    public double run(List<ParticipatingElement<LfBus>> participatingElements, int iteration, double remainingMismatch) {
+    public double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch) {
         // normalize participation factors at each iteration start as some
         // loads might have reach zero and have been discarded.
-        normalizeParticipationFactors(participatingElements, "load");
+        ParticipatingElement.normalizeParticipationFactors(participatingElements, "load");
 
         double done = 0d;
         int modifiedBuses = 0;
         int loadsAtMin = 0;
-        Iterator<ParticipatingElement<LfBus>> it = participatingElements.iterator();
+        Iterator<ParticipatingElement> it = participatingElements.iterator();
         while (it.hasNext()) {
-            ParticipatingElement<LfBus> participatingBus = it.next();
-            LfBus bus = participatingBus.element;
-            double factor = participatingBus.factor;
+            ParticipatingElement participatingBus = it.next();
+            LfBus bus = (LfBus) participatingBus.getElement();
+            double factor = participatingBus.getFactor();
 
             double loadTargetP = bus.getLoadTargetP();
             double newLoadTargetP = loadTargetP - remainingMismatch * factor;
 
             // We stop when the load produces power.
-            double minLoadTargetP = distributedSlackOnConformLoad ? bus.getFixedLoadTargetP() : 0;
+            double minLoadTargetP = distributedOnConformLoad ? bus.getFixedLoadTargetP() : 0;
             if (newLoadTargetP <= minLoadTargetP) {
                 newLoadTargetP = minLoadTargetP;
                 loadsAtMin++;
@@ -96,7 +96,7 @@ public class DistributedSlackOnLoadOuterLoop extends AbstractDistributedSlackOut
         return done;
     }
 
-    private void ensurePowerFactorConstant(LfBus bus, double newLoadTargetP) {
+    private static void ensurePowerFactorConstant(LfBus bus, double newLoadTargetP) {
         // if loadPowerFactorConstant is true, when updating targetP on loads,
         // we have to keep the power factor constant by updating targetQ.
         double constantRatio = bus.getLoadTargetQ() / bus.getLoadTargetP(); // power factor constant is equivalent to P/Q ratio constant

@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -80,7 +81,7 @@ class DistributedSlackOnGenerationTest {
     void testUnsupportedGenerationBalanceType() {
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
-            "java.lang.UnsupportedOperationException: Unsupported balance type mode: PROPORTIONAL_TO_GENERATION_P");
+                "java.lang.UnsupportedOperationException: Unsupported balance type mode: PROPORTIONAL_TO_GENERATION_P");
     }
 
     @Test
@@ -115,16 +116,35 @@ class DistributedSlackOnGenerationTest {
         g2.getExtension(ActivePowerControl.class).setDroop(-3);
         g3.getExtension(ActivePowerControl.class).setDroop(0);
         g4.getExtension(ActivePowerControl.class).setDroop(0);
-        assertThrows(CompletionException.class,
-            () -> loadFlowRunner.run(network, parameters),
-            "No more generator participating to slack distribution");
+        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
+                "No more generator participating to slack distribution");
     }
 
     @Test
     void notEnoughActivePowerFailureTest() {
         network.getLoad("l1").setP0(1000);
-        assertThrows(CompletionException.class,
-            () -> loadFlowRunner.run(network, parameters),
-            "Failed to distribute slack bus active power mismatch");
+        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
+                "Failed to distribute slack bus active power mismatch");
+    }
+
+    @Test
+    void generatorWithNegativeTargetP() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getGenerator("GEN").setMaxP(1000);
+        network.getGenerator("GEN").setTargetP(-607);
+        network.getLoad("LOAD").setP0(-600);
+        network.getLoad("LOAD").setQ0(-200);
+        LoadFlowResult result = LoadFlow.find("OpenLoadFlow").run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(595.350, network.getGenerator("GEN").getTerminal());
+    }
+
+    @Test
+    void generatorWithMaxPEqualsToMinP() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getGenerator("GEN").setMaxP(1000);
+        network.getGenerator("GEN").setMinP(1000);
+        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
+                "Failed to distribute slack bus active power mismatch, -1.4404045651214226 MW remains");
     }
 }
