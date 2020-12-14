@@ -24,20 +24,23 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     private final ReactiveLimits reactiveLimits;
 
+    double nominalV;
+
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc, AbstractLfBus bus) {
         super(0);
         this.svc = svc;
+        this.nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
         reactiveLimits = new MinMaxReactiveLimits() {
 
             @Override
             public double getMinQ() {
-                double v = bus.getV() * bus.getNominalV();
+                double v = bus.getV() * nominalV;
                 return svc.getBmin() * v * v;
             }
 
             @Override
             public double getMaxQ() {
-                double v = bus.getV() * bus.getNominalV();
+                double v = bus.getV() * nominalV;
                 return svc.getBmax() * v * v;
             }
 
