@@ -29,14 +29,13 @@ import com.powsybl.iidm.network.Network;
  */
 public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
-    public static Network create() {
+    public static Network createBaseNetwork() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
         Bus b3 = createBus(network, "b3");
         Bus b4 = createBus(network, "b4");
         createGenerator(b1, "g1", 2);
-        createGenerator(b2, "g2", 2);
         createGenerator(b4, "g4", 1);
         createLoad(b2, "d2", 1);
         createLoad(b3, "d3", 4);
@@ -45,6 +44,13 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b3, "l23", 0.1f);
         createLine(network, b3, b4, "l34", 0.1f);
         createLine(network, b1, b3, "l13", 0.1f);
+        return network;
+    }
+
+    public static Network create() {
+        Network network = createBaseNetwork();
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        createGenerator(b2, "g2", 2);
         return network;
     }
 }
