@@ -133,7 +133,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
         LfBranch branch1 = lfNetwork.getBranchById("3WT_leg_1");
-        assertEquals(6000.771, branch1.getI1(), 10E-3);
+        assertEquals(1049.827, branch1.getP1(), 10E-3);
         assertTrue(Double.isNaN(branch1.getP2()));
     }
 }

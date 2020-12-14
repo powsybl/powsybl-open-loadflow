@@ -92,7 +92,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testDcGeneratorInjection4busesDistributed() {
+    void testGeneratorInjection4busesDistributed() {
         // The factors are generators injections
         Network network = FourBusNetworkFactory.create();
         runDcLf(network);
@@ -125,7 +125,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testDcLoadInjection4busesDistributed() {
+    void testLoadInjection4busesDistributed() {
         // test injection increase on loads
         Network network = FourBusNetworkFactory.create();
         runDcLf(network);
@@ -152,7 +152,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testDcGeneratorInjection4busesDistributedOnLoad() {
+    void testGeneratorInjection4busesDistributedOnLoad() {
         // test injection increase on loads
         Network network = FourBusNetworkFactory.create();
         runDcLf(network);
@@ -185,7 +185,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testDcLoadInjection4busesDistributedOnLoad() {
+    void testLoadInjection4busesDistributedOnLoad() {
         // test injection increase on loads
         Network network = FourBusNetworkFactory.create();
         runDcLf(network);
@@ -212,7 +212,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testDc4busesDistributedPartialFactors() {
+    void test4busesDistributedPartialFactors() {
         // test that the sensitivity computation does not make assumption about the presence of all factors
         Network network = FourBusNetworkFactory.create();
         runDcLf(network);
@@ -233,7 +233,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testDcLoadInjectionWithoutGenerator() {
+    void testLoadInjectionWithoutGenerator() {
         // test injection increase on loads
         Network network = FourBusNetworkFactory.createBaseNetwork();
         runDcLf(network);
@@ -260,7 +260,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testDcLoadInjectionOnSlackBus() {
+    void testLoadInjectionOnSlackBus() {
         // test injection increase on loads
         Network network = FourBusNetworkFactory.createBaseNetwork();
         runDcLf(network);
@@ -271,6 +271,20 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
                 factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join(),
                 "Cannot analyse sensitivity of slack bus");
+    }
+
+    @Test
+    void testBalanceTypeNotSupported() {
+        // test injection increase on loads
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
+                network.getBranchStream().collect(Collectors.toList()));
+        assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+                factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join(),
+                "Balance type not yet supported: PROPORTIONAL_TO_CONFORM_LOAD");
     }
 
     @Test
