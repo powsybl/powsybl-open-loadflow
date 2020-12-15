@@ -22,8 +22,8 @@ public final class ParameterConstants {
     public static final String THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME = "throwsExceptionInCaseOfSlackDistributionFailure";
     public static final boolean THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE = true;
 
-    public static final String VOLTAGE_REMOTE_CONTROLE_PARAM_NAME = "voltageRemoteControl";
-    public static final boolean VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE = false;
+    public static final String VOLTAGE_REMOTE_CONTROL_PARAM_NAME = "voltageRemoteControl";
+    public static final boolean VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE = true;
 
     public static final String LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME = "lowImpedanceBranchMode";
     public static final LowImpedanceBranchMode LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE = LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE;
@@ -32,7 +32,10 @@ public final class ParameterConstants {
     public static final boolean LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE = false;
 
     public static final String DC_USE_TRANSFORMER_RATIO_PARAM_NAME = "dcUseTransformerRatio";
-    public static final boolean DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE = false;
+    public static final boolean DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE = true;
+
+    public static final String UPDATE_FLOWS_PARAM_NAME = "updateFlows";
+    public static final boolean UPDATE_FLOWS_DEFAULT_VALUE = true;
 
     private ParameterConstants() {
     }

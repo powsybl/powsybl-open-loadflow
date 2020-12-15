@@ -31,7 +31,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean throwsExceptionInCaseOfSlackDistributionFailure = THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE;
 
-    private boolean voltageRemoteControl = VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE;
+    private boolean voltageRemoteControl = VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE;
 
     private LowImpedanceBranchMode lowImpedanceBranchMode = LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE;
 
@@ -45,6 +45,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean loadPowerFactorConstant = LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE;
 
     private boolean dcUseTransformerRatio = DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE;
+
+    private boolean updateFlows = UPDATE_FLOWS_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -109,6 +111,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isUpdateFlows() {
+        return updateFlows;
+    }
+
+    public OpenLoadFlowParameters setUpdateFlows(boolean updateFlows) {
+        this.updateFlows = updateFlows;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return new OpenLoadFlowConfigLoader().load(PlatformConfig.defaultConfig());
     }
@@ -124,12 +135,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(config -> parameters
                         .setSlackBusSelector(getSlackBusSelector(config))
                         .setLowImpedanceBranchMode(config.getEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class, LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE))
-                        .setVoltageRemoteControl(config.getBooleanProperty(VOLTAGE_REMOTE_CONTROLE_PARAM_NAME, VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE))
+                        .setVoltageRemoteControl(config.getBooleanProperty(VOLTAGE_REMOTE_CONTROL_PARAM_NAME, VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE))
                         .setThrowsExceptionInCaseOfSlackDistributionFailure(
                                 config.getBooleanProperty(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE)
                         )
                         .setLoadPowerFactorConstant(config.getBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE))
                         .setDcUseTransformerRatio(config.getBooleanProperty(DC_USE_TRANSFORMER_RATIO_PARAM_NAME, DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE))
+                        .setUpdateFlows(config.getBooleanProperty(UPDATE_FLOWS_PARAM_NAME, UPDATE_FLOWS_DEFAULT_VALUE))
                 );
             return parameters;
         }
