@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Injection;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -192,12 +193,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return factorsByVarConfig;
     }
 
-    public List<SensitivityValue> analyse(Network network, List<SensitivityFactor> factors, OpenLoadFlowParameters lfParametersExt,
-                                          OpenSensitivityAnalysisParameters sensiParametersExt) {
+    public List<SensitivityValue> analyse(Network network, List<SensitivityFactor> factors, LoadFlowParameters lfParameters,
+                                          OpenLoadFlowParameters lfParametersExt) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(factors);
+        Objects.requireNonNull(lfParameters);
         Objects.requireNonNull(lfParametersExt);
-        Objects.requireNonNull(sensiParametersExt);
 
         // create LF network (we only manage main connected component)
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParametersExt.getSlackBusSelector());
@@ -217,7 +218,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         DenseMatrix rhs = initRhs(lfNetwork, equationSystem, factorsByVarConfig);
 
         // create jacobian matrix either using base network calculated voltages or nominal voltages
-        VoltageInitializer voltageInitializer = sensiParametersExt.isUseBaseCaseVoltage() ? new PreviousValueVoltageInitializer()
+        VoltageInitializer voltageInitializer = lfParameters.getVoltageInitMode() == LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES ? new PreviousValueVoltageInitializer()
                                                                                           : new UniformValueVoltageInitializer();
         JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer);
 

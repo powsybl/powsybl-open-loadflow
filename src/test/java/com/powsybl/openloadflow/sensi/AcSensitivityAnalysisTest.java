@@ -11,6 +11,7 @@ import com.powsybl.contingency.EmptyContingencyListProvider;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityAnalysisResult;
@@ -32,6 +33,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
+        sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
         SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getLineStream().collect(Collectors.toList()));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),

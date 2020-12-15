@@ -88,7 +88,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                prefix + "status", result.getNewtonRaphsonStatus().name());
     }
 
-    private static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters) {
+    public static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters) {
         switch (parameters.getVoltageInitMode()) {
             case UNIFORM_VALUES:
                 return new UniformValueVoltageInitializer();
