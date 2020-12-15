@@ -53,5 +53,12 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createGenerator(b2, "g2", 2);
         return network;
     }
+
+    public static Network createWithTwoGeneratorsAtBus2() {
+        Network network = create();
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        createGenerator(b2, "g5", 0.5);
+        return network;
+    }
 }
 
