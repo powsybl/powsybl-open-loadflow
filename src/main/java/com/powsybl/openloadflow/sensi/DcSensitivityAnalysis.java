@@ -158,9 +158,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     private Map<SensitivityVariableConfiguration, SensitivityFactorGroup> indexFactorsByVariableConfig(Network network, List<SensitivityFactor> factors, LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
         Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = new LinkedHashMap<>(factors.size());
-        Map<String, Number> slackParticipationMap = getSlackDistributionMap(network, lfNetwork, loadFlowParameters); // empty if slack is not distributed
-        slackParticipationMap.remove(lfNetwork.getSlackBus().getId()); // the injection on the slack bus will not appear in the rhs
-        slackParticipationMap.replaceAll((key, value) -> -value.doubleValue()); // the slack distribution on a bus will be the opposite of its participation
+        Map<String, Number> participationFactorByBus = getParticipationFactorByBus(network, lfNetwork, loadFlowParameters); // empty if slack is not distributed
+        participationFactorByBus.remove(lfNetwork.getSlackBus().getId()); // the injection on the slack bus will not appear in the rhs
+        participationFactorByBus.replaceAll((key, value) -> -value.doubleValue()); // the slack distribution on a bus will be the opposite of its participation
 
         // index factors by variable config
         for (SensitivityFactor<?, ?> factor : factors) {
@@ -170,12 +170,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 Bus bus = injection.getTerminal().getBusView().getBus();
                 // skip disconnected injections
                 if (bus != null) {
-                    Map<String, Number> slackDistribution = new HashMap<>(slackParticipationMap);
+                    Map<String, Number> busInjectionById = new HashMap<>(participationFactorByBus);
                     // add 1 where we are making the injection
-                    slackDistribution.put(bus.getId(), slackDistribution.getOrDefault(bus.getId(), 0).doubleValue() + 1);
                     // when the slack is not distributed, then bus compensation is a singleton {bus -> 1}
+                    busInjectionById.put(bus.getId(), busInjectionById.getOrDefault(bus.getId(), 0).doubleValue() + 1);
 
-                    SensitivityVariableConfiguration varConfig = new SensitivityVariableConfiguration(slackDistribution, Collections.emptySet());
+                    SensitivityVariableConfiguration varConfig = new SensitivityVariableConfiguration(busInjectionById, Collections.emptySet());
                     factorsByVarConfig.computeIfAbsent(varConfig, k -> new SensitivityFactorGroup())
                             .getFactors().add(injectionFactor);
                 }
@@ -204,14 +204,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     }
 
     /**
-     * Return a mapping between the participating element (bus !) id, and its participation value in the slack distribution
+     * Return a mapping between the participating element id through its connected bus, and its participation value in the slack distribution
      * @param lfNetwork
      * @param loadFlowParameters
      * @return
      */
-    private Map<String, Number> getSlackDistributionMap(Network network, LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
+    private Map<String, Number> getParticipationFactorByBus(Network network, LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
 
-        Map<String, Number> slackDistributionMap = new HashMap<>();
+        Map<String, Number> participationFactorByBusMap = new HashMap<>();
 
         if (loadFlowParameters.isDistributedSlack()) {
             ActivePowerDistribution.Step step;
@@ -238,12 +238,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 } else if (participatingElement.getElement() instanceof LfBus) {
                     busId = ((LfBus) participatingElement.getElement()).getId();
                 } else {
-                    throw new UnsupportedOperationException("Only buses can have an impact in slack distribution");
+                    throw new UnsupportedOperationException("Unsupported participating element");
                 }
-                slackDistributionMap.put(busId, slackDistributionMap.getOrDefault(busId, 0).doubleValue() + participatingElement.getFactor());
+                participationFactorByBusMap.put(busId, participationFactorByBusMap.getOrDefault(busId, 0).doubleValue() + participatingElement.getFactor());
             });
         }
-        return slackDistributionMap;
+        return participationFactorByBusMap;
     }
 
     public List<SensitivityValue> analyse(Network network, List<SensitivityFactor> factors, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
