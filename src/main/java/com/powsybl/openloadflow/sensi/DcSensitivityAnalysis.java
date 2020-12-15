@@ -173,7 +173,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     Map<String, Number> busCompensation = new HashMap<>(participationMap);
                     // add 1 where we are making the injection
                     busCompensation.put(bus.getId(), busCompensation.getOrDefault(bus.getId(), 0).doubleValue() + 1);
-                    // if the slack was not distributed, then bus compensation is a singleton {bus -> 1}
+                    // when the slack is not distributed, then bus compensation is a singleton {bus -> 1}
 
                     SensitivityVariableConfiguration varConfig = new SensitivityVariableConfiguration(busCompensation, Collections.emptySet());
                     factorsByVarConfig.computeIfAbsent(varConfig, k -> new SensitivityFactorGroup())
@@ -289,9 +289,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         DenseMatrix states = solveTransposed(rhs, j);
 
         // calculate sensitivity values
-        List<SensitivityValue> sensitivityValues = calculateSensitivityValues(lfNetwork, equationSystem, factorsByVarConfig, states, functionReferenceByBranch);
-
-        // correct sensitivity values from slack distribution effects
-        return sensitivityValues;
+        return calculateSensitivityValues(lfNetwork, equationSystem, factorsByVarConfig, states, functionReferenceByBranch);
     }
 }
