@@ -282,6 +282,38 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testLoadInjectionOnSlackBusDistributed() {
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                network.getBranchStream().collect(Collectors.toList()));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
+                sensiParameters, LocalComputationManager.getDefault())
+                                                        .join();
+
+        assertEquals(15, result.getSensitivityValues().size());
+        assertEquals(0.175d, getValue(result, "g1", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.275d, getValue(result, "g1", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.125d, getValue(result, "g1", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.025d, getValue(result, "g1", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.15d, getValue(result, "g1", "l13"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0.05d, getValue(result, "g2", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.35d, getValue(result, "g2", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, getValue(result, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.15d, getValue(result, "g2", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.1d, getValue(result, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-0.450d, getValue(result, "g4", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.15d, getValue(result, "g4", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.25d, getValue(result, "g4", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.35d, getValue(result, "g4", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.1d, getValue(result, "g4", "l13"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testLoadInjectionOnSlackBus() {
         // test injection increase on loads
         Network network = FourBusNetworkFactory.createBaseNetwork();

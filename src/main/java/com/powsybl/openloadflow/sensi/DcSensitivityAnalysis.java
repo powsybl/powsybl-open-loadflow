@@ -142,7 +142,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             for (Map.Entry<String, Number> busAndInjection : configuration.busInjectionById().entrySet()) {
                 LfBus lfBus = lfNetwork.getBusById(busAndInjection.getKey());
                 if (lfBus.isSlack()) {
-                    throw new PowsyblException("Cannot analyse sensitivity of slack bus");
+                    throw new PowsyblException("Cannot set injection of slack bus");
                 }
                 Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
                 rhs.set(p.getColumn(), factorGroup.getIndex(), busAndInjection.getValue().doubleValue() / PerUnit.SB);
@@ -173,7 +173,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     Map<String, Number> busInjectionById = new HashMap<>(participationFactorByBus);
                     // add 1 where we are making the injection
                     // when the slack is not distributed, then bus compensation is a singleton {bus -> 1}
-                    busInjectionById.put(bus.getId(), busInjectionById.getOrDefault(bus.getId(), 0).doubleValue() + 1);
+                    if (lfNetwork.getBusById(bus.getId()).isSlack()) {
+                        if (!loadFlowParameters.isDistributedSlack()) {
+                            throw new PowsyblException("Cannot analyse sensitivity of slack bus");
+                        }
+                    } else {
+                        busInjectionById.put(bus.getId(), busInjectionById.getOrDefault(bus.getId(), 0).doubleValue() + 1);
+                    }
 
                     SensitivityVariableConfiguration varConfig = new SensitivityVariableConfiguration(busInjectionById, Collections.emptySet());
                     factorsByVarConfig.computeIfAbsent(varConfig, k -> new SensitivityFactorGroup())
