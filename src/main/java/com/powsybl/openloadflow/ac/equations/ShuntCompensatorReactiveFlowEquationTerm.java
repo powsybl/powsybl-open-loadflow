@@ -23,20 +23,28 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
 
     private final Variable vVar;
 
+    private Variable bVar = null;
+
     private final List<Variable> variables;
 
-    private final double b;
+    private double b;
 
     private double q;
 
     private double dqdv;
 
-    public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet variableSet) {
+    private double dqdb;
+
+    public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet variableSet, boolean deriveB) {
         this.shunt = Objects.requireNonNull(shunt);
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
         vVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_V);
         variables = Collections.singletonList(vVar);
+        if (deriveB) {
+            bVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_B);
+            variables.add(bVar);
+        }
         b = shunt.getB();
     }
 
@@ -61,6 +69,8 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
         double v = x[vVar.getRow()];
         q = -b * v * v;
         dqdv = -2 * b * v;
+        dqdb = -v * v;
+        b = bVar != null && bVar.isActive() ? x[bVar.getRow()] : shunt.getB();
     }
 
     @Override
@@ -73,6 +83,9 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
         Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
             return dqdv;
+        }
+        if (variable.equals(bVar)) {
+            return dqdb;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
