@@ -18,7 +18,7 @@ import java.util.OptionalDouble;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractLfGenerator implements LfGenerator {
+public abstract class AbstractLfGenerator extends AbstractLfBusElement implements LfGenerator {
 
     protected double targetP;
 

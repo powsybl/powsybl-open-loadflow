@@ -159,7 +159,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     private Map<SensitivityVariableConfiguration, SensitivityFactorGroup> indexFactorsByVariableConfig(Network network, List<SensitivityFactor> factors, LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
         Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = new LinkedHashMap<>(factors.size());
-        Map<String, Double> participationFactorByBus = getParticipationFactorByBus(network, lfNetwork, loadFlowParameters); // empty if slack is not distributed
+        Map<String, Double> participationFactorByBus = getParticipationFactorByBus(lfNetwork, loadFlowParameters); // empty if slack is not distributed
         participationFactorByBus.remove(lfNetwork.getSlackBus().getId()); // the injection on the slack bus will not appear in the rhs
         participationFactorByBus.replaceAll((key, value) -> -value); // the slack distribution on a bus will be the opposite of its participation
 
@@ -210,10 +210,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return factorsByVarConfig;
     }
 
-    private String getParticipatingElementBusId(ParticipatingElement participatingElement, Network network) {
+    private String getParticipatingElementBusId(ParticipatingElement participatingElement) {
         if (participatingElement.getElement() instanceof LfGenerator) {
-            // todo: Implement a getter within LfNetwork to get the bus of the generator
-            return network.getGenerator(((LfGenerator) participatingElement.getElement()).getId()).getTerminal().getBusView().getBus().getId();
+            return ((LfGenerator) participatingElement.getElement()).getBus().getId();
         } else if (participatingElement.getElement() instanceof LfBus) {
             return ((LfBus) participatingElement.getElement()).getId();
         } else {
@@ -227,7 +226,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
      * @param loadFlowParameters
      * @return
      */
-    private Map<String, Double> getParticipationFactorByBus(Network network, LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
+    private Map<String, Double> getParticipationFactorByBus(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
 
         Map<String, Double> participationFactorByBusMap = new HashMap<>();
 
@@ -250,7 +249,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
 
             participationFactorByBusMap = participatingElements.stream().collect(Collectors.toMap(
-                participatingElement -> getParticipatingElementBusId(participatingElement, network),
+                this::getParticipatingElementBusId,
                 ParticipatingElement::getFactor,
                 Double::sum
             ));

@@ -11,7 +11,7 @@ import java.util.OptionalDouble;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface LfGenerator {
+public interface LfGenerator extends LfBusElement {
 
     String getId();
 
