@@ -11,7 +11,6 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
@@ -142,7 +141,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             for (Map.Entry<String, Number> busAndInjection : configuration.busInjectionById().entrySet()) {
                 LfBus lfBus = lfNetwork.getBusById(busAndInjection.getKey());
                 if (lfBus.isSlack()) {
-                    throw new PowsyblException("Cannot set injection of slack bus");
+                    throw new PowsyblException("Cannot set injection increase at slack bus");
                 }
                 Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
                 rhs.set(p.getColumn(), factorGroup.getIndex(), busAndInjection.getValue().doubleValue() / PerUnit.SB);
@@ -175,7 +174,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     // when the slack is not distributed, then bus compensation is a singleton {bus -> 1}
                     if (lfNetwork.getBusById(bus.getId()).isSlack()) {
                         if (!loadFlowParameters.isDistributedSlack()) {
-                            throw new PowsyblException("Cannot analyse sensitivity of slack bus");
+                            throw new PowsyblException("Cannot compute injection increase at slack bus in case of non distributed slack");
                         }
                     } else {
                         busInjectionById.put(bus.getId(), busInjectionById.getOrDefault(bus.getId(), 0).doubleValue() + 1);
@@ -265,11 +264,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         // run DC load
         Map<String, Double> functionReferenceByBranch = new HashMap<>();
-        DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfParametersExt.getSlackBusSelector(),
-                new SparseMatrixFactory(), true, lfParametersExt.isDcUseTransformerRatio(), lfParameters.isDistributedSlack(),  lfParameters.getBalanceType());
+        DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfParametersExt.getSlackBusSelector(), getMatrixFactory(),
+                true, lfParametersExt.isDcUseTransformerRatio(), lfParameters.isDistributedSlack(),  lfParameters.getBalanceType());
         DcLoadFlowResult dcLoadFlowResult = new DcLoadFlowEngine(lfNetworks, dcLoadFlowParameters).run();
         for (LfBranch branch : dcLoadFlowResult.getNetwork().getBranches()) {
-            functionReferenceByBranch.put(branch.getId(), branch.getP1());
+            functionReferenceByBranch.put(branch.getId(), branch.getP1() * PerUnit.SB);
         }
 
         // create DC equation system for sensitivity analysis

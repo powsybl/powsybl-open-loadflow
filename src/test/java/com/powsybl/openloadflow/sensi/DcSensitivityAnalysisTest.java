@@ -324,7 +324,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         CompletionException exception = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
                 factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join());
         assertTrue(exception.getCause() instanceof PowsyblException);
-        assertEquals("Cannot analyse sensitivity of slack bus", exception.getCause().getMessage());
+        assertEquals("Cannot compute injection increase at slack bus in case of non distributed slack", exception.getCause().getMessage());
     }
 
     @Test

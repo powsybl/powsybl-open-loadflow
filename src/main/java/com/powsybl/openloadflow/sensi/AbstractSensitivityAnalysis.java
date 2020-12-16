@@ -29,6 +29,10 @@ abstract class AbstractSensitivityAnalysis {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
     }
 
+    public MatrixFactory getMatrixFactory() {
+        return matrixFactory;
+    }
+
     protected static Injection<?> getInjection(Network network, String injectionId) {
         Injection<?> injection = network.getGenerator(injectionId);
         if (injection == null) {

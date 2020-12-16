@@ -149,7 +149,7 @@ public class LfLegBranch extends AbstractLfBranch {
 
     @Override
     public double getP1() {
-        return p.eval() * PerUnit.SB;
+        return p.eval();
     }
 
     @Override
