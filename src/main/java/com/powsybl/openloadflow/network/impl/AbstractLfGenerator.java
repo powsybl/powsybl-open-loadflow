@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.MinMaxReactiveLimits;
 import com.powsybl.iidm.network.ReactiveCapabilityCurve;
 import com.powsybl.iidm.network.ReactiveLimits;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.PerUnit;
 
@@ -18,14 +19,24 @@ import java.util.OptionalDouble;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractLfGenerator extends AbstractLfBusElement implements LfGenerator {
+public abstract class AbstractLfGenerator implements LfGenerator {
 
     protected double targetP;
+
+    protected LfBus bus;
 
     protected double calculatedQ = Double.NaN;
 
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
+    }
+
+    public LfBus getBus() {
+        return bus;
+    }
+
+    public void setBus(LfBus bus) {
+        this.bus = bus;
     }
 
     @Override
