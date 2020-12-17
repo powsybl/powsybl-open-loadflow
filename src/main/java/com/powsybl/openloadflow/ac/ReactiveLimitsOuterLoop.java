@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -62,8 +63,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         if (controlledBus != null) {
             updateControlledBus(controlledBus, equationSystem, variableSet);
         } else {
-            Equation vEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
-            vEq.setActive(false);
+            equationSystem.updateActiveEquationV(bus.getNum(), false);
         }
     }
 
@@ -158,8 +158,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         if (controlledBus != null) {
             updateControlledBus(controlledBus, equationSystem, variableSet);
         } else {
-            Equation vEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
-            vEq.setActive(true);
+            equationSystem.updateActiveEquationV(bus.getNum(), true);
         }
     }
 
@@ -215,6 +214,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         double minQ = bus.getMinQ();
         double maxQ = bus.getMaxQ();
         double q = bus.getCalculatedQ() + bus.getLoadTargetQ();
+        // TODO : à priori, rien à faire pour les éventuels bus P_VLQ à passer en PQ ?
         if (q < minQ) {
             pvToPqBuses.add(new PvToPqBus(bus, q, minQ, ReactiveLimitDirection.MIN));
         } else if (q > maxQ) {
@@ -233,6 +233,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         double minQ = bus.getMinQ();
         double maxQ = bus.getMaxQ();
         double q = bus.getGenerationTargetQ();
+        // TODO : quelles sont les conditions pour passer un bus PQ en bus P_VLQ ?
         if (Math.abs(q - maxQ) < Q_EPS && bus.getV() > bus.getTargetV()) { // bus produce too much reactive power
             pqToPvBuses.add(new PqToPvBus(bus, ReactiveLimitDirection.MAX));
         }

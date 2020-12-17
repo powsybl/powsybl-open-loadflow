@@ -20,7 +20,8 @@ public enum EquationType {
     ZERO_Q("z_q", SubjectType.BUS),
     ZERO_V("z_v", SubjectType.BRANCH),
     ZERO_PHI("z_\u03C6", SubjectType.BRANCH),
-    ZERO_RHO1("z_\u03C1", SubjectType.BRANCH);
+    ZERO_RHO1("z_\u03C1", SubjectType.BRANCH),
+    BUS_VLQ("v_lq", SubjectType.BUS);
 
     private final String symbol;
 

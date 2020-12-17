@@ -38,6 +38,20 @@ public class EquationSystem {
 
     private final Map<Pair<SubjectType, Integer>, List<EquationTerm>> equationTermsBySubject = new HashMap<>();
 
+    public void updateActiveEquationV(int num, boolean active) {
+        Optional<Equation> equationBusVLQ = getEquation(num, EquationType.BUS_VLQ);
+        if (equationBusVLQ.isPresent()) {
+            equationBusVLQ.get().setActive(active);
+        } else {
+            Optional<Equation> equationBusV = getEquation(num, EquationType.BUS_V);
+            if (equationBusV.isPresent()) {
+                equationBusV.get().setActive(active);
+            } else {
+                throw new PowsyblException("Missing equation with EquationType.BUS_V");
+            }
+        }
+    }
+
     private class EquationCache implements EquationSystemListener {
 
         private boolean invalide = false;

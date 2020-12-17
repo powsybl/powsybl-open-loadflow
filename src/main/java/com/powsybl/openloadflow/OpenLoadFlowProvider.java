@@ -134,6 +134,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Direct current: {}", parameters.isDc());
         LOGGER.info("Transformer voltage control: {}", parameters.isTransformerVoltageControlOn());
         LOGGER.info("Load power factor constant: {}", parametersExt.isLoadPowerFactorConstant());
+        LOGGER.info("Use bus (P,V+slopeStaticVarCompensator*Q): {}", parametersExt.isUseBusPVLQ());
 
         List<OuterLoop> outerLoops = new ArrayList<>();
         if (parameters.isDistributedSlack()) {
@@ -157,7 +158,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 parameters.isTransformerVoltageControlOn(),
                 parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
                 parameters.isTwtSplitShuntAdmittance(),
-                breakers);
+                breakers, parametersExt.isUseBusPVLQ());
     }
 
     private CompletableFuture<LoadFlowResult> runAc(Network network, String workingStateId, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {

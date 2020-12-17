@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -42,6 +43,7 @@ class AcLoadFlowSvcTest {
     private LoadFlow.Runner loadFlowRunner;
 
     private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
 
     private Network createNetwork() {
         Network network = Network.create("svc", "test");
@@ -114,7 +116,7 @@ class AcLoadFlowSvcTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
                 .setDistributedSlack(false);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+        this.parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new MostMeshedSlackBusSelector());
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
@@ -159,6 +161,33 @@ class AcLoadFlowSvcTest {
                 .setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(-svc1.getBmin() * svc1.getVoltageSetpoint() * svc1.getVoltageSetpoint(), svc1.getTerminal()); // min reactive limit has been correctly reached
+    }
+
+    @Test
+    void shouldUseLessReactivePower() {
+        parametersExt.setUseBusPVLQ(true);
+        Generator generator = bus1.getGenerators().iterator().next();
+        Load load = bus2.getLoads().iterator().next();
+        load.setQ0(150);
+        svc1.setBmin(-0.002)
+                .setVoltageSetpoint(385)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .newExtension(VoltagePerReactivePowerControlAdder.class)
+                .withSlope(0)
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        System.out.println("generator.getTerminal().getP() = " + generator.getTerminal().getP());
+        System.out.println("generator.getTerminal().getQ() = " + generator.getTerminal().getQ());
+        System.out.println("l1.getTerminal1().getP() = " + l1.getTerminal1().getP());
+        System.out.println("l1.getTerminal1().getQ() = " + l1.getTerminal1().getQ());
+        System.out.println("l1.getTerminal2().getP() = " + l1.getTerminal2().getP());
+        System.out.println("l1.getTerminal2().getQ() = " + l1.getTerminal2().getQ());
+        System.out.println("load.getTerminal().getP() = " + load.getTerminal().getP());
+        System.out.println("load.getTerminal().getQ() = " + load.getTerminal().getQ());
+        System.out.println("svc1.getTerminal().getP() = " + svc1.getTerminal().getP());
+        System.out.println("svc1.getTerminal().getQ() = " + svc1.getTerminal().getQ());
         assertTrue(result.isOk());
         assertReactivePowerEquals(-svc1.getBmin() * svc1.getVoltageSetpoint() * svc1.getVoltageSetpoint(), svc1.getTerminal()); // min reactive limit has been correctly reached
     }

@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.MinMaxReactiveLimits;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.ReactiveLimitsKind;
 import com.powsybl.iidm.network.StaticVarCompensator;
+import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
 import com.powsybl.openloadflow.network.PerUnit;
 
 import java.util.Objects;
@@ -24,12 +25,15 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     private final ReactiveLimits reactiveLimits;
 
-    double nominalV;
+    private final double nominalV;
+
+    private final VoltagePerReactivePowerControl voltagePerReactivePowerControl;
 
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc, AbstractLfBus bus) {
         super(0);
         this.svc = svc;
         this.nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
+        this.voltagePerReactivePowerControl = svc.getExtension(VoltagePerReactivePowerControl.class);
         reactiveLimits = new MinMaxReactiveLimits() {
 
             @Override
@@ -64,6 +68,10 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, AbstractLfBus bus) {
         Objects.requireNonNull(svc);
         return new LfStaticVarCompensatorImpl(svc, bus);
+    }
+
+    public VoltagePerReactivePowerControl getVoltagePerReactivePowerControl() {
+        return voltagePerReactivePowerControl;
     }
 
     @Override

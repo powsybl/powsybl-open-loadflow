@@ -34,6 +34,9 @@ public final class ParameterConstants {
     public static final String DC_USE_TRANSFORMER_RATIO_PARAM_NAME = "dcUseTransformerRatio";
     public static final boolean DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE = false;
 
+    public static final String USE_BUS_PVLQ = "useBusPVLQ";
+    public static final boolean USE_BUS_PVLQ_DEFAULT_VALUE = false;
+
     private ParameterConstants() {
     }
 }

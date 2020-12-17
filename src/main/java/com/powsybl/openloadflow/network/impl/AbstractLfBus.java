@@ -437,6 +437,8 @@ public abstract class AbstractLfBus implements LfBus {
         Iterator<LfGenerator> itG = generatorsThatControlVoltage.iterator();
         while (itG.hasNext()) {
             LfGenerator generator = itG.next();
+            // TODO : dispatch Q between all staticVarCompensator in BUS_VLQ according to slope ?
+            // replace division by size by a multiplication by staticVarCompensator.slope / sum(slope) ?
             double calculatedQ = qToDispatch / generatorsThatControlVoltage.size();
             if (reactiveLimits && calculatedQ < generator.getMinQ()) {
                 generator.setCalculatedQ(generator.getCalculatedQ() + generator.getMinQ());

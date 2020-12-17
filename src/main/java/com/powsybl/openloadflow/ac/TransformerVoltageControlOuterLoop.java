@@ -6,7 +6,9 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
+import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.EquationType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableType;
@@ -14,9 +16,6 @@ import com.powsybl.openloadflow.network.DiscreteVoltageControl;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,8 +39,7 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
             for (LfBus bus : context.getNetwork().getBuses()) {
                 if (bus.isDiscreteVoltageControlled()) {
                     // de-activate transformer voltage control equation
-                    Equation t = context.getEquationSystem().createEquation(bus.getNum(), EquationType.BUS_V);
-                    t.setActive(false);
+                    context.getEquationSystem().updateActiveEquationV(bus.getNum(), false);
 
                     // at first iteration all branches controlling voltage are switched off
                     for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {

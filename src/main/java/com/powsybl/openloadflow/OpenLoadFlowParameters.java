@@ -46,6 +46,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean dcUseTransformerRatio = DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE;
 
+    private boolean useBusPVLQ = USE_BUS_PVLQ_DEFAULT_VALUE;
+
     @Override
     public String getName() {
         return "OpenLoadFlowParameters";
@@ -109,6 +111,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isUseBusPVLQ() {
+        return useBusPVLQ;
+    }
+
+    public OpenLoadFlowParameters setUseBusPVLQ(boolean useBusPVLQ) {
+        this.useBusPVLQ = useBusPVLQ;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return new OpenLoadFlowConfigLoader().load(PlatformConfig.defaultConfig());
     }
@@ -130,6 +141,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                         )
                         .setLoadPowerFactorConstant(config.getBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE))
                         .setDcUseTransformerRatio(config.getBooleanProperty(DC_USE_TRANSFORMER_RATIO_PARAM_NAME, DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE))
+                        .setUseBusPVLQ(config.getBooleanProperty(USE_BUS_PVLQ, USE_BUS_PVLQ_DEFAULT_VALUE))
                 );
             return parameters;
         }

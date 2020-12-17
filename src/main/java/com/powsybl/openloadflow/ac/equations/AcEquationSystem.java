@@ -7,9 +7,11 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfStaticVarCompensatorImpl;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
@@ -18,7 +20,10 @@ import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -42,7 +47,24 @@ public final class AcEquationSystem {
             if (bus.hasVoltageControl()) {
                 // local voltage control
                 if (!(creationParameters.isVoltageRemoteControl() && bus.getControlledBus().isPresent()) && bus.getControllerBuses().isEmpty()) {
-                    equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+                    if (!creationParameters.isUseBusPVLQ()) {
+                        equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+                    } else {
+                        List<LfStaticVarCompensatorImpl> lfStaticVarCompensators =
+                                bus.getGenerators().stream().filter(lfGenerator -> lfGenerator instanceof LfStaticVarCompensatorImpl)
+                                        .map(lfGenerator -> (LfStaticVarCompensatorImpl) lfGenerator)
+                                        .filter(lfStaticVarCompensatorImpl -> {
+                                            VoltagePerReactivePowerControl voltagePerReactivePowerControl = lfStaticVarCompensatorImpl.getVoltagePerReactivePowerControl();
+                                            return voltagePerReactivePowerControl != null
+                                                    && !Double.isNaN(voltagePerReactivePowerControl.getSlope())
+                                                    && voltagePerReactivePowerControl.getSlope() != 0;
+                                        }).collect(Collectors.toList());
+                        if (lfStaticVarCompensators.isEmpty()) {
+                            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+                        } else {
+                            equationSystem.createEquation(bus.getNum(), EquationType.BUS_VLQ).addTerm(new StaticVarCompensatorVoltageLambdaQEquationTerm(lfStaticVarCompensators, bus, variableSet));
+                        }
+                    }
                 }
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
             }
@@ -128,7 +150,7 @@ public final class AcEquationSystem {
 
         // we choose first controller bus as reference for reactive power
         LfBus firstControllerBus = controllerBuses.get(0);
-        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false, false); // TODO could not be the right parameters
+        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false, false, false); // TODO could not be the right parameters
         List<EquationTerm> firstControllerBusReactiveTerms = createReactiveTerms(firstControllerBus, variableSet, creationParameters);
 
         // create a reactive power distribution equation for all the other controller buses
@@ -355,7 +377,7 @@ public final class AcEquationSystem {
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
-        return create(network, variableSet, new AcEquationSystemCreationParameters(false, false, false));
+        return create(network, variableSet, new AcEquationSystemCreationParameters(false, false, false, false));
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {

@@ -176,6 +176,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case BUS_V:
+            case BUS_VLQ:
                 targets[column] = getBusTargetV(network.getBus(num));
                 break;
 
@@ -294,6 +295,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
             case BUS_P:
             case BUS_Q:
             case BUS_V:
+            case BUS_VLQ:
             case BUS_PHI:
                 LfBus bus = equationSystem.getNetwork().getBus(num);
                 builder.append(", busId=").append(bus.getId());
