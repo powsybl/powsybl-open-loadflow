@@ -264,10 +264,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 LfBus bus2 = lfBranch.getBus2();
                 if (bus1.isSlack()) {
                     Equation p = equationSystem.getEquation(bus2.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                    rhs.set(p.getColumn(), element.getGlobalIndex(), 1 / PerUnit.SB);
+                    rhs.set(p.getColumn(), element.getGlobalIndex(), -1 / PerUnit.SB);
                 } else if (bus2.isSlack()) {
                     Equation p = equationSystem.getEquation(bus1.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                    rhs.set(p.getColumn(), element.getGlobalIndex(), -1 / PerUnit.SB);
+                    rhs.set(p.getColumn(), element.getGlobalIndex(), 1 / PerUnit.SB);
                 } else {
                     Equation p1 = equationSystem.getEquation(bus1.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
                     Equation p2 = equationSystem.getEquation(bus2.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);

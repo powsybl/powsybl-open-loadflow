@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-abstract class AbstractSensitivityAnalysisTest {
+public abstract class AbstractSensitivityAnalysisTest {
 
     protected final DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
 
