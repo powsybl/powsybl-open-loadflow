@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sensi;
 import com.google.auto.service.AutoService;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
+import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -16,6 +17,7 @@ import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.sensitivity.*;
 import com.powsybl.tools.PowsyblCoreVersion;
+import org.jgrapht.alg.util.Pair;
 
 import java.util.HashMap;
 import java.util.List;
@@ -76,21 +78,19 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                                                             ContingenciesProvider contingenciesProvider,
                                                             SensitivityAnalysisParameters sensitivityAnalysisParameters,
                                                             ComputationManager computationManager) {
-        if (!contingenciesProvider.getContingencies(network).isEmpty()) {
-            throw new UnsupportedOperationException("Contingencies not yet supported");
-        }
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
             List<SensitivityFactor> factors = sensitivityFactorsProvider.getFactors(network);
+            List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
 
             LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
             OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
             OpenSensitivityAnalysisParameters sensiParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
 
-            List<SensitivityValue> sensitivityValues;
+            Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> sensitivityValues;
             if (lfParameters.isDc()) {
-                sensitivityValues = dcSensitivityAnalysis.analyse(network, factors, lfParameters, lfParametersExt, sensiParametersExt);
+                sensitivityValues = dcSensitivityAnalysis.analyse(network, factors, contingencies, lfParameters, lfParametersExt, sensiParametersExt);
             } else {
                 sensitivityValues = acSensitivityAnalysis.analyse(network, factors, lfParametersExt);
             }
@@ -98,7 +98,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             boolean ok = true;
             Map<String, String> metrics = new HashMap<>();
             String logs = "";
-            return new SensitivityAnalysisResult(ok, metrics, logs, sensitivityValues);
+            return new SensitivityAnalysisResult(ok, metrics, logs, sensitivityValues.getFirst(), sensitivityValues.getSecond());
         });
     }
 }
