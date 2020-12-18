@@ -74,6 +74,10 @@ public class Variable implements Comparable<Variable> {
                 x[row] = Math.toRadians(initializer.getAngle(network.getBus(num)));
                 break;
 
+            case BUS_B:
+                x[row] = network.getBus(num).getB();
+                break;
+
             case BRANCH_ALPHA1:
                 x[row] = network.getBranch(num).getPiModel().getA1();
                 break;
@@ -102,6 +106,10 @@ public class Variable implements Comparable<Variable> {
 
             case BUS_PHI:
                 network.getBus(num).setAngle(Math.toDegrees(x[row]));
+                break;
+
+            case BUS_B:
+                network.getBus(num).setB(x[row]);
                 break;
 
             case BRANCH_ALPHA1:

@@ -103,6 +103,10 @@ public interface LfBus {
 
     List<LfShunt> getShunts();
 
+    double getB();
+
+    void setB(double b);
+
     List<LfBranch> getBranches();
 
     void addBranch(LfBranch branch);

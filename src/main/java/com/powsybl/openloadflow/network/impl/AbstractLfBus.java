@@ -71,6 +71,8 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected final List<LfShunt> shunts = new ArrayList<>();
 
+    protected double sumB = 0;
+
     protected final List<Load> loads = new ArrayList<>();
 
     protected final List<Battery> batteries = new ArrayList<>();
@@ -308,6 +310,9 @@ public abstract class AbstractLfBus implements LfBus {
 
     void addShuntCompensator(ShuntCompensator sc) {
         shunts.add(new LfShuntImpl(sc));
+        sumB =  shunts.stream()
+                .mapToDouble(shunt -> shunt.getB())
+                .sum();
     }
 
     @Override
@@ -415,6 +420,16 @@ public abstract class AbstractLfBus implements LfBus {
     @Override
     public List<LfShunt> getShunts() {
         return shunts;
+    }
+
+    @Override
+    public double getB() {
+        return sumB;
+    }
+
+    @Override
+    public void setB(double b) {
+        sumB = b;
     }
 
     @Override

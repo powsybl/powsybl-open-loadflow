@@ -27,6 +27,8 @@ public class DiscreteVoltageControl {
 
     protected final List<LfBranch> controllers = new ArrayList<>();
 
+    protected final List<LfBus> controllerBuses = new ArrayList<>();
+
     private final double targetValue;
 
     public DiscreteVoltageControl(LfBus controlled, DiscreteVoltageControl.Mode mode, double targetValue) {
@@ -51,9 +53,18 @@ public class DiscreteVoltageControl {
         return controllers;
     }
 
+    public List<LfBus> getControllerBuses() {
+        return controllerBuses;
+    }
+
     public void addController(LfBranch controllerBranch) {
         Objects.requireNonNull(controllerBranch);
         controllers.add(controllerBranch);
+    }
+
+    public void addControllerBus(LfBus controllerBus) {
+        Objects.requireNonNull(controllerBus);
+        controllerBuses.add(controllerBus);
     }
 
     public LfBus getControlled() {

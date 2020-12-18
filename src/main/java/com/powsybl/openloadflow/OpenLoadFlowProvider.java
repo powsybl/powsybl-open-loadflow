@@ -155,6 +155,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 parametersExt.hasVoltageRemoteControl(),
                 parameters.isPhaseShifterRegulationOn(),
                 parameters.isTransformerVoltageControlOn(),
+                parameters.isSimulShunt(),
                 parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
                 parameters.isTwtSplitShuntAdmittance(),
                 breakers);

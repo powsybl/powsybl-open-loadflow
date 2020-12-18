@@ -47,12 +47,20 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             lfNetwork.addBus(lfBus);
         }
 
-        // set controller -> controlled link
+        // set controllers -> controlled link
         for (Map.Entry<LfBusImpl, String> e : controllerBusToControlledBusId.entrySet()) {
             LfBusImpl controllerBus = e.getKey();
             String controlledBusId = e.getValue();
             LfBus controlledBus = lfNetwork.getBusById(controlledBusId);
             controllerBus.setControlledBus((LfBusImpl) controlledBus);
+        }
+
+        // set controllers -> controlled link for shunts
+        // FIXME
+        for (Bus bus : buses) {
+            for (ShuntCompensator shunt : bus.getShuntCompensators()) {
+                createVoltageControl(lfNetwork, shunt, bus.getId());
+            }
         }
     }
 
@@ -127,8 +135,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
             @Override
             public void visitShuntCompensator(ShuntCompensator sc) {
-                lfBus.addShuntCompensator(sc);
-            }
+                lfBus.addShuntCompensator(sc); }
 
             @Override
             public void visitDanglingLine(DanglingLine danglingLine) {
@@ -317,6 +324,41 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
+    private static void createVoltageControl(LfNetwork lfNetwork, ShuntCompensator shunt, String controllerBusId) {
+        if (shunt.isVoltageRegulatorOn()) {
+            LfBus controllerBus = lfNetwork.getBusById(controllerBusId);
+            if (controllerBus == null) {
+                LOGGER.warn("Voltage controlled bus {} is out of voltage: no voltage control created", controllerBus.getId());
+                return;
+            }
+            Terminal regulatingTerminal = shunt.getRegulatingTerminal();
+            if (regulatingTerminal.getBusView().getBus() == null) {
+                LOGGER.warn("Regulating terminal of voltage controlled bus {} is out of voltage: no voltage control created", controllerBus.getId());
+                return;
+            }
+            LfBus controlledBus = lfNetwork.getBusById(regulatingTerminal.getBusView().getBus().getId());
+            if ((controlledBus.getControllerBuses().isEmpty() && controlledBus.hasVoltageControl()) || !controlledBus.getControllerBuses().isEmpty()) {
+                LOGGER.warn("Controlled bus {} has already a generator voltage control on: only generator control is kept", controlledBus.getId());
+            } else if (controlledBus.isDiscreteVoltageControlled()) {
+                if (!controlledBus.getDiscreteVoltageControl().getControllers().isEmpty()) {
+                    LOGGER.trace("Controlled bus {} has already a transformer voltage control: only transformer control is kept", controlledBus.getId());
+                }
+                if (!controlledBus.getDiscreteVoltageControl().getControllerBuses().isEmpty()) {
+                    LOGGER.trace("Controlled bus {} has already a shunt voltage control: a shared control is created", controlledBus.getId());
+                    controlledBus.getDiscreteVoltageControl().addControllerBus(controllerBus);
+                    controllerBus.setDiscreteVoltageControl(controlledBus.getDiscreteVoltageControl());
+                }
+            } else {
+                double regulatingTerminalNominalV = regulatingTerminal.getVoltageLevel().getNominalV();
+                DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
+                        DiscreteVoltageControl.Mode.VOLTAGE, shunt.getTargetV() / regulatingTerminalNominalV);
+                voltageControl.addControllerBus(controllerBus);
+                controllerBus.setDiscreteVoltageControl(voltageControl);
+                controlledBus.setDiscreteVoltageControl(voltageControl);
+            }
+        }
+    }
+
     private static LfBus getLfBus(Terminal terminal, LfNetwork lfNetwork, boolean breakers) {
         Bus bus = getBus(terminal, breakers);
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
@@ -392,7 +434,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
             Map<Pair<Integer, Integer>, List<Bus>> busesByCc = new TreeMap<>();
             Iterable<Bus> buses = parameters.isBreakers() ? ((Network) network).getBusBreakerView().getBuses()
-                                                          : ((Network) network).getBusView().getBuses();
+                    : ((Network) network).getBusView().getBuses();
             for (Bus bus : buses) {
                 Component cc = bus.getConnectedComponent();
                 Component sc = bus.getSynchronousComponent();

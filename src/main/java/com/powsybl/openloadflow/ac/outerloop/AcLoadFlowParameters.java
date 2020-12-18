@@ -38,6 +38,8 @@ public class AcLoadFlowParameters {
 
     private final boolean transformerVoltageControlOn;
 
+    private final boolean shuntVoltageControlOn;
+
     private final boolean minImpedance;
 
     private final boolean twtSplitShuntAdmittance;
@@ -47,8 +49,8 @@ public class AcLoadFlowParameters {
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
                                 MatrixFactory matrixFactory, AcLoadFlowObserver observer, boolean voltageRemoteControl,
-                                boolean phaseControl, boolean transformerVoltageControlOn, boolean minImpedance,
-                                boolean twtSplitShuntAdmittance, boolean breakers) {
+                                boolean phaseControl, boolean transformerVoltageControlOn, boolean shuntVoltageControlOn,
+                                boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -58,6 +60,7 @@ public class AcLoadFlowParameters {
         this.voltageRemoteControl = voltageRemoteControl;
         this.phaseControl = phaseControl;
         this.transformerVoltageControlOn = transformerVoltageControlOn;
+        this.shuntVoltageControlOn = shuntVoltageControlOn;
         this.minImpedance = minImpedance;
         this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
         this.breakers = breakers;
@@ -101,6 +104,10 @@ public class AcLoadFlowParameters {
 
     public boolean isTransformerVoltageControlOn() {
         return transformerVoltageControlOn;
+    }
+
+    public boolean isShuntVoltageControlOn() {
+        return shuntVoltageControlOn;
     }
 
     public boolean isMinImpedance() {

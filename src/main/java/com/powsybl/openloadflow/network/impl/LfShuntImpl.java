@@ -26,7 +26,7 @@ public class LfShuntImpl implements LfShunt {
 
     private int num = -1;
 
-    private final double b;
+    private double b;
 
     private Evaluable q = NAN;
 
@@ -97,6 +97,11 @@ public class LfShuntImpl implements LfShunt {
     @Override
     public double getB() {
         return b;
+    }
+
+    @Override
+    public void setB(double b) {
+        this.b = b;
     }
 
     @Override

@@ -21,6 +21,8 @@ public interface LfShunt {
 
     double getB();
 
+    void setB(double b);
+
     void setQ(Evaluable q);
 
     void updateState();

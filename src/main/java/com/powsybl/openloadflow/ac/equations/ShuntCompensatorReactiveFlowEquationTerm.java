@@ -6,11 +6,11 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.google.common.collect.ImmutableList;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -40,11 +40,13 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
         vVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_V);
-        variables = Collections.singletonList(vVar);
+        ImmutableList.Builder<Variable> variablesBuilder = ImmutableList.<Variable>builder()
+                .add(vVar);
         if (deriveB) {
             bVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_B);
-            variables.add(bVar);
+            variablesBuilder.add(bVar);
         }
+        variables = variablesBuilder.build();
         b = shunt.getB();
     }
 
@@ -67,10 +69,10 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
     public void update(double[] x) {
         Objects.requireNonNull(x);
         double v = x[vVar.getRow()];
+        b = bVar != null && bVar.isActive() ? x[bVar.getRow()] : shunt.getB();
         q = -b * v * v;
         dqdv = -2 * b * v;
         dqdb = -v * v;
-        b = bVar != null && bVar.isActive() ? x[bVar.getRow()] : shunt.getB();
     }
 
     @Override

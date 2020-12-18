@@ -36,7 +36,9 @@ class AcLoadFlowShuntTest {
     private Network network;
     private Bus bus1;
     private Bus bus2;
+    private Bus bus3;
     private Line l1;
+    private Line l2;
     private ShuntCompensator shunt;
 
     private LoadFlow.Runner loadFlowRunner;
@@ -84,23 +86,31 @@ class AcLoadFlowShuntTest {
                 .setP0(101)
                 .setQ0(150)
                 .add();
-        shunt = vl2.newShuntCompensator()
+        VoltageLevel vl3 = s2.newVoltageLevel()
+                .setId("vl3")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        bus3 = vl3.getBusBreakerView().newBus()
+                .setId("b3")
+                .add();
+        shunt = vl3.newShuntCompensator()
                 .setId("SHUNT")
-                .setBus("b2")
-                .setConnectableBus("b2")
-                .setSectionCount(1)
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(0)
                 .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(network.getLoad("ld1").getTerminal())
-                .setTargetV(390)
+                .setRegulatingTerminal(null)
+                .setTargetV(393)
                 .setTargetDeadband(5.0)
                 .newNonLinearModel()
                 .beginSection()
-                .setB(1e-5)
+                .setB(1e-3)
                 .setG(0.0)
                 .endSection()
                 .beginSection()
-                .setB(2e-2)
-                .setG(3e-1)
+                .setB(2e-3)
+                .setG(0.)
                 .endSection()
                 .add()
                 .add();
@@ -117,6 +127,20 @@ class AcLoadFlowShuntTest {
                 .setB1(0)
                 .setB2(0)
                 .add();
+        l2 = network.newLine()
+                .setId("l2")
+                .setVoltageLevel1("vl3")
+                .setBus1("b3")
+                .setVoltageLevel2("vl2")
+                .setBus2("b2")
+                .setR(1)
+                .setX(3)
+                .setG1(0)
+                .setG2(0)
+                .setB1(0)
+                .setB2(0)
+                .add();
+        shunt.setRegulatingTerminal(l2.getTerminal1()); //FIXME
         return network;
     }
 
@@ -125,15 +149,28 @@ class AcLoadFlowShuntTest {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
-                .setDistributedSlack(false);
+                .setDistributedSlack(true);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new MostMeshedSlackBusSelector());
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
     @Test
-    void test() {
+    void testBaseCase() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
+        assertVoltageEquals(390, bus1);
+        assertVoltageEquals(388.581, bus2);
+        assertVoltageEquals(388.581, bus3);
+    }
+
+    @Test
+    void testVoltageRegulationOn() {
+        parameters.setSimulShunt(true);
+        shunt.setSectionCount(0);
+        shunt.setVoltageRegulatorOn(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(393.0, bus3);
     }
 }

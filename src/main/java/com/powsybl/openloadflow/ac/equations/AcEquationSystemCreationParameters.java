@@ -17,10 +17,14 @@ public class AcEquationSystemCreationParameters {
 
     private final boolean transformerVoltageControl;
 
-    public AcEquationSystemCreationParameters(boolean voltageRemoteControl, boolean phaseControl, boolean transformerVoltageControl) {
+    private final boolean shuntVoltageControl;
+
+    public AcEquationSystemCreationParameters(boolean voltageRemoteControl, boolean phaseControl,
+                                              boolean transformerVoltageControl, boolean shuntVoltageControl) {
         this.voltageRemoteControl = voltageRemoteControl;
         this.phaseControl = phaseControl;
         this.transformerVoltageControl = transformerVoltageControl;
+        this.shuntVoltageControl = shuntVoltageControl;
     }
 
     public boolean isVoltageRemoteControl() {
@@ -33,5 +37,9 @@ public class AcEquationSystemCreationParameters {
 
     public boolean isTransformerVoltageControl() {
         return transformerVoltageControl;
+    }
+
+    public boolean isShuntVoltageControl() {
+        return shuntVoltageControl;
     }
 }

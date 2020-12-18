@@ -52,17 +52,20 @@ public final class AcEquationSystem {
                 createVoltageControlledBusEquations(bus, equationSystem, variableSet);
             }
 
-            createShuntEquations(variableSet, equationSystem, bus);
+            createShuntEquations(variableSet, equationSystem, bus, creationParameters);
 
-            if (creationParameters.isTransformerVoltageControl()) {
+            if (creationParameters.isTransformerVoltageControl() || creationParameters.isShuntVoltageControl()) {
                 createDiscreteVoltageControlEquation(bus, variableSet, equationSystem);
             }
         }
     }
 
-    private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus) {
+    private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus,
+                                             AcEquationSystemCreationParameters creationParameters) {
         for (LfShunt shunt : bus.getShunts()) {
-            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, false);
+            boolean deriveB = creationParameters.isShuntVoltageControl() && bus.getDiscreteVoltageControl() != null
+                    && bus.getDiscreteVoltageControl().getControlled() == bus;
+            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, deriveB);
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
             shunt.setQ(q);
         }
@@ -128,7 +131,7 @@ public final class AcEquationSystem {
 
         // we choose first controller bus as reference for reactive power
         LfBus firstControllerBus = controllerBuses.get(0);
-        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false, false); // TODO could not be the right parameters
+        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false, false, false); // TODO could not be the right parameters
         List<EquationTerm> firstControllerBusReactiveTerms = createReactiveTerms(firstControllerBus, variableSet, creationParameters);
 
         // create a reactive power distribution equation for all the other controller buses
@@ -355,7 +358,7 @@ public final class AcEquationSystem {
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
-        return create(network, variableSet, new AcEquationSystemCreationParameters(false, false, false));
+        return create(network, variableSet, new AcEquationSystemCreationParameters(false, false, false, false));
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {
