@@ -138,11 +138,10 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         return new SensitivityValue(factor, value * PerUnit.SB, functionReferenceByBranch.get(branchId), 0);
     }
 
-    protected Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> calculateSensitivityValues(LfNetwork lfNetwork, EquationSystem equationSystem,
+    protected List<SensitivityValue> calculateSensitivityValues(LfNetwork lfNetwork, EquationSystem equationSystem,
                                                               Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig,
                                                               DenseMatrix states, Map<String, Double> functionReferenceByBranch) {
         List<SensitivityValue> sensitivityValues = new ArrayList<>();
-        Map<String, List<SensitivityValue>> sensitivityValuesContingencies = new HashMap<>();
         for (Map.Entry<SensitivityVariableConfiguration, SensitivityFactorGroup> e : factorsByVarConfig.entrySet()) {
             SensitivityFactorGroup factorGroup = e.getValue();
             for (SensitivityFactor<?, ?> factor : factorGroup.getFactors()) {
@@ -159,7 +158,7 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
                 }
             }
         }
-        return Pair.of(sensitivityValues, sensitivityValuesContingencies);
+        return sensitivityValues;
     }
 
     protected DenseMatrix initRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig) {

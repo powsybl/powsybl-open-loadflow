@@ -37,6 +37,9 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class DcFastContingencyAnalysis extends AbstractDcSensitivityAnalysis {
+
+    static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-6;
+
     static class ComputedContingencyElement {
         private int contingencyIndex = -1;
         private int globalIndex = -1;
@@ -200,12 +203,23 @@ public class DcFastContingencyAnalysis extends AbstractDcSensitivityAnalysis {
         }
     }
 
-    private boolean isAbleToCompute(Contingency contingency) {
-        return contingency == null;
+    private boolean isAbleToCompute(LfNetwork lfNetwork, DenseMatrix states, List<ComputedContingencyElement> contingencyElements, EquationSystem equationSystem) {
+        for (ComputedContingencyElement element : contingencyElements) {
+            double sum = contingencyElements.stream()
+                                            .map(element2 -> lfNetwork.getBranchById(element2.getElement().getId()))
+                                            .map(lfBranch -> equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class))
+                                            .mapToDouble(equationTerm -> equationTerm.calculate(states, element.getGlobalIndex()))
+                                            .map(Math::abs)
+                                            .sum();
+            if (Math.abs(sum * PerUnit.SB - 1d) < CONNECTIVITY_LOSS_THRESHOLD) {
+                // all lines that have a non-0 sensitivity associated to "element" breaks the connectivity
+                return false;
+            }
+        }
+        return true;
     }
 
     private List<SensitivityValue> analyseContingency(LfNetwork lfNetwork, Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig, EquationSystem equationSystem, JacobianMatrix jacobian, Contingency contingency, Map<String, Double> functionReferenceByBranch, List<Contingency> unableToCompute) {
-        // todo: null contingency ?
         int index = 0;
         List<ComputedContingencyElement> elements = contingency != null ?
                 contingency.getElements().stream().map(ComputedContingencyElement::new).collect(Collectors.toList())
@@ -218,7 +232,7 @@ public class DcFastContingencyAnalysis extends AbstractDcSensitivityAnalysis {
         }
         DenseMatrix rhs = initRhs(lfNetwork, equationSystem, factorsByVarConfig, elements);
         DenseMatrix states = solveTransposed(rhs, jacobian);
-        if (!isAbleToCompute(contingency)) {
+        if (!isAbleToCompute(lfNetwork, states, elements, equationSystem)) {
             unableToCompute.add(contingency);
             return Collections.emptyList();
         }
@@ -263,6 +277,7 @@ public class DcFastContingencyAnalysis extends AbstractDcSensitivityAnalysis {
             contingenciesValue.put(contingency.getId(), contingencyValues);
         }
 
+        // todo: we could just wrap the contingency into another object and flag it as "slowRequired"
         for (Contingency contingency : contingencyToComputeSlowly) {
             List<SensitivityValue> contingencyValues = backupSensitivityAnalysis.analyseContingency(network, factors, contingency, functionReferenceByBranch, lfParameters, lfParametersExt, sensiParametersExt);
             contingenciesValue.put(contingency.getId(), contingencyValues);
