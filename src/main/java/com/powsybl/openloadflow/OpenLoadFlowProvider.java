@@ -88,12 +88,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                prefix + "status", result.getNewtonRaphsonStatus().name());
     }
 
-    private static ImmutableMap<String, String> createMetrics(DcLoadFlowResult result) {
-        String prefix = "network_" + result.getNetwork().getNum() + "_";
-        return ImmutableMap.of(prefix + "iterations", Integer.toString(0),
-                prefix + "status", result.getStatus().name());
-    }
-
     private static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters) {
         switch (parameters.getVoltageInitMode()) {
             case UNIFORM_VALUES:
@@ -241,24 +235,24 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
             Networks.resetState(network);
 
-            if (result.isOk() && parameters.isWriteSlackBus()) {
+            if (result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED && parameters.isWriteSlackBus()) {
                 SlackTerminal.reset(network);
             }
 
             result.getNetwork().updateState(false, parameters.isWriteSlackBus(), parameters.isPhaseShifterRegulationOn(),
                     parameters.isTransformerVoltageControlOn());
 
-            Map<String, String> metrics = new HashMap<>();
-            metrics.putAll(createMetrics(result));
-
-            List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>();
-            componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNum(),
+            LoadFlowResult.ComponentResult componentResult = new LoadFlowResultImpl.ComponentResultImpl(
+                    result.getNetwork().getNum(),
                     result.getStatus(),
                     0,
                     result.getNetwork().getSlackBus().getId(),
-                    result.getSlackBusActivePowerMismatch() * PerUnit.SB));
+                    result.getSlackBusActivePowerMismatch() * PerUnit.SB);
 
-            return new LoadFlowResultImpl(result.isOk(), metrics, null, componentResults);
+            return new LoadFlowResultImpl(result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED,
+                                          Collections.emptyMap(),
+                                          null,
+                                          Collections.singletonList(componentResult));
         });
     }
 

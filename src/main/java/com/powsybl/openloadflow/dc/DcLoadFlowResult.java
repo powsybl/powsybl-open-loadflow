@@ -18,15 +18,12 @@ public class DcLoadFlowResult {
 
     private final LfNetwork network;
 
-    private final boolean ok;
-
     private final double slackBusActivePowerMismatch;
 
     private final LoadFlowResult.ComponentResult.Status status;
 
-    public DcLoadFlowResult(LfNetwork network, boolean ok, double slackBusActivePowerMismatch, LoadFlowResult.ComponentResult.Status status) {
+    public DcLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch, LoadFlowResult.ComponentResult.Status status) {
         this.network = Objects.requireNonNull(network);
-        this.ok = ok;
         this.slackBusActivePowerMismatch = slackBusActivePowerMismatch;
         this.status = status;
     }
@@ -35,13 +32,11 @@ public class DcLoadFlowResult {
         return network;
     }
 
-    public boolean isOk() {
-        return ok;
+    public double getSlackBusActivePowerMismatch() {
+        return slackBusActivePowerMismatch;
     }
 
-    public double getSlackBusActivePowerMismatch() {
-        return slackBusActivePowerMismatch; }
-
     public LoadFlowResult.ComponentResult.Status getStatus() {
-        return status; }
+        return status;
+    }
 }
