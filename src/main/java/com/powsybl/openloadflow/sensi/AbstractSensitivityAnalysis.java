@@ -15,13 +15,17 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.VoltageInitializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-abstract class AbstractSensitivityAnalysis {
+public abstract class AbstractSensitivityAnalysis {
+
+    protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractSensitivityAnalysis.class);
 
     protected final MatrixFactory matrixFactory;
 
@@ -30,11 +34,19 @@ abstract class AbstractSensitivityAnalysis {
     }
 
     protected static Injection<?> getInjection(Network network, String injectionId) {
+        return getInjection(network, injectionId, true);
+    }
+
+    protected static Injection<?> getInjection(Network network, String injectionId, boolean failIfAbsent) {
         Injection<?> injection = network.getGenerator(injectionId);
         if (injection == null) {
             injection = network.getLoad(injectionId);
             if (injection == null) {
-                throw new PowsyblException("Injection '" + injectionId + "' not found");
+                if (failIfAbsent) {
+                    throw new PowsyblException("Injection '" + injectionId + "' not found");
+                } else {
+                    return null;
+                }
             }
         }
         return injection;
