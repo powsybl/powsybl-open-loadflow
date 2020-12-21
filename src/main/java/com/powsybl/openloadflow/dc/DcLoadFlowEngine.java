@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.dc;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
@@ -108,7 +109,8 @@ public class DcLoadFlowEngine {
 
             LOGGER.info("Dc loadflow complete (ok={})", ok);
 
-            return new DcLoadFlowResult(network, ok);
+            return new DcLoadFlowResult(network, ok, network.getActivePowerMismatch(),
+                    ok ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED);
         } finally {
             j.cleanLU();
         }

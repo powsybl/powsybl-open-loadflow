@@ -88,6 +88,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                prefix + "status", result.getNewtonRaphsonStatus().name());
     }
 
+    private static ImmutableMap<String, String> createMetrics(DcLoadFlowResult result) {
+        String prefix = "network_" + result.getNetwork().getNum() + "_";
+        return ImmutableMap.of(prefix + "iterations", Integer.toString(0),
+                prefix + "status", result.getStatus().name());
+    }
+
     private static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters) {
         switch (parameters.getVoltageInitMode()) {
             case UNIFORM_VALUES:
@@ -242,7 +248,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             result.getNetwork().updateState(false, parameters.isWriteSlackBus(), parameters.isPhaseShifterRegulationOn(),
                     parameters.isTransformerVoltageControlOn());
 
-            return new LoadFlowResultImpl(result.isOk(), Collections.emptyMap(), null);
+            Map<String, String> metrics = new HashMap<>();
+            metrics.putAll(createMetrics(result));
+
+            List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>();
+            componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNum(),
+                    result.getStatus(),
+                    0,
+                    result.getNetwork().getSlackBus().getId(),
+                    result.getSlackBusActivePowerMismatch() * PerUnit.SB));
+
+            return new LoadFlowResultImpl(result.isOk(), metrics, null, componentResults);
         });
     }
 
