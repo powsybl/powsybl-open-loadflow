@@ -167,10 +167,6 @@ public class DcFastContingencyAnalysis extends AbstractDcSensitivityAnalysis {
         contingencyElements.forEach(element -> element.setAlpha(rhs.get(element.getContingencyIndex(), 0)));
     }
 
-    private void setAlphas(Map<String, List<ComputedContingencyElement>> contingencyElements, SensitivityFactorGroup sensitivityFactorGroup, DenseMatrix states, LfNetwork lfNetwork, EquationSystem equationSystem) {
-        contingencyElements.values().forEach(elements -> setAlphas(elements, sensitivityFactorGroup, states, lfNetwork, equationSystem));
-    }
-
     private DenseMatrix initRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig,
                                 List<ComputedContingencyElement> elements) {
         DenseMatrix rhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), factorsByVarConfig.size() + elements.size());
@@ -183,6 +179,9 @@ public class DcFastContingencyAnalysis extends AbstractDcSensitivityAnalysis {
         for (ComputedContingencyElement element : contingencyElements) {
             if (element.getElement().getType().equals(ContingencyElementType.BRANCH)) {
                 LfBranch lfBranch = lfNetwork.getBranchById(element.getElement().getId());
+                if (lfBranch.getBus1() == null || lfBranch.getBus2() == null) {
+                    continue;
+                }
                 LfBus bus1 = lfBranch.getBus1();
                 LfBus bus2 = lfBranch.getBus2();
                 if (bus1.isSlack()) {
