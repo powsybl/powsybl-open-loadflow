@@ -92,7 +92,7 @@ public class DcFastContingencyAnalysis extends AbstractDcSensitivityAnalysis {
                                                           List<ComputedContingencyElement> contingencyElements) {
         LfBranch lfBranch = lfNetwork.getBranchById(branchId);
         if (lfBranch == null) {
-            if (isAllowSensitivityOnLostBranches()) {
+            if (computeSensitivityOnContingency()) {
                 return new SensitivityValue(factor, 0d, functionReferenceByBranch.get(branchId), 0);
             } else {
                 throw new PowsyblException("Branch '" + branchId + "' not found");
@@ -172,7 +172,8 @@ public class DcFastContingencyAnalysis extends AbstractDcSensitivityAnalysis {
         contingencyElements.values().forEach(elements -> setAlphas(elements, sensitivityFactorGroup, states, lfNetwork, equationSystem));
     }
 
-    private DenseMatrix initRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig, List<ComputedContingencyElement> elements) {
+    private DenseMatrix initRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig,
+                                List<ComputedContingencyElement> elements) {
         DenseMatrix rhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), factorsByVarConfig.size() + elements.size());
         fillRhs(lfNetwork, equationSystem, factorsByVarConfig, elements, rhs);
         return rhs;

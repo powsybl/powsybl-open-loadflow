@@ -35,17 +35,17 @@ import org.jgrapht.alg.util.Pair;
 import java.util.*;
 import java.util.stream.Collectors;
 
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Gaël Macherel <gael.macherel@artelys.com>
  */
 public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
-    protected boolean isBreakOnNullInjection() {
+    protected boolean throwExceptionIfNullInjection() {
         return true;
     }
 
-    protected boolean isAllowSensitivityOnLostBranches() {
+    protected boolean computeSensitivityOnContingency() {
         return false;
     }
 
@@ -125,7 +125,7 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
                                                           DenseMatrix states, Map<String, Double> functionReferenceByBranch) {
         LfBranch lfBranch = lfNetwork.getBranchById(branchId);
         if (lfBranch == null) {
-            if (isAllowSensitivityOnLostBranches()) {
+            if (computeSensitivityOnContingency()) {
                 return new SensitivityValue(factor, 0d, functionReferenceByBranch.get(branchId), 0);
             } else {
                 throw new PowsyblException("Branch '" + branchId + "' not found");
@@ -173,11 +173,15 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
             SensitivityFactorGroup factorGroup = e.getValue();
             for (Map.Entry<String, Double> busAndInjection : configuration.busInjectionById().entrySet()) {
                 LfBus lfBus = lfNetwork.getBusById(busAndInjection.getKey());
+                int column = 0;
                 if (lfBus.isSlack()) {
-                    throw new PowsyblException("Cannot set injection increase at slack bus");
+                    Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_PHI).orElseThrow(IllegalStateException::new);
+                    column = p.getColumn();
+                } else {
+                    Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
+                    column = p.getColumn();
                 }
-                Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p.getColumn(), factorGroup.getIndex(), busAndInjection.getValue() / PerUnit.SB);
+                rhs.set(column, factorGroup.getIndex(), busAndInjection.getValue() / PerUnit.SB);
             }
             for (String phaseTapChangerHolderId : configuration.getPhaseTapChangerHolderIds()) {
                 LfBranch lfBranch = lfNetwork.getBranchById(phaseTapChangerHolderId);
@@ -190,17 +194,16 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
     protected Map<SensitivityVariableConfiguration, SensitivityFactorGroup> indexFactorsByVariableConfig(Network network, List<SensitivityFactor> factors, LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
         Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = new LinkedHashMap<>(factors.size());
         Map<String, Double> participationFactorByBus = getParticipationFactorByBus(lfNetwork, loadFlowParameters); // empty if slack is not distributed
-        participationFactorByBus.remove(lfNetwork.getSlackBus().getId()); // the injection on the slack bus will not appear in the rhs
-        participationFactorByBus.replaceAll((key, value) -> -value); // the slack distribution on a bus will be the opposite of its participation
+        participationFactorByBus.replaceAll((key, value) -> -value); // the slack distribution on a bus is the opposite of its participation factor
 
         // index factors by variable config
         for (SensitivityFactor<?, ?> factor : factors) {
             if (factor instanceof BranchFlowPerInjectionIncrease) {
                 BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
-                Injection<?> injection = getInjection(network, injectionFactor.getVariable().getInjectionId(), isBreakOnNullInjection());
+                Injection<?> injection = getInjection(network, injectionFactor.getVariable().getInjectionId(), throwExceptionIfNullInjection());
                 if (injection == null) {
-                    LOGGER.debug("Injection {} cannot be found in the network, we may have lost its connected component in a contingency", injectionFactor.getVariable().getInjectionId());
-                    // injection is not in this connected component
+                    LOGGER.debug("Injection {} not found in the network", injectionFactor.getVariable().getInjectionId());
+                    // FIXME
                     continue;
                 }
                 Bus bus = injection.getTerminal().getBusView().getBus();
@@ -208,15 +211,7 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
                 if (bus != null) {
                     Map<String, Double> busInjectionById = new HashMap<>(participationFactorByBus);
                     // add 1 where we are making the injection
-                    // when the slack is not distributed, then bus compensation is a singleton {bus -> 1}
-                    if (lfNetwork.getBusById(bus.getId()).isSlack()) {
-                        if (!loadFlowParameters.isDistributedSlack()) {
-                            throw new PowsyblException("Cannot compute injection increase at slack bus in case of non distributed slack");
-                        }
-                    } else {
-                        busInjectionById.put(bus.getId(), busInjectionById.getOrDefault(bus.getId(), 0d) + 1);
-                    }
-
+                    busInjectionById.put(bus.getId(), busInjectionById.getOrDefault(bus.getId(), 0d) + 1);
                     SensitivityVariableConfiguration varConfig = new SensitivityVariableConfiguration(busInjectionById, Collections.emptySet());
                     factorsByVarConfig.computeIfAbsent(varConfig, k -> new SensitivityFactorGroup())
                             .getFactors().add(injectionFactor);
@@ -255,12 +250,6 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         }
     }
 
-    /**
-     * Return a mapping between the participating element id through its connected bus, and its participation value in the slack distribution
-     * @param lfNetwork
-     * @param loadFlowParameters
-     * @return
-     */
     private Map<String, Double> getParticipationFactorByBus(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
 
         Map<String, Double> participationFactorByBusMap = new HashMap<>();
@@ -288,12 +277,16 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
                 ParticipatingElement::getFactor,
                 Double::sum
             ));
+        } else {
+            participationFactorByBusMap.putIfAbsent(lfNetwork.getSlackBus().getId(), 1d);
         }
         return participationFactorByBusMap;
     }
 
-    public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors, List<Contingency> contingencies, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
+    public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors, List<Contingency> contingencies,
+                                                                                     LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
                                                                                      OpenSensitivityAnalysisParameters sensiParametersExt) {
         throw new UnsupportedOperationException("Cannot analyse with abstract analysis, choose between slow or fast !");
+        //FIXME
     }
 }

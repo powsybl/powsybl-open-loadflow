@@ -21,12 +21,12 @@ import java.util.*;
 
 public class DcSlowContingencyAnalysis extends AbstractDcSensitivityAnalysis {
     @Override
-    protected boolean isBreakOnNullInjection() {
+    protected boolean throwExceptionIfNullInjection() {
         return false;
     }
 
     @Override
-    protected boolean isAllowSensitivityOnLostBranches() {
+    protected boolean computeSensitivityOnContingency() {
         return true;
     }
 
