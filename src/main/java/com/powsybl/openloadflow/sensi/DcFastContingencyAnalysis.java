@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.sensi.DcSensitivityAnalysis;
+package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
@@ -22,7 +22,6 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
