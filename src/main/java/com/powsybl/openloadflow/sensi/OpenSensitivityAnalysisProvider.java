@@ -42,7 +42,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     }
 
     public OpenSensitivityAnalysisProvider(MatrixFactory matrixFactory) {
-        dcSensitivityAnalysis = new DcFastContingencyAnalysis(matrixFactory);
+        dcSensitivityAnalysis = new DcFastSensitivityAnalysis(matrixFactory);
         acSensitivityAnalysis = new AcSensitivityAnalysis(matrixFactory);
     }
 

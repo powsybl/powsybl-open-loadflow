@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DcFastContingencyAnalysis extends AbstractDcSensitivityAnalysis {
+public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
 
     static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-6;
 
@@ -78,11 +78,11 @@ public class DcFastContingencyAnalysis extends AbstractDcSensitivityAnalysis {
         }
     }
 
-    private DcSlowContingencyAnalysis backupSensitivityAnalysis;
+    private DcSlowSensitivityAnalysis backupSensitivityAnalysis;
 
-    public DcFastContingencyAnalysis(MatrixFactory matrixFactory) {
+    public DcFastSensitivityAnalysis(MatrixFactory matrixFactory) {
         super(matrixFactory);
-        backupSensitivityAnalysis = new DcSlowContingencyAnalysis(matrixFactory);
+        backupSensitivityAnalysis = new DcSlowSensitivityAnalysis(matrixFactory);
     }
 
     private SensitivityValue createBranchSensitivityValue(LfNetwork lfNetwork, EquationSystem equationSystem, String branchId,

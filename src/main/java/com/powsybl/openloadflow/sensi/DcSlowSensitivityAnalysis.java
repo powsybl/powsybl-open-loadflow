@@ -18,7 +18,7 @@ import org.jgrapht.alg.util.Pair;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class DcSlowContingencyAnalysis extends AbstractDcSensitivityAnalysis {
+public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
     @Override
     protected boolean throwExceptionIfNullInjection() {
         return false;
@@ -29,7 +29,7 @@ public class DcSlowContingencyAnalysis extends AbstractDcSensitivityAnalysis {
         return true;
     }
 
-    public DcSlowContingencyAnalysis(final MatrixFactory matrixFactory) {
+    public DcSlowSensitivityAnalysis(final MatrixFactory matrixFactory) {
         super(matrixFactory);
     }
 
