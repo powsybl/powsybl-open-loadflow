@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.GenerationActionPowerDistributionStep;
@@ -131,7 +132,9 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         }
 
         ClosedBranchSide1DcFlowEquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-        double value = p1.calculate(states, factorGroup.getIndex());
+        double value = p1.isActive()
+                ? p1.calculate(states, factorGroup.getIndex())
+                : 0d;
 
         return new SensitivityValue(factor, value * PerUnit.SB, functionReferenceByBranch.get(branchId), 0);
     }
@@ -185,11 +188,9 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         }
     }
 
-    protected Map<SensitivityVariableConfiguration, SensitivityFactorGroup> indexFactorsByVariableConfig(Network network, List<SensitivityFactor> factors, LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
+    // todo: I think we just need to rethink the configuration now
+    protected Map<SensitivityVariableConfiguration, SensitivityFactorGroup> indexFactorsByVariableConfig(Network network, GraphDecrementalConnectivity<LfBus> connectivity, List<SensitivityFactor> factors, LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
         Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = new LinkedHashMap<>(factors.size());
-        Map<String, Double> participationFactorByBus = getParticipationFactorByBus(lfNetwork, loadFlowParameters); // empty if slack is not distributed
-        participationFactorByBus.remove(lfNetwork.getSlackBus().getId()); // the injection on the slack bus will not appear in the rhs
-        participationFactorByBus.replaceAll((key, value) -> -value); // the slack distribution on a bus will be the opposite of its participation
 
         // index factors by variable config
         for (SensitivityFactor<?, ?> factor : factors) {
@@ -204,6 +205,11 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
                 Bus bus = injection.getTerminal().getBusView().getBus();
                 // skip disconnected injections
                 if (bus != null) {
+                    // todo: the participation factor only changes when the connectivity is lost, we can optimize this line
+                    Map<String, Double> participationFactorByBus = getParticipationFactorByBus(lfNetwork, bus.getId(), connectivity, loadFlowParameters); // empty if slack is not distributed
+                    participationFactorByBus.remove(lfNetwork.getSlackBus().getId()); // the injection on the slack bus will not appear in the rhs
+                    participationFactorByBus.replaceAll((key, value) -> -value); // the slack distribution on a bus will be the opposite of its participation
+
                     Map<String, Double> busInjectionById = new HashMap<>(participationFactorByBus);
                     // add 1 where we are making the injection
                     // when the slack is not distributed, then bus compensation is a singleton {bus -> 1}
@@ -259,9 +265,10 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
      * @param loadFlowParameters
      * @return
      */
-    private Map<String, Double> getParticipationFactorByBus(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
+    private Map<String, Double> getParticipationFactorByBus(LfNetwork lfNetwork, String busId, GraphDecrementalConnectivity<LfBus> connectivity, LoadFlowParameters loadFlowParameters) {
 
         Map<String, Double> participationFactorByBusMap = new HashMap<>();
+        int connectedComponentNumber = connectivity.getComponentNumber(lfNetwork.getBusById(busId));
 
         if (loadFlowParameters.isDistributedSlack()) {
             ActivePowerDistribution.Step step;
@@ -279,6 +286,9 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
             }
 
             participatingElements = step.getParticipatingElements(lfNetwork);
+            participatingElements = participatingElements.stream().filter(
+                participatingElement -> connectivity.getComponentNumber(lfNetwork.getBusById(getParticipatingElementBusId(participatingElement))) == connectedComponentNumber
+            ).collect(Collectors.toList());
             ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
 
             participationFactorByBusMap = participatingElements.stream().collect(Collectors.toMap(

@@ -328,7 +328,8 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         return new PostContingencyResult(lfContingency.getContingency(), postContingencyComputationOk, postContingencyLimitViolations);
     }
 
-    private void deactivateEquations(LfContingency lfContingency, EquationSystem equationSystem, List<Equation> deactivatedEquations, List<EquationTerm> deactivatedEquationTerms) {
+    // TODO: extract it properly
+    public static void deactivateEquations(LfContingency lfContingency, EquationSystem equationSystem, List<Equation> deactivatedEquations, List<EquationTerm> deactivatedEquationTerms) {
         for (LfBranch branch : lfContingency.getBranches()) {
             LOGGER.trace("Remove equations and equations terms related to branch '{}'", branch.getId());
 
@@ -370,7 +371,8 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         }
     }
 
-    private void reactivateEquations(List<Equation> deactivatedEquations, List<EquationTerm> deactivatedEquationTerms) {
+    // TODO: extract it properly
+    public static void reactivateEquations(List<Equation> deactivatedEquations, List<EquationTerm> deactivatedEquationTerms) {
         // restore deactivated equations and equations terms from previous contingency
         if (!deactivatedEquations.isEmpty()) {
             for (Equation equation : deactivatedEquations) {

@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
@@ -247,6 +248,7 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         // create LF network (we only manage main connected component)
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParametersExt.getSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
+        GraphDecrementalConnectivity<LfBus> connectivity = createConnectivity(lfNetwork);
 
         // run DC load
         Map<String, Double> functionReferenceByBranch = getFunctionReferenceByBranch(lfNetworks, lfParameters, lfParametersExt);
@@ -256,7 +258,7 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
                 new DcEquationSystemCreationParameters(false, true, true, lfParametersExt.isDcUseTransformerRatio()));
 
         // index factors by variable configuration to compute minimal number of DC state
-        Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = indexFactorsByVariableConfig(network, factors, lfNetwork, lfParameters);
+        Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = indexFactorsByVariableConfig(network, connectivity, factors, lfNetwork, lfParameters);
 
         if (factorsByVarConfig.isEmpty()) {
             return Pair.of(Collections.emptyList(), Collections.emptyMap());
@@ -278,7 +280,7 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
 
         // todo: we could just wrap the contingency into another object and flag it as "slowRequired"
         for (Contingency contingency : contingencyToComputeSlowly) {
-            List<SensitivityValue> contingencyValues = backupSensitivityAnalysis.analyseContingency(network, factors, contingency, functionReferenceByBranch, lfParameters, lfParametersExt, sensiParametersExt);
+            List<SensitivityValue> contingencyValues = backupSensitivityAnalysis.analyseContingency(network, lfNetwork, connectivity, equationSystem, contingency, factors, functionReferenceByBranch, lfParameters, sensiParametersExt);
             contingenciesValue.put(contingency.getId(), contingencyValues);
         }
 
