@@ -1,4 +1,4 @@
-package com.powsybl.openloadflow.sensi.DcSensitivityAnalysis;
+package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElementType;
@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
 import org.jgrapht.alg.util.Pair;
@@ -19,7 +18,7 @@ import org.jgrapht.alg.util.Pair;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class DcSlowContingencyAnalysis extends AbstractDcSensitivityAnalysis {
+public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
     @Override
     protected boolean isBreakOnNullInjection() {
         return false;
@@ -30,7 +29,7 @@ public class DcSlowContingencyAnalysis extends AbstractDcSensitivityAnalysis {
         return true;
     }
 
-    public DcSlowContingencyAnalysis(final MatrixFactory matrixFactory) {
+    public DcSlowSensitivityAnalysis(final MatrixFactory matrixFactory) {
         super(matrixFactory);
     }
 

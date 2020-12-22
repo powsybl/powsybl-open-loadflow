@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.sensi.DcSensitivityAnalysis;
+package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
@@ -22,7 +22,6 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
@@ -36,7 +35,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DcFastContingencyAnalysis extends AbstractDcSensitivityAnalysis {
+public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
 
     static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-6;
 
@@ -79,11 +78,11 @@ public class DcFastContingencyAnalysis extends AbstractDcSensitivityAnalysis {
         }
     }
 
-    private DcSlowContingencyAnalysis backupSensitivityAnalysis;
+    private DcSlowSensitivityAnalysis backupSensitivityAnalysis;
 
-    public DcFastContingencyAnalysis(MatrixFactory matrixFactory) {
+    public DcFastSensitivityAnalysis(MatrixFactory matrixFactory) {
         super(matrixFactory);
-        backupSensitivityAnalysis = new DcSlowContingencyAnalysis(matrixFactory);
+        backupSensitivityAnalysis = new DcSlowSensitivityAnalysis(matrixFactory);
     }
 
     private SensitivityValue createBranchSensitivityValue(LfNetwork lfNetwork, EquationSystem equationSystem, String branchId,

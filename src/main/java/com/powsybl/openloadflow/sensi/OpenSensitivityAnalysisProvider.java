@@ -15,8 +15,6 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.sensi.DcSensitivityAnalysis.AbstractDcSensitivityAnalysis;
-import com.powsybl.openloadflow.sensi.DcSensitivityAnalysis.DcFastContingencyAnalysis;
 import com.powsybl.sensitivity.*;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.jgrapht.alg.util.Pair;
@@ -44,7 +42,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     }
 
     public OpenSensitivityAnalysisProvider(MatrixFactory matrixFactory) {
-        dcSensitivityAnalysis = new DcFastContingencyAnalysis(matrixFactory);
+        dcSensitivityAnalysis = new DcFastSensitivityAnalysis(matrixFactory);
         acSensitivityAnalysis = new AcSensitivityAnalysis(matrixFactory);
     }
 
