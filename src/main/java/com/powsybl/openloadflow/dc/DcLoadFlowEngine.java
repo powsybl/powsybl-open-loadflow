@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.dc;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
@@ -85,13 +86,13 @@ public class DcLoadFlowEngine {
         try {
             double[] dx = Arrays.copyOf(targets, targets.length);
 
-            boolean ok;
+            LoadFlowResult.ComponentResult.Status status;
             try {
                 LUDecomposition lu = j.decomposeLU();
                 lu.solveTransposed(dx);
-                ok = true;
+                status = LoadFlowResult.ComponentResult.Status.CONVERGED;
             } catch (Exception e) {
-                ok = false;
+                status = LoadFlowResult.ComponentResult.Status.FAILED;
                 LOGGER.error("Failed to solve linear system for DC load flow", e);
             }
 
@@ -106,9 +107,9 @@ public class DcLoadFlowEngine {
             stopwatch.stop();
             LOGGER.debug(Markers.PERFORMANCE_MARKER, "Dc loadflow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-            LOGGER.info("Dc loadflow complete (ok={})", ok);
+            LOGGER.info("Dc loadflow complete (status={})", status);
 
-            return new DcLoadFlowResult(network, ok);
+            return new DcLoadFlowResult(network, network.getActivePowerMismatch(), status);
         } finally {
             j.cleanLU();
         }
