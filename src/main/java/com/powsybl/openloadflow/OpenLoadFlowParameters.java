@@ -46,8 +46,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean dcUseTransformerRatio = DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE;
 
-    private boolean updateFlows = UPDATE_FLOWS_DEFAULT_VALUE;
-
     @Override
     public String getName() {
         return "OpenLoadFlowParameters";
@@ -111,15 +109,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public boolean isUpdateFlows() {
-        return updateFlows;
-    }
-
-    public OpenLoadFlowParameters setUpdateFlows(boolean updateFlows) {
-        this.updateFlows = updateFlows;
-        return this;
-    }
-
     public static OpenLoadFlowParameters load() {
         return new OpenLoadFlowConfigLoader().load(PlatformConfig.defaultConfig());
     }
@@ -141,7 +130,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                         )
                         .setLoadPowerFactorConstant(config.getBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE))
                         .setDcUseTransformerRatio(config.getBooleanProperty(DC_USE_TRANSFORMER_RATIO_PARAM_NAME, DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE))
-                        .setUpdateFlows(config.getBooleanProperty(UPDATE_FLOWS_PARAM_NAME, UPDATE_FLOWS_DEFAULT_VALUE))
                 );
             return parameters;
         }
