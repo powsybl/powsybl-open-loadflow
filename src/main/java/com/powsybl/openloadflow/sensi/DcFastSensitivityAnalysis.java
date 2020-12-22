@@ -92,7 +92,7 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
                                                           List<ComputedContingencyElement> contingencyElements) {
         LfBranch lfBranch = lfNetwork.getBranchById(branchId);
         if (lfBranch == null) {
-            if (isAllowSensitivityOnLostBranches()) {
+            if (computeSensitivityOnContingency()) {
                 return new SensitivityValue(factor, 0d, functionReferenceByBranch.get(branchId), 0);
             } else {
                 throw new PowsyblException("Branch '" + branchId + "' not found");
@@ -168,11 +168,8 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         contingencyElements.forEach(element -> element.setAlpha(rhs.get(element.getContingencyIndex(), 0)));
     }
 
-    private void setAlphas(Map<String, List<ComputedContingencyElement>> contingencyElements, SensitivityFactorGroup sensitivityFactorGroup, DenseMatrix states, LfNetwork lfNetwork, EquationSystem equationSystem) {
-        contingencyElements.values().forEach(elements -> setAlphas(elements, sensitivityFactorGroup, states, lfNetwork, equationSystem));
-    }
-
-    private DenseMatrix initRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig, List<ComputedContingencyElement> elements) {
+    private DenseMatrix initRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig,
+                                List<ComputedContingencyElement> elements) {
         DenseMatrix rhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), factorsByVarConfig.size() + elements.size());
         fillRhs(lfNetwork, equationSystem, factorsByVarConfig, elements, rhs);
         return rhs;
@@ -183,6 +180,9 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         for (ComputedContingencyElement element : contingencyElements) {
             if (element.getElement().getType().equals(ContingencyElementType.BRANCH)) {
                 LfBranch lfBranch = lfNetwork.getBranchById(element.getElement().getId());
+                if (lfBranch.getBus1() == null || lfBranch.getBus2() == null) {
+                    continue;
+                }
                 LfBus bus1 = lfBranch.getBus1();
                 LfBus bus2 = lfBranch.getBus2();
                 if (bus1.isSlack()) {
