@@ -86,13 +86,12 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
             LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
             OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
-            OpenSensitivityAnalysisParameters sensiParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
 
             List<SensitivityValue> sensitivityValues;
             if (lfParameters.isDc()) {
-                sensitivityValues = dcSensitivityAnalysis.analyse(network, factors, lfParameters, lfParametersExt, sensiParametersExt);
+                sensitivityValues = dcSensitivityAnalysis.analyse(network, factors, lfParameters, lfParametersExt);
             } else {
-                sensitivityValues = acSensitivityAnalysis.analyse(network, factors, lfParametersExt);
+                sensitivityValues = acSensitivityAnalysis.analyse(network, factors, lfParameters, lfParametersExt);
             }
 
             boolean ok = true;

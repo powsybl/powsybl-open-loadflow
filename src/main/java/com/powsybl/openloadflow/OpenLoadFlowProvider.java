@@ -84,7 +84,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return AcLoadFlowObserver.of(observers);
     }
 
-    private static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters) {
+    public static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters) {
         switch (parameters.getVoltageInitMode()) {
             case UNIFORM_VALUES:
                 return new UniformValueVoltageInitializer();

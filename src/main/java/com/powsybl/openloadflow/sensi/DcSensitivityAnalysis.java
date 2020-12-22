@@ -257,12 +257,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return participationFactorByBusMap;
     }
 
-    public List<SensitivityValue> analyse(Network network, List<SensitivityFactor> factors, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
-                                          OpenSensitivityAnalysisParameters sensiParametersExt) {
+    public List<SensitivityValue> analyse(Network network, List<SensitivityFactor> factors, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(factors);
         Objects.requireNonNull(lfParametersExt);
-        Objects.requireNonNull(sensiParametersExt);
 
         // create LF network (we only manage main connected component)
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParametersExt.getSlackBusSelector());
@@ -292,7 +290,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         DenseMatrix rhs = initRhs(lfNetwork, equationSystem, factorsByVarConfig);
 
         // create jacobian matrix either using base network calculated voltages or nominal voltages
-        VoltageInitializer voltageInitializer = sensiParametersExt.isUseBaseCaseVoltage() ? new PreviousValueVoltageInitializer()
+        VoltageInitializer voltageInitializer = lfParameters.getVoltageInitMode() == LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES ? new PreviousValueVoltageInitializer()
                 : new UniformValueVoltageInitializer();
         JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer);
 
