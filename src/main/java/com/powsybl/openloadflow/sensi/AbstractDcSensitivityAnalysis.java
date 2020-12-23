@@ -8,6 +8,8 @@ package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyElement;
+import com.powsybl.contingency.ContingencyElementType;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
@@ -40,14 +42,6 @@ import java.util.stream.Collectors;
  * @author Gaël Macherel <gael.macherel@artelys.com>
  */
 public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityAnalysis {
-
-    protected boolean throwExceptionIfNullInjection() {
-        return true;
-    }
-
-    protected boolean computeSensitivityOnContingency() {
-        return false;
-    }
 
     protected AbstractDcSensitivityAnalysis(final MatrixFactory matrixFactory) {
         super(matrixFactory);
@@ -144,24 +138,15 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         return functionReferenceByBranch;
     }
 
-    protected SensitivityValue createBranchSensitivityValue(LfNetwork lfNetwork, EquationSystem equationSystem, String branchId,
+    protected SensitivityValue createBranchSensitivityValue(LfBranch lfBranch, EquationSystem equationSystem,
                                                           SensitivityFactor<?, ?> factor, SensitivityFactorGroup factorGroup,
-                                                          DenseMatrix states, Map<String, Double> functionReferenceByBranch) {
-        LfBranch lfBranch = lfNetwork.getBranchById(branchId);
-        if (lfBranch == null) {
-            if (computeSensitivityOnContingency()) {
-                return new SensitivityValue(factor, 0d, functionReferenceByBranch.get(branchId), 0);
-            } else {
-                throw new PowsyblException("Branch '" + branchId + "' not found");
-            }
-        }
-
+                                                          DenseMatrix states, Double functionReference) {
         ClosedBranchSide1DcFlowEquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
         double value = p1.isActive()
                 ? p1.calculate(states, factorGroup.getIndex())
                 : 0d;
 
-        return new SensitivityValue(factor, value * PerUnit.SB, functionReferenceByBranch.get(branchId), 0);
+        return new SensitivityValue(factor, value * PerUnit.SB, functionReference, 0);
     }
 
     protected List<SensitivityValue> calculateSensitivityValues(LfNetwork lfNetwork, EquationSystem equationSystem,
@@ -173,12 +158,14 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
             for (SensitivityFactor<?, ?> factor : factorGroup.getFactors()) {
                 if (factor instanceof BranchFlowPerInjectionIncrease) {
                     BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
-                    sensitivityValues.add(createBranchSensitivityValue(lfNetwork, equationSystem, injectionFactor.getFunction().getBranchId(),
-                            factor, factorGroup, states, functionReferenceByBranch));
+                    String branchId = injectionFactor.getFunction().getBranchId();
+                    sensitivityValues.add(createBranchSensitivityValue(lfNetwork.getBranchById(branchId), equationSystem,
+                            factor, factorGroup, states, functionReferenceByBranch.get(branchId)));
                 } else if (factor instanceof BranchFlowPerPSTAngle) {
                     BranchFlowPerPSTAngle pstAngleFactor = (BranchFlowPerPSTAngle) factor;
-                    sensitivityValues.add(createBranchSensitivityValue(lfNetwork, equationSystem, pstAngleFactor.getFunction().getBranchId(),
-                            factor, factorGroup, states, functionReferenceByBranch));
+                    String branchId = pstAngleFactor.getFunction().getBranchId();
+                    sensitivityValues.add(createBranchSensitivityValue(lfNetwork.getBranchById(branchId), equationSystem,
+                            factor, factorGroup, states, functionReferenceByBranch.get(branchId)));
                 } else {
                     throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
                 }
@@ -225,12 +212,7 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         for (SensitivityFactor<?, ?> factor : factors) {
             if (factor instanceof BranchFlowPerInjectionIncrease) {
                 BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
-                Injection<?> injection = getInjection(network, injectionFactor.getVariable().getInjectionId(), throwExceptionIfNullInjection());
-                if (injection == null) {
-                    LOGGER.debug("Injection {} not found in the network", injectionFactor.getVariable().getInjectionId());
-                    // FIXME
-                    continue;
-                }
+                Injection<?> injection = getInjection(network, injectionFactor.getVariable().getInjectionId());
                 Bus bus = injection.getTerminal().getBusView().getBus();
                 // skip disconnected injections
                 if (bus != null) {
@@ -324,10 +306,56 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         return participationFactorByBusMap;
     }
 
+    public void checkSensitivitiesCoherence(Network network, LfNetwork lfNetwork, List<SensitivityFactor> factors) {
+        for (SensitivityFactor<?, ?> factor : factors) {
+            LfBranch watchedBranch;
+            if (factor instanceof  BranchFlowPerInjectionIncrease) {
+                BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
+                Injection<?> injection = getInjection(network, injectionFactor.getVariable().getInjectionId());
+                if (injection == null) {
+                    throw new PowsyblException("Injection " + injectionFactor.getVariable().getInjectionId() + " not found in the network");
+                }
+                if (lfNetwork.getBranchById(factor.getFunction().getId()) == null) {
+                    throw new PowsyblException("Branch '" + factor.getFunction().getId() + "' not found");
+                }
+                watchedBranch = lfNetwork.getBranchById(injectionFactor.getFunction().getBranchId());
+            } else if (factor instanceof BranchFlowPerPSTAngle) {
+                BranchFlowPerPSTAngle pstAngleFactor = (BranchFlowPerPSTAngle) factor;
+                String phaseTapChangerHolderId = pstAngleFactor.getVariable().getPhaseTapChangerHolderId();
+                TwoWindingsTransformer twt = network.getTwoWindingsTransformer(phaseTapChangerHolderId);
+                if (twt == null) {
+                    throw new PowsyblException("Phase shifter '" + phaseTapChangerHolderId + "' not found");
+                }
+                if (lfNetwork.getBusById(twt.getTerminal1().getBusView().getBus().getId()) == null || lfNetwork.getBusById(twt.getTerminal2().getBusView().getBus().getId()) == null) {
+                    throw new PowsyblException("The transformer " + twt.getId() + " cannot be found in the first connected component of the network");
+                }
+                watchedBranch = lfNetwork.getBranchById(pstAngleFactor.getFunction().getBranchId());
+            } else {
+                throw new PowsyblException("Can only analyse sensitivity for BranchFlowPerPSTAngle and BranchFlowPerPSTAngle");
+            }
+            if (watchedBranch == null) {
+                throw new PowsyblException("The watched branch of the function " + factor.getFunction().getId() + " cannot be found in the network");
+            }
+        }
+    }
+
+    public void checkContingenciesCoherence(Network network, LfNetwork lfNetwork, List<Contingency> contingencies) {
+        for (Contingency contingency : contingencies) {
+            for (ContingencyElement contingencyElement : contingency.getElements()) {
+                if (!contingencyElement.getType().equals(ContingencyElementType.BRANCH)) {
+                    throw new UnsupportedOperationException("The only admitted contingencies are the one on branches");
+                }
+                LfBranch lfBranch = lfNetwork.getBranchById(contingencyElement.getId());
+                if (lfBranch == null) {
+                    throw new PowsyblException("The contingency on the branch " + contingencyElement.getId() + " cannot be found in the network");
+                }
+            }
+        }
+    }
+
     public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors, List<Contingency> contingencies,
                                                                                      LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
                                                                                      OpenSensitivityAnalysisParameters sensiParametersExt) {
         throw new UnsupportedOperationException("Cannot analyse with abstract analysis, choose between slow or fast !");
-        //FIXME
     }
 }

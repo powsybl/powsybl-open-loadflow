@@ -24,15 +24,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.*;
 
 public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
-    @Override
-    protected boolean throwExceptionIfNullInjection() {
-        return false;
-    }
-
-    @Override
-    protected boolean computeSensitivityOnContingency() {
-        return true;
-    }
 
     public DcSlowSensitivityAnalysis(final MatrixFactory matrixFactory) {
         super(matrixFactory);
@@ -63,6 +54,8 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
             LfBranch lfBranch = lfNetwork.getBranchById(element.getId());
             connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2());
         });
+
+        // todo: Check what sensitivities still makes sense (still have a slack)
         Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = indexFactorsByVariableConfig(network, connectivity, factors, lfNetwork, loadFlowParameters);
         List<SensitivityValue> contingencyValues = analyse(lfNetwork, equationSystem, factorsByVarConfig, functionReferenceByBranch, sensiParametersExt);
         OpenSecurityAnalysis.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
@@ -80,6 +73,7 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
                 : new UniformValueVoltageInitializer();
         // FIXME: If the equation system represents two distinct connected component, the jacobian wont be invertible
         // FIXME: We need to add a slack in each connected component
+        // FIXME: This is why in the previous version, we were reloading the network from scratch
         JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer);
 
         // solve system
@@ -98,6 +92,9 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
 
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParametersExt.getSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
+        checkContingenciesCoherence(network, lfNetwork, contingencies);
+        checkSensitivitiesCoherence(network, lfNetwork, factors);
+
         LazyConnectivity connectivity = new LazyConnectivity(lfNetwork);
 
         // run DC load
