@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Injection;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.DenseMatrix;
@@ -15,15 +16,12 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.VoltageInitializer;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Provider;
 import java.util.Objects;
 
 /**
@@ -34,8 +32,6 @@ public abstract class AbstractSensitivityAnalysis {
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractSensitivityAnalysis.class);
 
     protected final MatrixFactory matrixFactory;
-
-    private final Provider<GraphDecrementalConnectivity<LfBus>> connectivityProvider = EvenShiloachGraphDecrementalConnectivity::new;
 
     protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
@@ -58,6 +54,12 @@ public abstract class AbstractSensitivityAnalysis {
             }
         }
         return injection;
+    }
+
+    protected LfBus getInjectionBus(Network network, LfNetwork lfNetwork, BranchFlowPerInjectionIncrease injectionFactor) {
+        Injection<?> injection = getInjection(network, injectionFactor.getVariable().getInjectionId());
+        Bus bus = injection.getTerminal().getBusView().getBus();
+        return lfNetwork.getBusById(bus.getId());
     }
 
     protected JacobianMatrix createJacobianMatrix(EquationSystem equationSystem, VoltageInitializer voltageInitializer) {
@@ -86,15 +88,4 @@ public abstract class AbstractSensitivityAnalysis {
         return rhs; // rhs now contains state matrix
     }
 
-    // todo: this is a copy/paste from OpenSecurityAnalysis, find a way to refactor and not duplicate code
-    protected GraphDecrementalConnectivity<LfBus> createConnectivity(LfNetwork network) {
-        GraphDecrementalConnectivity<LfBus> connectivity = connectivityProvider.get();
-        for (LfBus bus : network.getBuses()) {
-            connectivity.addVertex(bus);
-        }
-        for (LfBranch branch : network.getBranches()) {
-            connectivity.addEdge(branch.getBus1(), branch.getBus2());
-        }
-        return connectivity;
-    }
 }

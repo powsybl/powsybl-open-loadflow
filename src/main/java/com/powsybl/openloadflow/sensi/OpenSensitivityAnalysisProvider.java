@@ -17,7 +17,7 @@ import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.sensitivity.*;
 import com.powsybl.tools.PowsyblCoreVersion;
-import org.jgrapht.alg.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.HashMap;
 import java.util.List;
@@ -98,7 +98,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             boolean ok = true;
             Map<String, String> metrics = new HashMap<>();
             String logs = "";
-            return new SensitivityAnalysisResult(ok, metrics, logs, sensitivityValues.getFirst(), sensitivityValues.getSecond());
+            return new SensitivityAnalysisResult(ok, metrics, logs, sensitivityValues.getLeft(), sensitivityValues.getRight());
         });
     }
 }

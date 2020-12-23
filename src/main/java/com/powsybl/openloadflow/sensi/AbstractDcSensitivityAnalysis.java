@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
@@ -29,7 +30,7 @@ import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
-import org.jgrapht.alg.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -50,6 +51,30 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
 
     protected AbstractDcSensitivityAnalysis(final MatrixFactory matrixFactory) {
         super(matrixFactory);
+    }
+
+    protected static class LazyConnectivity {
+        private GraphDecrementalConnectivity<LfBus> connectivity = null;
+        private LfNetwork network;
+
+        public LazyConnectivity(LfNetwork lfNetwork) {
+            network = lfNetwork;
+        }
+
+        public GraphDecrementalConnectivity<LfBus> getConnectivity() {
+            if (connectivity != null) {
+                return connectivity;
+            }
+            // todo: this is a copy/paste from OpenSecurityAnalysis, find a way to refactor and not duplicate code
+            connectivity = new EvenShiloachGraphDecrementalConnectivity<>();
+            for (LfBus bus : network.getBuses()) {
+                connectivity.addVertex(bus);
+            }
+            for (LfBranch branch : network.getBranches()) {
+                connectivity.addEdge(branch.getBus1(), branch.getBus2());
+            }
+            return connectivity;
+        }
     }
 
     protected static class SensitivityVariableConfiguration {
@@ -174,7 +199,7 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
             SensitivityFactorGroup factorGroup = e.getValue();
             for (Map.Entry<String, Double> busAndInjection : configuration.busInjectionById().entrySet()) {
                 LfBus lfBus = lfNetwork.getBusById(busAndInjection.getKey());
-                int column = 0;
+                int column;
                 if (lfBus.isSlack()) {
                     Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_PHI).orElseThrow(IllegalStateException::new);
                     column = p.getColumn();
@@ -263,7 +288,6 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
     private Map<String, Double> getParticipationFactorByBus(LfNetwork lfNetwork, String busId, GraphDecrementalConnectivity<LfBus> connectivity, LoadFlowParameters loadFlowParameters) {
 
         Map<String, Double> participationFactorByBusMap = new HashMap<>();
-        int connectedComponentNumber = connectivity.getComponentNumber(lfNetwork.getBusById(busId));
 
         if (loadFlowParameters.isDistributedSlack()) {
             ActivePowerDistribution.Step step;
@@ -281,9 +305,12 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
             }
 
             participatingElements = step.getParticipatingElements(lfNetwork);
-            participatingElements = participatingElements.stream().filter(
-                participatingElement -> connectivity.getComponentNumber(lfNetwork.getBusById(getParticipatingElementBusId(participatingElement))) == connectedComponentNumber
-            ).collect(Collectors.toList());
+            if (connectivity != null) {
+                int connectedComponentNumber = connectivity.getComponentNumber(lfNetwork.getBusById(busId));
+                participatingElements = participatingElements.stream().filter(
+                    participatingElement -> connectivity.getComponentNumber(lfNetwork.getBusById(getParticipatingElementBusId(participatingElement))) == connectedComponentNumber
+                ).collect(Collectors.toList());
+            }
             ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
 
             participationFactorByBusMap = participatingElements.stream().collect(Collectors.toMap(

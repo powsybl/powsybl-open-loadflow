@@ -19,7 +19,7 @@ import com.powsybl.openloadflow.sa.LfContingency;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysis;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
-import org.jgrapht.alg.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 
@@ -78,6 +78,8 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         // create jacobian matrix either using base network calculated voltages or nominal voltages
         VoltageInitializer voltageInitializer = sensiParametersExt.isUseBaseCaseVoltage() ? new PreviousValueVoltageInitializer()
                 : new UniformValueVoltageInitializer();
+        // FIXME: If the equation system represents two distinct connected component, the jacobian wont be invertible
+        // FIXME: We need to add a slack in each connected component
         JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer);
 
         // solve system
@@ -96,7 +98,7 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
 
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParametersExt.getSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        GraphDecrementalConnectivity<LfBus> connectivity = createConnectivity(lfNetwork);
+        LazyConnectivity connectivity = new LazyConnectivity(lfNetwork);
 
         // run DC load
         Map<String, Double> functionReferenceByBranch = getFunctionReferenceByBranch(Collections.singletonList(lfNetwork), lfParameters, lfParametersExt);
@@ -110,7 +112,7 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
                 new DcEquationSystemCreationParameters(false, true, true, lfParametersExt.isDcUseTransformerRatio()));
 
         // index factors by variable configuration to compute minimal number of DC state
-        Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = indexFactorsByVariableConfig(network, connectivity, factors, lfNetwork, lfParameters);
+        Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = indexFactorsByVariableConfig(network, null, factors, lfNetwork, lfParameters);
 
         if (factorsByVarConfig.isEmpty()) {
             return Pair.of(Collections.emptyList(), Collections.emptyMap());
@@ -119,7 +121,7 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         List<SensitivityValue> sensitivityValues = analyse(lfNetwork, equationSystem, factorsByVarConfig, functionReferenceByBranch, sensiParametersExt);
 
         for (Contingency contingency : contingencies) {
-            List<SensitivityValue> contingencyValues = analyseContingency(network, lfNetwork, connectivity, equationSystem, contingency, factors, functionReferenceByBranch, lfParameters, sensiParametersExt);
+            List<SensitivityValue> contingencyValues = analyseContingency(network, lfNetwork, connectivity.getConnectivity(), equationSystem, contingency, factors, functionReferenceByBranch, lfParameters, sensiParametersExt);
             contingenciesValue.put(contingency.getId(), contingencyValues);
         }
 
