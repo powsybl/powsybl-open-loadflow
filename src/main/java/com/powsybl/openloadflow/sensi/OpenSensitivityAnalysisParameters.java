@@ -14,19 +14,6 @@ import com.powsybl.sensitivity.SensitivityAnalysisParameters;
  */
 public class OpenSensitivityAnalysisParameters extends AbstractExtension<SensitivityAnalysisParameters> {
 
-    private static final boolean DEFAULT_USE_BASE_CASE_VOLTAGE = true;
-
-    private boolean useBaseCaseVoltage = DEFAULT_USE_BASE_CASE_VOLTAGE;
-
-    public boolean isUseBaseCaseVoltage() {
-        return useBaseCaseVoltage;
-    }
-
-    public OpenSensitivityAnalysisParameters setUseBaseCaseVoltage(boolean useBaseCaseVoltage) {
-        this.useBaseCaseVoltage = useBaseCaseVoltage;
-        return this;
-    }
-
     @Override
     public String getName() {
         return "OpenSensitivityAnalysisParameters";
