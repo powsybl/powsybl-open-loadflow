@@ -354,8 +354,7 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
     }
 
     public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors, List<Contingency> contingencies,
-                                                                                     LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
-                                                                                     OpenSensitivityAnalysisParameters sensiParametersExt) {
+                                                                                     LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
         throw new UnsupportedOperationException("Cannot analyse with abstract analysis, choose between slow or fast !");
     }
 }

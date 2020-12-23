@@ -211,8 +211,7 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
     private List<SensitivityValue> analyseContingency(Network network, LfNetwork lfNetwork, DenseMatrix baseStates, LazyConnectivity lazyConnectivity,
                                                       List<SensitivityFactor> factors, final Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig,
                                                       EquationSystem equationSystem, JacobianMatrix jacobian, Contingency contingency,
-                                                      Map<String, Double> functionReferenceByBranch, LoadFlowParameters lfParameters,
-                                                      OpenSensitivityAnalysisParameters sensiParametersExt) {
+                                                      Map<String, Double> functionReferenceByBranch, LoadFlowParameters lfParameters) {
         List<ComputedContingencyElement> elements = contingency != null
                 ? contingency.getElements().stream().map(ComputedContingencyElement::new).collect(Collectors.toList())
                 : new ArrayList<>();
@@ -225,7 +224,7 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         List<ComputedContingencyElement> elementsThatBreakConnectivity = getElementsResponsibleForLossOfConnexity(lfNetwork, contingencyStates, elements, equationSystem);
 
         if (elementsThatBreakConnectivity.size() > 1) {
-            return backupSensitivityAnalysis.analyseContingency(network, lfNetwork, lazyConnectivity.getConnectivity(), equationSystem, contingency, factors, functionReferenceByBranch, lfParameters, sensiParametersExt);
+            return backupSensitivityAnalysis.analyseContingency(network, lfNetwork, lazyConnectivity.getConnectivity(), equationSystem, contingency, factors, functionReferenceByBranch, lfParameters);
         }
 
         if (elementsThatBreakConnectivity.size() == 0) {
@@ -274,12 +273,10 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         return calculateSensitivityValues(lfNetwork, equationSystem, factorsByVarConfig, states, contingencyStates, functionReferenceByBranch, elements, predefinedResults);
     }
 
-    public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors, List<Contingency> contingencies, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
-                                                                                     OpenSensitivityAnalysisParameters sensiParametersExt) {
+    public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors, List<Contingency> contingencies, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(factors);
         Objects.requireNonNull(lfParametersExt);
-        Objects.requireNonNull(sensiParametersExt);
         // create LF network (we only manage main connected component)
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParametersExt.getSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
@@ -302,19 +299,18 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         }
 
         // create jacobian matrix either using base network calculated voltages or nominal voltages
-        VoltageInitializer voltageInitializer = sensiParametersExt.isUseBaseCaseVoltage() ? new PreviousValueVoltageInitializer()
+        VoltageInitializer voltageInitializer = lfParameters.getVoltageInitMode() == LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES ? new PreviousValueVoltageInitializer()
                 : new UniformValueVoltageInitializer();
         JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer);
 
         DenseMatrix rhs = initRhs(lfNetwork, equationSystem, factorsByVarConfig);
         DenseMatrix states = solveTransposed(rhs, j);
 
-        List<Contingency> contingencyToComputeSlowly = new LinkedList<>();
-        List<SensitivityValue> sensitivityValues = analyseContingency(network, lfNetwork, states, connectivity, factors, factorsByVarConfig, equationSystem, j, null, functionReferenceByBranch, lfParameters, sensiParametersExt);
+        List<SensitivityValue> sensitivityValues = analyseContingency(network, lfNetwork, states, connectivity, factors, factorsByVarConfig, equationSystem, j, null, functionReferenceByBranch, lfParameters);
         Map<String, List<SensitivityValue>> contingenciesValue = new HashMap<>();
 
         for (Contingency contingency : contingencies) {
-            List<SensitivityValue> contingencyValues = analyseContingency(network, lfNetwork, states, connectivity, factors, factorsByVarConfig, equationSystem, j, contingency, functionReferenceByBranch, lfParameters, sensiParametersExt);
+            List<SensitivityValue> contingencyValues = analyseContingency(network, lfNetwork, states, connectivity, factors, factorsByVarConfig, equationSystem, j, contingency, functionReferenceByBranch, lfParameters);
             contingenciesValue.put(contingency.getId(), contingencyValues);
         }
 

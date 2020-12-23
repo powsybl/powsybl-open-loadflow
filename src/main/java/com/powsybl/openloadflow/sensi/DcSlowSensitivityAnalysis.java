@@ -43,7 +43,7 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
     }
 
     public List<SensitivityValue> analyseContingency(Network network, LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, EquationSystem equationSystem,  Contingency contingency,
-                                                     List<SensitivityFactor> factors, Map<String, Double> functionReferenceByBranch, LoadFlowParameters loadFlowParameters, OpenSensitivityAnalysisParameters sensiParametersExt) {
+                                                     List<SensitivityFactor> factors, Map<String, Double> functionReferenceByBranch, LoadFlowParameters loadFlowParameters) {
         List<Equation> deactivatedEquations = new LinkedList<>();
         List<EquationTerm> deactivatedEquationTerms = new LinkedList<>();
         OpenSecurityAnalysis.deactivateEquations(createLfContingency(lfNetwork, contingency), equationSystem, deactivatedEquations, deactivatedEquationTerms);
@@ -57,19 +57,19 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
 
         // todo: Check what sensitivities still makes sense (still have a slack)
         Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = indexFactorsByVariableConfig(network, connectivity, factors, lfNetwork, loadFlowParameters);
-        List<SensitivityValue> contingencyValues = analyse(lfNetwork, equationSystem, factorsByVarConfig, functionReferenceByBranch, sensiParametersExt);
+        List<SensitivityValue> contingencyValues = analyse(lfNetwork, equationSystem, factorsByVarConfig, functionReferenceByBranch, loadFlowParameters);
         OpenSecurityAnalysis.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
         connectivity.reset();
         return contingencyValues;
     }
 
     public List<SensitivityValue> analyse(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig, Map<String, Double> functionReferenceByBranch,
-                                                     OpenSensitivityAnalysisParameters sensiParametersExt) {
+                                                     LoadFlowParameters lfParameters) {
         // initialize right hand side
         DenseMatrix rhs = initRhs(lfNetwork, equationSystem, factorsByVarConfig);
 
         // create jacobian matrix either using base network calculated voltages or nominal voltages
-        VoltageInitializer voltageInitializer = sensiParametersExt.isUseBaseCaseVoltage() ? new PreviousValueVoltageInitializer()
+        VoltageInitializer voltageInitializer = lfParameters.getVoltageInitMode() == LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES ? new PreviousValueVoltageInitializer()
                 : new UniformValueVoltageInitializer();
         // FIXME: If the equation system represents two distinct connected component, the jacobian wont be invertible
         // FIXME: We need to add a slack in each connected component
@@ -83,12 +83,10 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         return calculateSensitivityValues(lfNetwork, equationSystem, factorsByVarConfig, states, functionReferenceByBranch);
     }
 
-    public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors, List<Contingency> contingencies, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
-                                                                                     OpenSensitivityAnalysisParameters sensiParametersExt) {
+    public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors, List<Contingency> contingencies, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(factors);
         Objects.requireNonNull(lfParametersExt);
-        Objects.requireNonNull(sensiParametersExt);
 
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParametersExt.getSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
@@ -115,10 +113,10 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
             return Pair.of(Collections.emptyList(), Collections.emptyMap());
         }
 
-        List<SensitivityValue> sensitivityValues = analyse(lfNetwork, equationSystem, factorsByVarConfig, functionReferenceByBranch, sensiParametersExt);
+        List<SensitivityValue> sensitivityValues = analyse(lfNetwork, equationSystem, factorsByVarConfig, functionReferenceByBranch, lfParameters);
 
         for (Contingency contingency : contingencies) {
-            List<SensitivityValue> contingencyValues = analyseContingency(network, lfNetwork, connectivity.getConnectivity(), equationSystem, contingency, factors, functionReferenceByBranch, lfParameters, sensiParametersExt);
+            List<SensitivityValue> contingencyValues = analyseContingency(network, lfNetwork, connectivity.getConnectivity(), equationSystem, contingency, factors, functionReferenceByBranch, lfParameters);
             contingenciesValue.put(contingency.getId(), contingencyValues);
         }
 
