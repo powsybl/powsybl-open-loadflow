@@ -71,8 +71,6 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected final List<LfShunt> shunts = new ArrayList<>();
 
-    protected double sumB = 0;
-
     protected final List<Load> loads = new ArrayList<>();
 
     protected final List<Battery> batteries = new ArrayList<>();
@@ -310,9 +308,6 @@ public abstract class AbstractLfBus implements LfBus {
 
     void addShuntCompensator(ShuntCompensator sc) {
         shunts.add(new LfShuntImpl(sc));
-        sumB =  shunts.stream()
-                .mapToDouble(shunt -> shunt.getB())
-                .sum();
     }
 
     @Override
@@ -424,12 +419,41 @@ public abstract class AbstractLfBus implements LfBus {
 
     @Override
     public double getB() {
-        return sumB;
+        return shunts.stream()
+                .mapToDouble(shunt -> shunt.getB())
+                .sum();
+    }
+
+    private double dispatchB(List<LfShunt> shunts, double bToDispatch) {
+        //FIXME: shunt non controlling voltage have to be taken into account too
+        List<LfShunt> shuntsThatControlVoltage = shunts.stream()
+                .filter(shunt -> shunt.hasVoltageControl())
+                .sorted(Comparator.comparing(LfShunt::getAmplitudeB))
+                .collect(Collectors.toList());
+        Iterator<LfShunt> it = shuntsThatControlVoltage.iterator();
+        double residueB = bToDispatch;
+        while (it.hasNext()) {
+            LfShunt shunt = it.next();
+            double calculatedB = residueB / shuntsThatControlVoltage.size();
+            if (calculatedB < shunt.getMinB()) {
+                shunt.setB(shunt.getMinB());
+                residueB += residueB - shunt.getMinB();
+                it.remove();
+            } else if (calculatedB > shunt.getMaxB()) {
+                shunt.setB(shunt.getMaxB());
+                residueB += residueB - shunt.getMaxB();
+                it.remove();
+            } else {
+                shunt.setB(calculatedB);
+                residueB += residueB - shunt.getB();
+            }
+        }
+        return residueB;
     }
 
     @Override
     public void setB(double b) {
-        sumB = b;
+        dispatchB(shunts, b);
     }
 
     @Override
@@ -528,7 +552,8 @@ public abstract class AbstractLfBus implements LfBus {
 
     @Override
     public boolean isDiscreteVoltageControlled() {
-        return discreteVoltageControl != null && discreteVoltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE;
+        return discreteVoltageControl != null && discreteVoltageControl.getMode() != DiscreteVoltageControl.Mode.OFF
+                && discreteVoltageControl.getControlled() == this;
     }
 
     @Override

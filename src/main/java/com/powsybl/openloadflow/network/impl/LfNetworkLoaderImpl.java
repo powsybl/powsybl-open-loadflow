@@ -311,13 +311,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 LOGGER.warn("Controlled bus {} has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
             } else if (controlledBus.isDiscreteVoltageControlled()) {
                 LOGGER.trace("Controlled bus {} already has a transformer voltage control: a shared control is created", controlledBus.getId());
-                controlledBus.getDiscreteVoltageControl().addController(controllerBranch);
+                controlledBus.getDiscreteVoltageControl().addControllerBranch(controllerBranch);
                 controllerBranch.setDiscreteVoltageControl(controlledBus.getDiscreteVoltageControl());
             } else {
                 double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
                 DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
-                        DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
-                voltageControl.addController(controllerBranch);
+                        DiscreteVoltageControl.Mode.VOLTAGE_TRANSFORMER, rtc.getTargetV() / regulatingTerminalNominalV);
+                voltageControl.addControllerBranch(controllerBranch);
                 controllerBranch.setDiscreteVoltageControl(voltageControl);
                 controlledBus.setDiscreteVoltageControl(voltageControl);
             }
@@ -340,7 +340,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             if ((controlledBus.getControllerBuses().isEmpty() && controlledBus.hasVoltageControl()) || !controlledBus.getControllerBuses().isEmpty()) {
                 LOGGER.warn("Controlled bus {} has already a generator voltage control on: only generator control is kept", controlledBus.getId());
             } else if (controlledBus.isDiscreteVoltageControlled()) {
-                if (!controlledBus.getDiscreteVoltageControl().getControllers().isEmpty()) {
+                if (!controlledBus.getDiscreteVoltageControl().getControllerBranches().isEmpty()) {
                     LOGGER.trace("Controlled bus {} has already a transformer voltage control: only transformer control is kept", controlledBus.getId());
                 }
                 if (!controlledBus.getDiscreteVoltageControl().getControllerBuses().isEmpty()) {
@@ -351,7 +351,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             } else {
                 double regulatingTerminalNominalV = regulatingTerminal.getVoltageLevel().getNominalV();
                 DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
-                        DiscreteVoltageControl.Mode.VOLTAGE, shunt.getTargetV() / regulatingTerminalNominalV);
+                        DiscreteVoltageControl.Mode.VOLTAGE_SHUNT, shunt.getTargetV() / regulatingTerminalNominalV);
                 voltageControl.addControllerBus(controllerBus);
                 controllerBus.setDiscreteVoltageControl(voltageControl);
                 controlledBus.setDiscreteVoltageControl(voltageControl);

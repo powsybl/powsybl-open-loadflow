@@ -25,5 +25,13 @@ public interface LfShunt {
 
     void setQ(Evaluable q);
 
+    boolean hasVoltageControl();
+
+    double getMinB();
+
+    double getMaxB();
+
+    double getAmplitudeB();
+
     void updateState();
 }

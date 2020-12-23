@@ -38,13 +38,13 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
 
         if (context.getIteration() == 0) {
             for (LfBus bus : context.getNetwork().getBuses()) {
-                if (bus.isDiscreteVoltageControlled()) {
+                if (bus.isDiscreteVoltageControlled() && bus.getDiscreteVoltageControl().getMode() == DiscreteVoltageControl.Mode.VOLTAGE_TRANSFORMER) {
                     // de-activate transformer voltage control equation
                     Equation t = context.getEquationSystem().createEquation(bus.getNum(), EquationType.BUS_V);
                     t.setActive(false);
 
                     // at first iteration all branches controlling voltage are switched off
-                    for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
+                    for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllerBranches()) {
                         // de-activate r1 variable for next outer loop run
                         Variable r1 = context.getVariableSet().getVariable(controllerBranch.getNum(), VariableType.BRANCH_RHO1);
                         r1.setActive(false);

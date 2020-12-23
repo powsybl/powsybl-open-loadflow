@@ -10,6 +10,8 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.LfShunt;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.util.Evaluable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +23,8 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class LfShuntImpl implements LfShunt {
+
+    protected static final Logger LOGGER = LoggerFactory.getLogger(LfShuntImpl.class);
 
     private final ShuntCompensator shuntCompensator;
 
@@ -52,33 +56,34 @@ public class LfShuntImpl implements LfShunt {
 
     private final List<Section> sections = new ArrayList<>();
 
-    private int position = 1;
+    private int position = 0;
 
     public LfShuntImpl(ShuntCompensator shuntCompensator) {
         this.shuntCompensator = Objects.requireNonNull(shuntCompensator);
         double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
         double zb = nominalV * nominalV / PerUnit.SB;
-        b = shuntCompensator.getB() * zb;
-        if (shuntCompensator.isVoltageRegulatorOn()) {
-            position = shuntCompensator.getSectionCount() - 1;
-            ShuntCompensatorModel model = shuntCompensator.getModel();
-            switch (shuntCompensator.getModelType()) {
-                case LINEAR:
-                    ShuntCompensatorLinearModel linearModel = (ShuntCompensatorLinearModel) model;
-                    for (int section = 1; section < shuntCompensator.getMaximumSectionCount(); section++) {
-                        sections.add(new Section(linearModel.getBPerSection() * section * zb,
-                                linearModel.getGPerSection() * section * zb));
-                    }
-                    break;
-                case NON_LINEAR:
-                    ShuntCompensatorNonLinearModel nonLinearModel = (ShuntCompensatorNonLinearModel) model;
-                    for (int section = 1; section < shuntCompensator.getMaximumSectionCount(); section++) {
-                        sections.add(new Section(nonLinearModel.getAllSections().get(section - 1).getB() * zb,
-                                nonLinearModel.getAllSections().get(section - 1).getG() * zb));
-                    }
-                    break;
-            }
+
+        sections.add(new Section(0, 0)); // position 0 means disconnected.
+        position = shuntCompensator.getSectionCount();
+
+        ShuntCompensatorModel model = shuntCompensator.getModel();
+        switch (shuntCompensator.getModelType()) {
+            case LINEAR:
+                ShuntCompensatorLinearModel linearModel = (ShuntCompensatorLinearModel) model;
+                for (int section = 1; section <= shuntCompensator.getMaximumSectionCount(); section++) {
+                    sections.add(new Section(linearModel.getBPerSection() * section * zb,
+                            linearModel.getGPerSection() * section * zb));
+                }
+                break;
+            case NON_LINEAR:
+                ShuntCompensatorNonLinearModel nonLinearModel = (ShuntCompensatorNonLinearModel) model;
+                for (int section = 0; section < shuntCompensator.getMaximumSectionCount(); section++) {
+                    sections.add(new Section(nonLinearModel.getAllSections().get(section).getB() * zb,
+                            nonLinearModel.getAllSections().get(section).getG() * zb));
+                }
+                break;
         }
+        b = getSection().getB();
     }
 
     @Override
@@ -96,12 +101,15 @@ public class LfShuntImpl implements LfShunt {
 
     @Override
     public double getB() {
-        return b;
+        return getSection().getB();
     }
 
     @Override
     public void setB(double b) {
+        double previousB = this.b;
         this.b = b;
+        roundBToClosestSection();
+        LOGGER.trace("Round B shift of shunt '{}': {} -> {}", shuntCompensator.getId(), previousB, this.b);
     }
 
     @Override
@@ -109,8 +117,48 @@ public class LfShuntImpl implements LfShunt {
         this.q = Objects.requireNonNull(q);
     }
 
+    private void roundBToClosestSection() {
+        // find tap position with the closest b value
+        double smallestDistance = Math.abs(b - getSection().getB());
+        for (int s = 0; s < sections.size(); s++) {
+            double distance = Math.abs(b - sections.get(s).getB());
+            if (distance < smallestDistance) {
+                position = s;
+                smallestDistance = distance;
+            }
+        }
+        b = getSection().getB();
+    }
+
+    private Section getSection() {
+        return sections.get(position);
+    }
+
+    @Override
+    public boolean hasVoltageControl() {
+        return shuntCompensator.isVoltageRegulatorOn();
+    }
+
+    @Override
+    public double getMinB() {
+        return Math.min(sections.get(0).getB(), sections.get(sections.size() - 1).getB());
+    }
+
+    @Override
+    public double getMaxB() {
+        return Math.max(sections.get(0).getB(), sections.get(sections.size() - 1).getB());
+    }
+
+    @Override
+    public double getAmplitudeB() {
+        return Math.abs(getMaxB() - getMinB());
+    }
+
     @Override
     public void updateState() {
         shuntCompensator.getTerminal().setQ(q.eval() * PerUnit.SB);
+        if (shuntCompensator.isVoltageRegulatorOn()) {
+            shuntCompensator.setSectionCount(position);
+        }
     }
 }

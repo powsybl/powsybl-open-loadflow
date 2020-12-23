@@ -133,6 +133,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
         LOGGER.info("Direct current: {}", parameters.isDc());
         LOGGER.info("Transformer voltage control: {}", parameters.isTransformerVoltageControlOn());
+        LOGGER.info("Shunt voltage control: {}", parameters.isSimulShunt());
         LOGGER.info("Load power factor constant: {}", parametersExt.isLoadPowerFactorConstant());
 
         List<OuterLoop> outerLoops = new ArrayList<>();
@@ -148,6 +149,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
         if (parameters.isTransformerVoltageControlOn()) {
             outerLoops.add(new TransformerVoltageControlOuterLoop());
+        }
+        if (parameters.isSimulShunt()) {
+            outerLoops.add(new ShuntVoltageControlOuterLoop());
         }
 
         return new AcLoadFlowParameters(slackBusSelector, voltageInitializer, stoppingCriteria,

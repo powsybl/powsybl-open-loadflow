@@ -64,7 +64,7 @@ public final class AcEquationSystem {
                                              AcEquationSystemCreationParameters creationParameters) {
         for (LfShunt shunt : bus.getShunts()) {
             boolean deriveB = creationParameters.isShuntVoltageControl() && bus.getDiscreteVoltageControl() != null
-                    && bus.getDiscreteVoltageControl().getControlled() == bus;
+                && bus.getDiscreteVoltageControl().getControllerBuses().contains(bus);
             ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, deriveB);
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
             shunt.setQ(q);
@@ -238,8 +238,8 @@ public final class AcEquationSystem {
     private static void createDiscreteVoltageControlEquation(LfBus bus,  VariableSet variableSet, EquationSystem equationSystem) {
         if (bus.isDiscreteVoltageControlled()) {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
-            if (bus.getDiscreteVoltageControl().getControllers().size() > 1) {
-                createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
+            if (bus.getDiscreteVoltageControl().getControllerBranches().size() > 1) {
+                createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllerBranches());
             }
         }
     }

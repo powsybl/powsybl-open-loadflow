@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -109,7 +110,7 @@ class AcLoadFlowShuntTest {
                 .setG(0.0)
                 .endSection()
                 .beginSection()
-                .setB(2e-3)
+                .setB(3e-3)
                 .setG(0.)
                 .endSection()
                 .add()
@@ -165,12 +166,108 @@ class AcLoadFlowShuntTest {
     }
 
     @Test
-    void testVoltageRegulationOn() {
+    void testShuntSectionOne() {
+        shunt.setSectionCount(1);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(390, bus1);
+        assertVoltageEquals(389.758, bus2);
+        assertVoltageEquals(390.93051, bus3);
+    }
+
+    @Test
+    void testShuntSectionTwo() {
+        shunt.setSectionCount(2);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(390, bus1);
+        assertVoltageEquals(392.149468, bus2);
+        assertVoltageEquals(395.709, bus3);
+    }
+
+    @Test
+    void testVoltageControl() {
         parameters.setSimulShunt(true);
         shunt.setSectionCount(0);
         shunt.setVoltageRegulatorOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(393.0, bus3);
+        assertVoltageEquals(390.930, bus3);
+        assertEquals(1, shunt.getSectionCount());
+    }
+
+    @Test
+    void testRemoteVoltageControl() {
+        parameters.setSimulShunt(true);
+        shunt.setSectionCount(0)
+            .setRegulatingTerminal(network.getLoad("ld1").getTerminal())
+            .setTargetV(392.)
+            .setVoltageRegulatorOn(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(395.709, bus3);
+        assertEquals(2, shunt.getSectionCount());
+    }
+
+    @Test
+    void testLocalSharedVoltageControl() {
+        ShuntCompensator shunt2 = network.getVoltageLevel("vl3").newShuntCompensator()
+                .setId("SHUNT2")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(0)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(l2.getTerminal1())
+                .setTargetV(393)
+                .setTargetDeadband(5.0)
+                .newNonLinearModel()
+                .beginSection()
+                .setB(1e-3)
+                .setG(0.0)
+                .endSection()
+                .beginSection()
+                .setB(3e-3)
+                .setG(0.)
+                .endSection()
+                .add()
+                .add();
+
+        parameters.setSimulShunt(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(390.930, bus3);
+        assertEquals(0, shunt.getSectionCount());
+        assertEquals(1, shunt2.getSectionCount());
+    }
+
+    @Test
+    void testLocalSharedVoltageControl2() {
+        ShuntCompensator shunt2 = network.getVoltageLevel("vl3").newShuntCompensator()
+                .setId("SHUNT2")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(0)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(l2.getTerminal1())
+                .setTargetV(393)
+                .setTargetDeadband(5.0)
+                .newNonLinearModel()
+                .beginSection()
+                .setB(1e-4)
+                .setG(0.0)
+                .endSection()
+                .beginSection()
+                .setB(3e-4)
+                .setG(0.)
+                .endSection()
+                .add()
+                .add();
+
+        parameters.setSimulShunt(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(391.640, bus3);
+        assertEquals(1, shunt.getSectionCount());
+        assertEquals(2, shunt2.getSectionCount());
     }
 }
