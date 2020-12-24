@@ -71,9 +71,9 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         createLoad(b3, "d3", 1);
         createLoad(b4, "d4", 1);
         createLoad(b5, "d5", 2);
-        createLoad(b5, "d7", 2);
-        createLoad(b5, "d8", 1);
-        createLoad(b5, "d9", 1);
+        createLoad(b7, "d7", 2);
+        createLoad(b8, "d8", 1);
+        createLoad(b9, "d9", 1);
 
         return network;
     }
