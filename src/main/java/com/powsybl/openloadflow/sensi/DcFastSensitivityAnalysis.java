@@ -187,7 +187,8 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         return rhs;
     }
 
-    private List<ComputedContingencyElement> getElementsResponsibleForLossOfConnexity(LfNetwork lfNetwork, DenseMatrix states, List<ComputedContingencyElement> contingencyElements, EquationSystem equationSystem) {
+    private List<List<ComputedContingencyElement>> getElementsResponsibleForLossOfConnexity(LfNetwork lfNetwork, DenseMatrix states, List<ComputedContingencyElement> contingencyElements, EquationSystem equationSystem) {
+        List<List<ComputedContingencyElement>> responsibleAssociations = new LinkedList<>();
         for (ComputedContingencyElement element : contingencyElements) {
             List<ComputedContingencyElement> responsibleElements = new LinkedList<>();
             double sum = 0d;
@@ -202,10 +203,10 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
             }
             if (Math.abs(sum * PerUnit.SB - 1d) < CONNECTIVITY_LOSS_THRESHOLD) {
                 // all lines that have a non-0 sensitivity associated to "element" breaks the connectivity
-                return responsibleElements;
+                responsibleAssociations.add(responsibleElements);
             }
         }
-        return Collections.emptyList();
+        return responsibleAssociations;
     }
 
     private List<SensitivityValue> analyseContingency(Network network, LfNetwork lfNetwork, DenseMatrix baseStates, LazyConnectivity lazyConnectivity,
@@ -221,14 +222,15 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         DenseMatrix contingencyRhs = initContingenciesRhs(lfNetwork, equationSystem, elements);
         DenseMatrix contingencyStates = solveTransposed(contingencyRhs, jacobian); // states for +1-1 on each contingency branch
 
-        List<ComputedContingencyElement> elementsThatBreakConnectivity = getElementsResponsibleForLossOfConnexity(lfNetwork, contingencyStates, elements, equationSystem);
+        List<List<ComputedContingencyElement>> groupOfElementsThatBreaksConnectivity = getElementsResponsibleForLossOfConnexity(lfNetwork, contingencyStates, elements, equationSystem);
 
-        if (elementsThatBreakConnectivity.size() > 1) {
-            return backupSensitivityAnalysis.analyseContingency(network, lfNetwork, lazyConnectivity.getConnectivity(), equationSystem, contingency, factors, functionReferenceByBranch, lfParameters);
+        // no loss of connectivity
+        if (groupOfElementsThatBreaksConnectivity.size() == 0) {
+            return calculateSensitivityValues(lfNetwork, equationSystem, factorsByVarConfig, baseStates, contingencyStates, functionReferenceByBranch, elements, Collections.emptyMap());
         }
 
-        if (elementsThatBreakConnectivity.size() == 0) {
-            return calculateSensitivityValues(lfNetwork, equationSystem, factorsByVarConfig, baseStates, contingencyStates, functionReferenceByBranch, elements, Collections.emptyMap());
+        if (groupOfElementsThatBreaksConnectivity.stream().mapToInt(List::size).max().getAsInt() > 1) {
+            return backupSensitivityAnalysis.analyseContingency(network, lfNetwork, lazyConnectivity.getConnectivity(), equationSystem, contingency, factors, functionReferenceByBranch, lfParameters);
         }
 
         GraphDecrementalConnectivity<LfBus> connectivity = lazyConnectivity.getConnectivity();
@@ -236,7 +238,7 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         Map<SensitivityFactor, Double> predefinedResults = new HashMap<>(); // we store the result that should be 0 because of the connectivity loss
 
         // we need to recompute the new participation in distributed slack
-        for (ComputedContingencyElement contingencyElement : elementsThatBreakConnectivity) {
+        for (ComputedContingencyElement contingencyElement : groupOfElementsThatBreaksConnectivity.stream().flatMap(List::stream).collect(Collectors.toList())) {
             ContingencyElement element = contingencyElement.getElement();
             if (!element.getType().equals(ContingencyElementType.BRANCH)) {
                 throw new UnsupportedOperationException("Currently, we only manage contingency on branches");
