@@ -142,10 +142,7 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
                                                           SensitivityFactor<?, ?> factor, SensitivityFactorGroup factorGroup,
                                                           DenseMatrix states, Double functionReference) {
         ClosedBranchSide1DcFlowEquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-        double value = p1.isActive()
-                ? p1.calculate(states, factorGroup.getIndex())
-                : 0d;
-
+        double value = p1.isActive() ? p1.calculate(states, factorGroup.getIndex()) : 0d;
         return new SensitivityValue(factor, value * PerUnit.SB, functionReference, 0);
     }
 
@@ -261,12 +258,6 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         }
     }
 
-    /**
-     * Return a mapping between the participating element id through its connected bus, and its participation value in the slack distribution
-     * @param lfNetwork
-     * @param loadFlowParameters
-     * @return
-     */
     private Map<String, Double> getParticipationFactorByBus(LfNetwork lfNetwork, String busId, GraphDecrementalConnectivity<LfBus> connectivity, LoadFlowParameters loadFlowParameters) {
 
         Map<String, Double> participationFactorByBusMap = new HashMap<>();
@@ -290,8 +281,8 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
             if (connectivity != null) {
                 int connectedComponentNumber = connectivity.getComponentNumber(lfNetwork.getBusById(busId));
                 participatingElements = participatingElements.stream().filter(
-                    participatingElement -> connectivity.getComponentNumber(lfNetwork.getBusById(getParticipatingElementBusId(participatingElement))) == connectedComponentNumber
-                ).collect(Collectors.toList());
+                    participatingElement -> connectivity.getComponentNumber(lfNetwork.getBusById(getParticipatingElementBusId(participatingElement)))
+                            == connectedComponentNumber).collect(Collectors.toList());
             }
             ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
 
@@ -306,9 +297,9 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         return participationFactorByBusMap;
     }
 
-    public void checkSensitivitiesCoherence(Network network, LfNetwork lfNetwork, List<SensitivityFactor> factors) {
+    public void checkSensitivities(Network network, LfNetwork lfNetwork, List<SensitivityFactor> factors) {
         for (SensitivityFactor<?, ?> factor : factors) {
-            LfBranch watchedBranch;
+            LfBranch monitoredBranch;
             if (factor instanceof  BranchFlowPerInjectionIncrease) {
                 BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
                 Injection<?> injection = getInjection(network, injectionFactor.getVariable().getInjectionId());
@@ -318,28 +309,28 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
                 if (lfNetwork.getBranchById(factor.getFunction().getId()) == null) {
                     throw new PowsyblException("Branch '" + factor.getFunction().getId() + "' not found");
                 }
-                watchedBranch = lfNetwork.getBranchById(injectionFactor.getFunction().getBranchId());
+                monitoredBranch = lfNetwork.getBranchById(injectionFactor.getFunction().getBranchId());
             } else if (factor instanceof BranchFlowPerPSTAngle) {
                 BranchFlowPerPSTAngle pstAngleFactor = (BranchFlowPerPSTAngle) factor;
                 String phaseTapChangerHolderId = pstAngleFactor.getVariable().getPhaseTapChangerHolderId();
                 TwoWindingsTransformer twt = network.getTwoWindingsTransformer(phaseTapChangerHolderId);
                 if (twt == null) {
-                    throw new PowsyblException("Phase shifter '" + phaseTapChangerHolderId + "' not found");
+                    throw new PowsyblException("Phase shifter '" + phaseTapChangerHolderId + "' not found in the network");
                 }
-                if (lfNetwork.getBusById(twt.getTerminal1().getBusView().getBus().getId()) == null || lfNetwork.getBusById(twt.getTerminal2().getBusView().getBus().getId()) == null) {
-                    throw new PowsyblException("The transformer " + twt.getId() + " cannot be found in the first connected component of the network");
+                if (lfNetwork.getBranchById(factor.getFunction().getId()) == null) {
+                    throw new PowsyblException("Branch '" + factor.getFunction().getId() + "' not found");
                 }
-                watchedBranch = lfNetwork.getBranchById(pstAngleFactor.getFunction().getBranchId());
+                monitoredBranch = lfNetwork.getBranchById(pstAngleFactor.getFunction().getBranchId());
             } else {
-                throw new PowsyblException("Can only analyse sensitivity for BranchFlowPerPSTAngle and BranchFlowPerPSTAngle");
+                throw new PowsyblException("Only sensitivity factors of BranchFlowPerInjectionIncrease and BranchFlowPerPSTAngle are yet supported");
             }
-            if (watchedBranch == null) {
-                throw new PowsyblException("The watched branch of the function " + factor.getFunction().getId() + " cannot be found in the network");
+            if (monitoredBranch == null) {
+                throw new PowsyblException("Monitored branch " + factor.getFunction().getId() + " not found in the network");
             }
         }
     }
 
-    public void checkContingenciesCoherence(Network network, LfNetwork lfNetwork, List<Contingency> contingencies) {
+    public void checkContingencies(Network network, LfNetwork lfNetwork, List<Contingency> contingencies) {
         for (Contingency contingency : contingencies) {
             for (ContingencyElement contingencyElement : contingency.getElements()) {
                 if (!contingencyElement.getType().equals(ContingencyElementType.BRANCH)) {
