@@ -21,8 +21,8 @@ import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.equations.*;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.GenerationActionPowerDistributionStep;
@@ -60,7 +60,7 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
                 return connectivity;
             }
             // todo: this is a copy/paste from OpenSecurityAnalysis, find a way to refactor and not duplicate code
-            connectivity = new EvenShiloachGraphDecrementalConnectivity<>();
+            connectivity = new NaiveGraphDecrementalConnectivity<>(LfBus::getNum); // FIXME: use EvenShiloach
             for (LfBus bus : network.getBuses()) {
                 connectivity.addVertex(bus);
             }
