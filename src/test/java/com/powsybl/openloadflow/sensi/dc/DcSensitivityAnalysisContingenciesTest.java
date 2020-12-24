@@ -1,5 +1,6 @@
 package com.powsybl.openloadflow.sensi.dc;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
@@ -19,9 +20,11 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysisTest {
     @Test
@@ -288,5 +291,63 @@ public class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityA
         assertEquals(-1d / 3d, getContingencyValue(result, "l34+l48", "g10", "l89"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-2d / 3d, getContingencyValue(result, "l34+l48", "g10", "l810"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-1d / 3d, getContingencyValue(result, "l34+l48", "g10", "l910"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testLosingTheSameConnectivityTwice() {
+        Network network = ConnectedComponentNetworkFactory.createTwoConnectedComponentsLinkedByASerieOfTwoBranches();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", false);
+        ContingenciesProvider contingenciesProvider = n -> {
+            List<Contingency> contingencies = new ArrayList<>();
+            contingencies.add(new Contingency("l34+l45", new BranchContingency("l34"), new BranchContingency("l45")));
+            return contingencies;
+        };
+        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                network.getBranchStream().collect(Collectors.toList()));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingenciesProvider,
+                sensiParameters, LocalComputationManager.getDefault())
+                                                        .join();
+
+        assertEquals(1, result.getSensitivityValuesContingencies().size());
+        assertEquals(16, result.getSensitivityValuesContingencies().get("l34+l45").size());
+
+        assertEquals(-2d / 3d, getContingencyValue(result, "l34+l45", "g2", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 3d, getContingencyValue(result, "l34+l45", "g2", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getContingencyValue(result, "l34+l45", "g2", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g2", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g2", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g2", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g2", "l57"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g2", "l67"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g6", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g6", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g6", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g6", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g6", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2d / 3d, getContingencyValue(result, "l34+l45", "g6", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getContingencyValue(result, "l34+l45", "g6", "l57"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 3d, getContingencyValue(result, "l34+l45", "g6", "l67"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testLosingAllPossibleCompensations() {
+        Network network = ConnectedComponentNetworkFactory.createTwoConnectedComponentsLinkedByASerieOfTwoBranches();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        ContingenciesProvider contingenciesProvider = n -> {
+            List<Contingency> contingencies = new ArrayList<>();
+            contingencies.add(new Contingency("l34+l45", new BranchContingency("l34"), new BranchContingency("l45")));
+            return contingencies;
+        };
+        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
+                network.getBranchStream().collect(Collectors.toList()));
+        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingenciesProvider,
+                sensiParameters, LocalComputationManager.getDefault());
+        CompletionException e = assertThrows(CompletionException.class, sensiResult::join);
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("No more bus participating to slack distribution", e.getCause().getMessage()); // bus 4 is isolated
     }
 }
