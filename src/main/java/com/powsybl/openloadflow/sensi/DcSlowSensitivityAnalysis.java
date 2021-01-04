@@ -50,6 +50,25 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         return new LfContingency(contingency, contingencyBuses, contingencyBranches);
     }
 
+    private void modifySlackBus(EquationSystem equationSystem, LfBus slackBus, List<Equation> createdEquations, List<Equation> deactivatedEquations) {
+        Equation phiEquation = equationSystem.createEquation(slackBus.getNum(), EquationType.BUS_PHI);
+        if (!phiEquation.isActive()) {
+            phiEquation.setActive(true);
+            createdEquations.add(phiEquation);
+        }
+
+        if (phiEquation.getTerms().size() == 0) {
+            phiEquation.addTerm(new BusPhaseEquationTerm(slackBus, equationSystem.getVariableSet()));
+            createdEquations.add(phiEquation);
+        }
+
+        Equation equation = equationSystem.createEquation(slackBus.getNum(), EquationType.BUS_P);
+        if (equation.isActive()) {
+            equation.setActive(false);
+            deactivatedEquations.add(equation);
+        }
+    }
+
     public List<SensitivityValue> analyseContingency(Network network, LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity,
                                                      EquationSystem equationSystem,  Contingency contingency, List<SensitivityFactor> factors,
                                                      Map<String, Double> functionReferenceByBranch, LoadFlowParameters loadFlowParameters) {
@@ -58,6 +77,7 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
 
         List<Equation> deactivatedEquations = new LinkedList<>();
         List<EquationTerm> deactivatedEquationTerms = new LinkedList<>();
+        List<Equation> createdEquations = new LinkedList<>();
         OpenSecurityAnalysis.deactivateEquations(createLfContingency(lfNetwork, contingency), equationSystem, deactivatedEquations, deactivatedEquationTerms);
         contingency.getElements().forEach(element -> {
             if (!element.getType().equals(ContingencyElementType.BRANCH)) {
@@ -67,10 +87,27 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
             connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2());
         });
 
-        // todo: Check what sensitivities still makes sense (still have a slack)
+        // We need to define a slack for each connected component
+        Map<Integer, LfBus> slackPerConnectedComponent = new HashMap<>();
+        LfBus slackBus = lfNetwork.getSlackBus();
+        slackPerConnectedComponent.put(connectivity.getComponentNumber(slackBus), slackBus);
+        for (ContingencyElement element : contingency.getElements()) {
+            LfBranch contingencyBranch = lfNetwork.getBranchById(element.getId());
+
+            slackPerConnectedComponent.putIfAbsent(connectivity.getComponentNumber(contingencyBranch.getBus1()), contingencyBranch.getBus1());
+            slackPerConnectedComponent.putIfAbsent(connectivity.getComponentNumber(contingencyBranch.getBus2()), contingencyBranch.getBus2());
+        }
+
+        for (LfBus ccSlackBus : slackPerConnectedComponent.values()) {
+            modifySlackBus(equationSystem, ccSlackBus, createdEquations, deactivatedEquations);
+        }
+
         Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = indexFactorsByVariableConfig(network, connectivity, factors, lfNetwork, loadFlowParameters);
         List<SensitivityValue> contingencyValues = analyse(lfNetwork, equationSystem, factorsByVarConfig, functionReferenceByBranch, loadFlowParameters);
         OpenSecurityAnalysis.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
+        for (Equation equation : createdEquations) {
+            equation.setActive(false);
+        }
         connectivity.reset();
         return contingencyValues;
     }
@@ -83,9 +120,7 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         // create jacobian matrix either using base network calculated voltages or nominal voltages
         VoltageInitializer voltageInitializer = lfParameters.getVoltageInitMode() == LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES ? new PreviousValueVoltageInitializer()
                 : new UniformValueVoltageInitializer();
-        // FIXME: If the equation system represents two distinct connected component, the jacobian wont be invertible
-        // FIXME: We need to add a slack in each connected component
-        // FIXME: This is why in the previous version, we were reloading the network from scratch
+
         JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer);
 
         // solve system
@@ -113,8 +148,6 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         Map<String, Double> functionReferenceByBranch = getFunctionReferenceByBranch(Collections.singletonList(lfNetwork), lfParameters, lfParametersExt);
 
         Map<String, List<SensitivityValue>> contingenciesValue = new HashMap<>();
-
-        // todo: some factors may not be in the network anymore, if we lost a connected component due to the contingency
 
         // create DC equation system for sensitivity analysis
         EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet(),

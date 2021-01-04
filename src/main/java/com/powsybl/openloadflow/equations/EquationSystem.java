@@ -38,6 +38,9 @@ public class EquationSystem {
 
     private final Map<Pair<SubjectType, Integer>, List<EquationTerm>> equationTermsBySubject = new HashMap<>();
 
+    // todo: not happy with this, but it was a way to do it fast: to check with Jamgotchian
+    private VariableSet variableSet = null;
+
     private class EquationCache implements EquationSystemListener {
 
         private boolean invalide = false;
@@ -134,6 +137,11 @@ public class EquationSystem {
         addListener(equationCache);
     }
 
+    public EquationSystem(LfNetwork network, boolean indexTerms, VariableSet variableSet) {
+        this(network, indexTerms);
+        this.variableSet = variableSet;
+    }
+
     LfNetwork getNetwork() {
         return network;
     }
@@ -209,6 +217,10 @@ public class EquationSystem {
         Objects.requireNonNull(subjectType);
         Pair<SubjectType, Integer> subject = Pair.of(subjectType, subjectNum);
         return equationsBySubject.getOrDefault(subject, Collections.emptyList());
+    }
+
+    public VariableSet getVariableSet() {
+        return variableSet;
     }
 
     public SortedSet<Variable> getSortedVariablesToFind() {

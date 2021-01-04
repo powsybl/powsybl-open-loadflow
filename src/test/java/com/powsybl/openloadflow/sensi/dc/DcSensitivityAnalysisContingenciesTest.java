@@ -9,17 +9,21 @@ import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.sensi.AbstractDcSensitivityAnalysis;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
+import com.powsybl.openloadflow.sensi.DcSlowSensitivityAnalysis;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
-import com.powsybl.sensitivity.SensitivityAnalysisParameters;
-import com.powsybl.sensitivity.SensitivityAnalysisResult;
-import com.powsybl.sensitivity.SensitivityFactorsProvider;
+import com.powsybl.sensitivity.*;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
@@ -234,6 +238,138 @@ public class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityA
     }
 
     @Test
+    void testConnectivityLossOnSingleLineWithDistributedSlackSlow() {
+        Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensitivityAnalysisParameters = createParameters(true, "b1_vl_0", true);
+        sensitivityAnalysisParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        ContingenciesProvider contingenciesProvider = n -> {
+            List<Contingency> contingencies = new ArrayList<>();
+            contingencies.add(new Contingency("l34", new BranchContingency("l34")));
+            return contingencies;
+        };
+        SensitivityFactorsProvider sensitivityFactorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                network.getBranchStream().collect(Collectors.toList()));
+        AbstractDcSensitivityAnalysis dcSensitivityAnalysis = new DcSlowSensitivityAnalysis(matrixFactory);
+        List<SensitivityFactor> factors = sensitivityFactorsProvider.getFactors(network);
+        List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
+
+        LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
+        OpenLoadFlowParameters lfParametersExt = lfParameters.getExtension(OpenLoadFlowParameters.class);
+        Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analysisResult = dcSensitivityAnalysis.analyse(network, factors, contingencies, lfParameters, lfParametersExt);
+
+        SensitivityAnalysisResult result = new SensitivityAnalysisResult(
+               true, new HashMap<>(), "", analysisResult.getLeft(), analysisResult.getRight()
+        );
+
+        assertEquals(1, result.getSensitivityValuesContingencies().size());
+        assertEquals(14, result.getSensitivityValuesContingencies().get("l34").size());
+        assertEquals(-0.5d, getContingencyValue(result, "l34", "g2", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.5d, getContingencyValue(result, "l34", "g2", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "g2", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "g2", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "g2", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "g2", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "g2", "l56"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0d, getContingencyValue(result, "l34", "g6", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "g6", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "g6", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "g6", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 9d, getContingencyValue(result, "l34", "g6", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-4d / 9d, getContingencyValue(result, "l34", "g6", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-5d / 9d, getContingencyValue(result, "l34", "g6", "l56"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testMultipleContingenciesInSlow() {
+        Network network = ConnectedComponentNetworkFactory.createTwoConnectedComponentsLinkedByASerieOfTwoBranches();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensitivityAnalysisParameters = createParameters(true, "b1_vl_0", false);
+        ContingenciesProvider contingenciesProvider = n -> {
+            List<Contingency> contingencies = new ArrayList<>();
+            contingencies.add(new Contingency("l34+l45", new BranchContingency("l34"), new BranchContingency("l45")));
+            contingencies.add(new Contingency("l34", new BranchContingency("l34")));
+            contingencies.add(new Contingency("l45", new BranchContingency("l45")));
+            return contingencies;
+        };
+        SensitivityFactorsProvider sensitivityFactorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                network.getBranchStream().collect(Collectors.toList()));
+        AbstractDcSensitivityAnalysis dcSensitivityAnalysis = new DcSlowSensitivityAnalysis(matrixFactory);
+        List<SensitivityFactor> factors = sensitivityFactorsProvider.getFactors(network);
+        List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
+
+        LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
+        OpenLoadFlowParameters lfParametersExt = lfParameters.getExtension(OpenLoadFlowParameters.class);
+        Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analysisResult = dcSensitivityAnalysis.analyse(network, factors, contingencies, lfParameters, lfParametersExt);
+
+        SensitivityAnalysisResult result = new SensitivityAnalysisResult(
+                true, new HashMap<>(), "", analysisResult.getLeft(), analysisResult.getRight()
+        );
+
+        assertEquals(3, result.getSensitivityValuesContingencies().size());
+        assertEquals(16, result.getSensitivityValuesContingencies().get("l34+l45").size());
+
+        assertEquals(-2d / 3d, getContingencyValue(result, "l34+l45", "g2", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 3d, getContingencyValue(result, "l34+l45", "g2", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getContingencyValue(result, "l34+l45", "g2", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g2", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g2", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g2", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g2", "l57"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g2", "l67"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g6", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g6", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g6", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g6", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l45", "g6", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2d / 3d, getContingencyValue(result, "l34+l45", "g6", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getContingencyValue(result, "l34+l45", "g6", "l57"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 3d, getContingencyValue(result, "l34+l45", "g6", "l67"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(16, result.getSensitivityValuesContingencies().get("l34").size());
+
+        assertEquals(-2d / 3d, getContingencyValue(result, "l34", "g2", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 3d, getContingencyValue(result, "l34", "g2", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getContingencyValue(result, "l34", "g2", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "g2", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "g2", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "g2", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "g2", "l57"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "g2", "l67"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0d, getContingencyValue(result, "l34", "g6", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "g6", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "g6", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "g6", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d, getContingencyValue(result, "l34", "g6", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2d / 3d, getContingencyValue(result, "l34", "g6", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getContingencyValue(result, "l34", "g6", "l57"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 3d, getContingencyValue(result, "l34", "g6", "l67"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(16, result.getSensitivityValuesContingencies().get("l45").size());
+
+        assertEquals(-2d / 3d, getContingencyValue(result, "l45", "g2", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 3d, getContingencyValue(result, "l45", "g2", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getContingencyValue(result, "l45", "g2", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l45", "g2", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l45", "g2", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l45", "g2", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l45", "g2", "l57"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l45", "g2", "l67"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0d, getContingencyValue(result, "l45", "g6", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l45", "g6", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l45", "g6", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l45", "g6", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l45", "g6", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2d / 3d, getContingencyValue(result, "l45", "g6", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getContingencyValue(result, "l45", "g6", "l57"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 3d, getContingencyValue(result, "l45", "g6", "l67"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testConnectivityLossOnTwoComponentAtATime() {
         Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
         runDcLf(network);
@@ -329,6 +465,59 @@ public class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityA
         assertEquals(-2d / 3d, getContingencyValue(result, "l34+l45", "g6", "l56"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-1d / 3d, getContingencyValue(result, "l34+l45", "g6", "l57"), LoadFlowAssert.DELTA_POWER);
         assertEquals(1d / 3d, getContingencyValue(result, "l34+l45", "g6", "l67"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testLosingConnectivityOnTwoBranches() {
+        Network network = ConnectedComponentNetworkFactory.createThreeCc();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", false);
+        ContingenciesProvider contingenciesProvider = n -> {
+            List<Contingency> contingencies = new ArrayList<>();
+            contingencies.add(new Contingency("l34+l47", new BranchContingency("l34"), new BranchContingency("l47")));
+            return contingencies;
+        };
+        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                network.getBranchStream().collect(Collectors.toList()));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingenciesProvider,
+                sensiParameters, LocalComputationManager.getDefault())
+                                                        .join();
+
+        assertEquals(1, result.getSensitivityValuesContingencies().size());
+        assertEquals(33, result.getSensitivityValuesContingencies().get("l34+l47").size());
+
+        assertEquals(-2d / 3d, getContingencyValue(result, "l34+l47", "g2", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getContingencyValue(result, "l34+l47", "g2", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 3d, getContingencyValue(result, "l34+l47", "g2", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g2", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g2", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g2", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g2", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g2", "l78"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g2", "l79"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g2", "l89"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g6", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g6", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g6", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g6", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getContingencyValue(result, "l34+l47", "g6", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2d / 3d, getContingencyValue(result, "l34+l47", "g6", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getContingencyValue(result, "l34+l47", "g6", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g6", "l78"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g6", "l79"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g6", "l89"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g9", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g9", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g9", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g9", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g9", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g9", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34+l47", "g9", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getContingencyValue(result, "l34+l47", "g9", "l78"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2d / 3d, getContingencyValue(result, "l34+l47", "g9", "l79"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getContingencyValue(result, "l34+l47", "g9", "l89"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
