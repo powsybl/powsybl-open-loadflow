@@ -56,7 +56,7 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
             }
 
             if (phiEquation.getTerms().isEmpty()) { // we just created it
-                phiEquation.addTerm(new BusPhaseEquationTerm(slackBus, equationSystem.getVariableSet()));
+                phiEquation.addTerm(new BusPhaseEquationTerm(slackBus, new VariableSet())); // Phi was not in the variableset anyway
                 createdEquations.add(phiEquation);
             }
 
