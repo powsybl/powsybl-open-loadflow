@@ -328,7 +328,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         if (shunt.isVoltageRegulatorOn()) {
             LfBus controllerBus = lfNetwork.getBusById(controllerBusId);
             if (controllerBus == null) {
-                LOGGER.warn("Voltage controlled bus {} is out of voltage: no voltage control created", controllerBus.getId());
+                LOGGER.warn("Voltage controlled bus {} is out of voltage: no voltage control created", controllerBusId);
                 return;
             }
             Terminal regulatingTerminal = shunt.getRegulatingTerminal();
