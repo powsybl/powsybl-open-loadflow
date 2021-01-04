@@ -252,7 +252,6 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         Map<SensitivityVariableConfiguration, SensitivityFactorGroup> remainingFactors = indexFactorsByVariableConfig(network, connectivity, factors, lfNetwork, lfParameters);
 
         // now, we use the connectivity to know if some sensitivities must be 0
-        // todo: I feel like this would have really bad performances
         for (SensitivityFactor factor : factors) {
             if (!(factor instanceof BranchFlowPerInjectionIncrease)) {
                 throw new UnsupportedOperationException("Only factors of type BranchFlowPerInjectionIncrease are supported for post-contingency analysis");
@@ -266,7 +265,6 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         }
         connectivity.reset();
         // then, we need to compute the states for the new distribution of the slack
-        // todo: maybe this should be a recursive call ? (to investigate)
         DenseMatrix states;
         if (lfParameters.isDistributedSlack()) {
             DenseMatrix rhs = initRhs(lfNetwork, equationSystem, remainingFactors);

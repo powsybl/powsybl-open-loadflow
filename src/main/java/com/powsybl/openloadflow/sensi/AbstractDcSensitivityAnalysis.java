@@ -59,7 +59,6 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
             if (connectivity != null) {
                 return connectivity;
             }
-            // todo: this is a copy/paste from OpenSecurityAnalysis, find a way to refactor and not duplicate code
             connectivity = new NaiveGraphDecrementalConnectivity<>(LfBus::getNum); // FIXME: use EvenShiloach
             for (LfBus bus : network.getBuses()) {
                 connectivity.addVertex(bus);

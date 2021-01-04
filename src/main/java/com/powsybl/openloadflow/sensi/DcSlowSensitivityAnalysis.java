@@ -15,8 +15,7 @@ import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.sa.LfContingency;
-import com.powsybl.openloadflow.sa.OpenSecurityAnalysis;
+import com.powsybl.openloadflow.network.impl.LfContingency;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
 import org.apache.commons.lang3.tuple.Pair;
@@ -35,80 +34,87 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         super(matrixFactory);
     }
 
+    private class ContingencyManager {
+        LfNetwork network;
+        EquationSystem equationSystem;
+        private GraphDecrementalConnectivity<LfBus> connectivity;
+        private List<Equation> deactivatedEquations = new LinkedList<>();
+        private List<EquationTerm> deactivatedEquationTerms = new LinkedList<>();
+        private List<Equation> createdEquations = new LinkedList<>();
+
+        public ContingencyManager(LfNetwork network, EquationSystem equationSystem, GraphDecrementalConnectivity<LfBus> connectivity) {
+            this.network = network;
+            this.equationSystem = equationSystem;
+            this.connectivity = connectivity;
+        }
+
+        private void modifySlackBus(EquationSystem equationSystem, LfBus slackBus, List<Equation> createdEquations, List<Equation> deactivatedEquations) {
+            Equation phiEquation = equationSystem.createEquation(slackBus.getNum(), EquationType.BUS_PHI);
+            if (!phiEquation.isActive()) {
+                phiEquation.setActive(true);
+                createdEquations.add(phiEquation);
+            }
+
+            if (phiEquation.getTerms().size() == 0) {
+                phiEquation.addTerm(new BusPhaseEquationTerm(slackBus, equationSystem.getVariableSet()));
+                createdEquations.add(phiEquation);
+            }
+
+            Equation equation = equationSystem.createEquation(slackBus.getNum(), EquationType.BUS_P);
+            if (equation.isActive()) {
+                equation.setActive(false);
+                deactivatedEquations.add(equation);
+            }
+        }
+
+        public void applyContingency(LfContingency contingency) {
+            LfContingency.deactivateEquations(contingency, equationSystem, deactivatedEquations, deactivatedEquationTerms);
+            contingency.getContingency().getElements().forEach(element -> {
+                if (!element.getType().equals(ContingencyElementType.BRANCH)) {
+                    throw new UnsupportedOperationException("Only contingency on a branch is yet supported");
+                }
+                LfBranch lfBranch = network.getBranchById(element.getId());
+                connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2());
+            });
+
+            // We need to define a slack for each connected component
+            Map<Integer, LfBus> slackPerConnectedComponent = new HashMap<>();
+            LfBus slackBus = network.getSlackBus();
+            slackPerConnectedComponent.put(connectivity.getComponentNumber(slackBus), slackBus);
+            for (ContingencyElement element : contingency.getContingency().getElements()) {
+                LfBranch contingencyBranch = network.getBranchById(element.getId());
+
+                slackPerConnectedComponent.putIfAbsent(connectivity.getComponentNumber(contingencyBranch.getBus1()), contingencyBranch.getBus1());
+                slackPerConnectedComponent.putIfAbsent(connectivity.getComponentNumber(contingencyBranch.getBus2()), contingencyBranch.getBus2());
+            }
+
+            for (LfBus ccSlackBus : slackPerConnectedComponent.values()) {
+                modifySlackBus(equationSystem, ccSlackBus, createdEquations, deactivatedEquations);
+            }
+        }
+
+        public void reset() {
+            LfContingency.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
+            for (Equation equation : createdEquations) {
+                equation.setActive(false);
+            }
+            connectivity.reset();
+        }
+    }
+
     private static final Logger LOGGER = LoggerFactory.getLogger(DcSlowSensitivityAnalysis.class);
 
-    // todo: could be a static method of LfContingency (or a new constructor) ?
-    private LfContingency createLfContingency(LfNetwork lfNetwork, Contingency contingency) {
-        Set<LfBus> contingencyBuses = new HashSet<>();
-        Set<LfBranch> contingencyBranches = new HashSet<>();
-        for (ContingencyElement element : contingency.getElements()) {
-            if (!element.getType().equals(ContingencyElementType.BRANCH)) {
-                throw new UnsupportedOperationException("Only contingency on a branch is yet supported");
-            }
-            contingencyBranches.add(lfNetwork.getBranchById(element.getId()));
-        }
-        return new LfContingency(contingency, contingencyBuses, contingencyBranches);
-    }
-
-    private void modifySlackBus(EquationSystem equationSystem, LfBus slackBus, List<Equation> createdEquations, List<Equation> deactivatedEquations) {
-        Equation phiEquation = equationSystem.createEquation(slackBus.getNum(), EquationType.BUS_PHI);
-        if (!phiEquation.isActive()) {
-            phiEquation.setActive(true);
-            createdEquations.add(phiEquation);
-        }
-
-        if (phiEquation.getTerms().size() == 0) {
-            phiEquation.addTerm(new BusPhaseEquationTerm(slackBus, equationSystem.getVariableSet()));
-            createdEquations.add(phiEquation);
-        }
-
-        Equation equation = equationSystem.createEquation(slackBus.getNum(), EquationType.BUS_P);
-        if (equation.isActive()) {
-            equation.setActive(false);
-            deactivatedEquations.add(equation);
-        }
-    }
-
     public List<SensitivityValue> analyseContingency(Network network, LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity,
-                                                     EquationSystem equationSystem,  Contingency contingency, List<SensitivityFactor> factors,
+                                                     EquationSystem equationSystem, Contingency contingency, List<SensitivityFactor> factors,
                                                      Map<String, Double> functionReferenceByBranch, LoadFlowParameters loadFlowParameters) {
 
         LOGGER.info("Slow sensitivity analysis for contingency " + contingency.getId());
 
-        List<Equation> deactivatedEquations = new LinkedList<>();
-        List<EquationTerm> deactivatedEquationTerms = new LinkedList<>();
-        List<Equation> createdEquations = new LinkedList<>();
-        OpenSecurityAnalysis.deactivateEquations(createLfContingency(lfNetwork, contingency), equationSystem, deactivatedEquations, deactivatedEquationTerms);
-        contingency.getElements().forEach(element -> {
-            if (!element.getType().equals(ContingencyElementType.BRANCH)) {
-                throw new UnsupportedOperationException("Only contingency on a branch is yet supported");
-            }
-            LfBranch lfBranch = lfNetwork.getBranchById(element.getId());
-            connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2());
-        });
-
-        // We need to define a slack for each connected component
-        Map<Integer, LfBus> slackPerConnectedComponent = new HashMap<>();
-        LfBus slackBus = lfNetwork.getSlackBus();
-        slackPerConnectedComponent.put(connectivity.getComponentNumber(slackBus), slackBus);
-        for (ContingencyElement element : contingency.getElements()) {
-            LfBranch contingencyBranch = lfNetwork.getBranchById(element.getId());
-
-            slackPerConnectedComponent.putIfAbsent(connectivity.getComponentNumber(contingencyBranch.getBus1()), contingencyBranch.getBus1());
-            slackPerConnectedComponent.putIfAbsent(connectivity.getComponentNumber(contingencyBranch.getBus2()), contingencyBranch.getBus2());
-        }
-
-        for (LfBus ccSlackBus : slackPerConnectedComponent.values()) {
-            modifySlackBus(equationSystem, ccSlackBus, createdEquations, deactivatedEquations);
-        }
-
+        ContingencyManager manager = new ContingencyManager(lfNetwork, equationSystem, connectivity);
+        manager.applyContingency(LfContingency.create(lfNetwork, contingency));
         Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = indexFactorsByVariableConfig(network, connectivity, factors, lfNetwork, loadFlowParameters);
         List<SensitivityValue> contingencyValues = analyse(lfNetwork, equationSystem, factorsByVarConfig, functionReferenceByBranch, loadFlowParameters);
-        OpenSecurityAnalysis.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
-        for (Equation equation : createdEquations) {
-            equation.setActive(false);
-        }
-        connectivity.reset();
+        manager.reset();
         return contingencyValues;
     }
 
