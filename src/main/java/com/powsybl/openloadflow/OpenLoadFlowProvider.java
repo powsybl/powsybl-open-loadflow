@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow;
 
 import com.google.auto.service.AutoService;
-import com.google.common.collect.ImmutableMap;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
@@ -41,7 +40,10 @@ import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -82,13 +84,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return AcLoadFlowObserver.of(observers);
     }
 
-    private static ImmutableMap<String, String> createMetrics(AcLoadFlowResult result) {
-        String prefix = "network_" + result.getNetwork().getNum() + "_";
-        return ImmutableMap.of(prefix + "iterations", Integer.toString(result.getNewtonRaphsonIterations()),
-                               prefix + "status", result.getNewtonRaphsonStatus().name());
-    }
-
-    private static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters) {
+    public static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters) {
         switch (parameters.getVoltageInitMode()) {
             case UNIFORM_VALUES:
                 return new UniformValueVoltageInitializer();
@@ -180,14 +176,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 SlackTerminal.reset(network);
             }
 
-            Map<String, String> metrics = new HashMap<>();
             List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
             for (AcLoadFlowResult result : results) {
                 // update network state
                 result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(), parameters.isWriteSlackBus(),
                     parameters.isPhaseShifterRegulationOn(), parameters.isTransformerVoltageControlOn());
-
-                metrics.putAll(createMetrics(result));
 
                 LoadFlowResult.ComponentResult.Status status;
                 switch (result.getNewtonRaphsonStatus()) {
@@ -222,7 +215,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 }).complete();
             }
 
-            return new LoadFlowResultImpl(ok, metrics, null, componentResults);
+            return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
         });
     }
 
@@ -240,14 +233,24 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
             Networks.resetState(network);
 
-            if (result.isOk() && parameters.isWriteSlackBus()) {
+            if (result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED && parameters.isWriteSlackBus()) {
                 SlackTerminal.reset(network);
             }
 
             result.getNetwork().updateState(false, parameters.isWriteSlackBus(), parameters.isPhaseShifterRegulationOn(),
                     parameters.isTransformerVoltageControlOn());
 
-            return new LoadFlowResultImpl(result.isOk(), Collections.emptyMap(), null);
+            LoadFlowResult.ComponentResult componentResult = new LoadFlowResultImpl.ComponentResultImpl(
+                    result.getNetwork().getNum(),
+                    result.getStatus(),
+                    0,
+                    result.getNetwork().getSlackBus().getId(),
+                    result.getSlackBusActivePowerMismatch() * PerUnit.SB);
+
+            return new LoadFlowResultImpl(result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED,
+                                          Collections.emptyMap(),
+                                          null,
+                                          Collections.singletonList(componentResult));
         });
     }
 

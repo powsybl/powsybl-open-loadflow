@@ -15,6 +15,10 @@ public interface LfGenerator {
 
     String getId();
 
+    LfBus getBus();
+
+    void setBus(LfBus bus);
+
     boolean hasVoltageControl();
 
     OptionalDouble getRemoteControlReactiveKey();

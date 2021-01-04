@@ -42,8 +42,18 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
+    public double getP1() {
+        return Double.NaN;
+    }
+
+    @Override
     public void setP2(Evaluable p2) {
         // nothing to do
+    }
+
+    @Override
+    public double getP2() {
+        return Double.NaN;
     }
 
     @Override

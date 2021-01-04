@@ -262,6 +262,7 @@ public abstract class AbstractLfBus implements LfBus {
     private void add(LfGenerator generator, boolean voltageControl, double targetV, double targetQ,
                      LfNetworkLoadingReport report) {
         generators.add(generator);
+        generator.setBus(this);
         boolean modifiedVoltageControl = voltageControl;
         double maxRangeQ = generator.getMaxRangeQ();
         if (voltageControl && maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
