@@ -226,7 +226,7 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
 
         // connectivity analysis
         List<List<ComputedContingencyElement>> groupOfElementsBreakingConnectivity = getElementsBreakingConnectivity(lfNetwork, postContingenciesStates, elements, equationSystem);
-        if (groupOfElementsBreakingConnectivity.size() == 0) { // connectivity not broken
+        if (groupOfElementsBreakingConnectivity.isEmpty()) { // connectivity not broken
             return calculateSensitivityValues(lfNetwork, equationSystem, factorsByVarConfig, preContingencyStates,
                     postContingenciesStates, functionReferenceByBranch, elements, Collections.emptyMap());
         }
@@ -277,6 +277,7 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
                 functionReferenceByBranch, elements, postContingenciesPredefinedResults);
     }
 
+    @Override
     public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors,
                                                                                      List<Contingency> contingencies, LoadFlowParameters lfParameters,
                                                                                      OpenLoadFlowParameters lfParametersExt) {
@@ -287,7 +288,7 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         // create the network (we only manage main connected component)
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParametersExt.getSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        checkContingencies(network, lfNetwork, contingencies);
+        checkContingencies(lfNetwork, contingencies);
         checkSensitivities(network, lfNetwork, factors);
         LazyConnectivity connectivity = new LazyConnectivity(lfNetwork);
 

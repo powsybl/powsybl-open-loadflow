@@ -55,7 +55,7 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
                 createdEquations.add(phiEquation);
             }
 
-            if (phiEquation.getTerms().size() == 0) {
+            if (phiEquation.getTerms().isEmpty()) { // we just created it
                 phiEquation.addTerm(new BusPhaseEquationTerm(slackBus, equationSystem.getVariableSet()));
                 createdEquations.add(phiEquation);
             }
@@ -108,7 +108,7 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
                                                      EquationSystem equationSystem, Contingency contingency, List<SensitivityFactor> factors,
                                                      Map<String, Double> functionReferenceByBranch, LoadFlowParameters loadFlowParameters) {
 
-        LOGGER.info("Slow sensitivity analysis for contingency " + contingency.getId());
+        LOGGER.info("Slow sensitivity analysis for contingency: {}", contingency.getId());
 
         ContingencyManager manager = new ContingencyManager(lfNetwork, equationSystem, connectivity);
         manager.applyContingency(LfContingency.create(lfNetwork, contingency));
@@ -136,6 +136,7 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         return calculateSensitivityValues(lfNetwork, equationSystem, factorsByVarConfig, states, functionReferenceByBranch);
     }
 
+    @Override
     public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors,
                                                                                      List<Contingency> contingencies, LoadFlowParameters lfParameters,
                                                                                      OpenLoadFlowParameters lfParametersExt) {
@@ -145,7 +146,7 @@ public class DcSlowSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
 
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParametersExt.getSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        checkContingencies(network, lfNetwork, contingencies);
+        checkContingencies(lfNetwork, contingencies);
         checkSensitivities(network, lfNetwork, factors);
 
         LazyConnectivity connectivity = new LazyConnectivity(lfNetwork);

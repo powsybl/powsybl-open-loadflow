@@ -102,40 +102,40 @@ public class LfContingency {
             LOGGER.trace("Remove equations and equations terms related to branch '{}'", branch.getId());
 
             // deactivate all equations related to a branch
-            for (Equation equation : equationSystem.getEquations(SubjectType.BRANCH, branch.getNum())) {
-                if (equation.isActive()) {
-                    equation.setActive(false);
-                    deactivatedEquations.add(equation);
-                }
-            }
+            equationSystem.getEquations(SubjectType.BRANCH, branch.getNum()).stream()
+                          .filter(Equation::isActive)
+                          .forEach(equation -> {
+                              equation.setActive(false);
+                              deactivatedEquations.add(equation);
+                          });
 
             // deactivate all equation terms related to a branch
-            for (EquationTerm equationTerm : equationSystem.getEquationTerms(SubjectType.BRANCH, branch.getNum())) {
-                if (equationTerm.isActive()) {
-                    equationTerm.setActive(false);
-                    deactivatedEquationTerms.add(equationTerm);
-                }
-            }
+            equationSystem.getEquationTerms(SubjectType.BRANCH, branch.getNum()).stream()
+                          .filter(EquationTerm::isActive)
+                          .forEach(equationTerm -> {
+                              equationTerm.setActive(false);
+                              deactivatedEquationTerms.add(equationTerm);
+                          });
         }
 
         for (LfBus bus : getBuses()) {
             LOGGER.trace("Remove equations and equation terms related to bus '{}'", bus.getId());
 
             // deactivate all equations related to a bus
-            for (Equation equation : equationSystem.getEquations(SubjectType.BUS, bus.getNum())) {
-                if (equation.isActive()) {
-                    equation.setActive(false);
-                    deactivatedEquations.add(equation);
-                }
-            }
+            equationSystem.getEquations(SubjectType.BUS, bus.getNum()).stream()
+                          .filter(Equation::isActive)
+                          .forEach(equation -> {
+                              equation.setActive(false);
+                              deactivatedEquations.add(equation);
+                          });
 
             // deactivate all equation terms related to a bus
-            for (EquationTerm equationTerm : equationSystem.getEquationTerms(SubjectType.BUS, bus.getNum())) {
-                if (equationTerm.isActive()) {
-                    equationTerm.setActive(false);
-                    deactivatedEquationTerms.add(equationTerm);
-                }
-            }
+            equationSystem.getEquationTerms(SubjectType.BUS, bus.getNum()).stream()
+                          .filter(EquationTerm::isActive)
+                          .forEach(equationTerm -> {
+                              equationTerm.setActive(false);
+                              deactivatedEquationTerms.add(equationTerm);
+                          });
         }
     }
 

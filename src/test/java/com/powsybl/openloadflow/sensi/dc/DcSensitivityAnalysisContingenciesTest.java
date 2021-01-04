@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysisTest {
+class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysisTest {
     @Test
     void testContingencyWithOneElementAwayFromSlack() {
         Network network = FourBusNetworkFactory.create();

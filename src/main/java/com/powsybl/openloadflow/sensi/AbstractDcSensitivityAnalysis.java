@@ -329,7 +329,7 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         }
     }
 
-    public void checkContingencies(Network network, LfNetwork lfNetwork, List<Contingency> contingencies) {
+    public void checkContingencies(LfNetwork lfNetwork, List<Contingency> contingencies) {
         for (Contingency contingency : contingencies) {
             for (ContingencyElement contingencyElement : contingency.getElements()) {
                 if (!contingencyElement.getType().equals(ContingencyElementType.BRANCH)) {
