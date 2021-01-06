@@ -100,11 +100,10 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         super(matrixFactory);
     }
 
-    private SensitivityValue createBranchSensitivityValue(LfBranch lfBranch, EquationSystem equationSystem,
+    private SensitivityValue createBranchSensitivityValue(ClosedBranchSide1DcFlowEquationTerm p1,
                                                           SensitivityFactor<?, ?> factor, SensitivityFactorGroup factorGroup,
                                                           DenseMatrix states, Double functionReference,
                                                           List<ComputedContingencyElement> contingencyElements, Double predefinedValue) {
-        ClosedBranchSide1DcFlowEquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
         double value;
         if (predefinedValue != null) {
             value = predefinedValue;
@@ -127,22 +126,23 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
                                                                 DenseMatrix states, Map<String, Double> functionReferenceByBranch,
                                                                 List<ComputedContingencyElement> contingencyElements, Map<SensitivityFactor, Double> predefinedResults) {
         List<SensitivityValue> sensitivityValuesContingencies = new ArrayList<>();
+        Map<String, ClosedBranchSide1DcFlowEquationTerm> equationTermByBranchId = new HashMap<>(); // cache the equation term for each branch, because getting it is expensive
+
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             setAlphas(contingencyElements, factorGroup, states, lfNetwork, equationSystem);
             for (SensitivityFactor<?, ?> factor : factorGroup.getFactors()) {
+                String branchId;
                 if (factor instanceof BranchFlowPerInjectionIncrease) {
-                    BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
-                    String branchId = injectionFactor.getFunction().getBranchId();
-                    sensitivityValuesContingencies.add(createBranchSensitivityValue(lfNetwork.getBranchById(branchId), equationSystem,
-                            factor, factorGroup, states, functionReferenceByBranch.get(branchId), contingencyElements, predefinedResults.get(factor)));
+                    branchId = ((BranchFlowPerInjectionIncrease) factor).getFunction().getBranchId();
                 } else if (factor instanceof BranchFlowPerPSTAngle) {
-                    BranchFlowPerPSTAngle pstAngleFactor = (BranchFlowPerPSTAngle) factor;
-                    String branchId = pstAngleFactor.getFunction().getBranchId();
-                    sensitivityValuesContingencies.add(createBranchSensitivityValue(lfNetwork.getBranchById(branchId), equationSystem,
-                            factor, factorGroup, states, functionReferenceByBranch.get(branchId), contingencyElements, predefinedResults.get(factor)));
+                    branchId = ((BranchFlowPerPSTAngle) factor).getFunction().getBranchId();
                 } else {
                     throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
                 }
+                LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+                ClosedBranchSide1DcFlowEquationTerm p1 = equationTermByBranchId.computeIfAbsent(branchId, branch -> equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class));
+                sensitivityValuesContingencies.add(createBranchSensitivityValue(p1,
+                        factor, factorGroup, states, functionReferenceByBranch.get(branchId), contingencyElements, predefinedResults.get(factor)));
             }
         }
         return sensitivityValuesContingencies;
