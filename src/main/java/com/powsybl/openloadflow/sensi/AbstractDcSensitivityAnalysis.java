@@ -199,7 +199,7 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
     }
 
     protected void computeFactorsInjection(Function<String, Map<String, Double>> getParticipationForBus, List<SensitivityFactorGroup> factorsGroups, Map<SensitivityFactor, Double> predefinedResult) {
-        // index factors by variable config
+        // compute the corresponding injection (with participation) for each factor
         for (SensitivityFactorGroup factorGroup : factorsGroups) {
             if (factorGroup instanceof InjectionFactorGroup) {
                 InjectionFactorGroup injectionGroup = (InjectionFactorGroup) factorGroup;

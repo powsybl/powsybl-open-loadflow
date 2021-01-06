@@ -381,11 +381,17 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
             }
 
             for (SensitivityFactor factor : factors) {
-                if (!(factor instanceof BranchFlowPerInjectionIncrease)) {
-                    throw new UnsupportedOperationException("Only factors of type BranchFlowPerInjectionIncrease are supported for post-contingency analysis");
-                }
                 LfBranch lfBranch = lfNetwork.getBranchById(factor.getFunction().getId());
-                LfBus lfBus = getInjectionBus(network, lfNetwork, (BranchFlowPerInjectionIncrease) factor);
+                LfBus lfBus;
+                if (factor instanceof BranchFlowPerInjectionIncrease) {
+                    lfBus = getInjectionBus(network, lfNetwork, (BranchFlowPerInjectionIncrease) factor);
+                } else if (factor instanceof  BranchFlowPerPSTAngle) {
+                    LfBranch transformerBranch = getPhaseChangerBranch(network, lfNetwork, (BranchFlowPerPSTAngle) factor);
+                    lfBus = transformerBranch.getBus1();
+                    // todo: we are making the assumption that the transformer is not a contingency element
+                } else {
+                    throw new UnsupportedOperationException("Only factors of type BranchFlowPerInjectionIncrease and BranchFlowPerPSTAngle are supported for post-contingency analysis");
+                }
                 if (connectivity.getConnectivity().getComponentNumber(lfBus) != connectivity.getConnectivity().getComponentNumber(lfBranch.getBus1())
                     || connectivity.getConnectivity().getComponentNumber(lfBus) != connectivity.getConnectivity().getComponentNumber(lfBranch.getBus2()))  {
                     predefinedResults.put(factor, 0d);

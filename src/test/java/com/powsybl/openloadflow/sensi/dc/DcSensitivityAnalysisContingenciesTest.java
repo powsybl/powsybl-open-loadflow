@@ -7,6 +7,7 @@ import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
@@ -14,9 +15,12 @@ import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
+import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
+import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -397,5 +401,50 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertTrue(Double.isNaN(getContingencyValue(result, "l34", "d6", "l45")));
         assertTrue(Double.isNaN(getContingencyValue(result, "l34", "d6", "l46")));
         assertTrue(Double.isNaN(getContingencyValue(result, "l34", "d6", "l56")));
+    }
+
+    @Test
+    void testPhaseShifterUnrelatedContingency() {
+        Network network = FourBusNetworkFactory.createWithTransfo();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0");
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("l23");
+        SensitivityFactorsProvider factorsProvider = n -> {
+            List<SensitivityFactor> factors = new LinkedList<>();
+            network.getBranches().forEach(branch -> factors.add(new BranchFlowPerPSTAngle(createBranchFlow(branch),
+                    new PhaseTapChangerAngle(ps1.getId(), ps1.getNameOrId(), ps1.getId()))));
+            return factors;
+        };
+
+        ContingenciesProvider contingenciesProvider = n -> {
+            List<Contingency> contingencies = new ArrayList<>();
+            contingencies.add(new Contingency("l14", new BranchContingency("l14")));
+            return contingencies;
+        };
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingenciesProvider,
+                sensiParameters, LocalComputationManager.getDefault())
+                                                        .join();
+
+        assertEquals(5, result.getSensitivityValues().size());
+        assertEquals(15d / 4d * Math.PI / 180d, getValue(result, "l23", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-10d / 4d * Math.PI / 180d, getValue(result, "l23", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-5d / 4d * Math.PI / 180d, getValue(result, "l23", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(15d / 4d * Math.PI / 180d, getValue(result, "l23", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(5d / 4d * Math.PI / 180d, getValue(result, "l23", "l34"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(1, result.getSensitivityValuesContingencies().size());
+        assertEquals(5, result.getSensitivityValuesContingencies().get("l14").size());
+
+        assertEquals(10d / 3d * Math.PI / 180d, getContingencyValue(result, "l14", "l23", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-10d / 3d * Math.PI / 180d, getContingencyValue(result, "l14", "l23", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l14", "l23", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(10d / 3d * Math.PI / 180d, getContingencyValue(result, "l14", "l23", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l14", "l23", "l34"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testPhaseShifterConnectivityLoss() {
+        // TODO
     }
 }

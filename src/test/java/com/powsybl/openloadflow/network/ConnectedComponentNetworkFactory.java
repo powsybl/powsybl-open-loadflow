@@ -2,6 +2,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.TwoWindingsTransformer;
 
 public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFactory {
     public static Network createTwoCcLinkedByASingleLine() {
@@ -19,6 +20,40 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         createLine(network, b4, b5, "l45", 0.1f);
         createLine(network, b4, b6, "l46", 0.1f);
         createLine(network, b5, b6, "l56", 0.1f);
+        return network;
+    }
+
+    public static Network createTwoCcWithATransformerLinkedByASingleLine() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        Bus b5 = createBus(network, "test_s", "b5");
+        Bus b6 = createBus(network, "test_s", "b6");
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b3, "l13", 0.1f);
+        createLine(network, b2, b3, "l23", 0.1f);
+        createLine(network, b3, b4, "l34", 0.1f);
+        createLine(network, b4, b5, "l45", 0.1f);
+        createLine(network, b4, b6, "l46", 0.1f);
+        TwoWindingsTransformer twt = createTransformer(network, "test_s", b5, b6, "l56", 0.1f, 1d);
+        twt.newPhaseTapChanger().setTapPosition(0)
+           .beginStep()
+           .setR(0)
+           .setX(0.1f)
+           .setG(0)
+           .setB(0)
+           .setRho(1)
+           .setAlpha(1)
+           .endStep()
+           .add();
+        createGenerator(b2, "g2", 3);
+        createGenerator(b6, "g6", 2);
+        createLoad(b1, "d1", 1);
+        createLoad(b3, "d3", 1);
+        createLoad(b4, "d4", 1);
+        createLoad(b5, "d5", 2);
         return network;
     }
 
