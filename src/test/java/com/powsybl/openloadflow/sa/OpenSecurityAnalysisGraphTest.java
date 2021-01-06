@@ -27,7 +27,6 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
-import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -39,6 +38,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
@@ -88,23 +90,23 @@ class OpenSecurityAnalysisGraphTest {
     }
 
     private void checkResult(List<List<LfContingency>> result) {
-        Assert.assertEquals(reference.size(), result.size());
+        assertEquals(reference.size(), result.size());
         for (int iNetwork = 0; iNetwork < result.size(); iNetwork++) {
-            Assert.assertEquals(reference.get(iNetwork).size(), result.get(iNetwork).size());
+            assertEquals(reference.get(iNetwork).size(), result.get(iNetwork).size());
             for (int iContingency = 0; iContingency < result.get(iNetwork).size(); iContingency++) {
                 LfContingency contingencyReference = reference.get(iNetwork).get(iContingency);
                 LfContingency contingencyResult = result.get(iNetwork).get(iContingency);
-                Assert.assertEquals(contingencyReference.getContingency().getId(), contingencyResult.getContingency().getId());
+                assertEquals(contingencyReference.getContingency().getId(), contingencyResult.getContingency().getId());
 
                 Set<LfBranch> branchesReference = contingencyReference.getBranches();
                 Set<LfBranch> branchesResult = contingencyResult.getBranches();
-                Assert.assertEquals(branchesReference.size(), branchesResult.size());
-                branchesReference.forEach(b -> Assert.assertTrue(branchesResult.stream().anyMatch(b1 -> b1.getId().equals(b.getId()))));
+                assertEquals(branchesReference.size(), branchesResult.size());
+                branchesReference.forEach(b -> assertTrue(branchesResult.stream().anyMatch(b1 -> b1.getId().equals(b.getId()))));
 
                 Set<LfBus> busesReference = contingencyReference.getBuses();
                 Set<LfBus> busesResult = contingencyResult.getBuses();
-                Assert.assertEquals(busesReference.size(), busesResult.size());
-                busesReference.forEach(b -> Assert.assertTrue(busesResult.stream().anyMatch(b1 -> b1.getId().equals(b.getId()))));
+                assertEquals(busesReference.size(), busesResult.size());
+                busesReference.forEach(b -> assertTrue(busesResult.stream().anyMatch(b1 -> b1.getId().equals(b.getId()))));
             }
         }
     }
