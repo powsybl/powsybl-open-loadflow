@@ -266,13 +266,12 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
             }
             V w = verticesToUpdate.removeFirst();  // step (2)
             LevelNeighbours levelNeighbours = levelNeighboursMap.get(w);
-            if (!savedChangedLevels.containsKey(w)) {
-                savedChangedLevels.put(w, new LevelNeighbours(levelNeighbours));
-            }
+            savedChangedLevels.computeIfAbsent(w, vertex -> new LevelNeighbours(levelNeighbours));
             levelNeighbours.level++; // step (3)
             for (V localNeighbour : levelNeighbours.sameLevel) { // step (4)
                 if (w != localNeighbour) {
                     LevelNeighbours lnln = levelNeighboursMap.get(localNeighbour);
+                    savedChangedLevels.computeIfAbsent(localNeighbour, vertex -> new LevelNeighbours(lnln));
                     lnln.sameLevel.remove(w);
                     lnln.upperLevel.add(w);
                 }
@@ -280,6 +279,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
             levelNeighbours.lowerLevel.addAll(levelNeighbours.sameLevel); // step (5)
             for (V upperNeighbour : levelNeighbours.upperLevel) { // step (6)
                 LevelNeighbours lnun = levelNeighboursMap.get(upperNeighbour);
+                savedChangedLevels.computeIfAbsent(upperNeighbour, vertex -> new LevelNeighbours(lnun));
                 lnun.lowerLevel.remove(w);
                 lnun.sameLevel.add(w);
                 if (lnun.lowerLevel.isEmpty()) {
