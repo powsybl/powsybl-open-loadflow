@@ -30,6 +30,7 @@ import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -68,48 +69,21 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         }
     }
 
-    protected static class SensitivityVariableConfiguration {
-
-        private final Map<String, Double> busInjectionById;
-
-        private final Set<String> phaseTapChangerHolderIds;
-
-        SensitivityVariableConfiguration(Map<String, Double> busInjectionById, Set<String> phaseTapChangerHolderIds) {
-            this.busInjectionById = Objects.requireNonNull(busInjectionById);
-            this.phaseTapChangerHolderIds = Objects.requireNonNull(phaseTapChangerHolderIds);
-        }
-
-        Map<String, Double> busInjectionById() {
-            return busInjectionById;
-        }
-
-        Set<String> getPhaseTapChangerHolderIds() {
-            return phaseTapChangerHolderIds;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            SensitivityVariableConfiguration that = (SensitivityVariableConfiguration) o;
-            return busInjectionById.equals(that.busInjectionById) && phaseTapChangerHolderIds.equals(that.phaseTapChangerHolderIds);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(busInjectionById);
-        }
-    }
-
     static class SensitivityFactorGroup {
+
+        private final String id;
 
         private final List<SensitivityFactor<?, ?>> factors = new ArrayList<>();
 
         private int index = -1;
+
+        SensitivityFactorGroup(String id) {
+            this.id = Objects.requireNonNull(id);
+        }
+
+        String getId() {
+            return id;
+        }
 
         List<SensitivityFactor<?, ?>> getFactors() {
             return factors;
@@ -121,6 +95,55 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
 
         void setIndex(int index) {
             this.index = index;
+        }
+
+        void addFactor(SensitivityFactor factor) {
+            factors.add(factor);
+        }
+
+        void fillRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Matrix rhs) {
+            throw new NotImplementedException("fillRhs method must be implemented in subclasses");
+        }
+    }
+
+    static class PhaseTapFactorGroup extends SensitivityFactorGroup {
+        PhaseTapFactorGroup(final String id) {
+            super(id);
+        }
+
+        @Override
+        void fillRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Matrix rhs) {
+            LfBranch lfBranch = lfNetwork.getBranchById(getId());
+            Equation a1 = equationSystem.getEquation(lfBranch.getNum(), EquationType.BRANCH_ALPHA1).orElseThrow(IllegalStateException::new);
+            rhs.set(a1.getColumn(), getIndex(), Math.toRadians(1d));
+        }
+    }
+
+    static class InjectionFactorGroup extends SensitivityFactorGroup {
+        Map<String, Double> busInjectionById;
+
+        InjectionFactorGroup(final String id) {
+            super(id);
+        }
+
+        public void setBusInjectionById(final Map<String, Double> busInjectionById) {
+            this.busInjectionById = busInjectionById;
+        }
+
+        @Override
+        void fillRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Matrix rhs) {
+            for (Map.Entry<String, Double> busAndInjection : busInjectionById.entrySet()) {
+                LfBus lfBus = lfNetwork.getBusById(busAndInjection.getKey());
+                int column;
+                if (lfBus.isSlack()) {
+                    Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_PHI).orElseThrow(IllegalStateException::new);
+                    column = p.getColumn();
+                } else {
+                    Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
+                    column = p.getColumn();
+                }
+                rhs.set(column, getIndex(), busAndInjection.getValue() / PerUnit.SB);
+            }
         }
     }
 
@@ -135,38 +158,14 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         return functionReferenceByBranch;
     }
 
-    protected void fillRhsSensitivityVariable(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig, Matrix rhs) {
-        for (Map.Entry<SensitivityVariableConfiguration, SensitivityFactorGroup> e : factorsByVarConfig.entrySet()) {
-            SensitivityVariableConfiguration configuration = e.getKey();
-            SensitivityFactorGroup factorGroup = e.getValue();
-            for (Map.Entry<String, Double> busAndInjection : configuration.busInjectionById().entrySet()) {
-                LfBus lfBus = lfNetwork.getBusById(busAndInjection.getKey());
-                int column;
-                if (lfBus.isSlack()) {
-                    Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_PHI).orElseThrow(IllegalStateException::new);
-                    column = p.getColumn();
-                } else {
-                    Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                    column = p.getColumn();
-                }
-                rhs.set(column, factorGroup.getIndex(), busAndInjection.getValue() / PerUnit.SB);
-            }
-            for (String phaseTapChangerHolderId : configuration.getPhaseTapChangerHolderIds()) {
-                LfBranch lfBranch = lfNetwork.getBranchById(phaseTapChangerHolderId);
-                Equation a1 = equationSystem.getEquation(lfBranch.getNum(), EquationType.BRANCH_ALPHA1).orElseThrow(IllegalStateException::new);
-                rhs.set(a1.getColumn(), factorGroup.getIndex(), Math.toRadians(1d));
-            }
+    protected void fillRhsSensitivityVariable(LfNetwork lfNetwork, EquationSystem equationSystem, List<SensitivityFactorGroup> factorGroups, Matrix rhs) {
+        for (SensitivityFactorGroup factorGroup : factorGroups) {
+            factorGroup.fillRhs(lfNetwork, equationSystem, rhs);
         }
     }
 
-    protected Map<SensitivityVariableConfiguration, SensitivityFactorGroup> indexFactorsByVariableConfig(Network network, Function<Bus, Map<String, Double>> getParticipationForBus, List<SensitivityFactor> factors) {
-        return indexFactorsByVariableConfig(network, getParticipationForBus, factors, new HashMap<>());
-    }
-
-    // todo: I think we just need to rethink the configuration now
-    protected Map<SensitivityVariableConfiguration, SensitivityFactorGroup> indexFactorsByVariableConfig(Network network, Function<Bus, Map<String, Double>> getParticipationForBus, List<SensitivityFactor> factors, Map<SensitivityFactor, Double> predefinedResult) {
-        Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = new LinkedHashMap<>(factors.size());
-
+    protected List<SensitivityFactorGroup> createFactorGroups(Network network, List<SensitivityFactor> factors) {
+        Map<String, SensitivityFactorGroup> groupIndexedById = new HashMap<>(factors.size());
         // index factors by variable config
         for (SensitivityFactor<?, ?> factor : factors) {
             if (factor instanceof BranchFlowPerInjectionIncrease) {
@@ -175,20 +174,7 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
                 Bus bus = injection.getTerminal().getBusView().getBus();
                 // skip disconnected injections
                 if (bus != null) {
-                    Map<String, Double> participationFactorByBus = getParticipationForBus.apply(bus);
-                    if (participationFactorByBus == null) {
-                        predefinedResult.put(factor, Double.NaN);
-                        participationFactorByBus = new HashMap<>();
-                    }
-
-                    Map<String, Double> busInjectionById = new HashMap<>(participationFactorByBus);
-                    busInjectionById.replaceAll((key, value) -> -value); // the slack distribution on a bus is the opposite of its participation factor
-
-                    // add 1 where we are making the injection
-                    busInjectionById.put(bus.getId(), busInjectionById.getOrDefault(bus.getId(), 0d) + 1);
-                    SensitivityVariableConfiguration varConfig = new SensitivityVariableConfiguration(busInjectionById, Collections.emptySet());
-                    factorsByVarConfig.computeIfAbsent(varConfig, k -> new SensitivityFactorGroup())
-                            .getFactors().add(injectionFactor);
+                    groupIndexedById.computeIfAbsent(bus.getId(), id -> new InjectionFactorGroup(bus.getId())).addFactor(injectionFactor);
                 }
             } else if (factor instanceof BranchFlowPerPSTAngle) {
                 BranchFlowPerPSTAngle pstAngleFactor = (BranchFlowPerPSTAngle) factor;
@@ -197,9 +183,7 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
                 if (twt == null) {
                     throw new PowsyblException("Phase shifter '" + phaseTapChangerHolderId + "' not found");
                 }
-                SensitivityVariableConfiguration varConfig = new SensitivityVariableConfiguration(Collections.emptyMap(), Collections.singleton(phaseTapChangerHolderId));
-                factorsByVarConfig.computeIfAbsent(varConfig, k -> new SensitivityFactorGroup())
-                        .getFactors().add(pstAngleFactor);
+                groupIndexedById.computeIfAbsent(phaseTapChangerHolderId, k -> new PhaseTapFactorGroup(phaseTapChangerHolderId)).addFactor(pstAngleFactor);
             } else {
                 throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
             }
@@ -207,11 +191,32 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
 
         // assign an index to each factor group
         int index = 0;
-        for (SensitivityFactorGroup factorGroup : factorsByVarConfig.values()) {
+        for (SensitivityFactorGroup factorGroup : groupIndexedById.values()) {
             factorGroup.setIndex(index++);
         }
 
-        return factorsByVarConfig;
+        return new ArrayList<>(groupIndexedById.values());
+    }
+
+    protected void computeFactorsInjection(Function<String, Map<String, Double>> getParticipationForBus, List<SensitivityFactorGroup> factorsGroups, Map<SensitivityFactor, Double> predefinedResult) {
+        // index factors by variable config
+        for (SensitivityFactorGroup factorGroup : factorsGroups) {
+            if (factorGroup instanceof InjectionFactorGroup) {
+                InjectionFactorGroup injectionGroup = (InjectionFactorGroup) factorGroup;
+                Map<String, Double> participationFactorByBus = getParticipationForBus.apply(factorGroup.getId());
+                if (participationFactorByBus == null) {
+                    factorGroup.getFactors().forEach(factor -> predefinedResult.put(factor, Double.NaN));
+                    participationFactorByBus = new HashMap<>();
+                }
+
+                Map<String, Double> busInjectionById = new HashMap<>(participationFactorByBus);
+
+                // add 1 where we are making the injection
+                busInjectionById.put(factorGroup.getId(), busInjectionById.getOrDefault(factorGroup.getId(), 0d) + 1);
+
+                injectionGroup.setBusInjectionById(busInjectionById);
+            }
+        }
     }
 
     protected LfBus getParticipatingElementBus(ParticipatingElement participatingElement) {
