@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Gaël Macherel <gael.macherel@artelys.com>
  */
-public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
+public class DcSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
 
     static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-6;
 
@@ -96,7 +96,7 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
 
     }
 
-    public DcFastSensitivityAnalysis(MatrixFactory matrixFactory) {
+    public DcSensitivityAnalysis(MatrixFactory matrixFactory) {
         super(matrixFactory);
     }
 

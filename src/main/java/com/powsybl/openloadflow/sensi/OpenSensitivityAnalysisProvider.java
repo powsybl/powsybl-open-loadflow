@@ -18,6 +18,8 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.sensitivity.*;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +32,8 @@ import java.util.concurrent.CompletableFuture;
 @AutoService(SensitivityAnalysisProvider.class)
 public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvider {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(OpenSensitivityAnalysisProvider.class);
+
     private static final String NAME = "OpenSensitivityAnalysis";
 
     private final AbstractDcSensitivityAnalysis dcSensitivityAnalysis;
@@ -41,7 +45,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     }
 
     public OpenSensitivityAnalysisProvider(MatrixFactory matrixFactory) {
-        dcSensitivityAnalysis = new DcFastSensitivityAnalysis(matrixFactory);
+        dcSensitivityAnalysis = new DcSensitivityAnalysis(matrixFactory);
         acSensitivityAnalysis = new AcSensitivityAnalysis(matrixFactory);
     }
 
@@ -85,6 +89,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
             LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
             OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
+
+            LOGGER.info("Running {} sensitivity analysis with {} factors and {} contingencies", lfParameters.isDc() ? "DC" : "AC",
+                    factors.size(), contingencies.size());
 
             Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> sensitivityValues;
             if (lfParameters.isDc()) {
