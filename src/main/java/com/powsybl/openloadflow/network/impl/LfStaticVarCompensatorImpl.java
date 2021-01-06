@@ -74,6 +74,10 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
         return voltagePerReactivePowerControl;
     }
 
+    public StaticVarCompensator getSvc() {
+        return svc;
+    }
+
     @Override
     public String getId() {
         return svc.getId();

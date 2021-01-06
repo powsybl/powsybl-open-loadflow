@@ -12,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowResult;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
 
 import java.util.Iterator;
 
@@ -73,6 +75,46 @@ public final class LoadFlowAssert {
             assertEquals(componentResultExpected.getSlackBusActivePowerMismatch(),
                     componentResult.getSlackBusActivePowerMismatch(), DELTA_MISMATCH,
                     "Wrong active power mismatch");
+        }
+    }
+
+    public static class GreaterThan extends BaseMatcher {
+        private final double lowerValue;
+        private double value;
+
+        public GreaterThan(double lowerValue) {
+            this.lowerValue = lowerValue;
+        }
+
+        @Override
+        public boolean matches(Object value) {
+            this.value = (Double) value;
+            return this.value > this.lowerValue;
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText(this.value + " to be greater than " + this.lowerValue);
+        }
+    }
+
+    public static class LowerThan extends BaseMatcher {
+        private final double greaterValue;
+        private double value;
+
+        public LowerThan(double greaterValue) {
+            this.greaterValue = greaterValue;
+        }
+
+        @Override
+        public boolean matches(Object value) {
+            this.value = (Double) value;
+            return this.value < this.greaterValue;
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText(this.value + " to be lower than " + this.greaterValue);
         }
     }
 }

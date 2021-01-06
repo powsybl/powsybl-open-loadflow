@@ -18,8 +18,15 @@ import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
 
 /**
  * SVC test case.
@@ -165,30 +172,54 @@ class AcLoadFlowSvcTest {
         assertReactivePowerEquals(-svc1.getBmin() * svc1.getVoltageSetpoint() * svc1.getVoltageSetpoint(), svc1.getTerminal()); // min reactive limit has been correctly reached
     }
 
-    @Test
-    void shouldUseLessReactivePower() {
-        parametersExt.setUseBusPVLQ(true);
+    private void run(Network network, Map<String, List<Double>> getterValues) {
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         Generator generator = bus1.getGenerators().iterator().next();
         Load load = bus2.getLoads().iterator().next();
-        load.setQ0(150);
+        getterValues.computeIfAbsent("line1.getTerminal1().getP()", key -> new ArrayList<>()).add(l1.getTerminal1().getP());
+        getterValues.computeIfAbsent("line1.getTerminal1().getQ()", key -> new ArrayList<>()).add(l1.getTerminal1().getQ());
+        getterValues.computeIfAbsent("line1.getTerminal2().getP()", key -> new ArrayList<>()).add(l1.getTerminal2().getP());
+        getterValues.computeIfAbsent("line1.getTerminal2().getQ()", key -> new ArrayList<>()).add(l1.getTerminal2().getQ());
+
+        getterValues.computeIfAbsent("bus1.getV()", key -> new ArrayList<>()).add(bus1.getV());
+        getterValues.computeIfAbsent("bus1.getAngle()", key -> new ArrayList<>()).add(bus1.getAngle());
+        getterValues.computeIfAbsent("generator.getTerminal().getP()", key -> new ArrayList<>()).add(generator.getTerminal().getP());
+        getterValues.computeIfAbsent("generator.getTerminal().getQ()", key -> new ArrayList<>()).add(generator.getTerminal().getQ());
+
+        getterValues.computeIfAbsent("bus2.getV()", key -> new ArrayList<>()).add(bus2.getV());
+        getterValues.computeIfAbsent("bus2.getAngle()", key -> new ArrayList<>()).add(bus2.getAngle());
+        getterValues.computeIfAbsent("load.getTerminal().getP()", key -> new ArrayList<>()).add(load.getTerminal().getP());
+        getterValues.computeIfAbsent("load.getTerminal().getQ()", key -> new ArrayList<>()).add(load.getTerminal().getQ());
+        getterValues.computeIfAbsent("svc1.getTerminal().getP()", key -> new ArrayList<>()).add(svc1.getTerminal().getP());
+        getterValues.computeIfAbsent("svc1.getTerminal().getQ()", key -> new ArrayList<>()).add(svc1.getTerminal().getQ());
+        assertTrue(result.isOk());
+    }
+
+    @Test
+    void shouldUseLessReactivePowerWithBusVLQ() {
+        Map<String, List<Double>> getterValues = new LinkedHashMap<>();
+        parametersExt.setUseBusPVLQ(false);
+
+        svc1.setBmin(-0.002)
+                .setVoltageSetpoint(385)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        run(network, getterValues);
+
+        parametersExt.setUseBusPVLQ(true);
+        Network network = createNetwork();
         svc1.setBmin(-0.002)
                 .setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
                 .newExtension(VoltagePerReactivePowerControlAdder.class)
-                .withSlope(0)
+                .withSlope(0.001)
                 .add();
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        System.out.println("generator.getTerminal().getP() = " + generator.getTerminal().getP());
-        System.out.println("generator.getTerminal().getQ() = " + generator.getTerminal().getQ());
-        System.out.println("l1.getTerminal1().getP() = " + l1.getTerminal1().getP());
-        System.out.println("l1.getTerminal1().getQ() = " + l1.getTerminal1().getQ());
-        System.out.println("l1.getTerminal2().getP() = " + l1.getTerminal2().getP());
-        System.out.println("l1.getTerminal2().getQ() = " + l1.getTerminal2().getQ());
-        System.out.println("load.getTerminal().getP() = " + load.getTerminal().getP());
-        System.out.println("load.getTerminal().getQ() = " + load.getTerminal().getQ());
-        System.out.println("svc1.getTerminal().getP() = " + svc1.getTerminal().getP());
-        System.out.println("svc1.getTerminal().getQ() = " + svc1.getTerminal().getQ());
-        assertTrue(result.isOk());
-        assertReactivePowerEquals(-svc1.getBmin() * svc1.getVoltageSetpoint() * svc1.getVoltageSetpoint(), svc1.getTerminal()); // min reactive limit has been correctly reached
+        run(network, getterValues);
+
+        for (Map.Entry<String, List<Double>> entry : getterValues.entrySet()) {
+            System.out.println(entry.getKey() + " : " + entry.getValue().stream().map(d -> String.valueOf(d)).reduce("", (s1, s2) -> s1 + (s1.isEmpty() ? "" : " ; ") + s2));
+        }
+
+        assertThat("V on bus2 should be greater", getterValues.get("bus2.getV()").get(1), new LoadFlowAssert.GreaterThan(getterValues.get("bus2.getV()").get(0)));
+        assertThat("Q on svc1 should be lower", getterValues.get("svc1.getTerminal().getQ()").get(1), new LoadFlowAssert.LowerThan(getterValues.get("svc1.getTerminal().getQ()").get(0)));
     }
 }

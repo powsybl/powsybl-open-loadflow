@@ -59,10 +59,10 @@ public final class AcEquationSystem {
                                                     && !Double.isNaN(voltagePerReactivePowerControl.getSlope())
                                                     && voltagePerReactivePowerControl.getSlope() != 0;
                                         }).collect(Collectors.toList());
-                        if (lfStaticVarCompensators.isEmpty()) {
+                        if (lfStaticVarCompensators.isEmpty() || bus.getGenerators().size() != lfStaticVarCompensators.size()) {
                             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
                         } else {
-                            equationSystem.createEquation(bus.getNum(), EquationType.BUS_VLQ).addTerm(new StaticVarCompensatorVoltageLambdaQEquationTerm(lfStaticVarCompensators, bus, variableSet));
+                            equationSystem.createEquation(bus.getNum(), EquationType.BUS_VLQ).addTerm(new StaticVarCompensatorVoltageLambdaQEquationTerm(lfStaticVarCompensators, bus, variableSet, equationSystem));
                         }
                     }
                 }
