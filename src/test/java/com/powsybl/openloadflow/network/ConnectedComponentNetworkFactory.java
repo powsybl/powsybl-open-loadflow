@@ -22,6 +22,22 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    public static Network createTwoComponentWithGeneratorOnOneSide() {
+        Network network = createTwoCcLinkedByASingleLine();
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        Bus b6 = network.getBusBreakerView().getBus("b6");
+        Bus b1 = network.getBusBreakerView().getBus("b1");
+        Bus b5 = network.getBusBreakerView().getBus("b5");
+        Bus b3 = network.getBusBreakerView().getBus("b3");
+        Bus b4 = network.getBusBreakerView().getBus("b4");
+        createGenerator(b2, "g2", 3);
+        createGenerator(b3, "g3", 2);
+        createLoad(b1, "d1", 2);
+        createLoad(b5, "d5", 2);
+        createLoad(b6, "d6", 1);
+        return network;
+    }
+
     public static Network createTwoComponentWithGeneratorAndLoad() {
         Network network = createTwoCcLinkedByASingleLine();
         Bus b2 = network.getBusBreakerView().getBus("b2");

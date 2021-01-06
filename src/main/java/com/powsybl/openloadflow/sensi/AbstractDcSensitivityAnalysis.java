@@ -12,14 +12,12 @@ import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.ContingencyElementType;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
-import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
@@ -35,7 +33,7 @@ import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -137,46 +135,7 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         return functionReferenceByBranch;
     }
 
-    protected SensitivityValue createBranchSensitivityValue(LfBranch lfBranch, EquationSystem equationSystem,
-                                                          SensitivityFactor<?, ?> factor, SensitivityFactorGroup factorGroup,
-                                                          DenseMatrix states, Double functionReference) {
-        ClosedBranchSide1DcFlowEquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-        double value = p1.isActive() ? p1.calculate(states, factorGroup.getIndex()) : 0d;
-        return new SensitivityValue(factor, value * PerUnit.SB, functionReference, 0);
-    }
-
-    protected List<SensitivityValue> calculateSensitivityValues(LfNetwork lfNetwork, EquationSystem equationSystem,
-                                                              Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig,
-                                                              DenseMatrix states, Map<String, Double> functionReferenceByBranch) {
-        List<SensitivityValue> sensitivityValues = new ArrayList<>();
-        for (Map.Entry<SensitivityVariableConfiguration, SensitivityFactorGroup> e : factorsByVarConfig.entrySet()) {
-            SensitivityFactorGroup factorGroup = e.getValue();
-            for (SensitivityFactor<?, ?> factor : factorGroup.getFactors()) {
-                if (factor instanceof BranchFlowPerInjectionIncrease) {
-                    BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
-                    String branchId = injectionFactor.getFunction().getBranchId();
-                    sensitivityValues.add(createBranchSensitivityValue(lfNetwork.getBranchById(branchId), equationSystem,
-                            factor, factorGroup, states, functionReferenceByBranch.get(branchId)));
-                } else if (factor instanceof BranchFlowPerPSTAngle) {
-                    BranchFlowPerPSTAngle pstAngleFactor = (BranchFlowPerPSTAngle) factor;
-                    String branchId = pstAngleFactor.getFunction().getBranchId();
-                    sensitivityValues.add(createBranchSensitivityValue(lfNetwork.getBranchById(branchId), equationSystem,
-                            factor, factorGroup, states, functionReferenceByBranch.get(branchId)));
-                } else {
-                    throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
-                }
-            }
-        }
-        return sensitivityValues;
-    }
-
-    protected DenseMatrix initRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig) {
-        DenseMatrix rhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), factorsByVarConfig.size());
-        fillRhs(lfNetwork, equationSystem, factorsByVarConfig, rhs);
-        return rhs;
-    }
-
-    protected void fillRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig, Matrix rhs) {
+    protected void fillRhsSensitivityVariable(LfNetwork lfNetwork, EquationSystem equationSystem, Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig, Matrix rhs) {
         for (Map.Entry<SensitivityVariableConfiguration, SensitivityFactorGroup> e : factorsByVarConfig.entrySet()) {
             SensitivityVariableConfiguration configuration = e.getKey();
             SensitivityFactorGroup factorGroup = e.getValue();
@@ -200,8 +159,12 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         }
     }
 
+    protected Map<SensitivityVariableConfiguration, SensitivityFactorGroup> indexFactorsByVariableConfig(Network network, Function<Bus, Map<String, Double>> getParticipationForBus, List<SensitivityFactor> factors) {
+        return indexFactorsByVariableConfig(network, getParticipationForBus, factors, new HashMap<>());
+    }
+
     // todo: I think we just need to rethink the configuration now
-    protected Map<SensitivityVariableConfiguration, SensitivityFactorGroup> indexFactorsByVariableConfig(Network network, GraphDecrementalConnectivity<LfBus> connectivity, List<SensitivityFactor> factors, LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
+    protected Map<SensitivityVariableConfiguration, SensitivityFactorGroup> indexFactorsByVariableConfig(Network network, Function<Bus, Map<String, Double>> getParticipationForBus, List<SensitivityFactor> factors, Map<SensitivityFactor, Double> predefinedResult) {
         Map<SensitivityVariableConfiguration, SensitivityFactorGroup> factorsByVarConfig = new LinkedHashMap<>(factors.size());
 
         // index factors by variable config
@@ -212,11 +175,15 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
                 Bus bus = injection.getTerminal().getBusView().getBus();
                 // skip disconnected injections
                 if (bus != null) {
-                    // todo: the participation factor only changes when the connectivity is lost, we can optimize this line
-                    Map<String, Double> participationFactorByBus = getParticipationFactorByBus(lfNetwork, bus.getId(), connectivity, loadFlowParameters); // empty if slack is not distributed
-                    participationFactorByBus.replaceAll((key, value) -> -value); // the slack distribution on a bus is the opposite of its participation factor
+                    Map<String, Double> participationFactorByBus = getParticipationForBus.apply(bus);
+                    if (participationFactorByBus == null) {
+                        predefinedResult.put(factor, Double.NaN);
+                        participationFactorByBus = new HashMap<>();
+                    }
 
                     Map<String, Double> busInjectionById = new HashMap<>(participationFactorByBus);
+                    busInjectionById.replaceAll((key, value) -> -value); // the slack distribution on a bus is the opposite of its participation factor
+
                     // add 1 where we are making the injection
                     busInjectionById.put(bus.getId(), busInjectionById.getOrDefault(bus.getId(), 0d) + 1);
                     SensitivityVariableConfiguration varConfig = new SensitivityVariableConfiguration(busInjectionById, Collections.emptySet());
@@ -247,53 +214,34 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         return factorsByVarConfig;
     }
 
-    private String getParticipatingElementBusId(ParticipatingElement participatingElement) {
+    protected LfBus getParticipatingElementBus(ParticipatingElement participatingElement) {
         if (participatingElement.getElement() instanceof LfGenerator) {
-            return ((LfGenerator) participatingElement.getElement()).getBus().getId();
+            return ((LfGenerator) participatingElement.getElement()).getBus();
         } else if (participatingElement.getElement() instanceof LfBus) {
-            return ((LfBus) participatingElement.getElement()).getId();
+            return (LfBus) participatingElement.getElement();
         } else {
             throw new UnsupportedOperationException("Unsupported participating element");
         }
     }
 
-    private Map<String, Double> getParticipationFactorByBus(LfNetwork lfNetwork, String busId, GraphDecrementalConnectivity<LfBus> connectivity, LoadFlowParameters loadFlowParameters) {
+    protected List<ParticipatingElement> getParticipatingElements(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
+        ActivePowerDistribution.Step step;
+        List<ParticipatingElement> participatingElements;
 
-        Map<String, Double> participationFactorByBusMap = new HashMap<>();
-
-        if (loadFlowParameters.isDistributedSlack()) {
-            ActivePowerDistribution.Step step;
-            List<ParticipatingElement> participatingElements;
-
-            switch (loadFlowParameters.getBalanceType()) {
-                case PROPORTIONAL_TO_GENERATION_P_MAX:
-                    step = new GenerationActionPowerDistributionStep();
-                    break;
-                case PROPORTIONAL_TO_LOAD:
-                    step = new LoadActivePowerDistributionStep(false, false);
-                    break;
-                default:
-                    throw new UnsupportedOperationException("Balance type not yet supported: " + loadFlowParameters.getBalanceType());
-            }
-
-            participatingElements = step.getParticipatingElements(lfNetwork);
-            if (connectivity != null) {
-                int connectedComponentNumber = connectivity.getComponentNumber(lfNetwork.getBusById(busId));
-                participatingElements = participatingElements.stream().filter(
-                    participatingElement -> connectivity.getComponentNumber(lfNetwork.getBusById(getParticipatingElementBusId(participatingElement)))
-                            == connectedComponentNumber).collect(Collectors.toList());
-            }
-            ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
-
-            participationFactorByBusMap = participatingElements.stream().collect(Collectors.toMap(
-                this::getParticipatingElementBusId,
-                ParticipatingElement::getFactor,
-                Double::sum
-            ));
-        } else {
-            participationFactorByBusMap.putIfAbsent(lfNetwork.getSlackBus().getId(), 1d);
+        switch (loadFlowParameters.getBalanceType()) {
+            case PROPORTIONAL_TO_GENERATION_P_MAX:
+                step = new GenerationActionPowerDistributionStep();
+                break;
+            case PROPORTIONAL_TO_LOAD:
+                step = new LoadActivePowerDistributionStep(false, false);
+                break;
+            default:
+                throw new UnsupportedOperationException("Balance type not yet supported: " + loadFlowParameters.getBalanceType());
         }
-        return participationFactorByBusMap;
+
+        participatingElements = step.getParticipatingElements(lfNetwork);
+        ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
+        return participatingElements;
     }
 
     public void checkSensitivities(Network network, LfNetwork lfNetwork, List<SensitivityFactor> factors) {
