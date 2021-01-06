@@ -100,6 +100,15 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         super(matrixFactory);
     }
 
+    protected ClosedBranchSide1DcFlowEquationTerm getAndSaveEquationTerm(EquationSystem equationSystem, LfBranch lfBranch, Map<String, ClosedBranchSide1DcFlowEquationTerm> equationTermByBranchId) {
+        ClosedBranchSide1DcFlowEquationTerm p1 = equationTermByBranchId.get(lfBranch.getId());
+        if (p1 == null) {
+            p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
+            equationTermByBranchId.put(lfBranch.getId(), p1);
+        }
+        return p1;
+    }
+
     private SensitivityValue createBranchSensitivityValue(ClosedBranchSide1DcFlowEquationTerm p1,
                                                           SensitivityFactor<?, ?> factor, SensitivityFactorGroup factorGroup,
                                                           DenseMatrix states, Double functionReference,
@@ -129,7 +138,7 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         Map<String, ClosedBranchSide1DcFlowEquationTerm> equationTermByBranchId = new HashMap<>(); // cache the equation term for each branch, because getting it is expensive
 
         for (SensitivityFactorGroup factorGroup : factorGroups) {
-            setAlphas(contingencyElements, factorGroup, states, lfNetwork, equationSystem);
+            setAlphas(contingencyElements, factorGroup, states, lfNetwork, equationSystem, equationTermByBranchId);
             for (SensitivityFactor<?, ?> factor : factorGroup.getFactors()) {
                 String branchId;
                 if (factor instanceof BranchFlowPerInjectionIncrease) {
@@ -140,7 +149,7 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
                     throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
                 }
                 LfBranch lfBranch = lfNetwork.getBranchById(branchId);
-                ClosedBranchSide1DcFlowEquationTerm p1 = equationTermByBranchId.computeIfAbsent(branchId, branch -> equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class));
+                ClosedBranchSide1DcFlowEquationTerm p1 = getAndSaveEquationTerm(equationSystem, lfBranch, equationTermByBranchId);
                 sensitivityValuesContingencies.add(createBranchSensitivityValue(p1,
                         factor, factorGroup, states, functionReferenceByBranch.get(branchId), contingencyElements, predefinedResults.get(factor)));
             }
@@ -149,14 +158,12 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
     }
 
     private void setAlphas(List<ComputedContingencyElement> contingencyElements, SensitivityFactorGroup sensitivityFactorGroup, DenseMatrix states,
-                           LfNetwork lfNetwork, EquationSystem equationSystem) {
+                           LfNetwork lfNetwork, EquationSystem equationSystem, Map<String, ClosedBranchSide1DcFlowEquationTerm> equationTermByBranchId) {
         ComputedContingencyElement.setContingencyIndexes(contingencyElements);
-        // todo: do not create a matrix for 1x1 system
         if (contingencyElements.size() == 1) {
             ComputedContingencyElement element = contingencyElements.get(0);
             LfBranch lfBranch = lfNetwork.getBranchById(element.getElement().getId());
-            ClosedBranchSide1DcFlowEquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-
+            ClosedBranchSide1DcFlowEquationTerm p1 = getAndSaveEquationTerm(equationSystem, lfBranch, equationTermByBranchId);
             // we solve a*alpha = b
             double a = lfBranch.getPiModel().getX() / PerUnit.SB;
             a = a - (states.get(p1.getVariables().get(0).getRow(), element.getGlobalIndex())
@@ -172,7 +179,7 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
                     throw new UnsupportedOperationException("Only contingency on a branch is yet supported");
                 }
                 LfBranch lfBranch = lfNetwork.getBranchById(element.getElement().getId());
-                ClosedBranchSide1DcFlowEquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
+                ClosedBranchSide1DcFlowEquationTerm p1 = getAndSaveEquationTerm(equationSystem, lfBranch, equationTermByBranchId);
                 rhs.set(element.getContingencyIndex(), 0, states.get(p1.getVariables().get(0).getRow(), sensitivityFactorGroup.getIndex())
                                                           - states.get(p1.getVariables().get(1).getRow(), sensitivityFactorGroup.getIndex())
                 );
