@@ -151,30 +151,45 @@ public class DcFastSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
     private void setAlphas(List<ComputedContingencyElement> contingencyElements, SensitivityFactorGroup sensitivityFactorGroup, DenseMatrix states,
                            LfNetwork lfNetwork, EquationSystem equationSystem) {
         ComputedContingencyElement.setContingencyIndexes(contingencyElements);
-        DenseMatrix rhs = new DenseMatrix(contingencyElements.size(), 1);
-        DenseMatrix matrix = new DenseMatrix(contingencyElements.size(), contingencyElements.size());
-        for (ComputedContingencyElement element : contingencyElements) {
-            if (!element.getElement().getType().equals(ContingencyElementType.BRANCH)) {
-                throw new UnsupportedOperationException("Only contingency on a branch is yet supported");
-            }
+        // todo: do not create a matrix for 1x1 system
+        if (contingencyElements.size() == 1) {
+            ComputedContingencyElement element = contingencyElements.get(0);
             LfBranch lfBranch = lfNetwork.getBranchById(element.getElement().getId());
             ClosedBranchSide1DcFlowEquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-            rhs.set(element.getContingencyIndex(), 0, states.get(p1.getVariables().get(0).getRow(), sensitivityFactorGroup.getIndex())
-                            - states.get(p1.getVariables().get(1).getRow(), sensitivityFactorGroup.getIndex())
-            );
-            for (ComputedContingencyElement element2 : contingencyElements) {
-                double value = 0d;
-                if (element.equals(element2)) {
-                    value = lfBranch.getPiModel().getX() / PerUnit.SB;
+
+            // we solve a*alpha = b
+            double a = lfBranch.getPiModel().getX() / PerUnit.SB;
+            a = a - (states.get(p1.getVariables().get(0).getRow(), element.getGlobalIndex())
+                             - states.get(p1.getVariables().get(1).getRow(), element.getGlobalIndex()));
+            double b = states.get(p1.getVariables().get(0).getRow(), sensitivityFactorGroup.getIndex())
+                       - states.get(p1.getVariables().get(1).getRow(), sensitivityFactorGroup.getIndex());
+            element.setAlpha(b / a);
+        } else {
+            DenseMatrix rhs = new DenseMatrix(contingencyElements.size(), 1);
+            DenseMatrix matrix = new DenseMatrix(contingencyElements.size(), contingencyElements.size());
+            for (ComputedContingencyElement element : contingencyElements) {
+                if (!element.getElement().getType().equals(ContingencyElementType.BRANCH)) {
+                    throw new UnsupportedOperationException("Only contingency on a branch is yet supported");
                 }
-                value = value - (states.get(p1.getVariables().get(0).getRow(), element2.getGlobalIndex())
-                        - states.get(p1.getVariables().get(1).getRow(), element2.getGlobalIndex()));
-                matrix.set(element.getContingencyIndex(), element2.getContingencyIndex(), value);
+                LfBranch lfBranch = lfNetwork.getBranchById(element.getElement().getId());
+                ClosedBranchSide1DcFlowEquationTerm p1 = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
+                rhs.set(element.getContingencyIndex(), 0, states.get(p1.getVariables().get(0).getRow(), sensitivityFactorGroup.getIndex())
+                                                          - states.get(p1.getVariables().get(1).getRow(), sensitivityFactorGroup.getIndex())
+                );
+                for (ComputedContingencyElement element2 : contingencyElements) {
+                    double value = 0d;
+                    if (element.equals(element2)) {
+                        value = lfBranch.getPiModel().getX() / PerUnit.SB;
+                    }
+                    value = value - (states.get(p1.getVariables().get(0).getRow(), element2.getGlobalIndex())
+                                     - states.get(p1.getVariables().get(1).getRow(), element2.getGlobalIndex()));
+                    matrix.set(element.getContingencyIndex(), element2.getContingencyIndex(), value);
+                }
             }
+            LUDecomposition lu = matrix.decomposeLU();
+            lu.solve(rhs); // rhs now contains state matrix
+            contingencyElements.forEach(element -> element.setAlpha(rhs.get(element.getContingencyIndex(), 0)));
         }
-        LUDecomposition lu = matrix.decomposeLU();
-        lu.solve(rhs); // rhs now contains state matrix
-        contingencyElements.forEach(element -> element.setAlpha(rhs.get(element.getContingencyIndex(), 0)));
     }
 
     private List<Set<ComputedContingencyElement>> getElementsBreakingConnectivity(LfNetwork lfNetwork, DenseMatrix preContingencyStates,
