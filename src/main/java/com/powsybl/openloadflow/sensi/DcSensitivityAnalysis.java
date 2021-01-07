@@ -119,8 +119,8 @@ public class DcSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         } else {
             value = p1.calculate(states, factorGroup.getIndex());
             for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                if (contingencyElement.getElement().getId().equals(factor.getFunction().getId())) {
-                    // the sensitivity on a removed branch is 0
+                if (contingencyElement.getElement().getId().equals(factor.getFunction().getId()) || contingencyElement.getElement().getId().equals(factor.getVariable().getId())) {
+                    // the sensitivity on a removed branch is 0, the sensitivity if the variable was a removed branch is 0
                     value = 0d;
                     break;
                 }
@@ -165,8 +165,7 @@ public class DcSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
             LfBranch lfBranch = lfNetwork.getBranchById(element.getElement().getId());
             ClosedBranchSide1DcFlowEquationTerm p1 = getAndSaveEquationTerm(equationSystem, lfBranch, equationTermByBranchId);
             // we solve a*alpha = b
-            double a = lfBranch.getPiModel().getX() / PerUnit.SB;
-            a = a - (states.get(p1.getVariables().get(0).getRow(), element.getGlobalIndex())
+            double a = lfBranch.getPiModel().getX() / PerUnit.SB - (states.get(p1.getVariables().get(0).getRow(), element.getGlobalIndex())
                              - states.get(p1.getVariables().get(1).getRow(), element.getGlobalIndex()));
             double b = states.get(p1.getVariables().get(0).getRow(), sensitivityFactorGroup.getIndex())
                        - states.get(p1.getVariables().get(1).getRow(), sensitivityFactorGroup.getIndex());
