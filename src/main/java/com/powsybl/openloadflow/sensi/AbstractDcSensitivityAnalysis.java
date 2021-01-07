@@ -18,6 +18,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
+import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
@@ -69,11 +70,45 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         }
     }
 
+    static class SensitivityFactorWrapped {
+        // Wrap factors in another class to have instant access to their branch, and their equation term
+        private final SensitivityFactor factor;
+
+        private final LfBranch functionBranch;
+
+        private final ClosedBranchSide1DcFlowEquationTerm equationTerm;
+
+        public SensitivityFactorWrapped(SensitivityFactor factor, LfNetwork lfNetwork, EquationSystem equationSystem) {
+            this.factor = factor;
+            if (factor instanceof BranchFlowPerInjectionIncrease) {
+                functionBranch = lfNetwork.getBranchById(((BranchFlowPerInjectionIncrease) factor).getFunction().getBranchId());
+
+            } else if (factor instanceof  BranchFlowPerPSTAngle) {
+                functionBranch = lfNetwork.getBranchById(((BranchFlowPerPSTAngle) factor).getFunction().getBranchId());
+            } else {
+                throw new UnsupportedOperationException("Only factors of type BranchFlowPerInjectionIncrease and BranchFlowPerPSTAngle are supported");
+            }
+            equationTerm = equationSystem.getEquationTerm(SubjectType.BRANCH, functionBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
+        }
+
+        public SensitivityFactor getFactor() {
+            return factor;
+        }
+
+        public LfBranch getFunctionBranch() {
+            return functionBranch;
+        }
+
+        public ClosedBranchSide1DcFlowEquationTerm getEquationTerm() {
+            return equationTerm;
+        }
+    }
+
     static class SensitivityFactorGroup {
 
         private final String id;
 
-        private final List<SensitivityFactor<?, ?>> factors = new ArrayList<>();
+        private final List<SensitivityFactorWrapped> factors = new ArrayList<>();
 
         private int index = -1;
 
@@ -85,7 +120,7 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
             return id;
         }
 
-        List<SensitivityFactor<?, ?>> getFactors() {
+        List<SensitivityFactorWrapped> getFactors() {
             return factors;
         }
 
@@ -97,7 +132,7 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
             this.index = index;
         }
 
-        void addFactor(SensitivityFactor factor) {
+        void addFactor(SensitivityFactorWrapped factor) {
             factors.add(factor);
         }
 
@@ -164,28 +199,28 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         }
     }
 
-    protected List<SensitivityFactorGroup> createFactorGroups(Network network, List<SensitivityFactor> factors) {
+    protected List<SensitivityFactorGroup> createFactorGroups(Network network, List<SensitivityFactorWrapped> factors) {
         Map<String, SensitivityFactorGroup> groupIndexedById = new HashMap<>(factors.size());
         // index factors by variable config
-        for (SensitivityFactor<?, ?> factor : factors) {
-            if (factor instanceof BranchFlowPerInjectionIncrease) {
-                BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
+        for (SensitivityFactorWrapped factor : factors) {
+            if (factor.getFactor() instanceof BranchFlowPerInjectionIncrease) {
+                BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor.getFactor();
                 Injection<?> injection = getInjection(network, injectionFactor.getVariable().getInjectionId());
                 Bus bus = injection.getTerminal().getBusView().getBus();
                 // skip disconnected injections
                 if (bus != null) {
-                    groupIndexedById.computeIfAbsent(bus.getId(), id -> new InjectionFactorGroup(bus.getId())).addFactor(injectionFactor);
+                    groupIndexedById.computeIfAbsent(bus.getId(), id -> new InjectionFactorGroup(bus.getId())).addFactor(factor);
                 }
-            } else if (factor instanceof BranchFlowPerPSTAngle) {
-                BranchFlowPerPSTAngle pstAngleFactor = (BranchFlowPerPSTAngle) factor;
+            } else if (factor.getFactor() instanceof BranchFlowPerPSTAngle) {
+                BranchFlowPerPSTAngle pstAngleFactor = (BranchFlowPerPSTAngle) factor.getFactor();
                 String phaseTapChangerHolderId = pstAngleFactor.getVariable().getPhaseTapChangerHolderId();
                 TwoWindingsTransformer twt = network.getTwoWindingsTransformer(phaseTapChangerHolderId);
                 if (twt == null) {
                     throw new PowsyblException("Phase shifter '" + phaseTapChangerHolderId + "' not found");
                 }
-                groupIndexedById.computeIfAbsent(phaseTapChangerHolderId, k -> new PhaseTapFactorGroup(phaseTapChangerHolderId)).addFactor(pstAngleFactor);
+                groupIndexedById.computeIfAbsent(phaseTapChangerHolderId, k -> new PhaseTapFactorGroup(phaseTapChangerHolderId)).addFactor(factor);
             } else {
-                throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
+                throw new UnsupportedOperationException("Factor type '" + factor.getFactor().getClass().getSimpleName() + "' not yet supported");
             }
         }
 
@@ -198,7 +233,7 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         return new ArrayList<>(groupIndexedById.values());
     }
 
-    protected void computeFactorsInjection(Function<String, Map<String, Double>> getParticipationForBus, List<SensitivityFactorGroup> factorsGroups, Map<SensitivityFactor, Double> predefinedResult) {
+    protected void computeFactorsInjection(Function<String, Map<String, Double>> getParticipationForBus, List<SensitivityFactorGroup> factorsGroups, Map<SensitivityFactorWrapped, Double> predefinedResult) {
         // compute the corresponding injection (with participation) for each factor
         for (SensitivityFactorGroup factorGroup : factorsGroups) {
             if (factorGroup instanceof InjectionFactorGroup) {
@@ -217,6 +252,10 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
                 injectionGroup.setBusInjectionById(busInjectionById);
             }
         }
+    }
+
+    protected void computeFactorsInjection(Map<String, Double> participationMap, List<SensitivityFactorGroup> factorsGroups, Map<SensitivityFactorWrapped, Double> predefinedResult) {
+        computeFactorsInjection(x -> participationMap, factorsGroups, predefinedResult);
     }
 
     protected LfBus getParticipatingElementBus(ParticipatingElement participatingElement) {
