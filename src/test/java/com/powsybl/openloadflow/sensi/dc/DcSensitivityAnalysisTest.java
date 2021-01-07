@@ -86,7 +86,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0.25d, getValue(result, "g4", "l13"), LoadFlowAssert.DELTA_POWER);
 
         for (Line line : network.getLines()) {
-            assertEquals(functionReferenceByLine.get(line.getId()).doubleValue(), getFunctionReference(result, line.getId()), LoadFlowAssert.DELTA_POWER);
+            assertEquals(functionReferenceByLine.get(line.getId()), getFunctionReference(result, line.getId()), LoadFlowAssert.DELTA_POWER);
         }
     }
 

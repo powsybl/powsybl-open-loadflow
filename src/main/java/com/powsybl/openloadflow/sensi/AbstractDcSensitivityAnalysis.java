@@ -76,19 +76,26 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
 
         private final LfBranch functionBranch;
 
+        private final String functionBranchId;
+
         private final ClosedBranchSide1DcFlowEquationTerm equationTerm;
+
+        private Double predefinedResult = null;
+
+        private Double functionReference;
 
         public SensitivityFactorWrapped(SensitivityFactor factor, LfNetwork lfNetwork, EquationSystem equationSystem) {
             this.factor = factor;
             if (factor instanceof BranchFlowPerInjectionIncrease) {
                 functionBranch = lfNetwork.getBranchById(((BranchFlowPerInjectionIncrease) factor).getFunction().getBranchId());
-
             } else if (factor instanceof  BranchFlowPerPSTAngle) {
                 functionBranch = lfNetwork.getBranchById(((BranchFlowPerPSTAngle) factor).getFunction().getBranchId());
             } else {
                 throw new UnsupportedOperationException("Only factors of type BranchFlowPerInjectionIncrease and BranchFlowPerPSTAngle are supported");
             }
+            functionBranchId = functionBranch.getId();
             equationTerm = equationSystem.getEquationTerm(SubjectType.BRANCH, functionBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
+            functionReference = 0d;
         }
 
         public SensitivityFactor getFactor() {
@@ -99,9 +106,30 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
             return functionBranch;
         }
 
+        public String getFunctionBranchId() {
+            return functionBranchId;
+        }
+
         public ClosedBranchSide1DcFlowEquationTerm getEquationTerm() {
             return equationTerm;
         }
+
+        public Double getPredefinedResult() {
+            return predefinedResult;
+        }
+
+        public void setPredefinedResult(Double predefinedResult) {
+            this.predefinedResult = predefinedResult;
+        }
+
+        public Double getFunctionReference() {
+            return functionReference;
+        }
+
+        public void setFunctionReference(Double functionReference) {
+            this.functionReference = functionReference;
+        }
+
     }
 
     static class SensitivityFactorGroup {
@@ -182,15 +210,13 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         }
     }
 
-    protected Map<String, Double> getFunctionReferenceByBranch(List<LfNetwork> lfNetworks, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
-        Map<String, Double> functionReferenceByBranch = new HashMap<>();
+    protected void setFunctionReferenceOnFactors(List<LfNetwork> lfNetworks, List<SensitivityFactorWrapped> factors, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
         DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfParametersExt.getSlackBusSelector(), matrixFactory,
                 true, lfParametersExt.isDcUseTransformerRatio(), lfParameters.isDistributedSlack(),  lfParameters.getBalanceType());
         DcLoadFlowResult dcLoadFlowResult = new DcLoadFlowEngine(lfNetworks, dcLoadFlowParameters).run();
-        for (LfBranch branch : dcLoadFlowResult.getNetwork().getBranches()) {
-            functionReferenceByBranch.put(branch.getId(), branch.getP1() * PerUnit.SB);
+        for (SensitivityFactorWrapped factor : factors) {
+            factor.setFunctionReference(dcLoadFlowResult.getNetwork().getBranchById(factor.getFunctionBranchId()).getP1() * PerUnit.SB);
         }
-        return functionReferenceByBranch;
     }
 
     protected void fillRhsSensitivityVariable(LfNetwork lfNetwork, EquationSystem equationSystem, List<SensitivityFactorGroup> factorGroups, Matrix rhs) {
@@ -233,14 +259,14 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         return new ArrayList<>(groupIndexedById.values());
     }
 
-    protected void computeFactorsInjection(Function<String, Map<String, Double>> getParticipationForBus, List<SensitivityFactorGroup> factorsGroups, Map<SensitivityFactorWrapped, Double> predefinedResult) {
+    protected void computeFactorsInjection(Function<String, Map<String, Double>> getParticipationForBus, List<SensitivityFactorGroup> factorsGroups) {
         // compute the corresponding injection (with participation) for each factor
         for (SensitivityFactorGroup factorGroup : factorsGroups) {
             if (factorGroup instanceof InjectionFactorGroup) {
                 InjectionFactorGroup injectionGroup = (InjectionFactorGroup) factorGroup;
                 Map<String, Double> participationFactorByBus = getParticipationForBus.apply(factorGroup.getId());
                 if (participationFactorByBus == null) {
-                    factorGroup.getFactors().forEach(factor -> predefinedResult.put(factor, Double.NaN));
+                    factorGroup.getFactors().forEach(factor -> factor.setPredefinedResult(Double.NaN));
                     participationFactorByBus = new HashMap<>();
                 }
 
@@ -254,8 +280,8 @@ public abstract class AbstractDcSensitivityAnalysis extends AbstractSensitivityA
         }
     }
 
-    protected void computeFactorsInjection(Map<String, Double> participationMap, List<SensitivityFactorGroup> factorsGroups, Map<SensitivityFactorWrapped, Double> predefinedResult) {
-        computeFactorsInjection(x -> participationMap, factorsGroups, predefinedResult);
+    protected void computeFactorsInjection(Map<String, Double> participationMap, List<SensitivityFactorGroup> factorsGroups) {
+        computeFactorsInjection(x -> participationMap, factorsGroups);
     }
 
     protected LfBus getParticipatingElementBus(ParticipatingElement participatingElement) {
