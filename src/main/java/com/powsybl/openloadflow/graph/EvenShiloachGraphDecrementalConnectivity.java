@@ -29,23 +29,26 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     private final Graph<V, Object> graph = new Pseudograph<>(Object.class);
 
     private final Map<V, Set<V>> vertexToConnectedComponent;
-    private final List<Set<V>> connectedComponents;
+
+    private final List<Set<V>> newConnectedComponents;
     private final Map<V, LevelNeighbours> levelNeighboursMap;
 
     private final List<Pair<V, V>> cutEdges;
-    private final List<Collection<V>> savedConnectedComponents;
-    private final Map<V, LevelNeighbours> savedLevelNeighboursMap;
     private final Set<V> vertices;
+
+    private final LinkedList<Map<V, LevelNeighbours>> allSavedChangedLevels;
+
     private boolean sortedComponents;
+    private boolean vertexMapCacheInvalidated;
+    private boolean init;
 
     public EvenShiloachGraphDecrementalConnectivity() {
         this.cutEdges = new ArrayList<>();
-        this.connectedComponents = new ArrayList<>();
+        this.newConnectedComponents = new ArrayList<>();
         this.vertexToConnectedComponent = new HashMap<>();
         this.levelNeighboursMap = new HashMap<>();
-
-        this.savedConnectedComponents = new ArrayList<>();
-        this.savedLevelNeighboursMap = new HashMap<>();
+        this.allSavedChangedLevels = new LinkedList<>();
+        this.vertexMapCacheInvalidated = false;
         this.vertices = new HashSet<>();
     }
 
@@ -73,13 +76,8 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
         if (vertex1 == null || vertex2 == null) {
             return;
         }
-
-        sortedComponents = false;
-        if (connectedComponents.isEmpty()) {
-            initConnectedComponents();
-            initLevels();
-            cloneMaps();
-        }
+        invalidateVertexMapCache(); // connectivity unchanged if one vertex null
+        init();
 
         graph.removeEdge(vertex1, vertex2);
         cutEdges.add(Pair.of(vertex1, vertex2));
@@ -88,31 +86,50 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
         GraphProcessB processB = new GraphProcessB(vertex1, vertex2);
         while (!processA.isHalted() && !processB.isHalted()) {
             processA.next();
-            if (processA.isHalted()) {
-                processB.undoChanges();
-            } else {
+            if (!processA.isHalted()) {
                 processB.next();
             }
         }
 
+        if (processA.isHalted()) {
+            processB.undoChanges();
+        } else { // processB halted
+            allSavedChangedLevels.add(processB.savedChangedLevels);
+        }
+
+    }
+
+    private void init() {
+        if (!init) {
+            initConnectedComponents();
+            initLevels();
+            init = true;
+        }
+    }
+
+    private void invalidateVertexMapCache() {
+        vertexMapCacheInvalidated = true;
+        vertexToConnectedComponent.clear();
     }
 
     private void initConnectedComponents() {
         Set<V> visited = new HashSet<>();
+        List<Set<V>> initialConnectedComponents = new ArrayList<>();
         for (V v : vertices) {
             if (visited.add(v)) {
                 Set<V> newConnectedComponent = new HashSet<>();
                 completeConnectedComponent(v, visited, newConnectedComponent);
-                connectedComponents.add(newConnectedComponent);
+                initialConnectedComponents.add(newConnectedComponent);
             }
         }
-        connectedComponents.forEach(cc -> cc.forEach(v -> vertexToConnectedComponent.put(v, cc)));
+        if (initialConnectedComponents.size() > 1) {
+            throw new PowsyblException("Algorithm not implemented for a network with several connected components at start");
+        }
     }
 
     public void initLevels() {
-        connectedComponents.forEach(
-            cc -> cc.stream().findFirst().ifPresent(
-                v -> buildNextLevel(Collections.singleton(v), 0)));
+        vertices.stream().findFirst().ifPresent(
+            v -> buildNextLevel(Collections.singleton(v), 0));
     }
 
     private void completeConnectedComponent(V v, Set<V> visited, Set<V> currentCc) {
@@ -124,24 +141,11 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
         }
     }
 
-    private void cloneMaps() {
-        savedConnectedComponents.clear();
-        connectedComponents.forEach(t -> savedConnectedComponents.add(new HashSet<>(t)));
-
-        savedLevelNeighboursMap.clear();
-        levelNeighboursMap.forEach((k, v) -> savedLevelNeighboursMap.put(k, new LevelNeighbours(v)));
-    }
-
-    @Override
     public void reset() {
-        sortedComponents = false;
-        connectedComponents.clear();
-        savedConnectedComponents.forEach(t -> connectedComponents.add(new HashSet<>(t)));
-        vertexToConnectedComponent.clear();
-        connectedComponents.forEach(cc -> cc.forEach(v -> vertexToConnectedComponent.put(v, cc)));
-
-        levelNeighboursMap.clear();
-        savedLevelNeighboursMap.forEach((k, v) -> levelNeighboursMap.put(k, new LevelNeighbours(v)));
+        invalidateVertexMapCache();
+        newConnectedComponents.clear();
+        allSavedChangedLevels.descendingIterator().forEachRemaining(levelNeighboursMap::putAll);
+        allSavedChangedLevels.clear();
 
         for (Pair<V, V> cutEdge : cutEdges) {
             addEdge(cutEdge.getLeft(), cutEdge.getRight());
@@ -151,20 +155,51 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
     @Override
     public int getComponentNumber(V vertex) {
+        sortComponents();
+        updateVertexMapCache();
+        return newConnectedComponents.indexOf(vertexToConnectedComponent.get(vertex)) + 1;
+    }
+
+    private void sortComponents() {
         if (!sortedComponents) {
+            newConnectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
             sortedComponents = true;
-            connectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
         }
-        return connectedComponents.indexOf(vertexToConnectedComponent.get(vertex));
+    }
+
+    private void updateVertexMapCache() {
+        if (vertexMapCacheInvalidated) {
+            newConnectedComponents.forEach(cc -> cc.forEach(v -> vertexToConnectedComponent.put(v, cc)));
+            vertexMapCacheInvalidated = false;
+        }
     }
 
     @Override
     public List<Set<V>> getSmallComponents() {
-        if (!sortedComponents) {
-            sortedComponents = true;
-            connectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
+        if (!newConnectedComponents.isEmpty()) {
+            sortComponents();
+            int nbVerticesOut = countVerticesOut();
+            int maxNewComponentsSize = newConnectedComponents.get(0).size();
+            if (vertices.size() - nbVerticesOut <= maxNewComponentsSize) {
+                // The initial connected component is smaller than some new connected components
+                // That is, the main connected component is among the new connected components list
+                Set<V> mainComponent = new HashSet<>(vertices);
+                newConnectedComponents.forEach(mainComponent::removeAll);
+                newConnectedComponents.add(mainComponent);
+                sortedComponents = false;
+                sortComponents();
+                newConnectedComponents.remove(0);
+            }
         }
-        return connectedComponents.isEmpty() ? Collections.emptyList() : connectedComponents.subList(1, connectedComponents.size());
+        return newConnectedComponents;
+    }
+
+    private int countVerticesOut() {
+        int nbVerticesOut = 0;
+        for (Set<V> newConnectedComponent : newConnectedComponents) {
+            nbVerticesOut += newConnectedComponent.size();
+        }
+        return nbVerticesOut;
     }
 
     private interface GraphProcess {
@@ -177,13 +212,9 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
         private final Traverser t1;
         private final Traverser t2;
-        private final V vertex1;
-        private final V vertex2;
         private boolean halted;
 
         public GraphProcessA(V vertex1, V vertex2) {
-            this.vertex1 = vertex1;
-            this.vertex2 = vertex2;
             Set<V> traversedVerticesT1 = new LinkedHashSet<>();
             Set<V> traversedVerticesT2 = new LinkedHashSet<>();
             this.t1 = new Traverser(vertex1, traversedVerticesT2, traversedVerticesT1);
@@ -199,14 +230,14 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
             t1.next();
             if (t1.componentBreakDetected()) {
-                createComponent(vertex1, t1);
+                updateConnectedComponents(t1.traversedVertices);
                 halted = true;
                 return;
             }
 
             t2.next();
             if (t2.componentBreakDetected()) {
-                createComponent(vertex2, t2);
+                updateConnectedComponents(t2.traversedVertices);
                 halted = true;
             }
         }
@@ -216,16 +247,12 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
             return halted;
         }
 
-        private void createComponent(V vertex, Traverser traverser) {
-            Collection<V> cc = vertexToConnectedComponent.get(vertex);
-            Set<V> newConnectedComponent = traverser.traversedVertices;
-            cc.removeAll(newConnectedComponent);
-            for (V v : newConnectedComponent) {
-                vertexToConnectedComponent.put(v, newConnectedComponent);
-            }
-            connectedComponents.add(newConnectedComponent);
-        }
+    }
 
+    private void updateConnectedComponents(Set<V> verticesOut) {
+        sortedComponents = false;
+        newConnectedComponents.forEach(cc -> cc.removeAll(verticesOut));
+        newConnectedComponents.add(verticesOut);
     }
 
     private class GraphProcessB implements GraphProcess {
