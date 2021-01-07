@@ -47,24 +47,7 @@ public final class AcEquationSystem {
             if (bus.hasVoltageControl()) {
                 // local voltage control
                 if (!(creationParameters.isVoltageRemoteControl() && bus.getControlledBus().isPresent()) && bus.getControllerBuses().isEmpty()) {
-                    if (!creationParameters.isUseBusPVLQ()) {
-                        equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
-                    } else {
-                        List<LfStaticVarCompensatorImpl> lfStaticVarCompensators =
-                                bus.getGenerators().stream().filter(lfGenerator -> lfGenerator instanceof LfStaticVarCompensatorImpl)
-                                        .map(lfGenerator -> (LfStaticVarCompensatorImpl) lfGenerator)
-                                        .filter(lfStaticVarCompensatorImpl -> {
-                                            VoltagePerReactivePowerControl voltagePerReactivePowerControl = lfStaticVarCompensatorImpl.getVoltagePerReactivePowerControl();
-                                            return voltagePerReactivePowerControl != null
-                                                    && !Double.isNaN(voltagePerReactivePowerControl.getSlope())
-                                                    && voltagePerReactivePowerControl.getSlope() != 0;
-                                        }).collect(Collectors.toList());
-                        if (lfStaticVarCompensators.isEmpty() || bus.getGenerators().size() != lfStaticVarCompensators.size()) {
-                            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
-                        } else {
-                            equationSystem.createEquation(bus.getNum(), EquationType.BUS_VLQ).addTerm(new StaticVarCompensatorVoltageLambdaQEquationTerm(lfStaticVarCompensators, bus, variableSet, equationSystem));
-                        }
-                    }
+                    createLocalVoltageControlBusEquations(bus, equationSystem, variableSet, creationParameters);
                 }
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
             }
@@ -87,6 +70,30 @@ public final class AcEquationSystem {
             ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet);
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
             shunt.setQ(q);
+        }
+    }
+
+    private static List<LfStaticVarCompensatorImpl> getStaticVarCompensatorsWithSlope(LfBus bus) {
+        return bus.getGenerators().stream().filter(lfGenerator -> lfGenerator instanceof LfStaticVarCompensatorImpl)
+                .map(lfGenerator -> (LfStaticVarCompensatorImpl) lfGenerator)
+                .filter(lfStaticVarCompensatorImpl -> {
+                    VoltagePerReactivePowerControl voltagePerReactivePowerControl = lfStaticVarCompensatorImpl.getVoltagePerReactivePowerControl();
+                    return voltagePerReactivePowerControl != null
+                            && !Double.isNaN(voltagePerReactivePowerControl.getSlope())
+                            && voltagePerReactivePowerControl.getSlope() != 0;
+                }).collect(Collectors.toList());
+    }
+
+    private static void createLocalVoltageControlBusEquations(LfBus bus, EquationSystem equationSystem, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {
+        if (!creationParameters.isUseBusPVLQ()) {
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+        } else {
+            List<LfStaticVarCompensatorImpl> lfStaticVarCompensators = getStaticVarCompensatorsWithSlope(bus);
+            if (lfStaticVarCompensators.isEmpty()) {
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+            } else {
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_VLQ).addTerm(new StaticVarCompensatorVoltageLambdaQEquationTerm(lfStaticVarCompensators, bus, variableSet, equationSystem));
+            }
         }
     }
 

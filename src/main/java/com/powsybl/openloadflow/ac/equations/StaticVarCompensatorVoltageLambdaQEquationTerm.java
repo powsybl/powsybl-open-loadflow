@@ -1,12 +1,11 @@
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.impl.LfStaticVarCompensatorImpl;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractNamedEquationTerm {
 
@@ -18,7 +17,7 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
 
     private final Variable vVar;
 
-    private final Variable phVar;
+    private final Variable phiVar;
 
     private final List<Variable> variables;
 
@@ -34,8 +33,8 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         this.equationSystem = Objects.requireNonNull(equationSystem);
         Objects.requireNonNull(variableSet);
         vVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_V);
-        phVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_PHI);
-        variables = Arrays.asList(vVar, phVar);
+        phiVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_PHI);
+        variables = Arrays.asList(vVar, phiVar);
     }
 
     @Override
@@ -59,28 +58,56 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         this.x = x[vVar.getRow()];
     }
 
+    private double evalQsvc(Equation branchReactiveEquation) {
+        double value = 0;
+        for (EquationTerm equationTerm : branchReactiveEquation.getTerms()) {
+            if (equationTerm.isActive() &&
+                    (equationTerm instanceof ClosedBranchSide1ReactiveFlowEquationTerm
+                            || equationTerm instanceof ClosedBranchSide2ReactiveFlowEquationTerm)) {
+                value += equationTerm.eval();
+                if (equationTerm.hasRhs()) {
+                    value -= equationTerm.rhs();
+                }
+            }
+        }
+        return value;
+    }
+
+    private double derQsvc(Equation branchReactiveEquation, Variable partialDerivativeVariable) {
+        double value = 0;
+        for (EquationTerm equationTerm : branchReactiveEquation.getTerms()) {
+            if (equationTerm.isActive() &&
+                    (equationTerm instanceof ClosedBranchSide1ReactiveFlowEquationTerm
+                            || equationTerm instanceof ClosedBranchSide2ReactiveFlowEquationTerm)) {
+                value += equationTerm.der(vVar);
+            }
+        }
+        return value;
+    }
+
     @Override
     public double eval() {
-        double v = 0;
-        // TODO : comment calculer v et lambda sur le bus si il y a plusieurs StaticVarCompensator dans le bus
-        for (LfStaticVarCompensatorImpl lfStaticVarCompensator : lfStaticVarCompensators) {
-            double slope = lfStaticVarCompensator.getVoltagePerReactivePowerControl().getSlope();
-
-            Equation branchReactiveEquation = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
-            System.out.println("TODO : use Q from svc terminal ? " + lfStaticVarCompensator.getSvc().getTerminal().getQ() + " ; " + lfStaticVarCompensator.getTargetQ() + " ; " + lfStaticVarCompensator.getCalculatedQ());
-            double q = branchReactiveEquation.eval();
-
-            // f(U, theta) = U + lambda * Q(U, theta)
-            // TODO : pour lambda * Q(U, theta), utiliser EquationTerm.multiply(terme Q(U, theta), lambda)
-            v = x + slope * q;
-
-            double dqdv = branchReactiveEquation.getTerms().stream().filter(term -> term.getVariables().contains(vVar)).map(term -> term.der(vVar)).reduce(0d, (d1, d2) -> d1 + d2);
-            // dfdU = 1 + lambda dQdU
-            dfdU = 1 + slope * dqdv;
-            double dqdph = branchReactiveEquation.getTerms().stream().filter(term -> term.getVariables().contains(phVar)).map(term -> term.der(phVar)).reduce(0d, (d1, d2) -> d1 + d2);
-            // dfdtheta = lambda * dQdtheta
-            dfdph = slope * dqdph;
+        if (lfStaticVarCompensators.size() > 1) {
+            // TODO : comment calculer v si il y a plusieurs StaticVarCompensator dans le bus
+            throw new PowsyblException("Bus PVLQ (" + bus.getId() + ") with multiple staticVarCompensator is not supported");
         }
+        LfStaticVarCompensatorImpl lfStaticVarCompensator = lfStaticVarCompensators.get(0);
+        double slope = lfStaticVarCompensator.getVoltagePerReactivePowerControl().getSlope();
+
+        System.out.println("StaticVarCompensator "
+                + lfStaticVarCompensator.getId()
+                + " : terminal.getQ = " + lfStaticVarCompensator.getSvc().getTerminal().getQ()
+                + " ; targetQ = " + lfStaticVarCompensator.getTargetQ()
+                + " ; calculatedQ = " + lfStaticVarCompensator.getCalculatedQ());
+        Equation branchReactiveEquation = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
+
+        // TODO : ? pour lambda * Q(U, theta), utiliser EquationTerm.multiply(terme Q(U, theta), lambda)
+        // f(U, theta) = U + lambda * Q(U, theta)
+        double v = x + slope * evalQsvc(branchReactiveEquation);
+        // dfdU = 1 + lambda dQdU
+        dfdU = 1 + slope * derQsvc(branchReactiveEquation, vVar);
+        // dfdtheta = lambda * dQdtheta
+        dfdph = slope * derQsvc(branchReactiveEquation, phiVar);
         return v;
     }
 
@@ -89,7 +116,7 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
             return dfdU;
-        } else if (variable.equals(phVar)) {
+        } else if (variable.equals(phiVar)) {
             return dfdph;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
