@@ -133,8 +133,7 @@ public class DcSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         return new SensitivityValue(factor.getFactor(), value * PerUnit.SB, functionReference, 0);
     }
 
-    protected List<SensitivityValue> calculateSensitivityValues(LfNetwork lfNetwork, EquationSystem equationSystem,
-                                                                List<SensitivityFactorGroup> factorGroups,
+    protected List<SensitivityValue> calculateSensitivityValues(List<SensitivityFactorGroup> factorGroups,
                                                                 DenseMatrix states, Map<String, Double> functionReferenceByBranch,
                                                                 List<ComputedContingencyElement> contingencyElements, Map<SensitivityFactorWrapped, Double> predefinedResults) {
         List<SensitivityValue> sensitivityValuesContingencies = new ArrayList<>();
@@ -331,7 +330,7 @@ public class DcSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         DenseMatrix states = solveTransposed(rhs, j); // states contains angles for the sensitivity factors, but also for the +1-1 related to contingencies
 
         // sensitivities without contingency
-        List<SensitivityValue> sensitivityValues = calculateSensitivityValues(lfNetwork, equationSystem, factorsGroups,
+        List<SensitivityValue> sensitivityValues = calculateSensitivityValues(factorsGroups,
                 states, functionReferenceByBranch, Collections.emptyList(), Collections.emptyMap());
 
         Collection<Contingency> straightforwardContingencies = new LinkedList<>();
@@ -345,7 +344,7 @@ public class DcSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
         Map<String, List<SensitivityValue>> contingenciesValue = new HashMap<>();
         // compute the contingencies with no loss of connectivity
         for (Contingency contingency : straightforwardContingencies) {
-            contingenciesValue.put(contingency.getId(), calculateSensitivityValues(lfNetwork, equationSystem, factorsGroups,
+            contingenciesValue.put(contingency.getId(), calculateSensitivityValues(factorsGroups,
                     states, functionReferenceByBranch, contingency.getElements().stream().map(element -> contingenciesElements.get(element.getId())).collect(Collectors.toList()),
                     Collections.emptyMap()
             ));
@@ -389,7 +388,7 @@ public class DcSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
                 if (factor.getFactor() instanceof BranchFlowPerInjectionIncrease) {
                     lfBus = getInjectionBus(network, lfNetwork, (BranchFlowPerInjectionIncrease) factor.getFactor());
                 } else if (factor.getFactor() instanceof  BranchFlowPerPSTAngle) {
-                    LfBranch transformerBranch = getPhaseChangerBranch(network, lfNetwork, (BranchFlowPerPSTAngle) factor.getFactor());
+                    LfBranch transformerBranch = getPhaseChangerBranch(lfNetwork, (BranchFlowPerPSTAngle) factor.getFactor());
                     lfBus = transformerBranch.getBus1();
                 } else {
                     throw new UnsupportedOperationException("Only factors of type BranchFlowPerInjectionIncrease and BranchFlowPerPSTAngle are supported for post-contingency analysis");
@@ -404,7 +403,7 @@ public class DcSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
             Set<String> elementIdLosingConnectivity = contingencyEntry.getKey().stream().flatMap(Set::stream).map(contingencyElement -> contingencyElement.getElement().getId()).collect(Collectors.toSet());
 
             for (Contingency contingency : contingencyEntry.getValue()) {
-                contingenciesValue.put(contingency.getId(), calculateSensitivityValues(lfNetwork, equationSystem, factorsGroups,
+                contingenciesValue.put(contingency.getId(), calculateSensitivityValues(factorsGroups,
                         states, functionReferenceByBranch, contingency.getElements().stream().filter(element -> !elementIdLosingConnectivity.contains(element.getId())).map(element -> contingenciesElements.get(element.getId())).collect(Collectors.toList()),
                         predefinedResults
                 ));

@@ -64,7 +64,7 @@ public abstract class AbstractSensitivityAnalysis {
         return lfNetwork.getBusById(bus.getId());
     }
 
-    protected LfBranch getPhaseChangerBranch(Network network, LfNetwork lfNetwork, BranchFlowPerPSTAngle pstFactor) {
+    protected LfBranch getPhaseChangerBranch(LfNetwork lfNetwork, BranchFlowPerPSTAngle pstFactor) {
         return lfNetwork.getBranchById(pstFactor.getVariable().getPhaseTapChangerHolderId());
     }
 
