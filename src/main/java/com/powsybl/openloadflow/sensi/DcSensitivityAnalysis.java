@@ -43,8 +43,8 @@ public class DcSensitivityAnalysis extends AbstractDcSensitivityAnalysis {
     static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-6;
 
     static class ComputedContingencyElement {
-        private int contingencyIndex = -1;
-        private int globalIndex = -1;
+        private int contingencyIndex = -1; // local index of the element inside of a contingency : index of the element in the matrix used in the setAlphas method
+        private int globalIndex = -1; // the index of the contingency in the global rhs, with sensitivity factors
         private double alpha = Double.NaN;
         private final ContingencyElement element;
         private final LfBranch lfBranch;
