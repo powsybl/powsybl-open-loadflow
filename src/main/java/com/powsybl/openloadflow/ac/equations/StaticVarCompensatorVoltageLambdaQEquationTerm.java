@@ -88,7 +88,7 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
     public double eval() {
         if (lfStaticVarCompensators.size() > 1) {
             // TODO : comment calculer v si il y a plusieurs StaticVarCompensator dans le bus
-            throw new PowsyblException("Bus PVLQ (" + bus.getId() + ") with multiple staticVarCompensator is not supported");
+            throw new PowsyblException("Bus PVLQ (" + bus.getId() + ") not supported yet as it contains more than one staticVarCompensator");
         }
         LfStaticVarCompensatorImpl lfStaticVarCompensator = lfStaticVarCompensators.get(0);
         double slope = lfStaticVarCompensator.getVoltagePerReactivePowerControl().getSlope();
