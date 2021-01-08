@@ -36,7 +36,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
     private static final String NAME = "OpenSensitivityAnalysis";
 
-    private final AbstractDcSensitivityAnalysis dcSensitivityAnalysis;
+    private final DcSensitivityAnalysis dcSensitivityAnalysis;
 
     private final AcSensitivityAnalysis acSensitivityAnalysis;
 
