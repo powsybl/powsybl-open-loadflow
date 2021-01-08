@@ -676,81 +676,82 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         VoltageInitializer voltageInitializer = lfParameters.getVoltageInitMode() == LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES ? new PreviousValueVoltageInitializer()
                 : new UniformValueVoltageInitializer();
         JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer);
-        LUDecomposition jlu = j.decomposeLU();
-        // compute pre-contingency sensitivity values + the states for making +1-1 on the contingencies
-        DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorsGroups); // this is the rhs for the moment
-        DenseMatrix contingenciesStates = initContingencyRhs(lfNetwork, equationSystem, contingenciesElements); // rhs with +1-1 on contingency element ends
-        jlu.solveTransposed(factorsStates); // states for the sensitivity factors
-        jlu.solveTransposed(contingenciesStates); // states for the +1-1 of the contingencies
+        try (LUDecomposition jlu = j.decomposeLU()) {
+            // compute pre-contingency sensitivity values + the states for making +1-1 on the contingencies
+            DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorsGroups); // this is the rhs for the moment
+            DenseMatrix contingenciesStates = initContingencyRhs(lfNetwork, equationSystem, contingenciesElements); // rhs with +1-1 on contingency element ends
+            jlu.solveTransposed(factorsStates); // states for the sensitivity factors
+            jlu.solveTransposed(contingenciesStates); // states for the +1-1 of the contingencies
 
-        // sensitivities without contingency
-        List<SensitivityValue> sensitivityValues = calculateSensitivityValues(factorsGroups,
-                factorsStates, contingenciesStates, Collections.emptyList());
+            // sensitivities without contingency
+            List<SensitivityValue> sensitivityValues = calculateSensitivityValues(factorsGroups,
+                    factorsStates, contingenciesStates, Collections.emptyList());
 
-        Collection<Contingency> straightforwardContingencies = new LinkedList<>();
-        Map<List<Set<ComputedContingencyElement>>, List<Contingency>> losingConnectivityContingency = new HashMap<>();
-        // We will index contingencies by the list of "problems" contained in this contingency
-        // For example, For example, if in the network, loosing line L1 breaks connectivity, and loosing L2 and L3 together breaks connectivity,
-        // the responsible associations would be: [{L1}, {L2, L3}]
+            Collection<Contingency> straightforwardContingencies = new LinkedList<>();
+            Map<List<Set<ComputedContingencyElement>>, List<Contingency>> losingConnectivityContingency = new HashMap<>();
+            // We will index contingencies by the list of "problems" contained in this contingency
+            // For example, For example, if in the network, loosing line L1 breaks connectivity, and loosing L2 and L3 together breaks connectivity,
+            // the responsible associations would be: [{L1}, {L2, L3}]
 
-        lookForConnectivityLoss(lfNetwork, contingenciesStates, contingencies, contingenciesElements, equationSystem, straightforwardContingencies, losingConnectivityContingency);
+            lookForConnectivityLoss(lfNetwork, contingenciesStates, contingencies, contingenciesElements, equationSystem, straightforwardContingencies, losingConnectivityContingency);
 
-        Map<String, List<SensitivityValue>> contingenciesValue = new HashMap<>();
-        // compute the contingencies with no loss of connectivity
-        for (Contingency contingency : straightforwardContingencies) {
-            contingenciesValue.put(contingency.getId(), calculateSensitivityValues(factorsGroups,
-                    factorsStates, contingenciesStates, contingency.getElements().stream().map(element -> contingenciesElements.get(element.getId())).collect(Collectors.toList())
-            ));
-        }
-
-        for (Map.Entry<List<Set<ComputedContingencyElement>>, List<Contingency>> contingencyEntry : losingConnectivityContingency.entrySet()) {
-            factorsWrapped.forEach(factor -> factor.setPredefinedResult(null));
-            contingencyEntry.getKey().stream().flatMap(Set::stream)
-                            .map(ComputedContingencyElement::getElement)
-                            .map(element -> lfNetwork.getBranchById(element.getId()))
-                            .forEach(lfBranch -> connectivity.getConnectivity().cut(lfBranch.getBus1(), lfBranch.getBus2()));
-
-            if (lfParameters.isDistributedSlack()) {
-                Map<Integer, List<ParticipatingElement>> participatingElementsPerCc = new HashMap<>();
-                participatingElements.forEach(element -> participatingElementsPerCc.computeIfAbsent(connectivity.getConnectivity().getComponentNumber(getParticipatingElementBus(element)), key -> new LinkedList<>())
-                                                                                   .add(element));
-                participatingElementsPerCc.values().forEach(ccElements -> ParticipatingElement.normalizeParticipationFactors(ccElements, "bus"));
-                Map<Integer, Map<String, Double>> participationPerCc = participatingElementsPerCc.entrySet().stream().collect(Collectors.toMap(
-                    Map.Entry::getKey,
-                    entry -> entry.getValue().stream().collect(Collectors.toMap(
-                        element -> getParticipatingElementBus(element).getId(),
-                        element -> -element.getFactor(),
-                        Double::sum
-                    ))
-                ));
-
-                // compute the participation for each injection factor (+1 on the injection, and then -participation on all
-                // elements participating to load balancing, that are still in the connected component of the factor's variable)
-                Function<String, Map<String, Double>> getParticipationForBus = busId -> participationPerCc.get(connectivity.getConnectivity().getComponentNumber(lfNetwork.getBusById(busId)));
-                computeFactorsInjection(getParticipationForBus, factorsGroups);
-                factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
-                fillRhsSensitivityVariable(lfNetwork, equationSystem, factorsGroups, factorsStates);
-                jlu.solveTransposed(factorsStates);
-            }
-
-            for (SensitivityFactorWrapped factor : factorsWrapped) {
-                // Check if the factor function and variable are in different connected components
-                if (factor.areVariableAndFunctionDisconnected(connectivity.getConnectivity()))  {
-                    factor.setPredefinedResult(0d);
-                }
-            }
-
-            Set<String> elementIdLosingConnectivity = contingencyEntry.getKey().stream().flatMap(Set::stream).map(contingencyElement -> contingencyElement.getElement().getId()).collect(Collectors.toSet());
-
-            for (Contingency contingency : contingencyEntry.getValue()) {
+            Map<String, List<SensitivityValue>> contingenciesValue = new HashMap<>();
+            // compute the contingencies with no loss of connectivity
+            for (Contingency contingency : straightforwardContingencies) {
                 contingenciesValue.put(contingency.getId(), calculateSensitivityValues(factorsGroups,
-                        factorsStates, contingenciesStates, contingency.getElements().stream().filter(element -> !elementIdLosingConnectivity.contains(element.getId())).map(element -> contingenciesElements.get(element.getId())).collect(Collectors.toList())
+                        factorsStates, contingenciesStates, contingency.getElements().stream().map(element -> contingenciesElements.get(element.getId())).collect(Collectors.toList())
                 ));
             }
 
-            connectivity.getConnectivity().reset();
-        }
+            for (Map.Entry<List<Set<ComputedContingencyElement>>, List<Contingency>> contingencyEntry : losingConnectivityContingency.entrySet()) {
+                factorsWrapped.forEach(factor -> factor.setPredefinedResult(null));
+                contingencyEntry.getKey().stream().flatMap(Set::stream)
+                        .map(ComputedContingencyElement::getElement)
+                        .map(element -> lfNetwork.getBranchById(element.getId()))
+                        .forEach(lfBranch -> connectivity.getConnectivity().cut(lfBranch.getBus1(), lfBranch.getBus2()));
 
-        return Pair.of(sensitivityValues, contingenciesValue);
+                if (lfParameters.isDistributedSlack()) {
+                    Map<Integer, List<ParticipatingElement>> participatingElementsPerCc = new HashMap<>();
+                    participatingElements.forEach(element -> participatingElementsPerCc.computeIfAbsent(connectivity.getConnectivity().getComponentNumber(getParticipatingElementBus(element)), key -> new LinkedList<>())
+                            .add(element));
+                    participatingElementsPerCc.values().forEach(ccElements -> ParticipatingElement.normalizeParticipationFactors(ccElements, "bus"));
+                    Map<Integer, Map<String, Double>> participationPerCc = participatingElementsPerCc.entrySet().stream().collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().stream().collect(Collectors.toMap(
+                            element -> getParticipatingElementBus(element).getId(),
+                            element -> -element.getFactor(),
+                            Double::sum
+                        ))
+                    ));
+
+                    // compute the participation for each injection factor (+1 on the injection, and then -participation on all
+                    // elements participating to load balancing, that are still in the connected component of the factor's variable)
+                    Function<String, Map<String, Double>> getParticipationForBus = busId -> participationPerCc.get(connectivity.getConnectivity().getComponentNumber(lfNetwork.getBusById(busId)));
+                    computeFactorsInjection(getParticipationForBus, factorsGroups);
+                    factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
+                    fillRhsSensitivityVariable(lfNetwork, equationSystem, factorsGroups, factorsStates);
+                    jlu.solveTransposed(factorsStates);
+                }
+
+                for (SensitivityFactorWrapped factor : factorsWrapped) {
+                    // Check if the factor function and variable are in different connected components
+                    if (factor.areVariableAndFunctionDisconnected(connectivity.getConnectivity())) {
+                        factor.setPredefinedResult(0d);
+                    }
+                }
+
+                Set<String> elementIdLosingConnectivity = contingencyEntry.getKey().stream().flatMap(Set::stream).map(contingencyElement -> contingencyElement.getElement().getId()).collect(Collectors.toSet());
+
+                for (Contingency contingency : contingencyEntry.getValue()) {
+                    contingenciesValue.put(contingency.getId(), calculateSensitivityValues(factorsGroups,
+                            factorsStates, contingenciesStates, contingency.getElements().stream().filter(element -> !elementIdLosingConnectivity.contains(element.getId())).map(element -> contingenciesElements.get(element.getId())).collect(Collectors.toList())
+                    ));
+                }
+
+                connectivity.getConnectivity().reset();
+            }
+
+            return Pair.of(sensitivityValues, contingenciesValue);
+        }
     }
 }
