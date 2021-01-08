@@ -142,32 +142,34 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     }
 
     private void lazyComputeConnectivity() {
-        if (!init || !unprocessedCutEdges.isEmpty()) {
-            init();
-            for (Pair<V, V> cutEdge : unprocessedCutEdges) {
-                V vertex1 = cutEdge.getLeft();
-                V vertex2 = cutEdge.getRight();
-                graph.removeEdge(vertex1, vertex2);
+        if (init && unprocessedCutEdges.isEmpty()) {
+            return;
+        }
 
-                GraphProcess processA = new GraphProcessA(vertex1, vertex2);
-                GraphProcessB processB = new GraphProcessB(vertex1, vertex2);
-                while (!processA.isHalted() && !processB.isHalted()) {
-                    processA.next();
-                    if (!processA.isHalted()) {
-                        processB.next();
-                    }
-                }
+        init();
+        for (Pair<V, V> cutEdge : unprocessedCutEdges) {
+            V vertex1 = cutEdge.getLeft();
+            V vertex2 = cutEdge.getRight();
+            graph.removeEdge(vertex1, vertex2);
 
-                if (processA.isHalted()) {
-                    processB.undoChanges();
-                } else { // processB halted
-                    allSavedChangedLevels.add(processB.savedChangedLevels);
+            GraphProcess processA = new GraphProcessA(vertex1, vertex2);
+            GraphProcessB processB = new GraphProcessB(vertex1, vertex2);
+            while (!processA.isHalted() && !processB.isHalted()) {
+                processA.next();
+                if (!processA.isHalted()) {
+                    processB.next();
                 }
             }
-            unprocessedCutEdges.clear();
 
-            sortComponents();
+            if (processA.isHalted()) {
+                processB.undoChanges();
+            } else { // processB halted
+                allSavedChangedLevels.add(processB.savedChangedLevels);
+            }
         }
+        unprocessedCutEdges.clear();
+
+        sortComponents();
     }
 
     private void init() {
@@ -259,11 +261,10 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
             return halted;
         }
 
-    }
-
-    private void updateConnectedComponents(Set<V> verticesOut) {
-        newConnectedComponents.forEach(cc -> cc.removeAll(verticesOut));
-        newConnectedComponents.add(verticesOut);
+        private void updateConnectedComponents(Set<V> verticesOut) {
+            newConnectedComponents.forEach(cc -> cc.removeAll(verticesOut));
+            newConnectedComponents.add(verticesOut);
+        }
     }
 
     private class GraphProcessB implements GraphProcess {
