@@ -21,7 +21,7 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
 
     private final List<Variable> variables;
 
-    private double x;
+    private double targetV;
 
     private double dfdU;
 
@@ -54,60 +54,40 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
     @Override
     public void update(double[] x) {
         Objects.requireNonNull(x);
-        this.x = x[vVar.getRow()];
-    }
+        if (lfStaticVarCompensators.size() > 1) {
+            throw new PowsyblException("Bus PVLQ (" + bus.getId() + ") not supported yet as it contains more than one staticVarCompensator");
+        }
+        LfStaticVarCompensatorImpl lfStaticVarCompensator = lfStaticVarCompensators.get(0);
+        double slope = lfStaticVarCompensator.getSlope();
+        Equation reactiveEquation = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
 
-    private double evalQsvc(Equation reactiveEquation) {
-        double value = 0;
+        // sum evaluation and derivatives on branch terms from BUS_Q equation
+        double evalQsvc = 0;
+        double dQdU = 0;
+        double dQdtheta = 0;
         for (EquationTerm equationTerm : reactiveEquation.getTerms()) {
             if (equationTerm.isActive() &&
                     (equationTerm instanceof ClosedBranchSide1ReactiveFlowEquationTerm
                             || equationTerm instanceof ClosedBranchSide2ReactiveFlowEquationTerm)) {
-                value += equationTerm.eval();
-                if (equationTerm.hasRhs()) {
-                    value -= equationTerm.rhs();
-                }
+                equationTerm.update(x);
+                evalQsvc += equationTerm.eval();
+                dQdU += equationTerm.der(vVar);
+                dQdtheta += equationTerm.der(phiVar);
             }
         }
-        return value;
-    }
 
-    private double derQsvc(Equation reactiveEquation, Variable partialDerivativeVariable) {
-        double der = 0;
-        for (EquationTerm equationTerm : reactiveEquation.getTerms()) {
-            if (equationTerm.isActive() &&
-                    (equationTerm instanceof ClosedBranchSide1ReactiveFlowEquationTerm
-                            || equationTerm instanceof ClosedBranchSide2ReactiveFlowEquationTerm)) {
-                der += equationTerm.der(vVar);
-            }
-        }
-        return der;
+        // TODO : ? pour lambda * Q(U, theta), utiliser EquationTerm.multiply(terme Q(U, theta), lambda)
+        // f(U, theta) = U + lambda * Q(U, theta)
+        targetV = x[vVar.getRow()] + slope * evalQsvc;
+        // dfdU = 1 + lambda dQdU
+        dfdU = 1 + slope * dQdU;
+        // dfdtheta = lambda * dQdtheta
+        dfdph = slope * dQdtheta;
     }
 
     @Override
     public double eval() {
-        if (lfStaticVarCompensators.size() > 1) {
-            // TODO : comment calculer v si il y a plusieurs StaticVarCompensator dans le bus
-            throw new PowsyblException("Bus PVLQ (" + bus.getId() + ") not supported yet as it contains more than one staticVarCompensator");
-        }
-        LfStaticVarCompensatorImpl lfStaticVarCompensator = lfStaticVarCompensators.get(0);
-        double slope = lfStaticVarCompensator.getVoltagePerReactivePowerControl().getSlope();
-
-        System.out.println("StaticVarCompensator "
-                + lfStaticVarCompensator.getId()
-                + " : terminal.getQ = " + lfStaticVarCompensator.getSvc().getTerminal().getQ()
-                + " ; targetQ = " + lfStaticVarCompensator.getTargetQ()
-                + " ; calculatedQ = " + lfStaticVarCompensator.getCalculatedQ());
-        Equation reactiveEquation = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
-
-        // TODO : ? pour lambda * Q(U, theta), utiliser EquationTerm.multiply(terme Q(U, theta), lambda)
-        // f(U, theta) = U + lambda * Q(U, theta)
-        double v = x + slope * evalQsvc(reactiveEquation);
-        // dfdU = 1 + lambda dQdU
-        dfdU = 1 + slope * derQsvc(reactiveEquation, vVar);
-        // dfdtheta = lambda * dQdtheta
-        dfdph = slope * derQsvc(reactiveEquation, phiVar);
-        return v;
+        return targetV;
     }
 
     @Override

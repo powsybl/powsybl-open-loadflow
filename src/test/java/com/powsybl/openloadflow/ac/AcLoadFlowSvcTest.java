@@ -198,25 +198,33 @@ class AcLoadFlowSvcTest {
     @Test
     void shouldUseLessReactivePowerWithBusVLQ() {
         Map<String, List<Double>> reports = new LinkedHashMap<>();
-        parametersExt.setUseBusPVLQ(false);
 
+        // 1 - run with bus2 as bus PV
+        parametersExt.setUseBusPVLQ(false);
+        Load load = bus2.getLoads().iterator().next();
+        load.setQ0(0);
         svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         runLoadFlowAndStoreResults(network, reports);
 
+        // 2 - run with bus2 as bus PVLQ
         parametersExt.setUseBusPVLQ(true);
         Network network = createNetwork();
+        load = bus2.getLoads().iterator().next();
+        load.setQ0(0);
         svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
                 .newExtension(VoltagePerReactivePowerControlAdder.class)
-                .withSlope(0.001)
+                .withSlope(0.01)
                 .add();
         runLoadFlowAndStoreResults(network, reports);
 
+        // display report
         for (Map.Entry<String, List<Double>> entry : reports.entrySet()) {
             System.out.println(entry.getKey() + " : " + entry.getValue().stream().map(d -> String.valueOf(d)).reduce("", (s1, s2) -> s1 + (s1.isEmpty() ? "" : " ; ") + s2));
         }
 
+        // assertions
         assertThat("Q on svc1 should be lower", reports.get("svc1.getTerminal().getQ()").get(1), new LoadFlowAssert.LowerThan(reports.get("svc1.getTerminal().getQ()").get(0)));
         assertThat("V on bus2 should be greater", reports.get("bus2.getV()").get(1), new LoadFlowAssert.GreaterThan(reports.get("bus2.getV()").get(0)));
     }

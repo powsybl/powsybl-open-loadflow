@@ -70,12 +70,15 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
         return new LfStaticVarCompensatorImpl(svc, bus);
     }
 
-    public VoltagePerReactivePowerControl getVoltagePerReactivePowerControl() {
-        return voltagePerReactivePowerControl;
+    public double getSlope() {
+        if (voltagePerReactivePowerControl != null) {
+            return voltagePerReactivePowerControl.getSlope() * PerUnit.SB / svc.getTerminal().getVoltageLevel().getNominalV();
+        }
+        return 0;
     }
 
-    public StaticVarCompensator getSvc() {
-        return svc;
+    public VoltagePerReactivePowerControl getVoltagePerReactivePowerControl() {
+        return voltagePerReactivePowerControl;
     }
 
     @Override
