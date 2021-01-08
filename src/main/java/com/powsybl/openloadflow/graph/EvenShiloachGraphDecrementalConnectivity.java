@@ -10,6 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.Graph;
 import org.jgrapht.Graphs;
+import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,15 +114,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     }
 
     private void initConnectedComponents() {
-        Set<V> visited = new HashSet<>();
-        List<Set<V>> initialConnectedComponents = new ArrayList<>();
-        for (V v : vertices) {
-            if (visited.add(v)) {
-                Set<V> newConnectedComponent = new HashSet<>();
-                completeConnectedComponent(v, visited, newConnectedComponent);
-                initialConnectedComponents.add(newConnectedComponent);
-            }
-        }
+        List<Set<V>> initialConnectedComponents = new ConnectivityInspector<>(graph).connectedSets();
         if (initialConnectedComponents.size() > 1) {
             throw new PowsyblException("Algorithm not implemented for a network with several connected components at start");
         }
@@ -130,15 +123,6 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     public void initLevels() {
         vertices.stream().findFirst().ifPresent(
             v -> buildNextLevel(Collections.singleton(v), 0));
-    }
-
-    private void completeConnectedComponent(V v, Set<V> visited, Set<V> currentCc) {
-        currentCc.add(v);
-        for (V adj : Graphs.neighborListOf(graph, v)) {
-            if (visited.add(adj)) {
-                completeConnectedComponent(adj, visited, currentCc);
-            }
-        }
     }
 
     public void reset() {
