@@ -31,7 +31,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
     private final Graph<V, Object> graph = new Pseudograph<>(Object.class);
 
-    private final Map<V, Set<V>> vertexToConnectedComponent;
+    private final Map<V, Integer> vertexToConnectedComponent;
 
     private final List<Set<V>> newConnectedComponents;
     private final Map<V, LevelNeighbours> levelNeighboursMap;
@@ -145,41 +145,33 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     public int getComponentNumber(V vertex) {
         sortComponents();
         updateVertexMapCache();
-        return newConnectedComponents.indexOf(vertexToConnectedComponent.get(vertex)) + 1;
-    }
-
-    private void sortComponents() {
-        if (!sortedComponents) {
-            newConnectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
-            sortedComponents = true;
-        }
-    }
-
-    private void updateVertexMapCache() {
-        if (vertexMapCacheInvalidated) {
-            newConnectedComponents.forEach(cc -> cc.forEach(v -> vertexToConnectedComponent.put(v, cc)));
-            vertexMapCacheInvalidated = false;
-        }
+        return vertexToConnectedComponent.get(vertex);
     }
 
     @Override
     public List<Set<V>> getSmallComponents() {
         if (!newConnectedComponents.isEmpty()) {
             sortComponents();
+        }
+        return newConnectedComponents;
+    }
+
+    private void sortComponents() {
+        if (!sortedComponents) {
+            newConnectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
             int nbVerticesOut = countVerticesOut();
             int maxNewComponentsSize = newConnectedComponents.get(0).size();
-            if (vertices.size() - nbVerticesOut <= maxNewComponentsSize) {
+            if (vertices.size() - nbVerticesOut < maxNewComponentsSize) {
                 // The initial connected component is smaller than some new connected components
                 // That is, the biggest connected component is among the new connected components list
                 Set<V> mainComponent = new HashSet<>(vertices);
                 newConnectedComponents.forEach(mainComponent::removeAll);
                 newConnectedComponents.add(mainComponent);
-                sortedComponents = false;
-                sortComponents();
+                newConnectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
                 newConnectedComponents.remove(0);
             }
+            sortedComponents = true;
         }
-        return newConnectedComponents;
     }
 
     private int countVerticesOut() {
@@ -188,6 +180,17 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
             nbVerticesOut += newConnectedComponent.size();
         }
         return nbVerticesOut;
+    }
+
+    private void updateVertexMapCache() {
+        if (vertexMapCacheInvalidated) {
+            vertices.forEach(v -> vertexToConnectedComponent.put(v, 0));
+            int i = 0;
+            for (Set<V> newConnectedComponent : newConnectedComponents) {
+                int indxCC = ++i;
+                newConnectedComponent.forEach(v -> vertexToConnectedComponent.put(v, indxCC));
+            }
+        }
     }
 
     private interface GraphProcess {
