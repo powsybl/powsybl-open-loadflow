@@ -18,7 +18,9 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 /**
- * https://dl.acm.org/doi/10.1145/322234.322235
+ * Implementing the Even-Shiloach algorithm (see https://dl.acm.org/doi/10.1145/322234.322235)
+ * Due to time computation optimizations, this current implementation is only for graphs which initially have ONLY ONE
+ * connected component. If more, an exception is thrown.
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
@@ -114,6 +116,8 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     }
 
     private void initConnectedComponents() {
+        // Checking if only one connected components at start as algorithm is not implemented for a network with several connected components at start
+        // Can be easily extended to the general case at the cost of slower computation
         List<Set<V>> initialConnectedComponents = new ConnectivityInspector<>(graph).connectedSets();
         if (initialConnectedComponents.size() > 1) {
             throw new PowsyblException("Algorithm not implemented for a network with several connected components at start");
@@ -166,7 +170,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
             int maxNewComponentsSize = newConnectedComponents.get(0).size();
             if (vertices.size() - nbVerticesOut <= maxNewComponentsSize) {
                 // The initial connected component is smaller than some new connected components
-                // That is, the main connected component is among the new connected components list
+                // That is, the biggest connected component is among the new connected components list
                 Set<V> mainComponent = new HashSet<>(vertices);
                 newConnectedComponents.forEach(mainComponent::removeAll);
                 newConnectedComponents.add(mainComponent);
