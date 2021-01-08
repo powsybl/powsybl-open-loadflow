@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Gaël Macherel <gael.macherel at artelys.com>
+ * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
 class ConnectivityTest {
 
@@ -45,6 +46,13 @@ class ConnectivityTest {
         testReducedMainComponent(new EvenShiloachGraphDecrementalConnectivity<>());
     }
 
+    @Test
+    void testReaddEdge() {
+        // Testing cutting an edge then adding it back
+        testReaddEdge(new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        testReaddEdge(new EvenShiloachGraphDecrementalConnectivity<>());
+    }
+
     private void testConnectivity(GraphDecrementalConnectivity<LfBus> connectivity) {
         updateConnectivity(connectivity);
         cutBranches(connectivity, "l34", "l48");
@@ -63,6 +71,28 @@ class ConnectivityTest {
         assertEquals(2, connectivity.getComponentNumber(lfNetwork.getBusById("b4_vl_0")));
         assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
         assertEquals(4, connectivity.getSmallComponents().size());
+    }
+
+    private void testReaddEdge(GraphDecrementalConnectivity<LfBus> connectivity) {
+        updateConnectivity(connectivity);
+
+        String branchId = "l34";
+        LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+        cutBranches(connectivity, branchId);
+
+        assertEquals(1, connectivity.getSmallComponents().size());
+        assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b1_vl_0")));
+        assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
+
+        connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2());
+        assertEquals(0, connectivity.getSmallComponents().size());
+        assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b1_vl_0")));
+        assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
+
+        cutBranches(connectivity, "l48");
+        assertEquals(1, connectivity.getSmallComponents().size());
+        assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b4_vl_0")));
+        assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
     }
 
     private void cutBranches(GraphDecrementalConnectivity<LfBus> connectivity, String... branches) {

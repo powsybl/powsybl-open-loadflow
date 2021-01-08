@@ -37,16 +37,17 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     private final Map<V, LevelNeighbours> levelNeighboursMap;
 
     private final List<Pair<V, V>> cutEdges;
+    private final List<Pair<V, V>> unprocessedCutEdges;
     private final Set<V> vertices;
 
     private final LinkedList<Map<V, LevelNeighbours>> allSavedChangedLevels;
 
-    private boolean sortedComponents;
     private boolean vertexMapCacheInvalidated;
     private boolean init;
 
     public EvenShiloachGraphDecrementalConnectivity() {
         this.cutEdges = new ArrayList<>();
+        this.unprocessedCutEdges = new ArrayList<>();
         this.newConnectedComponents = new ArrayList<>();
         this.vertexToConnectedComponent = new HashMap<>();
         this.levelNeighboursMap = new HashMap<>();
@@ -60,6 +61,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
         Objects.requireNonNull(vertex);
         graph.addVertex(vertex);
         vertices.add(vertex);
+        invalidateInit();
     }
 
     @Override
@@ -72,6 +74,14 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
         } else {
             LOGGER.warn("Loop on vertex {}: problem in input graph", vertex1);
         }
+        invalidateInit();
+    }
+
+    private void invalidateInit() {
+        init = false;
+        cutEdges.clear();
+        unprocessedCutEdges.clear();
+        newConnectedComponents.clear();
     }
 
     @Override
@@ -80,34 +90,10 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
             return;
         }
         invalidateVertexMapCache(); // connectivity unchanged if one vertex null
-        init();
 
-        graph.removeEdge(vertex1, vertex2);
-        cutEdges.add(Pair.of(vertex1, vertex2));
-
-        GraphProcess processA = new GraphProcessA(vertex1, vertex2);
-        GraphProcessB processB = new GraphProcessB(vertex1, vertex2);
-        while (!processA.isHalted() && !processB.isHalted()) {
-            processA.next();
-            if (!processA.isHalted()) {
-                processB.next();
-            }
-        }
-
-        if (processA.isHalted()) {
-            processB.undoChanges();
-        } else { // processB halted
-            allSavedChangedLevels.add(processB.savedChangedLevels);
-        }
-
-    }
-
-    private void init() {
-        if (!init) {
-            initConnectedComponents();
-            initLevels();
-            init = true;
-        }
+        Pair<V, V> edgeCut = Pair.of(vertex1, vertex2);
+        cutEdges.add(edgeCut);
+        unprocessedCutEdges.add(edgeCut);
     }
 
     private void invalidateVertexMapCache() {
@@ -125,6 +111,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     }
 
     public void initLevels() {
+        levelNeighboursMap.clear();
         vertices.stream().findFirst().ifPresent(
             v -> buildNextLevel(Collections.singleton(v), 0));
     }
@@ -136,28 +123,63 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
         allSavedChangedLevels.clear();
 
         for (Pair<V, V> cutEdge : cutEdges) {
-            addEdge(cutEdge.getLeft(), cutEdge.getRight());
+            graph.addEdge(cutEdge.getLeft(), cutEdge.getRight(), new Object());
         }
         cutEdges.clear();
     }
 
     @Override
     public int getComponentNumber(V vertex) {
-        sortComponents();
+        lazyComputeConnectivity();
         updateVertexMapCache();
         return vertexToConnectedComponent.get(vertex);
     }
 
     @Override
     public List<Set<V>> getSmallComponents() {
-        if (!newConnectedComponents.isEmpty()) {
-            sortComponents();
-        }
+        lazyComputeConnectivity();
         return newConnectedComponents;
     }
 
+    private void lazyComputeConnectivity() {
+        if (!init || !unprocessedCutEdges.isEmpty()) {
+            init();
+            for (Pair<V, V> cutEdge : unprocessedCutEdges) {
+                V vertex1 = cutEdge.getLeft();
+                V vertex2 = cutEdge.getRight();
+                graph.removeEdge(vertex1, vertex2);
+
+                GraphProcess processA = new GraphProcessA(vertex1, vertex2);
+                GraphProcessB processB = new GraphProcessB(vertex1, vertex2);
+                while (!processA.isHalted() && !processB.isHalted()) {
+                    processA.next();
+                    if (!processA.isHalted()) {
+                        processB.next();
+                    }
+                }
+
+                if (processA.isHalted()) {
+                    processB.undoChanges();
+                } else { // processB halted
+                    allSavedChangedLevels.add(processB.savedChangedLevels);
+                }
+            }
+            unprocessedCutEdges.clear();
+
+            sortComponents();
+        }
+    }
+
+    private void init() {
+        if (!init) {
+            initConnectedComponents();
+            initLevels();
+            init = true;
+        }
+    }
+
     private void sortComponents() {
-        if (!sortedComponents) {
+        if (!newConnectedComponents.isEmpty()) {
             newConnectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
             int nbVerticesOut = countVerticesOut();
             int maxNewComponentsSize = newConnectedComponents.get(0).size();
@@ -170,7 +192,6 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
                 newConnectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
                 newConnectedComponents.remove(0);
             }
-            sortedComponents = true;
         }
     }
 
@@ -241,7 +262,6 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     }
 
     private void updateConnectedComponents(Set<V> verticesOut) {
-        sortedComponents = false;
         newConnectedComponents.forEach(cc -> cc.removeAll(verticesOut));
         newConnectedComponents.add(verticesOut);
     }
