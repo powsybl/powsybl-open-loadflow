@@ -679,12 +679,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         LUDecomposition jlu = j.decomposeLU();
         // compute pre-contingency sensitivity values + the states for making +1-1 on the contingencies
         DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorsGroups); // this is the rhs for the moment
-        DenseMatrix contingenciesStates = initContingencyRhs(lfNetwork, equationSystem, contingenciesElements);
-        jlu.solveTransposed(factorsStates);
-        jlu.solveTransposed(contingenciesStates);
+        DenseMatrix contingenciesStates = initContingencyRhs(lfNetwork, equationSystem, contingenciesElements); // rhs with +1-1 on contingency element ends
+        jlu.solveTransposed(factorsStates); // states for the sensitivity factors
+        jlu.solveTransposed(contingenciesStates); // states for the +1-1 of the contingencies
 
-        //jlu.solveTransposed(factorsStates); // states contains angles for the sensitivity factors, but also for the +1-1 related to contingencies
-        //jlu.solveTransposed(contingenciesStates);
         // sensitivities without contingency
         List<SensitivityValue> sensitivityValues = calculateSensitivityValues(factorsGroups,
                 factorsStates, contingenciesStates, Collections.emptyList());
@@ -730,7 +728,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 // elements participating to load balancing, that are still in the connected component of the factor's variable)
                 Function<String, Map<String, Double>> getParticipationForBus = busId -> participationPerCc.get(connectivity.getConnectivity().getComponentNumber(lfNetwork.getBusById(busId)));
                 computeFactorsInjection(getParticipationForBus, factorsGroups);
-                factorsStates.reset();
+                factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
                 fillRhsSensitivityVariable(lfNetwork, equationSystem, factorsGroups, factorsStates);
                 jlu.solveTransposed(factorsStates);
             }
