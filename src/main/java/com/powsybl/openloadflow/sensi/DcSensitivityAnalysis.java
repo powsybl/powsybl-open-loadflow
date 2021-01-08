@@ -102,6 +102,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             functionReference = 0d;
         }
 
+        public static SensitivityFactorWrapped create(SensitivityFactor factor, Network network, LfNetwork lfNetwork, EquationSystem equationSystem) {
+            if (factor instanceof BranchFlowPerInjectionIncrease) {
+                return new BranchFlowPerInjectionIncreaseWrapped(factor, network, lfNetwork, equationSystem);
+            } else if (factor instanceof BranchFlowPerPSTAngle) {
+                return new BranchFlowPerPSTAngleWrapped(factor, lfNetwork, equationSystem);
+            }
+            return null;
+        }
+
         public SensitivityFactor getFactor() {
             return factor;
         }
@@ -132,6 +141,44 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         public void setFunctionReference(Double functionReference) {
             this.functionReference = functionReference;
+        }
+
+        public boolean areVariableAndFunctionDisconnected(GraphDecrementalConnectivity<LfBus> connectivity) {
+            throw new NotImplementedException("areVariableAndFunctionDisconnected should have an override");
+        }
+    }
+
+    static class BranchFlowPerInjectionIncreaseWrapped extends SensitivityFactorWrapped {
+        private final LfBus injectionLfBus;
+
+        BranchFlowPerInjectionIncreaseWrapped(SensitivityFactor factor, Network network, LfNetwork lfNetwork, EquationSystem equationSystem) {
+            super(factor, lfNetwork, equationSystem);
+            injectionLfBus = getInjectionBus(network, lfNetwork, (BranchFlowPerInjectionIncrease) factor);
+        }
+
+        @Override
+        public boolean areVariableAndFunctionDisconnected(final GraphDecrementalConnectivity<LfBus> connectivity) {
+            return connectivity.getComponentNumber(injectionLfBus) != connectivity.getComponentNumber(getFunctionBranch().getBus1())
+                   || connectivity.getComponentNumber(injectionLfBus) != connectivity.getComponentNumber(getFunctionBranch().getBus2());
+        }
+
+        public LfBus getInjectionLfBus() {
+            return injectionLfBus;
+        }
+    }
+
+    static class BranchFlowPerPSTAngleWrapped extends SensitivityFactorWrapped {
+        private final LfBranch transformerBranch;
+
+        BranchFlowPerPSTAngleWrapped(SensitivityFactor factor, LfNetwork lfNetwork, EquationSystem equationSystem) {
+            super(factor, lfNetwork, equationSystem);
+            transformerBranch = getPhaseChangerBranch(lfNetwork, (BranchFlowPerPSTAngle) factor);
+        }
+
+        @Override
+        public boolean areVariableAndFunctionDisconnected(final GraphDecrementalConnectivity<LfBus> connectivity) {
+            return connectivity.getComponentNumber(transformerBranch.getBus1()) != connectivity.getComponentNumber(getFunctionBranch().getBus1())
+                   || connectivity.getComponentNumber(transformerBranch.getBus1()) != connectivity.getComponentNumber(getFunctionBranch().getBus2());
         }
     }
 
@@ -302,15 +349,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         Map<String, SensitivityFactorGroup> groupIndexedById = new HashMap<>(factors.size());
         // index factors by variable config
         for (SensitivityFactorWrapped factor : factors) {
-            if (factor.getFactor() instanceof BranchFlowPerInjectionIncrease) {
-                BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor.getFactor();
-                Injection<?> injection = getInjection(network, injectionFactor.getVariable().getInjectionId());
-                Bus bus = injection.getTerminal().getBusView().getBus();
+            if (factor instanceof BranchFlowPerInjectionIncreaseWrapped) {
+                LfBus lfBus = ((BranchFlowPerInjectionIncreaseWrapped) factor).getInjectionLfBus();
                 // skip disconnected injections
-                if (bus != null) {
-                    groupIndexedById.computeIfAbsent(bus.getId(), id -> new InjectionFactorGroup(bus.getId())).addFactor(factor);
+                if (lfBus != null) {
+                    groupIndexedById.computeIfAbsent(lfBus.getId(), id -> new InjectionFactorGroup(lfBus.getId())).addFactor(factor);
                 }
-            } else if (factor.getFactor() instanceof BranchFlowPerPSTAngle) {
+            } else if (factor instanceof BranchFlowPerPSTAngleWrapped) {
                 BranchFlowPerPSTAngle pstAngleFactor = (BranchFlowPerPSTAngle) factor.getFactor();
                 String phaseTapChangerHolderId = pstAngleFactor.getVariable().getPhaseTapChangerHolderId();
                 TwoWindingsTransformer twt = network.getTwoWindingsTransformer(phaseTapChangerHolderId);
@@ -593,7 +638,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 new DcEquationSystemCreationParameters(false, true, true, lfParametersExt.isDcUseTransformerRatio()));
 
         // we wrap the factor into a class that allows us to have access to their branch and EquationTerm instantly
-        List<SensitivityFactorWrapped> factorsWrapped = factors.stream().map(factor -> new SensitivityFactorWrapped(factor, lfNetwork, equationSystem)).collect(Collectors.toList());
+        List<SensitivityFactorWrapped> factorsWrapped = factors.stream().map(factor -> SensitivityFactorWrapped.create(factor, network, lfNetwork, equationSystem)).collect(Collectors.toList());
 
         // run DC load
         setFunctionReferenceOnFactors(lfNetworks, factorsWrapped, lfParameters, lfParametersExt);
@@ -692,19 +737,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             }
 
             for (SensitivityFactorWrapped factor : factorsWrapped) {
-                LfBranch lfBranch = factor.getFunctionBranch();
-                LfBus lfBus;
-                if (factor.getFactor() instanceof BranchFlowPerInjectionIncrease) {
-                    lfBus = getInjectionBus(network, lfNetwork, (BranchFlowPerInjectionIncrease) factor.getFactor());
-                } else if (factor.getFactor() instanceof  BranchFlowPerPSTAngle) {
-                    LfBranch transformerBranch = getPhaseChangerBranch(lfNetwork, (BranchFlowPerPSTAngle) factor.getFactor());
-                    lfBus = transformerBranch.getBus1();
-                } else {
-                    throw new UnsupportedOperationException("Only factors of type BranchFlowPerInjectionIncrease and BranchFlowPerPSTAngle are supported for post-contingency analysis");
-                }
                 // Check if the factor function and variable are in different connected components
-                if (connectivity.getConnectivity().getComponentNumber(lfBus) != connectivity.getConnectivity().getComponentNumber(lfBranch.getBus1())
-                    || connectivity.getConnectivity().getComponentNumber(lfBus) != connectivity.getConnectivity().getComponentNumber(lfBranch.getBus2()))  {
+                if (factor.areVariableAndFunctionDisconnected(connectivity.getConnectivity()))  {
                     factor.setPredefinedResult(0d);
                 }
             }
