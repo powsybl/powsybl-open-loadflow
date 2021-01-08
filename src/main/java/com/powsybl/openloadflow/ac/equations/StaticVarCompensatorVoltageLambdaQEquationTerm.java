@@ -28,10 +28,9 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
     private double dfdph;
 
     public StaticVarCompensatorVoltageLambdaQEquationTerm(List<LfStaticVarCompensatorImpl> lfStaticVarCompensators, LfBus bus, VariableSet variableSet, EquationSystem equationSystem) {
-        this.lfStaticVarCompensators = Objects.requireNonNull(lfStaticVarCompensators);
-        this.bus = Objects.requireNonNull(bus);
-        this.equationSystem = Objects.requireNonNull(equationSystem);
-        Objects.requireNonNull(variableSet);
+        this.lfStaticVarCompensators = lfStaticVarCompensators;
+        this.bus = bus;
+        this.equationSystem = equationSystem;
         vVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_V);
         phiVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_PHI);
         variables = Arrays.asList(vVar, phiVar);
@@ -58,9 +57,9 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         this.x = x[vVar.getRow()];
     }
 
-    private double evalQsvc(Equation branchReactiveEquation) {
+    private double evalQsvc(Equation reactiveEquation) {
         double value = 0;
-        for (EquationTerm equationTerm : branchReactiveEquation.getTerms()) {
+        for (EquationTerm equationTerm : reactiveEquation.getTerms()) {
             if (equationTerm.isActive() &&
                     (equationTerm instanceof ClosedBranchSide1ReactiveFlowEquationTerm
                             || equationTerm instanceof ClosedBranchSide2ReactiveFlowEquationTerm)) {
@@ -73,16 +72,16 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         return value;
     }
 
-    private double derQsvc(Equation branchReactiveEquation, Variable partialDerivativeVariable) {
-        double value = 0;
-        for (EquationTerm equationTerm : branchReactiveEquation.getTerms()) {
+    private double derQsvc(Equation reactiveEquation, Variable partialDerivativeVariable) {
+        double der = 0;
+        for (EquationTerm equationTerm : reactiveEquation.getTerms()) {
             if (equationTerm.isActive() &&
                     (equationTerm instanceof ClosedBranchSide1ReactiveFlowEquationTerm
                             || equationTerm instanceof ClosedBranchSide2ReactiveFlowEquationTerm)) {
-                value += equationTerm.der(vVar);
+                der += equationTerm.der(vVar);
             }
         }
-        return value;
+        return der;
     }
 
     @Override
@@ -99,15 +98,15 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
                 + " : terminal.getQ = " + lfStaticVarCompensator.getSvc().getTerminal().getQ()
                 + " ; targetQ = " + lfStaticVarCompensator.getTargetQ()
                 + " ; calculatedQ = " + lfStaticVarCompensator.getCalculatedQ());
-        Equation branchReactiveEquation = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
+        Equation reactiveEquation = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
 
         // TODO : ? pour lambda * Q(U, theta), utiliser EquationTerm.multiply(terme Q(U, theta), lambda)
         // f(U, theta) = U + lambda * Q(U, theta)
-        double v = x + slope * evalQsvc(branchReactiveEquation);
+        double v = x + slope * evalQsvc(reactiveEquation);
         // dfdU = 1 + lambda dQdU
-        dfdU = 1 + slope * derQsvc(branchReactiveEquation, vVar);
+        dfdU = 1 + slope * derQsvc(reactiveEquation, vVar);
         // dfdtheta = lambda * dQdtheta
-        dfdph = slope * derQsvc(branchReactiveEquation, phiVar);
+        dfdph = slope * derQsvc(reactiveEquation, phiVar);
         return v;
     }
 
