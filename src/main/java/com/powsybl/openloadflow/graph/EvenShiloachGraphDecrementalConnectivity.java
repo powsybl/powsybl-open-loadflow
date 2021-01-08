@@ -82,6 +82,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
         cutEdges.clear();
         unprocessedCutEdges.clear();
         newConnectedComponents.clear();
+        invalidateVertexMapCache();
     }
 
     @Override
@@ -213,6 +214,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
                 int indxCC = ++i;
                 newConnectedComponent.forEach(v -> vertexToConnectedComponent.put(v, indxCC));
             }
+            vertexMapCacheInvalidated = false;
         }
     }
 

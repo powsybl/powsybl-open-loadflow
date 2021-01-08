@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.network.*;
@@ -16,6 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Gaël Macherel <gael.macherel at artelys.com>
@@ -51,6 +53,22 @@ class ConnectivityTest {
         // Testing cutting an edge then adding it back
         testReaddEdge(new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
         testReaddEdge(new EvenShiloachGraphDecrementalConnectivity<>());
+    }
+
+    @Test
+    void testNonConnected() {
+        // Testing with a non-connected graph
+        GraphDecrementalConnectivity<LfBus> connectivity = new EvenShiloachGraphDecrementalConnectivity<>();
+        for (LfBus lfBus : lfNetwork.getBuses()) {
+            connectivity.addVertex(lfBus);
+        }
+        for (LfBranch lfBranch : lfNetwork.getBranches()) {
+            if (!lfBranch.getId().equals("l48")) {
+                connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2());
+            }
+        }
+        PowsyblException e = assertThrows(PowsyblException.class, connectivity::getSmallComponents);
+        assertEquals("Algorithm not implemented for a network with several connected components at start", e.getMessage());
     }
 
     private void testConnectivity(GraphDecrementalConnectivity<LfBus> connectivity) {
