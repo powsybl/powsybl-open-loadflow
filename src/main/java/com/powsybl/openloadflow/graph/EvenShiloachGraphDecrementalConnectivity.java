@@ -83,9 +83,6 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
         graph.removeEdge(vertex1, vertex2);
         cutEdges.add(Pair.of(vertex1, vertex2));
-        if (graph.getAllEdges(vertex1, vertex2).size() > 1) {
-            return;
-        }
 
         GraphProcess processA = new GraphProcessA(vertex1, vertex2);
         GraphProcessB processB = new GraphProcessB(vertex1, vertex2);
@@ -167,7 +164,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
             sortedComponents = true;
             connectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
         }
-        return connectedComponents.subList(1, connectedComponents.size());
+        return connectedComponents.isEmpty() ? Collections.emptyList() : connectedComponents.subList(1, connectedComponents.size());
     }
 
     private interface GraphProcess {
@@ -235,51 +232,66 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
         private final Deque<V> verticesToUpdate;
         private final Map<V, LevelNeighbours> savedChangedLevels;
+        private final V vertex1;
+        private final V vertex2;
+        private boolean init;
 
-        public GraphProcessB(V v, V w) {
+        public GraphProcessB(V vertex1, V vertex2) {
+            this.vertex1 = vertex1;
+            this.vertex2 = vertex2;
             this.verticesToUpdate = new LinkedList<>();
             this.savedChangedLevels = new HashMap<>();
-            LevelNeighbours nV = levelNeighboursMap.get(v);
-            LevelNeighbours nW = levelNeighboursMap.get(w);
-            if (nV.level == nW.level) {
-                nV.sameLevel.remove(w);
-                nW.sameLevel.remove(v);
+            this.init = false;
+        }
 
+        private void initialStep() {
+            LevelNeighbours ln1 = getLevelNeighbour(vertex1);
+            LevelNeighbours ln2 = getLevelNeighbour(vertex2);
+            if (ln1.level == ln2.level) {
+                ln1.sameLevel.remove(vertex2);
+                ln2.sameLevel.remove(vertex1);
             } else {
-                V vertexLowLevel = nV.level < nW.level ? v : w;
-                V vertexBigLevel = nV.level < nW.level ? w : v;
-                LevelNeighbours nLowLevel = nV.level < nW.level ? nV : nW;
-                LevelNeighbours nBigLevel = nV.level < nW.level ? nW : nV;
+                V vertexLowLevel = ln1.level < ln2.level ? vertex1 : vertex2;
+                V vertexBigLevel = ln1.level < ln2.level ? vertex2 : vertex1;
+                LevelNeighbours nLowLevel = ln1.level < ln2.level ? ln1 : ln2;
+                LevelNeighbours nBigLevel = ln1.level < ln2.level ? ln2 : ln1;
 
                 nLowLevel.upperLevel.remove(vertexBigLevel);
                 nBigLevel.lowerLevel.remove(vertexLowLevel);
-                if (nBigLevel.lowerLevel.isEmpty()) {
-                    verticesToUpdate.add(vertexBigLevel);
+                if (nBigLevel.lowerLevel.isEmpty() && graph.getAllEdges(vertex1, vertex2).isEmpty()) {
+                    this.verticesToUpdate.add(vertexBigLevel);
                 }
             }
         }
 
+        private LevelNeighbours getLevelNeighbour(V v) {
+            LevelNeighbours levelNeighbours = levelNeighboursMap.get(v);
+            savedChangedLevels.computeIfAbsent(v, vertex -> new LevelNeighbours(levelNeighbours));
+            return levelNeighbours;
+        }
+
         @Override
         public void next() {
+            if (!init) {
+                initialStep();
+                init = true;
+            }
             if (verticesToUpdate.isEmpty()) {
                 return; // step (1)/(9)
             }
             V w = verticesToUpdate.removeFirst();  // step (2)
-            LevelNeighbours levelNeighbours = levelNeighboursMap.get(w);
-            if (!savedChangedLevels.containsKey(w)) {
-                savedChangedLevels.put(w, new LevelNeighbours(levelNeighbours));
-            }
+            LevelNeighbours levelNeighbours = getLevelNeighbour(w);
             levelNeighbours.level++; // step (3)
             for (V localNeighbour : levelNeighbours.sameLevel) { // step (4)
                 if (w != localNeighbour) {
-                    LevelNeighbours lnln = levelNeighboursMap.get(localNeighbour);
+                    LevelNeighbours lnln = getLevelNeighbour(localNeighbour);
                     lnln.sameLevel.remove(w);
                     lnln.upperLevel.add(w);
                 }
             }
             levelNeighbours.lowerLevel.addAll(levelNeighbours.sameLevel); // step (5)
             for (V upperNeighbour : levelNeighbours.upperLevel) { // step (6)
-                LevelNeighbours lnun = levelNeighboursMap.get(upperNeighbour);
+                LevelNeighbours lnun = getLevelNeighbour(upperNeighbour);
                 lnun.lowerLevel.remove(w);
                 lnun.sameLevel.add(w);
                 if (lnun.lowerLevel.isEmpty()) {
@@ -296,7 +308,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
         @Override
         public boolean isHalted() {
-            return verticesToUpdate.isEmpty();
+            return init && verticesToUpdate.isEmpty();
         }
 
         public void undoChanges() {
