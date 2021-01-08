@@ -41,7 +41,7 @@ class ConnectivityTest {
         }
 
         List<LfBranch> branchesToCut = Arrays.asList(lfNetwork.getBranchById("l34"), lfNetwork.getBranchById("l48"));
-        branchesToCut.forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
+        branchesToCut.forEach(lfBranch -> connectivity.cut(lfBranch.getBus2(), lfBranch.getBus1()));
 
         assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b3_vl_0")));
         assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b4_vl_0")));
