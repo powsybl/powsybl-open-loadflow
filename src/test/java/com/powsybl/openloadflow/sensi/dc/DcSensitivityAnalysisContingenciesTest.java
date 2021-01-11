@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2021, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package com.powsybl.openloadflow.sensi.dc;
 
 import com.powsybl.commons.PowsyblException;
@@ -28,6 +34,9 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * @author Gael Macherel <gael.macherel at artelys.com>
+ */
 class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysisTest {
     @Test
     void testContingencyWithOneElementAwayFromSlack() {
