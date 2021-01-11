@@ -15,18 +15,18 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
+import org.hamcrest.core.IsEqual;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
 
 /**
  * SVC test case.
@@ -172,32 +172,36 @@ class AcLoadFlowSvcTest {
         assertReactivePowerEquals(-svc1.getBmin() * svc1.getVoltageSetpoint() * svc1.getVoltageSetpoint(), svc1.getTerminal()); // min reactive limit has been correctly reached
     }
 
-    private void runLoadFlowAndStoreResults(Network network, Map<String, List<Double>> reports) {
+    private void runLoadFlowAndStoreResults(Network network, String busType, Map<String, Map<String, Double>> reports) {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         Generator generator = bus1.getGenerators().iterator().next();
         Load load = bus2.getLoads().iterator().next();
-        reports.computeIfAbsent("line1.getTerminal1().getP()", key -> new ArrayList<>()).add(l1.getTerminal1().getP());
-        reports.computeIfAbsent("line1.getTerminal1().getQ()", key -> new ArrayList<>()).add(l1.getTerminal1().getQ());
-        reports.computeIfAbsent("line1.getTerminal2().getP()", key -> new ArrayList<>()).add(l1.getTerminal2().getP());
-        reports.computeIfAbsent("line1.getTerminal2().getQ()", key -> new ArrayList<>()).add(l1.getTerminal2().getQ());
+        Map<String, Double> report = reports.computeIfAbsent(busType, key -> new HashMap<>());
+        report.put("line1.getTerminal1().getP()", l1.getTerminal1().getP());
+        report.put("line1.getTerminal1().getQ()", l1.getTerminal1().getQ());
+        report.put("line1.getTerminal2().getP()", l1.getTerminal2().getP());
+        report.put("line1.getTerminal2().getQ()", l1.getTerminal2().getQ());
 
-        reports.computeIfAbsent("bus1.getV()", key -> new ArrayList<>()).add(bus1.getV());
-        reports.computeIfAbsent("bus1.getAngle()", key -> new ArrayList<>()).add(bus1.getAngle());
-        reports.computeIfAbsent("generator.getTerminal().getP()", key -> new ArrayList<>()).add(generator.getTerminal().getP());
-        reports.computeIfAbsent("generator.getTerminal().getQ()", key -> new ArrayList<>()).add(generator.getTerminal().getQ());
+        report.put("bus1.getV()", bus1.getV());
+        report.put("bus1.getAngle()", bus1.getAngle());
+        report.put("generator.getTerminal().getP()", generator.getTerminal().getP());
+        report.put("generator.getTerminal().getQ()", generator.getTerminal().getQ());
 
-        reports.computeIfAbsent("bus2.getV()", key -> new ArrayList<>()).add(bus2.getV());
-        reports.computeIfAbsent("bus2.getAngle()", key -> new ArrayList<>()).add(bus2.getAngle());
-        reports.computeIfAbsent("load.getTerminal().getP()", key -> new ArrayList<>()).add(load.getTerminal().getP());
-        reports.computeIfAbsent("load.getTerminal().getQ()", key -> new ArrayList<>()).add(load.getTerminal().getQ());
-        reports.computeIfAbsent("svc1.getTerminal().getP()", key -> new ArrayList<>()).add(svc1.getTerminal().getP());
-        reports.computeIfAbsent("svc1.getTerminal().getQ()", key -> new ArrayList<>()).add(svc1.getTerminal().getQ());
+        report.put("bus2.getV()", bus2.getV());
+        report.put("bus2.getAngle()", bus2.getAngle());
+        report.put("load.getTerminal().getP()", load.getTerminal().getP());
+        report.put("load.getTerminal().getQ()", load.getTerminal().getQ());
+        report.put("svc1.getTerminal().getP()", svc1.getTerminal().getP());
+        report.put("svc1.getTerminal().getQ()", svc1.getTerminal().getQ());
+
         assertTrue(result.isOk());
     }
 
     @Test
     void shouldUseLessReactivePowerWithBusVLQ() {
-        Map<String, List<Double>> reports = new LinkedHashMap<>();
+        // Map<busType, <Map<getter, value>>
+        Map<String, Map<String, Double>> reports = new LinkedHashMap<>();
+        Double slope = 0.01;
 
         // 1 - run with bus2 as bus PV
         parametersExt.setUseBusPVLQ(false);
@@ -205,7 +209,7 @@ class AcLoadFlowSvcTest {
         load.setQ0(0);
         svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
-        runLoadFlowAndStoreResults(network, reports);
+        runLoadFlowAndStoreResults(network, "busPV", reports);
 
         // 2 - run with bus2 as bus PVLQ
         parametersExt.setUseBusPVLQ(true);
@@ -215,17 +219,26 @@ class AcLoadFlowSvcTest {
         svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
                 .newExtension(VoltagePerReactivePowerControlAdder.class)
-                .withSlope(0.01)
+                .withSlope(slope)
                 .add();
-        runLoadFlowAndStoreResults(network, reports);
+        runLoadFlowAndStoreResults(network, "busPVLQ", reports);
 
         // display report
-        for (Map.Entry<String, List<Double>> entry : reports.entrySet()) {
-            System.out.println(entry.getKey() + " : " + entry.getValue().stream().map(d -> String.valueOf(d)).reduce("", (s1, s2) -> s1 + (s1.isEmpty() ? "" : " ; ") + s2));
+        for (Map.Entry<String, Map<String, Double>> report : reports.entrySet()) {
+            System.out.println(">>> " + report.getKey());
+            for (Map.Entry<String, Double> getter : report.getValue().entrySet()) {
+                System.out.println(getter.getKey() + " = " + getter.getValue());
+            }
         }
 
         // assertions
-        assertThat("Q on svc1 should be lower", reports.get("svc1.getTerminal().getQ()").get(1), new LoadFlowAssert.LowerThan(reports.get("svc1.getTerminal().getQ()").get(0)));
-        assertThat("V on bus2 should be greater", reports.get("bus2.getV()").get(1), new LoadFlowAssert.GreaterThan(reports.get("bus2.getV()").get(0)));
+        assertThat("with PV bus, V on bus2 should remains constant", reports.get("busPV").get("bus2.getV()"),
+                new IsEqual(svc1.getVoltageSetpoint()));
+        assertThat("with PVLQ bus, V on bus2 should be equals to 'voltageSetpoint + slope * Q'", reports.get("busPVLQ").get("bus2.getV()"),
+                new LoadFlowAssert.EqualsTo(svc1.getVoltageSetpoint() + reports.get("busPVLQ").get("svc1.getTerminal().getQ()") * slope, DELTA_V));
+        assertThat("Q on svc1 should be lower with bus PVLQ than PV", reports.get("busPVLQ").get("svc1.getTerminal().getQ()"),
+                new LoadFlowAssert.LowerThan(reports.get("busPV").get("svc1.getTerminal().getQ()")));
+        assertThat("V on bus2 should be greater with bus PVLQ than PV", reports.get("busPVLQ").get("bus2.getV()"),
+                new LoadFlowAssert.GreaterThan(reports.get("busPV").get("bus2.getV()")));
     }
 }

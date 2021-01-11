@@ -117,4 +117,26 @@ public final class LoadFlowAssert {
             description.appendText(this.value + " to be lower than " + this.greaterValue);
         }
     }
+
+    public static class EqualsTo extends BaseMatcher {
+        private final double equalsValue;
+        private double value;
+        private double delta;
+
+        public EqualsTo(double equalsValue, double delta) {
+            this.equalsValue = equalsValue;
+            this.delta = delta;
+        }
+
+        @Override
+        public boolean matches(Object value) {
+            this.value = (Double) value;
+            return Math.abs(this.value - equalsValue) <= this.delta;
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText(this.value + " to be equals to " + this.equalsValue);
+        }
+    }
 }
