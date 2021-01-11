@@ -426,9 +426,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             // add to contingency description buses and branches that won't be part of the main connected
             // component in post contingency state
             Set<LfBus> buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
-            network.getBranches().stream()
-                .filter(br -> buses.contains(br.getBus1()) && buses.contains(br.getBus2()))
-                .forEach(branches::add);
+            buses.forEach(b -> branches.addAll(b.getBranches()));
 
             // reset connectivity to discard triggered branches
             connectivity.reset();

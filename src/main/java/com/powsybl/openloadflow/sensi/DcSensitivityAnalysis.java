@@ -107,8 +107,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 return new BranchFlowPerInjectionIncreaseWrapped(factor, network, lfNetwork, equationSystem);
             } else if (factor instanceof BranchFlowPerPSTAngle) {
                 return new BranchFlowPerPSTAngleWrapped(factor, lfNetwork, equationSystem);
+            }  else {
+                throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
             }
-            return null;
         }
 
         public SensitivityFactor getFactor() {
@@ -580,13 +581,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 rhs.set(p2.getColumn(), element.getContingencyIndex(), -1 / PerUnit.SB);
             }
         }
-    }
-
-    protected DenseMatrix initRhs(LfNetwork lfNetwork, EquationSystem equationSystem, List<SensitivityFactorGroup> factorsGroups, Map<String, ComputedContingencyElement> contingencyElements) {
-        DenseMatrix rhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), factorsGroups.size() + contingencyElements.values().size());
-        fillRhsSensitivityVariable(lfNetwork, equationSystem, factorsGroups, rhs);
-        fillRhsContingency(lfNetwork, equationSystem, contingencyElements, rhs);
-        return rhs;
     }
 
     protected DenseMatrix initFactorsRhs(LfNetwork lfNetwork, EquationSystem equationSystem, List<SensitivityFactorGroup> factorsGroups) {
