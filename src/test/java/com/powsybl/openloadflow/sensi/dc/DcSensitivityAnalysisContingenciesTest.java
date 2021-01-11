@@ -149,7 +149,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         CompletionException e = assertThrows(CompletionException.class, result::join);
         assertTrue(e.getCause() instanceof PowsyblException);
-        assertEquals("The contingency l23+l12 breaks the connectivity on more than 1 branch.", e.getCause().getMessage());
+        assertEquals("The contingency l23+l12 breaks the connectivity on more than one branch.", e.getCause().getMessage());
     }
 
     @Test

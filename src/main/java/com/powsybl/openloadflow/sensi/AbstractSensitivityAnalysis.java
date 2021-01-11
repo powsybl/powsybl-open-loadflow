@@ -58,13 +58,13 @@ public abstract class AbstractSensitivityAnalysis {
         return injection;
     }
 
-    protected static LfBus getInjectionBus(Network network, LfNetwork lfNetwork, BranchFlowPerInjectionIncrease injectionFactor) {
+    protected static LfBus getInjectionLfBus(Network network, LfNetwork lfNetwork, BranchFlowPerInjectionIncrease injectionFactor) {
         Injection<?> injection = getInjection(network, injectionFactor.getVariable().getInjectionId());
         Bus bus = injection.getTerminal().getBusView().getBus();
         return lfNetwork.getBusById(bus.getId());
     }
 
-    protected static LfBranch getPhaseChangerBranch(LfNetwork lfNetwork, BranchFlowPerPSTAngle pstFactor) {
+    protected static LfBranch getPhaseTapChangerLfBranch(LfNetwork lfNetwork, BranchFlowPerPSTAngle pstFactor) {
         return lfNetwork.getBranchById(pstFactor.getVariable().getPhaseTapChangerHolderId());
     }
 
