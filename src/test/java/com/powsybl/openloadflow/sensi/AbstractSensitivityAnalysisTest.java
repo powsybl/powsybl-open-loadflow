@@ -19,8 +19,10 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.NameSlackBusSelector;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
+import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
+import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 
 import java.util.Collections;
 import java.util.List;
@@ -84,6 +86,13 @@ public abstract class AbstractSensitivityAnalysisTest {
                      .orElse(Double.NaN);
     }
 
+    protected static double getContingencyValue(List<SensitivityValue> result, String variableId, String functionId) {
+        return result.stream().filter(value -> value.getFactor().getVariable().getId().equals(variableId) && value.getFactor().getFunction().getId().equals(functionId))
+                     .findFirst()
+                     .map(SensitivityValue::getValue)
+                     .orElse(Double.NaN);
+    }
+
     protected static double getFunctionReference(SensitivityAnalysisResult result, String functionId) {
         return result.getSensitivityValues().stream().filter(value -> value.getFactor().getFunction().getId().equals(functionId))
                 .findFirst()
@@ -119,6 +128,25 @@ public abstract class AbstractSensitivityAnalysisTest {
             Branch branch = n.getBranch("NHV1_NHV2_1");
             return Collections.singletonList(new BranchFlowPerInjectionIncrease(createBranchFlow(branch),
                     new InjectionIncrease("a", "a", "a")));
+        };
+        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+                factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault());
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Injection 'a' not found", e.getCause().getMessage());
+    }
+
+    protected void testGlskInjectionNotFound(boolean dc) {
+        Network network = EurostagTutorialExample1Factory.create();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
+        SensitivityFactorsProvider factorsProvider = n -> {
+            Branch branch = n.getBranch("NHV1_NHV2_1");
+            return Collections.singletonList(new BranchFlowPerLinearGlsk(
+                createBranchFlow(branch),
+                new LinearGlsk("glsk", "glsk", Collections.singletonMap("a", 10f))
+            ));
         };
         CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
                 factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault());

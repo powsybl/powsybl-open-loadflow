@@ -14,6 +14,18 @@ import com.powsybl.iidm.network.TwoWindingsTransformer;
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
 public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFactory {
+
+    /**
+     * b1 ----------+
+     * |            |
+     * b2 -------- b3
+     *              |
+     * b5 -------- b4
+     * |            |
+     * b6 ----------+
+     *
+     * @return network
+     */
     public static Network createTwoCcLinkedByASingleLine() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
@@ -32,6 +44,56 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    /**
+     * b1 (d1) ----------+
+     * |                 |
+     * b2 (g2) -------- b3 (d3)
+     * |                 |
+     * b4 (d4) -------- b5 (d5)
+     * |                 |
+     * b6 (g6) ----------+
+     *
+     * @return network
+     */
+    public static Network createTwoCcLinkedByTwoLines() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        Bus b5 = createBus(network, "b5");
+        Bus b6 = createBus(network, "b6");
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b3, "l13", 0.1f);
+        createLine(network, b2, b3, "l23", 0.1f);
+        createLine(network, b3, b4, "l35", 0.1f);
+        createLine(network, b3, b4, "l24", 0.1f);
+        createLine(network, b4, b5, "l45", 0.1f);
+        createLine(network, b4, b6, "l46", 0.1f);
+        createLine(network, b5, b6, "l56", 0.1f);
+
+        createGenerator(b2, "g2", 3);
+        createGenerator(b6, "g6", 2);
+        createLoad(b1, "d1", 1);
+        createLoad(b3, "d3", 1);
+        createLoad(b4, "d4", 1);
+        createLoad(b5, "d5", 2);
+        return network;
+    }
+
+    /**
+     * b1 (d1) ----------+
+     * |                 |
+     * b2 (g2) -------- b3 (d3)
+     *                   |
+     * b5 (d5) -------- b4 (d4)
+     * |                 |
+     * PTC               |
+     * |                 |
+     * b6 (g6) ----------+
+     *
+     * @return network
+     */
     public static Network createTwoCcWithATransformerLinkedByASingleLine() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
@@ -66,6 +128,17 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    /**
+     * b1 (d1) ----------+
+     * |                 |
+     * b2 (g2) -------- b3 (g3)
+     *                   |
+     * b5 (d5) -------- b4
+     * |                 |
+     * b6 (d6) ----------+
+     *
+     * @return network
+     */
     public static Network createTwoComponentWithGeneratorOnOneSide() {
         Network network = createTwoCcLinkedByASingleLine();
         Bus b2 = network.getBusBreakerView().getBus("b2");
@@ -82,6 +155,17 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    /**
+     * b1 (d1) ----------+
+     * |                 |
+     * b2 (g2) -------- b3 (d3)
+     *                   |
+     * b5 (d5) -------- b4 (d4)
+     * |                 |
+     * b6 (g6) ----------+
+     *
+     * @return network
+     */
     public static Network createTwoComponentWithGeneratorAndLoad() {
         Network network = createTwoCcLinkedByASingleLine();
         Bus b2 = network.getBusBreakerView().getBus("b2");
@@ -99,6 +183,17 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    /**
+     * b1 (d1) ----------+                               b6 (g6) ----------+
+     * |                 |                                |                |
+     * b2 (g2) -------- b3 (d3) -------- b4 (d4) -------- b5 (d5) -------- b7 (d7)
+     *                                    |
+     *                                   b8 (d8) --------- b9 (d9)
+     *                                    |                 |
+     *                                   b10 (g10) ---------+
+     *
+     * @return network
+     */
     public static Network createThreeCcLinkedByASingleBus() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
@@ -138,6 +233,19 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    /**
+     * b1 (d1) ----------+
+     * |                 |
+     * b2 (g2) -------- b3 (d3)
+     *                   |
+     *                  b4 (d4)
+     *                   |
+     * b6 (g6) ------   b5 (d5)
+     * |                 |
+     * b7 (d7) ------ ---+
+     *
+     * @return network
+     */
     public static Network createTwoConnectedComponentsLinkedByASerieOfTwoBranches() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
@@ -167,6 +275,17 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    /**
+     * b1 (d1) ----------+                +-------------- b6 (g6)
+     * |                 |                |                |
+     * b2 (g2) -------- b3 (d3) -------- b4 (d4) -------- b5 (d5)
+     *                                    |
+     *                                   b7 (d7) --------- b9 (g9)
+     *                                    |                 |
+     *                                   b8 (d8) -----------+
+     *
+     * @return network
+     */
     public static Network createThreeCc() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
@@ -199,6 +318,150 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         createLoad(b5, "d5", 2);
         createLoad(b7, "d7", 1);
         createLoad(b8, "d8", 2);
+
+        return network;
+    }
+
+    /**
+     * b1 (d1) ----------+                 +-------------- b6 (g6)
+     * |                 |                 |                |
+     * b2 (g2) -------- b3 (d3) --------  b4 (d4) -------- b5 (d5)
+     * |                                                    |
+     * +--------------------------------- b7 (d7) -------- b8 (d8)
+     *                                     |                 |
+     *                                    b9 (g9) -----------+
+     * @return network
+     */
+    public static Network createThreeCircularCc() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        Bus b5 = createBus(network, "b5");
+        Bus b6 = createBus(network, "b6");
+        Bus b7 = createBus(network, "b7");
+        Bus b8 = createBus(network, "b8");
+        Bus b9 = createBus(network, "b9");
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b3, "l13", 0.1f);
+        createLine(network, b2, b3, "l23", 0.1f);
+        createLine(network, b2, b7, "l27", 0.1f);
+        createLine(network, b3, b4, "l34", 0.1f);
+        createLine(network, b4, b5, "l45", 0.1f);
+        createLine(network, b4, b6, "l46", 0.1f);
+        createLine(network, b5, b6, "l56", 0.1f);
+        createLine(network, b5, b8, "l58", 0.1f);
+        createLine(network, b7, b8, "l78", 0.1f);
+        createLine(network, b7, b9, "l79", 0.1f);
+        createLine(network, b8, b9, "l89", 0.1f);
+
+        createGenerator(b2, "g2", 3);
+        createGenerator(b6, "g6", 2);
+        createGenerator(b9, "g9", 2);
+        createLoad(b1, "d1", 1);
+        createLoad(b3, "d3", 1);
+        createLoad(b4, "d4", 2);
+        createLoad(b5, "d5", 2);
+        createLoad(b7, "d7", 1);
+        createLoad(b8, "d8", 2);
+
+        return network;
+    }
+
+    /**
+     * b6 (g6) ----------+                +-------------- b2 (g2) -------- b7 (d7) ----------+
+     * |                 |                |                |                |                |
+     * b5 (d5) -------- b4 (d4) -------- b1 (d1) -------- b3 (d3) -------- b9 (g9) -------- b8 (d8)
+     *                                    |                                                  |
+     *                                    +--------------------------------------------------+
+     * @return network
+     */
+    public static Network createAsymetricNetwork() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        Bus b5 = createBus(network, "b5");
+        Bus b6 = createBus(network, "b6");
+        Bus b7 = createBus(network, "b7");
+        Bus b8 = createBus(network, "b8");
+        Bus b9 = createBus(network, "b9");
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b3, "l13", 0.1f);
+        createLine(network, b1, b4, "l14", 0.1f);
+        createLine(network, b1, b8, "l18", 0.1f);
+        createLine(network, b2, b3, "l23", 0.1f);
+        createLine(network, b2, b7, "l27", 0.1f);
+        createLine(network, b3, b9, "l39", 0.1f);
+        createLine(network, b4, b5, "l45", 0.1f);
+        createLine(network, b4, b6, "l46", 0.1f);
+        createLine(network, b5, b6, "l56", 0.1f);
+        createLine(network, b7, b8, "l78", 0.1f);
+        createLine(network, b7, b9, "l79", 0.1f);
+        createLine(network, b8, b9, "l89", 0.1f);
+
+        createGenerator(b2, "g2", 3);
+        createGenerator(b6, "g6", 2);
+        createGenerator(b9, "g9", 2);
+        createLoad(b1, "d1", 1);
+        createLoad(b3, "d3", 1);
+        createLoad(b4, "d4", 2);
+        createLoad(b5, "d5", 2);
+        createLoad(b7, "d7", 1);
+        createLoad(b8, "d8", 2);
+
+        return network;
+    }
+
+    /**
+     *                              b3 (g3) -------- b5 (d5)
+     *                              /  | \             | \
+     *                       -------   |   \           |  -------
+     *                     /           |     \         |         \
+     * b1 (g1+d1) ------ b2 (g2+d2)    |       \       |        b7 (g7) -------- b8 (d8)
+     *                     \           |         \     |         /
+     *                       -------   |           \   |  -------
+     *                              \  |             \ | /
+     *                              b4 (d4) -------- b6 (d6)
+
+     * @return network
+     */
+    public static Network createHighlyConnectedNetwork() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        Bus b5 = createBus(network, "b5");
+        Bus b6 = createBus(network, "b6");
+        Bus b7 = createBus(network, "b7");
+        Bus b8 = createBus(network, "b8");
+
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b2, b3, "l23", 0.1f);
+        createLine(network, b2, b4, "l24", 0.1f);
+        createLine(network, b3, b4, "l34", 0.1f);
+        createLine(network, b3, b5, "l35", 0.1f);
+        createLine(network, b3, b6, "l36", 0.1f);
+        createLine(network, b4, b6, "l46", 0.1f);
+        createLine(network, b5, b6, "l56", 0.1f);
+        createLine(network, b5, b7, "l57", 0.1f);
+        createLine(network, b6, b7, "l67", 0.1f);
+        createLine(network, b7, b8, "l78", 0.1f);
+
+        createGenerator(b1, "g1", 3);
+        createGenerator(b2, "g2", 1);
+        createGenerator(b3, "g3", 1);
+        createGenerator(b7, "g7", 5);
+
+        createLoad(b1, "d1", 1);
+        createLoad(b2, "d2", 4);
+        createLoad(b4, "d4", 1);
+        createLoad(b5, "d5", 2);
+        createLoad(b6, "d6", 1);
+        createLoad(b8, "d8", 1);
 
         return network;
     }
