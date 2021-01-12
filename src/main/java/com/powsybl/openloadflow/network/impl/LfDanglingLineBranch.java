@@ -6,10 +6,14 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.iidm.network.CurrentLimits;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
@@ -105,6 +109,23 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     @Override
     public double getPermanentLimit2() {
         return Double.NaN;
+    }
+
+    @Override
+    public Map<Integer, Double> getTemporaryLimits1() {
+        Map<Integer, Double> map = new HashMap();
+        if (danglingLine.getCurrentLimits() != null) {
+            for (CurrentLimits.TemporaryLimit temporaryLimit : danglingLine.getCurrentLimits().getTemporaryLimits()) {
+                map.put(temporaryLimit.getAcceptableDuration(),
+                        temporaryLimit.getValue() != Double.NaN ? temporaryLimit.getValue() * getBus1().getNominalV() / PerUnit.SB : Double.NaN);
+            }
+        }
+        return map;
+    }
+
+    @Override
+    public Map<Integer, Double> getTemporaryLimits2() {
+        return Collections.emptyMap();
     }
 
     @Override

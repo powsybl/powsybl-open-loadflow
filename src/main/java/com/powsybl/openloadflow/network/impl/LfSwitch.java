@@ -12,6 +12,8 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.SimplePiModel;
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -84,6 +86,16 @@ public class LfSwitch extends AbstractLfBranch {
     @Override
     public double getPermanentLimit2() {
         return Double.NaN;
+    }
+
+    @Override
+    public Map<Integer, Double> getTemporaryLimits1() {
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public Map<Integer, Double> getTemporaryLimits2() {
+        return Collections.emptyMap();
     }
 
     @Override

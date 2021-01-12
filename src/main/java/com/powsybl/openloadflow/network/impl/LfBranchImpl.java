@@ -11,9 +11,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -203,6 +201,30 @@ public class LfBranchImpl extends AbstractLfBranch {
     @Override
     public double getPermanentLimit2() {
         return branch.getCurrentLimits2() != null ? branch.getCurrentLimits2().getPermanentLimit() * getBus2().getNominalV() / PerUnit.SB : Double.NaN;
+    }
+
+    @Override
+    public Map<Integer, Double> getTemporaryLimits1() {
+        Map<Integer, Double> map = new HashMap();
+        if (branch.getCurrentLimits1() != null) {
+            for (CurrentLimits.TemporaryLimit temporaryLimit : branch.getCurrentLimits1().getTemporaryLimits()) {
+                map.put(temporaryLimit.getAcceptableDuration(),
+                        temporaryLimit.getValue() != Double.MAX_VALUE ? temporaryLimit.getValue() * getBus1().getNominalV() / PerUnit.SB : Double.MAX_VALUE);
+            }
+        }
+        return map;
+    }
+
+    @Override
+    public Map<Integer, Double> getTemporaryLimits2() {
+        Map<Integer, Double> map = new HashMap();
+        if (branch.getCurrentLimits2() != null) {
+            for (CurrentLimits.TemporaryLimit temporaryLimit : branch.getCurrentLimits2().getTemporaryLimits()) {
+                map.put(temporaryLimit.getAcceptableDuration(),
+                        temporaryLimit.getValue() != Double.MAX_VALUE ? temporaryLimit.getValue() * getBus2().getNominalV() / PerUnit.SB : Double.MAX_VALUE);
+            }
+        }
+        return map;
     }
 
     @Override

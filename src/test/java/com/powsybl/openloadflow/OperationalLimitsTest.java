@@ -31,6 +31,8 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
 
     private OpenLoadFlowParameters parametersExt;
 
+    public static final double DELTA_CURRENT = 10E-3;
+
     @BeforeEach
     void setUp() {
         parameters = new LoadFlowParameters();
@@ -53,10 +55,15 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(branch2.getI2() < branch2.getPermanentLimit2());
         LfBranch branch3 = lfNetwork.getBranchById("NGEN_NHV1");
         assertTrue(Double.isNaN(branch3.getPermanentLimit1()));
-        assertEquals(3654.18, branch3.getI1(), 10E-3);
+        assertEquals(3654.18, branch3.getI1(), DELTA_CURRENT);
         LfBranch branch4 = lfNetwork.getBranchById("NHV2_NLOAD");
         assertTrue(Double.isNaN(branch4.getPermanentLimit2()));
-        assertEquals(3711.395, branch4.getI2(), 10E-3);
+        assertEquals(3711.395, branch4.getI2(), DELTA_CURRENT);
+        assertEquals(4560.0, branch2.getTemporaryLimits1().get(1200), DELTA_CURRENT);
+        assertEquals(Double.MAX_VALUE, branch2.getTemporaryLimits1().get(60), DELTA_CURRENT);
+        assertEquals(Double.MAX_VALUE, branch1.getTemporaryLimits2().get(0), DELTA_CURRENT);
+        assertEquals(4560, branch1.getTemporaryLimits2().get(600), DELTA_CURRENT);
+        assertEquals(5700, branch1.getTemporaryLimits2().get(60), DELTA_CURRENT);
     }
 
     @Test
@@ -69,10 +76,13 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
         LfBranch branch = lfNetwork.getBranchById("DL");
-        assertEquals(361.588, branch.getI1(), 10E-3);
-        assertEquals(100.0, branch.getPermanentLimit1(), 10E-3);
+        assertEquals(361.588, branch.getI1(), DELTA_CURRENT);
+        assertEquals(100.0, branch.getPermanentLimit1(), DELTA_CURRENT);
         assertTrue(Double.isNaN(branch.getI2()));
         assertTrue(Double.isNaN(branch.getPermanentLimit2()));
+        assertEquals(120, branch.getTemporaryLimits1().get(1200), DELTA_CURRENT);
+        assertEquals(140, branch.getTemporaryLimits1().get(600), DELTA_CURRENT);
+        assertTrue(branch.getTemporaryLimits2().isEmpty());
     }
 
     @Test
@@ -85,10 +95,12 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
         LfBranch branch1 = lfNetwork.getBranchById("3WT_leg_1");
-        assertEquals(6000.771, branch1.getI1(), 10E-3);
+        assertEquals(6000.771, branch1.getI1(), DELTA_CURRENT);
         assertTrue(Double.isNaN(branch1.getI2()));
         assertTrue(Double.isNaN(branch1.getPermanentLimit1()));
         assertTrue(Double.isNaN(branch1.getPermanentLimit2()));
+        assertTrue(branch1.getTemporaryLimits1().isEmpty());
+        assertTrue(branch1.getTemporaryLimits2().isEmpty());
     }
 
     @Test

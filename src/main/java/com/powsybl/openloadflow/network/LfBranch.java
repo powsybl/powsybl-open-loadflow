@@ -8,6 +8,8 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.util.Map;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -44,6 +46,10 @@ public interface LfBranch {
     double getPermanentLimit1();
 
     double getPermanentLimit2();
+
+    Map<Integer, Double> getTemporaryLimits1();
+
+    Map<Integer, Double> getTemporaryLimits2();
 
     boolean hasPhaseControlCapability();
 

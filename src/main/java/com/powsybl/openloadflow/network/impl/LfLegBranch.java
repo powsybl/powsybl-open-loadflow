@@ -7,15 +7,14 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.CurrentLimits;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -191,6 +190,23 @@ public class LfLegBranch extends AbstractLfBranch {
     @Override
     public double getPermanentLimit2() {
         return Double.NaN;
+    }
+
+    @Override
+    public Map<Integer, Double> getTemporaryLimits1() {
+        Map<Integer, Double> map = new HashMap();
+        if (leg.getCurrentLimits() != null) {
+            for (CurrentLimits.TemporaryLimit temporaryLimit : leg.getCurrentLimits().getTemporaryLimits()) {
+                map.put(temporaryLimit.getAcceptableDuration(),
+                        temporaryLimit.getValue() != Double.NaN ? temporaryLimit.getValue() * getBus1().getNominalV() / PerUnit.SB : Double.NaN);
+            }
+        }
+        return map;
+    }
+
+    @Override
+    public Map<Integer, Double> getTemporaryLimits2() {
+        return Collections.emptyMap();
     }
 
     @Override
