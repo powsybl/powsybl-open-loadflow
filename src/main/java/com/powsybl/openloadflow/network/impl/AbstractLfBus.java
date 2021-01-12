@@ -235,6 +235,10 @@ public abstract class AbstractLfBus implements LfBus {
         }
     }
 
+    public List<Load> getLoads() {
+        return loads;
+    }
+
     void addBattery(Battery battery) {
         batteries.add(battery);
         initialLoadTargetP += battery.getP0();

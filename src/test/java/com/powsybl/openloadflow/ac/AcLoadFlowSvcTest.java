@@ -19,8 +19,9 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.hamcrest.core.IsEqual;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -40,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 class AcLoadFlowSvcTest {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AcLoadFlowSvcTest.class);
 
     private Network network;
     private Bus bus1;
@@ -176,7 +178,7 @@ class AcLoadFlowSvcTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         Generator generator = bus1.getGenerators().iterator().next();
         Load load = bus2.getLoads().iterator().next();
-        Map<String, Double> report = reports.computeIfAbsent(busType, key -> new HashMap<>());
+        Map<String, Double> report = reports.computeIfAbsent(busType, key -> new LinkedHashMap<>());
         report.put("line1.getTerminal1().getP()", l1.getTerminal1().getP());
         report.put("line1.getTerminal1().getQ()", l1.getTerminal1().getQ());
         report.put("line1.getTerminal2().getP()", l1.getTerminal2().getP());
@@ -205,8 +207,6 @@ class AcLoadFlowSvcTest {
 
         // 1 - run with bus2 as bus PV
         parametersExt.setUseBusPVLQ(false);
-        Load load = bus2.getLoads().iterator().next();
-        load.setQ0(0);
         svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         runLoadFlowAndStoreResults(network, "busPV", reports);
@@ -214,8 +214,6 @@ class AcLoadFlowSvcTest {
         // 2 - run with bus2 as bus PVLQ
         parametersExt.setUseBusPVLQ(true);
         Network network = createNetwork();
-        load = bus2.getLoads().iterator().next();
-        load.setQ0(0);
         svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
                 .newExtension(VoltagePerReactivePowerControlAdder.class)
@@ -225,17 +223,17 @@ class AcLoadFlowSvcTest {
 
         // display report
         for (Map.Entry<String, Map<String, Double>> report : reports.entrySet()) {
-            System.out.println(">>> " + report.getKey());
+            LOGGER.debug(">>> Report about bus : {}", report.getKey());
             for (Map.Entry<String, Double> getter : report.getValue().entrySet()) {
-                System.out.println(getter.getKey() + " = " + getter.getValue());
+                LOGGER.debug("{} = {}", getter.getKey(), getter.getValue());
             }
         }
 
         // assertions
         assertThat("with PV bus, V on bus2 should remains constant", reports.get("busPV").get("bus2.getV()"),
                 new IsEqual(svc1.getVoltageSetpoint()));
-        assertThat("with PVLQ bus, V on bus2 should be equals to 'voltageSetpoint + slope * Q'", reports.get("busPVLQ").get("bus2.getV()"),
-                new LoadFlowAssert.EqualsTo(svc1.getVoltageSetpoint() + reports.get("busPVLQ").get("svc1.getTerminal().getQ()") * slope, DELTA_V));
+        assertThat("with PVLQ bus, V on bus2 should be equals to 'voltageSetpoint + slope * Qsvc'", reports.get("busPVLQ").get("bus2.getV()"),
+                new LoadFlowAssert.EqualsTo(svc1.getVoltageSetpoint() +  slope * (reports.get("busPVLQ").get("svc1.getTerminal().getQ()")), DELTA_V));
         assertThat("Q on svc1 should be lower with bus PVLQ than PV", reports.get("busPVLQ").get("svc1.getTerminal().getQ()"),
                 new LoadFlowAssert.LowerThan(reports.get("busPV").get("svc1.getTerminal().getQ()")));
         assertThat("V on bus2 should be greater with bus PVLQ than PV", reports.get("busPVLQ").get("bus2.getV()"),

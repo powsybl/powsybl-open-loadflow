@@ -1,13 +1,21 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.Load;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.openloadflow.network.impl.AbstractLfBus;
 import com.powsybl.openloadflow.network.impl.LfStaticVarCompensatorImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractNamedEquationTerm {
+    private static final Logger LOGGER = LoggerFactory.getLogger(StaticVarCompensatorVoltageLambdaQEquationTerm.class);
 
     private final List<LfStaticVarCompensatorImpl> lfStaticVarCompensators;
 
@@ -62,7 +70,7 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         Equation reactiveEquation = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
 
         // sum evaluation and derivatives on branch terms from BUS_Q equation
-        double evalQsvc = 0;
+        double evalQbus = 0;
         double dQdU = 0;
         double dQdtheta = 0;
         for (EquationTerm equationTerm : reactiveEquation.getTerms()) {
@@ -70,19 +78,31 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
                     (equationTerm instanceof ClosedBranchSide1ReactiveFlowEquationTerm
                             || equationTerm instanceof ClosedBranchSide2ReactiveFlowEquationTerm)) {
                 equationTerm.update(x);
-                evalQsvc += equationTerm.eval();
+                evalQbus += equationTerm.eval();
                 dQdU += equationTerm.der(vVar);
                 dQdtheta += equationTerm.der(phiVar);
             }
         }
 
+        // sum Q on loads
+        double sumQloads = 0;
+        AbstractLfBus abstractLfBus = (AbstractLfBus) bus;
+        LOGGER.trace("abstractLfBus.getTargetQ() = {} ; abstractLfBus.getCalculatedQ() = {} ; abstractLfBus.getLoadTargetQ() = {} ; abstractLfBus.getGenerationTargetQ() = {}",
+                abstractLfBus.getTargetQ(), abstractLfBus.getCalculatedQ(), abstractLfBus.getLoadTargetQ(), abstractLfBus.getGenerationTargetQ());
+        for (Load load : abstractLfBus.getLoads()) {
+            LOGGER.debug("load.getQ0() = {} ; load.getTerminal().getQ() = {}", load.getQ0(), load.getTerminal().getQ());
+            sumQloads += load.getQ0();
+        }
+
         // TODO : ? pour lambda * Q(U, theta), utiliser EquationTerm.multiply(terme Q(U, theta), lambda)
         // f(U, theta) = U + lambda * Q(U, theta)
-        targetV = x[vVar.getRow()] + slope * evalQsvc;
+        targetV = x[vVar.getRow()] + slope * (evalQbus + (sumQloads / PerUnit.SB));
         // dfdU = 1 + lambda dQdU
         dfdU = 1 + slope * dQdU;
         // dfdtheta = lambda * dQdtheta
         dfdph = slope * dQdtheta;
+        LOGGER.debug("x = {} ; evalQbus = {} ; targetV = {} ; evalQbus - bus.getLoadTargetQ() = {}",
+                x[vVar.getRow()] * bus.getNominalV(), evalQbus * PerUnit.SB, targetV * bus.getNominalV(), (evalQbus - bus.getLoadTargetQ()) * PerUnit.SB);
     }
 
     @Override
