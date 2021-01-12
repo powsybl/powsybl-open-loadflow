@@ -4,6 +4,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.impl.AbstractLfBus;
 import com.powsybl.openloadflow.network.impl.LfStaticVarCompensatorImpl;
@@ -69,7 +70,33 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         double slope = lfStaticVarCompensator.getSlope();
         Equation reactiveEquation = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
 
-        // sum evaluation and derivatives on branch terms from BUS_Q equation
+        double[] result = sumEvalAndDerOnBranchTermsFromEquationBUSQ(x);
+        double evalQbus = result[0];
+        double dQdU = result[1];
+        double dQdtheta = result[2];
+
+        AbstractLfBus abstractLfBus = (AbstractLfBus) bus;
+        double sumQloads = getSumQloads(abstractLfBus);
+        double sumQgenerators = getSumQgenerators(abstractLfBus);
+
+        // f(U, theta) = U + lambda * Q(U, theta)
+        // Qbus = Qsvc - Qload + Qgenerator d'où : Q(U, theta) = Qsvc =  Qbus + Qload - Qgenerator
+        targetV = x[vVar.getRow()] + slope * (evalQbus + sumQloads - sumQgenerators);
+        // dfdU = 1 + lambda dQdU
+        dfdU = 1 + slope * dQdU;
+        // dfdtheta = lambda * dQdtheta
+        dfdph = slope * dQdtheta;
+        LOGGER.debug("x = {} ; evalQbus = {} ; targetV = {} ; evalQbus - bus.getLoadTargetQ() = {}",
+                x[vVar.getRow()] * bus.getNominalV(), evalQbus * PerUnit.SB, targetV * bus.getNominalV(), (evalQbus - bus.getLoadTargetQ()) * PerUnit.SB);
+    }
+
+    /**
+     *
+     * @param x variable value vector initialize with a VoltageInitializer
+     * @return sum evaluation and derivatives on branch terms from BUS_Q equation
+     */
+    private double[] sumEvalAndDerOnBranchTermsFromEquationBUSQ(double[] x) {
+        Equation reactiveEquation = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
         double evalQbus = 0;
         double dQdU = 0;
         double dQdtheta = 0;
@@ -83,26 +110,31 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
                 dQdtheta += equationTerm.der(phiVar);
             }
         }
+        return new double[]{evalQbus, dQdU, dQdtheta};
+    }
 
-        // sum Q on loads
+    private double getSumQloads(AbstractLfBus abstractLfBus) {
         double sumQloads = 0;
-        AbstractLfBus abstractLfBus = (AbstractLfBus) bus;
         LOGGER.trace("abstractLfBus.getTargetQ() = {} ; abstractLfBus.getCalculatedQ() = {} ; abstractLfBus.getLoadTargetQ() = {} ; abstractLfBus.getGenerationTargetQ() = {}",
                 abstractLfBus.getTargetQ(), abstractLfBus.getCalculatedQ(), abstractLfBus.getLoadTargetQ(), abstractLfBus.getGenerationTargetQ());
         for (Load load : abstractLfBus.getLoads()) {
             LOGGER.debug("load.getQ0() = {} ; load.getTerminal().getQ() = {}", load.getQ0(), load.getTerminal().getQ());
             sumQloads += load.getQ0();
         }
+        return sumQloads / PerUnit.SB;
+    }
 
-        // TODO : ? pour lambda * Q(U, theta), utiliser EquationTerm.multiply(terme Q(U, theta), lambda)
-        // f(U, theta) = U + lambda * Q(U, theta)
-        targetV = x[vVar.getRow()] + slope * (evalQbus + (sumQloads / PerUnit.SB));
-        // dfdU = 1 + lambda dQdU
-        dfdU = 1 + slope * dQdU;
-        // dfdtheta = lambda * dQdtheta
-        dfdph = slope * dQdtheta;
-        LOGGER.debug("x = {} ; evalQbus = {} ; targetV = {} ; evalQbus - bus.getLoadTargetQ() = {}",
-                x[vVar.getRow()] * bus.getNominalV(), evalQbus * PerUnit.SB, targetV * bus.getNominalV(), (evalQbus - bus.getLoadTargetQ()) * PerUnit.SB);
+    private double getSumQgenerators(AbstractLfBus abstractLfBus) {
+        double sumQgenerators = 0;
+        LOGGER.trace("abstractLfBus.getTargetQ() = {} ; abstractLfBus.getCalculatedQ() = {} ; abstractLfBus.getLoadTargetQ() = {} ; abstractLfBus.getGenerationTargetQ() = {}",
+                abstractLfBus.getTargetQ(), abstractLfBus.getCalculatedQ(), abstractLfBus.getLoadTargetQ(), abstractLfBus.getGenerationTargetQ());
+        for (LfGenerator lfGenerator : abstractLfBus.getGenerators()) {
+            if (!lfGenerator.hasVoltageControl()) {
+                LOGGER.debug("lfGenerator.getTargetQ() = {} ; lfGenerator.getCalculatedQ() = {}", lfGenerator.getTargetQ(), lfGenerator.getCalculatedQ());
+                sumQgenerators += lfGenerator.getTargetQ();
+            }
+        }
+        return sumQgenerators;
     }
 
     @Override

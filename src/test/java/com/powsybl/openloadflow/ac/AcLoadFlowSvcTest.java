@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -47,6 +48,9 @@ class AcLoadFlowSvcTest {
     private Bus bus1;
     private Bus bus2;
     private Line l1;
+    private Generator g1;
+    private Load ld1;
+    private Generator g2;
     private StaticVarCompensator svc1;
 
     private LoadFlow.Runner loadFlowRunner;
@@ -54,8 +58,8 @@ class AcLoadFlowSvcTest {
     private LoadFlowParameters parameters;
     private OpenLoadFlowParameters parametersExt;
 
-    private Network createNetwork() {
-        Network network = Network.create("svc", "test");
+    private void createNetwork() {
+        network = Network.create("svc", "test");
         Substation s1 = network.newSubstation()
                 .setId("S1")
                 .add();
@@ -70,7 +74,7 @@ class AcLoadFlowSvcTest {
         bus1 = vl1.getBusBreakerView().newBus()
                 .setId("b1")
                 .add();
-        vl1.newGenerator()
+        g1 = vl1.newGenerator()
                 .setId("g1")
                 .setConnectableBus("b1")
                 .setBus("b1")
@@ -88,7 +92,7 @@ class AcLoadFlowSvcTest {
         bus2 = vl2.getBusBreakerView().newBus()
                 .setId("b2")
                 .add();
-        vl2.newLoad()
+        ld1 = vl2.newLoad()
                 .setId("ld1")
                 .setConnectableBus("b2")
                 .setBus("b2")
@@ -116,12 +120,32 @@ class AcLoadFlowSvcTest {
                 .setB1(0)
                 .setB2(0)
                 .add();
-        return network;
+    }
+
+    private void createNetworkExtended() {
+        this.createNetwork();
+        svc1.setVoltageSetpoint(385)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        g2 = bus2.getVoltageLevel()
+                .newGenerator()
+                .setId("g2")
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(100)
+                .setMaxP(300)
+                .setTargetP(200)
+                .setTargetQ(300)
+                .setVoltageRegulatorOn(false)
+                .add();
+        g2.newExtension(ActivePowerControlAdder.class)
+                .withParticipate(true)
+                .withDroop(2)
+                .add();
     }
 
     @BeforeEach
     void setUp() {
-        network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
                 .setDistributedSlack(false);
@@ -132,6 +156,7 @@ class AcLoadFlowSvcTest {
 
     @Test
     void test() {
+        createNetwork();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -166,6 +191,7 @@ class AcLoadFlowSvcTest {
 
     @Test
     void shouldReachReactiveMaxLimit() {
+        createNetwork();
         svc1.setBmin(-0.002)
                 .setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
@@ -174,10 +200,8 @@ class AcLoadFlowSvcTest {
         assertReactivePowerEquals(-svc1.getBmin() * svc1.getVoltageSetpoint() * svc1.getVoltageSetpoint(), svc1.getTerminal()); // min reactive limit has been correctly reached
     }
 
-    private void runLoadFlowAndStoreResults(Network network, String busType, Map<String, Map<String, Double>> reports) {
+    private void runLoadFlowAndStoreResults(String busType, Map<String, Map<String, Double>> reports) {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        Generator generator = bus1.getGenerators().iterator().next();
-        Load load = bus2.getLoads().iterator().next();
         Map<String, Double> report = reports.computeIfAbsent(busType, key -> new LinkedHashMap<>());
         report.put("line1.getTerminal1().getP()", l1.getTerminal1().getP());
         report.put("line1.getTerminal1().getQ()", l1.getTerminal1().getQ());
@@ -186,13 +210,16 @@ class AcLoadFlowSvcTest {
 
         report.put("bus1.getV()", bus1.getV());
         report.put("bus1.getAngle()", bus1.getAngle());
-        report.put("generator.getTerminal().getP()", generator.getTerminal().getP());
-        report.put("generator.getTerminal().getQ()", generator.getTerminal().getQ());
+        report.put("g1.getTerminal().getP()", g1.getTerminal().getP());
+        report.put("g1.getTerminal().getQ()", g1.getTerminal().getQ());
+        report.put("g2.getTargetQ()", g2.getTargetQ());
+        report.put("g2.getTerminal().getP()", g2.getTerminal().getP());
+        report.put("g2.getTerminal().getQ()", g2.getTerminal().getQ());
 
         report.put("bus2.getV()", bus2.getV());
         report.put("bus2.getAngle()", bus2.getAngle());
-        report.put("load.getTerminal().getP()", load.getTerminal().getP());
-        report.put("load.getTerminal().getQ()", load.getTerminal().getQ());
+        report.put("ld1.getTerminal().getP()", ld1.getTerminal().getP());
+        report.put("ld1.getTerminal().getQ()", ld1.getTerminal().getQ());
         report.put("svc1.getTerminal().getP()", svc1.getTerminal().getP());
         report.put("svc1.getTerminal().getQ()", svc1.getTerminal().getQ());
 
@@ -206,20 +233,17 @@ class AcLoadFlowSvcTest {
         Double slope = 0.01;
 
         // 1 - run with bus2 as bus PV
+        createNetworkExtended();
         parametersExt.setUseBusPVLQ(false);
-        svc1.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
-        runLoadFlowAndStoreResults(network, "busPV", reports);
+        runLoadFlowAndStoreResults("busPV", reports);
 
         // 2 - run with bus2 as bus PVLQ
         parametersExt.setUseBusPVLQ(true);
-        Network network = createNetwork();
-        svc1.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
-                .newExtension(VoltagePerReactivePowerControlAdder.class)
+        createNetworkExtended();
+        svc1.newExtension(VoltagePerReactivePowerControlAdder.class)
                 .withSlope(slope)
                 .add();
-        runLoadFlowAndStoreResults(network, "busPVLQ", reports);
+        runLoadFlowAndStoreResults("busPVLQ", reports);
 
         // display report
         for (Map.Entry<String, Map<String, Double>> report : reports.entrySet()) {
