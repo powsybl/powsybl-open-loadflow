@@ -24,10 +24,9 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
+import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.OpenLoadFlowProvider.getVoltageInitializer;
@@ -138,7 +137,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     /**
      * https://people.montefiore.uliege.be/vct/elec0029/lf.pdf
      */
-    public List<SensitivityValue> analyse(Network network, List<SensitivityFactor> factors, LoadFlowParameters lfParameters,
+    public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors, LoadFlowParameters lfParameters,
                                           OpenLoadFlowParameters lfParametersExt) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(factors);
@@ -167,6 +166,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         DenseMatrix states = solve(rhs, j);
 
         // calculate sensitivity values
-        return calculateSensitivityValues(network, factors, lfNetwork, equationSystem, states);
+        return Pair.of(calculateSensitivityValues(network, factors, lfNetwork, equationSystem, states), Collections.emptyMap());
     }
 }

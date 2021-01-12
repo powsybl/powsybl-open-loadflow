@@ -4,9 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.sensi;
+package com.powsybl.openloadflow.sensi.dc;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.EmptyContingencyListProvider;
 import com.powsybl.iidm.network.*;
@@ -14,6 +13,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityAnalysisResult;
@@ -22,9 +22,7 @@ import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
@@ -88,7 +86,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0.25d, getValue(result, "g4", "l13"), LoadFlowAssert.DELTA_POWER);
 
         for (Line line : network.getLines()) {
-            assertEquals(functionReferenceByLine.get(line.getId()).doubleValue(), getFunctionReference(result, line.getId()), LoadFlowAssert.DELTA_POWER);
+            assertEquals(functionReferenceByLine.get(line.getId()), getFunctionReference(result, line.getId()), LoadFlowAssert.DELTA_POWER);
         }
     }
 
@@ -321,10 +319,9 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b2_vl_0", false);
         SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()));
-        CompletionException exception = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
-                factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join());
-        assertTrue(exception.getCause() instanceof PowsyblException);
-        assertEquals("Cannot compute injection increase at slack bus in case of non distributed slack", exception.getCause().getMessage());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+                factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join();
+        assertEquals(0.0d, getValue(result, "d2", "l13"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test

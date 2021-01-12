@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-abstract class AbstractSensitivityAnalysisTest {
+public abstract class AbstractSensitivityAnalysisTest {
 
     protected final DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
 
@@ -75,6 +75,13 @@ abstract class AbstractSensitivityAnalysisTest {
                 .findFirst()
                 .map(SensitivityValue::getValue)
                 .orElse(Double.NaN);
+    }
+
+    protected static double getContingencyValue(SensitivityAnalysisResult result, String contingencyId, String variableId, String functionId) {
+        return result.getSensitivityValuesContingencies().get(contingencyId).stream().filter(value -> value.getFactor().getVariable().getId().equals(variableId) && value.getFactor().getFunction().getId().equals(functionId))
+                     .findFirst()
+                     .map(SensitivityValue::getValue)
+                     .orElse(Double.NaN);
     }
 
     protected static double getFunctionReference(SensitivityAnalysisResult result, String functionId) {
