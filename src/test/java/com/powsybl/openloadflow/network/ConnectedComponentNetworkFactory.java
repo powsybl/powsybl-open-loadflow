@@ -32,6 +32,32 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    public static Network createTwoCcLinkedByTwoLines() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        Bus b5 = createBus(network, "b5");
+        Bus b6 = createBus(network, "b6");
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b3, "l13", 0.1f);
+        createLine(network, b2, b3, "l23", 0.1f);
+        createLine(network, b3, b4, "l35", 0.1f);
+        createLine(network, b3, b4, "l24", 0.1f);
+        createLine(network, b4, b5, "l45", 0.1f);
+        createLine(network, b4, b6, "l46", 0.1f);
+        createLine(network, b5, b6, "l56", 0.1f);
+
+        createGenerator(b2, "g2", 3);
+        createGenerator(b6, "g6", 2);
+        createLoad(b1, "d1", 1);
+        createLoad(b3, "d3", 1);
+        createLoad(b4, "d4", 1);
+        createLoad(b5, "d5", 2);
+        return network;
+    }
+
     public static Network createTwoCcWithATransformerLinkedByASingleLine() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
@@ -185,6 +211,81 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         createLine(network, b4, b5, "l45", 0.1f);
         createLine(network, b4, b6, "l46", 0.1f);
         createLine(network, b4, b7, "l47", 0.1f);
+        createLine(network, b5, b6, "l56", 0.1f);
+        createLine(network, b7, b8, "l78", 0.1f);
+        createLine(network, b7, b9, "l79", 0.1f);
+        createLine(network, b8, b9, "l89", 0.1f);
+
+        createGenerator(b2, "g2", 3);
+        createGenerator(b6, "g6", 2);
+        createGenerator(b9, "g9", 2);
+        createLoad(b1, "d1", 1);
+        createLoad(b3, "d3", 1);
+        createLoad(b4, "d4", 2);
+        createLoad(b5, "d5", 2);
+        createLoad(b7, "d7", 1);
+        createLoad(b8, "d8", 2);
+
+        return network;
+    }
+
+    public static Network createThreeCircularCc() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        Bus b5 = createBus(network, "b5");
+        Bus b6 = createBus(network, "b6");
+        Bus b7 = createBus(network, "b7");
+        Bus b8 = createBus(network, "b8");
+        Bus b9 = createBus(network, "b9");
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b3, "l13", 0.1f);
+        createLine(network, b2, b3, "l23", 0.1f);
+        createLine(network, b2, b7, "l27", 0.1f);
+        createLine(network, b3, b4, "l34", 0.1f);
+        createLine(network, b4, b5, "l45", 0.1f);
+        createLine(network, b4, b6, "l46", 0.1f);
+        createLine(network, b5, b6, "l56", 0.1f);
+        createLine(network, b5, b8, "l58", 0.1f);
+        createLine(network, b7, b8, "l78", 0.1f);
+        createLine(network, b7, b9, "l79", 0.1f);
+        createLine(network, b8, b9, "l89", 0.1f);
+
+        createGenerator(b2, "g2", 3);
+        createGenerator(b6, "g6", 2);
+        createGenerator(b9, "g9", 2);
+        createLoad(b1, "d1", 1);
+        createLoad(b3, "d3", 1);
+        createLoad(b4, "d4", 2);
+        createLoad(b5, "d5", 2);
+        createLoad(b7, "d7", 1);
+        createLoad(b8, "d8", 2);
+
+        return network;
+    }
+
+    public static Network createAsymetricNetwork() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        Bus b5 = createBus(network, "b5");
+        Bus b6 = createBus(network, "b6");
+        Bus b7 = createBus(network, "b7");
+        Bus b8 = createBus(network, "b8");
+        Bus b9 = createBus(network, "b9");
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b3, "l13", 0.1f);
+        createLine(network, b1, b4, "l14", 0.1f);
+        createLine(network, b1, b8, "l18", 0.1f);
+        createLine(network, b2, b3, "l23", 0.1f);
+        createLine(network, b2, b7, "l27", 0.1f);
+        createLine(network, b3, b9, "l39", 0.1f);
+        createLine(network, b4, b5, "l45", 0.1f);
+        createLine(network, b4, b6, "l46", 0.1f);
         createLine(network, b5, b6, "l56", 0.1f);
         createLine(network, b7, b8, "l78", 0.1f);
         createLine(network, b7, b9, "l79", 0.1f);

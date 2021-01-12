@@ -84,6 +84,13 @@ public abstract class AbstractSensitivityAnalysisTest {
                      .orElse(Double.NaN);
     }
 
+    protected static double getContingencyValue(List<SensitivityValue> result, String variableId, String functionId) {
+        return result.stream().filter(value -> value.getFactor().getVariable().getId().equals(variableId) && value.getFactor().getFunction().getId().equals(functionId))
+                     .findFirst()
+                     .map(SensitivityValue::getValue)
+                     .orElse(Double.NaN);
+    }
+
     protected static double getFunctionReference(SensitivityAnalysisResult result, String functionId) {
         return result.getSensitivityValues().stream().filter(value -> value.getFactor().getFunction().getId().equals(functionId))
                 .findFirst()
