@@ -148,7 +148,7 @@ public class EquationSystem {
         addListener(equationCache);
     }
 
-    LfNetwork getNetwork() {
+    public LfNetwork getNetwork() {
         return network;
     }
 

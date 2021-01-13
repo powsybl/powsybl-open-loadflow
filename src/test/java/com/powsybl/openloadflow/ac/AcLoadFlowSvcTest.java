@@ -50,15 +50,16 @@ class AcLoadFlowSvcTest {
     private Line l1;
     private Generator g1;
     private Load ld1;
-    private Generator g2;
     private StaticVarCompensator svc1;
+    private Generator g2;
+    private ShuntCompensator sc1;
 
     private LoadFlow.Runner loadFlowRunner;
 
     private LoadFlowParameters parameters;
     private OpenLoadFlowParameters parametersExt;
 
-    private void createNetwork() {
+    private AcLoadFlowSvcTest createNetworkBus1GenBus2LoadSvc() {
         network = Network.create("svc", "test");
         Substation s1 = network.newSubstation()
                 .setId("S1")
@@ -120,17 +121,21 @@ class AcLoadFlowSvcTest {
                 .setB1(0)
                 .setB2(0)
                 .add();
+        return this;
     }
 
-    private void createNetworkExtended() {
-        this.createNetwork();
+    private AcLoadFlowSvcTest setSvcVoltage() {
         svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        return this;
+    }
+
+    private AcLoadFlowSvcTest addBus2Gen() {
         g2 = bus2.getVoltageLevel()
                 .newGenerator()
                 .setId("g2")
-                .setBus("b2")
-                .setConnectableBus("b2")
+                .setBus(bus2.getId())
+                .setConnectableBus(bus2.getId())
                 .setEnergySource(EnergySource.THERMAL)
                 .setMinP(100)
                 .setMaxP(300)
@@ -142,6 +147,21 @@ class AcLoadFlowSvcTest {
                 .withParticipate(true)
                 .withDroop(2)
                 .add();
+        return this;
+    }
+
+    private AcLoadFlowSvcTest addBus2Sc() {
+        sc1 = bus2.getVoltageLevel().newShuntCompensator()
+                .setId("sc1")
+                .setBus(bus2.getId())
+                .setConnectableBus(bus2.getId())
+                .setSectionCount(1)
+                .newLinearModel()
+                    .setBPerSection(Math.pow(10, -4))
+                    .setMaximumSectionCount(1)
+                    .add()
+                .add();
+        return this;
     }
 
     @BeforeEach
@@ -156,7 +176,7 @@ class AcLoadFlowSvcTest {
 
     @Test
     void test() {
-        createNetwork();
+        createNetworkBus1GenBus2LoadSvc();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -191,7 +211,7 @@ class AcLoadFlowSvcTest {
 
     @Test
     void shouldReachReactiveMaxLimit() {
-        createNetwork();
+        createNetworkBus1GenBus2LoadSvc();
         svc1.setBmin(-0.002)
                 .setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
@@ -212,9 +232,6 @@ class AcLoadFlowSvcTest {
         report.put("bus1.getAngle()", bus1.getAngle());
         report.put("g1.getTerminal().getP()", g1.getTerminal().getP());
         report.put("g1.getTerminal().getQ()", g1.getTerminal().getQ());
-        report.put("g2.getTargetQ()", g2.getTargetQ());
-        report.put("g2.getTerminal().getP()", g2.getTerminal().getP());
-        report.put("g2.getTerminal().getQ()", g2.getTerminal().getQ());
 
         report.put("bus2.getV()", bus2.getV());
         report.put("bus2.getAngle()", bus2.getAngle());
@@ -222,30 +239,37 @@ class AcLoadFlowSvcTest {
         report.put("ld1.getTerminal().getQ()", ld1.getTerminal().getQ());
         report.put("svc1.getTerminal().getP()", svc1.getTerminal().getP());
         report.put("svc1.getTerminal().getQ()", svc1.getTerminal().getQ());
+        if (g2 != null) {
+            report.put("g2.getTargetQ()", g2.getTargetQ());
+            report.put("g2.getTerminal().getP()", g2.getTerminal().getP());
+            report.put("g2.getTerminal().getQ()", g2.getTerminal().getQ());
+        }
+        if (sc1 != null) {
+            report.put("sc1.getTerminal().getQ()", sc1.getTerminal().getQ());
+        }
 
         assertTrue(result.isOk());
     }
 
-    @Test
-    void shouldUseLessReactivePowerWithBusVLQ() {
+    private void shouldUseLessReactivePowerWithBusVLQOnGivenNetwork(Runnable networkCreator) {
         // Map<busType, <Map<getter, value>>
         Map<String, Map<String, Double>> reports = new LinkedHashMap<>();
         Double slope = 0.01;
 
         // 1 - run with bus2 as bus PV
-        createNetworkExtended();
+        networkCreator.run();
         parametersExt.setUseBusPVLQ(false);
         runLoadFlowAndStoreResults("busPV", reports);
 
         // 2 - run with bus2 as bus PVLQ
         parametersExt.setUseBusPVLQ(true);
-        createNetworkExtended();
+        networkCreator.run();
         svc1.newExtension(VoltagePerReactivePowerControlAdder.class)
                 .withSlope(slope)
                 .add();
         runLoadFlowAndStoreResults("busPVLQ", reports);
 
-        // display report
+        // display reports
         for (Map.Entry<String, Map<String, Double>> report : reports.entrySet()) {
             LOGGER.debug(">>> Report about bus : {}", report.getKey());
             for (Map.Entry<String, Double> getter : report.getValue().entrySet()) {
@@ -262,5 +286,12 @@ class AcLoadFlowSvcTest {
                 new LoadFlowAssert.LowerThan(reports.get("busPV").get("svc1.getTerminal().getQ()")));
         assertThat("V on bus2 should be greater with bus PVLQ than PV", reports.get("busPVLQ").get("bus2.getV()"),
                 new LoadFlowAssert.GreaterThan(reports.get("busPV").get("bus2.getV()")));
+    }
+
+    @Test
+    void shouldUseLessReactivePowerWithBusVLQ() {
+        this.shouldUseLessReactivePowerWithBusVLQOnGivenNetwork(() -> this.createNetworkBus1GenBus2LoadSvc().setSvcVoltage());
+        this.shouldUseLessReactivePowerWithBusVLQOnGivenNetwork(() -> this.createNetworkBus1GenBus2LoadSvc().setSvcVoltage().addBus2Gen());
+        this.shouldUseLessReactivePowerWithBusVLQOnGivenNetwork(() -> this.createNetworkBus1GenBus2LoadSvc().setSvcVoltage().addBus2Gen().addBus2Sc());
     }
 }

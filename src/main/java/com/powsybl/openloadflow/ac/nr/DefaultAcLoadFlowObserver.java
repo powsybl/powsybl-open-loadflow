@@ -6,16 +6,26 @@
  */
 package com.powsybl.openloadflow.ac.nr;
 
+import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.math.matrix.Matrix;
+import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.Variable;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultAcLoadFlowObserver.class);
 
     @Override
     public void beforeNetworksCreation() {
@@ -94,7 +104,31 @@ public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
 
     @Override
     public void afterEquationVectorCreation(double[] fx, EquationSystem equationSystem, int iteration) {
-        // empty
+        if (LOGGER.isTraceEnabled()) {
+            LfNetwork lfNetwork = equationSystem.getNetwork();
+            NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> equationNavigableMapNavigableMap = equationSystem.getSortedEquationsToSolve();
+            Map<LfBus, List<Equation>> equationsByBus = new LinkedHashMap<>();
+            for (Equation equation : equationNavigableMapNavigableMap.keySet()) {
+                equationsByBus.computeIfAbsent(lfNetwork.getBus(equation.getNum()), bus -> new ArrayList<>()).add(equation);
+            }
+            for (LfBus lfBus : equationsByBus.keySet()) {
+                LOGGER.trace("Equations sur le bus {} :", lfBus.getId());
+                for (Equation equation : equationsByBus.get(lfBus)) {
+                    LOGGER.trace(" - equation de type {} ayant pour terme(s) :", equation.getType());
+                    for (EquationTerm equationTerm : equation.getTerms()) {
+                        if (equationTerm.isActive()) {
+                            StringBuilder stringBuilder = new StringBuilder();
+                            for (Variable variable : equationTerm.getVariables()) {
+                                if (variable.isActive()) {
+                                    stringBuilder.append((stringBuilder.length() != 0 ? ", " : "") + variable.getType() + " (bus " + lfNetwork.getBus(variable.getNum()).getId() + ")");
+                                }
+                            }
+                            LOGGER.trace("   * terme {} de type {} avec pour variables : {}", equationTerm.getClass().getSimpleName(), equationTerm.getSubjectType(), stringBuilder.toString());
+                        }
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -104,7 +138,16 @@ public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
 
     @Override
     public void afterJacobianBuild(Matrix j, EquationSystem equationSystem, int iteration) {
-        // empty
+        if (LOGGER.isTraceEnabled()) {
+            StringBuilder stringBuilder = new StringBuilder();
+            j.print(new PrintStream(new OutputStream() {
+                @Override
+                public void write(int b) throws IOException {
+                    stringBuilder.append((char) b);
+                }
+            }));
+            LOGGER.trace("Jacobian matrix : {}{}", System.getProperty("line.separator"), stringBuilder.toString());
+        }
     }
 
     @Override
