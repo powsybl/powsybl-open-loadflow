@@ -189,11 +189,10 @@ class OpenSecurityAnalysisTest {
                 .setB2(386E-6 / 2)
                 .add();
 
-        network.getLine("L1").newCurrentLimits1().setPermanentLimit(940.0).add();
+        network.getLine("L1").newCurrentLimits1().setPermanentLimit(940.0).beginTemporaryLimit().setName("60").setAcceptableDuration(60).setValue(1000).endTemporaryLimit().add();
         network.getLine("L1").newCurrentLimits2().setPermanentLimit(940.0).add();
-        network.getLine("L2").newCurrentLimits1().setPermanentLimit(940.0).add();
-        network.getLine("L2").newCurrentLimits2().setPermanentLimit(940.0).add();
-
+        network.getLine("L2").newCurrentLimits1().setPermanentLimit(940.0).beginTemporaryLimit().setName("60").setAcceptableDuration(60).setValue(960).endTemporaryLimit().add();
+        network.getLine("L2").newCurrentLimits2().setPermanentLimit(940.0).beginTemporaryLimit().setName("600").setAcceptableDuration(600).setValue(945).endTemporaryLimit().add();
         return network;
     }
 
@@ -223,7 +222,7 @@ class OpenSecurityAnalysisTest {
         assertEquals(0, result.getPreContingencyResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
-        assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
         assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
     }
@@ -251,7 +250,7 @@ class OpenSecurityAnalysisTest {
         assertEquals(0, result.getPreContingencyResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
-        assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(5, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
         assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
         assertEquals(3, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
 

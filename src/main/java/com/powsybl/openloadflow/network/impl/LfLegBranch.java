@@ -194,7 +194,7 @@ public class LfLegBranch extends AbstractLfBranch {
 
     @Override
     public Map<Integer, Double> getTemporaryLimits1() {
-        Map<Integer, Double> map = new HashMap();
+        Map<Integer, Double> map = new HashMap<>();
         if (leg.getCurrentLimits() != null) {
             for (CurrentLimits.TemporaryLimit temporaryLimit : leg.getCurrentLimits().getTemporaryLimits()) {
                 map.put(temporaryLimit.getAcceptableDuration(),

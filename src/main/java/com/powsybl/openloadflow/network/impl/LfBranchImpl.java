@@ -205,7 +205,7 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     @Override
     public Map<Integer, Double> getTemporaryLimits1() {
-        Map<Integer, Double> map = new HashMap();
+        Map<Integer, Double> map = new HashMap<>();
         if (branch.getCurrentLimits1() != null) {
             for (CurrentLimits.TemporaryLimit temporaryLimit : branch.getCurrentLimits1().getTemporaryLimits()) {
                 map.put(temporaryLimit.getAcceptableDuration(),
@@ -217,7 +217,7 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     @Override
     public Map<Integer, Double> getTemporaryLimits2() {
-        Map<Integer, Double> map = new HashMap();
+        Map<Integer, Double> map = new HashMap<>();
         if (branch.getCurrentLimits2() != null) {
             for (CurrentLimits.TemporaryLimit temporaryLimit : branch.getCurrentLimits2().getTemporaryLimits()) {
                 map.put(temporaryLimit.getAcceptableDuration(),

@@ -113,7 +113,7 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
 
     @Override
     public Map<Integer, Double> getTemporaryLimits1() {
-        Map<Integer, Double> map = new HashMap();
+        Map<Integer, Double> map = new HashMap<>();
         if (danglingLine.getCurrentLimits() != null) {
             for (CurrentLimits.TemporaryLimit temporaryLimit : danglingLine.getCurrentLimits().getTemporaryLimits()) {
                 map.put(temporaryLimit.getAcceptableDuration(),

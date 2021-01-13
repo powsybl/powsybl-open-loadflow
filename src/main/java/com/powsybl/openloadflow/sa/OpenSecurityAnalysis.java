@@ -210,12 +210,12 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         // permanent limit detection
         if (branch.getBus1() != null && branch.getI1() > branch.getPermanentLimit1()) {
             scale = PerUnit.SB / branch.getBus1().getNominalV();
-            violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
+            violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) "permanent",
                     2147483647, branch.getPermanentLimit1() * scale, (float) 1., branch.getI1() * scale, Branch.Side.ONE));
         }
         if (branch.getBus2() != null && branch.getI2() > branch.getPermanentLimit2()) {
             scale = PerUnit.SB / branch.getBus2().getNominalV();
-            violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
+            violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) "permanent",
                     2147483647, branch.getPermanentLimit2() * scale, (float) 1., branch.getI2() * scale, Branch.Side.TWO));
         }
         // temporary limit violation detection
@@ -223,7 +223,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             scale = PerUnit.SB / branch.getBus1().getNominalV();
             for (Map.Entry<Integer, Double> temporaryLimit1 : branch.getTemporaryLimits1().entrySet()) {
                 if (branch.getI1() > temporaryLimit1.getValue()) {
-                    violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
+                    violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) temporaryLimit1.getKey().toString(),
                             temporaryLimit1.getKey(), temporaryLimit1.getValue() * scale, (float) 1., branch.getI1() * scale, Branch.Side.ONE));
                 }
             }
@@ -232,7 +232,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             scale = PerUnit.SB / branch.getBus2().getNominalV();
             for (Map.Entry<Integer, Double> temporaryLimit2 : branch.getTemporaryLimits2().entrySet()) {
                 if (branch.getI2() > temporaryLimit2.getValue()) {
-                    violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
+                    violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) temporaryLimit2.getKey().toString(),
                             temporaryLimit2.getKey(), temporaryLimit2.getValue() * scale, (float) 1., branch.getI2() * scale, Branch.Side.TWO));
                 }
             }
