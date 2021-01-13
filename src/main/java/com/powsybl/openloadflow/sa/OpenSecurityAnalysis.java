@@ -207,19 +207,36 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
     private void detectBranchViolations(LfBranch branch, List<LimitViolation> violations) {
         // detect violation limits on a branch
         double scale = 1;
+        // permanent limit detection
         if (branch.getBus1() != null && branch.getI1() > branch.getPermanentLimit1()) {
             scale = PerUnit.SB / branch.getBus1().getNominalV();
-            LimitViolation limitViolation1 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
-                    2147483647, branch.getPermanentLimit1() * scale, (float) 1., branch.getI1() * scale, Branch.Side.ONE);
-            violations.add(limitViolation1);
+            violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
+                    2147483647, branch.getPermanentLimit1() * scale, (float) 1., branch.getI1() * scale, Branch.Side.ONE));
         }
         if (branch.getBus2() != null && branch.getI2() > branch.getPermanentLimit2()) {
             scale = PerUnit.SB / branch.getBus2().getNominalV();
-            LimitViolation limitViolation2 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
-                    2147483647, branch.getPermanentLimit2() * scale, (float) 1., branch.getI2() * scale, Branch.Side.TWO);
-            violations.add(limitViolation2);
+            violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
+                    2147483647, branch.getPermanentLimit2() * scale, (float) 1., branch.getI2() * scale, Branch.Side.TWO));
         }
-        //TODO: temporary limit violation detection
+        // temporary limit violation detection
+        if (branch.getBus1() != null) {
+            scale = PerUnit.SB / branch.getBus1().getNominalV();
+            for (Map.Entry<Integer, Double> temporaryLimit1 : branch.getTemporaryLimits1().entrySet()) {
+                if (branch.getI1() > temporaryLimit1.getValue()) {
+                    violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
+                            temporaryLimit1.getKey(), temporaryLimit1.getValue() * scale, (float) 1., branch.getI1() * scale, Branch.Side.ONE));
+                }
+            }
+        }
+        if (branch.getBus2() != null) {
+            scale = PerUnit.SB / branch.getBus2().getNominalV();
+            for (Map.Entry<Integer, Double> temporaryLimit2 : branch.getTemporaryLimits2().entrySet()) {
+                if (branch.getI2() > temporaryLimit2.getValue()) {
+                    violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
+                            temporaryLimit2.getKey(), temporaryLimit2.getValue() * scale, (float) 1., branch.getI2() * scale, Branch.Side.TWO));
+                }
+            }
+        }
     }
 
     /**
