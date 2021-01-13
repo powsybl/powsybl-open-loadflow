@@ -191,8 +191,8 @@ class OpenSecurityAnalysisTest {
 
         network.getLine("L1").newCurrentLimits1().setPermanentLimit(940.0).beginTemporaryLimit().setName("60").setAcceptableDuration(60).setValue(1000).endTemporaryLimit().add();
         network.getLine("L1").newCurrentLimits2().setPermanentLimit(940.0).add();
-        network.getLine("L2").newCurrentLimits1().setPermanentLimit(940.0).beginTemporaryLimit().setName("60").setAcceptableDuration(60).setValue(960).endTemporaryLimit().add();
-        network.getLine("L2").newCurrentLimits2().setPermanentLimit(940.0).beginTemporaryLimit().setName("600").setAcceptableDuration(600).setValue(945).endTemporaryLimit().add();
+        network.getLine("L2").newCurrentLimits1().setPermanentLimit(940.0).beginTemporaryLimit().setName("60").setAcceptableDuration(60).setValue(950).endTemporaryLimit().add();
+        network.getLine("L2").newCurrentLimits2().setPermanentLimit(940.0).beginTemporaryLimit().setName("600").setAcceptableDuration(600).setValue(945).endTemporaryLimit().beginTemporaryLimit().setName("60").setAcceptableDuration(60).setValue(970).endTemporaryLimit().add();
         return network;
     }
 
