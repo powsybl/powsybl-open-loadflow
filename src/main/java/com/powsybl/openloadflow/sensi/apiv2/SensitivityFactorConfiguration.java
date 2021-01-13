@@ -6,9 +6,7 @@
  */
 package com.powsybl.openloadflow.sensi.apiv2;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * A set of simple factors or factor matrices associated to a contingency context.
@@ -25,25 +23,47 @@ public final class SensitivityFactorConfiguration {
 
     private final List<MatrixSensitivityFactor> matrixFactors;
 
-    private SensitivityFactorConfiguration(ContingencyContext contingencyContext, String contingencyId, List<SimpleSensitivityFactor> factors,
-                                           List<MatrixSensitivityFactor> matrixFactors) {
+    private final List<MultiVariablesSensitivityFactor> multiVarsFactors;
+
+    private SensitivityFactorConfiguration(ContingencyContext contingencyContext, String contingencyId, List<SimpleSensitivityFactor> simpleFactors,
+                                           List<MatrixSensitivityFactor> matrixFactors, List<MultiVariablesSensitivityFactor> multiVarsFactors) {
         this.contingencyContext = contingencyContext;
         this.contingencyId = contingencyId;
-        this.simpleFactors = Objects.requireNonNull(factors);
-        this.matrixFactors = matrixFactors;
+        this.simpleFactors = new ArrayList<>(Objects.requireNonNull(simpleFactors));
+        this.matrixFactors = new ArrayList<>(Objects.requireNonNull(matrixFactors));
+        this.multiVarsFactors = new ArrayList<>(Objects.requireNonNull(multiVarsFactors));
     }
 
-    public static SensitivityFactorConfiguration create(List<SimpleSensitivityFactor> simpleFactors, List<MatrixSensitivityFactor> matrixFactors) {
-        return new SensitivityFactorConfiguration(ContingencyContext.NONE, null, simpleFactors, matrixFactors);
+    public static SensitivityFactorConfiguration create(List<SimpleSensitivityFactor> simpleFactors,
+                                                        List<MatrixSensitivityFactor> matrixFactors,
+                                                        List<MultiVariablesSensitivityFactor> multiVarsFactors) {
+        return new SensitivityFactorConfiguration(ContingencyContext.NONE, null, simpleFactors, matrixFactors, multiVarsFactors);
     }
 
-    public static SensitivityFactorConfiguration createForOneContingency(String contingencyId, List<SimpleSensitivityFactor> simpleFactors,
-                                                                         List<MatrixSensitivityFactor> matrixFactors) {
-        return new SensitivityFactorConfiguration(ContingencyContext.ONE_CONTINGENCY, contingencyId, simpleFactors, matrixFactors);
+    public static SensitivityFactorConfiguration create() {
+        return create(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
     }
 
-    public static SensitivityFactorConfiguration createForAllContingency(List<SimpleSensitivityFactor> simpleFactors, List<MatrixSensitivityFactor> matrixFactors) {
-        return new SensitivityFactorConfiguration(ContingencyContext.ALL_CONTINGENCIES, null, simpleFactors, matrixFactors);
+    public static SensitivityFactorConfiguration createForOneContingency(String contingencyId,
+                                                                         List<SimpleSensitivityFactor> simpleFactors,
+                                                                         List<MatrixSensitivityFactor> matrixFactors,
+                                                                         List<MultiVariablesSensitivityFactor> multiVarsFactors) {
+        Objects.requireNonNull(contingencyId);
+        return new SensitivityFactorConfiguration(ContingencyContext.ONE_CONTINGENCY, contingencyId, simpleFactors, matrixFactors, multiVarsFactors);
+    }
+
+    public static SensitivityFactorConfiguration createForOneContingency(String contingencyId) {
+        return createForOneContingency(contingencyId, Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+    }
+
+    public static SensitivityFactorConfiguration createForAllContingency(List<SimpleSensitivityFactor> simpleFactors,
+                                                                         List<MatrixSensitivityFactor> matrixFactors,
+                                                                         List<MultiVariablesSensitivityFactor> multiVarsFactors) {
+        return new SensitivityFactorConfiguration(ContingencyContext.ALL_CONTINGENCIES, null, simpleFactors, matrixFactors, multiVarsFactors);
+    }
+
+    public static SensitivityFactorConfiguration createForAllContingency() {
+        return createForAllContingency(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
     }
 
     public ContingencyContext getContingencyContext() {
@@ -60,5 +80,9 @@ public final class SensitivityFactorConfiguration {
 
     public List<MatrixSensitivityFactor> getMatrixFactors() {
         return matrixFactors;
+    }
+
+    public List<MultiVariablesSensitivityFactor> getMultiVarsFactors() {
+        return multiVarsFactors;
     }
 }

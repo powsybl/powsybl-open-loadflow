@@ -38,6 +38,14 @@ public class MatrixSensitivityFactor {
         this.variableType = Objects.requireNonNull(variableType);
     }
 
+    public static MatrixSensitivityFactor createBranchFlowWithRespectToInjectionFactors(String id, List<String> branchsIds, List<String> injectionsIds) {
+        return new MatrixSensitivityFactor(id, branchsIds, FunctionType.BRANCH_FLOW, injectionsIds, VariableType.INJECTION);
+    }
+
+    public static MatrixSensitivityFactor createBranchFlowWithRespectToTransformerPhaseShiftFactors(String id, List<String> branchsIds, List<String> transformersIds) {
+        return new MatrixSensitivityFactor(id, branchsIds, FunctionType.BRANCH_FLOW, transformersIds, VariableType.TRANSFORMER_PHASE_SHIFT);
+    }
+
     public String getId() {
         return id;
     }
