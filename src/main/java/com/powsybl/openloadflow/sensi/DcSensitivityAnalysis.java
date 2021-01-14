@@ -34,7 +34,9 @@ import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
+import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
+import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -107,7 +109,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 return new LfBranchFlowPerInjectionIncrease(factor, network, lfNetwork, equationSystem);
             } else if (factor instanceof BranchFlowPerPSTAngle) {
                 return new LfBranchFlowPerPSTAngle(factor, lfNetwork, equationSystem);
-            }  else {
+            }  else if (factor instanceof BranchFlowPerLinearGlsk) {
+                return new LfBranchFlowPerLinearGlsk(factor, network, lfNetwork, equationSystem);
+            } else {
                 throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
             }
         }
@@ -200,6 +204,48 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     }
 
+    static class LfBranchFlowPerLinearGlsk extends LfSensitivityFactor {
+
+        private final Map<LfBus, Double> injectionBuses;
+
+        LfBranchFlowPerLinearGlsk(SensitivityFactor factor, Network network, LfNetwork lfNetwork, EquationSystem equationSystem) {
+            super(factor, lfNetwork, equationSystem);
+            injectionBuses = ((LinearGlsk) factor.getVariable()).getGLSKs()
+                                                                .entrySet()
+                                                                .stream()
+                                                                .collect(Collectors.toMap(
+                                                                    entry -> DcSensitivityAnalysis.getInjectionLfBus(network, lfNetwork, entry.getKey()),
+                                                                    entry -> entry.getValue().doubleValue(),
+                                                                    Double::sum
+                                                                ));
+        }
+
+        @Override
+        public boolean areVariableAndFunctionDisconnected(final GraphDecrementalConnectivity<LfBus> connectivity) {
+            for (LfBus lfBus : injectionBuses.keySet()) {
+                if (connectivity.getComponentNumber(lfBus) == connectivity.getComponentNumber(getFunctionLfBranch().getBus1())
+                    && connectivity.getComponentNumber(lfBus) == connectivity.getComponentNumber(getFunctionLfBranch().getBus2())) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public boolean isConnectedToSlack(Integer slackBusComponent, GraphDecrementalConnectivity<LfBus> connectivity) {
+            for (LfBus lfBus : injectionBuses.keySet()) {
+                if (connectivity.getComponentNumber(lfBus) == slackBusComponent) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public Map<LfBus, Double> getInjectionBuses() {
+            return injectionBuses;
+        }
+    }
+
     static class SensitivityFactorGroup {
 
         private final String id;
@@ -259,8 +305,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             super(id);
         }
 
-        public void setInjectionByBus(final Map<String, Double> injectionByBus) {
-            this.injectionByBus = injectionByBus;
+        public void setInjectionByBus(final Map<String, Double> participationToSlackByBus) {
+            participationToSlackByBus.put(getId(), participationToSlackByBus.getOrDefault(getId(), 0d) + 1);
+            injectionByBus = participationToSlackByBus;
         }
 
         @Override
@@ -277,6 +324,37 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 }
                 rhs.set(column, getIndex(), injectionByBus.getValue() / PerUnit.SB);
             }
+        }
+    }
+
+    static class LinearGlskGroup extends InjectionFactorGroup {
+        // This group makes sense because we are only computing sensitivities in the main connected component
+        // otherwise, we wouldn't be able to group different branches within the same group
+        private final Map<LfBus, Double> glskMap;
+        private Map<String, Double> glskMapInMainComponent;
+
+        LinearGlskGroup(String id, Map<LfBus, Double> glskMap) {
+            super(id);
+            this.glskMap = glskMap;
+            glskMapInMainComponent = glskMap.entrySet().stream().collect(Collectors.toMap(
+                entry -> entry.getKey().getId(),
+                Map.Entry::getValue
+            ));
+        }
+
+        @Override
+        public void setInjectionByBus(final Map<String, Double> participationToSlackByBus) {
+            Double glskWeightSum = glskMapInMainComponent.values().stream().mapToDouble(x -> x).sum();
+            glskMapInMainComponent.forEach((busId, weight) -> participationToSlackByBus.merge(busId, weight / glskWeightSum, Double::sum));
+            injectionByBus = participationToSlackByBus;
+        }
+
+        public void setGlskMapInMainComponent(final Map<String, Double> glskMapInMainComponent) {
+            this.glskMapInMainComponent = glskMapInMainComponent;
+        }
+
+        public Map<LfBus, Double> getGlskMap() {
+            return glskMap;
         }
     }
 
@@ -385,6 +463,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     throw new PowsyblException("Phase shifter '" + phaseTapChangerHolderId + "' not found");
                 }
                 groupIndexedById.computeIfAbsent(phaseTapChangerHolderId, k -> new PhaseTapChangerFactorGroup(phaseTapChangerHolderId)).addFactor(factor);
+            } else if (factor instanceof LfBranchFlowPerLinearGlsk) {
+                LfBranchFlowPerLinearGlsk lfFactor = (LfBranchFlowPerLinearGlsk) factor;
+                LinearGlsk glsk = (LinearGlsk) factor.getFactor().getVariable();
+                String glskId = glsk.getId();
+                groupIndexedById.computeIfAbsent(glskId, id -> new LinearGlskGroup(glskId, lfFactor.getInjectionBuses())).addFactor(factor);
             } else {
                 throw new UnsupportedOperationException("Factor type '" + factor.getFactor().getClass().getSimpleName() + "' not yet supported");
             }
@@ -410,13 +493,25 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     participationFactorByBus = new HashMap<>();
                 }
 
-                Map<String, Double> injectionByBus = new HashMap<>(participationFactorByBus);
-
-                // add 1 where we are making the injection
-                injectionByBus.put(factorGroup.getId(), injectionByBus.getOrDefault(factorGroup.getId(), 0d) + 1);
-
-                injectionGroup.setInjectionByBus(injectionByBus);
+                Map<String, Double> participationToSlackByBus = new HashMap<>(participationFactorByBus);
+                injectionGroup.setInjectionByBus(participationToSlackByBus);
             }
+        }
+    }
+
+    protected void computeRemainingGlsk(List<SensitivityFactorGroup> factorGroups, GraphDecrementalConnectivity<LfBus> connectivity, Integer mainComponentNumber) {
+        // compute the corresponding injection (with participation) for each factor
+        for (SensitivityFactorGroup factorGroup : factorGroups) {
+            if (!(factorGroup instanceof LinearGlskGroup)) {
+                continue;
+            }
+            LinearGlskGroup glskGroup = (LinearGlskGroup) factorGroup;
+            Map<String, Double> remainingGlskInjections = glskGroup.getGlskMap().entrySet().stream().filter(entry -> connectivity.getComponentNumber(entry.getKey()) == mainComponentNumber)
+                     .collect(Collectors.toMap(
+                         entry -> entry.getKey().getId(),
+                         Map.Entry::getValue
+                     ));
+            glskGroup.setGlskMapInMainComponent(remainingGlskInjections);
         }
     }
 
@@ -824,6 +919,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     // buses that contain elements participating to slack distribution and that are in the main connected component
                     Function<String, Map<String, Double>> getParticipationPerBus = busId ->
                             participationPerCc.get(connectivity.getConnectivity().getComponentNumber(lfNetwork.getBusById(busId)));
+                    computeRemainingGlsk(factorGroups, connectivity.getConnectivity(), slackBusComponent);
                     computeInjectionFactors(getParticipationPerBus, factorGroups);
                     factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
                     fillRhsSensitivityVariable(lfNetwork, equationSystem, factorGroups, factorsStates);
