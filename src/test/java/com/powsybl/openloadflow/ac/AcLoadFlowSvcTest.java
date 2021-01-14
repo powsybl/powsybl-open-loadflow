@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -45,14 +44,17 @@ class AcLoadFlowSvcTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(AcLoadFlowSvcTest.class);
 
     private Network network;
+    private VoltageLevel vl1;
     private Bus bus1;
+    private VoltageLevel vl2;
     private Bus bus2;
-    private Line l1;
-    private Generator g1;
-    private Load ld1;
-    private StaticVarCompensator svc1;
-    private Generator g2;
-    private ShuntCompensator sc1;
+    private Line bus1bus2line;
+    private Generator bus1gen;
+    private Load bus2ld;
+    private StaticVarCompensator bus2svc;
+    private Generator bus2gen;
+    private ShuntCompensator bus2sc;
+    private Line bus2line;
 
     private LoadFlow.Runner loadFlowRunner;
 
@@ -62,58 +64,58 @@ class AcLoadFlowSvcTest {
     private AcLoadFlowSvcTest createNetworkBus1GenBus2LoadSvc() {
         network = Network.create("svc", "test");
         Substation s1 = network.newSubstation()
-                .setId("S1")
+                .setId("s1")
                 .add();
         Substation s2 = network.newSubstation()
-                .setId("S2")
+                .setId("s2")
                 .add();
-        VoltageLevel vl1 = s1.newVoltageLevel()
+        vl1 = s1.newVoltageLevel()
                 .setId("vl1")
                 .setNominalV(400)
                 .setTopologyKind(TopologyKind.BUS_BREAKER)
                 .add();
         bus1 = vl1.getBusBreakerView().newBus()
-                .setId("b1")
+                .setId("bus1")
                 .add();
-        g1 = vl1.newGenerator()
-                .setId("g1")
-                .setConnectableBus("b1")
-                .setBus("b1")
+        bus1gen = vl1.newGenerator()
+                .setId("bus1gen")
+                .setConnectableBus(bus1.getId())
+                .setBus(bus1.getId())
                 .setTargetP(101.3664)
                 .setTargetV(390)
                 .setMinP(0)
                 .setMaxP(150)
                 .setVoltageRegulatorOn(true)
                 .add();
-        VoltageLevel vl2 = s2.newVoltageLevel()
+        vl2 = s2.newVoltageLevel()
                 .setId("vl2")
                 .setNominalV(400)
                 .setTopologyKind(TopologyKind.BUS_BREAKER)
                 .add();
         bus2 = vl2.getBusBreakerView().newBus()
-                .setId("b2")
+                .setId("bus2")
                 .add();
-        ld1 = vl2.newLoad()
-                .setId("ld1")
-                .setConnectableBus("b2")
-                .setBus("b2")
+        bus2ld = vl2.newLoad()
+                .setId("bus2ld")
+                .setConnectableBus(bus2.getId())
+                .setBus(bus2.getId())
                 .setP0(101)
                 .setQ0(150)
                 .add();
-        svc1 = vl2.newStaticVarCompensator()
-                .setId("svc1")
-                .setConnectableBus("b2")
-                .setBus("b2")
+        bus2svc = vl2.newStaticVarCompensator()
+                .setId("bus2svc")
+                .setConnectableBus(bus2.getId())
+                .setBus(bus2.getId())
                 .setRegulationMode(StaticVarCompensator.RegulationMode.OFF)
                 .setBmin(-0.008)
                 .setBmax(0.008)
                 .add();
-        l1 = network.newLine()
-                .setId("l1")
-                .setVoltageLevel1("vl1")
-                .setBus1("b1")
-                .setVoltageLevel2("vl2")
-                .setBus2("b2")
+        bus1bus2line = network.newLine()
+                .setId("bus1bus2line")
+                .setVoltageLevel1(vl1.getId())
+                .setBus1(bus1.getId())
+                .setVoltageLevel2(vl2.getId())
+                .setBus2(bus2.getId())
                 .setR(1)
                 .setX(3)
                 .setG1(0)
@@ -125,15 +127,15 @@ class AcLoadFlowSvcTest {
     }
 
     private AcLoadFlowSvcTest setSvcVoltage() {
-        svc1.setVoltageSetpoint(385)
+        bus2svc.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         return this;
     }
 
     private AcLoadFlowSvcTest addBus2Gen() {
-        g2 = bus2.getVoltageLevel()
+        bus2gen = bus2.getVoltageLevel()
                 .newGenerator()
-                .setId("g2")
+                .setId("bus2gen")
                 .setBus(bus2.getId())
                 .setConnectableBus(bus2.getId())
                 .setEnergySource(EnergySource.THERMAL)
@@ -143,16 +145,16 @@ class AcLoadFlowSvcTest {
                 .setTargetQ(300)
                 .setVoltageRegulatorOn(false)
                 .add();
-        g2.newExtension(ActivePowerControlAdder.class)
-                .withParticipate(true)
-                .withDroop(2)
-                .add();
+//        g2.newExtension(ActivePowerControlAdder.class)
+//                .withParticipate(true)
+//                .withDroop(2)
+//                .add();
         return this;
     }
 
     private AcLoadFlowSvcTest addBus2Sc() {
-        sc1 = bus2.getVoltageLevel().newShuntCompensator()
-                .setId("sc1")
+        bus2sc = bus2.getVoltageLevel().newShuntCompensator()
+                .setId("bus2sc")
                 .setBus(bus2.getId())
                 .setConnectableBus(bus2.getId())
                 .setSectionCount(1)
@@ -160,6 +162,23 @@ class AcLoadFlowSvcTest {
                     .setBPerSection(Math.pow(10, -4))
                     .setMaximumSectionCount(1)
                     .add()
+                .add();
+        return this;
+    }
+
+    private AcLoadFlowSvcTest addOpenLine() {
+        bus2line = network.newLine()
+                .setId("bus2line")
+                .setVoltageLevel1(vl1.getId())
+                .setBus1(bus1.getId())
+                .setVoltageLevel2(vl2.getId())
+                .setBus2(bus2.getId())
+                .setR(1)
+                .setX(3)
+                .setG1(0)
+                .setG2(0)
+                .setB1(0)
+                .setB2(0)
                 .add();
         return this;
     }
@@ -184,14 +203,14 @@ class AcLoadFlowSvcTest {
         assertAngleEquals(0, bus1);
         assertVoltageEquals(388.581824, bus2);
         assertAngleEquals(-0.057845, bus2);
-        assertActivePowerEquals(101.216, l1.getTerminal1());
-        assertReactivePowerEquals(150.649, l1.getTerminal1());
-        assertActivePowerEquals(-101, l1.getTerminal2());
-        assertReactivePowerEquals(-150, l1.getTerminal2());
-        assertTrue(Double.isNaN(svc1.getTerminal().getP()));
-        assertTrue(Double.isNaN(svc1.getTerminal().getQ()));
+        assertActivePowerEquals(101.216, bus1bus2line.getTerminal1());
+        assertReactivePowerEquals(150.649, bus1bus2line.getTerminal1());
+        assertActivePowerEquals(-101, bus1bus2line.getTerminal2());
+        assertReactivePowerEquals(-150, bus1bus2line.getTerminal2());
+        assertTrue(Double.isNaN(bus2svc.getTerminal().getP()));
+        assertTrue(Double.isNaN(bus2svc.getTerminal().getQ()));
 
-        svc1.setVoltageSetPoint(385)
+        bus2svc.setVoltageSetPoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
 
         result = loadFlowRunner.run(network, parameters);
@@ -201,51 +220,51 @@ class AcLoadFlowSvcTest {
         assertAngleEquals(0, bus1);
         assertVoltageEquals(385, bus2);
         assertAngleEquals(0.116345, bus2);
-        assertActivePowerEquals(103.562, l1.getTerminal1());
-        assertReactivePowerEquals(615.582, l1.getTerminal1());
-        assertActivePowerEquals(-101, l1.getTerminal2());
-        assertReactivePowerEquals(-607.897, l1.getTerminal2());
-        assertActivePowerEquals(0, svc1.getTerminal());
-        assertReactivePowerEquals(457.896, svc1.getTerminal());
+        assertActivePowerEquals(103.562, bus1bus2line.getTerminal1());
+        assertReactivePowerEquals(615.582, bus1bus2line.getTerminal1());
+        assertActivePowerEquals(-101, bus1bus2line.getTerminal2());
+        assertReactivePowerEquals(-607.897, bus1bus2line.getTerminal2());
+        assertActivePowerEquals(0, bus2svc.getTerminal());
+        assertReactivePowerEquals(457.896, bus2svc.getTerminal());
     }
 
     @Test
     void shouldReachReactiveMaxLimit() {
         createNetworkBus1GenBus2LoadSvc();
-        svc1.setBmin(-0.002)
+        bus2svc.setBmin(-0.002)
                 .setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertReactivePowerEquals(-svc1.getBmin() * svc1.getVoltageSetpoint() * svc1.getVoltageSetpoint(), svc1.getTerminal()); // min reactive limit has been correctly reached
+        assertReactivePowerEquals(-bus2svc.getBmin() * bus2svc.getVoltageSetpoint() * bus2svc.getVoltageSetpoint(), bus2svc.getTerminal()); // min reactive limit has been correctly reached
     }
 
     private void runLoadFlowAndStoreResults(String busType, Map<String, Map<String, Double>> reports) {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         Map<String, Double> report = reports.computeIfAbsent(busType, key -> new LinkedHashMap<>());
-        report.put("line1.getTerminal1().getP()", l1.getTerminal1().getP());
-        report.put("line1.getTerminal1().getQ()", l1.getTerminal1().getQ());
-        report.put("line1.getTerminal2().getP()", l1.getTerminal2().getP());
-        report.put("line1.getTerminal2().getQ()", l1.getTerminal2().getQ());
+        report.put("bus1bus2line.getTerminal1().getP()", bus1bus2line.getTerminal1().getP());
+        report.put("bus1bus2line.getTerminal1().getQ()", bus1bus2line.getTerminal1().getQ());
+        report.put("bus1bus2line.getTerminal2().getP()", bus1bus2line.getTerminal2().getP());
+        report.put("bus1bus2line.getTerminal2().getQ()", bus1bus2line.getTerminal2().getQ());
 
         report.put("bus1.getV()", bus1.getV());
         report.put("bus1.getAngle()", bus1.getAngle());
-        report.put("g1.getTerminal().getP()", g1.getTerminal().getP());
-        report.put("g1.getTerminal().getQ()", g1.getTerminal().getQ());
+        report.put("bus1gen.getTerminal().getP()", bus1gen.getTerminal().getP());
+        report.put("bus1gen.getTerminal().getQ()", bus1gen.getTerminal().getQ());
 
         report.put("bus2.getV()", bus2.getV());
         report.put("bus2.getAngle()", bus2.getAngle());
-        report.put("ld1.getTerminal().getP()", ld1.getTerminal().getP());
-        report.put("ld1.getTerminal().getQ()", ld1.getTerminal().getQ());
-        report.put("svc1.getTerminal().getP()", svc1.getTerminal().getP());
-        report.put("svc1.getTerminal().getQ()", svc1.getTerminal().getQ());
-        if (g2 != null) {
-            report.put("g2.getTargetQ()", g2.getTargetQ());
-            report.put("g2.getTerminal().getP()", g2.getTerminal().getP());
-            report.put("g2.getTerminal().getQ()", g2.getTerminal().getQ());
+        report.put("bus2ld.getTerminal().getP()", bus2ld.getTerminal().getP());
+        report.put("bus2ld.getTerminal().getQ()", bus2ld.getTerminal().getQ());
+        report.put("bus2svc.getTerminal().getP()", bus2svc.getTerminal().getP());
+        report.put("bus2svc.getTerminal().getQ()", bus2svc.getTerminal().getQ());
+        if (bus2gen != null) {
+            report.put("bus2gen.getTargetQ()", bus2gen.getTargetQ());
+            report.put("bus2gen.getTerminal().getP()", bus2gen.getTerminal().getP());
+            report.put("bus2gen.getTerminal().getQ()", bus2gen.getTerminal().getQ());
         }
-        if (sc1 != null) {
-            report.put("sc1.getTerminal().getQ()", sc1.getTerminal().getQ());
+        if (bus2sc != null) {
+            report.put("bus2sc.getTerminal().getQ()", bus2sc.getTerminal().getQ());
         }
 
         assertTrue(result.isOk());
@@ -264,7 +283,7 @@ class AcLoadFlowSvcTest {
         // 2 - run with bus2 as bus PVLQ
         parametersExt.setUseBusPVLQ(true);
         networkCreator.run();
-        svc1.newExtension(VoltagePerReactivePowerControlAdder.class)
+        bus2svc.newExtension(VoltagePerReactivePowerControlAdder.class)
                 .withSlope(slope)
                 .add();
         runLoadFlowAndStoreResults("busPVLQ", reports);
@@ -279,11 +298,11 @@ class AcLoadFlowSvcTest {
 
         // assertions
         assertThat("with PV bus, V on bus2 should remains constant", reports.get("busPV").get("bus2.getV()"),
-                new IsEqual(svc1.getVoltageSetpoint()));
+                new IsEqual(bus2svc.getVoltageSetpoint()));
         assertThat("with PVLQ bus, V on bus2 should be equals to 'voltageSetpoint + slope * Qsvc'", reports.get("busPVLQ").get("bus2.getV()"),
-                new LoadFlowAssert.EqualsTo(svc1.getVoltageSetpoint() +  slope * (reports.get("busPVLQ").get("svc1.getTerminal().getQ()")), DELTA_V));
-        assertThat("Q on svc1 should be lower with bus PVLQ than PV", reports.get("busPVLQ").get("svc1.getTerminal().getQ()"),
-                new LoadFlowAssert.LowerThan(reports.get("busPV").get("svc1.getTerminal().getQ()")));
+                new LoadFlowAssert.EqualsTo(bus2svc.getVoltageSetpoint() +  slope * (reports.get("busPVLQ").get("bus2svc.getTerminal().getQ()")), DELTA_V));
+        assertThat("Q on bus2svc should be lower with bus PVLQ than PV", reports.get("busPVLQ").get("bus2svc.getTerminal().getQ()"),
+                new LoadFlowAssert.LowerThan(reports.get("busPV").get("bus2svc.getTerminal().getQ()")));
         assertThat("V on bus2 should be greater with bus PVLQ than PV", reports.get("busPVLQ").get("bus2.getV()"),
                 new LoadFlowAssert.GreaterThan(reports.get("busPV").get("bus2.getV()")));
     }

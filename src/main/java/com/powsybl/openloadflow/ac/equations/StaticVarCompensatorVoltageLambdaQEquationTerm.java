@@ -7,7 +7,6 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfShunt;
 import com.powsybl.openloadflow.network.PerUnit;
-import com.powsybl.openloadflow.network.impl.AbstractLfBus;
 import com.powsybl.openloadflow.network.impl.LfStaticVarCompensatorImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,10 +133,9 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
 
     private double getSumQloads() {
         double sumQloads = 0;
-        AbstractLfBus abstractLfBus = (AbstractLfBus) bus;
         LOGGER.trace("abstractLfBus.getTargetQ() = {} ; abstractLfBus.getCalculatedQ() = {} ; abstractLfBus.getLoadTargetQ() = {} ; abstractLfBus.getGenerationTargetQ() = {}",
-                abstractLfBus.getTargetQ(), abstractLfBus.getCalculatedQ(), abstractLfBus.getLoadTargetQ(), abstractLfBus.getGenerationTargetQ());
-        for (Load load : abstractLfBus.getLoads()) {
+                bus.getTargetQ(), bus.getCalculatedQ(), bus.getLoadTargetQ(), bus.getGenerationTargetQ());
+        for (Load load : bus.getLoads()) {
             LOGGER.debug("load.getQ0() = {} ; load.getTerminal().getQ() = {}", load.getQ0(), load.getTerminal().getQ());
             sumQloads += load.getQ0();
         }

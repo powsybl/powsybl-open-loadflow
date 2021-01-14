@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Load;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -100,6 +102,8 @@ public interface LfBus {
     double getHighVoltageLimit();
 
     List<LfGenerator> getGenerators();
+
+    List<Load> getLoads();
 
     List<LfShunt> getShunts();
 
