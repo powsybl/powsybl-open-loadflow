@@ -13,16 +13,13 @@ import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableType;
-import com.powsybl.openloadflow.network.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.powsybl.openloadflow.network.DiscreteVoltageControl;
+import com.powsybl.openloadflow.network.LfBus;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
 public class ShuntVoltageControlOuterLoop implements OuterLoop {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(ShuntVoltageControlOuterLoop.class);
 
     @Override
     public String getType() {

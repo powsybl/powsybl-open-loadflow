@@ -421,14 +421,14 @@ public abstract class AbstractLfBus implements LfBus {
     @Override
     public double getB() {
         return shunts.stream()
-                .mapToDouble(shunt -> shunt.getB())
+                .mapToDouble(LfShunt::getB)
                 .sum();
     }
 
     private double dispatchB(List<LfShunt> shunts, double bToDispatch) {
         //FIXME: shunt non controlling voltage have to be taken into account too
         List<LfShunt> shuntsThatControlVoltage = shunts.stream()
-                .filter(shunt -> shunt.hasVoltageControl())
+                .filter(LfShunt::hasVoltageControl)
                 .sorted(Comparator.comparing(LfShunt::getAmplitudeB))
                 .collect(Collectors.toList());
         Iterator<LfShunt> it = shuntsThatControlVoltage.iterator();
