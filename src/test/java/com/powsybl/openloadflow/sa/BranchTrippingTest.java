@@ -95,9 +95,9 @@ class BranchTrippingTest {
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
 
         LfBranchTripping trippingTask = new LfBranchTripping("NHV1_NHV2_1");
-        Exception e = assertThrows(UnsupportedOperationException.class,
-            () -> trippingTask.traverse(network, null, switchesToOpen, terminalsToDisconnect));
-        assertEquals("Traverser yet to implement for bus breaker view", e.getMessage());
+        trippingTask.traverse(network, null, switchesToOpen, terminalsToDisconnect);
+
+        // TODO: check result
     }
 
     @Test

@@ -56,6 +56,9 @@ public class LfBranchTripping extends AbstractTrippingTask {
     }
 
     private void traverseFromTerminal(Terminal terminal, Set<Switch> switchesToOpen, Set<Terminal> traversedTerminals) {
+        Objects.requireNonNull(terminal);
+        Objects.requireNonNull(switchesToOpen);
+        Objects.requireNonNull(traversedTerminals);
 
         if (traversedTerminals.contains(terminal)) {
             return;
@@ -78,9 +81,37 @@ public class LfBranchTripping extends AbstractTrippingTask {
             });
             nextTerminals.forEach(t -> traverseFromTerminal(t, switchesToOpen, traversedTerminals));
 
-        } else {
-            // TODO: Traverser yet to implement for bus breaker view
-            throw new UnsupportedOperationException("Traverser yet to implement for bus breaker view");
+        } else { // Bus breaker view
+            terminal.traverse(new VoltageLevel.TopologyTraverser() {
+
+                @Override
+                public boolean traverse(Terminal terminal, boolean connected) {
+                    // we have no idea what kind of switch it was in the initial node/breaker topology
+                    // so to keep things simple we do not propagate the fault
+                    if (connected) {
+                        traversedTerminals.add(terminal);
+                    }
+                    return false;
+                }
+
+                @Override
+                public boolean traverse(Switch aSwitch) {
+                    boolean traverse;
+                    if (isOpenable(aSwitch)) {
+                        switchesToOpen.add(aSwitch);
+                        traverse = false;
+                    } else {
+                        traverse = !aSwitch.isOpen();
+                    }
+                    return traverse;
+                }
+
+                private boolean isOpenable(Switch aSwitch) {
+                    return !aSwitch.isOpen() &&
+                        !aSwitch.isFictitious() &&
+                        aSwitch.getKind() == SwitchKind.BREAKER;
+                }
+            });
         }
     }
 
