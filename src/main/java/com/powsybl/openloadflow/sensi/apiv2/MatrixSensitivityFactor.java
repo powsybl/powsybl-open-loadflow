@@ -6,6 +6,10 @@
  */
 package com.powsybl.openloadflow.sensi.apiv2;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.powsybl.math.matrix.DenseMatrix;
+
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
@@ -13,8 +17,6 @@ import java.util.Objects;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class MatrixSensitivityFactor {
-
-    private final String id;
 
     private final List<String> functionsIds;
 
@@ -24,8 +26,11 @@ public class MatrixSensitivityFactor {
 
     private final VariableType variableType;
 
-    public MatrixSensitivityFactor(String id, List<String> functionsIds, FunctionType functionType, List<String> variablesIds, VariableType variableType) {
-        this.id = Objects.requireNonNull(id);
+    private DenseMatrix values;
+
+    private double[] functionsReferences;
+
+    public MatrixSensitivityFactor(List<String> functionsIds, FunctionType functionType, List<String> variablesIds, VariableType variableType) {
         this.functionsIds = Objects.requireNonNull(functionsIds);
         if (functionsIds.isEmpty()) {
             throw new IllegalArgumentException("Function ID list is empty");
@@ -38,16 +43,12 @@ public class MatrixSensitivityFactor {
         this.variableType = Objects.requireNonNull(variableType);
     }
 
-    public static MatrixSensitivityFactor createBranchFlowWithRespectToInjectionFactors(String id, List<String> branchsIds, List<String> injectionsIds) {
-        return new MatrixSensitivityFactor(id, branchsIds, FunctionType.BRANCH_FLOW, injectionsIds, VariableType.INJECTION);
+    public static MatrixSensitivityFactor createBranchFlowWithRespectToInjection(List<String> branchsIds, List<String> injectionsIds) {
+        return new MatrixSensitivityFactor(branchsIds, FunctionType.BRANCH_FLOW, injectionsIds, VariableType.INJECTION);
     }
 
-    public static MatrixSensitivityFactor createBranchFlowWithRespectToTransformerPhaseShiftFactors(String id, List<String> branchsIds, List<String> transformersIds) {
-        return new MatrixSensitivityFactor(id, branchsIds, FunctionType.BRANCH_FLOW, transformersIds, VariableType.TRANSFORMER_PHASE_SHIFT);
-    }
-
-    public String getId() {
-        return id;
+    public static MatrixSensitivityFactor createBranchFlowWithRespectToTransformerPhaseShift(List<String> branchsIds, List<String> transformersIds) {
+        return new MatrixSensitivityFactor(branchsIds, FunctionType.BRANCH_FLOW, transformersIds, VariableType.TRANSFORMER_PHASE_SHIFT);
     }
 
     public List<String> getFunctionsIds() {
@@ -64,5 +65,65 @@ public class MatrixSensitivityFactor {
 
     public VariableType getVariableType() {
         return variableType;
+    }
+
+    public DenseMatrix getValues() {
+        if (values == null) {
+            values = new DenseMatrix(variablesIds.size(), functionsIds.size());
+        }
+        return values;
+    }
+
+    public double[] getFunctionsReferences() {
+        if (functionsReferences == null) {
+            functionsReferences = new double[functionsIds.size()];
+        }
+        return functionsReferences;
+    }
+
+    public void writeJson(JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeStartObject();
+
+        jsonGenerator.writeFieldName("functionsIds");
+        jsonGenerator.writeStartArray();
+        for (String functionId : functionsIds) {
+            jsonGenerator.writeString(functionId);
+        }
+        jsonGenerator.writeEndArray();
+
+        jsonGenerator.writeStringField("functionType", functionType.name());
+
+        jsonGenerator.writeFieldName("functionsIds");
+        jsonGenerator.writeStartArray();
+        for (String functionId : functionsIds) {
+            jsonGenerator.writeString(functionId);
+        }
+        jsonGenerator.writeEndArray();
+
+        jsonGenerator.writeStringField("variableType", variableType.name());
+
+        if (values != null) {
+            jsonGenerator.writeFieldName("values");
+            jsonGenerator.writeStartArray();
+
+            for (int i = 0; i < values.getRowCount(); i++) {
+                jsonGenerator.writeStartArray();
+
+                for (int j = 0; j < values.getColumnCount(); j++) {
+                    jsonGenerator.writeNumber(values.get(i, j));
+                }
+
+                jsonGenerator.writeEndArray();
+            }
+
+            jsonGenerator.writeEndArray();
+        }
+
+        if (functionsReferences != null) {
+            jsonGenerator.writeFieldName("functionsReferences");
+            jsonGenerator.writeArray(functionsReferences, 0, functionsReferences.length);
+        }
+
+        jsonGenerator.writeEndObject();
     }
 }

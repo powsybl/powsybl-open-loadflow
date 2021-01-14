@@ -9,10 +9,10 @@ package com.powsybl.openloadflow.sensi.apiv2;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.sensi.apiv2.json.SensitivityAnalysisJsonModule;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import static java.util.Arrays.asList;
 
@@ -26,11 +26,20 @@ class SensitivityFactorConfigurationTest {
     void test() throws IOException {
         Network network = FourBusNetworkFactory.create();
         SensitivityFactorConfiguration factorConfiguration = SensitivityFactorConfiguration.create();
-        factorConfiguration.getSimpleFactors().add(SimpleSensitivityFactor.createBranchFlowWithRespectToInjectionFactor("l14", "g1"));
-        factorConfiguration.getSimpleFactors().add(SimpleSensitivityFactor.createBranchFlowWithRespectToInjectionFactor("l12", "g1"));
-        factorConfiguration.getMatrixFactors().add(MatrixSensitivityFactor.createBranchFlowWithRespectToInjectionFactors("m", asList("l14", "l12", "l23"), asList("g1", "g2")));
-        factorConfiguration.getMultiVarsFactors().add(MultiVariablesSensitivityFactor.createBranchFlowWithRespectToWeightedInjectionsFactor("l14", Arrays.asList(new WeightedVariable("g1", 1), new WeightedVariable("g2", 2))));
-        String str = new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(factorConfiguration);
+        factorConfiguration.getSimpleFactors().add(SimpleSensitivityFactor.createBranchFlowWithRespectToInjection("l14", "g1"));
+        factorConfiguration.getSimpleFactors().add(SimpleSensitivityFactor.createBranchFlowWithRespectToInjection("l12", "g1"));
+        factorConfiguration.getMatrixFactors().add(MatrixSensitivityFactor.createBranchFlowWithRespectToInjection(asList("l14", "l12", "l23"),
+                                                                                                                  asList("g1", "g2")));
+        factorConfiguration.getMultiVarsFactors().add(MultiVariablesSensitivityFactor.createBranchFlowWithRespectToWeightedInjections(asList("l14"),
+                                                                                                                                      asList(new WeightedVariable("g1", 1), new WeightedVariable("g2", 2))));
+
+        factorConfiguration.getMatrixFactors().get(0).getValues();
+        factorConfiguration.getMatrixFactors().get(0).getFunctionsReferences();
+        factorConfiguration.getMultiVarsFactors().get(0).getValues();
+        factorConfiguration.getMultiVarsFactors().get(0).getFunctionsReferences();
+        String str = new ObjectMapper()
+                .registerModule(new SensitivityAnalysisJsonModule())
+                .writerWithDefaultPrettyPrinter().writeValueAsString(factorConfiguration);
         System.out.println(str);
     }
 }

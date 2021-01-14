@@ -6,6 +6,9 @@
  */
 package com.powsybl.openloadflow.sensi.apiv2;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -14,6 +17,8 @@ import java.util.*;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public final class SensitivityFactorConfiguration {
+
+    private static final String CURRENT_VERSION = "1";
 
     private final ContingencyContext contingencyContext;
 
@@ -84,5 +89,20 @@ public final class SensitivityFactorConfiguration {
 
     public List<MultiVariablesSensitivityFactor> getMultiVarsFactors() {
         return multiVarsFactors;
+    }
+
+    public void writeJson(JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeStartObject();
+
+        jsonGenerator.writeStringField("version", CURRENT_VERSION);
+        jsonGenerator.writeStringField("contingencyContext", contingencyContext.name());
+        if (contingencyContext == ContingencyContext.ONE_CONTINGENCY) {
+            jsonGenerator.writeStringField("contingencyId", contingencyId);
+        }
+        jsonGenerator.writeObjectField("simpleFactors", simpleFactors);
+        jsonGenerator.writeObjectField("matrixFactors", matrixFactors);
+        jsonGenerator.writeObjectField("multiVarsFactors", multiVarsFactors);
+
+        jsonGenerator.writeEndObject();
     }
 }

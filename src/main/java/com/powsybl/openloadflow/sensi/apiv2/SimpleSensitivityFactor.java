@@ -6,6 +6,9 @@
  */
 package com.powsybl.openloadflow.sensi.apiv2;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+
+import java.io.IOException;
 import java.util.Objects;
 
 /**
@@ -21,6 +24,10 @@ public class SimpleSensitivityFactor {
 
     private final VariableType variableType;
 
+    private double value = Double.NaN;
+
+    private double functionReference = Double.NaN;
+
     public SimpleSensitivityFactor(String functionId, FunctionType functionType, String variableId, VariableType variableType) {
         this.functionId = Objects.requireNonNull(functionId);
         this.functionType = Objects.requireNonNull(functionType);
@@ -28,11 +35,11 @@ public class SimpleSensitivityFactor {
         this.variableType = Objects.requireNonNull(variableType);
     }
 
-    public static SimpleSensitivityFactor createBranchFlowWithRespectToInjectionFactor(String branchId, String injectionId) {
+    public static SimpleSensitivityFactor createBranchFlowWithRespectToInjection(String branchId, String injectionId) {
         return new SimpleSensitivityFactor(branchId, FunctionType.BRANCH_FLOW, injectionId, VariableType.INJECTION);
     }
 
-    public static SimpleSensitivityFactor createBranchFlowWithRespectToTransformerPhaseShiftFactor(String branchId, String transformerId) {
+    public static SimpleSensitivityFactor createBranchFlowWithRespectToTransformerPhaseShift(String branchId, String transformerId) {
         return new SimpleSensitivityFactor(branchId, FunctionType.BRANCH_FLOW, transformerId, VariableType.TRANSFORMER_PHASE_SHIFT);
     }
 
@@ -50,5 +57,38 @@ public class SimpleSensitivityFactor {
 
     public VariableType getVariableType() {
         return variableType;
+    }
+
+    public double getValue() {
+        return value;
+    }
+
+    public void setValue(double value) {
+        this.value = value;
+    }
+
+    public double getFunctionReference() {
+        return functionReference;
+    }
+
+    public void setFunctionReference(double functionReference) {
+        this.functionReference = functionReference;
+    }
+
+    public void writeJson(JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeStartObject();
+
+        jsonGenerator.writeStringField("functionId", functionId);
+        jsonGenerator.writeStringField("functionType", functionType.name());
+        jsonGenerator.writeStringField("variableId", variableId);
+        jsonGenerator.writeStringField("variableType", variableType.name());
+        if (!Double.isNaN(value)) {
+            jsonGenerator.writeNumberField("value", value);
+        }
+        if (!Double.isNaN(functionReference)) {
+            jsonGenerator.writeNumberField("functionReference", functionReference);
+        }
+
+        jsonGenerator.writeEndObject();
     }
 }

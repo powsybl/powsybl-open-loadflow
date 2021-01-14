@@ -17,12 +17,12 @@ import java.util.concurrent.CompletableFuture;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface SensitivityAnalysisProvider2 {
+public interface SensitivityAnalysisProvider {
 
-    CompletableFuture<SensitivityAnalysisResult2> run(Network network,
-                                                      String workingStateId,
-                                                      List<SensitivityFactorConfiguration> factorConfigurations,
-                                                      List<Contingency> contingencies,
-                                                      SensitivityAnalysisParameters parameters,
-                                                      ComputationManager computationManager);
+    CompletableFuture<Void> run(Network network,
+                                String workingStateId,
+                                List<SensitivityFactorConfiguration> factorConfigurations,
+                                List<Contingency> contingencies,
+                                SensitivityAnalysisParameters parameters,
+                                ComputationManager computationManager);
 }
