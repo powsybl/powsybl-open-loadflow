@@ -431,23 +431,10 @@ public abstract class AbstractLfBus implements LfBus {
                 .filter(LfShunt::hasVoltageControl)
                 .sorted(Comparator.comparing(LfShunt::getAmplitudeB))
                 .collect(Collectors.toList());
-        Iterator<LfShunt> it = shuntsThatControlVoltage.iterator();
         double residueB = bToDispatch;
-        while (it.hasNext()) {
-            LfShunt shunt = it.next();
-            double calculatedB = residueB / shuntsThatControlVoltage.size();
-            if (calculatedB < shunt.getMinB()) {
-                shunt.setB(shunt.getMinB());
-                residueB += residueB - shunt.getMinB();
-                it.remove();
-            } else if (calculatedB > shunt.getMaxB()) {
-                shunt.setB(shunt.getMaxB());
-                residueB += residueB - shunt.getMaxB();
-                it.remove();
-            } else {
-                shunt.setB(calculatedB);
-                residueB += residueB - shunt.getB();
-            }
+        for (LfShunt shunt : shuntsThatControlVoltage) {
+            shunt.setB(residueB / shuntsThatControlVoltage.size());
+            residueB += residueB - shunt.getB();
         }
         return residueB;
     }
