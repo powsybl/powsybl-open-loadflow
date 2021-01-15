@@ -105,6 +105,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowProvider.getParametersExt(securityAnalysisParameters.getLoadFlowParameters());
+        lfParametersExt.setThrowsExceptionInCaseOfSlackDistributionFailure(false); //FIXME
 
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
@@ -270,8 +271,12 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             Iterator<LfContingency> contingencyIt = contingencies.iterator();
             while (contingencyIt.hasNext()) {
                 LfContingency lfContingency = contingencyIt.next();
-
-                // FIXME: loads and generations lost with the contingency have to be removed from the slack distribution
+                for (LfBus bus : lfContingency.getBuses()) {
+                    bus.setLoadTargetP(0);
+                    for (LfGenerator generator : bus.getGenerators()) {
+                        generator.setTargetP(0);
+                    }
+                }
                 distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
                 PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency);
