@@ -6,11 +6,13 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.cgmes.conformity.test.CgmesConformity1Catalog;
 import com.powsybl.commons.io.table.AsciiTableFormatterFactory;
 import com.powsybl.commons.io.table.TableFormatterConfig;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.iidm.import_.Importers;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.TopologyKind;
@@ -372,5 +374,28 @@ class OpenSecurityAnalysisTest {
                 new LimitViolationFilter(), null, 0);
         SecurityAnalysisResult result = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
+    }
+
+    @Test
+    void testCgmesMicroGridBusBreaker() {
+
+        Network network = Importers.importData("CGMES",  CgmesConformity1Catalog.microGridBaseCaseAssembled().dataSource(), null);
+
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelector(new MostMeshedSlackBusSelector());
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+
+        // Testing all contingencies at once
+        ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
+                .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
+                .collect(Collectors.toList());
+
+        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
+        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(), null, 0);
+        SecurityAnalysisResult result = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
     }
 }

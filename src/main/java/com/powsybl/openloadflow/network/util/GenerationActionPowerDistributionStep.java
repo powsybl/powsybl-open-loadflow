@@ -33,7 +33,7 @@ public class GenerationActionPowerDistributionStep implements ActivePowerDistrib
         return network.getBuses()
                 .stream()
                 .flatMap(bus -> bus.getGenerators().stream())
-                .filter(generator -> generator.isParticipating() && generator.getParticipationFactor() != 0 && generator.getTargetP() != 0)
+                .filter(generator -> generator.isParticipating() && generator.getParticipationFactor() != 0)
                 .map(generator -> new ParticipatingElement(generator, generator.getParticipationFactor()))
                 .collect(Collectors.toList());
     }

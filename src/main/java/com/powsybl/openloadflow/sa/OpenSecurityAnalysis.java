@@ -274,7 +274,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                 for (LfBus bus : lfContingency.getBuses()) {
                     bus.setLoadTargetP(0);
                     for (LfGenerator generator : bus.getGenerators()) {
-                        generator.setTargetP(0);
+                        generator.setParticipating(false);
                     }
                 }
                 distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
@@ -476,6 +476,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         bus.setLoadTargetP(busState.loadTargetP);
         bus.setLoadTargetQ(busState.loadTargetQ);
         bus.getGenerators().forEach(g -> g.setTargetP(busState.generatorsTargetP.get(g.getId())));
+        bus.getGenerators().forEach(g -> g.setParticipating(busState.areGeneratorsParticipating.get(g.getId())));
         if (busState.hasVoltageControl && !bus.hasVoltageControl()) { // b is now PQ bus.
             ReactiveLimitsOuterLoop.switchPqPv(bus, engine.getEquationSystem(), engine.getVariableSet());
         }
@@ -491,6 +492,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         private final double loadTargetP;
         private final double loadTargetQ;
         private final Map<String, Double> generatorsTargetP;
+        private final Map<String, Boolean> areGeneratorsParticipating;
         private final boolean hasVoltageControl;
         private final double generationTargetQ;
 
@@ -500,6 +502,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             this.loadTargetP = b.getLoadTargetP();
             this.loadTargetQ = b.getLoadTargetQ();
             this.generatorsTargetP = b.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
+            this.areGeneratorsParticipating = b.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::isParticipating));
             this.hasVoltageControl = b.hasVoltageControl();
             this.generationTargetQ = b.getGenerationTargetQ();
         }
