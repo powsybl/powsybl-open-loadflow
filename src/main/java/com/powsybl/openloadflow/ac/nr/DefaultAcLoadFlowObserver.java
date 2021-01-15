@@ -112,20 +112,18 @@ public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
             for (Equation equation : equationNavigableMapNavigableMap.keySet()) {
                 equationsByBus.computeIfAbsent(lfNetwork.getBus(equation.getNum()), bus -> new ArrayList<>()).add(equation);
             }
+            LOGGER.trace(">>> EquationSystem with {} equations", equationNavigableMapNavigableMap.size());
             for (LfBus lfBus : equationsByBus.keySet()) {
-                LOGGER.trace("Equations sur le bus {} :", lfBus.getId());
+                LOGGER.trace("  Equations on bus {} :", lfBus.getId());
                 for (Equation equation : equationsByBus.get(lfBus)) {
-                    LOGGER.trace(" - equation de type {} ayant pour terme(s) :", equation.getType());
+                    LOGGER.trace("   - equation (type = {}) having terms :", equation.getType());
                     for (EquationTerm equationTerm : equation.getTerms()) {
-                        if (equationTerm.isActive()) {
-                            StringBuilder stringBuilder = new StringBuilder();
-                            for (Variable variable : equationTerm.getVariables()) {
-                                if (variable.isActive()) {
-                                    stringBuilder.append((stringBuilder.length() != 0 ? ", " : "") + variable.getType() + " (bus " + lfNetwork.getBus(variable.getNum()).getId() + ")");
-                                }
-                            }
-                            LOGGER.trace("   * terme {} de type {} avec pour variables : {}", equationTerm.getClass().getSimpleName(), equationTerm.getSubjectType(), stringBuilder.toString());
+                        StringBuilder stringBuilder = new StringBuilder();
+                        for (Variable variable : equationTerm.getVariables()) {
+                            stringBuilder.append((stringBuilder.length() != 0 ? ", " : "") + variable.getType() + " (active = " + variable.isActive() + "; bus = " + lfNetwork.getBus(variable.getNum()).getId() + ")");
                         }
+                        LOGGER.trace("     * term {} (active = {}; type = {}) having variables : {}",
+                                equationTerm.getClass().getSimpleName(), equationTerm.isActive(), equationTerm.getSubjectType(), stringBuilder.toString());
                     }
                 }
             }
@@ -147,7 +145,7 @@ public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
                     stringBuilder.append((char) b);
                 }
             }));
-            LOGGER.trace("Jacobian matrix : {}{}", System.getProperty("line.separator"), stringBuilder.toString());
+            LOGGER.trace(">>> Jacobian matrix : {}{}", System.getProperty("line.separator"), stringBuilder.toString());
         }
     }
 
@@ -214,33 +212,34 @@ public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
     @Override
     public void beforeLoadFlow(LfNetwork network) {
         if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace(">>> LfNetwork with {} buses", network.getBuses().size());
             for (LfBus lfBus : network.getBuses()) {
-                LOGGER.trace("Bus {} from VoltageLevel {} with NominalVoltage = {} ", lfBus.getId(), lfBus.getVoltageLevelId(), lfBus.getNominalV());
+                LOGGER.trace("  Bus {} from VoltageLevel {} with NominalVoltage = {} ", lfBus.getId(), lfBus.getVoltageLevelId(), lfBus.getNominalV());
                 for (LfGenerator lfGenerator : lfBus.getGenerators()) {
                     if (lfGenerator instanceof LfStaticVarCompensatorImpl) {
                         LfStaticVarCompensatorImpl lfStaticVarCompensator = (LfStaticVarCompensatorImpl) lfGenerator;
-                        LOGGER.trace("  Static Var Compensator {} with : Bmin = {} ; Bmax = {} ; VoltageRegulatorOn = {} ; VoltageSetpoint = {}",
+                        LOGGER.trace("    Static Var Compensator {} with : Bmin = {} ; Bmax = {} ; VoltageRegulatorOn = {} ; VoltageSetpoint = {}",
                                 lfGenerator.getId(), lfStaticVarCompensator.getSvc().getBmin(),
                                 lfStaticVarCompensator.getSvc().getBmax(), lfStaticVarCompensator.hasVoltageControl(), lfStaticVarCompensator.getSvc().getVoltageSetpoint());
                     } else {
-                        LOGGER.trace("  Generator {} with : TargetP = {} ; MinP = {} ; MaxP = {} ; VoltageRegulatorOn = {} ; TargetQ = {}",
+                        LOGGER.trace("    Generator {} with : TargetP = {} ; MinP = {} ; MaxP = {} ; VoltageRegulatorOn = {} ; TargetQ = {}",
                                 lfGenerator.getId(), lfGenerator.getTargetP() * PerUnit.SB, lfGenerator.getMinP() * PerUnit.SB,
                                 lfGenerator.getMaxP() * PerUnit.SB, lfGenerator.hasVoltageControl(), lfGenerator.getTargetQ() * PerUnit.SB);
                     }
                 }
                 for (Load load : lfBus.getLoads()) {
-                    LOGGER.trace("  Load {} with : P0 = {} ; Q0 = {}",
+                    LOGGER.trace("    Load {} with : P0 = {} ; Q0 = {}",
                             load.getId(), load.getP0(), load.getQ0());
                 }
                 for (LfShunt lfShunt : lfBus.getShunts()) {
-                    LOGGER.trace("  Shunt {} with : B = {}", lfShunt.getId(), lfShunt.getB());
+                    LOGGER.trace("    Shunt {} with : B = {}", lfShunt.getId(), lfShunt.getB());
                 }
                 for (LfBranch lfBranch : lfBus.getBranches()) {
                     PiModel piModel = lfBranch.getPiModel();
                     double zb = lfBus.getNominalV() * lfBus.getNominalV() / PerUnit.SB;
-                    LOGGER.trace("  Line {} with : bus1 = {}, bus2 = {}, R = {}, X = {}, G1 = {}, G2 = {}, B1 = {}, B2 = {}",
-                            lfBranch.getId(), lfBranch.getBus1() != null ? lfBranch.getBus1().getId() : "",
-                            lfBranch.getBus2() != null ? lfBranch.getBus2().getId() : "",
+                    LOGGER.trace("    Line {} with : bus1 = {}, bus2 = {}, R = {}, X = {}, G1 = {}, G2 = {}, B1 = {}, B2 = {}",
+                            lfBranch.getId(), lfBranch.getBus1() != null ? lfBranch.getBus1().getId() : "NaN",
+                            lfBranch.getBus2() != null ? lfBranch.getBus2().getId() : "NaN",
                             piModel.getR() * zb, piModel.getX() * zb, piModel.getG1() / zb, piModel.getG2() / zb, piModel.getB1() / zb, piModel.getB2() / zb);
                 }
             }

@@ -233,9 +233,11 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         double maxQ = bus.getMaxQ();
         double q = bus.getGenerationTargetQ();
         // TODO : quelles sont les conditions pour passer un bus PQ en bus P_VLQ ?
+        // TODO : bus.getV() + slope * Q > bus.getTargetV()
         if (Math.abs(q - maxQ) < Q_EPS && bus.getV() > bus.getTargetV()) { // bus produce too much reactive power
             pqToPvBuses.add(new PqToPvBus(bus, ReactiveLimitDirection.MAX));
         }
+        // TODO : bus.getV() + slope * Q < bus.getTargetV()
         if (Math.abs(q - minQ) < Q_EPS && bus.getV() < bus.getTargetV()) { // bus absorb too much reactive power
             pqToPvBuses.add(new PqToPvBus(bus, ReactiveLimitDirection.MIN));
         }

@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -16,14 +17,12 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.util.LoadFlowRunResults;
 import org.hamcrest.core.IsEqual;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -61,7 +60,7 @@ class AcLoadFlowSvcTest {
     private LoadFlowParameters parameters;
     private OpenLoadFlowParameters parametersExt;
 
-    private AcLoadFlowSvcTest createNetworkBus1GenBus2LoadSvc() {
+    private AcLoadFlowSvcTest createNetworkBus1GenBus2Svc() {
         network = Network.create("svc", "test");
         Substation s1 = network.newSubstation()
                 .setId("s1")
@@ -95,13 +94,6 @@ class AcLoadFlowSvcTest {
         bus2 = vl2.getBusBreakerView().newBus()
                 .setId("bus2")
                 .add();
-        bus2ld = vl2.newLoad()
-                .setId("bus2ld")
-                .setConnectableBus(bus2.getId())
-                .setBus(bus2.getId())
-                .setP0(101)
-                .setQ0(150)
-                .add();
         bus2svc = vl2.newStaticVarCompensator()
                 .setId("bus2svc")
                 .setConnectableBus(bus2.getId())
@@ -126,9 +118,23 @@ class AcLoadFlowSvcTest {
         return this;
     }
 
-    private AcLoadFlowSvcTest setSvcVoltage() {
+    private AcLoadFlowSvcTest addBus2Load() {
+        bus2ld = vl2.newLoad()
+                .setId("bus2ld")
+                .setConnectableBus(bus2.getId())
+                .setBus(bus2.getId())
+                .setP0(101)
+                .setQ0(150)
+                .add();
+        return this;
+    }
+
+    private AcLoadFlowSvcTest setSvcVoltageAndSlope() {
         bus2svc.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .newExtension(VoltagePerReactivePowerControlAdder.class)
+                .withSlope(0.01)
+                .add();
         return this;
     }
 
@@ -141,7 +147,7 @@ class AcLoadFlowSvcTest {
                 .setEnergySource(EnergySource.THERMAL)
                 .setMinP(100)
                 .setMaxP(300)
-                .setTargetP(200)
+                .setTargetP(0)
                 .setTargetQ(300)
                 .setVoltageRegulatorOn(false)
                 .add();
@@ -170,7 +176,7 @@ class AcLoadFlowSvcTest {
         bus2line = network.newLine()
                 .setId("bus2line")
                 .setVoltageLevel1(vl1.getId())
-                .setBus1(bus1.getId())
+//                .setBus1(bus1.getId())
                 .setVoltageLevel2(vl2.getId())
                 .setBus2(bus2.getId())
                 .setR(1)
@@ -195,7 +201,7 @@ class AcLoadFlowSvcTest {
 
     @Test
     void test() {
-        createNetworkBus1GenBus2LoadSvc();
+        createNetworkBus1GenBus2Svc().addBus2Load();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -230,7 +236,7 @@ class AcLoadFlowSvcTest {
 
     @Test
     void shouldReachReactiveMaxLimit() {
-        createNetworkBus1GenBus2LoadSvc();
+        createNetworkBus1GenBus2Svc().addBus2Load();
         bus2svc.setBmin(-0.002)
                 .setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
@@ -239,78 +245,64 @@ class AcLoadFlowSvcTest {
         assertReactivePowerEquals(-bus2svc.getBmin() * bus2svc.getVoltageSetpoint() * bus2svc.getVoltageSetpoint(), bus2svc.getTerminal()); // min reactive limit has been correctly reached
     }
 
-    private void runLoadFlowAndStoreResults(String busType, Map<String, Map<String, Double>> reports) {
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        Map<String, Double> report = reports.computeIfAbsent(busType, key -> new LinkedHashMap<>());
-        report.put("bus1bus2line.getTerminal1().getP()", bus1bus2line.getTerminal1().getP());
-        report.put("bus1bus2line.getTerminal1().getQ()", bus1bus2line.getTerminal1().getQ());
-        report.put("bus1bus2line.getTerminal2().getP()", bus1bus2line.getTerminal2().getP());
-        report.put("bus1bus2line.getTerminal2().getQ()", bus1bus2line.getTerminal2().getQ());
+    private enum NetworkDescription { BUS1_GEN_BUS2_SVC, BUS1_GEN_BUS2_SVC_LOAD, BUS1_GEN_BUS2_SVC_LOAD_GEN, BUS1_GEN_BUS2_SVC_LOAD_GEN_SC, BUS1_GEN_BUS2_SVC_LOAD_GEN_SC_LINE }
+    private enum RunningParameters { USE_BUS_PV, USE_BUS_PVLQ }
 
-        report.put("bus1.getV()", bus1.getV());
-        report.put("bus1.getAngle()", bus1.getAngle());
-        report.put("bus1gen.getTerminal().getP()", bus1gen.getTerminal().getP());
-        report.put("bus1gen.getTerminal().getQ()", bus1gen.getTerminal().getQ());
-
-        report.put("bus2.getV()", bus2.getV());
-        report.put("bus2.getAngle()", bus2.getAngle());
-        report.put("bus2ld.getTerminal().getP()", bus2ld.getTerminal().getP());
-        report.put("bus2ld.getTerminal().getQ()", bus2ld.getTerminal().getQ());
-        report.put("bus2svc.getTerminal().getP()", bus2svc.getTerminal().getP());
-        report.put("bus2svc.getTerminal().getQ()", bus2svc.getTerminal().getQ());
-        if (bus2gen != null) {
-            report.put("bus2gen.getTargetQ()", bus2gen.getTargetQ());
-            report.put("bus2gen.getTerminal().getP()", bus2gen.getTerminal().getP());
-            report.put("bus2gen.getTerminal().getQ()", bus2gen.getTerminal().getQ());
-        }
-        if (bus2sc != null) {
-            report.put("bus2sc.getTerminal().getQ()", bus2sc.getTerminal().getQ());
-        }
-
-        assertTrue(result.isOk());
-    }
-
-    private void shouldUseLessReactivePowerWithBusVLQOnGivenNetwork(Runnable networkCreator) {
-        // Map<busType, <Map<getter, value>>
-        Map<String, Map<String, Double>> reports = new LinkedHashMap<>();
-        Double slope = 0.01;
-
+    private void shouldMatchVoltageTerm(Runnable networkCreator, NetworkDescription networkDescription, LoadFlowRunResults<NetworkDescription, RunningParameters> loadFlowRunResults) {
         // 1 - run with bus2 as bus PV
-        networkCreator.run();
         parametersExt.setUseBusPVLQ(false);
-        runLoadFlowAndStoreResults("busPV", reports);
+        networkCreator.run();
+        assertTrue(loadFlowRunner.run(network, parameters).isOk());
+        Network networkPV = loadFlowRunResults.addLoadFlowReport(networkDescription, RunningParameters.USE_BUS_PV, network);
 
         // 2 - run with bus2 as bus PVLQ
         parametersExt.setUseBusPVLQ(true);
         networkCreator.run();
-        bus2svc.newExtension(VoltagePerReactivePowerControlAdder.class)
-                .withSlope(slope)
-                .add();
-        runLoadFlowAndStoreResults("busPVLQ", reports);
-
-        // display reports
-        for (Map.Entry<String, Map<String, Double>> report : reports.entrySet()) {
-            LOGGER.debug(">>> Report about bus : {}", report.getKey());
-            for (Map.Entry<String, Double> getter : report.getValue().entrySet()) {
-                LOGGER.debug("{} = {}", getter.getKey(), getter.getValue());
-            }
-        }
+        assertTrue(loadFlowRunner.run(network, parameters).isOk());
+        Network networkPVLQ = loadFlowRunResults.addLoadFlowReport(networkDescription, RunningParameters.USE_BUS_PVLQ, network);
 
         // assertions
-        assertThat("with PV bus, V on bus2 should remains constant", reports.get("busPV").get("bus2.getV()"),
-                new IsEqual(bus2svc.getVoltageSetpoint()));
-        assertThat("with PVLQ bus, V on bus2 should be equals to 'voltageSetpoint + slope * Qsvc'", reports.get("busPVLQ").get("bus2.getV()"),
-                new LoadFlowAssert.EqualsTo(bus2svc.getVoltageSetpoint() +  slope * (reports.get("busPVLQ").get("bus2svc.getTerminal().getQ()")), DELTA_V));
-        assertThat("Q on bus2svc should be lower with bus PVLQ than PV", reports.get("busPVLQ").get("bus2svc.getTerminal().getQ()"),
-                new LoadFlowAssert.LowerThan(reports.get("busPV").get("bus2svc.getTerminal().getQ()")));
-        assertThat("V on bus2 should be greater with bus PVLQ than PV", reports.get("busPVLQ").get("bus2.getV()"),
-                new LoadFlowAssert.GreaterThan(reports.get("busPV").get("bus2.getV()")));
+        Double slope = bus2svc.getExtension(VoltagePerReactivePowerControl.class).getSlope();
+        assertThat("with PV bus, V on bus2 should remains constant", networkPV.getBusView().getBus("vl2_0").getV(),
+                new IsEqual(networkPV.getStaticVarCompensator("bus2svc").getVoltageSetpoint()));
+        assertThat("with PVLQ bus, voltageSetpoint should be equals to 'V on bus2 + slope * Qsvc'", networkPVLQ.getStaticVarCompensator("bus2svc").getVoltageSetpoint(),
+                new LoadFlowAssert.EqualsTo(networkPVLQ.getBusView().getBus("vl2_0").getV() +
+                        slope * (-networkPVLQ.getStaticVarCompensator("bus2svc").getTerminal().getQ()), DELTA_V));
+        assertThat("Qsvc should be greater with bus PVLQ than PV", -networkPVLQ.getStaticVarCompensator("bus2svc").getTerminal().getQ(),
+                new LoadFlowAssert.GreaterThan(-networkPV.getStaticVarCompensator("bus2svc").getTerminal().getQ()));
+        assertThat("V on bus2 should be greater with bus PVLQ than PV", networkPVLQ.getBusView().getBus("vl2_0").getV(),
+                new LoadFlowAssert.GreaterThan(networkPV.getBusView().getBus("vl2_0").getV()));
+    }
+
+    private void shouldIncreaseQsvc(String reason, LoadFlowRunResults<NetworkDescription, RunningParameters> loadFlowRunResults, NetworkDescription actualNetwork, NetworkDescription previousNetwork) {
+        assertThat("with PV bus and " + reason, -loadFlowRunResults.getLoadFlowReport(actualNetwork, RunningParameters.USE_BUS_PV).getStaticVarCompensator("bus2svc").getTerminal().getQ(),
+                new LoadFlowAssert.GreaterThan(-loadFlowRunResults.getLoadFlowReport(previousNetwork, RunningParameters.USE_BUS_PV).getStaticVarCompensator("bus2svc").getTerminal().getQ()));
+        assertThat("with PVLQ bus and " + reason, -loadFlowRunResults.getLoadFlowReport(actualNetwork, RunningParameters.USE_BUS_PVLQ).getStaticVarCompensator("bus2svc").getTerminal().getQ(),
+                new LoadFlowAssert.GreaterThan(-loadFlowRunResults.getLoadFlowReport(previousNetwork, RunningParameters.USE_BUS_PVLQ).getStaticVarCompensator("bus2svc").getTerminal().getQ()));
+    }
+
+    private void shouldLowerQsvc(String reason, LoadFlowRunResults<NetworkDescription, RunningParameters> loadFlowRunResults, NetworkDescription actualNetwork, NetworkDescription previousNetwork) {
+        assertThat("with PV bus and " + reason, -loadFlowRunResults.getLoadFlowReport(actualNetwork, RunningParameters.USE_BUS_PV).getStaticVarCompensator("bus2svc").getTerminal().getQ(),
+                new LoadFlowAssert.LowerThan(-loadFlowRunResults.getLoadFlowReport(previousNetwork, RunningParameters.USE_BUS_PV).getStaticVarCompensator("bus2svc").getTerminal().getQ()));
+        assertThat("with PVLQ bus and " + reason, -loadFlowRunResults.getLoadFlowReport(actualNetwork, RunningParameters.USE_BUS_PVLQ).getStaticVarCompensator("bus2svc").getTerminal().getQ(),
+                new LoadFlowAssert.LowerThan(-loadFlowRunResults.getLoadFlowReport(previousNetwork, RunningParameters.USE_BUS_PVLQ).getStaticVarCompensator("bus2svc").getTerminal().getQ()));
     }
 
     @Test
-    void shouldUseLessReactivePowerWithBusVLQ() {
-        this.shouldUseLessReactivePowerWithBusVLQOnGivenNetwork(() -> this.createNetworkBus1GenBus2LoadSvc().setSvcVoltage());
-        this.shouldUseLessReactivePowerWithBusVLQOnGivenNetwork(() -> this.createNetworkBus1GenBus2LoadSvc().setSvcVoltage().addBus2Gen());
-        this.shouldUseLessReactivePowerWithBusVLQOnGivenNetwork(() -> this.createNetworkBus1GenBus2LoadSvc().setSvcVoltage().addBus2Gen().addBus2Sc());
+    void shouldProperlyRunWithBusVLQ() {
+        LoadFlowRunResults<NetworkDescription, RunningParameters> loadFlowRunResults = new LoadFlowRunResults<>();
+        this.shouldMatchVoltageTerm(() -> this.createNetworkBus1GenBus2Svc().setSvcVoltageAndSlope(), NetworkDescription.BUS1_GEN_BUS2_SVC, loadFlowRunResults);
+        this.shouldMatchVoltageTerm(() -> this.createNetworkBus1GenBus2Svc().setSvcVoltageAndSlope().addBus2Load(), NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD, loadFlowRunResults);
+        this.shouldMatchVoltageTerm(() -> this.createNetworkBus1GenBus2Svc().setSvcVoltageAndSlope().addBus2Load().addBus2Gen(), NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN, loadFlowRunResults);
+        this.shouldMatchVoltageTerm(() -> this.createNetworkBus1GenBus2Svc().setSvcVoltageAndSlope().addBus2Load().addBus2Gen().addBus2Sc(), NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN_SC, loadFlowRunResults);
+//        this.shouldCheckVoltageTerm(() -> this.createNetworkBus1GenBus2Svc().setSvcVoltageAndSlope().addBus2Load().addBus2Gen().addBus2Sc().addOpenLine(), NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN_SC_LINE, loadFlowRunResults);
+        loadFlowRunResults.displayAll();
+
+        loadFlowRunResults.getLoadFlowReport(NetworkDescription.BUS1_GEN_BUS2_SVC, RunningParameters.USE_BUS_PV);
+        shouldIncreaseQsvc("a load addition, Qsvc should be greater", loadFlowRunResults, NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD, NetworkDescription.BUS1_GEN_BUS2_SVC);
+        shouldLowerQsvc("a generator addition, Qsvc should be lower", loadFlowRunResults, NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN, NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD);
+        shouldLowerQsvc("a shunt addition, Qsvc should be lower", loadFlowRunResults, NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN_SC, NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN);
+
+        loadFlowRunResults.shouldHaveValidSumOfQinLines();
     }
 }
