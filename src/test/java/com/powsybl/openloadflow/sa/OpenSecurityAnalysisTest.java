@@ -323,7 +323,7 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
-    void testEurostagFactory() {
+    void testEurostagFactoryWithCurrentLimits() {
 
         Network network = EurostagTutorialExample1Factory.createWithCurrentLimits();
 
@@ -349,5 +349,28 @@ class OpenSecurityAnalysisTest {
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().get(2).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(0, result.getPostContingencyResults().get(3).getLimitViolationsResult().getLimitViolations().size());
+    }
+
+    @Test
+    void testEurostagFactory() {
+
+        Network network = EurostagTutorialExample1Factory.create();
+
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelector(new MostMeshedSlackBusSelector());
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+
+        ContingenciesProvider contingenciesProvider = net -> Stream.of("NGEN_NHV1")
+                .map(id -> new Contingency(id, new BranchContingency(id)))
+                .collect(Collectors.toList());
+
+        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
+        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(), null, 0);
+        SecurityAnalysisResult result = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
+        assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
     }
 }
