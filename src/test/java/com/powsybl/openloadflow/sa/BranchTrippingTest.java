@@ -21,8 +21,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
@@ -97,7 +96,10 @@ class BranchTrippingTest {
         LfBranchTripping trippingTask = new LfBranchTripping("NHV1_NHV2_1");
         trippingTask.traverse(network, null, switchesToOpen, terminalsToDisconnect);
 
-        // TODO: check result
+        assertTrue(switchesToOpen.isEmpty());
+        assertEquals(2, terminalsToDisconnect.size());
+        assertTrue(terminalsToDisconnect.stream().anyMatch(t -> t.getBusBreakerView().getConnectableBus().getId().equals("NHV1")));
+        assertTrue(terminalsToDisconnect.stream().anyMatch(t -> t.getBusBreakerView().getConnectableBus().getId().equals("NHV2")));
     }
 
     @Test
