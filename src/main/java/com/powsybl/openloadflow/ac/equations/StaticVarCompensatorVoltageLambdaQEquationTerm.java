@@ -34,6 +34,8 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
 
     private double dfdph;
 
+    private final double sumQgeneratorsWithoutVoltageRegulator;
+
     public StaticVarCompensatorVoltageLambdaQEquationTerm(List<LfStaticVarCompensatorImpl> lfStaticVarCompensators, LfBus bus, VariableSet variableSet, EquationSystem equationSystem) {
         this.lfStaticVarCompensators = lfStaticVarCompensators;
         this.bus = bus;
@@ -41,6 +43,8 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         vVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_V);
         phiVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_PHI);
         variables = Arrays.asList(vVar, phiVar);
+
+        sumQgeneratorsWithoutVoltageRegulator = getSumQgeneratorsWithoutVoltageRegulator();
     }
 
     @Override
@@ -69,10 +73,10 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         double slope = lfStaticVarCompensator.getSlope();
         Equation reactiveEquation = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
 
-        double[] resultQbusMinusShunt = sumEvalAndDerOnBranchTermsFromEquationBUSQ(x, reactiveEquation);
-        double sumEvalQbusMinusShunt = resultQbusMinusShunt[0];
-        double sumDerQdVbusMinusShunt = resultQbusMinusShunt[1];
-        double sumDerQdPHbusMinusShunt = resultQbusMinusShunt[2];
+        double[] resultSumEvalAndDerOnBranchTermsFromEquationBUSQ = sumEvalAndDerOnBranchTermsFromEquationBUSQ(x, reactiveEquation);
+        double sumEvalQbusMinusShunt = resultSumEvalAndDerOnBranchTermsFromEquationBUSQ[0];
+        double sumDerQdVbusMinusShunt = resultSumEvalAndDerOnBranchTermsFromEquationBUSQ[1];
+        double sumDerQdPHbusMinusShunt = resultSumEvalAndDerOnBranchTermsFromEquationBUSQ[2];
 
 //        double[] resultQshunt = sumEvalAndDerOnShuntTerms(x, reactiveEquation);
 //        double sumEvalQshunt = resultQshunt[0];
@@ -80,7 +84,7 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
 
         // QbusMinusShunt = Qsvc - Qload + Qgenerator, d'où : Q(U, theta) = Qsvc =  QbusMinusShunt + Qload - Qgenerator
         // f(U, theta) = U + lambda * Q(U, theta)
-        targetV = x[vVar.getRow()] + slope * (sumEvalQbusMinusShunt + bus.getLoadTargetQ() - getSumQgeneratorsWithoutVoltageRegulator());
+        targetV = x[vVar.getRow()] + slope * (sumEvalQbusMinusShunt + bus.getLoadTargetQ() - sumQgeneratorsWithoutVoltageRegulator);
         // dfdU = 1 + lambda dQdU
         dfdv = 1 + slope * sumDerQdVbusMinusShunt;
         // dfdtheta = lambda * dQdtheta
@@ -100,14 +104,18 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         double sumDerQdPHbusMinusShunt = 0;
 
         for (EquationTerm equationTerm : reactiveEquation.getTerms()) {
+            // ShuntCompensatorReactiveFlowEquationTerm.update : q = -b * v * v;
             if (equationTerm.isActive() &&
                     (equationTerm instanceof ClosedBranchSide1ReactiveFlowEquationTerm
                             || equationTerm instanceof ClosedBranchSide2ReactiveFlowEquationTerm
+                            || equationTerm instanceof OpenBranchSide1ReactiveFlowEquationTerm
+                            || equationTerm instanceof OpenBranchSide2ReactiveFlowEquationTerm
                             || equationTerm instanceof ShuntCompensatorReactiveFlowEquationTerm)) {
                 equationTerm.update(x);
                 sumEvalQbusMinusShunt += equationTerm.eval();
                 sumDerQdVbusMinusShunt += equationTerm.der(vVar);
-                if (!(equationTerm instanceof ShuntCompensatorReactiveFlowEquationTerm)) {
+                if (equationTerm instanceof ClosedBranchSide1ReactiveFlowEquationTerm
+                    || equationTerm instanceof ClosedBranchSide2ReactiveFlowEquationTerm) {
                     sumDerQdPHbusMinusShunt += equationTerm.der(phiVar);
                 }
             }

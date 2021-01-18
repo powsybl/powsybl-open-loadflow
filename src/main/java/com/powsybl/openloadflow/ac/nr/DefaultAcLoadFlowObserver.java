@@ -8,12 +8,10 @@ package com.powsybl.openloadflow.ac.nr;
 
 import com.powsybl.iidm.network.Load;
 import com.powsybl.math.matrix.Matrix;
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.Variable;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfStaticVarCompensatorImpl;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,12 +105,23 @@ public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
     public void afterEquationVectorCreation(double[] fx, EquationSystem equationSystem, int iteration) {
         if (LOGGER.isTraceEnabled()) {
             LfNetwork lfNetwork = equationSystem.getNetwork();
-            NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> equationNavigableMapNavigableMap = equationSystem.getSortedEquationsToSolve();
+            Map<Pair<Integer, EquationType>, Equation> equations = equationSystem.getEquations();
+            Map<LfBranch, List<Equation>> equationsByBranch = new LinkedHashMap<>();
             Map<LfBus, List<Equation>> equationsByBus = new LinkedHashMap<>();
-            for (Equation equation : equationNavigableMapNavigableMap.keySet()) {
-                equationsByBus.computeIfAbsent(lfNetwork.getBus(equation.getNum()), bus -> new ArrayList<>()).add(equation);
+            for (Map.Entry<Pair<Integer, EquationType>, Equation> equationByNumAndType : equations.entrySet()) {
+                Pair<Integer, EquationType> numAndType = equationByNumAndType.getKey();
+                switch (numAndType.getValue().getSubjectType()) {
+                    case BUS:
+                        equationsByBus.computeIfAbsent(lfNetwork.getBus(numAndType.getKey()), busNum -> new ArrayList<>()).add(equationByNumAndType.getValue());
+                        break;
+                    case BRANCH:
+                        equationsByBranch.computeIfAbsent(lfNetwork.getBranch(numAndType.getKey()), branchNum -> new ArrayList<>()).add(equationByNumAndType.getValue());
+                        break;
+                    case SHUNT_COMPENSATOR:
+                        break;
+                }
             }
-            LOGGER.trace(">>> EquationSystem with {} equations", equationNavigableMapNavigableMap.size());
+            LOGGER.trace(">>> EquationSystem with {} branch equations and {} bus equations", equationsByBranch.size(), equationsByBus.size());
             for (LfBus lfBus : equationsByBus.keySet()) {
                 LOGGER.trace("  Equations on bus {} :", lfBus.getId());
                 for (Equation equation : equationsByBus.get(lfBus)) {
@@ -120,7 +129,38 @@ public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
                     for (EquationTerm equationTerm : equation.getTerms()) {
                         StringBuilder stringBuilder = new StringBuilder();
                         for (Variable variable : equationTerm.getVariables()) {
-                            stringBuilder.append((stringBuilder.length() != 0 ? ", " : "") + variable.getType() + " (active = " + variable.isActive() + "; bus = " + lfNetwork.getBus(variable.getNum()).getId() + ")");
+                            stringBuilder.append(stringBuilder.length() != 0 ? ", " : "");
+                            stringBuilder.append(variable.getType());
+                            stringBuilder.append(" (active = ");
+                            stringBuilder.append(variable.isActive());
+                            stringBuilder.append("; bus = ");
+                            stringBuilder.append(lfNetwork.getBus(variable.getNum()).getId());
+                            stringBuilder.append(")");
+                        }
+                        LOGGER.trace("     * term {} (active = {}; type = {}) having variables : {}",
+                                equationTerm.getClass().getSimpleName(), equationTerm.isActive(), equationTerm.getSubjectType(), stringBuilder.toString());
+                    }
+                }
+            }
+            for (LfBranch lfBranch : equationsByBranch.keySet()) {
+                LOGGER.trace("  Equations on branch {} :", lfBranch.getId());
+                for (Equation equation : equationsByBranch.get(lfBranch)) {
+                    LOGGER.trace("   - equation (type = {}) having terms :", equation.getType());
+                    for (EquationTerm equationTerm : equation.getTerms()) {
+                        StringBuilder stringBuilder = new StringBuilder();
+                        for (Variable variable : equationTerm.getVariables()) {
+                            stringBuilder.append(stringBuilder.length() != 0 ? ", " : "");
+                            stringBuilder.append(variable.getType());
+                            stringBuilder.append(" (active = ");
+                            stringBuilder.append(variable.isActive());
+                            if (variable.getType() == VariableType.BRANCH_ALPHA1 || variable.getType() == VariableType.BRANCH_RHO1) {
+                                stringBuilder.append("; branch = ");
+                                stringBuilder.append(lfNetwork.getBranch(variable.getNum()).getId());
+                            } else {
+                                stringBuilder.append("; bus = ");
+                                stringBuilder.append(lfNetwork.getBus(variable.getNum()).getId());
+                            }
+                            stringBuilder.append(")");
                         }
                         LOGGER.trace("     * term {} (active = {}; type = {}) having variables : {}",
                                 equationTerm.getClass().getSimpleName(), equationTerm.isActive(), equationTerm.getSubjectType(), stringBuilder.toString());
@@ -213,6 +253,14 @@ public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
     public void beforeLoadFlow(LfNetwork network) {
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace(">>> LfNetwork with {} buses", network.getBuses().size());
+//            for (LfBranch lfBranch : network.getBranches()) {
+//                PiModel piModel = lfBranch.getPiModel();
+//                double zb = lfBranch.getBus2().getNominalV() * lfBranch.getBus2().getNominalV() / PerUnit.SB;
+//                LOGGER.trace("  Branch {} with : bus1 = {}, bus2 = {}, R = {}, X = {}, G1 = {}, G2 = {}, B1 = {}, B2 = {}",
+//                        lfBranch.getId(), lfBranch.getBus1() != null ? lfBranch.getBus1().getId() : "NaN",
+//                        lfBranch.getBus2() != null ? lfBranch.getBus2().getId() : "NaN",
+//                        piModel.getR() * zb, piModel.getX() * zb, piModel.getG1() / zb, piModel.getG2() / zb, piModel.getB1() / zb, piModel.getB2() / zb);
+//            }
             for (LfBus lfBus : network.getBuses()) {
                 LOGGER.trace("  Bus {} from VoltageLevel {} with NominalVoltage = {} ", lfBus.getId(), lfBus.getVoltageLevelId(), lfBus.getNominalV());
                 for (LfGenerator lfGenerator : lfBus.getGenerators()) {

@@ -29,6 +29,10 @@ public class LoadFlowRunResults<N extends Enum<N>, P extends Enum<P>> {
         return networkResultByRunningParametersAndNetworkDescription.get(networkDescription).get(runningParameters);
     }
 
+    public Map<N, Map<P, Network>> getNetworkResultByRunningParametersAndNetworkDescription() {
+        return networkResultByRunningParametersAndNetworkDescription;
+    }
+
     public void displayAll() {
         for (N n : networkResultByRunningParametersAndNetworkDescription.keySet()) {
             Map<P, Network> networkResultByRunningParameters = networkResultByRunningParametersAndNetworkDescription.get(n);

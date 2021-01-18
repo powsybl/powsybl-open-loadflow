@@ -225,6 +225,10 @@ public class EquationSystem {
         return equationsBySubject.getOrDefault(subject, Collections.emptyList());
     }
 
+    public Map<Pair<Integer, EquationType>, Equation> getEquations() {
+        return equations;
+    }
+
     public SortedSet<Variable> getSortedVariablesToFind() {
         return equationCache.getSortedVariablesToFind();
     }
