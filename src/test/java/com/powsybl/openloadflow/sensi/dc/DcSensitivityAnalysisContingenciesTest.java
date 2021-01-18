@@ -20,13 +20,13 @@ import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
+import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
+import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -628,5 +628,40 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(Double.NaN, getContingencyValue(contingencyValues, "g9", "l78"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, getContingencyValue(contingencyValues, "g9", "l79"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, getContingencyValue(contingencyValues, "g9", "l89"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testRemainingGlskFactors() {
+        Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", false);
+        ContingenciesProvider contingenciesProvider = n -> {
+            List<Contingency> contingencies = new ArrayList<>();
+            contingencies.add(new Contingency("l34", new BranchContingency("l34")));
+            return contingencies;
+        };
+
+        Map<String, Float> glskMap = new HashMap<>();
+        glskMap.put("g2", 25f);
+        glskMap.put("g6", 40f);
+        glskMap.put("d3", 35f);
+        LinearGlsk linearGlsk = new LinearGlsk("glsk", "glsk", glskMap);
+        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream().map(branch -> new BranchFlowPerLinearGlsk(
+            createBranchFlow(branch),
+            linearGlsk
+        )).collect(Collectors.toList());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingenciesProvider,
+                sensiParameters, LocalComputationManager.getDefault())
+                                                        .join();
+
+        assertEquals(1, result.getSensitivityValuesContingencies().size());
+        assertEquals(7, result.getSensitivityValuesContingencies().get("l34").size());
+        assertEquals(-17d / 36d, getContingencyValue(result, "l34", "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 18d, getContingencyValue(result, "l34", "glsk", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-19d / 36d, getContingencyValue(result, "l34", "glsk", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(result, "l34", "glsk", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, getContingencyValue(result, "l34", "glsk", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, getContingencyValue(result, "l34", "glsk", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, getContingencyValue(result, "l34", "glsk", "l56"), LoadFlowAssert.DELTA_POWER);
     }
 }

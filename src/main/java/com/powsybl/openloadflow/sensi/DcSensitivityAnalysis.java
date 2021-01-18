@@ -96,8 +96,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 functionLfBranch = lfNetwork.getBranchById(((BranchFlowPerInjectionIncrease) factor).getFunction().getBranchId());
             } else if (factor instanceof BranchFlowPerPSTAngle) {
                 functionLfBranch = lfNetwork.getBranchById(((BranchFlowPerPSTAngle) factor).getFunction().getBranchId());
+            } else if (factor instanceof BranchFlowPerLinearGlsk) {
+                functionLfBranch = lfNetwork.getBranchById(((BranchFlowPerLinearGlsk) factor).getFunction().getBranchId());
             } else {
-                throw new UnsupportedOperationException("Only factors of type BranchFlowPerInjectionIncrease and BranchFlowPerPSTAngle are supported");
+                throw new UnsupportedOperationException("Only factors of type BranchFlow are supported");
             }
             functionLfBranchId = functionLfBranch.getId();
             equationTerm = equationSystem.getEquationTerm(SubjectType.BRANCH, functionLfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
@@ -233,6 +235,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         @Override
         public boolean isConnectedToSlack(Integer slackBusComponent, GraphDecrementalConnectivity<LfBus> connectivity) {
+            if (connectivity.getComponentNumber(getFunctionLfBranch().getBus1()) != slackBusComponent
+                || connectivity.getComponentNumber(getFunctionLfBranch().getBus2()) != slackBusComponent) {
+                return false;
+            }
             for (LfBus lfBus : injectionBuses.keySet()) {
                 if (connectivity.getComponentNumber(lfBus) == slackBusComponent) {
                     return true;
@@ -344,7 +350,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         @Override
         public void setInjectionByBus(final Map<String, Double> participationToSlackByBus) {
-            Double glskWeightSum = glskMapInMainComponent.values().stream().mapToDouble(x -> x).sum();
+            Double glskWeightSum = glskMapInMainComponent.values().stream().mapToDouble(Math::abs).sum();
             glskMapInMainComponent.forEach((busId, weight) -> participationToSlackByBus.merge(busId, weight / glskWeightSum, Double::sum));
             injectionByBus = participationToSlackByBus;
         }
@@ -573,6 +579,21 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     throw new PowsyblException("Branch '" + factor.getFunction().getId() + "' not found");
                 }
                 monitoredBranch = lfNetwork.getBranchById(pstAngleFactor.getFunction().getBranchId());
+            } else if (factor instanceof BranchFlowPerLinearGlsk) {
+                BranchFlowPerLinearGlsk glskFactor = (BranchFlowPerLinearGlsk) factor;
+                if (glskFactor.getVariable().getGLSKs().isEmpty()) {
+                    throw new PowsyblException("The glsk '" + factor.getVariable().getId() + "' cannot be empty");
+                }
+                for (Map.Entry<String, Float> injectionEntry : glskFactor.getVariable().getGLSKs().entrySet()) {
+                    Injection<?> injection = getInjection(network, injectionEntry.getKey());
+                    if (injection == null) {
+                        throw new PowsyblException("Injection " + injectionEntry.getKey() + " not found in the network");
+                    }
+                }
+                if (lfNetwork.getBranchById(factor.getFunction().getId()) == null) {
+                    throw new PowsyblException("Branch '" + factor.getFunction().getId() + "' not found");
+                }
+                monitoredBranch = lfNetwork.getBranchById(glskFactor.getFunction().getBranchId());
             } else {
                 throw new PowsyblException("Only sensitivity factors of type BranchFlowPerInjectionIncrease and BranchFlowPerPSTAngle are yet supported");
             }
@@ -817,6 +838,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         // index factors by variable group to compute a minimal number of states
         List<SensitivityFactorGroup> factorGroups = createFactorGroups(network, lfFactors);
+        boolean hasGlsk = factorGroups.stream().anyMatch(group -> group instanceof LinearGlskGroup);
 
         if (factorGroups.isEmpty()) {
             return Pair.of(Collections.emptyList(), Collections.emptyMap());
@@ -901,6 +923,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     }
                 }
 
+                computeRemainingGlsk(factorGroups, connectivity.getConnectivity(), slackBusComponent);
+
                 // recompute the participation of each factor
                 if (lfParameters.isDistributedSlack()) {
                     Map<Integer, List<ParticipatingElement>> participatingElementsPerCc = new HashMap<>();
@@ -919,8 +943,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     // buses that contain elements participating to slack distribution and that are in the main connected component
                     Function<String, Map<String, Double>> getParticipationPerBus = busId ->
                             participationPerCc.get(connectivity.getConnectivity().getComponentNumber(lfNetwork.getBusById(busId)));
-                    computeRemainingGlsk(factorGroups, connectivity.getConnectivity(), slackBusComponent);
                     computeInjectionFactors(getParticipationPerBus, factorGroups);
+                    factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
+                    fillRhsSensitivityVariable(lfNetwork, equationSystem, factorGroups, factorsStates);
+                    jlu.solveTransposed(factorsStates);
+                } else if (hasGlsk) {
+                    computeInjectionFactors(Collections.singletonMap(lfNetwork.getSlackBus().getId(), -1d), factorGroups);
                     factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
                     fillRhsSensitivityVariable(lfNetwork, equationSystem, factorGroups, factorsStates);
                     jlu.solveTransposed(factorsStates);
