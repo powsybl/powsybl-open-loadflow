@@ -125,4 +125,12 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(lfStarBus instanceof LfStarBus);
         assertEquals(voltageLevelLeg1.getId(), lfStarBus.getVoltageLevelId());
     }
+
+    @Test
+    void networkWithLoadTest() {
+        network = ThreeWindingsTransformerNetworkFactory.create();
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<Load> loads = lfNetworks.get(0).getBusById("VL_11_0").getLoads();
+        assertEquals(1, loads.size());
+    }
 }
