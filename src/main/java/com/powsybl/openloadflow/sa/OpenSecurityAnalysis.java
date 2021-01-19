@@ -351,6 +351,26 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                     deactivatedEquationTerms.add(equationTerm);
                 }
             }
+
+            // deactivate equation of voltage discrete controlled bus
+            if (branch.isVoltageController()) {
+                LfBus controlledBus = branch.getDiscreteVoltageControl().getControlled();
+                Optional<Equation> equation = equationSystem.getEquation(controlledBus.getNum(), EquationType.BUS_V);
+                if (equation.isPresent()) {
+                    equation.get().setActive(false);
+                    deactivatedEquations.add(equation.get());
+                }
+            }
+
+            // deactivate equation of phase discrete controlled branch
+            if (branch.isPhaseController()) {
+                LfBranch controlledBranch = branch.getDiscretePhaseControl().getControlled();
+                Optional<Equation> equation = equationSystem.getEquation(controlledBranch.getNum(), EquationType.BUS_PHI);
+                if (equation.isPresent()) {
+                    equation.get().setActive(false);
+                    deactivatedEquations.add(equation.get());
+                }
+            }
         }
 
         for (LfBus bus : lfContingency.getBuses()) {
@@ -369,6 +389,16 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                 if (equationTerm.isActive()) {
                     equationTerm.setActive(false);
                     deactivatedEquationTerms.add(equationTerm);
+                }
+            }
+
+            // deactivate equation of voltage controlled bus
+            Optional<LfBus> controlledBus = bus.getControlledBus();
+            if (bus.hasVoltageControl() && controlledBus.isPresent()) {
+                Optional<Equation> equation = equationSystem.getEquation(controlledBus.get().getNum(), EquationType.BUS_V);
+                if (equation.isPresent()) {
+                    equation.get().setActive(false);
+                    deactivatedEquations.add(equation.get());
                 }
             }
         }
