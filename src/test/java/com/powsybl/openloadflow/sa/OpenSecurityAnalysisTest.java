@@ -21,6 +21,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
@@ -441,15 +442,14 @@ class OpenSecurityAnalysisTest {
         // Testing all contingencies at once
         ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
                 .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
-                .limit(5)
                 .collect(Collectors.toList());
 
-        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
+        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new SparseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
         OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, new DefaultLimitViolationDetector(),
                 new LimitViolationFilter(), null, 0);
         SecurityAnalysisResult result = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
         assertEquals(2, result.getPreContingencyResult().getLimitViolations().size());
-        assertEquals(5, result.getPostContingencyResults().size());
+        assertEquals(183, result.getPostContingencyResults().size());
     }
 
 }
