@@ -9,9 +9,13 @@ package com.powsybl.openloadflow.network.impl;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
 import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jgrapht.Graph;
+import org.jgrapht.alg.connectivity.ConnectivityInspector;
+import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -238,6 +242,42 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 createVoltageControl(lfNetwork, rtc, t3wt.getId(), "_leg_" + legNumber);
                 legNumber++;
             }
+        }
+
+        List<Set<LfBus>> connectedSets = getNonImpedantConnectedSets(lfNetwork);
+        connectedSets.stream()
+            .filter(set -> set.size() > 2) // Two LfBuses with one voltage control is never a problem
+            .forEach(set -> set.forEach(b -> removeConflictuousDiscreteVoltageControlled(b, set)));
+    }
+
+    private static List<Set<LfBus>> getNonImpedantConnectedSets(LfNetwork network) {
+        List<LfBranch> nonImpedantBranches = network.getBranches().stream()
+            .filter(LfNetworkLoaderImpl::isNonImpedantBranch)
+            .filter(b -> b.getBus1() != null && b.getBus2() != null)
+            .collect(Collectors.toList());
+
+        Graph<LfBus, LfBranch> nonImpedantSubGraph = new Pseudograph<>(LfBranch.class);
+        for (LfBranch branch : nonImpedantBranches) {
+            nonImpedantSubGraph.addVertex(branch.getBus1());
+            nonImpedantSubGraph.addVertex(branch.getBus2());
+            nonImpedantSubGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
+        }
+
+        return new ConnectivityInspector<>(nonImpedantSubGraph).connectedSets();
+    }
+
+    private static boolean isNonImpedantBranch(LfBranch branch) {
+        PiModel piModel = branch.getPiModel();
+        return piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
+    }
+
+    private static void removeConflictuousDiscreteVoltageControlled(LfBus lfBus, Set<LfBus> nonImpedantSet) {
+        if (lfBus.isDiscreteVoltageControlled()) {
+            DiscreteVoltageControl dvc = lfBus.getDiscreteVoltageControl();
+            dvc.getControllers().stream()
+                .filter(c -> nonImpedantSet.contains(c.getBus1()) || nonImpedantSet.contains(c.getBus2()))
+                .skip(1) // we keep only one controller in the non impedant connected set for each controlled lfBus
+                .forEach(dvc::removeController);
         }
     }
 
