@@ -300,19 +300,21 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 return;
             }
             LfBus controlledBus = getLfBus(regulationTerminal, lfNetwork, breakers);
-            if ((controlledBus.getControllerBuses().isEmpty() && controlledBus.hasVoltageControl()) || !controlledBus.getControllerBuses().isEmpty()) {
-                LOGGER.warn("Controlled bus {} has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
-            } else if (controlledBus.isDiscreteVoltageControlled()) {
-                LOGGER.trace("Controlled bus {} already has a transformer voltage control: a shared control is created", controlledBus.getId());
-                controlledBus.getDiscreteVoltageControl().addController(controllerBranch);
-                controllerBranch.setDiscreteVoltageControl(controlledBus.getDiscreteVoltageControl());
-            } else {
-                double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
-                DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
+            if (controlledBus != null) {
+                if ((controlledBus.getControllerBuses().isEmpty() && controlledBus.hasVoltageControl()) || !controlledBus.getControllerBuses().isEmpty()) {
+                    LOGGER.warn("Controlled bus {} has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
+                } else if (controlledBus.isDiscreteVoltageControlled()) {
+                    LOGGER.trace("Controlled bus {} already has a transformer voltage control: a shared control is created", controlledBus.getId());
+                    controlledBus.getDiscreteVoltageControl().addController(controllerBranch);
+                    controllerBranch.setDiscreteVoltageControl(controlledBus.getDiscreteVoltageControl());
+                } else {
+                    double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
+                    DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
                         DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
-                voltageControl.addController(controllerBranch);
-                controllerBranch.setDiscreteVoltageControl(voltageControl);
-                controlledBus.setDiscreteVoltageControl(voltageControl);
+                    voltageControl.addController(controllerBranch);
+                    controllerBranch.setDiscreteVoltageControl(voltageControl);
+                    controlledBus.setDiscreteVoltageControl(voltageControl);
+                }
             }
         }
     }
