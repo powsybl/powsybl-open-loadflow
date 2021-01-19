@@ -273,11 +273,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static void removeConflictuousDiscreteVoltageControlled(LfBus lfBus, Set<LfBus> nonImpedantSet) {
         if (lfBus.isDiscreteVoltageControlled()) {
+            // Find controllers which are in the given non-impedant connected set and which are controlling the same bus
             DiscreteVoltageControl dvc = lfBus.getDiscreteVoltageControl();
-            dvc.getControllers().stream()
+            List<LfBranch> sharedControllersInNonImpedentSet = dvc.getControllers().stream()
                 .filter(c -> nonImpedantSet.contains(c.getBus1()) || nonImpedantSet.contains(c.getBus2()))
-                .skip(1) // we keep only one controller in the non impedant connected set for each controlled lfBus
-                .forEach(dvc::removeController);
+                .collect(Collectors.toList());
+
+            // We keep only one controller in the non impedant connected set for each controlled lfBus
+            sharedControllersInNonImpedentSet.stream().skip(1).forEach(dvc::removeController);
         }
     }
 
