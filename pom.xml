@@ -237,6 +237,12 @@
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-triple-store-impl-rdf4j</artifactId>
+            <version>${powsyblcore.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
             <artifactId>powsybl-cgmes-model</artifactId>
             <version>${powsyblcore.version}</version>
             <type>test-jar</type>
@@ -248,16 +254,6 @@
             <version>${powsyblcore.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.powsybl</groupId>
-            <artifactId>powsybl-cgmes-conversion</artifactId>
-            <version>${powsyblcore.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.powsybl</groupId>
-            <artifactId>powsybl-triple-store-impl-rdf4j</artifactId>
-            <version>${powsyblcore.version}</version>
         </dependency>
     </dependencies>
 
