@@ -212,7 +212,8 @@ public class LfLegBranch extends AbstractLfBranch {
             RatioTapChanger rtc = leg.getRatioTapChanger();
             double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
             double rho = getPiModel().getR1() * leg.getRatedU() / twt.getRatedU0() * baseRatio;
-            updateTapPosition(rtc, rho);
+            double ptcRho = leg.getPhaseTapChanger() != null ? leg.getPhaseTapChanger().getCurrentStep().getRho() : 1;
+            updateTapPosition(rtc, ptcRho, rho);
             checkTargetDeadband(rtc);
         }
     }
