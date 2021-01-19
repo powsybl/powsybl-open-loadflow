@@ -309,7 +309,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         List<Equation> deactivatedEquations = new ArrayList<>();
         List<EquationTerm> deactivatedEquationTerms = new ArrayList<>();
 
-        deactivateEquations(lfContingency, engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
+        deactivateEquations(lfContingency, engine.getEquationSystem(), engine.getVariableSet(), deactivatedEquations, deactivatedEquationTerms);
 
         // restart LF on post contingency equation system
         engine.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
@@ -332,9 +332,25 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         return new PostContingencyResult(lfContingency.getContingency(), postContingencyComputationOk, postContingencyLimitViolations);
     }
 
-    private void deactivateEquations(LfContingency lfContingency, EquationSystem equationSystem, List<Equation> deactivatedEquations, List<EquationTerm> deactivatedEquationTerms) {
+    private void deactivateEquations(LfContingency lfContingency, EquationSystem equationSystem, VariableSet variableSet,
+                                     List<Equation> deactivatedEquations, List<EquationTerm> deactivatedEquationTerms) {
         for (LfBranch branch : lfContingency.getBranches()) {
             LOGGER.trace("Remove equations and equations terms related to branch '{}'", branch.getId());
+
+            // deactivate equation of voltage discrete controlled bus
+            if (branch.isVoltageController()) {
+                DiscreteVoltageControl dvc = branch.getDiscreteVoltageControl();
+                boolean sharedControl = dvc.getControllers().size() > 1;
+                if (sharedControl) {
+                    removeSharedVoltageControlEquation(branch, equationSystem, variableSet, deactivatedEquations);
+                    dvc.removeController(branch);
+                } else {
+                    LfBus controlledBus = dvc.getControlled();
+                    removeVoltageControlledEquation(controlledBus, equationSystem, deactivatedEquations);
+                    controlledBus.setDiscreteVoltageControl(null);
+                }
+                branch.setDiscreteVoltageControl(null);
+            }
 
             // deactivate all equations related to a branch
             for (Equation equation : equationSystem.getEquations(SubjectType.BRANCH, branch.getNum())) {
@@ -349,16 +365,6 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                 if (equationTerm.isActive()) {
                     equationTerm.setActive(false);
                     deactivatedEquationTerms.add(equationTerm);
-                }
-            }
-
-            // deactivate equation of voltage discrete controlled bus
-            if (branch.isVoltageController()) {
-                LfBus controlledBus = branch.getDiscreteVoltageControl().getControlled();
-                Optional<Equation> equation = equationSystem.getEquation(controlledBus.getNum(), EquationType.BUS_V);
-                if (equation.isPresent()) {
-                    equation.get().setActive(false);
-                    deactivatedEquations.add(equation.get());
                 }
             }
 
@@ -401,6 +407,39 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                     deactivatedEquations.add(equation.get());
                 }
             }
+        }
+    }
+
+    private void removeSharedVoltageControlEquation(LfBranch branch, EquationSystem equationSystem, VariableSet variableSet,
+                                                    List<Equation> deactivatedEquations) {
+        Optional<Equation> sharedEquation = equationSystem.getEquation(branch.getNum(), EquationType.ZERO_RHO1);
+        // If present, nothing is done here as the shared control equation of the branch is removed later (with all other equations related to the branch)
+        if (!sharedEquation.isPresent() || !sharedEquation.get().isActive()) {
+            // The given branch is the first branch of the shared controllers
+            // The term related to that branch is in the shared equations of other controllers, and will be removed as such later
+
+            // Remove the shared voltage control equation on new first controller
+            DiscreteVoltageControl dvc = branch.getDiscreteVoltageControl();
+            LfBranch newFirstController = dvc.getControllers().get(0);
+            equationSystem.getEquation(branch.getNum(), EquationType.ZERO_RHO1).ifPresent(e -> {
+                e.setActive(false);
+                deactivatedEquations.add(e);
+            });
+
+            // Add the new equation term and update the distribution data on other controller branches
+            dvc.getControllers().stream().skip(1).forEach(controllerBranch ->
+                equationSystem.createEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1)
+                    .addTerm(EquationTerm.multiply(new BranchRho1EquationTerm(newFirstController, variableSet), -1))
+                    .setData(new DistributionData(newFirstController.getNum(), 1)) // for later use
+            );
+        }
+    }
+
+    private void removeVoltageControlledEquation(LfBus controlledBus, EquationSystem equationSystem, List<Equation> deactivatedEquations) {
+        Optional<Equation> equation = equationSystem.getEquation(controlledBus.getNum(), EquationType.BUS_V);
+        if (equation.isPresent()) {
+            equation.get().setActive(false);
+            deactivatedEquations.add(equation.get());
         }
     }
 
