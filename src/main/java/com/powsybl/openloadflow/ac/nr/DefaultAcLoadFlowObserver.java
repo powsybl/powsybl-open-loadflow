@@ -101,6 +101,31 @@ public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
         // empty
     }
 
+    private void logEquations(Equation equation, LfNetwork lfNetwork) {
+        LOGGER.trace("     - equation {} with colJacobian = {} having {} terms :",
+                equation.getType(), equation.getColumn(), equation.getTerms().size());
+        for (EquationTerm equationTerm : equation.getTerms()) {
+            StringBuilder stringBuilder = new StringBuilder();
+            for (Variable variable : equationTerm.getVariables()) {
+                stringBuilder.append(stringBuilder.length() != 0 ? ", " : "");
+                stringBuilder.append(variable.getType());
+                stringBuilder.append(variable.isActive() ? " active" : " inactive");
+                if (variable.getType() == VariableType.BRANCH_ALPHA1 || variable.getType() == VariableType.BRANCH_RHO1) {
+                    stringBuilder.append(" on branch ");
+                    stringBuilder.append(lfNetwork.getBranch(variable.getNum()).getId());
+                } else {
+                    stringBuilder.append(" on bus ");
+                    stringBuilder.append(lfNetwork.getBus(variable.getNum()).getId());
+                }
+                stringBuilder.append(" with rowJacobian = ");
+                stringBuilder.append(variable.getRow());
+            }
+            LOGGER.trace("       * term {} {} on {} having {} variables : {}",
+                    equationTerm.getClass().getSimpleName(), equationTerm.isActive() ? "active" : "inactive",
+                    equationTerm.getSubjectType(), equationTerm.getVariables().size(), stringBuilder.toString());
+        }
+    }
+
     @Override
     public void afterEquationVectorCreation(double[] fx, EquationSystem equationSystem, int iteration) {
         if (LOGGER.isTraceEnabled()) {
@@ -121,49 +146,45 @@ public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
                         break;
                 }
             }
+            Comparator<Equation> equationComparator = Comparator.comparing(equation -> equation.getType().name());
             LOGGER.trace(">>> EquationSystem with {} branch equations and {} bus equations", equationsByBranch.size(), equationsByBus.size());
-            for (LfBus lfBus : equationsByBus.keySet()) {
+            for (LfBus lfBus : lfNetwork.getBuses()) {
                 LOGGER.trace("  Equations on bus {} :", lfBus.getId());
-                for (Equation equation : equationsByBus.get(lfBus)) {
-                    LOGGER.trace("   - equation (type = {}) having terms :", equation.getType());
-                    for (EquationTerm equationTerm : equation.getTerms()) {
-                        StringBuilder stringBuilder = new StringBuilder();
-                        for (Variable variable : equationTerm.getVariables()) {
-                            stringBuilder.append(stringBuilder.length() != 0 ? ", " : "");
-                            stringBuilder.append(variable.getType());
-                            stringBuilder.append(" (active = ");
-                            stringBuilder.append(variable.isActive());
-                            stringBuilder.append("; bus = ");
-                            stringBuilder.append(lfNetwork.getBus(variable.getNum()).getId());
-                            stringBuilder.append(")");
+                if (!equationsByBus.containsKey(lfBus)) {
+                    LOGGER.trace("    N/A");
+                } else {
+                    equationsByBus.get(lfBus).sort(equationComparator);
+                    LOGGER.trace("    ACTIVE");
+                    for (Equation equation : equationsByBus.get(lfBus)) {
+                        if (equation.isActive()) {
+                            logEquations(equation, lfNetwork);
                         }
-                        LOGGER.trace("     * term {} (active = {}; type = {}) having variables : {}",
-                                equationTerm.getClass().getSimpleName(), equationTerm.isActive(), equationTerm.getSubjectType(), stringBuilder.toString());
+                    }
+                    LOGGER.trace("    INACTIVE");
+                    for (Equation equation : equationsByBus.get(lfBus)) {
+                        if (!equation.isActive()) {
+                            logEquations(equation, lfNetwork);
+                        }
                     }
                 }
             }
-            for (LfBranch lfBranch : equationsByBranch.keySet()) {
+            for (LfBranch lfBranch : lfNetwork.getBranches()) {
                 LOGGER.trace("  Equations on branch {} :", lfBranch.getId());
-                for (Equation equation : equationsByBranch.get(lfBranch)) {
-                    LOGGER.trace("   - equation (type = {}) having terms :", equation.getType());
-                    for (EquationTerm equationTerm : equation.getTerms()) {
-                        StringBuilder stringBuilder = new StringBuilder();
-                        for (Variable variable : equationTerm.getVariables()) {
-                            stringBuilder.append(stringBuilder.length() != 0 ? ", " : "");
-                            stringBuilder.append(variable.getType());
-                            stringBuilder.append(" (active = ");
-                            stringBuilder.append(variable.isActive());
-                            if (variable.getType() == VariableType.BRANCH_ALPHA1 || variable.getType() == VariableType.BRANCH_RHO1) {
-                                stringBuilder.append("; branch = ");
-                                stringBuilder.append(lfNetwork.getBranch(variable.getNum()).getId());
-                            } else {
-                                stringBuilder.append("; bus = ");
-                                stringBuilder.append(lfNetwork.getBus(variable.getNum()).getId());
-                            }
-                            stringBuilder.append(")");
+                if (!equationsByBranch.containsKey(lfBranch)) {
+                    LOGGER.trace("    N/A");
+                } else {
+                    equationsByBranch.get(lfBranch).sort(equationComparator);
+                    LOGGER.trace("    ACTIVE");
+                    for (Equation equation : equationsByBranch.get(lfBranch)) {
+                        if (equation.isActive()) {
+                            logEquations(equation, lfNetwork);
                         }
-                        LOGGER.trace("     * term {} (active = {}; type = {}) having variables : {}",
-                                equationTerm.getClass().getSimpleName(), equationTerm.isActive(), equationTerm.getSubjectType(), stringBuilder.toString());
+                    }
+                    LOGGER.trace("    INACTIVE");
+                    for (Equation equation : equationsByBranch.get(lfBranch)) {
+                        if (!equation.isActive()) {
+                            logEquations(equation, lfNetwork);
+                        }
                     }
                 }
             }

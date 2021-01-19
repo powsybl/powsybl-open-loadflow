@@ -89,7 +89,7 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         dfdv = 1 + slope * sumDerQdVbusMinusShunt;
         // dfdtheta = lambda * dQdtheta
         dfdph = slope * sumDerQdPHbusMinusShunt;
-        LOGGER.debug("x = {} ; evalQbus = {} ; targetV = {} ; evalQbus - bus.getLoadTargetQ() = {}",
+        LOGGER.trace("x = {} ; evalQbus = {} ; targetV = {} ; evalQbus - bus.getLoadTargetQ() = {}",
                 x[vVar.getRow()] * bus.getNominalV(), sumEvalQbusMinusShunt * PerUnit.SB, targetV * bus.getNominalV(), (sumEvalQbusMinusShunt - bus.getLoadTargetQ()) * PerUnit.SB);
     }
 
@@ -139,7 +139,7 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         double sumQgenerators = 0;
         for (LfGenerator lfGenerator : bus.getGenerators()) {
             if (!lfGenerator.hasVoltageControl()) {
-                LOGGER.debug("lfGenerator.getTargetQ() = {} ; lfGenerator.getCalculatedQ() = {}", lfGenerator.getTargetQ(), lfGenerator.getCalculatedQ());
+                LOGGER.trace("lfGenerator.getTargetQ() = {} ; lfGenerator.getCalculatedQ() = {}", lfGenerator.getTargetQ(), lfGenerator.getCalculatedQ());
                 sumQgenerators += lfGenerator.getTargetQ();
             }
         }

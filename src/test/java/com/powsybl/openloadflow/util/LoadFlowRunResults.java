@@ -26,7 +26,11 @@ public class LoadFlowRunResults<N extends Enum<N>, P extends Enum<P>> {
     }
 
     public Network getLoadFlowReport(N networkDescription, P runningParameters) {
-        return networkResultByRunningParametersAndNetworkDescription.get(networkDescription).get(runningParameters);
+        if (networkResultByRunningParametersAndNetworkDescription.containsKey(networkDescription)) {
+            return networkResultByRunningParametersAndNetworkDescription.get(networkDescription).get(runningParameters);
+        } else {
+            return null;
+        }
     }
 
     public Map<N, Map<P, Network>> getNetworkResultByRunningParametersAndNetworkDescription() {
@@ -37,7 +41,7 @@ public class LoadFlowRunResults<N extends Enum<N>, P extends Enum<P>> {
         for (N n : networkResultByRunningParametersAndNetworkDescription.keySet()) {
             Map<P, Network> networkResultByRunningParameters = networkResultByRunningParametersAndNetworkDescription.get(n);
             for (P p : networkResultByRunningParameters.keySet()) {
-                LOGGER.debug(">>> Load flow result on network {} with parameters {}", n, p);
+                LOGGER.trace(">>> Load flow result on network {} with parameters {}", n, p);
                 Network network = getLoadFlowReport(n, p);
                 for (Branch branch : network.getBranches()) {
                     logBranch(branch);
@@ -63,13 +67,13 @@ public class LoadFlowRunResults<N extends Enum<N>, P extends Enum<P>> {
 
     private void logBus(Bus bus) {
         if (bus != null) {
-            LOGGER.debug("  bus {} : V = {}, Angle = {}", bus.getId(), bus.getV(), bus.getAngle());
+            LOGGER.trace("  bus {} : V = {}, Angle = {}", bus.getId(), bus.getV(), bus.getAngle());
         }
     }
 
     private void logBranch(Branch branch) {
         if (branch != null) {
-            LOGGER.debug("  branch {} : terminal1 = (P = {}, Q = {}), terminal2 = (P = {}, Q = {})",
+            LOGGER.trace("  branch {} : terminal1 = (P = {}, Q = {}), terminal2 = (P = {}, Q = {})",
                     branch.getId(), branch.getTerminal1().getP(), branch.getTerminal1().getQ(),
                     branch.getTerminal2().getP(), branch.getTerminal2().getQ());
         }
@@ -77,25 +81,25 @@ public class LoadFlowRunResults<N extends Enum<N>, P extends Enum<P>> {
 
     private void logGenerator(Generator generator) {
         if (generator != null) {
-            LOGGER.debug("    generator {} : P = {}, Q = {}", generator.getId(), -generator.getTerminal().getP(), -generator.getTerminal().getQ());
+            LOGGER.trace("    generator {} : P = {}, Q = {}", generator.getId(), -generator.getTerminal().getP(), -generator.getTerminal().getQ());
         }
     }
 
     private void logLoad(Load load) {
         if (load != null) {
-            LOGGER.debug("    load {} : P = {}, Q = {}", load.getId(), load.getTerminal().getP(), load.getTerminal().getQ());
+            LOGGER.trace("    load {} : P = {}, Q = {}", load.getId(), load.getTerminal().getP(), load.getTerminal().getQ());
         }
     }
 
     private void logStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
         if (staticVarCompensator != null) {
-            LOGGER.debug("    staticVarCompensator {} : Q = {}", staticVarCompensator.getId(), -staticVarCompensator.getTerminal().getQ());
+            LOGGER.trace("    staticVarCompensator {} : Q = {}", staticVarCompensator.getId(), -staticVarCompensator.getTerminal().getQ());
         }
     }
 
     private void logShuntCompensator(ShuntCompensator shuntCompensator) {
         if (shuntCompensator != null) {
-            LOGGER.debug("    shuntCompensator {} : Q = {}", shuntCompensator.getId(), -shuntCompensator.getTerminal().getQ());
+            LOGGER.trace("    shuntCompensator {} : Q = {}", shuntCompensator.getId(), -shuntCompensator.getTerminal().getQ());
         }
     }
 
@@ -128,6 +132,18 @@ public class LoadFlowRunResults<N extends Enum<N>, P extends Enum<P>> {
         }
     }
 
+    private boolean isClosedLine(Line line) {
+        Terminal terminalONE = line.getTerminal(Branch.Side.ONE);
+        if (Double.isNaN(terminalONE.getQ())) {
+            return false;
+        }
+        Terminal terminalTWO = line.getTerminal(Branch.Side.TWO);
+        if (Double.isNaN(terminalTWO.getQ())) {
+            return false;
+        }
+        return true;
+    }
+
     public void shouldHaveValidSumOfQinLines() {
         for (N n : networkResultByRunningParametersAndNetworkDescription.keySet()) {
             Map<P, Network> networkResultByRunningParameters = networkResultByRunningParametersAndNetworkDescription.get(n);
@@ -135,23 +151,25 @@ public class LoadFlowRunResults<N extends Enum<N>, P extends Enum<P>> {
                 Network network = getLoadFlowReport(n, p);
                 for (Bus bus : network.getBusView().getBuses()) {
                     for (Line line : bus.getLines()) {
-                        Terminal terminal = line.getTerminal(bus.getId().substring(0, bus.getId().indexOf("_")));
-                        double lineTerminalQ = terminal.getQ();
-                        double sumItemBusQ = 0;
-                        for (Generator generator : bus.getGenerators()) {
-                            sumItemBusQ -= generator.getTerminal().getQ();
+                        if (isClosedLine(line)) {
+                            Terminal terminal = line.getTerminal(bus.getId().substring(0, bus.getId().indexOf("_")));
+                            double lineTerminalQ = terminal.getQ();
+                            double sumItemBusQ = 0;
+                            for (Generator generator : bus.getGenerators()) {
+                                sumItemBusQ -= generator.getTerminal().getQ();
+                            }
+                            for (Load load : bus.getLoads()) {
+                                sumItemBusQ -= load.getTerminal().getQ();
+                            }
+                            for (StaticVarCompensator staticVarCompensator : bus.getStaticVarCompensators()) {
+                                sumItemBusQ -= staticVarCompensator.getTerminal().getQ();
+                            }
+                            for (ShuntCompensator shuntCompensator : bus.getShuntCompensators()) {
+                                sumItemBusQ -= shuntCompensator.getTerminal().getQ();
+                            }
+                            assertThat("sum Q of bus items should be equals to Q line", sumItemBusQ,
+                                    new LoadFlowAssert.EqualsTo(lineTerminalQ, DELTA_POWER));
                         }
-                        for (Load load : bus.getLoads()) {
-                            sumItemBusQ -= load.getTerminal().getQ();
-                        }
-                        for (StaticVarCompensator staticVarCompensator : bus.getStaticVarCompensators()) {
-                            sumItemBusQ -= staticVarCompensator.getTerminal().getQ();
-                        }
-                        for (ShuntCompensator shuntCompensator : bus.getShuntCompensators()) {
-                            sumItemBusQ -= shuntCompensator.getTerminal().getQ();
-                        }
-                        assertThat("sum Q of bus items should be equals to Q line", sumItemBusQ,
-                                new LoadFlowAssert.EqualsTo(lineTerminalQ, DELTA_POWER));
                     }
                 }
             }
