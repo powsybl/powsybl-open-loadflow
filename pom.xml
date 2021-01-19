@@ -233,19 +233,21 @@
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-cgmes-conversion</artifactId>
             <version>${powsyblcore.version}</version>
-            <type>test-jar</type>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-cgmes-model</artifactId>
             <version>${powsyblcore.version}</version>
             <type>test-jar</type>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-cgmes-conformity</artifactId>
             <version>${powsyblcore.version}</version>
             <type>test-jar</type>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
