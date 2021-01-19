@@ -34,20 +34,25 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-abstract class AbstractSensitivityAnalysisTest {
+public abstract class AbstractSensitivityAnalysisTest {
 
     protected final DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
 
     protected final OpenSensitivityAnalysisProvider sensiProvider = new OpenSensitivityAnalysisProvider(matrixFactory);
 
-    protected static SensitivityAnalysisParameters createParameters(boolean dc, String slackBusId) {
+    protected static SensitivityAnalysisParameters createParameters(boolean dc, String slackBusId, boolean distributedSlack) {
         SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
         LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
         lfParameters.setDc(dc);
+        lfParameters.setDistributedSlack(distributedSlack);
         OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new NameSlackBusSelector(slackBusId));
         lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
         return sensiParameters;
+    }
+
+    protected static SensitivityAnalysisParameters createParameters(boolean dc, String slackBusId) {
+        return createParameters(dc, slackBusId, false);
     }
 
     protected static <T extends Injection<T>> InjectionIncrease createInjectionIncrease(T injection) {
@@ -72,12 +77,36 @@ abstract class AbstractSensitivityAnalysisTest {
                 .orElse(Double.NaN);
     }
 
+    protected static double getContingencyValue(SensitivityAnalysisResult result, String contingencyId, String variableId, String functionId) {
+        return result.getSensitivityValuesContingencies().get(contingencyId).stream().filter(value -> value.getFactor().getVariable().getId().equals(variableId) && value.getFactor().getFunction().getId().equals(functionId))
+                     .findFirst()
+                     .map(SensitivityValue::getValue)
+                     .orElse(Double.NaN);
+    }
+
+    protected static double getFunctionReference(SensitivityAnalysisResult result, String functionId) {
+        return result.getSensitivityValues().stream().filter(value -> value.getFactor().getFunction().getId().equals(functionId))
+                .findFirst()
+                .map(SensitivityValue::getFunctionReference)
+                .orElse(Double.NaN);
+    }
+
     protected void runAcLf(Network network) {
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
                 .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, new LoadFlowParameters())
                 .join();
         if (!result.isOk()) {
             throw new PowsyblException("AC LF diverged");
+        }
+    }
+
+    protected void runDcLf(Network network) {
+        LoadFlowParameters parameters =  new LoadFlowParameters().setDc(true);
+        LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
+                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, parameters)
+                .join();
+        if (!result.isOk()) {
+            throw new PowsyblException("DC LF failed");
         }
     }
 

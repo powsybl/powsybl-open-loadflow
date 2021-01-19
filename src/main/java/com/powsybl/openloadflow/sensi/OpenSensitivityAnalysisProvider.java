@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sensi;
 import com.google.auto.service.AutoService;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
+import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -16,6 +17,9 @@ import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.sensitivity.*;
 import com.powsybl.tools.PowsyblCoreVersion;
+import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -23,11 +27,12 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 @AutoService(SensitivityAnalysisProvider.class)
 public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvider {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(OpenSensitivityAnalysisProvider.class);
 
     private static final String NAME = "OpenSensitivityAnalysis";
 
@@ -76,29 +81,29 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                                                             ContingenciesProvider contingenciesProvider,
                                                             SensitivityAnalysisParameters sensitivityAnalysisParameters,
                                                             ComputationManager computationManager) {
-        if (!contingenciesProvider.getContingencies(network).isEmpty()) {
-            throw new UnsupportedOperationException("Contingencies not yet supported");
-        }
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
             List<SensitivityFactor> factors = sensitivityFactorsProvider.getFactors(network);
+            List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
 
             LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
             OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
-            OpenSensitivityAnalysisParameters sensiParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
 
-            List<SensitivityValue> sensitivityValues;
+            LOGGER.info("Running {} sensitivity analysis with {} factors and {} contingencies", lfParameters.isDc() ? "DC" : "AC",
+                    factors.size(), contingencies.size());
+
+            Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> sensitivityValues;
             if (lfParameters.isDc()) {
-                sensitivityValues = dcSensitivityAnalysis.analyse(network, factors, lfParametersExt, sensiParametersExt);
+                sensitivityValues = dcSensitivityAnalysis.analyse(network, factors, contingencies, lfParameters, lfParametersExt);
             } else {
-                sensitivityValues = acSensitivityAnalysis.analyse(network, factors, lfParametersExt);
+                sensitivityValues = acSensitivityAnalysis.analyse(network, factors, lfParameters, lfParametersExt);
             }
 
             boolean ok = true;
             Map<String, String> metrics = new HashMap<>();
             String logs = "";
-            return new SensitivityAnalysisResult(ok, metrics, logs, sensitivityValues);
+            return new SensitivityAnalysisResult(ok, metrics, logs, sensitivityValues.getLeft(), sensitivityValues.getRight());
         });
     }
 }
