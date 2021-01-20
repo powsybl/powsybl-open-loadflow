@@ -20,8 +20,10 @@ import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
+import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
+import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
 import org.junit.jupiter.api.Test;
@@ -663,5 +665,54 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(Double.NaN, getContingencyValue(result, "l34", "glsk", "l45"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, getContingencyValue(result, "l34", "glsk", "l46"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, getContingencyValue(result, "l34", "glsk", "l56"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testReconnectingMultipleLinesToRestoreConnectivity() {
+        Network network = ConnectedComponentNetworkFactory.createHighlyConnectedNetwork();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b6_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+
+        List<SensitivityFactor> factors = new ArrayList<>();
+        network.getBranchStream().forEach(branch -> factors.add(new BranchFlowPerInjectionIncrease(
+                createBranchFlow(branch),
+                new InjectionIncrease("d5", "d5", "d5")
+        )));
+
+        SensitivityFactorsProvider factorsProvider = net -> factors;
+
+        ContingenciesProvider contingenciesProvider = n -> {
+            List<Contingency> contingencies = new ArrayList<>();
+            contingencies.add(new Contingency(
+                    "l23+l24+l36+l35+l46",
+                    new BranchContingency("l23"),
+                    new BranchContingency("l24"),
+                    new BranchContingency("l36"),
+                    new BranchContingency("l35"),
+                    new BranchContingency("l46")
+            ));
+            return contingencies;
+        };
+
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingenciesProvider,
+                sensiParameters, LocalComputationManager.getDefault())
+                                                        .join();
+
+        assertEquals(1, result.getSensitivityValuesContingencies().size());
+        assertEquals(11, result.getSensitivityValuesContingencies().get("l23+l24+l36+l35+l46").size());
+        List<SensitivityValue> contingencyValues = result.getSensitivityValuesContingencies().get("l23+l24+l36+l35+l46");
+        assertEquals(0d, getContingencyValue(contingencyValues, "d5", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(contingencyValues, "d5", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(contingencyValues, "d5", "l24"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(contingencyValues, "d5", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(contingencyValues, "d5", "l35"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(contingencyValues, "d5", "l36"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(contingencyValues, "d5", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 4d, getContingencyValue(contingencyValues, "d5", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 4d, getContingencyValue(contingencyValues, "d5", "l57"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getContingencyValue(contingencyValues, "d5", "l67"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 4d, getContingencyValue(contingencyValues, "d5", "l78"), LoadFlowAssert.DELTA_POWER);
+
     }
 }
