@@ -15,16 +15,24 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.nr.DefaultAcLoadFlowObserver;
+import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationType;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.LoadFlowRunResults;
+import com.powsybl.openloadflow.util.NetworkEquationSystemAcLoadFlowObserver;
 import org.hamcrest.core.IsEqual;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -330,7 +338,9 @@ class AcLoadFlowSvcTest {
     }
 
     @Test
-    void shouldProperlyRunWithBusVLQ() {
+    void shouldRunLoadFlowWithBusVLQ() {
+        this.parametersExt.getAdditionalObservers().add(new NetworkEquationSystemAcLoadFlowObserver());
+
         // build loadflow results
         LoadFlowRunResults<NetworkDescription, RunningParameters> loadFlowRunResults = new LoadFlowRunResults<>();
         this.runLoadFlowAndStoreReports(() -> this.createNetworkBus1GenBus2Svc().setSvcVoltageAndSlope(), NetworkDescription.BUS1_GEN_BUS2_SVC, loadFlowRunResults);
@@ -348,5 +358,38 @@ class AcLoadFlowSvcTest {
         shouldLowerQsvc("with a generator addition, Qsvc should be lower", loadFlowRunResults, NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN, NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD);
         shouldLowerQsvc("with a shunt addition, Qsvc should be lower", loadFlowRunResults, NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN_SC, NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN);
         loadFlowRunResults.shouldHaveValidSumOfQinLines();
+    }
+
+    @Test
+    void shouldSwitchPvlqToPq() {
+        // add an observer on loadflow process in order to trace switch between PV bus to PQ bus
+        final List<Boolean> equationVLQactives = new LinkedList<>();
+        final boolean[] hasSwitchPvlqPq = new boolean[1];
+        parametersExt.getAdditionalObservers().add(new DefaultAcLoadFlowObserver() {
+            @Override
+            public void afterEquationVectorCreation(double[] fx, EquationSystem equationSystem, int iteration) {
+                Optional<Equation> equation = equationSystem.getEquation(1, EquationType.BUS_VLQ);
+                if (equation.isPresent()) {
+                    equationVLQactives.add(equation.get().isActive());
+                }
+            }
+
+            @Override
+            public void afterOuterLoopBody(int outerLoopIteration, String outerLoopName) {
+                if (outerLoopName.equals("Reactive limits")) {
+                    hasSwitchPvlqPq[0] = true;
+                }
+            }
+        });
+
+        // network and parameters setup
+        this.createNetworkBus1GenBus2Svc().setSvcVoltageAndSlope().addBus2Load();
+        bus2svc.setBmin(-0.001);
+        parametersExt.setUseBusPVLQ(true);
+        Double slope = bus2svc.getExtension(VoltagePerReactivePowerControl.class).getSlope();
+
+        // assertions
+        assertTrue(loadFlowRunner.run(network, parameters).isOk());
+        assertTrue(hasSwitchPvlqPq[0] && equationVLQactives.size() >= 2 && equationVLQactives.get(0) && !equationVLQactives.get(equationVLQactives.size() - 1));
     }
 }

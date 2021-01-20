@@ -18,6 +18,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.util.NetworkEquationSystemAcLoadFlowObserver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,8 +26,8 @@ import org.slf4j.LoggerFactory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class DefaultAcLoadFlowObserverTest {
-    private DefaultAcLoadFlowObserver defaultAcLoadFlowObserver;
+public class NetworkEquationSystemAcLoadFlowObserverTest {
+    private NetworkEquationSystemAcLoadFlowObserver networkEquationSystemAcLoadFlowObserver;
     private Network network;
     private MatrixFactory matrixFactory;
     private LfNetwork lfNetwork;
@@ -37,7 +38,7 @@ public class DefaultAcLoadFlowObserverTest {
 
     @BeforeEach
     void setUp() {
-        defaultAcLoadFlowObserver = new DefaultAcLoadFlowObserver();
+        networkEquationSystemAcLoadFlowObserver = new NetworkEquationSystemAcLoadFlowObserver();
         network = SvcTestCaseFactory.create();
         LoadFlowParameters parameters = LoadFlowParameters.load();
         matrixFactory = new SparseMatrixFactory();
@@ -47,7 +48,7 @@ public class DefaultAcLoadFlowObserverTest {
         equationSystem = AcEquationSystem.create(lfNetwork, new VariableSet(), acEquationSystemCreationParameters);
         jacobianMatrix = JacobianMatrix.create(equationSystem, matrixFactory);
 
-        logger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(DefaultAcLoadFlowObserver.class);
+        logger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(NetworkEquationSystemAcLoadFlowObserver.class);
         logger.setLevel(Level.ALL);
         listAppender = new ListAppender<>();
         listAppender.start();
@@ -61,19 +62,19 @@ public class DefaultAcLoadFlowObserverTest {
 
     @Test
     void testAfterEquationVectorCreation() {
-        defaultAcLoadFlowObserver.afterEquationVectorCreation(null, equationSystem, 0);
+        networkEquationSystemAcLoadFlowObserver.afterEquationVectorCreation(null, equationSystem, 0);
         assertEquals(23, listAppender.list.size());
     }
 
     @Test
     void testAfterJacobianBuild() {
-        defaultAcLoadFlowObserver.afterJacobianBuild(jacobianMatrix.getMatrix(), null, 0);
+        networkEquationSystemAcLoadFlowObserver.afterJacobianBuild(jacobianMatrix.getMatrix(), null, 0);
         assertEquals(1, listAppender.list.size());
     }
 
     @Test
     void testBeforeLoadFlow() {
-        defaultAcLoadFlowObserver.beforeLoadFlow(lfNetwork);
+        networkEquationSystemAcLoadFlowObserver.beforeLoadFlow(lfNetwork);
         assertEquals(8, listAppender.list.size());
     }
 }
