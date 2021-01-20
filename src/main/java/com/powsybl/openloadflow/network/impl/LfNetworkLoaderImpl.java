@@ -244,10 +244,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             }
         }
 
+        // Merge the discrete voltage control in each non-impedant connected set
         List<Set<LfBus>> connectedSets = getNonImpedantConnectedSets(lfNetwork);
-        connectedSets.stream()
-            .filter(set -> set.size() > 2) // Two LfBuses with one voltage control is never a problem
-            .forEach(set -> set.forEach(b -> removeConflictuousDiscreteVoltageControlled(b, set)));
+        connectedSets.forEach(LfNetworkLoaderImpl::mergeConflictuousDiscreteVoltageControls);
     }
 
     private static List<Set<LfBus>> getNonImpedantConnectedSets(LfNetwork network) {
@@ -271,16 +270,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         return piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
     }
 
-    private static void removeConflictuousDiscreteVoltageControlled(LfBus lfBus, Set<LfBus> nonImpedantSet) {
-        if (lfBus.isDiscreteVoltageControlled()) {
-            // Find controllers which are in the given non-impedant connected set and which are controlling the same bus
-            DiscreteVoltageControl dvc = lfBus.getDiscreteVoltageControl();
-            List<LfBranch> sharedControllersInNonImpedentSet = dvc.getControllers().stream()
-                .filter(c -> nonImpedantSet.contains(c.getBus1()) || nonImpedantSet.contains(c.getBus2()))
-                .collect(Collectors.toList());
-
-            // We keep only one controller in the non impedant connected set for each controlled lfBus
-            sharedControllersInNonImpedentSet.stream().skip(1).forEach(dvc::removeController);
+    private static void mergeConflictuousDiscreteVoltageControls(Set<LfBus> nonImpedantSet) {
+        List<LfBus> controlledBuses = nonImpedantSet.stream().filter(LfBus::isDiscreteVoltageControlled).collect(Collectors.toList());
+        if (controlledBuses.size() > 1) {
+            LfBus firstControlledBus = controlledBuses.remove(0);
+            DiscreteVoltageControl firstDvc = firstControlledBus.getDiscreteVoltageControl();
+            controlledBuses.stream()
+                .flatMap(c -> c.getDiscreteVoltageControl().getControllers().stream())
+                .forEach(controller -> {
+                    firstDvc.addController(controller);
+                    controller.setDiscreteVoltageControl(firstDvc);
+                });
+            controlledBuses.forEach(lfBus -> lfBus.setDiscreteVoltageControl(null));
         }
     }
 

@@ -265,11 +265,11 @@ class AcLoadFlowTransformerControlTest {
                 .setTargetV(34.0);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-/*        assertTrue(result.isOk());
+        assertTrue(result.isOk());
         assertVoltageEquals(134.279, bus2);
         assertVoltageEquals(35.730, t2wt.getTerminal2().getBusView().getBus());
         assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());*/
+        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test

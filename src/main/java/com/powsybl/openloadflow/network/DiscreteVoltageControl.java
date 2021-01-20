@@ -56,11 +56,6 @@ public class DiscreteVoltageControl {
         controllers.add(controllerBranch);
     }
 
-    public boolean removeController(LfBranch controllerBranch) {
-        Objects.requireNonNull(controllerBranch);
-        return controllers.remove(controllerBranch);
-    }
-
     public LfBus getControlled() {
         return controlled;
     }
