@@ -40,6 +40,11 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         this.lfStaticVarCompensators = lfStaticVarCompensators;
         this.bus = bus;
         this.equationSystem = equationSystem;
+
+        if (lfStaticVarCompensators.size() > 1) {
+            throw new PowsyblException("Bus PVLQ (" + bus.getId() + ") not supported yet as it contains more than one staticVarCompensator");
+        }
+
         vVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_V);
         phiVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_PHI);
         variables = Arrays.asList(vVar, phiVar);
@@ -65,10 +70,6 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
     @Override
     public void update(double[] x) {
         Objects.requireNonNull(x);
-
-        if (lfStaticVarCompensators.size() > 1) {
-            throw new PowsyblException("Bus PVLQ (" + bus.getId() + ") not supported yet as it contains more than one staticVarCompensator");
-        }
         LfStaticVarCompensatorImpl lfStaticVarCompensator = lfStaticVarCompensators.get(0);
         double slope = lfStaticVarCompensator.getSlope();
         Equation reactiveEquation = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
@@ -83,8 +84,9 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
 //        double sumDerQdVshunt = resultQshunt[1];
 
         // QbusMinusShunt = Qsvc - Qload + Qgenerator, d'où : Q(U, theta) = Qsvc =  QbusMinusShunt + Qload - Qgenerator
+        double qSvc = sumEvalQbusMinusShunt + bus.getLoadTargetQ() - sumQgeneratorsWithoutVoltageRegulator;
         // f(U, theta) = U + lambda * Q(U, theta)
-        targetV = x[vVar.getRow()] + slope * (sumEvalQbusMinusShunt + bus.getLoadTargetQ() - sumQgeneratorsWithoutVoltageRegulator);
+        targetV = x[vVar.getRow()] + slope * qSvc;
         // dfdU = 1 + lambda dQdU
         dfdv = 1 + slope * sumDerQdVbusMinusShunt;
         // dfdtheta = lambda * dQdtheta

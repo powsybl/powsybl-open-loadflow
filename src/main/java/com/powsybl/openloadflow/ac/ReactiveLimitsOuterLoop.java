@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
+import com.powsybl.openloadflow.ac.equations.StaticVarCompensatorVoltageLambdaQEquationTerm;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -188,10 +190,10 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
                 if (LOGGER.isTraceEnabled()) {
                     if (pqToPvBus.limitDirection == ReactiveLimitDirection.MAX) {
-                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=maxQ and v={} > targetV={}", bus.getId(), bus.getV(),
+                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=maxQ and v={} > targetV={}", bus.getId(), getV(bus, equationSystem),
                                 bus.getTargetV());
                     } else {
-                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=minQ and v={} < targetV={}", bus.getId(), bus.getV(),
+                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=minQ and v={} < targetV={}", bus.getId(), getV(bus, equationSystem),
                                 bus.getTargetV());
                     }
                 }
@@ -223,22 +225,35 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         }
     }
 
+    private double getV(LfBus bus, EquationSystem equationSystem) {
+        Optional<Equation> equationBusVLQ = equationSystem.getEquation(bus.getNum(), EquationType.BUS_VLQ);
+        if (equationBusVLQ.isPresent()) {
+            Optional<StaticVarCompensatorVoltageLambdaQEquationTerm> staticVarCompensatorVoltageLambdaQEquationTerm = equationBusVLQ.get().getTerms().stream().filter(equationTerm -> equationTerm instanceof StaticVarCompensatorVoltageLambdaQEquationTerm)
+                    .map(equationTerm -> (StaticVarCompensatorVoltageLambdaQEquationTerm) equationTerm).findFirst();
+            if (staticVarCompensatorVoltageLambdaQEquationTerm.isPresent()) {
+                return staticVarCompensatorVoltageLambdaQEquationTerm.get().eval();
+            } else {
+                return bus.getV();
+            }
+        } else {
+            return bus.getV();
+        }
+    }
+
     /**
      * A PQ bus can be switched to PV in 2 cases:
      *  - if Q is equal to Qmin and V is less than targetV: it means that the PQ bus can be unlocked in order to increase the reactive power and reach its targetV.
      *  - if Q is equal to Qmax and V is greater than targetV: it means that the PQ bus can be unlocked in order to decrease the reactive power and reach its target V.
      */
-    private void checkPqBus(LfBus bus, List<PqToPvBus> pqToPvBuses) {
+    private void checkPqBus(LfBus bus, List<PqToPvBus> pqToPvBuses, EquationSystem equationSystem) {
         double minQ = bus.getMinQ();
         double maxQ = bus.getMaxQ();
         double q = bus.getGenerationTargetQ();
-        // TODO : quelles sont les conditions pour passer un bus PQ en bus P_VLQ ?
-        // TODO : bus.getV() + slope * Q > bus.getTargetV()
-        if (Math.abs(q - maxQ) < Q_EPS && bus.getV() > bus.getTargetV()) { // bus produce too much reactive power
+        double v = getV(bus, equationSystem);
+        if (Math.abs(q - maxQ) < Q_EPS && v > bus.getTargetV()) { // bus produce too much reactive power
             pqToPvBuses.add(new PqToPvBus(bus, ReactiveLimitDirection.MAX));
         }
-        // TODO : bus.getV() + slope * Q < bus.getTargetV()
-        if (Math.abs(q - minQ) < Q_EPS && bus.getV() < bus.getTargetV()) { // bus absorb too much reactive power
+        if (Math.abs(q - minQ) < Q_EPS && v < bus.getTargetV()) { // bus absorb too much reactive power
             pqToPvBuses.add(new PqToPvBus(bus, ReactiveLimitDirection.MIN));
         }
     }
@@ -254,7 +269,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             if (bus.hasVoltageControl()) {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
             } else if (bus.hasVoltageControlCapability()) {
-                checkPqBus(bus, pqToPvBuses);
+                checkPqBus(bus, pqToPvBuses, context.getEquationSystem());
             }
         }
 
