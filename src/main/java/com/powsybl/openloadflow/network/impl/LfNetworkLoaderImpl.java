@@ -270,9 +270,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         return piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
     }
 
-    private static void mergeConflictuousDiscreteVoltageControls(Set<LfBus> nonImpedantSet) {
-        List<LfBus> controlledBuses = nonImpedantSet.stream().filter(LfBus::isDiscreteVoltageControlled).collect(Collectors.toList());
+    private static void mergeConflictuousDiscreteVoltageControls(Set<LfBus> nonImpedantConnectedSet) {
+        List<LfBus> controlledBuses = nonImpedantConnectedSet.stream().filter(LfBus::isDiscreteVoltageControlled).collect(Collectors.toList());
         if (controlledBuses.size() > 1) {
+            // We have conflictuous controls as several controlled bus are in the same non-impedant connected set
+            // To solve that we keep only one voltage control, the other ones are removed
+            // and the corresponding controllers are added to the control kept
             LfBus firstControlledBus = controlledBuses.remove(0);
             DiscreteVoltageControl firstDvc = firstControlledBus.getDiscreteVoltageControl();
             controlledBuses.stream()
