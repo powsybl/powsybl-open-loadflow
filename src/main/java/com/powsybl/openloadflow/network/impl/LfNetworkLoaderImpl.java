@@ -245,11 +245,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
 
         // Merge the discrete voltage control in each non-impedant connected set
-        List<Set<LfBus>> connectedSets = getNonImpedantConnectedSets(lfNetwork);
+        Graph<LfBus, LfBranch> nonImpedantSubGraph = getNonImpedantSubGraph(lfNetwork);
+        List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(nonImpedantSubGraph).connectedSets();
         connectedSets.forEach(LfNetworkLoaderImpl::mergeConflictuousDiscreteVoltageControls);
     }
 
-    private static List<Set<LfBus>> getNonImpedantConnectedSets(LfNetwork network) {
+    public static Graph<LfBus, LfBranch> getNonImpedantSubGraph(LfNetwork network) {
         List<LfBranch> nonImpedantBranches = network.getBranches().stream()
             .filter(LfNetworkLoaderImpl::isNonImpedantBranch)
             .filter(b -> b.getBus1() != null && b.getBus2() != null)
@@ -262,10 +263,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             nonImpedantSubGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
         }
 
-        return new ConnectivityInspector<>(nonImpedantSubGraph).connectedSets();
+        return  nonImpedantSubGraph;
     }
 
-    private static boolean isNonImpedantBranch(LfBranch branch) {
+    public static boolean isNonImpedantBranch(LfBranch branch) {
         PiModel piModel = branch.getPiModel();
         return piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
     }
