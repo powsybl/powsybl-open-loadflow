@@ -31,10 +31,6 @@ public class LoadFlowTestTools {
         jacobianMatrix = JacobianMatrix.create(equationSystem, matrixFactory);
     }
 
-    public MatrixFactory getMatrixFactory() {
-        return matrixFactory;
-    }
-
     public AcLoadFlowParameters getAcParameters() {
         return acParameters;
     }

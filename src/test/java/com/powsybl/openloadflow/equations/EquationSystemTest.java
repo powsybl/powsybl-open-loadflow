@@ -6,20 +6,25 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.BusVoltageEquationTerm;
+import com.powsybl.openloadflow.ac.util.NetworkBuilder;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.util.LoadFlowTestTools;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -30,6 +35,18 @@ class EquationSystemTest {
 
     private final List<Equation> equations = new ArrayList<>();
     private final List<EquationEventType> eventTypes = new ArrayList<>();
+
+    private LoadFlowTestTools loadFlowTestToolsSvcVoltage;
+    private LfBus lfBusVoltage;
+    private LoadFlowTestTools loadFlowTestToolsSvcVoltageWithSlope;
+    private LfBus lfBusVoltageWithSlope;
+
+    public EquationSystemTest() {
+        loadFlowTestToolsSvcVoltage = new LoadFlowTestTools(new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE).build());
+        lfBusVoltage = loadFlowTestToolsSvcVoltage.getLfNetwork().getBusById("vl2_0");
+        loadFlowTestToolsSvcVoltageWithSlope = new LoadFlowTestTools(new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().build());
+        lfBusVoltageWithSlope = loadFlowTestToolsSvcVoltageWithSlope.getLfNetwork().getBusById("vl2_0");
+    }
 
     private void clearEvents() {
         equations.clear();
@@ -134,5 +151,47 @@ class EquationSystemTest {
                     + System.lineSeparator();
             assertEquals(ref, writer.toString());
         }
+    }
+
+    @Test
+    void updateActiveEquationVTest() {
+        EquationSystem equationSystemVoltage = loadFlowTestToolsSvcVoltage.getEquationSystem();
+        Optional<Equation> equationBusV = equationSystemVoltage.getEquation(lfBusVoltage.getNum(), EquationType.BUS_V);
+        EquationSystem equationSystemVoltageWithSlope = loadFlowTestToolsSvcVoltageWithSlope.getEquationSystem();
+        Optional<Equation> equationBusVLQ = equationSystemVoltageWithSlope.getEquation(lfBusVoltageWithSlope.getNum(), EquationType.BUS_VLQ);
+
+        // 1 - should update active field on equation with type EquationType.BUS_V
+        equationSystemVoltage.updateActiveEquationV(lfBusVoltage.getNum(), false);
+        assertEquals(false, equationBusV.get().isActive());
+        equationSystemVoltage.updateActiveEquationV(lfBusVoltage.getNum(), true);
+        assertEquals(true, equationBusV.get().isActive());
+
+        // 2 - should update active field on equation with type EquationType.BUS_VLQ
+        equationSystemVoltageWithSlope.updateActiveEquationV(lfBusVoltageWithSlope.getNum(), false);
+        assertEquals(false, equationBusVLQ.get().isActive());
+        equationSystemVoltageWithSlope.updateActiveEquationV(lfBusVoltageWithSlope.getNum(), true);
+        assertEquals(true, equationBusVLQ.get().isActive());
+
+        // 3 - should raise PowsyblException without equation with type EquationType.BUS_V or EquationType.BUS_VLQ
+        equationSystemVoltage.removeEquation(lfBusVoltage.getNum(), EquationType.BUS_V);
+        assertThrows(PowsyblException.class, () -> equationSystemVoltage.updateActiveEquationV(lfBusVoltage.getNum(), true));
+    }
+
+    @Test
+    void equationSystemTest() {
+        EquationSystem equationSystem = new EquationSystem(loadFlowTestToolsSvcVoltage.getLfNetwork());
+        assertEquals(loadFlowTestToolsSvcVoltage.getLfNetwork(), equationSystem.getNetwork(), "should value network attribute in constructor");
+    }
+
+    @Test
+    void getEquationTermsTest() {
+        EquationSystem equationSystem = new EquationSystem(loadFlowTestToolsSvcVoltage.getLfNetwork(), false);
+        assertThrows(PowsyblException.class, () -> equationSystem.getEquationTerms(SubjectType.BUS, lfBusVoltage.getNum()), "should not return equationTerms with indexTerms set to false");
+    }
+
+    @Test
+    void updateEquationVectorTest() {
+        EquationSystem equationSystemVoltage = loadFlowTestToolsSvcVoltage.getEquationSystem();
+        assertThrows(IllegalArgumentException.class, () -> equationSystemVoltage.updateEquationVector(new double[]{0, 0, 0}), "should not update terms of equations with invalid data");
     }
 }
