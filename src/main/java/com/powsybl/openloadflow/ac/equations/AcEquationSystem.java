@@ -76,13 +76,13 @@ public final class AcEquationSystem {
 
     private static void getStaticVarCompensatorsWithSlope(LfBus bus, List<LfStaticVarCompensatorImpl> staticVarCompensatorsWithSlope) {
         bus.getGenerators().stream().filter(lfGenerator -> lfGenerator instanceof LfStaticVarCompensatorImpl)
-                .map(lfGenerator -> (LfStaticVarCompensatorImpl) lfGenerator)
+                .map(LfStaticVarCompensatorImpl.class::cast)
                 .filter(lfStaticVarCompensatorImpl -> {
                     VoltagePerReactivePowerControl voltagePerReactivePowerControl = lfStaticVarCompensatorImpl.getVoltagePerReactivePowerControl();
                     return voltagePerReactivePowerControl != null
                             && !Double.isNaN(voltagePerReactivePowerControl.getSlope())
                             && voltagePerReactivePowerControl.getSlope() != 0;
-                }).forEach(lfStaticVarCompensatorImpl -> staticVarCompensatorsWithSlope.add(lfStaticVarCompensatorImpl));
+                }).forEach(staticVarCompensatorsWithSlope::add);
     }
 
     private static void createLocalVoltageControlBusEquations(LfBus bus, EquationSystem equationSystem, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {
@@ -95,19 +95,16 @@ public final class AcEquationSystem {
     }
 
     private static boolean useBusPVLQ(LfBus bus, AcEquationSystemCreationParameters creationParameters, List<LfStaticVarCompensatorImpl> staticVarCompensatorsWithSlope) {
-        if (!creationParameters.isUseBusPVLQ()) {
-            return false;
-        } else {
+        if (creationParameters.isUseBusPVLQ()) {
             getStaticVarCompensatorsWithSlope(bus, staticVarCompensatorsWithSlope);
-            if (staticVarCompensatorsWithSlope.isEmpty()) {
-                return false;
-            } else {
+            if (!staticVarCompensatorsWithSlope.isEmpty()) {
                 List<LfGenerator> generatorsWithVoltageRegulator = bus.getGenerators().stream()
                         .filter(lfGenerator -> lfGenerator instanceof LfGeneratorImpl && lfGenerator.hasVoltageControl())
                         .collect(Collectors.toList());
                 return generatorsWithVoltageRegulator.isEmpty();
             }
         }
+        return false;
     }
 
     private static void createVoltageControlledBusEquations(LfBus controlledBus, EquationSystem equationSystem, VariableSet variableSet) {

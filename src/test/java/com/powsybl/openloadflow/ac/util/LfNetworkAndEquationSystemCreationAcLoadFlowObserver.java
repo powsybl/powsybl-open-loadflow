@@ -1,4 +1,4 @@
-package com.powsybl.openloadflow.util;
+package com.powsybl.openloadflow.ac.util;
 
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
@@ -16,8 +16,8 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.*;
 
-public class NetworkEquationSystemAcLoadFlowObserver extends DefaultAcLoadFlowObserver {
-    private static final Logger LOGGER = LoggerFactory.getLogger(NetworkEquationSystemAcLoadFlowObserver.class);
+public class LfNetworkAndEquationSystemCreationAcLoadFlowObserver extends DefaultAcLoadFlowObserver {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfNetworkAndEquationSystemCreationAcLoadFlowObserver.class);
 
     private void logEquations(Equation equation, LfNetwork lfNetwork) {
         LOGGER.trace("     - equation {} with colJacobian = {} having {} terms :",

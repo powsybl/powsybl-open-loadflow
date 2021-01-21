@@ -225,19 +225,17 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         }
     }
 
-    private double getV(LfBus bus, EquationSystem equationSystem) {
+    public double getV(LfBus bus, EquationSystem equationSystem) {
         Optional<Equation> equationBusVLQ = equationSystem.getEquation(bus.getNum(), EquationType.BUS_VLQ);
         if (equationBusVLQ.isPresent()) {
             Optional<StaticVarCompensatorVoltageLambdaQEquationTerm> staticVarCompensatorVoltageLambdaQEquationTerm = equationBusVLQ.get().getTerms().stream().filter(equationTerm -> equationTerm instanceof StaticVarCompensatorVoltageLambdaQEquationTerm)
-                    .map(equationTerm -> (StaticVarCompensatorVoltageLambdaQEquationTerm) equationTerm).findFirst();
+                    .map(StaticVarCompensatorVoltageLambdaQEquationTerm.class::cast).findFirst();
             if (staticVarCompensatorVoltageLambdaQEquationTerm.isPresent()) {
+                // update has been previously called in NewtonRaphsonStatus.runIteration
                 return staticVarCompensatorVoltageLambdaQEquationTerm.get().eval();
-            } else {
-                return bus.getV();
             }
-        } else {
-            return bus.getV();
         }
+        return bus.getV();
     }
 
     /**

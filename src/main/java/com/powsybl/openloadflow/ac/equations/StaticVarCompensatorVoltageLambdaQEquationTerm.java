@@ -191,6 +191,6 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
 
     @Override
     protected String getName() {
-        return "ac_static_var_compensator";
+        return "ac_static_var_compensator_with_slope";
     }
 }
