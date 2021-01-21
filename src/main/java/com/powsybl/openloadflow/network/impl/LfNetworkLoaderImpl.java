@@ -279,6 +279,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         // First resolve problem of mixed shared controls, that is if there are any generator/svc voltage control together with discrete voltage control(s)
         boolean hasControlledBus = nonImpedantConnectedSet.stream().anyMatch(lfBus -> !lfBus.getControllerBuses().isEmpty());
         if (hasControlledBus) {
+
             // If any generator/svc voltage controls, remove all discrete voltage controls
             // TODO: deal with mixed shared controls instead of removing all discrete voltage controls
 
@@ -288,22 +289,23 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
             // Then remove them from controlled
             discreteControlledBuses.forEach(lfBus -> lfBus.setDiscreteVoltageControl(null));
-        }
 
-        // Then resolve problem of discrete voltage controls
-        if (discreteControlledBuses.size() > 1) {
-            // We have conflictuous controls as several controlled bus are in the same non-impedant connected set
-            // To solve that we keep only one voltage control, the other ones are removed
-            // and the corresponding controllers are added to the control kept
-            LfBus firstControlledBus = discreteControlledBuses.remove(0);
-            DiscreteVoltageControl firstDvc = firstControlledBus.getDiscreteVoltageControl();
-            discreteControlledBuses.stream()
-                .flatMap(c -> c.getDiscreteVoltageControl().getControllers().stream())
-                .forEach(controller -> {
-                    firstDvc.addController(controller);
-                    controller.setDiscreteVoltageControl(firstDvc);
-                });
-            discreteControlledBuses.forEach(lfBus -> lfBus.setDiscreteVoltageControl(null));
+        } else {
+            // Then resolve problem of discrete voltage controls
+            if (discreteControlledBuses.size() > 1) {
+                // We have conflictuous controls as several controlled bus are in the same non-impedant connected set
+                // To solve that we keep only one voltage control, the other ones are removed
+                // and the corresponding controllers are added to the control kept
+                LfBus firstControlledBus = discreteControlledBuses.remove(0);
+                DiscreteVoltageControl firstDvc = firstControlledBus.getDiscreteVoltageControl();
+                discreteControlledBuses.stream()
+                    .flatMap(c -> c.getDiscreteVoltageControl().getControllers().stream())
+                    .forEach(controller -> {
+                        firstDvc.addController(controller);
+                        controller.setDiscreteVoltageControl(firstDvc);
+                    });
+                discreteControlledBuses.forEach(lfBus -> lfBus.setDiscreteVoltageControl(null));
+            }
         }
     }
 
