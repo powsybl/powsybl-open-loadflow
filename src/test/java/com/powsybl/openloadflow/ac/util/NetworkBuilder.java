@@ -125,10 +125,6 @@ public class NetworkBuilder {
                 .setTargetQ(300)
                 .setVoltageRegulatorOn(false)
                 .add();
-//        g2.newExtension(ActivePowerControlAdder.class)
-//                .withParticipate(true)
-//                .withDroop(2)
-//                .add();
         return this;
     }
 
@@ -162,10 +158,10 @@ public class NetworkBuilder {
                 .setConnectableBus2(bus2.getId())
                 .setR(1)
                 .setX(3)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
+                .setG1(1E-6d)
+                .setG2(1E-6d)
+                .setB1(1E-6d)
+                .setB2(1E-6d)
                 .add();
         return this;
     }

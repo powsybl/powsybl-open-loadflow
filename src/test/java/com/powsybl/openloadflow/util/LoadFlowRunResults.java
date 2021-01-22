@@ -150,27 +150,26 @@ public class LoadFlowRunResults<N extends Enum<N>, P extends Enum<P>> {
             for (P p : networkResultByRunningParameters.keySet()) {
                 Network network = getLoadFlowReport(n, p);
                 for (Bus bus : network.getBusView().getBuses()) {
-                    for (Line line : bus.getLines()) {
-                        if (isClosedLine(line)) {
-                            Terminal terminal = line.getTerminal(bus.getId().substring(0, bus.getId().indexOf("_")));
-                            double lineTerminalQ = terminal.getQ();
-                            double sumItemBusQ = 0;
-                            for (Generator generator : bus.getGenerators()) {
-                                sumItemBusQ -= generator.getTerminal().getQ();
-                            }
-                            for (Load load : bus.getLoads()) {
-                                sumItemBusQ -= load.getTerminal().getQ();
-                            }
-                            for (StaticVarCompensator staticVarCompensator : bus.getStaticVarCompensators()) {
-                                sumItemBusQ -= staticVarCompensator.getTerminal().getQ();
-                            }
-                            for (ShuntCompensator shuntCompensator : bus.getShuntCompensators()) {
-                                sumItemBusQ -= shuntCompensator.getTerminal().getQ();
-                            }
-                            assertThat("sum Q of bus items should be equals to Q line", sumItemBusQ,
-                                    new LoadFlowAssert.EqualsTo(lineTerminalQ, DELTA_POWER));
-                        }
+                    double linesTerminalQ = 0;
+                    double sumItemBusQ = 0;
+                    for (Generator generator : bus.getGenerators()) {
+                        sumItemBusQ -= generator.getTerminal().getQ();
                     }
+                    for (Load load : bus.getLoads()) {
+                        sumItemBusQ -= load.getTerminal().getQ();
+                    }
+                    for (StaticVarCompensator staticVarCompensator : bus.getStaticVarCompensators()) {
+                        sumItemBusQ -= staticVarCompensator.getTerminal().getQ();
+                    }
+                    for (ShuntCompensator shuntCompensator : bus.getShuntCompensators()) {
+                        sumItemBusQ -= shuntCompensator.getTerminal().getQ();
+                    }
+                    for (Line line : bus.getLines()) {
+                        Terminal terminal = line.getTerminal(bus.getId().substring(0, bus.getId().indexOf("_")));
+                        linesTerminalQ += terminal.getQ();
+                    }
+                    assertThat("sum Q of bus items should be equals to Q line", sumItemBusQ,
+                            new LoadFlowAssert.EqualsTo(linesTerminalQ, DELTA_POWER));
                 }
             }
         }

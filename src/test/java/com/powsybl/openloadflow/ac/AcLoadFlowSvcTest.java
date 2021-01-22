@@ -168,7 +168,7 @@ class AcLoadFlowSvcTest {
         }
     }
 
-    public void shouldMatchVoltageTerm(LoadFlowRunResults<NetworkDescription, RunningParameters> loadFlowRunResults) {
+    private void shouldMatchVoltageTerm(LoadFlowRunResults<NetworkDescription, RunningParameters> loadFlowRunResults) {
         Map<NetworkDescription, Map<RunningParameters, Network>> networkResultByRunningParametersAndNetworkDescription = loadFlowRunResults.getNetworkResultByRunningParametersAndNetworkDescription();
         for (NetworkDescription networkDescription : networkResultByRunningParametersAndNetworkDescription.keySet()) {
             Map<RunningParameters, Network> networkResultByRunningParameters = networkResultByRunningParametersAndNetworkDescription.get(networkDescription);
@@ -194,10 +194,10 @@ class AcLoadFlowSvcTest {
 
         // build loadflow results
         LoadFlowRunResults<NetworkDescription, RunningParameters> loadFlowRunResults = new LoadFlowRunResults<>();
-        this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().build(), NetworkDescription.BUS1_GEN_BUS2_SVC, loadFlowRunResults);
-        this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().addBus2Load().build(), NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD, loadFlowRunResults);
-        this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().addBus2Load().addBus2Gen().build(), NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN, loadFlowRunResults);
-        this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().addBus2Load().addBus2Gen().addBus2Sc().build(), NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN_SC, loadFlowRunResults);
+//        this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().build(), NetworkDescription.BUS1_GEN_BUS2_SVC, loadFlowRunResults);
+//        this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().addBus2Load().build(), NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD, loadFlowRunResults);
+//        this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().addBus2Load().addBus2Gen().build(), NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN, loadFlowRunResults);
+//        this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().addBus2Load().addBus2Gen().addBus2Sc().build(), NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN_SC, loadFlowRunResults);
         this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().addBus2Load().addBus2Gen().addBus2Sc().addBus1OpenLine().addBus2OpenLine().build(), NetworkDescription.BUS1_GEN_OLINE_BUS2_SVC_LOAD_GEN_SC_OLINE, loadFlowRunResults);
 
         // display results
@@ -214,14 +214,14 @@ class AcLoadFlowSvcTest {
     @Test
     void shouldSwitchPvlqToPq() {
         // add an observer on loadflow process in order to trace switch between PV bus to PQ bus
-        final List<Boolean> equationVLQactives = new LinkedList<>();
+        final List<Boolean> equationVLQisActives = new LinkedList<>();
         final boolean[] hasSwitchPvlqPq = new boolean[1];
         parametersExt.getAdditionalObservers().add(new DefaultAcLoadFlowObserver() {
             @Override
             public void afterEquationVectorCreation(double[] fx, EquationSystem equationSystem, int iteration) {
                 Optional<Equation> equation = equationSystem.getEquation(1, EquationType.BUS_VLQ);
                 if (equation.isPresent()) {
-                    equationVLQactives.add(equation.get().isActive());
+                    equationVLQisActives.add(equation.get().isActive());
                 }
             }
 
@@ -242,6 +242,6 @@ class AcLoadFlowSvcTest {
 
         // assertions
         assertTrue(loadFlowRunner.run(network, parameters).isOk());
-        assertTrue(hasSwitchPvlqPq[0] && equationVLQactives.size() >= 2 && equationVLQactives.get(0) && !equationVLQactives.get(equationVLQactives.size() - 1));
+        assertTrue(hasSwitchPvlqPq[0] && equationVLQisActives.size() >= 2 && equationVLQisActives.get(0) && !equationVLQisActives.get(equationVLQisActives.size() - 1));
     }
 }

@@ -79,11 +79,7 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         double sumDerQdVbusMinusShunt = resultSumEvalAndDerOnBranchTermsFromEquationBUSQ[1];
         double sumDerQdPHbusMinusShunt = resultSumEvalAndDerOnBranchTermsFromEquationBUSQ[2];
 
-//        double[] resultQshunt = sumEvalAndDerOnShuntTerms(x, reactiveEquation);
-//        double sumEvalQshunt = resultQshunt[0];
-//        double sumDerQdVshunt = resultQshunt[1];
-
-        // QbusMinusShunt = Qsvc - Qload + Qgenerator, d'où : Q(U, theta) = Qsvc =  QbusMinusShunt + Qload - Qgenerator
+        // QbusMinusShunt = Qsvc - QloadAndBattery + Qgenerator, d'où : Q(U, theta) = Qsvc =  QbusMinusShunt + QloadAndBattery - Qgenerator
         double qSvc = sumEvalQbusMinusShunt + bus.getLoadTargetQ() - sumQgeneratorsWithoutVoltageRegulator;
         // f(U, theta) = U + lambda * Q(U, theta)
         targetV = x[vVar.getRow()] + slope * qSvc;
@@ -106,7 +102,6 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         double sumDerQdPHbusMinusShunt = 0;
 
         for (EquationTerm equationTerm : reactiveEquation.getTerms()) {
-            // ShuntCompensatorReactiveFlowEquationTerm.update : q = -b * v * v;
             if (equationTerm.isActive() &&
                     (equationTerm instanceof ClosedBranchSide1ReactiveFlowEquationTerm
                             || equationTerm instanceof ClosedBranchSide2ReactiveFlowEquationTerm
@@ -125,18 +120,6 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         return new double[]{sumEvalQbusMinusShunt, sumDerQdVbusMinusShunt, sumDerQdPHbusMinusShunt};
     }
 
-//    private double getSumQloads() {
-//        double sumQloads = 0;
-//        LOGGER.trace("bus.getTargetQ() = {} ; bus.getCalculatedQ() = {} ; bus.getLoadTargetQ() = {} ; abstractLfBus.getGenerationTargetQ() = {}",
-//                bus.getTargetQ(), bus.getCalculatedQ(), bus.getLoadTargetQ(), bus.getGenerationTargetQ());
-//        // TODO : use bus.getLoadTargetQ() = 1.5
-//        for (Load load : bus.getLoads()) {
-//            LOGGER.debug("load.getQ0() = {} ; load.getTerminal().getQ() = {}", load.getQ0(), load.getTerminal().getQ());
-//            sumQloads += load.getQ0();
-//        }
-//        return sumQloads / PerUnit.SB;
-//    }
-
     private double getSumQgeneratorsWithoutVoltageRegulator() {
         double sumQgenerators = 0;
         for (LfGenerator lfGenerator : bus.getGenerators()) {
@@ -147,20 +130,6 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         }
         return sumQgenerators;
     }
-
-//    private double[] sumEvalAndDerOnShuntTerms(double[] x, Equation reactiveEquation) {
-//        double sumEvalQshunt = 0;
-//        double sumDerQdVshunt = 0;
-//        for (EquationTerm equationTerm : reactiveEquation.getTerms()) {
-//            if (equationTerm.isActive() &&
-//                    (equationTerm instanceof ShuntCompensatorReactiveFlowEquationTerm)) {
-//                equationTerm.update(x);
-//                sumEvalQshunt += equationTerm.eval();
-//                sumDerQdVshunt += equationTerm.der(vVar);
-//            }
-//        }
-//        return new double[]{sumEvalQshunt, sumDerQdVshunt};
-//    }
 
     @Override
     public double eval() {

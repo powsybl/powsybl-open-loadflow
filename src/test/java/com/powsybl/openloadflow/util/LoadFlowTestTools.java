@@ -18,6 +18,7 @@ public class LoadFlowTestTools {
     protected MatrixFactory matrixFactory;
     protected AcLoadFlowParameters acParameters;
     protected LfNetwork lfNetwork;
+    protected VariableSet variableSet;
     protected EquationSystem equationSystem;
     protected JacobianMatrix jacobianMatrix;
 
@@ -27,7 +28,8 @@ public class LoadFlowTestTools {
         acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, parameters, OpenLoadFlowProvider.getParametersExt(parameters), false);
         lfNetwork = AcloadFlowEngine.createNetworks(network, acParameters).get(0);
         AcEquationSystemCreationParameters acEquationSystemCreationParameters = new AcEquationSystemCreationParameters(true, false, false, true);
-        equationSystem = AcEquationSystem.create(lfNetwork, new VariableSet(), acEquationSystemCreationParameters);
+        variableSet = new VariableSet();
+        equationSystem = AcEquationSystem.create(lfNetwork, variableSet, acEquationSystemCreationParameters);
         jacobianMatrix = JacobianMatrix.create(equationSystem, matrixFactory);
     }
 
@@ -37,6 +39,10 @@ public class LoadFlowTestTools {
 
     public LfNetwork getLfNetwork() {
         return lfNetwork;
+    }
+
+    public VariableSet getVariableSet() {
+        return variableSet;
     }
 
     public EquationSystem getEquationSystem() {

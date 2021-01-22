@@ -215,7 +215,6 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         double minQ = bus.getMinQ();
         double maxQ = bus.getMaxQ();
         double q = bus.getCalculatedQ() + bus.getLoadTargetQ();
-        // TODO : à priori, rien à faire pour les éventuels bus P_VLQ à passer en PQ ?
         if (q < minQ) {
             pvToPqBuses.add(new PvToPqBus(bus, q, minQ, ReactiveLimitDirection.MIN));
         } else if (q > maxQ) {
@@ -231,7 +230,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             Optional<StaticVarCompensatorVoltageLambdaQEquationTerm> staticVarCompensatorVoltageLambdaQEquationTerm = equationBusVLQ.get().getTerms().stream().filter(equationTerm -> equationTerm instanceof StaticVarCompensatorVoltageLambdaQEquationTerm)
                     .map(StaticVarCompensatorVoltageLambdaQEquationTerm.class::cast).findFirst();
             if (staticVarCompensatorVoltageLambdaQEquationTerm.isPresent()) {
-                // update has been previously called in NewtonRaphsonStatus.runIteration
+                // staticVarCompensatorVoltageLambdaQEquationTerm.get().update(x) previously called in NewtonRaphsonStatus.runIteration
                 return staticVarCompensatorVoltageLambdaQEquationTerm.get().eval();
             }
         }
