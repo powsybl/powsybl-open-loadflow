@@ -768,11 +768,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
     }
 
-    private Set<String> getElementsToReconnect(GraphDecrementalConnectivity<LfBus> connectivity, Set<ComputedContingencyElement> elementsPotentiallyBreakingConnectivity) {
+    private Set<String> getElementsToReconnect(GraphDecrementalConnectivity<LfBus> connectivity, Set<ComputedContingencyElement> breakingConnectivityCandidates) {
         Set<String> elementsToReconnect = new HashSet<>();
 
         Map<Pair<Integer, Integer>, Set<ComputedContingencyElement>> elementsByConnectedComponents =
-                elementsPotentiallyBreakingConnectivity.stream().collect(Collectors.toMap(
+                breakingConnectivityCandidates.stream().collect(Collectors.toMap(
                     element -> Pair.of(connectivity.getComponentNumber(element.getLfBranch().getBus1()), connectivity.getComponentNumber(element.getLfBranch().getBus2())),
                     element -> new HashSet<>(Collections.singletonList(element)),
                     (existing, replacement) -> {
