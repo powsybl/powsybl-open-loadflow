@@ -311,9 +311,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             super(id);
         }
 
-        public void setInjectionByBus(final Map<String, Double> participationToSlackByBus) {
-            participationToSlackByBus.put(getId(), participationToSlackByBus.getOrDefault(getId(), 0d) + 1);
-            injectionByBus = participationToSlackByBus;
+        public void setInjectionByBus(final Map<String, Double> slackParticipationByBus) {
+            slackParticipationByBus.put(getId(), slackParticipationByBus.getOrDefault(getId(), 0d) + 1);
+            injectionByBus = slackParticipationByBus;
         }
 
         @Override
@@ -488,24 +488,24 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return new ArrayList<>(groupIndexedById.values());
     }
 
-    protected void computeInjectionFactors(Function<String, Map<String, Double>> getParticipationPerBus, List<SensitivityFactorGroup> factorGroups) {
-        // compute the corresponding injection (with participation) for each factor
+    protected void computeInjectionFactors(Function<String, Map<String, Double>> getSlackParticipationByBus, List<SensitivityFactorGroup> factorGroups) {
+        // compute the corresponding injection (including participation) for each factor
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             if (factorGroup instanceof InjectionFactorGroup) {
                 InjectionFactorGroup injectionGroup = (InjectionFactorGroup) factorGroup;
-                Map<String, Double> participationFactorByBus = getParticipationPerBus.apply(factorGroup.getId());
+                Map<String, Double> participationFactorByBus = getSlackParticipationByBus.apply(factorGroup.getId());
                 if (participationFactorByBus == null) {
                     factorGroup.getFactors().forEach(factor -> factor.setPredefinedResult(Double.NaN));
                     participationFactorByBus = new HashMap<>();
                 }
 
-                Map<String, Double> participationToSlackByBus = new HashMap<>(participationFactorByBus);
-                injectionGroup.setInjectionByBus(participationToSlackByBus);
+                Map<String, Double> slackParticipationByBus = new HashMap<>(participationFactorByBus);
+                injectionGroup.setInjectionByBus(slackParticipationByBus);
             }
         }
     }
 
-    protected void computeRemainingGlsk(List<SensitivityFactorGroup> factorGroups, GraphDecrementalConnectivity<LfBus> connectivity, Integer mainComponentNumber) {
+    protected void rescaleGlsk(List<SensitivityFactorGroup> factorGroups, GraphDecrementalConnectivity<LfBus> connectivity, Integer mainComponentNumber) {
         // compute the corresponding injection (with participation) for each factor
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             if (!(factorGroup instanceof LinearGlskGroup)) {
@@ -846,20 +846,20 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         // compute the participation to slack distribution for every factor
         List<ParticipatingElement> participatingElements = null;
-        Map<String, Double> participationPerBus;
+        Map<String, Double> slackParticipationByBus;
         if (lfParameters.isDistributedSlack()) {
             participatingElements = getParticipatingElements(lfNetwork, lfParameters);
-            participationPerBus = participatingElements.stream().collect(Collectors.toMap(
+            slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
                 element -> getParticipatingElementLfBus(element).getId(),
                 element -> -element.getFactor(),
                 Double::sum
             ));
         } else {
-            participationPerBus = Collections.singletonMap(lfNetwork.getSlackBus().getId(), -1d);
+            slackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus().getId(), -1d);
         }
         // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
         // buses that contain elements participating to slack distribution
-        computeInjectionFactors(participationPerBus, factorGroups);
+        computeInjectionFactors(slackParticipationByBus, factorGroups);
 
         // contingencies management
         Map<String, ComputedContingencyElement> contingenciesElements =
@@ -906,11 +906,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             }
             // compute the contingencies with loss of connectivity
             for (Map.Entry<Set<ComputedContingencyElement>, List<Contingency>> entry : contingenciesByGroupOfElementsBreakingConnectivity.entrySet()) {
-                Set<ComputedContingencyElement> elementsPotentiallyBreakingConnectivity = entry.getKey();
+                Set<ComputedContingencyElement> breakingConnectivityCandidates = entry.getKey();
                 List<Contingency> contingencyList = entry.getValue();
 
                 lfFactors.forEach(factor -> factor.setPredefinedResult(null));
-                cutConnectivity(lfNetwork, connectivity.getConnectivity(), elementsPotentiallyBreakingConnectivity);
+                cutConnectivity(lfNetwork, connectivity.getConnectivity(), breakingConnectivityCandidates);
 
                 Integer slackBusComponent = connectivity.getConnectivity().getComponentNumber(lfNetwork.getSlackBus());
 
@@ -923,7 +923,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     }
                 }
 
-                computeRemainingGlsk(factorGroups, connectivity.getConnectivity(), slackBusComponent);
+                rescaleGlsk(factorGroups, connectivity.getConnectivity(), slackBusComponent);
 
                 // recompute the participation of each factor
                 if (lfParameters.isDistributedSlack()) {
@@ -931,7 +931,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     participatingElements.forEach(element -> participatingElementsPerCc.computeIfAbsent(connectivity.getConnectivity().getComponentNumber(getParticipatingElementLfBus(element)), key -> new LinkedList<>())
                             .add(element));
                     participatingElementsPerCc.values().forEach(ccElements -> ParticipatingElement.normalizeParticipationFactors(ccElements, "bus"));
-                    Map<Integer, Map<String, Double>> participationPerCc = participatingElementsPerCc.entrySet().stream().collect(Collectors.toMap(
+                    Map<Integer, Map<String, Double>> slackParticipationPerCc = participatingElementsPerCc.entrySet().stream().collect(Collectors.toMap(
                         Map.Entry::getKey,
                         entry2 -> entry2.getValue().stream().collect(Collectors.toMap(
                             element -> getParticipatingElementLfBus(element).getId(),
@@ -941,9 +941,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     ));
                     // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
                     // buses that contain elements participating to slack distribution and that are in the main connected component
-                    Function<String, Map<String, Double>> getParticipationPerBus = busId ->
-                            participationPerCc.get(connectivity.getConnectivity().getComponentNumber(lfNetwork.getBusById(busId)));
-                    computeInjectionFactors(getParticipationPerBus, factorGroups);
+                    Function<String, Map<String, Double>> getSlackParticipationByBus = busId ->
+                            slackParticipationPerCc.get(connectivity.getConnectivity().getComponentNumber(lfNetwork.getBusById(busId)));
+                    computeInjectionFactors(getSlackParticipationByBus, factorGroups);
                     factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
                     fillRhsSensitivityVariable(lfNetwork, equationSystem, factorGroups, factorsStates);
                     jlu.solveTransposed(factorsStates);
@@ -954,7 +954,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     jlu.solveTransposed(factorsStates);
                 }
 
-                Set<String> elementsToReconnect = getElementsToReconnect(connectivity.getConnectivity(), elementsPotentiallyBreakingConnectivity);
+                Set<String> elementsToReconnect = getElementsToReconnect(connectivity.getConnectivity(), breakingConnectivityCandidates);
 
                 for (Contingency contingency : contingencyList) {
                     contingenciesValue.put(contingency.getId(), calculateSensitivityValues(factorGroups, factorsStates, contingenciesStates,
