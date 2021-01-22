@@ -184,8 +184,8 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
     }
 
     /**
-     * b1 (d1) ----------+                +-------------- b6 (g6) ----------+
-     * |                 |                |                |                |
+     * b1 (d1) ----------+                               b6 (g6) ----------+
+     * |                 |                                |                |
      * b2 (g2) -------- b3 (d3) -------- b4 (d4) -------- b5 (d5) -------- b7 (d7)
      *                                    |
      *                                   b8 (d8) --------- b9 (d9)
@@ -323,15 +323,13 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
     }
 
     /**
-     * b1 (d1) ----------+                +-------------- b6 (g6)
-     * |                 |                |                |
-     * b2 (g2) -------- b3 (d3) -------- b4 (d4) -------- b5 (d5) --+
-     * |                                  |                         |
-     * |                                  b7 (d7) --------- b9 (g9) |
-     * |                                   |                 |      |
-     * |                                  b8 (d8) -----------+      |
-     * |                                  |                         |
-     * +----------------------------------+-------------------------+
+     * b1 (d1) ----------+                 +-------------- b6 (g6)
+     * |                 |                 |                |
+     * b2 (g2) -------- b3 (d3) --------  b4 (d4) -------- b5 (d5)
+     * |                                                    |
+     * +--------------------------------- b7 (d7) -------- b8 (d8)
+     *                                     |                 |
+     *                                    b9 (g9) -----------+
      * @return network
      */
     public static Network createThreeCircularCc() {
@@ -417,6 +415,19 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    /**
+     *                              b3 (g3) -------- b5 (d5)
+     *                              /    \             | \
+     *                       -------       \           |  -------
+     *                     /                 \         |         \
+     * b1 (g1+d1) ------ b2 (g2+d2)            \       |        b7 (g7) -------- b8 (d8)
+     *                     \                     \     |         /
+     *                       -------               \   |  -------
+     *                              \                \ | /
+     *                              b4 (d4) -------- b6 (d6)
+
+     * @return network
+     */
     public static Network createHighlyConnectedNetwork() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
