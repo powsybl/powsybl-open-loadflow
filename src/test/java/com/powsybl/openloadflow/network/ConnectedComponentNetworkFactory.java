@@ -417,13 +417,13 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
 
     /**
      *                              b3 (g3) -------- b5 (d5)
-     *                              /    \             | \
-     *                       -------       \           |  -------
-     *                     /                 \         |         \
-     * b1 (g1+d1) ------ b2 (g2+d2)            \       |        b7 (g7) -------- b8 (d8)
-     *                     \                     \     |         /
-     *                       -------               \   |  -------
-     *                              \                \ | /
+     *                              /  | \             | \
+     *                       -------   |   \           |  -------
+     *                     /           |     \         |         \
+     * b1 (g1+d1) ------ b2 (g2+d2)    |       \       |        b7 (g7) -------- b8 (d8)
+     *                     \           |         \     |         /
+     *                       -------   |           \   |  -------
+     *                              \  |             \ | /
      *                              b4 (d4) -------- b6 (d6)
 
      * @return network
