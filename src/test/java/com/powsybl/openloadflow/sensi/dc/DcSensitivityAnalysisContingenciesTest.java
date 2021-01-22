@@ -37,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
 class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysisTest {
+
     @Test
     void testContingencyWithOneElementAwayFromSlack() {
         Network network = FourBusNetworkFactory.create();

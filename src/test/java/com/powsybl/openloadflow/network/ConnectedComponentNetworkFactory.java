@@ -14,6 +14,18 @@ import com.powsybl.iidm.network.TwoWindingsTransformer;
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
 public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFactory {
+
+    /**
+     * b1 ----------+
+     * |            |
+     * b2 -------- b3
+     *              |
+     * b5 -------- b4
+     * |            |
+     * b6 ----------+
+     *
+     * @return network
+     */
     public static Network createTwoCcLinkedByASingleLine() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
@@ -32,6 +44,17 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    /**
+     * b1 (d1) ----------+
+     * |                 |
+     * b2 (g2) -------- b3 (d3)
+     * |                 |
+     * b4 (d4) -------- b5 (d5)
+     * |                 |
+     * b6 (g6) ----------+
+     *
+     * @return network
+     */
     public static Network createTwoCcLinkedByTwoLines() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
@@ -58,6 +81,19 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    /**
+     * b1 (d1) ----------+
+     * |                 |
+     * b2 (g2) -------- b3 (d3)
+     *                   |
+     * b5 (d5) -------- b4 (d4)
+     * |                 |
+     * PTC               |
+     * |                 |
+     * b6 (g6) ----------+
+     *
+     * @return network
+     */
     public static Network createTwoCcWithATransformerLinkedByASingleLine() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
@@ -92,6 +128,17 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    /**
+     * b1 (d1) ----------+
+     * |                 |
+     * b2 (g2) -------- b3 (g3)
+     *                   |
+     * b5 (d5) -------- b4
+     * |                 |
+     * b6 (d6) ----------+
+     *
+     * @return network
+     */
     public static Network createTwoComponentWithGeneratorOnOneSide() {
         Network network = createTwoCcLinkedByASingleLine();
         Bus b2 = network.getBusBreakerView().getBus("b2");
@@ -108,6 +155,17 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    /**
+     * b1 (d1) ----------+
+     * |                 |
+     * b2 (g2) -------- b3 (d3)
+     *                   |
+     * b5 (d5) -------- b4 (d4)
+     * |                 |
+     * b6 (g6) ----------+
+     *
+     * @return network
+     */
     public static Network createTwoComponentWithGeneratorAndLoad() {
         Network network = createTwoCcLinkedByASingleLine();
         Bus b2 = network.getBusBreakerView().getBus("b2");
@@ -125,6 +183,17 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    /**
+     * b1 (d1) ----------+                +-------------- b6 (g6) ----------+
+     * |                 |                |                |                |
+     * b2 (g2) -------- b3 (d3) -------- b4 (d4) -------- b5 (d5) -------- b7 (d7)
+     *                                    |
+     *                                   b8 (d8) --------- b9 (d9)
+     *                                    |                 |
+     *                                   b10 (g10) ---------+
+     *
+     * @return network
+     */
     public static Network createThreeCcLinkedByASingleBus() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
@@ -164,6 +233,19 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    /**
+     * b1 (d1) ----------+
+     * |                 |
+     * b2 (g2) -------- b3 (d3)
+     *                   |
+     *                  b4 (d4)
+     *                   |
+     * b6 (g6) ------   b5 (d5)
+     * |                 |
+     * b7 (d7) ------ ---+
+     *
+     * @return network
+     */
     public static Network createTwoConnectedComponentsLinkedByASerieOfTwoBranches() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
@@ -193,6 +275,17 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    /**
+     * b1 (d1) ----------+                +-------------- b6 (g6)
+     * |                 |                |                |
+     * b2 (g2) -------- b3 (d3) -------- b4 (d4) -------- b5 (d5)
+     *                                    |
+     *                                   b7 (d7) --------- b9 (g9)
+     *                                    |                 |
+     *                                   b8 (d8) -----------+
+     *
+     * @return network
+     */
     public static Network createThreeCc() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
@@ -229,6 +322,18 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    /**
+     * b1 (d1) ----------+                +-------------- b6 (g6)
+     * |                 |                |                |
+     * b2 (g2) -------- b3 (d3) -------- b4 (d4) -------- b5 (d5) --+
+     * |                                  |                         |
+     * |                                  b7 (d7) --------- b9 (g9) |
+     * |                                   |                 |      |
+     * |                                  b8 (d8) -----------+      |
+     * |                                  |                         |
+     * +----------------------------------+-------------------------+
+     * @return network
+     */
     public static Network createThreeCircularCc() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
@@ -266,6 +371,14 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         return network;
     }
 
+    /**
+     * b6 (g6) ----------+                +-------------- b2 (g2) -------- b7 (d7) ----------+
+     * |                 |                |                |                |                |
+     * b5 (d5) -------- b4 (d4) -------- b1 (d1) -------- b3 (d3) -------- b9 (g9) -------- b8 (d8)
+     *                                    |                                                  |
+     *                                    +--------------------------------------------------+
+     * @return network
+     */
     public static Network createAsymetricNetwork() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
