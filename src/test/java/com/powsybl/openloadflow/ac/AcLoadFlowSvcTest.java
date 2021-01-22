@@ -194,10 +194,10 @@ class AcLoadFlowSvcTest {
 
         // build loadflow results
         LoadFlowRunResults<NetworkDescription, RunningParameters> loadFlowRunResults = new LoadFlowRunResults<>();
-//        this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().build(), NetworkDescription.BUS1_GEN_BUS2_SVC, loadFlowRunResults);
-//        this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().addBus2Load().build(), NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD, loadFlowRunResults);
-//        this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().addBus2Load().addBus2Gen().build(), NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN, loadFlowRunResults);
-//        this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().addBus2Load().addBus2Gen().addBus2Sc().build(), NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN_SC, loadFlowRunResults);
+        this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().build(), NetworkDescription.BUS1_GEN_BUS2_SVC, loadFlowRunResults);
+        this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().addBus2Load().build(), NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD, loadFlowRunResults);
+        this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().addBus2Load().addBus2Gen().build(), NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN, loadFlowRunResults);
+        this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().addBus2Load().addBus2Gen().addBus2Sc().build(), NetworkDescription.BUS1_GEN_BUS2_SVC_LOAD_GEN_SC, loadFlowRunResults);
         this.runLoadFlowAndStoreReports(() -> new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().addBus2Load().addBus2Gen().addBus2Sc().addBus1OpenLine().addBus2OpenLine().build(), NetworkDescription.BUS1_GEN_OLINE_BUS2_SVC_LOAD_GEN_SC_OLINE, loadFlowRunResults);
 
         // display results

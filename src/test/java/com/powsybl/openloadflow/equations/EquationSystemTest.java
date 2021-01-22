@@ -37,15 +37,15 @@ class EquationSystemTest {
     private final List<EquationEventType> eventTypes = new ArrayList<>();
 
     private LoadFlowTestTools loadFlowTestToolsSvcVoltage;
-    private LfBus lfBusVoltage;
+    private LfBus lfBus2Voltage;
     private LoadFlowTestTools loadFlowTestToolsSvcVoltageWithSlope;
-    private LfBus lfBusVoltageWithSlope;
+    private LfBus lfBus2VoltageWithSlope;
 
     public EquationSystemTest() {
         loadFlowTestToolsSvcVoltage = new LoadFlowTestTools(new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE).build());
-        lfBusVoltage = loadFlowTestToolsSvcVoltage.getLfNetwork().getBusById("vl2_0");
+        lfBus2Voltage = loadFlowTestToolsSvcVoltage.getLfNetwork().getBusById("vl2_0");
         loadFlowTestToolsSvcVoltageWithSlope = new LoadFlowTestTools(new NetworkBuilder().addNetworkBus1GenBus2Svc().setBus2SvcVoltageAndSlope().build());
-        lfBusVoltageWithSlope = loadFlowTestToolsSvcVoltageWithSlope.getLfNetwork().getBusById("vl2_0");
+        lfBus2VoltageWithSlope = loadFlowTestToolsSvcVoltageWithSlope.getLfNetwork().getBusById("vl2_0");
     }
 
     private void clearEvents() {
@@ -156,25 +156,25 @@ class EquationSystemTest {
     @Test
     void updateActiveEquationVTest() {
         EquationSystem equationSystemVoltage = loadFlowTestToolsSvcVoltage.getEquationSystem();
-        Optional<Equation> equationBusV = equationSystemVoltage.getEquation(lfBusVoltage.getNum(), EquationType.BUS_V);
+        Optional<Equation> equationBusV = equationSystemVoltage.getEquation(lfBus2Voltage.getNum(), EquationType.BUS_V);
         EquationSystem equationSystemVoltageWithSlope = loadFlowTestToolsSvcVoltageWithSlope.getEquationSystem();
-        Optional<Equation> equationBusVLQ = equationSystemVoltageWithSlope.getEquation(lfBusVoltageWithSlope.getNum(), EquationType.BUS_VLQ);
+        Optional<Equation> equationBusVLQ = equationSystemVoltageWithSlope.getEquation(lfBus2VoltageWithSlope.getNum(), EquationType.BUS_VLQ);
 
         // 1 - should update active field on equation with type EquationType.BUS_V
-        equationSystemVoltage.updateActiveEquationV(lfBusVoltage.getNum(), false);
+        equationSystemVoltage.updateActiveEquationV(lfBus2Voltage.getNum(), false);
         assertEquals(false, equationBusV.get().isActive());
-        equationSystemVoltage.updateActiveEquationV(lfBusVoltage.getNum(), true);
+        equationSystemVoltage.updateActiveEquationV(lfBus2Voltage.getNum(), true);
         assertEquals(true, equationBusV.get().isActive());
 
         // 2 - should update active field on equation with type EquationType.BUS_VLQ
-        equationSystemVoltageWithSlope.updateActiveEquationV(lfBusVoltageWithSlope.getNum(), false);
+        equationSystemVoltageWithSlope.updateActiveEquationV(lfBus2VoltageWithSlope.getNum(), false);
         assertEquals(false, equationBusVLQ.get().isActive());
-        equationSystemVoltageWithSlope.updateActiveEquationV(lfBusVoltageWithSlope.getNum(), true);
+        equationSystemVoltageWithSlope.updateActiveEquationV(lfBus2VoltageWithSlope.getNum(), true);
         assertEquals(true, equationBusVLQ.get().isActive());
 
         // 3 - should raise PowsyblException without equation with type EquationType.BUS_V or EquationType.BUS_VLQ
-        equationSystemVoltage.removeEquation(lfBusVoltage.getNum(), EquationType.BUS_V);
-        assertThrows(PowsyblException.class, () -> equationSystemVoltage.updateActiveEquationV(lfBusVoltage.getNum(), true));
+        equationSystemVoltage.removeEquation(lfBus2Voltage.getNum(), EquationType.BUS_V);
+        assertThrows(PowsyblException.class, () -> equationSystemVoltage.updateActiveEquationV(lfBus2Voltage.getNum(), true));
     }
 
     @Test
@@ -186,7 +186,7 @@ class EquationSystemTest {
     @Test
     void getEquationTermsTest() {
         EquationSystem equationSystem = new EquationSystem(loadFlowTestToolsSvcVoltage.getLfNetwork(), false);
-        assertThrows(PowsyblException.class, () -> equationSystem.getEquationTerms(SubjectType.BUS, lfBusVoltage.getNum()), "should not return equationTerms with indexTerms set to false");
+        assertThrows(PowsyblException.class, () -> equationSystem.getEquationTerms(SubjectType.BUS, lfBus2Voltage.getNum()), "should not return equationTerms with indexTerms set to false");
     }
 
     @Test

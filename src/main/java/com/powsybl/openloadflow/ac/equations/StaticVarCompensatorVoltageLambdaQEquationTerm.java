@@ -91,9 +91,23 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
                 x[vVar.getRow()] * bus.getNominalV(), sumEvalQbusMinusShunt * PerUnit.SB, targetV * bus.getNominalV(), (sumEvalQbusMinusShunt - bus.getLoadTargetQ()) * PerUnit.SB);
     }
 
+    public boolean hasToEvalAndDerTerm(EquationTerm equationTerm) {
+        return equationTerm.isActive() &&
+                (equationTerm instanceof ClosedBranchSide1ReactiveFlowEquationTerm
+                        || equationTerm instanceof ClosedBranchSide2ReactiveFlowEquationTerm
+                        || equationTerm instanceof OpenBranchSide1ReactiveFlowEquationTerm
+                        || equationTerm instanceof OpenBranchSide2ReactiveFlowEquationTerm
+                        || equationTerm instanceof ShuntCompensatorReactiveFlowEquationTerm);
+    }
+
+    public boolean hasPhiVar(EquationTerm equationTerm) {
+        return equationTerm instanceof ClosedBranchSide1ReactiveFlowEquationTerm
+                || equationTerm instanceof ClosedBranchSide2ReactiveFlowEquationTerm;
+    }
+
     /**
      *
-     * @param x variable value vector initialize with a VoltageInitializer
+     * @param x vector of variable values initialized with a VoltageInitializer
      * @return sum evaluation and derivatives on branch terms from BUS_Q equation
      */
     private double[] sumEvalAndDerOnBranchTermsFromEquationBUSQ(double[] x, Equation reactiveEquation) {
@@ -102,17 +116,11 @@ public class StaticVarCompensatorVoltageLambdaQEquationTerm extends AbstractName
         double sumDerQdPHbusMinusShunt = 0;
 
         for (EquationTerm equationTerm : reactiveEquation.getTerms()) {
-            if (equationTerm.isActive() &&
-                    (equationTerm instanceof ClosedBranchSide1ReactiveFlowEquationTerm
-                            || equationTerm instanceof ClosedBranchSide2ReactiveFlowEquationTerm
-                            || equationTerm instanceof OpenBranchSide1ReactiveFlowEquationTerm
-                            || equationTerm instanceof OpenBranchSide2ReactiveFlowEquationTerm
-                            || equationTerm instanceof ShuntCompensatorReactiveFlowEquationTerm)) {
+            if (hasToEvalAndDerTerm(equationTerm)) {
                 equationTerm.update(x);
                 sumEvalQbusMinusShunt += equationTerm.eval();
                 sumDerQdVbusMinusShunt += equationTerm.der(vVar);
-                if (equationTerm instanceof ClosedBranchSide1ReactiveFlowEquationTerm
-                    || equationTerm instanceof ClosedBranchSide2ReactiveFlowEquationTerm) {
+                if (hasPhiVar(equationTerm)) {
                     sumDerQdPHbusMinusShunt += equationTerm.der(phiVar);
                 }
             }
