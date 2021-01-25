@@ -247,7 +247,7 @@ class AcLoadFlowTransformerControlTest {
     }
 
     @Test
-    void sharedVoltageControlT2wtTest2() {
+    void sharedVoltageControlT2wtWithZeroImpedanceLinesTest() {
         selectNetwork(createNetworkWithSharedControl());
 
         parameters.setTransformerVoltageControlOn(true);
@@ -267,9 +267,44 @@ class AcLoadFlowTransformerControlTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(134.279, bus2);
-        assertVoltageEquals(35.730, t2wt.getTerminal2().getBusView().getBus());
+        assertVoltageEquals(35.73, t2wt.getTerminal2().getBusView().getBus());
         assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
         assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void sharedVoltageControlT2wtWithZeroImpedanceLinesTest2() {
+        selectNetwork(createNetworkWithSharedControl());
+        network.getVoltageLevel("VL_3").newGenerator()
+                .setId("GEN_3")
+                .setBus("BUS_3")
+                .setMinP(0.0)
+                .setMaxP(35.0)
+                .setTargetP(2)
+                .setTargetV(34.0)
+                .setVoltageRegulatorOn(true)
+                .add();
+
+        parameters.setTransformerVoltageControlOn(true);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+        t2wt2.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt2.getTerminal2())
+                .setTargetV(34.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(136.605, bus2);
+        assertVoltageEquals(34.0, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test

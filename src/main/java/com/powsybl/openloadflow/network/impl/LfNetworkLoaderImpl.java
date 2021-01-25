@@ -244,58 +244,55 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             }
         }
 
-        // Merge the discrete voltage control in each non-impedant connected set
-        Graph<LfBus, LfBranch> nonImpedantSubGraph = getNonImpedantSubGraph(lfNetwork);
-        List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(nonImpedantSubGraph).connectedSets();
+        // Merge the discrete voltage control in each zero impedance connected set
+        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = getZeroImpedanceSubGraph(lfNetwork);
+        List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(zeroImpedanceSubGraph).connectedSets();
         connectedSets.forEach(LfNetworkLoaderImpl::fixDiscreteVoltageControls);
     }
 
-    public static Graph<LfBus, LfBranch> getNonImpedantSubGraph(LfNetwork network) {
-        List<LfBranch> nonImpedantBranches = network.getBranches().stream()
-            .filter(LfNetworkLoaderImpl::isNonImpedantBranch)
+    public static Graph<LfBus, LfBranch> getZeroImpedanceSubGraph(LfNetwork network) {
+        List<LfBranch> zeroImpedanceBranches = network.getBranches().stream()
+            .filter(LfNetworkLoaderImpl::isZeroImpedanceBranch)
             .filter(b -> b.getBus1() != null && b.getBus2() != null)
             .collect(Collectors.toList());
 
-        Graph<LfBus, LfBranch> nonImpedantSubGraph = new Pseudograph<>(LfBranch.class);
-        for (LfBranch branch : nonImpedantBranches) {
-            nonImpedantSubGraph.addVertex(branch.getBus1());
-            nonImpedantSubGraph.addVertex(branch.getBus2());
-            nonImpedantSubGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
+        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = new Pseudograph<>(LfBranch.class);
+        for (LfBranch branch : zeroImpedanceBranches) {
+            zeroImpedanceSubGraph.addVertex(branch.getBus1());
+            zeroImpedanceSubGraph.addVertex(branch.getBus2());
+            zeroImpedanceSubGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
         }
 
-        return  nonImpedantSubGraph;
+        return  zeroImpedanceSubGraph;
     }
 
-    public static boolean isNonImpedantBranch(LfBranch branch) {
+    public static boolean isZeroImpedanceBranch(LfBranch branch) {
         PiModel piModel = branch.getPiModel();
         return piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
     }
 
-    private static void fixDiscreteVoltageControls(Set<LfBus> nonImpedantConnectedSet) {
-
-        // Get the list of discrete controlled buses in the non-impedant connected set
-        List<LfBus> discreteControlledBuses = nonImpedantConnectedSet.stream().filter(LfBus::isDiscreteVoltageControlled).collect(Collectors.toList());
-
+    private static void fixDiscreteVoltageControls(Set<LfBus> zeroImpedanceConnectedSet) {
+        // Get the list of discrete controlled buses in the zero impedance connected set
+        List<LfBus> discreteControlledBuses = zeroImpedanceConnectedSet.stream().filter(LfBus::isDiscreteVoltageControlled).collect(Collectors.toList());
         // First resolve problem of mixed shared controls, that is if there are any generator/svc voltage control together with discrete voltage control(s)
-        boolean hasControlledBus = nonImpedantConnectedSet.stream().anyMatch(lfBus -> !lfBus.getControllerBuses().isEmpty());
+        boolean hasControlledBus = zeroImpedanceConnectedSet.stream().anyMatch(lfBus -> !lfBus.getControllerBuses().isEmpty()
+                || (lfBus.hasVoltageControl() && lfBus.getControllerBuses().isEmpty()));
         if (hasControlledBus) {
-
             // If any generator/svc voltage controls, remove all discrete voltage controls
             // TODO: deal with mixed shared controls instead of removing all discrete voltage controls
-
+            LOGGER.warn("Zero impedance connected set with voltage control and discrete voltage controls: only generator control is kept");
             // First remove them from controllers
             discreteControlledBuses.stream().map(LfBus::getDiscreteVoltageControl).flatMap(dvc -> dvc.getControllers().stream())
                 .forEach(controller -> controller.setDiscreteVoltageControl(null));
-
             // Then remove them from controlled
             discreteControlledBuses.forEach(lfBus -> lfBus.setDiscreteVoltageControl(null));
-
         } else {
             // Then resolve problem of discrete voltage controls
             if (discreteControlledBuses.size() > 1) {
-                // We have conflictuous controls as several controlled bus are in the same non-impedant connected set
-                // To solve that we keep only one voltage control, the other ones are removed
-                // and the corresponding controllers are added to the control kept
+                // We have several discrete controls whose controlled bus are in the same non-impedant connected set
+                // To solve that we keep only one discrete voltage control, the other ones are removed
+                // and the corresponding controllers are added to the discrete control kept
+                LOGGER.info("Zero impedance connected set with several discrete voltage controls: discrete controls merged");
                 LfBus firstControlledBus = discreteControlledBuses.remove(0);
                 DiscreteVoltageControl firstDvc = firstControlledBus.getDiscreteVoltageControl();
                 discreteControlledBuses.stream()

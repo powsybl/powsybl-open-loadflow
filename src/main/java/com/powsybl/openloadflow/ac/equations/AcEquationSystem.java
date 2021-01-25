@@ -24,7 +24,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl.isNonImpedantBranch;
+import static com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl.isZeroImpedanceBranch;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -98,7 +98,7 @@ public final class AcEquationSystem {
         List<EquationTerm> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm q;
-            if (isNonImpedantBranch(branch)) {
+            if (isZeroImpedanceBranch(branch)) {
                 if (branch.getBus1() == controllerBus) {
                     q = new DummyReactivePowerEquationTerm(branch, variableSet);
                 } else {
@@ -311,24 +311,24 @@ public final class AcEquationSystem {
     private static void createBranchEquations(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters,
                                               EquationSystem equationSystem) {
 
-        // create impedant branch equations
+        // create zero and non zero impedance branch equations
         network.getBranches().stream()
-            .filter(b -> !isNonImpedantBranch(b))
+            .filter(b -> !isZeroImpedanceBranch(b))
             .forEach(b -> createImpedantBranch(b, b.getBus1(), b.getBus2(), variableSet, creationParameters, equationSystem));
 
-        // create non impedant equations only on minimum spanning forest calculated from non impedant subgraph
-        Graph<LfBus, LfBranch> nonImpedantSubGraph = LfNetworkLoaderImpl.getNonImpedantSubGraph(network);
-        if (!nonImpedantSubGraph.vertexSet().isEmpty()) {
-            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(nonImpedantSubGraph).connectedSets();
+        // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph
+        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = LfNetworkLoaderImpl.getZeroImpedanceSubGraph(network);
+        if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
+            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(zeroImpedanceSubGraph).connectedSets();
             for (Set<LfBus> connectedSet : connectedSets) {
                 if (connectedSet.size() > 2 && connectedSet.stream().filter(LfBus::hasVoltageControl).count() > 1) {
                     String problBuses = connectedSet.stream().map(LfBus::getId).collect(Collectors.joining(", "));
                     throw new PowsyblException(
-                        "Non impedant branches that connect at least two buses with voltage control (buses: " + problBuses + ")");
+                        "Zero impedance branches that connect at least two buses with voltage control (buses: " + problBuses + ")");
                 }
             }
 
-            SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(nonImpedantSubGraph).getSpanningTree();
+            SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(zeroImpedanceSubGraph).getSpanningTree();
             for (LfBranch branch : spanningTree.getEdges()) {
                 createNonImpedantBranch(variableSet, equationSystem, branch, branch.getBus1(), branch.getBus2());
             }
