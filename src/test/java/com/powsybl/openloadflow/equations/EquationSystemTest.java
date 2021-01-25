@@ -174,7 +174,8 @@ class EquationSystemTest {
 
         // 3 - should raise PowsyblException without equation with type EquationType.BUS_V or EquationType.BUS_VLQ
         equationSystemVoltage.removeEquation(lfBus2Voltage.getNum(), EquationType.BUS_V);
-        assertThrows(PowsyblException.class, () -> equationSystemVoltage.updateActiveEquationV(lfBus2Voltage.getNum(), true));
+        int busNum = lfBus2Voltage.getNum();
+        assertThrows(PowsyblException.class, () -> equationSystemVoltage.updateActiveEquationV(busNum, true));
     }
 
     @Test
@@ -186,7 +187,8 @@ class EquationSystemTest {
     @Test
     void getEquationTermsTest() {
         EquationSystem equationSystem = new EquationSystem(loadFlowTestToolsSvcVoltage.getLfNetwork(), false);
-        assertThrows(PowsyblException.class, () -> equationSystem.getEquationTerms(SubjectType.BUS, lfBus2Voltage.getNum()), "should not return equationTerms with indexTerms set to false");
+        int busNum = lfBus2Voltage.getNum();
+        assertThrows(PowsyblException.class, () -> equationSystem.getEquationTerms(SubjectType.BUS, busNum), "should not return equationTerms with indexTerms set to false");
     }
 
     @Test

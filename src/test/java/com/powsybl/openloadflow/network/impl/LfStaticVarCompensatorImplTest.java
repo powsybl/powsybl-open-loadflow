@@ -6,7 +6,7 @@ import com.powsybl.openloadflow.util.LoadFlowTestTools;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class LfStaticVarCompensatorImplTest {
+class LfStaticVarCompensatorImplTest {
     private LfStaticVarCompensatorImpl lfStaticVarCompensatorReactive;
     private LfStaticVarCompensatorImpl lfStaticVarCompensatorVoltageSlope;
 

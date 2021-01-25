@@ -12,11 +12,12 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class StaticVarCompensatorVoltageLambdaQEquationTermTest {
+class StaticVarCompensatorVoltageLambdaQEquationTermTest {
     private LoadFlowTestTools loadFlowTestToolsSvcVoltageWithSlope;
     private LfBus lfBus1;
     private LfBus lfBus2VoltageWithSlope;
     private VariableSet variableSet;
+    private EquationSystem equationSystem;
     private StaticVarCompensatorVoltageLambdaQEquationTerm staticVarCompensatorVoltageLambdaQEquationTerm;
 
     public StaticVarCompensatorVoltageLambdaQEquationTermTest() {
@@ -24,6 +25,7 @@ public class StaticVarCompensatorVoltageLambdaQEquationTermTest {
         lfBus1 = loadFlowTestToolsSvcVoltageWithSlope.getLfNetwork().getBusById("vl1_0");
         lfBus2VoltageWithSlope = loadFlowTestToolsSvcVoltageWithSlope.getLfNetwork().getBusById("vl2_0");
         variableSet = loadFlowTestToolsSvcVoltageWithSlope.getVariableSet();
+        equationSystem = loadFlowTestToolsSvcVoltageWithSlope.getEquationSystem();
         staticVarCompensatorVoltageLambdaQEquationTerm =
                 loadFlowTestToolsSvcVoltageWithSlope.getEquationSystem().getEquationTerm(SubjectType.BUS, lfBus2VoltageWithSlope.getNum(), StaticVarCompensatorVoltageLambdaQEquationTerm.class);
     }
@@ -35,7 +37,7 @@ public class StaticVarCompensatorVoltageLambdaQEquationTermTest {
                 .map(LfStaticVarCompensatorImpl.class::cast)
                 .collect(Collectors.toList());
         lfStaticVarCompensators.add(lfStaticVarCompensators.get(0));
-        Assertions.assertThrows(PowsyblException.class, () -> new StaticVarCompensatorVoltageLambdaQEquationTerm(lfStaticVarCompensators, lfBus2VoltageWithSlope, loadFlowTestToolsSvcVoltageWithSlope.getVariableSet(), loadFlowTestToolsSvcVoltageWithSlope.getEquationSystem()));
+        Assertions.assertThrows(PowsyblException.class, () -> new StaticVarCompensatorVoltageLambdaQEquationTerm(lfStaticVarCompensators, lfBus2VoltageWithSlope, variableSet, equationSystem));
     }
 
     @Test

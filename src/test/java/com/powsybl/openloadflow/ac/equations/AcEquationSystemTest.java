@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AcEquationSystemTest {
+class AcEquationSystemTest {
     private LoadFlowTestTools loadFlowTestToolsSvcVoltageWithSlope;
     private LfBus lfBus2VoltageWithSlope;
     private LfBus lfBus1;

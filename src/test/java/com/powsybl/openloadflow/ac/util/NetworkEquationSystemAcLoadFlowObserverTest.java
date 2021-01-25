@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class NetworkEquationSystemAcLoadFlowObserverTest {
+class NetworkEquationSystemAcLoadFlowObserverTest {
     private LoadFlowTestTools loadFlowTestTools;
     private LfNetworkAndEquationSystemCreationAcLoadFlowObserver lfNetworkAndEquationSystemCreationAcLoadFlowObserver;
     private Logger logger;

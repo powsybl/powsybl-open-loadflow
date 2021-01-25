@@ -6,11 +6,9 @@
  */
 package com.powsybl.openloadflow.ac.nr;
 
-import com.powsybl.math.matrix.Matrix;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.math.matrix.Matrix;
 import com.powsybl.openloadflow.network.LfNetwork;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -18,7 +16,6 @@ import java.util.List;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class DefaultAcLoadFlowObserver implements AcLoadFlowObserver {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultAcLoadFlowObserver.class);
 
     @Override
     public void beforeNetworksCreation() {

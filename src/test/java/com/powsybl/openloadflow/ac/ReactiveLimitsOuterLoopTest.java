@@ -15,7 +15,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ReactiveLimitsOuterLoopTest {
+class ReactiveLimitsOuterLoopTest {
     private LoadFlowTestTools loadFlowTestToolsSvcReactive;
     private LfBus lfBus2Reactive;
     private LoadFlowTestTools loadFlowTestToolsSvcVoltageWithSlope;
