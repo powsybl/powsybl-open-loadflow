@@ -40,11 +40,13 @@ public class StaticVarCompensatorVoltageLambdaQEquationTermTest {
 
     @Test
     void updateTest() {
+        // getVariable and call update on term with vector of variable values
         Variable vVar = variableSet.getVariable(lfBus2VoltageWithSlope.getNum(), VariableType.BUS_V);
         Variable phiVar = variableSet.getVariable(lfBus2VoltageWithSlope.getNum(), VariableType.BUS_PHI);
         Variable nimpVar = variableSet.getVariable(-1, VariableType.BRANCH_RHO1);
         staticVarCompensatorVoltageLambdaQEquationTerm.update(new double[]{1, 0, 1, 0});
 
+        // assertions
         Assertions.assertEquals(0.995842, staticVarCompensatorVoltageLambdaQEquationTerm.eval(), 1E-6d);
         Assertions.assertEquals(2.199184, staticVarCompensatorVoltageLambdaQEquationTerm.der(vVar), 1E-6d);
         Assertions.assertEquals(-0.4, staticVarCompensatorVoltageLambdaQEquationTerm.der(phiVar), 1E-6d);
@@ -53,6 +55,7 @@ public class StaticVarCompensatorVoltageLambdaQEquationTermTest {
 
     @Test
     void hasToEvalAndDerTermTest() {
+        // build or get equation terms
         Equation equation = loadFlowTestToolsSvcVoltageWithSlope.getEquationSystem().createEquation(lfBus2VoltageWithSlope.getNum(), EquationType.BUS_Q);
         ShuntCompensatorReactiveFlowEquationTerm shuntCompensatorReactiveFlowEquationTerm = equation.getTerms().stream().filter(equationTerm -> equationTerm instanceof ShuntCompensatorReactiveFlowEquationTerm).map(ShuntCompensatorReactiveFlowEquationTerm.class::cast).findFirst().get();
         ClosedBranchSide1ReactiveFlowEquationTerm closedBranchSide1ReactiveFlowEquationTerm =
@@ -64,6 +67,8 @@ public class StaticVarCompensatorVoltageLambdaQEquationTermTest {
         OpenBranchSide2ReactiveFlowEquationTerm openBranchSide2ReactiveFlowEquationTerm =
                 new OpenBranchSide2ReactiveFlowEquationTerm(lfBus1.getBranches().get(0), lfBus1, loadFlowTestToolsSvcVoltageWithSlope.getVariableSet(), false, false);
         BusVoltageEquationTerm busVoltageEquationTerm = new BusVoltageEquationTerm(lfBus1, loadFlowTestToolsSvcVoltageWithSlope.getVariableSet());
+
+        // assertions
         Assertions.assertTrue(staticVarCompensatorVoltageLambdaQEquationTerm.hasToEvalAndDerTerm(closedBranchSide1ReactiveFlowEquationTerm));
         Assertions.assertTrue(staticVarCompensatorVoltageLambdaQEquationTerm.hasToEvalAndDerTerm(closedBranchSide2ReactiveFlowEquationTerm));
         Assertions.assertTrue(staticVarCompensatorVoltageLambdaQEquationTerm.hasToEvalAndDerTerm(openBranchSide1ReactiveFlowEquationTerm));
@@ -76,12 +81,15 @@ public class StaticVarCompensatorVoltageLambdaQEquationTermTest {
 
     @Test
     void hasPhiVarTest() {
+        // build equation terms
         ClosedBranchSide1ReactiveFlowEquationTerm closedBranchSide1ReactiveFlowEquationTerm =
                 new ClosedBranchSide1ReactiveFlowEquationTerm(lfBus1.getBranches().get(0), lfBus1, lfBus2VoltageWithSlope, loadFlowTestToolsSvcVoltageWithSlope.getVariableSet(), false, false);
         ClosedBranchSide2ReactiveFlowEquationTerm closedBranchSide2ReactiveFlowEquationTerm =
                 new ClosedBranchSide2ReactiveFlowEquationTerm(lfBus1.getBranches().get(0), lfBus1, lfBus2VoltageWithSlope, loadFlowTestToolsSvcVoltageWithSlope.getVariableSet(), false, false);
         ShuntCompensatorReactiveFlowEquationTerm shuntCompensatorReactiveFlowEquationTerm =
                 new ShuntCompensatorReactiveFlowEquationTerm(lfBus2VoltageWithSlope.getShunts().get(0), lfBus2VoltageWithSlope, loadFlowTestToolsSvcVoltageWithSlope.getVariableSet());
+
+        // assertions
         Assertions.assertTrue(staticVarCompensatorVoltageLambdaQEquationTerm.hasPhiVar(closedBranchSide1ReactiveFlowEquationTerm));
         Assertions.assertTrue(staticVarCompensatorVoltageLambdaQEquationTerm.hasPhiVar(closedBranchSide2ReactiveFlowEquationTerm));
         Assertions.assertFalse(staticVarCompensatorVoltageLambdaQEquationTerm.hasPhiVar(shuntCompensatorReactiveFlowEquationTerm));

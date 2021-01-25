@@ -128,6 +128,16 @@ public class NetworkBuilder {
         return this;
     }
 
+    public NetworkBuilder setBus2GenRegulationMode(boolean voltageRegulatorOn) {
+        if (voltageRegulatorOn) {
+            bus2gen.setTargetV(385);
+        } else {
+            bus2gen.setTargetQ(300);
+        }
+        bus2gen.setVoltageRegulatorOn(voltageRegulatorOn);
+        return this;
+    }
+
     public NetworkBuilder addBus2Sc() {
         bus2sc = bus2.getVoltageLevel().newShuntCompensator()
                 .setId("bus2sc")

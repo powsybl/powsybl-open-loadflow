@@ -74,17 +74,6 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void getStaticVarCompensatorsWithSlope(LfBus bus, List<LfStaticVarCompensatorImpl> staticVarCompensatorsWithSlope) {
-        bus.getGenerators().stream().filter(lfGenerator -> lfGenerator instanceof LfStaticVarCompensatorImpl)
-                .map(LfStaticVarCompensatorImpl.class::cast)
-                .filter(lfStaticVarCompensatorImpl -> {
-                    VoltagePerReactivePowerControl voltagePerReactivePowerControl = lfStaticVarCompensatorImpl.getVoltagePerReactivePowerControl();
-                    return voltagePerReactivePowerControl != null
-                            && !Double.isNaN(voltagePerReactivePowerControl.getSlope())
-                            && voltagePerReactivePowerControl.getSlope() != 0;
-                }).forEach(staticVarCompensatorsWithSlope::add);
-    }
-
     private static void createLocalVoltageControlBusEquations(LfBus bus, EquationSystem equationSystem, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {
         List<LfStaticVarCompensatorImpl> staticVarCompensatorsWithSlope = new ArrayList<>();
         if (useBusPVLQ(bus, creationParameters, staticVarCompensatorsWithSlope)) {
@@ -94,7 +83,7 @@ public final class AcEquationSystem {
         }
     }
 
-    private static boolean useBusPVLQ(LfBus bus, AcEquationSystemCreationParameters creationParameters, List<LfStaticVarCompensatorImpl> staticVarCompensatorsWithSlope) {
+    public static boolean useBusPVLQ(LfBus bus, AcEquationSystemCreationParameters creationParameters, List<LfStaticVarCompensatorImpl> staticVarCompensatorsWithSlope) {
         if (creationParameters.isUseBusPVLQ()) {
             getStaticVarCompensatorsWithSlope(bus, staticVarCompensatorsWithSlope);
             if (!staticVarCompensatorsWithSlope.isEmpty()) {
@@ -105,6 +94,17 @@ public final class AcEquationSystem {
             }
         }
         return false;
+    }
+
+    public static void getStaticVarCompensatorsWithSlope(LfBus bus, List<LfStaticVarCompensatorImpl> staticVarCompensatorsWithSlope) {
+        bus.getGenerators().stream().filter(lfGenerator -> lfGenerator instanceof LfStaticVarCompensatorImpl)
+                .map(LfStaticVarCompensatorImpl.class::cast)
+                .filter(lfStaticVarCompensatorImpl -> {
+                    VoltagePerReactivePowerControl voltagePerReactivePowerControl = lfStaticVarCompensatorImpl.getVoltagePerReactivePowerControl();
+                    // voltagePerReactivePowerControl.getSlope() cannot be NaN
+                    return voltagePerReactivePowerControl != null
+                            && voltagePerReactivePowerControl.getSlope() != 0;
+                }).forEach(staticVarCompensatorsWithSlope::add);
     }
 
     private static void createVoltageControlledBusEquations(LfBus controlledBus, EquationSystem equationSystem, VariableSet variableSet) {
