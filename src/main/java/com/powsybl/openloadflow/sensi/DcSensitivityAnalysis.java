@@ -508,6 +508,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
 
         if (lfParameters.isDistributedSlack()) {
+            assert step != null; // step should be defined if slack is distributed
             step.resetOriginalValues();
         }
 
