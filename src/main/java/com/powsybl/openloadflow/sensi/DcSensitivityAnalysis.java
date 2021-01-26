@@ -739,7 +739,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     private void setAlphasFlow(Collection<ComputedContingencyElement> contingencyElements,
                                double[] flowStates, DenseMatrix contingencyStates) {
         if (contingencyElements.size() == 1) {
-            ComputedContingencyElement element = contingencyElements.stream().findFirst().get();
+            ComputedContingencyElement element = contingencyElements.iterator().next();
             LfBranch lfBranch = element.getLfBranch();
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
             // we solve a*alpha = b
@@ -778,7 +778,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     private void setAlphasSensi(Collection<ComputedContingencyElement> contingencyElements, SensitivityFactorGroup sensitivityFactorGroup,
                            DenseMatrix factorStates, DenseMatrix contingencyStates) {
         if (contingencyElements.size() == 1) {
-            ComputedContingencyElement element = contingencyElements.stream().findFirst().get();
+            ComputedContingencyElement element = contingencyElements.iterator().next();
             LfBranch lfBranch = element.getLfBranch();
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
             // we solve a*alpha = b
