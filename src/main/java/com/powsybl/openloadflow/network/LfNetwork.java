@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -362,6 +363,17 @@ public class LfNetwork {
         double mismatch = 0;
         for (LfBus b : busesById.values()) {
             mismatch += b.getGenerationTargetP() - b.getLoadTargetP();
+        }
+        return -mismatch;
+    }
+
+    public double getActivePowerMismatchWithinMainComponent(GraphDecrementalConnectivity<LfBus> connectivity) {
+        double mismatch = 0;
+        int mainComponent = connectivity.getComponentNumber(getSlackBus());
+        for (LfBus b : busesById.values()) {
+            if (connectivity.getComponentNumber(b) == mainComponent) {
+                mismatch += b.getGenerationTargetP() - b.getLoadTargetP();
+            }
         }
         return -mismatch;
     }

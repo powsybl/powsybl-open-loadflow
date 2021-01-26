@@ -26,6 +26,10 @@ public final class ActivePowerDistribution {
 
         String getElementType();
 
+        void setOriginalValues(List<ParticipatingElement> participatingElements);
+
+        void resetOriginalValues();
+
         List<ParticipatingElement> getParticipatingElements(LfNetwork network);
 
         double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch);

@@ -465,4 +465,56 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
 
         return network;
     }
+
+    public static Network createHighlyConnectedSingleComponent() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        Bus b5 = createBus(network, "b5");
+
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b3, "l13", 0.1f);
+        createLine(network, b2, b4, "l24", 0.1f);
+        createLine(network, b3, b5, "l35", 0.1f);
+        createLine(network, b4, b5, "l45", 0.1f);
+
+        createGenerator(b1, "g1", 3);
+        createGenerator(b2, "g2", 1);
+        createGenerator(b3, "g3", 1);
+
+        createLoad(b1, "d1", 1);
+        createLoad(b2, "d2", 4);
+        createLoad(b4, "d4", 1);
+        createLoad(b5, "d5", 2);
+
+        return network;
+    }
+
+    public static Network createSubComp() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        Bus b5 = createBus(network, "b5");
+
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b2, b3, "l13", 0.1f);
+        createLine(network, b2, b4, "l24", 0.1f);
+        createLine(network, b3, b5, "l35", 0.1f);
+        createLine(network, b4, b5, "l45", 0.1f);
+
+        createGenerator(b1, "g1", 3);
+        createGenerator(b2, "g2", 1);
+        createGenerator(b3, "g3", 1);
+
+        createLoad(b1, "d1", 1);
+        createLoad(b2, "d2", 4);
+        createLoad(b4, "d4", 1);
+        createLoad(b5, "d5", 2);
+
+        return network;
+    }
 }
