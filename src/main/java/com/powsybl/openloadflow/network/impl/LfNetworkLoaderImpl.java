@@ -353,7 +353,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     private static void createVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId, String legId) {
-        if (rtc != null && rtc.isRegulating()) {
+        if (rtc != null && rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities()) {
             LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
             if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
                 LOGGER.warn("Voltage controller branch {} is open: no voltage control created", controllerBranch.getId());

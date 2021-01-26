@@ -78,7 +78,7 @@ public class LfLegBranch extends AbstractLfBranch {
         }
 
         RatioTapChanger rtc = leg.getRatioTapChanger();
-        if (rtc != null && rtc.isRegulating()) {
+        if (rtc != null && rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities()) {
             if (piModel == null) {
                 Integer ptcPosition = Transformers.getCurrentPosition(leg.getPhaseTapChanger());
                 List<PiModel> models = new ArrayList<>();

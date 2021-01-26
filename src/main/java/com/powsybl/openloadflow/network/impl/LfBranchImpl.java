@@ -84,7 +84,7 @@ public class LfBranchImpl extends AbstractLfBranch {
         }
 
         RatioTapChanger rtc = twt.getRatioTapChanger();
-        if (rtc != null && rtc.isRegulating()) {
+        if (rtc != null && rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities()) {
             if (piModel == null) {
                 Integer ptcPosition = Transformers.getCurrentPosition(twt.getPhaseTapChanger());
                 List<PiModel> models = new ArrayList<>();
