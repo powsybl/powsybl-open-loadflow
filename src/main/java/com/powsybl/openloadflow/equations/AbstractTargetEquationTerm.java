@@ -26,9 +26,13 @@ public abstract class AbstractTargetEquationTerm extends AbstractEquationTerm {
     private double target;
 
     protected AbstractTargetEquationTerm(SubjectType subjectType, int subjectNum, VariableType variableType, VariableSet variableSet) {
+        this(subjectType, subjectNum, Collections.singletonList(variableSet.getVariable(subjectNum, variableType)));
+    }
+
+    protected AbstractTargetEquationTerm(SubjectType subjectType, int subjectNum, final List<Variable> variables) {
         this.subjectType = Objects.requireNonNull(subjectType);
         this.subjectNum = subjectNum;
-        variables = Collections.singletonList(variableSet.getVariable(subjectNum, variableType));
+        this.variables = variables;
     }
 
     @Override

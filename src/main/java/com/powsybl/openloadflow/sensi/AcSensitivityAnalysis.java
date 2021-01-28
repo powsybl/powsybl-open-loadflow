@@ -10,6 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Injection;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -23,11 +24,12 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
+import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.powsybl.openloadflow.OpenLoadFlowProvider.getVoltageInitializer;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -135,9 +137,11 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     /**
      * https://people.montefiore.uliege.be/vct/elec0029/lf.pdf
      */
-    public List<SensitivityValue> analyse(Network network, List<SensitivityFactor> factors, OpenLoadFlowParameters lfParametersExt) {
+    public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors, LoadFlowParameters lfParameters,
+                                          OpenLoadFlowParameters lfParametersExt) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(factors);
+        Objects.requireNonNull(lfParameters);
         Objects.requireNonNull(lfParametersExt);
 
         // create LF network (we only manage main connected component)
@@ -151,7 +155,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, new VariableSet());
 
         // create jacobian matrix from current network state
-        PreviousValueVoltageInitializer voltageInitializer = new PreviousValueVoltageInitializer();
+        VoltageInitializer voltageInitializer = getVoltageInitializer(lfParameters);
+
         JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer);
 
         // initialize right hand side from valid factors
@@ -161,6 +166,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         DenseMatrix states = solve(rhs, j);
 
         // calculate sensitivity values
-        return calculateSensitivityValues(network, factors, lfNetwork, equationSystem, states);
+        return Pair.of(calculateSensitivityValues(network, factors, lfNetwork, equationSystem, states), Collections.emptyMap());
     }
 }

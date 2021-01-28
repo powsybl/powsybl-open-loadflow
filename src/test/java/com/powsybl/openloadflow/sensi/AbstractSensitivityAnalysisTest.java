@@ -18,8 +18,10 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.NameSlackBusSelector;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
+import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
+import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 
 import java.util.Collections;
 import java.util.List;
@@ -33,20 +35,25 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-abstract class AbstractSensitivityAnalysisTest {
+public abstract class AbstractSensitivityAnalysisTest {
 
     protected final DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
 
     protected final OpenSensitivityAnalysisProvider sensiProvider = new OpenSensitivityAnalysisProvider(matrixFactory);
 
-    protected static SensitivityAnalysisParameters createParameters(boolean dc, String slackBusId) {
+    protected static SensitivityAnalysisParameters createParameters(boolean dc, String slackBusId, boolean distributedSlack) {
         SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
         LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
         lfParameters.setDc(dc);
+        lfParameters.setDistributedSlack(distributedSlack);
         OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new NameSlackBusSelector(slackBusId));
         lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
         return sensiParameters;
+    }
+
+    protected static SensitivityAnalysisParameters createParameters(boolean dc, String slackBusId) {
+        return createParameters(dc, slackBusId, false);
     }
 
     protected static <T extends Injection<T>> InjectionIncrease createInjectionIncrease(T injection) {
@@ -71,6 +78,27 @@ abstract class AbstractSensitivityAnalysisTest {
                 .orElse(Double.NaN);
     }
 
+    protected static double getContingencyValue(SensitivityAnalysisResult result, String contingencyId, String variableId, String functionId) {
+        return result.getSensitivityValuesContingencies().get(contingencyId).stream().filter(value -> value.getFactor().getVariable().getId().equals(variableId) && value.getFactor().getFunction().getId().equals(functionId))
+                     .findFirst()
+                     .map(SensitivityValue::getValue)
+                     .orElse(Double.NaN);
+    }
+
+    protected static double getContingencyValue(List<SensitivityValue> result, String variableId, String functionId) {
+        return result.stream().filter(value -> value.getFactor().getVariable().getId().equals(variableId) && value.getFactor().getFunction().getId().equals(functionId))
+                     .findFirst()
+                     .map(SensitivityValue::getValue)
+                     .orElse(Double.NaN);
+    }
+
+    protected static double getFunctionReference(SensitivityAnalysisResult result, String functionId) {
+        return result.getSensitivityValues().stream().filter(value -> value.getFactor().getFunction().getId().equals(functionId))
+                .findFirst()
+                .map(SensitivityValue::getFunctionReference)
+                .orElse(Double.NaN);
+    }
+
     protected void runAcLf(Network network) {
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
                 .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, new LoadFlowParameters())
@@ -80,18 +108,63 @@ abstract class AbstractSensitivityAnalysisTest {
         }
     }
 
+    protected void runDcLf(Network network) {
+        LoadFlowParameters parameters =  new LoadFlowParameters().setDc(true);
+        LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
+                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, parameters)
+                .join();
+        if (!result.isOk()) {
+            throw new PowsyblException("DC LF failed");
+        }
+    }
+
     protected void testInjectionNotFound(boolean dc) {
         Network network = EurostagTutorialExample1Factory.create();
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
-        SensitivityFactorsProvider factorsProvider = n -> {
-            Branch branch = n.getBranch("NHV1_NHV2_1");
-            return Collections.singletonList(new BranchFlowPerInjectionIncrease(createBranchFlow(branch),
-                    new InjectionIncrease("a", "a", "a")));
+        SensitivityFactorsProvider factorsProvider = new SensitivityFactorsProvider() {
+            @Override
+            public List<SensitivityFactor> getFactors(Network network) {
+                Branch branch = network.getBranch("NHV1_NHV2_1");
+                return Collections.singletonList(new BranchFlowPerInjectionIncrease(createBranchFlow(branch),
+                        new InjectionIncrease("a", "a", "a")));
+            }
+
+            @Override
+            public List<SensitivityFactor> getFactors(Network network, String s) {
+                return getFactors(network);
+            }
+        };
+
+        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+                factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault());
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Injection 'a' not found", e.getCause().getMessage());
+    }
+
+    protected void testGlskInjectionNotFound(boolean dc) {
+        Network network = EurostagTutorialExample1Factory.create();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
+        SensitivityFactorsProvider factorsProvider = new SensitivityFactorsProvider() {
+            @Override
+            public List<SensitivityFactor> getFactors(Network network) {
+                Branch branch = network.getBranch("NHV1_NHV2_1");
+                return Collections.singletonList(new BranchFlowPerLinearGlsk(
+                        createBranchFlow(branch),
+                        new LinearGlsk("glsk", "glsk", Collections.singletonMap("a", 10f))));
+            }
+
+            @Override
+            public List<SensitivityFactor> getFactors(Network network, String s) {
+                return getFactors(network);
+            }
         };
         CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
-                factorsProvider, null, sensiParameters, LocalComputationManager.getDefault());
+                factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault());
         CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Injection 'a' not found", e.getCause().getMessage());
@@ -102,13 +175,22 @@ abstract class AbstractSensitivityAnalysisTest {
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
-        SensitivityFactorsProvider factorsProvider = n -> {
-            Generator gen = n.getGenerator("GEN");
-            return Collections.singletonList(new BranchFlowPerInjectionIncrease(new BranchFlow("b", "b", "b"),
-                    createInjectionIncrease(gen)));
+        SensitivityFactorsProvider factorsProvider = new SensitivityFactorsProvider() {
+            @Override
+            public List<SensitivityFactor> getFactors(Network network) {
+                Generator gen = network.getGenerator("GEN");
+                return Collections.singletonList(new BranchFlowPerInjectionIncrease(new BranchFlow("b", "b", "b"),
+                        createInjectionIncrease(gen)));
+            }
+
+            @Override
+            public List<SensitivityFactor> getFactors(Network network, String s) {
+                return getFactors(network);
+            }
         };
+
         CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
-                factorsProvider, null, sensiParameters, LocalComputationManager.getDefault());
+                factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault());
         CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Branch 'b' not found", e.getCause().getMessage());
@@ -119,9 +201,20 @@ abstract class AbstractSensitivityAnalysisTest {
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
-        SensitivityFactorsProvider factorsProvider = n -> Collections.emptyList();
+        SensitivityFactorsProvider factorsProvider = new SensitivityFactorsProvider() {
+            @Override
+            public List<SensitivityFactor> getFactors(Network network) {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public List<SensitivityFactor> getFactors(Network network, String s) {
+                return Collections.emptyList();
+            }
+        };
+
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider,
-                null, sensiParameters, LocalComputationManager.getDefault()).join();
+                Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
         assertTrue(result.getSensitivityValues().isEmpty());
     }
 }

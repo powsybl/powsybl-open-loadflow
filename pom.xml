@@ -56,7 +56,7 @@
         <slf4j.version>1.7.22</slf4j.version>
         <slf4jtoys.version>1.6.2</slf4jtoys.version>
 
-        <powsyblcore.version>3.9.0-SNAPSHOT</powsyblcore.version>
+        <powsyblcore.version>4.0.0-RC2</powsyblcore.version>
     </properties>
 
     <build>
@@ -228,6 +228,12 @@
             <artifactId>powsybl-iidm-test</artifactId>
             <version>${powsyblcore.version}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+            <version>1</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
