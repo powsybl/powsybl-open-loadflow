@@ -88,6 +88,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         private Double functionReference;
 
+        private Double baseSensitivityValue = Double.NaN; // the sensitivity value without any +1-1 (needs to be recomputed if the stack distribution changes)
+
         public LfSensitivityFactor(SensitivityFactor factor, LfNetwork lfNetwork, EquationSystem equationSystem) {
             this.factor = factor;
             if (factor instanceof BranchFlowPerInjectionIncrease) {
@@ -146,6 +148,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         public void setFunctionReference(Double functionReference) {
             this.functionReference = functionReference;
+        }
+
+        public Double getBaseSensitivityValue() {
+            return baseSensitivityValue;
+        }
+
+        public void setBaseSensitivityValue(Double baseSensitivityValue) {
+            this.baseSensitivityValue = baseSensitivityValue;
         }
 
         public boolean areVariableAndFunctionDisconnected(GraphDecrementalConnectivity<LfBus> connectivity) {
@@ -522,7 +532,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             bus.setV(Double.NaN);
         }
         for (LfSensitivityFactor factor : factors) {
-            factor.setFunctionReference(network.getBranchById(factor.getFunctionLfBranchId()).getP1() * PerUnit.SB);
+            factor.setFunctionReference(network.getBranchById(factor.getFunctionLfBranchId()).getP1());
         }
         return dx;
     }
@@ -707,8 +717,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             sensiValue = factor.getPredefinedResult();
             flowValue = factor.getPredefinedResult();
         } else {
-            sensiValue = p1.calculate(factorStates, factorGroup.getIndex());
-            flowValue = factor.getFunctionReference() / PerUnit.SB;
+            sensiValue = factor.getBaseSensitivityValue();
+            flowValue = factor.getFunctionReference();
             for (ComputedContingencyElement contingencyElement : contingencyElements) {
                 if (contingencyElement.getElement().getId().equals(factor.getFunctionLfBranchId())
                         || contingencyElement.getElement().getId().equals(factor.getFactor().getVariable().getId())) {
@@ -717,11 +727,20 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     flowValue = 0d;
                     break;
                 }
-                flowValue = flowValue + contingencyElement.getAlphaFlow() *  p1.calculate(contingenciesStates, contingencyElement.getContingencyIndex());
-                sensiValue = sensiValue + contingencyElement.getAlphaSensi() * p1.calculate(contingenciesStates, contingencyElement.getContingencyIndex());
+                double contingencySensitivity = p1.calculate(contingenciesStates, contingencyElement.getContingencyIndex());
+                flowValue += contingencyElement.getAlphaFlow() * contingencySensitivity;
+                sensiValue +=  contingencyElement.getAlphaSensi() * contingencySensitivity;
             }
         }
         return new SensitivityValue(factor.getFactor(), sensiValue * PerUnit.SB, flowValue * PerUnit.SB, 0);
+    }
+
+    protected void setBaseSensitivityValues(List<SensitivityFactorGroup> factorGroups, DenseMatrix factorsState) {
+        for (SensitivityFactorGroup factorGroup : factorGroups) {
+            for (LfSensitivityFactor factor : factorGroup.getFactors()) {
+                factor.setBaseSensitivityValue(factor.getEquationTerm().calculate(factorsState, factorGroup.getIndex()));
+            }
+        }
     }
 
     protected List<SensitivityValue> calculateSensitivityValues(List<SensitivityFactorGroup> factorGroups, DenseMatrix factorStates,
@@ -1021,6 +1040,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             jlu.solveTransposed(contingenciesStates); // states for the +1 -1 of the contingencies
 
             // sensitivity values for base case.
+            setBaseSensitivityValues(factorGroups, factorsStates);
             List<SensitivityValue> sensitivityValues = calculateSensitivityValues(factorGroups,
                     factorsStates, contingenciesStates, stateFlow, Collections.emptyList());
 
@@ -1083,12 +1103,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
                     fillRhsSensitivityVariable(lfNetwork, equationSystem, factorGroups, factorsStates);
                     jlu.solveTransposed(factorsStates);
+                    setBaseSensitivityValues(factorGroups, factorsStates);
                     participatingElementsForThisConnectivity = participatingElementsPerCc.get(slackBusComponent);
                 } else if (hasGlsk) {
                     computeInjectionFactors(Collections.singletonMap(lfNetwork.getSlackBus().getId(), -1d), factorGroups);
                     factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
                     fillRhsSensitivityVariable(lfNetwork, equationSystem, factorGroups, factorsStates);
                     jlu.solveTransposed(factorsStates);
+                    setBaseSensitivityValues(factorGroups, factorsStates);
                 }
 
                 stateFlow = setFunctionReferenceOnFactors(lfNetwork, equationSystem, jlu, lfFactors, lfParameters, participatingElementsForThisConnectivity, connectivity.getConnectivity());
