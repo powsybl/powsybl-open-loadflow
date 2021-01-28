@@ -274,6 +274,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     private static void fixDiscreteVoltageControls(Set<LfBus> zeroImpedanceConnectedSet) {
         // Get the list of discrete controlled buses in the zero impedance connected set
         List<LfBus> discreteControlledBuses = zeroImpedanceConnectedSet.stream().filter(LfBus::isDiscreteVoltageControlled).collect(Collectors.toList());
+        if (discreteControlledBuses.isEmpty()) {
+            return;
+        }
+
         // First resolve problem of mixed shared controls, that is if there are any generator/svc voltage control together with discrete voltage control(s)
         // Check if there is one bus with remote voltage control or local voltage control
         boolean hasControlledBus = zeroImpedanceConnectedSet.stream().anyMatch(lfBus -> !lfBus.getControllerBuses().isEmpty()
