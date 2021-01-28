@@ -38,7 +38,6 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -580,19 +579,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return new ArrayList<>(groupIndexedById.values());
     }
 
-    protected void computeInjectionFactors(Function<String, Map<String, Double>> getSlackParticipationByBus, List<SensitivityFactorGroup> factorGroups) {
+    protected void computeInjectionFactors(Map<String, Double> participationMap, List<SensitivityFactorGroup> factorGroups) {
         // compute the corresponding injection (including participation) for each factor
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             if (factorGroup instanceof InjectionFactorGroup) {
                 InjectionFactorGroup injectionGroup = (InjectionFactorGroup) factorGroup;
-                Map<String, Double> participationFactorByBus = getSlackParticipationByBus.apply(factorGroup.getId());
-                if (participationFactorByBus == null) {
-                    factorGroup.getFactors().forEach(factor -> factor.setPredefinedResult(Double.NaN));
-                    participationFactorByBus = new HashMap<>();
-                }
-
-                Map<String, Double> slackParticipationByBus = new HashMap<>(participationFactorByBus);
-                injectionGroup.setInjectionByBus(slackParticipationByBus);
+                injectionGroup.setInjectionByBus(new HashMap<>(participationMap));
             }
         }
     }
@@ -611,10 +603,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                      ));
             glskGroup.setGlskMapInMainComponent(remainingGlskInjections);
         }
-    }
-
-    protected void computeInjectionFactors(Map<String, Double> participationMap, List<SensitivityFactorGroup> factorGroups) {
-        computeInjectionFactors(x -> participationMap, factorGroups);
     }
 
     protected LfBus getParticipatingElementLfBus(ParticipatingElement participatingElement) {
@@ -1084,29 +1072,23 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
                 // we need to recompute the factor states because the connectivity changed
                 if (lfParameters.isDistributedSlack() || hasGlsk) {
-                    Function<String, Map<String, Double>> getSlackParticipationByBus;
+                    Map<String, Double> slackParticipation;
 
                     if (lfParameters.isDistributedSlack()) {
-                        Map<Integer, List<ParticipatingElement>> participatingElementsPerCc = new HashMap<>();
-                        participatingElements.forEach(element -> participatingElementsPerCc.computeIfAbsent(connectivity.getConnectivity().getComponentNumber(getParticipatingElementLfBus(element)), key -> new LinkedList<>())
-                                                                                           .add(element));
-                        participatingElementsPerCc.values().forEach(ccElements -> ParticipatingElement.normalizeParticipationFactors(ccElements, "bus"));
-                        Map<Integer, Map<String, Double>> slackParticipationPerCc = participatingElementsPerCc.entrySet().stream().collect(Collectors.toMap(
-                            Map.Entry::getKey,
-                            entry2 -> entry2.getValue().stream().collect(Collectors.toMap(
-                                element -> getParticipatingElementLfBus(element).getId(),
-                                element -> -element.getFactor(),
-                                Double::sum
-                            ))
+                        participatingElementsForThisConnectivity = participatingElements.stream()
+                                                                                        .filter(element -> connectivity.getConnectivity().getComponentNumber(getParticipatingElementLfBus(element)) == slackBusComponent)
+                                                                                        .collect(Collectors.toList()); // will also be used to recompute the loadflow
+                        ParticipatingElement.normalizeParticipationFactors(participatingElementsForThisConnectivity, "bus");
+                        slackParticipation = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(
+                            element -> getParticipatingElementLfBus(element).getId(),
+                            element -> -element.getFactor(),
+                            Double::sum
                         ));
-                        participatingElementsForThisConnectivity = participatingElementsPerCc.get(slackBusComponent); // will be used to recompute the loadflow
-                        getSlackParticipationByBus = busId ->
-                                slackParticipationPerCc.get(connectivity.getConnectivity().getComponentNumber(lfNetwork.getBusById(busId)));
                     } else {
-                        getSlackParticipationByBus = busId -> Collections.singletonMap(lfNetwork.getSlackBus().getId(), -1d);
+                        slackParticipation = Collections.singletonMap(lfNetwork.getSlackBus().getId(), -1d);
                     }
 
-                    computeInjectionFactors(getSlackParticipationByBus, factorGroups);
+                    computeInjectionFactors(slackParticipation, factorGroups);
                     factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
                     fillRhsSensitivityVariable(lfNetwork, equationSystem, factorGroups, factorsStates);
                     jlu.solveTransposed(factorsStates);
