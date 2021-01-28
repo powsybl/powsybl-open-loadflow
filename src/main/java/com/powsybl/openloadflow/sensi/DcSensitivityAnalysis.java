@@ -1062,7 +1062,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             for (Map.Entry<Set<ComputedContingencyElement>, List<LfContingency>> entry : contingenciesByGroupOfElementsBreakingConnectivity.entrySet()) {
                 Set<ComputedContingencyElement> breakingConnectivityCandidates = entry.getKey();
                 List<LfContingency> contingencyList = entry.getValue();
-                List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
                 lfFactors.forEach(factor -> factor.setPredefinedResult(null));
                 cutConnectivity(lfNetwork, connectivity.getConnectivity(), breakingConnectivityCandidates);
 
@@ -1077,34 +1076,37 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     }
                 }
 
+                // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
                 rescaleGlsk(factorGroups, connectivity.getConnectivity(), slackBusComponent);
 
-                // recompute the participation of each factor
-                if (lfParameters.isDistributedSlack()) {
-                    Map<Integer, List<ParticipatingElement>> participatingElementsPerCc = new HashMap<>();
-                    participatingElements.forEach(element -> participatingElementsPerCc.computeIfAbsent(connectivity.getConnectivity().getComponentNumber(getParticipatingElementLfBus(element)), key -> new LinkedList<>())
-                            .add(element));
-                    participatingElementsPerCc.values().forEach(ccElements -> ParticipatingElement.normalizeParticipationFactors(ccElements, "bus"));
-                    Map<Integer, Map<String, Double>> slackParticipationPerCc = participatingElementsPerCc.entrySet().stream().collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry2 -> entry2.getValue().stream().collect(Collectors.toMap(
-                            element -> getParticipatingElementLfBus(element).getId(),
-                            element -> -element.getFactor(),
-                            Double::sum
-                        ))
-                    ));
-                    // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
-                    // buses that contain elements participating to slack distribution and that are in the main connected component
-                    Function<String, Map<String, Double>> getSlackParticipationByBus = busId ->
-                            slackParticipationPerCc.get(connectivity.getConnectivity().getComponentNumber(lfNetwork.getBusById(busId)));
+                // null and unused if slack is not distributed
+                List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
+
+                // we need to recompute the factor states because the connectivity changed
+                if (lfParameters.isDistributedSlack() || hasGlsk) {
+                    Function<String, Map<String, Double>> getSlackParticipationByBus;
+
+                    if (lfParameters.isDistributedSlack()) {
+                        Map<Integer, List<ParticipatingElement>> participatingElementsPerCc = new HashMap<>();
+                        participatingElements.forEach(element -> participatingElementsPerCc.computeIfAbsent(connectivity.getConnectivity().getComponentNumber(getParticipatingElementLfBus(element)), key -> new LinkedList<>())
+                                                                                           .add(element));
+                        participatingElementsPerCc.values().forEach(ccElements -> ParticipatingElement.normalizeParticipationFactors(ccElements, "bus"));
+                        Map<Integer, Map<String, Double>> slackParticipationPerCc = participatingElementsPerCc.entrySet().stream().collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            entry2 -> entry2.getValue().stream().collect(Collectors.toMap(
+                                element -> getParticipatingElementLfBus(element).getId(),
+                                element -> -element.getFactor(),
+                                Double::sum
+                            ))
+                        ));
+                        participatingElementsForThisConnectivity = participatingElementsPerCc.get(slackBusComponent); // will be used to recompute the loadflow
+                        getSlackParticipationByBus = busId ->
+                                slackParticipationPerCc.get(connectivity.getConnectivity().getComponentNumber(lfNetwork.getBusById(busId)));
+                    } else {
+                        getSlackParticipationByBus = busId -> Collections.singletonMap(lfNetwork.getSlackBus().getId(), -1d);
+                    }
+
                     computeInjectionFactors(getSlackParticipationByBus, factorGroups);
-                    factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
-                    fillRhsSensitivityVariable(lfNetwork, equationSystem, factorGroups, factorsStates);
-                    jlu.solveTransposed(factorsStates);
-                    setBaseSensitivityValues(factorGroups, factorsStates);
-                    participatingElementsForThisConnectivity = participatingElementsPerCc.get(slackBusComponent);
-                } else if (hasGlsk) {
-                    computeInjectionFactors(Collections.singletonMap(lfNetwork.getSlackBus().getId(), -1d), factorGroups);
                     factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
                     fillRhsSensitivityVariable(lfNetwork, equationSystem, factorGroups, factorsStates);
                     jlu.solveTransposed(factorsStates);
