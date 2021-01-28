@@ -707,8 +707,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
     }
 
-    private SensitivityValue createBranchSensitivityValue(LfSensitivityFactor factor, SensitivityFactorGroup factorGroup,
-                                                          DenseMatrix factorStates, DenseMatrix contingenciesStates,
+    private SensitivityValue createBranchSensitivityValue(LfSensitivityFactor factor, DenseMatrix contingenciesStates,
                                                           Collection<ComputedContingencyElement> contingencyElements) {
         double sensiValue;
         double flowValue;
@@ -750,7 +749,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             setAlphasSensi(contingencyElements, factorGroup, factorStates, contingenciesStates);
             for (LfSensitivityFactor factor : factorGroup.getFactors()) {
-                sensitivityValuesContingencies.add(createBranchSensitivityValue(factor, factorGroup, factorStates, contingenciesStates, contingencyElements));
+                sensitivityValuesContingencies.add(createBranchSensitivityValue(factor, contingenciesStates, contingencyElements));
             }
         }
         return sensitivityValuesContingencies;
@@ -898,9 +897,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return rhs;
     }
 
-    private void detectConnectivityLoss(LfNetwork lfNetwork, DenseMatrix states, List<LfContingency> contingencies, Collection<ComputedContingencyElement> contingenciesElements,
-                                        EquationSystem equationSystem, Collection<LfContingency> nonLosingConnectivityContingencies,
-                                        Map<Set<ComputedContingencyElement>, List<LfContingency>> contingenciesByGroupOfElementsBreakingConnectivity) {
+    private void detectConnectivityLoss(LfNetwork lfNetwork, DenseMatrix states, List<LfContingency> contingencies, EquationSystem equationSystem,
+                                        Collection<LfContingency> nonLosingConnectivityContingencies, Map<Set<ComputedContingencyElement>, List<LfContingency>> contingenciesByGroupOfElementsBreakingConnectivity) {
         for (LfContingency contingency : contingencies) {
             Set<ComputedContingencyElement> groupOfElementsBreakingConnectivity = getGroupOfElementsBreakingConnectivity(lfNetwork, states,
                    contingency.getElements(), equationSystem);
@@ -1052,7 +1050,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             Collection<LfContingency> nonLosingConnectivityContingencies = new LinkedList<>();
             Map<Set<ComputedContingencyElement>, List<LfContingency>> contingenciesByGroupOfElementsBreakingConnectivity = new HashMap<>();
 
-            detectConnectivityLoss(lfNetwork, contingenciesStates, lfContingencies, contingenciesElements, equationSystem, nonLosingConnectivityContingencies, contingenciesByGroupOfElementsBreakingConnectivity);
+            detectConnectivityLoss(lfNetwork, contingenciesStates, lfContingencies, equationSystem, nonLosingConnectivityContingencies, contingenciesByGroupOfElementsBreakingConnectivity);
 
             Map<String, List<SensitivityValue>> contingenciesValue = new HashMap<>();
             // compute the contingencies without loss of connectivity
