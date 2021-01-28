@@ -32,11 +32,11 @@ import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Provider;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -57,15 +57,15 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
     private final MatrixFactory matrixFactory;
 
-    private final Provider<GraphDecrementalConnectivity<LfBus>> connectivityProvider;
+    private final Supplier<GraphDecrementalConnectivity<LfBus>> connectivitySupplier;
 
     public OpenSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
-                                MatrixFactory matrixFactory, Provider<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
+                                MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivitySupplier) {
         this.network = Objects.requireNonNull(network);
         this.detector = Objects.requireNonNull(detector);
         this.filter = Objects.requireNonNull(filter);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        this.connectivityProvider = Objects.requireNonNull(connectivityProvider);
+        this.connectivitySupplier = Objects.requireNonNull(connectivitySupplier);
     }
 
     @Override
@@ -438,7 +438,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
     }
 
     private GraphDecrementalConnectivity<LfBus> createConnectivity(LfNetwork network) {
-        GraphDecrementalConnectivity<LfBus> connectivity = connectivityProvider.get();
+        GraphDecrementalConnectivity<LfBus> connectivity = connectivitySupplier.get();
         for (LfBus bus : network.getBuses()) {
             connectivity.addVertex(bus);
         }

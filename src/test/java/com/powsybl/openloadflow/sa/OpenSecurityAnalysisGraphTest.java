@@ -32,8 +32,8 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Provider;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -139,10 +139,10 @@ class OpenSecurityAnalysisGraphTest {
         }
     }
 
-    List<List<LfContingency>> getLoadFlowContingencies(Provider<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
+    List<List<LfContingency>> getLoadFlowContingencies(Supplier<GraphDecrementalConnectivity<LfBus>> connectivitySupplier) {
 
         OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
-            new LimitViolationFilter(), new DenseMatrixFactory(), connectivityProvider);
+            new LimitViolationFilter(), new DenseMatrixFactory(), connectivitySupplier);
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowProvider.getParametersExt(securityAnalysisParameters.getLoadFlowParameters());

@@ -18,8 +18,8 @@ import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisFactory;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 
-import javax.inject.Provider;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -27,29 +27,29 @@ import java.util.Objects;
 public class OpenSecurityAnalysisFactory implements SecurityAnalysisFactory {
 
     private final MatrixFactory matrixFactory;
-    private final Provider<GraphDecrementalConnectivity<LfBus>> connectivityProvider;
+    private final Supplier<GraphDecrementalConnectivity<LfBus>> connectivitySupplier;
 
     public OpenSecurityAnalysisFactory() {
         this(new SparseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
     }
 
-    public OpenSecurityAnalysisFactory(MatrixFactory matrixFactory, Provider<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
+    public OpenSecurityAnalysisFactory(MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivitySupplier) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        this.connectivityProvider = Objects.requireNonNull(connectivityProvider);
+        this.connectivitySupplier = Objects.requireNonNull(connectivitySupplier);
     }
 
     @Override
     public OpenSecurityAnalysis create(Network network, ComputationManager computationManager, int priority) {
-        return new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(), new LimitViolationFilter(), matrixFactory, connectivityProvider);
+        return new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(), new LimitViolationFilter(), matrixFactory, connectivitySupplier);
     }
 
     @Override
     public OpenSecurityAnalysis create(Network network, LimitViolationFilter filter, ComputationManager computationManager, int priority) {
-        return new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(), filter, matrixFactory, connectivityProvider);
+        return new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(), filter, matrixFactory, connectivitySupplier);
     }
 
     @Override
     public OpenSecurityAnalysis create(Network network, LimitViolationDetector detector, LimitViolationFilter filter, ComputationManager computationManager, int priority) {
-        return new OpenSecurityAnalysis(network, detector, filter, matrixFactory, connectivityProvider);
+        return new OpenSecurityAnalysis(network, detector, filter, matrixFactory, connectivitySupplier);
     }
 }
