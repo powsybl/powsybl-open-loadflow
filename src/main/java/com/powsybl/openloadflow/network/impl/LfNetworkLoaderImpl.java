@@ -12,9 +12,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
-import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
-import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +20,6 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static com.powsybl.openloadflow.network.LfNetwork.LOW_IMPEDANCE_THRESHOLD;
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
@@ -243,32 +240,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 legNumber++;
             }
         }
-
-        // Merge the discrete voltage control in each zero impedance connected set
-        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = getZeroImpedanceSubGraph(lfNetwork);
-        List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(zeroImpedanceSubGraph).connectedSets();
-        connectedSets.forEach(LfNetworkLoaderImpl::fixDiscreteVoltageControls);
-    }
-
-    public static Graph<LfBus, LfBranch> getZeroImpedanceSubGraph(LfNetwork network) {
-        List<LfBranch> zeroImpedanceBranches = network.getBranches().stream()
-            .filter(LfNetworkLoaderImpl::isZeroImpedanceBranch)
-            .filter(b -> b.getBus1() != null && b.getBus2() != null)
-            .collect(Collectors.toList());
-
-        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = new Pseudograph<>(LfBranch.class);
-        for (LfBranch branch : zeroImpedanceBranches) {
-            zeroImpedanceSubGraph.addVertex(branch.getBus1());
-            zeroImpedanceSubGraph.addVertex(branch.getBus2());
-            zeroImpedanceSubGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
-        }
-
-        return  zeroImpedanceSubGraph;
-    }
-
-    public static boolean isZeroImpedanceBranch(LfBranch branch) {
-        PiModel piModel = branch.getPiModel();
-        return piModel.getZ() < LOW_IMPEDANCE_THRESHOLD;
     }
 
     private static void fixDiscreteVoltageControls(Set<LfBus> zeroImpedanceConnectedSet) {
@@ -402,16 +373,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
         createBuses(buses, parameters.isGeneratorVoltageRemoteControl(), parameters.isBreakers(), lfNetwork, loadingContext, report);
         createBranches(lfNetwork, loadingContext, report, parameters.isTwtSplitShuntAdmittance(), parameters.isBreakers());
-        if (switches != null) {
-            for (Switch sw : switches) {
-                VoltageLevel vl = sw.getVoltageLevel();
-                Bus bus1 = vl.getBusBreakerView().getBus1(sw.getId());
-                Bus bus2 = vl.getBusBreakerView().getBus2(sw.getId());
-                LfBus lfBus1 = lfNetwork.getBusById(bus1.getId());
-                LfBus lfBus2 = lfNetwork.getBusById(bus2.getId());
-                lfNetwork.addBranch(new LfSwitch(lfBus1, lfBus2, sw));
-            }
-        }
+        createSwitches(switches, lfNetwork);
+
+        // Merge the discrete voltage control in each zero impedance connected set
+        List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.getZeroImpedanceSubGraph()).connectedSets();
+        connectedSets.forEach(LfNetworkLoaderImpl::fixDiscreteVoltageControls);
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
@@ -451,6 +417,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
 
         return lfNetwork;
+    }
+
+    private static void createSwitches(List<Switch> switches, LfNetwork lfNetwork) {
+        if (switches != null) {
+            for (Switch sw : switches) {
+                VoltageLevel vl = sw.getVoltageLevel();
+                Bus bus1 = vl.getBusBreakerView().getBus1(sw.getId());
+                Bus bus2 = vl.getBusBreakerView().getBus2(sw.getId());
+                LfBus lfBus1 = lfNetwork.getBusById(bus1.getId());
+                LfBus lfBus2 = lfNetwork.getBusById(bus2.getId());
+                lfNetwork.addBranch(new LfSwitch(lfBus1, lfBus2, sw));
+            }
+        }
     }
 
     @Override

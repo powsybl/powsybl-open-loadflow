@@ -11,6 +11,8 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import net.jafama.FastMath;
+import org.jgrapht.Graph;
+import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +53,7 @@ public class LfNetwork {
     private final Map<String, LfBranch> branchesById = new HashMap<>();
 
     private int shuntCount = 0;
+    private Graph<LfBus, LfBranch> zeroImpedanceSubGraph;
 
     public LfNetwork(int num, SlackBusSelector slackBusSelector) {
         this.num = num;
@@ -417,6 +420,34 @@ public class LfNetwork {
             }
         }
         throw new PowsyblException("Cannot importer network of type: " + network.getClass().getName());
+    }
+
+    public Graph<LfBus, LfBranch> getZeroImpedanceSubGraph() {
+        if (zeroImpedanceSubGraph == null) {
+            this.zeroImpedanceSubGraph = createZeroImpedanceSubGraph();
+        }
+        return zeroImpedanceSubGraph;
+    }
+
+    public Graph<LfBus, LfBranch> createZeroImpedanceSubGraph() {
+        List<LfBranch> zeroImpedanceBranches = getBranches().stream()
+            .filter(LfNetwork::isZeroImpedanceBranch)
+            .filter(b -> b.getBus1() != null && b.getBus2() != null)
+            .collect(Collectors.toList());
+
+        Graph<LfBus, LfBranch> subGraph = new Pseudograph<>(LfBranch.class);
+        for (LfBranch branch : zeroImpedanceBranches) {
+            subGraph.addVertex(branch.getBus1());
+            subGraph.addVertex(branch.getBus2());
+            subGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
+        }
+
+        return  subGraph;
+    }
+
+    public static boolean isZeroImpedanceBranch(LfBranch branch) {
+        PiModel piModel = branch.getPiModel();
+        return piModel.getZ() < LOW_IMPEDANCE_THRESHOLD;
     }
 
 }

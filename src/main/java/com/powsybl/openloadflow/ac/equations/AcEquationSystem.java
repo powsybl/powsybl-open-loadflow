@@ -10,7 +10,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
@@ -23,8 +22,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl.isZeroImpedanceBranch;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -98,7 +95,7 @@ public final class AcEquationSystem {
         List<EquationTerm> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm q;
-            if (isZeroImpedanceBranch(branch)) {
+            if (LfNetwork.isZeroImpedanceBranch(branch)) {
                 if (branch.getBus1() == controllerBus) {
                     q = new DummyReactivePowerEquationTerm(branch, variableSet);
                 } else {
@@ -313,11 +310,11 @@ public final class AcEquationSystem {
 
         // create zero and non zero impedance branch equations
         network.getBranches().stream()
-            .filter(b -> !isZeroImpedanceBranch(b))
+            .filter(b -> !LfNetwork.isZeroImpedanceBranch(b))
             .forEach(b -> createImpedantBranch(b, b.getBus1(), b.getBus2(), variableSet, creationParameters, equationSystem));
 
         // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph
-        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = LfNetworkLoaderImpl.getZeroImpedanceSubGraph(network);
+        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.getZeroImpedanceSubGraph();
         if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
             List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(zeroImpedanceSubGraph).connectedSets();
             for (Set<LfBus> connectedSet : connectedSets) {
