@@ -242,7 +242,29 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void fixDiscreteVoltageControls(Set<LfBus> zeroImpedanceConnectedSet) {
+    private static void createSwitches(List<Switch> switches, LfNetwork lfNetwork) {
+        if (switches != null) {
+            for (Switch sw : switches) {
+                VoltageLevel vl = sw.getVoltageLevel();
+                Bus bus1 = vl.getBusBreakerView().getBus1(sw.getId());
+                Bus bus2 = vl.getBusBreakerView().getBus2(sw.getId());
+                LfBus lfBus1 = lfNetwork.getBusById(bus1.getId());
+                LfBus lfBus2 = lfNetwork.getBusById(bus2.getId());
+                lfNetwork.addBranch(new LfSwitch(lfBus1, lfBus2, sw));
+            }
+        }
+    }
+
+    private static void fixDiscreteVoltageControls(LfNetwork lfNetwork, boolean minImpedance) {
+        // If min impedance is set, there is no zero-impedance branch
+        if (!minImpedance) {
+            // Merge the discrete voltage control in each zero impedance connected set
+            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.getZeroImpedanceSubGraph()).connectedSets();
+            connectedSets.forEach(LfNetworkLoaderImpl::fixDiscreteVoltageControlsOnConnectedComponent);
+        }
+    }
+
+    private static void fixDiscreteVoltageControlsOnConnectedComponent(Set<LfBus> zeroImpedanceConnectedSet) {
         // Get the list of discrete controlled buses in the zero impedance connected set
         List<LfBus> discreteControlledBuses = zeroImpedanceConnectedSet.stream().filter(LfBus::isDiscreteVoltageControlled).collect(Collectors.toList());
         if (discreteControlledBuses.isEmpty()) {
@@ -375,9 +397,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         createBranches(lfNetwork, loadingContext, report, parameters.isTwtSplitShuntAdmittance(), parameters.isBreakers());
         createSwitches(switches, lfNetwork);
 
-        // Merge the discrete voltage control in each zero impedance connected set
-        List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.getZeroImpedanceSubGraph()).connectedSets();
-        connectedSets.forEach(LfNetworkLoaderImpl::fixDiscreteVoltageControls);
+        fixDiscreteVoltageControls(lfNetwork, parameters.isMinImpedance());
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
@@ -417,19 +437,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
 
         return lfNetwork;
-    }
-
-    private static void createSwitches(List<Switch> switches, LfNetwork lfNetwork) {
-        if (switches != null) {
-            for (Switch sw : switches) {
-                VoltageLevel vl = sw.getVoltageLevel();
-                Bus bus1 = vl.getBusBreakerView().getBus1(sw.getId());
-                Bus bus2 = vl.getBusBreakerView().getBus2(sw.getId());
-                LfBus lfBus1 = lfNetwork.getBusById(bus1.getId());
-                LfBus lfBus2 = lfNetwork.getBusById(bus2.getId());
-                lfNetwork.addBranch(new LfSwitch(lfBus1, lfBus2, sw));
-            }
-        }
     }
 
     @Override
