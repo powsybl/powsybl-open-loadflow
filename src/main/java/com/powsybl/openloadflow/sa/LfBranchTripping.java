@@ -60,59 +60,32 @@ public class LfBranchTripping extends AbstractTrippingTask {
         Objects.requireNonNull(switchesToOpen);
         Objects.requireNonNull(traversedTerminals);
 
+        if (terminal.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
+            traverseNodeBreakerVoltageLevelsFromTerminal(terminal, switchesToOpen, traversedTerminals);
+        } else { // Bus breaker view
+            terminal.traverse(new BusBreakerTraverser(traversedTerminals));
+        }
+    }
+
+    private void traverseNodeBreakerVoltageLevelsFromTerminal(Terminal terminal, Set<Switch> switchesToOpen, Set<Terminal> traversedTerminals) {
         if (traversedTerminals.contains(terminal)) {
             return;
         }
         traversedTerminals.add(terminal);
 
-        if (terminal.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
+        int initNode = terminal.getNodeBreakerView().getNode();
+        VoltageLevel.NodeBreakerView nodeBreakerView = terminal.getVoltageLevel().getNodeBreakerView();
 
-            int initNode = terminal.getNodeBreakerView().getNode();
-            VoltageLevel.NodeBreakerView nodeBreakerView = terminal.getVoltageLevel().getNodeBreakerView();
+        LfNodeBreakerTraverser traverser = new LfNodeBreakerTraverser(switchesToOpen, initNode, nodeBreakerView);
+        nodeBreakerView.traverse(initNode, traverser);
 
-            LfNodeBreakerTraverser traverser = new LfNodeBreakerTraverser(switchesToOpen, initNode, nodeBreakerView);
-            nodeBreakerView.traverse(initNode, traverser);
-
-            // Recursive call to continue the traverser in affected neighbouring voltage levels
-            List<Terminal> nextTerminals = new ArrayList<>();
-            traverser.getTraversedTerminals().forEach(t -> {
-                nextTerminals.addAll(t.getConnectable().getTerminals()); // the already traversed terminal are also added for the sake of simplicity
-                traversedTerminals.add(t);
-            });
-            nextTerminals.forEach(t -> traverseFromTerminal(t, switchesToOpen, traversedTerminals));
-
-        } else { // Bus breaker view
-            terminal.traverse(new VoltageLevel.TopologyTraverser() {
-
-                @Override
-                public boolean traverse(Terminal terminal, boolean connected) {
-                    // we have no idea what kind of switch it was in the initial node/breaker topology
-                    // so to keep things simple we do not propagate the fault
-                    if (connected) {
-                        traversedTerminals.add(terminal);
-                    }
-                    return false;
-                }
-
-                @Override
-                public boolean traverse(Switch aSwitch) {
-                    boolean traverse;
-                    if (isOpenable(aSwitch)) {
-                        switchesToOpen.add(aSwitch);
-                        traverse = false;
-                    } else {
-                        traverse = !aSwitch.isOpen();
-                    }
-                    return traverse;
-                }
-
-                private boolean isOpenable(Switch aSwitch) {
-                    return !aSwitch.isOpen() &&
-                        !aSwitch.isFictitious() &&
-                        aSwitch.getKind() == SwitchKind.BREAKER;
-                }
-            });
-        }
+        // Recursive call to continue the traverser in affected neighbouring voltage levels
+        List<Terminal> nextTerminals = new ArrayList<>();
+        traverser.getTraversedTerminals().forEach(t -> {
+            nextTerminals.addAll(t.getConnectable().getTerminals()); // the already traversed terminal are also added for the sake of simplicity
+            traversedTerminals.add(t);
+        });
+        nextTerminals.forEach(t -> traverseNodeBreakerVoltageLevelsFromTerminal(t, switchesToOpen, traversedTerminals));
     }
 
 }
