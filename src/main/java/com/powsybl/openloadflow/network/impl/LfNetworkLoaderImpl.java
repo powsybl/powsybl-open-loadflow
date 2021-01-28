@@ -278,36 +278,37 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             return;
         }
 
-        // First resolve problem of mixed shared controls, that is if there are any generator/svc voltage control together with discrete voltage control(s)
+        // The first controlled bus is kept and removed from the list
+        LfBus firstControlledBus = discreteControlledBuses.remove(0);
+
+        // First resolve problem of discrete voltage controls
+        if (!discreteControlledBuses.isEmpty()) {
+            // We have several discrete controls whose controlled bus are in the same non-impedant connected set
+            // To solve that we keep only one discrete voltage control, the other ones are removed
+            // and the corresponding controllers are added to the discrete control kept
+            LOGGER.info("Zero impedance connected set with several discrete voltage controls: discrete controls merged");
+            DiscreteVoltageControl firstDvc = firstControlledBus.getDiscreteVoltageControl();
+            discreteControlledBuses.stream()
+                .flatMap(c -> c.getDiscreteVoltageControl().getControllers().stream())
+                .forEach(controller -> {
+                    firstDvc.addController(controller);
+                    controller.setDiscreteVoltageControl(firstDvc);
+                });
+            discreteControlledBuses.forEach(lfBus -> lfBus.setDiscreteVoltageControl(null));
+        }
+
+        // Then resolve problem of mixed shared controls, that is if there are any generator/svc voltage control together with discrete voltage control(s)
         // Check if there is one bus with remote voltage control or local voltage control
         boolean hasControlledBus = zeroImpedanceConnectedSet.stream().anyMatch(lfBus -> !lfBus.getControllerBuses().isEmpty()
                 || (lfBus.hasVoltageControl() && lfBus.getControllerBuses().isEmpty()));
         if (hasControlledBus) {
-            // If any generator/svc voltage controls, remove all discrete voltage controls
+            // If any generator/svc voltage controls, remove the merged discrete voltage control
             // TODO: deal with mixed shared controls instead of removing all discrete voltage controls
-            LOGGER.warn("Zero impedance connected set with voltage control and discrete voltage controls: only generator control is kept");
-            // First remove them from controllers
-            discreteControlledBuses.stream().map(LfBus::getDiscreteVoltageControl).flatMap(dvc -> dvc.getControllers().stream())
-                .forEach(controller -> controller.setDiscreteVoltageControl(null));
-            // Then remove them from controlled
-            discreteControlledBuses.forEach(lfBus -> lfBus.setDiscreteVoltageControl(null));
-        } else {
-            // Then resolve problem of discrete voltage controls
-            if (discreteControlledBuses.size() > 1) {
-                // We have several discrete controls whose controlled bus are in the same non-impedant connected set
-                // To solve that we keep only one discrete voltage control, the other ones are removed
-                // and the corresponding controllers are added to the discrete control kept
-                LOGGER.info("Zero impedance connected set with several discrete voltage controls: discrete controls merged");
-                LfBus firstControlledBus = discreteControlledBuses.remove(0);
-                DiscreteVoltageControl firstDvc = firstControlledBus.getDiscreteVoltageControl();
-                discreteControlledBuses.stream()
-                    .flatMap(c -> c.getDiscreteVoltageControl().getControllers().stream())
-                    .forEach(controller -> {
-                        firstDvc.addController(controller);
-                        controller.setDiscreteVoltageControl(firstDvc);
-                    });
-                discreteControlledBuses.forEach(lfBus -> lfBus.setDiscreteVoltageControl(null));
-            }
+            LOGGER.warn("Zero impedance connected set with voltage control and discrete voltage control: only generator control is kept");
+            // First remove it from controllers
+            firstControlledBus.getDiscreteVoltageControl().getControllers().forEach(c -> c.setDiscreteVoltageControl(null));
+            // Then remove it from the controlled lfBus
+            firstControlledBus.setDiscreteVoltageControl(null);
         }
     }
 
