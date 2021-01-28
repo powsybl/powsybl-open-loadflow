@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network.impl;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
@@ -23,6 +22,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openloadflow.network.LfNetwork.LOW_IMPEDANCE_THRESHOLD;
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
@@ -268,7 +268,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     public static boolean isZeroImpedanceBranch(LfBranch branch) {
         PiModel piModel = branch.getPiModel();
-        return piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
+        return piModel.getZ() < LOW_IMPEDANCE_THRESHOLD;
     }
 
     private static void fixDiscreteVoltageControls(Set<LfBus> zeroImpedanceConnectedSet) {

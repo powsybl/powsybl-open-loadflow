@@ -10,7 +10,6 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +33,7 @@ public class LfNetwork {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
+    public static final double LOW_IMPEDANCE_THRESHOLD = Math.pow(10, -8); // in per unit
     private static final double TARGET_VOLTAGE_EPSILON = Math.pow(10, -6);
 
     private final int num;
@@ -370,9 +370,9 @@ public class LfNetwork {
         if (minImpedance) {
             for (LfBranch branch : network.getBranches()) {
                 PiModel piModel = branch.getPiModel();
-                if (Math.abs(piModel.getZ()) < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
+                if (Math.abs(piModel.getZ()) < LOW_IMPEDANCE_THRESHOLD) {
                     piModel.setR(0);
-                    piModel.setX(DcEquationSystem.LOW_IMPEDANCE_THRESHOLD);
+                    piModel.setX(LOW_IMPEDANCE_THRESHOLD);
                 }
             }
         }
@@ -382,7 +382,7 @@ public class LfNetwork {
         if (!minImpedance) {
             for (LfBranch branch : network.getBranches()) {
                 PiModel piModel = branch.getPiModel();
-                if (Math.abs(piModel.getZ()) < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) { // will be transformed to non impedant branch
+                if (Math.abs(piModel.getZ()) < LOW_IMPEDANCE_THRESHOLD) { // will be transformed to non impedant branch
                     LfBus bus1 = branch.getBus1();
                     LfBus bus2 = branch.getBus2();
                     // ensure target voltages are consistent
