@@ -25,21 +25,25 @@ public class GenerationActionPowerDistributionStep implements ActivePowerDistrib
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GenerationActionPowerDistributionStep.class);
 
-    Map<LfGenerator, Double> originalValues = new HashMap<>();
+    Map<LfGenerator, Double> initialValues = new HashMap<>();
 
-    @Override
-    public void setOriginalValues(List<ParticipatingElement> participatingElements) {
-        originalValues = participatingElements.stream()
-                                              .map(participatingElement -> (LfGenerator) participatingElement.getElement())
-                                              .collect(Collectors.toMap(
-                                                  generator -> generator,
-                                                  LfGenerator::getTargetP
-                                              ));
+    public GenerationActionPowerDistributionStep() {
+        super();
+    }
+
+    public GenerationActionPowerDistributionStep(List<ParticipatingElement> elementsToMemorize) {
+        this();
+        initialValues = elementsToMemorize.stream()
+                                          .map(participatingElement -> (LfGenerator) participatingElement.getElement())
+                                          .collect(Collectors.toMap(
+                                              generator -> generator,
+                                              LfGenerator::getTargetP
+                                          ));
     }
 
     @Override
-    public void resetOriginalValues() {
-        for (Map.Entry<LfGenerator, Double> generatorTargetPEntry : originalValues.entrySet()) {
+    public void restoreInitialValues() {
+        for (Map.Entry<LfGenerator, Double> generatorTargetPEntry : initialValues.entrySet()) {
             generatorTargetPEntry.getKey().setTargetP(generatorTargetPEntry.getValue());
         }
     }

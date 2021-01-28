@@ -26,9 +26,7 @@ public final class ActivePowerDistribution {
 
         String getElementType();
 
-        void setOriginalValues(List<ParticipatingElement> participatingElements);
-
-        void resetOriginalValues();
+        void restoreInitialValues();
 
         List<ParticipatingElement> getParticipatingElements(LfNetwork network);
 

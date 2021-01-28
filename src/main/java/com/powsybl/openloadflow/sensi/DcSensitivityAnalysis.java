@@ -475,8 +475,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             }
             int iteration = 0;
             List<ParticipatingElement> participatingElementsCopy = new ArrayList<>(participatingElements);
-            step = getStep(lfParameters);
-            step.setOriginalValues(participatingElementsCopy);
+            step = getStep(lfParameters, participatingElementsCopy);
             while (!participatingElementsCopy.isEmpty()
                    && Math.abs(mismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
 
@@ -507,7 +506,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         if (lfParameters.isDistributedSlack()) {
             assert step != null; // step should be defined if slack is distributed
-            step.resetOriginalValues();
+            step.restoreInitialValues();
         }
 
         lu.solveTransposed(dx);
@@ -622,6 +621,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 return new GenerationActionPowerDistributionStep();
             case PROPORTIONAL_TO_LOAD:
                 return new LoadActivePowerDistributionStep(false, false);
+            default:
+                throw new UnsupportedOperationException("Balance type not yet supported: " + loadFlowParameters.getBalanceType());
+        }
+    }
+
+    private ActivePowerDistribution.Step getStep(LoadFlowParameters loadFlowParameters, List<ParticipatingElement> participatingElements) {
+        switch (loadFlowParameters.getBalanceType()) {
+            case PROPORTIONAL_TO_GENERATION_P_MAX:
+                return new GenerationActionPowerDistributionStep(participatingElements);
+            case PROPORTIONAL_TO_LOAD:
+                return new LoadActivePowerDistributionStep(false, false, participatingElements);
             default:
                 throw new UnsupportedOperationException("Balance type not yet supported: " + loadFlowParameters.getBalanceType());
         }

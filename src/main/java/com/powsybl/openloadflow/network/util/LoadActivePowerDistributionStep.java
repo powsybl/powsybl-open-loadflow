@@ -28,26 +28,26 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
 
     private final boolean loadPowerFactorConstant;
 
-    private Map<LfBus, Double> originalValues;
+    private Map<LfBus, Double> initialValues;
 
     public LoadActivePowerDistributionStep(boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         this.distributedOnConformLoad = distributedOnConformLoad;
         this.loadPowerFactorConstant = loadPowerFactorConstant;
     }
 
-    @Override
-    public void setOriginalValues(List<ParticipatingElement> participatingElements) {
-        originalValues = participatingElements.stream()
-                                              .map(participatingElement -> (LfBus) participatingElement.getElement())
-                                              .collect(Collectors.toMap(
-                                                  lfBus -> lfBus,
-                                                  LfBus::getLoadTargetP
-                                              ));
+    public LoadActivePowerDistributionStep(boolean distributedOnConformLoad, boolean loadPowerFactorConstant, List<ParticipatingElement> elementsToMemorize) {
+        this(distributedOnConformLoad, loadPowerFactorConstant);
+        initialValues = elementsToMemorize.stream()
+                                          .map(participatingElement -> (LfBus) participatingElement.getElement())
+                                          .collect(Collectors.toMap(
+                                              lfBus -> lfBus,
+                                              LfBus::getLoadTargetP
+                                          ));
     }
 
     @Override
-    public void resetOriginalValues() {
-        for (Map.Entry<LfBus, Double> busTargetLoadEntry : originalValues.entrySet()) {
+    public void restoreInitialValues() {
+        for (Map.Entry<LfBus, Double> busTargetLoadEntry : initialValues.entrySet()) {
             busTargetLoadEntry.getKey().setLoadTargetP(busTargetLoadEntry.getValue());
         }
     }
