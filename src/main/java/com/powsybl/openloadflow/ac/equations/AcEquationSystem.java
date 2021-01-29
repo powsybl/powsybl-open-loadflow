@@ -14,11 +14,13 @@ import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
-import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -93,7 +95,7 @@ public final class AcEquationSystem {
         List<EquationTerm> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm q;
-            if (isNonImpedantBranch(branch)) {
+            if (LfNetwork.isZeroImpedanceBranch(branch)) {
                 if (branch.getBus1() == controllerBus) {
                     q = new DummyReactivePowerEquationTerm(branch, variableSet);
                 } else {
@@ -303,47 +305,27 @@ public final class AcEquationSystem {
         }
     }
 
-    private static boolean isNonImpedantBranch(LfBranch branch) {
-        PiModel piModel = branch.getPiModel();
-        return piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
-    }
-
     private static void createBranchEquations(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters,
                                               EquationSystem equationSystem) {
-        List<LfBranch> nonImpedantBranches = new ArrayList<>();
 
-        for (LfBranch branch : network.getBranches()) {
-            LfBus bus1 = branch.getBus1();
-            LfBus bus2 = branch.getBus2();
-            if (isNonImpedantBranch(branch)) {
-                if (bus1 != null && bus2 != null) {
-                    nonImpedantBranches.add(branch);
-                }
-            } else {
-                createImpedantBranch(branch, bus1, bus2, variableSet, creationParameters, equationSystem);
-            }
-        }
+        // create zero and non zero impedance branch equations
+        network.getBranches().stream()
+            .filter(b -> !LfNetwork.isZeroImpedanceBranch(b))
+            .forEach(b -> createImpedantBranch(b, b.getBus1(), b.getBus2(), variableSet, creationParameters, equationSystem));
 
-        // create non impedant equations only on minimum spanning forest calculated from non impedant subgraph
-        if (!nonImpedantBranches.isEmpty()) {
-            Graph<LfBus, LfBranch> nonImpedantSubGraph = new Pseudograph<>(LfBranch.class);
-            for (LfBranch branch : nonImpedantBranches) {
-                nonImpedantSubGraph.addVertex(branch.getBus1());
-                nonImpedantSubGraph.addVertex(branch.getBus2());
-                nonImpedantSubGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
-            }
-
-            ConnectivityInspector<LfBus, LfBranch> ci = new ConnectivityInspector<>(nonImpedantSubGraph);
-            List<Set<LfBus>> connectedSets = ci.connectedSets();
+        // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph
+        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.createZeroImpedanceSubGraph();
+        if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
+            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(zeroImpedanceSubGraph).connectedSets();
             for (Set<LfBus> connectedSet : connectedSets) {
                 if (connectedSet.size() > 2 && connectedSet.stream().filter(LfBus::hasVoltageControl).count() > 1) {
                     String problBuses = connectedSet.stream().map(LfBus::getId).collect(Collectors.joining(", "));
                     throw new PowsyblException(
-                        "Non impedant branches that connect at least two buses with voltage control (buses: " + problBuses + ")");
+                        "Zero impedance branches that connect at least two buses with voltage control (buses: " + problBuses + ")");
                 }
             }
 
-            SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(nonImpedantSubGraph).getSpanningTree();
+            SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(zeroImpedanceSubGraph).getSpanningTree();
             for (LfBranch branch : spanningTree.getEdges()) {
                 createNonImpedantBranch(variableSet, equationSystem, branch, branch.getBus1(), branch.getBus2());
             }

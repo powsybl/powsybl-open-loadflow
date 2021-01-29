@@ -16,6 +16,7 @@ import com.powsybl.iidm.network.TwoWindingsTransformer;
 public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
     /**
+     * <pre>
      * b1 ----------+
      * |            |
      * b2 -------- b3
@@ -23,6 +24,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
      * b5 -------- b4
      * |            |
      * b6 ----------+
+     * </pre>
      *
      * @return network
      */
@@ -45,6 +47,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
     }
 
     /**
+     * <pre>
      * b1 (d1) ----------+
      * |                 |
      * b2 (g2) -------- b3 (d3)
@@ -52,6 +55,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
      * b4 (d4) -------- b5 (d5)
      * |                 |
      * b6 (g6) ----------+
+     * </pre>
      *
      * @return network
      */
@@ -82,6 +86,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
     }
 
     /**
+     * <pre>
      * b1 (d1) ----------+
      * |                 |
      * b2 (g2) -------- b3 (d3)
@@ -91,6 +96,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
      * PTC               |
      * |                 |
      * b6 (g6) ----------+
+     * </pre>
      *
      * @return network
      */
@@ -129,6 +135,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
     }
 
     /**
+     * <pre>
      * b1 (d1) ----------+
      * |                 |
      * b2 (g2) -------- b3 (g3)
@@ -136,6 +143,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
      * b5 (d5) -------- b4
      * |                 |
      * b6 (d6) ----------+
+     * </pre>
      *
      * @return network
      */
@@ -156,6 +164,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
     }
 
     /**
+     * <pre>
      * b1 (d1) ----------+
      * |                 |
      * b2 (g2) -------- b3 (d3)
@@ -163,6 +172,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
      * b5 (d5) -------- b4 (d4)
      * |                 |
      * b6 (g6) ----------+
+     * </pre>
      *
      * @return network
      */
@@ -184,6 +194,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
     }
 
     /**
+     * <pre>
      * b1 (d1) ----------+                               b6 (g6) ----------+
      * |                 |                                |                |
      * b2 (g2) -------- b3 (d3) -------- b4 (d4) -------- b5 (d5) -------- b7 (d7)
@@ -191,6 +202,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
      *                                   b8 (d8) --------- b9 (d9)
      *                                    |                 |
      *                                   b10 (g10) ---------+
+     * </pre>
      *
      * @return network
      */
@@ -234,6 +246,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
     }
 
     /**
+     * <pre>
      * b1 (d1) ----------+
      * |                 |
      * b2 (g2) -------- b3 (d3)
@@ -243,6 +256,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
      * b6 (g6) ------   b5 (d5)
      * |                 |
      * b7 (d7) ------ ---+
+     * </pre>
      *
      * @return network
      */
@@ -276,6 +290,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
     }
 
     /**
+     * <pre>
      * b1 (d1) ----------+                +-------------- b6 (g6)
      * |                 |                |                |
      * b2 (g2) -------- b3 (d3) -------- b4 (d4) -------- b5 (d5)
@@ -283,6 +298,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
      *                                   b7 (d7) --------- b9 (g9)
      *                                    |                 |
      *                                   b8 (d8) -----------+
+     * </pre>
      *
      * @return network
      */
@@ -323,6 +339,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
     }
 
     /**
+     * <pre>
      * b1 (d1) ----------+                 +-------------- b6 (g6)
      * |                 |                 |                |
      * b2 (g2) -------- b3 (d3) --------  b4 (d4) -------- b5 (d5)
@@ -330,6 +347,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
      * +--------------------------------- b7 (d7) -------- b8 (d8)
      *                                     |                 |
      *                                    b9 (g9) -----------+
+     * </pre>
      * @return network
      */
     public static Network createThreeCircularCc() {
@@ -370,11 +388,13 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
     }
 
     /**
+     * <pre>
      * b6 (g6) ----------+                +-------------- b2 (g2) -------- b7 (d7) ----------+
      * |                 |                |                |                |                |
      * b5 (d5) -------- b4 (d4) -------- b1 (d1) -------- b3 (d3) -------- b9 (g9) -------- b8 (d8)
      *                                    |                                                  |
      *                                    +--------------------------------------------------+
+     * </pre>
      * @return network
      */
     public static Network createAsymetricNetwork() {
@@ -416,6 +436,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
     }
 
     /**
+     * <pre>
      *                              b3 (g3) -------- b5 (d5)
      *                              /  | \             | \
      *                       -------   |   \           |  -------
@@ -425,7 +446,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
      *                       -------   |           \   |  -------
      *                              \  |             \ | /
      *                              b4 (d4) -------- b6 (d6)
-
+     * </pre>
      * @return network
      */
     public static Network createHighlyConnectedNetwork() {
