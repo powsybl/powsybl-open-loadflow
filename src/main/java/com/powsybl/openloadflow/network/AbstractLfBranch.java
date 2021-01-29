@@ -94,8 +94,8 @@ public abstract class AbstractLfBranch implements LfBranch {
         ptc.setTapPosition(tapPosition);
     }
 
-    protected void updateTapPosition(RatioTapChanger rtc, double rho) {
-        int tapPosition = Transformers.findTapPosition(rtc, rho);
+    protected void updateTapPosition(RatioTapChanger rtc, double ptcRho, double rho) {
+        int tapPosition = Transformers.findTapPosition(rtc, ptcRho, rho);
         rtc.setTapPosition(tapPosition);
     }
 

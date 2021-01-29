@@ -154,8 +154,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             throw new NotImplementedException("areVariableAndFunctionDisconnected should have an override");
         }
 
-        public boolean isConnectedToSlack(Integer slackBusComponent, GraphDecrementalConnectivity<LfBus> connectivity) {
-            throw new NotImplementedException("isConnectedToSlack should have an override");
+        public boolean isConnectedToComponent(Integer componentNumber, GraphDecrementalConnectivity<LfBus> connectivity) {
+            throw new NotImplementedException("isConnectedToComponent should have an override");
         }
     }
 
@@ -175,8 +175,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
 
         @Override
-        public boolean isConnectedToSlack(Integer slackBusComponent, GraphDecrementalConnectivity<LfBus> connectivity) {
-            return connectivity.getComponentNumber(injectionLfBus) == slackBusComponent;
+        public boolean isConnectedToComponent(Integer componentNumber, GraphDecrementalConnectivity<LfBus> connectivity) {
+            return connectivity.getComponentNumber(injectionLfBus) == componentNumber;
         }
 
         public LfBus getInjectionLfBus() {
@@ -200,8 +200,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
 
         @Override
-        public boolean isConnectedToSlack(Integer slackBusComponent, GraphDecrementalConnectivity<LfBus> connectivity) {
-            return slackBusComponent == connectivity.getComponentNumber(phaseTapChangerLfBranch.getBus1());
+        public boolean isConnectedToComponent(Integer componentNumber, GraphDecrementalConnectivity<LfBus> connectivity) {
+            return componentNumber == connectivity.getComponentNumber(phaseTapChangerLfBranch.getBus1());
         }
 
     }
@@ -234,13 +234,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
 
         @Override
-        public boolean isConnectedToSlack(Integer slackBusComponent, GraphDecrementalConnectivity<LfBus> connectivity) {
-            if (connectivity.getComponentNumber(getFunctionLfBranch().getBus1()) != slackBusComponent
-                || connectivity.getComponentNumber(getFunctionLfBranch().getBus2()) != slackBusComponent) {
+        public boolean isConnectedToComponent(Integer componentNumber, GraphDecrementalConnectivity<LfBus> connectivity) {
+            if (connectivity.getComponentNumber(getFunctionLfBranch().getBus1()) != componentNumber
+                || connectivity.getComponentNumber(getFunctionLfBranch().getBus2()) != componentNumber) {
                 return false;
             }
             for (LfBus lfBus : injectionBuses.keySet()) {
-                if (connectivity.getComponentNumber(lfBus) == slackBusComponent) {
+                if (connectivity.getComponentNumber(lfBus) == componentNumber) {
                     return true;
                 }
             }
@@ -771,35 +771,33 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     private Set<String> getElementsToReconnect(GraphDecrementalConnectivity<LfBus> connectivity, Set<ComputedContingencyElement> breakingConnectivityCandidates) {
         Set<String> elementsToReconnect = new HashSet<>();
 
-        Map<Pair<Integer, Integer>, Set<ComputedContingencyElement>> elementsByConnectedComponents =
-                breakingConnectivityCandidates.stream().collect(Collectors.toMap(
-                    element -> Pair.of(connectivity.getComponentNumber(element.getLfBranch().getBus1()), connectivity.getComponentNumber(element.getLfBranch().getBus2())),
-                    element -> new HashSet<>(Collections.singletonList(element)),
-                    (existing, replacement) -> {
-                        existing.addAll(replacement);
-                        return existing;
-                    }
-                ));
+        Map<Pair<Integer, Integer>, ComputedContingencyElement> elementByConnectedComponents = new HashMap<>();
+        for (ComputedContingencyElement element : breakingConnectivityCandidates) {
+            int bus1Cc = connectivity.getComponentNumber(element.getLfBranch().getBus1());
+            int bus2Cc = connectivity.getComponentNumber(element.getLfBranch().getBus2());
 
-        Map<Integer, Set<Integer>> connections = new HashMap<>();
-        connections.put(0, Collections.singleton(0));
-        for (Set<LfBus> smallComponent : connectivity.getSmallComponents()) {
-            int ccNumber = connectivity.getComponentNumber(smallComponent.iterator().next());
-            connections.put(ccNumber, new HashSet<>(Collections.singletonList(ccNumber)));
+            Pair<Integer, Integer> pairOfCc = bus1Cc > bus2Cc ? Pair.of(bus2Cc, bus1Cc) : Pair.of(bus1Cc, bus2Cc);
+            // we only need to reconnect one line to restore connectivity
+            elementByConnectedComponents.put(pairOfCc, element);
         }
 
-        for (Map.Entry<Pair<Integer, Integer>, Set<ComputedContingencyElement>> elementsByCc : elementsByConnectedComponents.entrySet()) {
+        Map<Integer, Set<Integer>> connections = new HashMap<>();
+        for (int i = 0; i < connectivity.getSmallComponents().size() + 1; i++) {
+            connections.put(i, Collections.singleton(i));
+        }
+
+        for (Map.Entry<Pair<Integer, Integer>, ComputedContingencyElement> elementsByCc : elementByConnectedComponents.entrySet()) {
             Integer cc1 = elementsByCc.getKey().getKey();
             Integer cc2 = elementsByCc.getKey().getValue();
             if (connections.get(cc1).contains(cc2)) {
                 // cc are already connected
                 continue;
             }
-            elementsToReconnect.add(elementsByCc.getValue().iterator().next().getElement().getId());
+            elementsToReconnect.add(elementsByCc.getValue().getElement().getId());
             Set<Integer> newCc = new HashSet<>();
             newCc.addAll(connections.get(cc1));
             newCc.addAll(connections.get(cc2));
-            connections.get(cc1).forEach(integer -> connections.put(integer, newCc));
+            newCc.forEach(integer -> connections.put(integer, newCc));
         }
 
         return elementsToReconnect;
@@ -918,7 +916,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     // check if the factor function and variable are in different connected components
                     if (factor.areVariableAndFunctionDisconnected(connectivity.getConnectivity())) {
                         factor.setPredefinedResult(0d);
-                    } else if (!factor.isConnectedToSlack(slackBusComponent, connectivity.getConnectivity())) {
+                    } else if (!factor.isConnectedToComponent(slackBusComponent, connectivity.getConnectivity())) {
                         factor.setPredefinedResult(Double.NaN);
                     }
                 }
