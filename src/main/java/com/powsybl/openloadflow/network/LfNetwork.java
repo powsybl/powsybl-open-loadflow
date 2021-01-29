@@ -53,7 +53,6 @@ public class LfNetwork {
     private final Map<String, LfBranch> branchesById = new HashMap<>();
 
     private int shuntCount = 0;
-    private Graph<LfBus, LfBranch> zeroImpedanceSubGraph;
 
     public LfNetwork(int num, SlackBusSelector slackBusSelector) {
         this.num = num;
@@ -422,13 +421,11 @@ public class LfNetwork {
         throw new PowsyblException("Cannot importer network of type: " + network.getClass().getName());
     }
 
-    public Graph<LfBus, LfBranch> getZeroImpedanceSubGraph() {
-        if (zeroImpedanceSubGraph == null) {
-            this.zeroImpedanceSubGraph = createZeroImpedanceSubGraph();
-        }
-        return zeroImpedanceSubGraph;
-    }
-
+    /**
+     * Create the subgraph of zero-impedance LfBranches and their corresponding LfBuses
+     * The graph is intentionally not cached as a parameter so far, to avoid the complexity of invalidating it if changes occur
+     * @return the zero-impedance subgraph
+     */
     public Graph<LfBus, LfBranch> createZeroImpedanceSubGraph() {
         List<LfBranch> zeroImpedanceBranches = getBranches().stream()
             .filter(LfNetwork::isZeroImpedanceBranch)

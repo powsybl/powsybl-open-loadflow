@@ -314,7 +314,7 @@ public final class AcEquationSystem {
             .forEach(b -> createImpedantBranch(b, b.getBus1(), b.getBus2(), variableSet, creationParameters, equationSystem));
 
         // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph
-        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.getZeroImpedanceSubGraph();
+        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.createZeroImpedanceSubGraph();
         if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
             List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(zeroImpedanceSubGraph).connectedSets();
             for (Set<LfBus> connectedSet : connectedSets) {
