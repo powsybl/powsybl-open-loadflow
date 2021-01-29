@@ -274,9 +274,9 @@ public final class Transformers {
     /**
      * Find the tap position of a ratio tap changer corresponding to a given rho shift.
      */
-    public static int findTapPosition(RatioTapChanger rtc, double rho) {
+    public static int findTapPosition(RatioTapChanger rtc, double ptcRho, double rho) {
         for (int position = rtc.getLowTapPosition(); position <= rtc.getHighTapPosition(); position++) {
-            if (Math.abs(rho - rtc.getStep(position).getRho()) < EPS_ALPHA) {
+            if (Math.abs(rho - ptcRho * rtc.getStep(position).getRho()) < EPS_ALPHA) {
                 return position;
             }
         }
