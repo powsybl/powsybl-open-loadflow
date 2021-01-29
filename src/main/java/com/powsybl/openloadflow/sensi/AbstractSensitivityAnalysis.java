@@ -49,9 +49,6 @@ public abstract class AbstractSensitivityAnalysis {
             injection = network.getLoad(injectionId);
         }
         if (injection == null) {
-            injection = network.getGenerator(injectionId);
-        }
-        if (injection == null) {
             injection = network.getLccConverterStation(injectionId);
         }
         if (injection == null) {
