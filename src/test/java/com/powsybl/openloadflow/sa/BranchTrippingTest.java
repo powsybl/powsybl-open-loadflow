@@ -266,22 +266,6 @@ class BranchTrippingTest {
         checkTerminalStrings(terminalsToDisconnect, "BusTerminal[NHV2]");
     }
 
-    @Test
-    void testContingencyTraverser() {
-        // Testing disconnector and breaker opened just after contingency
-        Network network = FictitiousSwitchFactory.create();
-
-        Set<Terminal> terminalsToDisconnect = new HashSet<>();
-        BusBreakerTraverser traverser = new BusBreakerTraverser(terminalsToDisconnect);
-        network.getLine("CJ").getTerminal1().traverse(traverser);
-
-        checkTerminalIds(terminalsToDisconnect, "CJ");
-
-        Switch swL = network.getSwitch("L");
-        AssertionError e = assertThrows(AssertionError.class, () -> traverser.traverse(swL));
-        Assertions.assertEquals("Should not be called", e.getMessage());
-    }
-
     private static void checkSwitches(Set<Switch> switches, String... sId) {
         assertEquals(new HashSet<>(Arrays.asList(sId)), switches.stream().map(Switch::getId).collect(Collectors.toSet()));
     }

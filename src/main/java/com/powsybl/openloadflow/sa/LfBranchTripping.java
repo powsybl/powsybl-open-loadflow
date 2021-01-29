@@ -62,8 +62,12 @@ public class LfBranchTripping extends AbstractTrippingTask {
 
         if (terminal.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
             traverseNodeBreakerVoltageLevelsFromTerminal(terminal, switchesToOpen, traversedTerminals);
-        } else { // Bus breaker view
-            terminal.traverse(new BusBreakerTraverser(traversedTerminals));
+        } else {
+            // In bus breaker view we have no idea what kind of switch it was in the initial node/breaker topology
+            // so to keep things simple we do not propagate the fault
+            if (terminal.isConnected()) {
+                traversedTerminals.add(terminal);
+            }
         }
     }
 
