@@ -11,7 +11,6 @@ import com.powsybl.contingency.tasks.AbstractTrippingTask;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FictitiousSwitchFactory;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -19,8 +18,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
@@ -251,8 +249,8 @@ class BranchTrippingTest {
         LfBranchTripping trippingTask = new LfBranchTripping("NHV1_NHV2_1");
         trippingTask.traverse(network, null, switchesToOpen, terminalsToDisconnect);
 
-        Assertions.assertTrue(switchesToOpen.isEmpty());
-        Assertions.assertEquals(2, terminalsToDisconnect.size());
+        assertTrue(switchesToOpen.isEmpty());
+        assertEquals(2, terminalsToDisconnect.size());
         checkTerminalStrings(terminalsToDisconnect, "BusTerminal[NHV1]", "BusTerminal[NHV2]");
 
         Line line = network.getLine("NHV1_NHV2_1");
@@ -261,8 +259,8 @@ class BranchTrippingTest {
         terminalsToDisconnect.clear();
         trippingTask.traverse(network, null, switchesToOpen, terminalsToDisconnect);
 
-        Assertions.assertTrue(switchesToOpen.isEmpty());
-        Assertions.assertEquals(1, terminalsToDisconnect.size());
+        assertTrue(switchesToOpen.isEmpty());
+        assertEquals(1, terminalsToDisconnect.size());
         checkTerminalStrings(terminalsToDisconnect, "BusTerminal[NHV2]");
     }
 
