@@ -169,14 +169,9 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         String tmpVariantId = "olf-tmp-" + UUID.randomUUID().toString();
         network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
         try {
-            if (network.getVoltageLevelStream().anyMatch(vl -> vl.getTopologyKind() == TopologyKind.NODE_BREAKER)) {
-                for (Switch sw : network.getSwitches()) {
-                    sw.setRetained(false);
-                }
-                for (Switch sw : allSwitchesToOpen) {
-                    sw.setRetained(true);
-                }
-            }
+            network.getSwitchStream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
+                .forEach(sw -> sw.setRetained(false));
+            allSwitchesToOpen.forEach(sw -> sw.setRetained(true));
             lfNetworks = AcloadFlowEngine.createNetworks(network, acParameters);
         } finally {
             network.getVariantManager().removeVariant(tmpVariantId);
