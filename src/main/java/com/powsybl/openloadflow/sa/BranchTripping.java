@@ -60,6 +60,10 @@ public class BranchTripping extends AbstractTrippingTask {
         Objects.requireNonNull(switchesToOpen);
         Objects.requireNonNull(traversedTerminals);
 
+        if (traversedTerminals.contains(terminal)) {
+            return;
+        }
+
         if (terminal.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
             traverseNodeBreakerVoltageLevelsFromTerminal(terminal, switchesToOpen, traversedTerminals);
         } else {
@@ -72,9 +76,6 @@ public class BranchTripping extends AbstractTrippingTask {
     }
 
     private void traverseNodeBreakerVoltageLevelsFromTerminal(Terminal terminal, Set<Switch> switchesToOpen, Set<Terminal> traversedTerminals) {
-        if (traversedTerminals.contains(terminal)) {
-            return;
-        }
         traversedTerminals.add(terminal);
 
         int initNode = terminal.getNodeBreakerView().getNode();
@@ -89,7 +90,7 @@ public class BranchTripping extends AbstractTrippingTask {
             nextTerminals.addAll(t.getConnectable().getTerminals()); // the already traversed terminal are also added for the sake of simplicity
             traversedTerminals.add(t);
         });
-        nextTerminals.forEach(t -> traverseNodeBreakerVoltageLevelsFromTerminal(t, switchesToOpen, traversedTerminals));
+        nextTerminals.forEach(t -> traverseFromTerminal(t, switchesToOpen, traversedTerminals));
     }
 
 }
