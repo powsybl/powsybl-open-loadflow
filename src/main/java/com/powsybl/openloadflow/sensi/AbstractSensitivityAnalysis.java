@@ -47,14 +47,21 @@ public abstract class AbstractSensitivityAnalysis {
         Injection<?> injection = network.getGenerator(injectionId);
         if (injection == null) {
             injection = network.getLoad(injectionId);
-            if (injection == null) {
-                if (failIfAbsent) {
-                    throw new PowsyblException("Injection '" + injectionId + "' not found");
-                } else {
-                    return null;
-                }
-            }
         }
+        if (injection == null) {
+            injection = network.getGenerator(injectionId);
+        }
+        if (injection == null) {
+            injection = network.getLccConverterStation(injectionId);
+        }
+        if (injection == null) {
+            injection = network.getVscConverterStation(injectionId);
+        }
+
+        if (failIfAbsent && injection == null) {
+            throw new PowsyblException("Injection '" + injectionId + "' not found");
+        }
+
         return injection;
     }
 
