@@ -14,15 +14,15 @@ import java.util.Set;
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class LfNodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traverser {
+public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traverser {
 
     private final Set<Switch> switchesToOpen;
     private final Set<Terminal> traversedTerminals;
     private final int initNode;
     private final VoltageLevel.NodeBreakerView nodeBreakerView;
 
-    public LfNodeBreakerTraverser(Set<Switch> switchesToOpen, int initNode,
-                                  VoltageLevel.NodeBreakerView nodeBreakerView) {
+    public NodeBreakerTraverser(Set<Switch> switchesToOpen, int initNode,
+                                VoltageLevel.NodeBreakerView nodeBreakerView) {
         this.switchesToOpen = switchesToOpen;
         this.traversedTerminals = new HashSet<>();
         this.initNode = initNode;
@@ -110,7 +110,7 @@ public class LfNodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Trav
     }
 
     private static boolean allOtherSwitchesOpenOrOpenable(Switch aSwitch, int node, VoltageLevel.NodeBreakerView nbv) {
-        return nbv.getSwitchStream().filter(s -> s != aSwitch && switchAtNode(s, node, nbv)).allMatch(LfNodeBreakerTraverser::isOpenOrOpenable);
+        return nbv.getSwitchStream().filter(s -> s != aSwitch && switchAtNode(s, node, nbv)).allMatch(NodeBreakerTraverser::isOpenOrOpenable);
     }
 
     private static boolean noInternalConnectionAtNode(int node, VoltageLevel.NodeBreakerView nbv) {

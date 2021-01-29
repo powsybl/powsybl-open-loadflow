@@ -145,7 +145,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                         //TODO: support all kinds of contingencies
                         throw new UnsupportedOperationException("TODO");
                 }
-                new LfBranchTripping(element.getId(), null)
+                new BranchTripping(element.getId(), null)
                     .traverse(network, null, switchesToOpen, terminalsToDisconnect);
             }
 

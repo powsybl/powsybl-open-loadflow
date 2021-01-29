@@ -16,16 +16,16 @@ import java.util.*;
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class LfBranchTripping extends AbstractTrippingTask {
+public class BranchTripping extends AbstractTrippingTask {
 
     private final String branchId;
     private final String voltageLevelId;
 
-    public LfBranchTripping(String branchId) {
+    public BranchTripping(String branchId) {
         this(branchId, null);
     }
 
-    public LfBranchTripping(String branchId, String voltageLevelId) {
+    public BranchTripping(String branchId, String voltageLevelId) {
         this.branchId = Objects.requireNonNull(branchId);
         this.voltageLevelId = voltageLevelId;
     }
@@ -80,7 +80,7 @@ public class LfBranchTripping extends AbstractTrippingTask {
         int initNode = terminal.getNodeBreakerView().getNode();
         VoltageLevel.NodeBreakerView nodeBreakerView = terminal.getVoltageLevel().getNodeBreakerView();
 
-        LfNodeBreakerTraverser traverser = new LfNodeBreakerTraverser(switchesToOpen, initNode, nodeBreakerView);
+        NodeBreakerTraverser traverser = new NodeBreakerTraverser(switchesToOpen, initNode, nodeBreakerView);
         nodeBreakerView.traverse(initNode, traverser);
 
         // Recursive call to continue the traverser in affected neighbouring voltage levels
