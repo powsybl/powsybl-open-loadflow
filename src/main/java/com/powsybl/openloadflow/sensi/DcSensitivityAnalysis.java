@@ -425,27 +425,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     }
 
-    static class LfContingency {
-        private final Contingency contingency;
-        private final Collection<ComputedContingencyElement> elements;
-
-        public LfContingency(Contingency contingency, Map<ContingencyElement, Collection<ComputedContingencyElement>> defaultPropagation) {
-            this.contingency = contingency;
-            elements = contingency.getElements().stream()
-                                  .map(defaultPropagation::get)
-                                  .flatMap(Collection::stream)
-                                  .collect(Collectors.toSet());
-        }
-
-        public Contingency getContingency() {
-            return contingency;
-        }
-
-        public Collection<ComputedContingencyElement> getElements() {
-            return elements;
-        }
-    }
-
     public DcSensitivityAnalysis(MatrixFactory matrixFactory) {
         super(matrixFactory);
     }
@@ -856,28 +835,18 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return rhs;
     }
 
-    private void detectConnectivityLoss(LfNetwork lfNetwork, DenseMatrix states, List<LfContingency> contingencies, EquationSystem equationSystem,
-                                        Collection<LfContingency> nonLosingConnectivityContingencies, Map<Set<ComputedContingencyElement>, List<LfContingency>> contingenciesByGroupOfElementsBreakingConnectivity) {
-        for (LfContingency contingency : contingencies) {
+    private void detectConnectivityLoss(LfNetwork lfNetwork, DenseMatrix states, List<Contingency> contingencies, Map<String, ComputedContingencyElement> contingenciesElements,
+                                        EquationSystem equationSystem, Collection<Contingency> nonLosingConnectivityContingencies,
+                                        Map<Set<ComputedContingencyElement>, List<Contingency>> contingenciesByGroupOfElementsBreakingConnectivity) {
+        for (Contingency contingency : contingencies) {
             Set<ComputedContingencyElement> groupOfElementsBreakingConnectivity = getGroupOfElementsBreakingConnectivity(lfNetwork, states,
-                   contingency.getElements(), equationSystem);
+                    contingency.getElements().stream().map(element -> contingenciesElements.get(element.getId())).collect(Collectors.toList()), equationSystem);
             if (groupOfElementsBreakingConnectivity.isEmpty()) { // connectivity not broken
                 nonLosingConnectivityContingencies.add(contingency);
             } else {
                 contingenciesByGroupOfElementsBreakingConnectivity.computeIfAbsent(groupOfElementsBreakingConnectivity, key -> new LinkedList<>()).add(contingency);
             }
         }
-    }
-
-    private Map<ContingencyElement, Collection<ComputedContingencyElement>> getPropagatedDefaults(Collection<ContingencyElement> contingencyElements, LfNetwork lfNetwork, EquationSystem equationSystem) {
-        Map<ContingencyElement, Collection<ComputedContingencyElement>> result = new HashMap<>();
-        for (ContingencyElement contingencyElement : contingencyElements) {
-            if (result.containsKey(contingencyElement)) {
-                continue;
-            }
-            result.put(contingencyElement, Collections.singleton(new ComputedContingencyElement(contingencyElement, lfNetwork, equationSystem)));
-        }
-        return result;
     }
 
     private Set<String> getElementsToReconnect(GraphDecrementalConnectivity<LfBus> connectivity, Set<ComputedContingencyElement> breakingConnectivityCandidates) {
@@ -966,15 +935,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
         computeInjectionFactors(slackParticipationByBus, factorGroups);
 
-        // Create a wrapper around contingencies to know what elements are disconnected by this contingency
-        Map<ContingencyElement, Collection<ComputedContingencyElement>> defaultPropagation = getPropagatedDefaults(
-            contingencies.stream().map(Contingency::getElements).flatMap(Collection::stream).collect(Collectors.toSet()),
-            lfNetwork,
-            equationSystem
-        );
-        List<LfContingency> lfContingencies = contingencies.stream().map(contingency -> new LfContingency(contingency, defaultPropagation)).collect(Collectors.toList());
-        Collection<ComputedContingencyElement> contingenciesElements = defaultPropagation.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
-        ComputedContingencyElement.setContingencyIndexes(contingenciesElements);
+        // contingencies management
+        Map<String, ComputedContingencyElement> contingenciesElements =
+                contingencies.stream()
+                             .flatMap(contingency -> contingency.getElements().stream())
+                             .map(contingencyElement -> new ComputedContingencyElement(contingencyElement, lfNetwork, equationSystem))
+                             .collect(Collectors.toMap(
+                                 computedContingencyElement -> computedContingencyElement.getElement().getId(),
+                                 computedContingencyElement -> computedContingencyElement
+                             ));
+        ComputedContingencyElement.setContingencyIndexes(contingenciesElements.values());
 
         // create jacobian matrix either using base network calculated voltages or nominal voltages
         VoltageInitializer voltageInitializer = lfParameters.getVoltageInitMode() == LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES ? new PreviousValueVoltageInitializer()
@@ -987,7 +957,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             // compute pre-contingency sensitivity values + the states with +1 -1 to model the contingencies
             DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorGroups); // this is the rhs for the moment
-            DenseMatrix contingenciesStates = initContingencyRhs(lfNetwork, equationSystem, contingenciesElements); // rhs with +1 -1 on contingency elements
+            DenseMatrix contingenciesStates = initContingencyRhs(lfNetwork, equationSystem, contingenciesElements.values()); // rhs with +1 -1 on contingency elements
             jlu.solveTransposed(factorsStates); // states for the sensitivity factors
             jlu.solveTransposed(contingenciesStates); // states for the +1 -1 of the contingencies
 
@@ -1001,16 +971,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             // for example, if in the network, loosing line L1 breaks connectivity, and loosing L2 and L3 together breaks connectivity,
             // the index would be: {L1, L2, L3}
             // todo: There may be a better way to group the contingencies that will have the same connectivities afterwards
-            Collection<LfContingency> nonLosingConnectivityContingencies = new LinkedList<>();
-            Map<Set<ComputedContingencyElement>, List<LfContingency>> contingenciesByGroupOfElementsBreakingConnectivity = new HashMap<>();
+            Collection<Contingency> nonLosingConnectivityContingencies = new LinkedList<>();
+            Map<Set<ComputedContingencyElement>, List<Contingency>> contingenciesByGroupOfElementsBreakingConnectivity = new HashMap<>();
 
-            detectConnectivityLoss(lfNetwork, contingenciesStates, lfContingencies, equationSystem, nonLosingConnectivityContingencies, contingenciesByGroupOfElementsBreakingConnectivity);
+            detectConnectivityLoss(lfNetwork, contingenciesStates, contingencies, contingenciesElements, equationSystem, nonLosingConnectivityContingencies, contingenciesByGroupOfElementsBreakingConnectivity);
 
             Map<String, List<SensitivityValue>> contingenciesValue = new HashMap<>();
             // compute the contingencies without loss of connectivity
-            for (LfContingency contingency : nonLosingConnectivityContingencies) {
-                contingenciesValue.put(contingency.getContingency().getId(), calculateSensitivityValues(factorGroups,
-                        factorsStates, contingenciesStates, stateFlow, contingency.getElements()));
+            for (Contingency contingency : nonLosingConnectivityContingencies) {
+                contingenciesValue.put(contingency.getId(), calculateSensitivityValues(factorGroups,
+                        factorsStates, contingenciesStates, stateFlow, contingency.getElements().stream().map(element -> contingenciesElements.get(element.getId())).collect(Collectors.toList())));
             }
 
             if (contingenciesByGroupOfElementsBreakingConnectivity.isEmpty()) {
@@ -1020,9 +990,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             GraphDecrementalConnectivity<LfBus> connectivity = createConnectivity(lfNetwork);
 
             // compute the contingencies with loss of connectivity
-            for (Map.Entry<Set<ComputedContingencyElement>, List<LfContingency>> entry : contingenciesByGroupOfElementsBreakingConnectivity.entrySet()) {
+            for (Map.Entry<Set<ComputedContingencyElement>, List<Contingency>> entry : contingenciesByGroupOfElementsBreakingConnectivity.entrySet()) {
                 Set<ComputedContingencyElement> breakingConnectivityCandidates = entry.getKey();
-                List<LfContingency> contingencyList = entry.getValue();
+                List<Contingency> contingencyList = entry.getValue();
                 lfFactors.forEach(factor -> factor.setPredefinedResult(null));
                 cutConnectivity(lfNetwork, connectivity, breakingConnectivityCandidates);
                 int mainComponent = connectivity.getComponentNumber(lfNetwork.getSlackBus());
@@ -1063,9 +1033,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
                 Set<String> elementsToReconnect = getElementsToReconnect(connectivity, breakingConnectivityCandidates);
 
-                for (LfContingency contingency : contingencyList) {
-                    contingenciesValue.put(contingency.getContingency().getId(), calculateSensitivityValues(factorGroups, factorsStates, contingenciesStates, stateFlow,
-                        contingency.getElements().stream().filter(element -> !elementsToReconnect.contains(element.getElement().getId())).collect(Collectors.toList())
+                for (Contingency contingency : contingencyList) {
+                    contingenciesValue.put(contingency.getId(), calculateSensitivityValues(factorGroups, factorsStates, contingenciesStates, stateFlow,
+                        contingency.getElements().stream().filter(element -> !elementsToReconnect.contains(element.getId())).map(element -> contingenciesElements.get(element.getId())).collect(Collectors.toList())
                     ));
                 }
 
