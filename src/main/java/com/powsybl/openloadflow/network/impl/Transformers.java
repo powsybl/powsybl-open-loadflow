@@ -106,6 +106,7 @@ public final class Transformers {
             x *= (1 + rtcStep.getX() / 100) * (1 + ptcStep.getX() / 100);
             g *= (1 + rtcStep.getG() / 100) * (1 + ptcStep.getG() / 100);
             b *= (1 + rtcStep.getB() / 100) * (1 + ptcStep.getB() / 100);
+            // combine ratio tap changer and phase tap changer ratio and phase shit
             double valCos = (Math.cos(Math.toRadians(ptcStep.getAlpha())) / ptcStep.getRho()) + (1. / rtcStep.getRho()) - 1;
             double valSin = Math.sin(Math.toRadians(ptcStep.getAlpha())) / ptcStep.getRho();
             ratio *= 1. / Math.sqrt(valCos * valCos + valSin * valSin);

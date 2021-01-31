@@ -333,6 +333,31 @@ class AcLoadFlowPhaseShifterTest {
         assertEquals(2, t3wt.getLeg2().getPhaseTapChanger().getTapPosition());
     }
 
+    @Test
+    void ratioAndPhaseTapChangerTest() {
+        selectNetwork(createNetworkWithT2wt());
+        t2wt.getPhaseTapChanger().setTapPosition(2);
+        t2wt.newRatioTapChanger()
+                .setLoadTapChangingCapabilities(false)
+                .setTapPosition(0)
+                .beginStep()
+                    .setR(0)
+                    .setX(0)
+                    .setG(0)
+                    .setB(0)
+                    .setRho(0.9)
+                .endStep()
+                .add();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertActivePowerEquals(73.849, t2wt.getTerminal1());
+        assertReactivePowerEquals(-5.236, t2wt.getTerminal1());
+        assertActivePowerEquals(-73.764, t2wt.getTerminal2());
+        assertReactivePowerEquals(9.462, t2wt.getTerminal2());
+    }
+
     /**
      * A very small network to test a phase shifter on a T2wt.
      *
