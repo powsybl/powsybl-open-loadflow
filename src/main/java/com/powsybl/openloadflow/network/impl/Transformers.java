@@ -7,10 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.iidm.network.PhaseTapChanger;
-import com.powsybl.iidm.network.RatioTapChanger;
-import com.powsybl.iidm.network.ThreeWindingsTransformer;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
+import com.powsybl.iidm.network.*;
 
 import java.util.Objects;
 
@@ -25,24 +22,90 @@ public final class Transformers {
     private Transformers() {
     }
 
-    /**
-     * Get ratio on side 1 of a two windings transformer.
-     */
-    public static double getRatio(TwoWindingsTransformer twt) {
-        return getRatio(twt, getCurrentPosition(twt.getRatioTapChanger()), getCurrentPosition(twt.getPhaseTapChanger()));
+    static class TapCharacteristics {
+
+        private final double r;
+
+        private final double x;
+
+        private final double g;
+
+        private final double b;
+
+        private final double ratio;
+
+        private final double angle;
+
+        public TapCharacteristics(double r, double x, double g, double b, double ratio, double angle) {
+            this.r = r;
+            this.x = x;
+            this.g = g;
+            this.b = b;
+            this.ratio = ratio;
+            this.angle = angle;
+        }
+
+        public double getR() {
+            return r;
+        }
+
+        public double getX() {
+            return x;
+        }
+
+        public double getG() {
+            return g;
+        }
+
+        public double getB() {
+            return b;
+        }
+
+        public double getRatio() {
+            return ratio;
+        }
+
+        public double getAngle() {
+            return angle;
+        }
     }
 
-    public static double getRatio(TwoWindingsTransformer twt, Integer rtcPosition, Integer ptcPosition) {
-        double rho = twt.getRatedU2() / twt.getRatedU1();
-        if (twt.getRatioTapChanger() != null) {
+    public static TapCharacteristics getTapCharacteristics(TwoWindingsTransformer twt, Integer rtcPosition, Integer ptcPosition) {
+        double ratio = twt.getRatedU2() / twt.getRatedU1();
+        double phase = 0;
+        double r = twt.getR();
+        double x = twt.getX();
+        double g = twt.getG();
+        double b = twt.getB();
+
+        RatioTapChanger rtc = twt.getRatioTapChanger();
+        if (rtc != null) {
             Objects.requireNonNull(rtcPosition);
-            rho *= twt.getRatioTapChanger().getStep(rtcPosition).getRho();
+            RatioTapChangerStep step = twt.getRatioTapChanger().getStep(rtcPosition);
+            r *= 1 + step.getR() / 100;
+            x *= 1 + step.getX() / 100;
+            g *= 1 + step.getG() / 100;
+            b *= 1 + step.getB() / 100;
+            ratio *= step.getRho();
         }
-        if (twt.getPhaseTapChanger() != null) {
+
+        PhaseTapChanger ptc = twt.getPhaseTapChanger();
+        if (ptc != null) {
             Objects.requireNonNull(ptcPosition);
-            rho *= twt.getPhaseTapChanger().getStep(ptcPosition).getRho();
+            PhaseTapChangerStep step = twt.getPhaseTapChanger().getStep(ptcPosition);
+            r *= 1 + step.getR() / 100;
+            x *= 1 + step.getX() / 100;
+            g *= 1 + step.getG() / 100;
+            b *= 1 + step.getB() / 100;
+            ratio *= step.getRho();
+            phase += Math.toRadians(step.getAlpha());
         }
-        return rho;
+
+        return new TapCharacteristics(r, x, g, b, ratio, phase);
+    }
+
+    public static TapCharacteristics getTapCharacteristics(TwoWindingsTransformer twt) {
+        return getTapCharacteristics(twt, getCurrentPosition(twt.getRatioTapChanger()), getCurrentPosition(twt.getPhaseTapChanger()));
     }
 
     public static Integer getCurrentPosition(RatioTapChanger rtc) {
@@ -69,21 +132,6 @@ public final class Transformers {
         return rho;
     }
 
-    /**
-     * Get shift angle on side 1 of a two windings transformer.
-     */
-    public static double getAngle(TwoWindingsTransformer twt) {
-        return getAngle(twt, getCurrentPosition(twt.getPhaseTapChanger()));
-    }
-
-    public static double getAngle(TwoWindingsTransformer twt, Integer position) {
-        if (twt.getPhaseTapChanger() != null) {
-            Objects.requireNonNull(position);
-            return Math.toRadians(twt.getPhaseTapChanger().getStep(position).getAlpha());
-        }
-        return 0f;
-    }
-
     public static Integer getCurrentPosition(PhaseTapChanger rtc) {
         return rtc != null ? rtc.getTapPosition() : 0;
     }
@@ -101,17 +149,6 @@ public final class Transformers {
             return Math.toRadians(leg.getPhaseTapChanger().getStep(position).getAlpha());
         }
         return 0f;
-    }
-
-    /**
-     * Get the nominal series resistance of a two windings transformer, located on side 2.
-     */
-    public static double getR(TwoWindingsTransformer twt) {
-        return getR(twt.getR(), twt.getRatioTapChanger(), twt.getPhaseTapChanger(), getCurrentPosition(twt.getRatioTapChanger()), getCurrentPosition(twt.getPhaseTapChanger()));
-    }
-
-    public static double getR(TwoWindingsTransformer twt, Integer rtcPosition, Integer ptcPosition) {
-        return getR(twt.getR(), twt.getRatioTapChanger(), twt.getPhaseTapChanger(), rtcPosition, ptcPosition);
     }
 
     /**
@@ -146,17 +183,6 @@ public final class Transformers {
     }
 
     /**
-     * Get the nominal series reactance of a two windings transformer, located on side 2.
-     */
-    public static double getX(TwoWindingsTransformer twt) {
-        return getX(twt.getX(), twt.getRatioTapChanger(), twt.getPhaseTapChanger(), getCurrentPosition(twt.getRatioTapChanger()), getCurrentPosition(twt.getPhaseTapChanger()));
-    }
-
-    public static double getX(TwoWindingsTransformer twt, Integer rtcPosition, Integer ptcPosition) {
-        return getX(twt.getX(), twt.getRatioTapChanger(), twt.getPhaseTapChanger(), rtcPosition, ptcPosition);
-    }
-
-    /**
      * Get the nominal series reactance of a three windings transformer leg, located on bus star side.
      */
     public static double getX(ThreeWindingsTransformer.Leg leg) {
@@ -184,17 +210,6 @@ public final class Transformers {
     }
 
     /**
-     * Get the nominal magnetizing conductance of a two windings transformer, located on side 2.
-     */
-    public static double getG1(TwoWindingsTransformer twt, boolean twtSplitShuntAdmittance) {
-        return getG1(twt, getCurrentPosition(twt.getRatioTapChanger()), getCurrentPosition(twt.getPhaseTapChanger()), twtSplitShuntAdmittance);
-    }
-
-    public static double getG1(TwoWindingsTransformer twt, Integer rtcPosition, Integer ptcPosition, boolean twtSplitShuntAdmittance) {
-        return getG1(twtSplitShuntAdmittance ? twt.getG() / 2 : twt.getG(), twt.getRatioTapChanger(), twt.getPhaseTapChanger(), rtcPosition, ptcPosition);
-    }
-
-    /**
      * Get the nominal magnetizing conductance of a three windings transformer, located on bus star side.
      */
     public static double getG1(ThreeWindingsTransformer.Leg leg, boolean twtSplitShuntAdmittance) {
@@ -219,17 +234,6 @@ public final class Transformers {
         }
 
         return getValue(g1, rtcStepValue, ptcStepValue);
-    }
-
-    /**
-     * Get the nominal magnetizing susceptance of a two windings transformer, located on side 2.
-     */
-    public static double getB1(TwoWindingsTransformer twt, boolean twtSplitShuntAdmittance) {
-        return getB1(twt, getCurrentPosition(twt.getRatioTapChanger()), getCurrentPosition(twt.getPhaseTapChanger()), twtSplitShuntAdmittance);
-    }
-
-    public static double getB1(TwoWindingsTransformer twt, Integer rtcPosition, Integer ptcPosition, boolean twtSplitShuntAdmittance) {
-        return getB1(twtSplitShuntAdmittance ? twt.getB() / 2 : twt.getB(), twt.getRatioTapChanger(), twt.getPhaseTapChanger(), rtcPosition, ptcPosition);
     }
 
     /**
