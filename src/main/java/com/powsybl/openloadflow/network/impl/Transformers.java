@@ -71,16 +71,16 @@ public final class Transformers {
         }
     }
 
-    public static TapCharacteristics getTapCharacteristics(TwoWindingsTransformer twt, Integer rtcPosition, Integer ptcPosition) {
-        double ratio = twt.getRatedU2() / twt.getRatedU1();
-        double angle = 0;
-        double r = twt.getR();
-        double x = twt.getX();
-        double g = twt.getG();
-        double b = twt.getB();
+    private static TapCharacteristics getTapCharacteristics(RatioTapChanger rtc, PhaseTapChanger ptc, Integer rtcPosition, Integer ptcPosition,
+                                                            double ratio0, double angle0, double r0, double x0, double g0, double b0) {
+        double ratio = ratio0;
+        double angle = angle0;
+        double r = r0;
+        double x = x0;
+        double g = g0;
+        double b = b0;
 
-        RatioTapChanger rtc = twt.getRatioTapChanger();
-        if (rtc != null) {
+        if (rtc != null && ptc == null) {
             Objects.requireNonNull(rtcPosition);
             RatioTapChangerStep step = rtc.getStep(rtcPosition);
             r *= 1 + step.getR() / 100;
@@ -88,10 +88,7 @@ public final class Transformers {
             g *= 1 + step.getG() / 100;
             b *= 1 + step.getB() / 100;
             ratio *= step.getRho();
-        }
-
-        PhaseTapChanger ptc = twt.getPhaseTapChanger();
-        if (ptc != null) {
+        } else if (ptc != null && rtc == null) {
             Objects.requireNonNull(ptcPosition);
             PhaseTapChangerStep step = ptc.getStep(ptcPosition);
             r *= 1 + step.getR() / 100;
@@ -100,9 +97,33 @@ public final class Transformers {
             b *= 1 + step.getB() / 100;
             ratio *= step.getRho();
             angle += Math.toRadians(step.getAlpha());
+        } else if (ptc != null && rtc != null) {
+            Objects.requireNonNull(rtcPosition);
+            Objects.requireNonNull(ptcPosition);
+            RatioTapChangerStep rtcStep = rtc.getStep(rtcPosition);
+            PhaseTapChangerStep ptcStep = ptc.getStep(ptcPosition);
+            r *= (1 + rtcStep.getR() / 100) * (1 + ptcStep.getR() / 100);
+            x *= (1 + rtcStep.getX() / 100) * (1 + ptcStep.getX() / 100);
+            g *= (1 + rtcStep.getG() / 100) * (1 + ptcStep.getG() / 100);
+            b *= (1 + rtcStep.getB() / 100) * (1 + ptcStep.getB() / 100);
+            double valCos = (Math.cos(Math.toRadians(ptcStep.getAlpha())) / ptcStep.getRho()) + (1. / rtcStep.getRho()) - 1;
+            double valSin = Math.sin(Math.toRadians(ptcStep.getAlpha())) / ptcStep.getRho();
+            ratio *= 1. / Math.sqrt(valCos * valCos + valSin * valSin);
+            angle += Math.atan2(valSin, valCos);
         }
 
         return new TapCharacteristics(r, x, g, b, ratio, angle);
+    }
+
+    public static TapCharacteristics getTapCharacteristics(TwoWindingsTransformer twt, Integer rtcPosition, Integer ptcPosition) {
+        double ratio0 = twt.getRatedU2() / twt.getRatedU1();
+        double angle0 = 0;
+        double r0 = twt.getR();
+        double x0 = twt.getX();
+        double g0 = twt.getG();
+        double b0 = twt.getB();
+        return getTapCharacteristics(twt.getRatioTapChanger(), twt.getPhaseTapChanger(), rtcPosition, ptcPosition, ratio0,
+                angle0, r0, x0, g0, b0);
     }
 
     public static Integer getCurrentPosition(RatioTapChanger rtc) {
@@ -118,37 +139,14 @@ public final class Transformers {
     }
 
     public static TapCharacteristics getTapCharacteristics(ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg, Integer rtcPosition, Integer ptcPosition) {
-        double ratio = twt.getRatedU0() / leg.getRatedU();
-        double angle = 0;
-        double r = leg.getR();
-        double x = leg.getX();
-        double g = leg.getG();
-        double b = leg.getB();
-
-        RatioTapChanger rtc = leg.getRatioTapChanger();
-        if (rtc != null) {
-            Objects.requireNonNull(rtcPosition);
-            RatioTapChangerStep step = rtc.getStep(rtcPosition);
-            r *= 1 + step.getR() / 100;
-            x *= 1 + step.getX() / 100;
-            g *= 1 + step.getG() / 100;
-            b *= 1 + step.getB() / 100;
-            ratio *= step.getRho();
-        }
-
-        PhaseTapChanger ptc = leg.getPhaseTapChanger();
-        if (ptc != null) {
-            Objects.requireNonNull(ptcPosition);
-            PhaseTapChangerStep step = ptc.getStep(ptcPosition);
-            r *= 1 + step.getR() / 100;
-            x *= 1 + step.getX() / 100;
-            g *= 1 + step.getG() / 100;
-            b *= 1 + step.getB() / 100;
-            ratio *= step.getRho();
-            angle += Math.toRadians(step.getAlpha());
-        }
-
-        return new TapCharacteristics(r, x, g, b, ratio, angle);
+        double ratio0 = twt.getRatedU0() / leg.getRatedU();
+        double angle0 = 0;
+        double r0 = leg.getR();
+        double x0 = leg.getX();
+        double g0 = leg.getG();
+        double b0 = leg.getB();
+        return getTapCharacteristics(leg.getRatioTapChanger(), leg.getPhaseTapChanger(), rtcPosition, ptcPosition,
+                ratio0, angle0, r0, x0, g0, b0);
     }
 
     public static TapCharacteristics getTapCharacteristics(ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
