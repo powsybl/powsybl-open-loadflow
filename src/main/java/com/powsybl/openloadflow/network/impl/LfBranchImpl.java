@@ -58,31 +58,13 @@ public class LfBranchImpl extends AbstractLfBranch {
         if (ptc != null
                 && ptc.isRegulating()
                 && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
-
             // we have a phase control, whatever we also have a voltage control or not, we create a pi model array
             // based on phase taps mixed with voltage current tap
-
             Integer rtcPosition = Transformers.getCurrentPosition(twt.getRatioTapChanger());
             List<PiModel> models = new ArrayList<>();
             for (int ptcPosition = ptc.getLowTapPosition(); ptcPosition <= ptc.getHighTapPosition(); ptcPosition++) {
                 Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
-                double r = tapCharacteristics.getR() / zb;
-                double x = tapCharacteristics.getX() / zb;
-                double g1 = (twtSplitShuntAdmittance ? tapCharacteristics.getG() / 2 : tapCharacteristics.getG()) * zb;
-                double g2 = twtSplitShuntAdmittance ? g1 : 0;
-                double b1 = (twtSplitShuntAdmittance ? tapCharacteristics.getB() / 2 : tapCharacteristics.getB()) * zb;
-                double b2 = twtSplitShuntAdmittance ? b1 : 0;
-                double r1 = tapCharacteristics.getRatio() / baseRatio;
-                double a1 = tapCharacteristics.getAngle();
-                models.add(new SimplePiModel()
-                        .setR(r)
-                        .setX(x)
-                        .setG1(g1)
-                        .setG2(g2)
-                        .setB1(b1)
-                        .setB2(b2)
-                        .setR1(r1)
-                        .setA1(a1));
+                models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
             }
             piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
         }
@@ -92,28 +74,11 @@ public class LfBranchImpl extends AbstractLfBranch {
             if (piModel == null) {
                 // we have a voltage control, we create a pi model array based on voltage taps mixed with phase current
                 // tap
-
                 Integer ptcPosition = Transformers.getCurrentPosition(twt.getPhaseTapChanger());
                 List<PiModel> models = new ArrayList<>();
                 for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= rtc.getHighTapPosition(); rtcPosition++) {
                     Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
-                    double r = tapCharacteristics.getR() / zb;
-                    double x = tapCharacteristics.getX() / zb;
-                    double g1 = (twtSplitShuntAdmittance ? tapCharacteristics.getG() / 2 : tapCharacteristics.getG()) * zb;
-                    double g2 = twtSplitShuntAdmittance ? g1 : 0;
-                    double b1 = (twtSplitShuntAdmittance ? tapCharacteristics.getB() / 2 : tapCharacteristics.getB()) * zb;
-                    double b2 = twtSplitShuntAdmittance ? b1 : 0;
-                    double r1 = tapCharacteristics.getRatio() / baseRatio;
-                    double a1 = tapCharacteristics.getAngle();
-                    models.add(new SimplePiModel()
-                            .setR(r)
-                            .setX(x)
-                            .setG1(g1)
-                            .setG2(g2)
-                            .setB1(b1)
-                            .setB2(b2)
-                            .setR1(r1)
-                            .setA1(a1));
+                    models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
                 }
                 piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
             } else {
@@ -125,23 +90,7 @@ public class LfBranchImpl extends AbstractLfBranch {
             // we don't have any phase or voltage control, we create a simple pi model (single tap) based on phase current
             // tap and voltage current tap
             Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt);
-            double r = tapCharacteristics.getR() / zb;
-            double x = tapCharacteristics.getX() / zb;
-            double g1 = (twtSplitShuntAdmittance ? tapCharacteristics.getG() / 2 : tapCharacteristics.getG()) * zb;
-            double g2 = twtSplitShuntAdmittance ? g1 : 0;
-            double b1 = (twtSplitShuntAdmittance ? tapCharacteristics.getB() / 2 : tapCharacteristics.getB()) * zb;
-            double b2 = twtSplitShuntAdmittance ? b1 : 0;
-            double r1 = tapCharacteristics.getRatio() / baseRatio;
-            double a1 = tapCharacteristics.getAngle();
-            piModel = new SimplePiModel()
-                    .setR(r)
-                    .setX(x)
-                    .setG1(g1)
-                    .setG2(g2)
-                    .setB1(b1)
-                    .setB2(b2)
-                    .setR1(r1)
-                    .setA1(a1);
+            piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance);
         }
 
         return new LfBranchImpl(bus1, bus2, piModel, twt);
