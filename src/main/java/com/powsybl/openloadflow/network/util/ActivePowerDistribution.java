@@ -80,7 +80,11 @@ public final class ActivePowerDistribution {
     }
 
     public static ActivePowerDistribution create(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant) {
-        ActivePowerDistribution.Step step;
+        return new ActivePowerDistribution(getStep(balanceType, loadPowerFactorConstant));
+    }
+
+    public static Step getStep(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant) {
+        Step step;
         switch (balanceType) {
             case PROPORTIONAL_TO_LOAD:
                 step = new LoadActivePowerDistributionStep(false, loadPowerFactorConstant);
@@ -96,6 +100,6 @@ public final class ActivePowerDistribution {
             default:
                 throw new UnsupportedOperationException("Unknown balance type mode: " + balanceType);
         }
-        return new ActivePowerDistribution(step);
+        return step;
     }
 }

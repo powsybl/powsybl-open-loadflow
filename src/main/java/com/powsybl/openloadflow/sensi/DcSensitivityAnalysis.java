@@ -584,16 +584,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
     }
 
-    protected LfBus getParticipatingElementLfBus(ParticipatingElement participatingElement) {
-        if (participatingElement.getElement() instanceof LfGenerator) {
-            return ((LfGenerator) participatingElement.getElement()).getBus();
-        } else if (participatingElement.getElement() instanceof LfBus) {
-            return (LfBus) participatingElement.getElement();
-        } else {
-            throw new UnsupportedOperationException("Unsupported participating element");
-        }
-    }
-
     private ActivePowerDistribution.Step getStep(LoadFlowParameters loadFlowParameters) {
         switch (loadFlowParameters.getBalanceType()) {
             case PROPORTIONAL_TO_GENERATION_P_MAX:
@@ -926,7 +916,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         if (lfParameters.isDistributedSlack()) {
             participatingElements = getParticipatingElements(lfNetwork, lfParameters);
             slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
-                element -> getParticipatingElementLfBus(element).getId(),
+                element -> element.getLfBus().getId(),
                 element -> -element.getFactor(),
                 Double::sum
             ));
@@ -1010,11 +1000,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
                     if (lfParameters.isDistributedSlack()) {
                         participatingElementsForThisConnectivity = participatingElements.stream()
-                                                                                        .filter(element -> connectivity.getComponentNumber(getParticipatingElementLfBus(element)) == mainComponent)
+                                                                                        .filter(element -> connectivity.getComponentNumber(element.getLfBus()) == mainComponent)
                                                                                         .collect(Collectors.toList()); // will also be used to recompute the loadflow
                         ParticipatingElement.normalizeParticipationFactors(participatingElementsForThisConnectivity, "bus");
                         slackParticipationByBusForThisConnectivity = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(
-                            element -> getParticipatingElementLfBus(element).getId(),
+                            element -> element.getLfBus().getId(),
                             element -> -element.getFactor(),
                             Double::sum
                         ));
