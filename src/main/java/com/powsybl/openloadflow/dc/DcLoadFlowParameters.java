@@ -29,14 +29,18 @@ public class DcLoadFlowParameters {
 
     private LoadFlowParameters.BalanceType balanceType;
 
+    private final double plausibleActivePowerLimit;
+
     public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory, boolean updateFlows,
-                                boolean useTransformerRatio, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType) {
+                                boolean useTransformerRatio, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
+                                double plausibleActivePowerLimit) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.updateFlows = updateFlows;
         this.useTransformerRatio = useTransformerRatio;
         this.distributedSlack = distributedSlack;
         this.balanceType = balanceType;
+        this.plausibleActivePowerLimit = plausibleActivePowerLimit;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -61,5 +65,9 @@ public class DcLoadFlowParameters {
 
     public boolean isUseTransformerRatio() {
         return useTransformerRatio;
+    }
+
+    public double getPlausibleActivePowerLimit() {
+        return plausibleActivePowerLimit;
     }
 }
