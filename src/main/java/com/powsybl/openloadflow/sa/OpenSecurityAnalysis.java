@@ -21,10 +21,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.security.*;
@@ -269,7 +266,13 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             while (contingencyIt.hasNext()) {
                 LfContingency lfContingency = contingencyIt.next();
 
-                // FIXME: loads and generations lost with the contingency have to be removed from the slack distribution
+                for (LfBus bus : lfContingency.getBuses()) {
+                    bus.setParticipating(false);
+                    for (LfGenerator generator : bus.getGenerators()) {
+                        generator.setParticipating(false);
+                    }
+                }
+
                 distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
                 PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency);
