@@ -204,9 +204,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 // Create phase controls which link controller -> controlled
                 TwoWindingsTransformer t2wt = (TwoWindingsTransformer) branch;
                 PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
-                createPhaseControl(lfNetwork, ptc, t2wt.getId(), "");
+                createPhaseControl(lfNetwork, ptc, t2wt.getId(), "", breakers);
                 RatioTapChanger rtc = t2wt.getRatioTapChanger();
-                createVoltageControl(lfNetwork, rtc, t2wt.getId(), "");
+                createVoltageControl(lfNetwork, rtc, t2wt.getId(), "", breakers);
             }
         }
 
@@ -233,10 +233,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             int legNumber = 1;
             for (ThreeWindingsTransformer.Leg leg : Arrays.asList(t3wt.getLeg1(), t3wt.getLeg2(), t3wt.getLeg3())) {
                 PhaseTapChanger ptc = leg.getPhaseTapChanger();
-                createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + legNumber);
+                createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + legNumber, breakers);
 
                 RatioTapChanger rtc = leg.getRatioTapChanger();
-                createVoltageControl(lfNetwork, rtc, t3wt.getId(), "_leg_" + legNumber);
+                createVoltageControl(lfNetwork, rtc, t3wt.getId(), "_leg_" + legNumber, breakers);
                 legNumber++;
             }
         }
@@ -305,7 +305,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void createPhaseControl(LfNetwork lfNetwork, PhaseTapChanger ptc, String controllerBranchId, String legId) {
+    private static void createPhaseControl(LfNetwork lfNetwork, PhaseTapChanger ptc, String controllerBranchId, String legId, boolean breakers) {
         if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
             String controlledBranchId = ptc.getRegulationTerminal().getConnectable().getId();
             if (controlledBranchId.equals(controllerBranchId)) {
@@ -330,7 +330,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 LOGGER.warn("Regulating terminal of phase controller branch {} is out of voltage: no phase control created", controllerBranch.getId());
                 return;
             }
-            LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
+            LfBus controlledBus = getLfBus(ptc.getRegulationTerminal(), lfNetwork, breakers);
             DiscretePhaseControl.ControlledSide controlledSide = controlledBus == controlledBranch.getBus1() ?
                     DiscretePhaseControl.ControlledSide.ONE : DiscretePhaseControl.ControlledSide.TWO;
             if (controlledBranch instanceof LfLegBranch && controlledBus == controlledBranch.getBus2()) {
@@ -351,7 +351,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void createVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId, String legId) {
+    private static void createVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId, String legId, boolean breakers) {
         if (rtc != null && rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities()) {
             LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
             if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
@@ -363,20 +363,22 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 LOGGER.warn("Regulating terminal of voltage controller branch {} is out of voltage: no voltage control created", controllerBranch.getId());
                 return;
             }
-            LfBus controlledBus = lfNetwork.getBusById(regulationTerminal.getBusView().getBus().getId());
-            if ((controlledBus.getControllerBuses().isEmpty() && controlledBus.hasVoltageControl()) || !controlledBus.getControllerBuses().isEmpty()) {
-                LOGGER.warn("Controlled bus {} has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
-            } else if (controlledBus.isDiscreteVoltageControlled()) {
-                LOGGER.trace("Controlled bus {} already has a transformer voltage control: a shared control is created", controlledBus.getId());
-                controlledBus.getDiscreteVoltageControl().addController(controllerBranch);
-                controllerBranch.setDiscreteVoltageControl(controlledBus.getDiscreteVoltageControl());
-            } else {
-                double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
-                DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
-                        DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
-                voltageControl.addController(controllerBranch);
-                controllerBranch.setDiscreteVoltageControl(voltageControl);
-                controlledBus.setDiscreteVoltageControl(voltageControl);
+            LfBus controlledBus = getLfBus(rtc.getRegulationTerminal(), lfNetwork, breakers);
+            if (controlledBus != null) {
+                if ((controlledBus.getControllerBuses().isEmpty() && controlledBus.hasVoltageControl()) || !controlledBus.getControllerBuses().isEmpty()) {
+                    LOGGER.warn("Controlled bus {} has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
+                } else if (controlledBus.isDiscreteVoltageControlled()) {
+                    LOGGER.trace("Controlled bus {} already has a transformer voltage control: a shared control is created", controlledBus.getId());
+                    controlledBus.getDiscreteVoltageControl().addController(controllerBranch);
+                    controllerBranch.setDiscreteVoltageControl(controlledBus.getDiscreteVoltageControl());
+                } else {
+                    double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
+                    DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
+                            DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
+                    voltageControl.addController(controllerBranch);
+                    controllerBranch.setDiscreteVoltageControl(voltageControl);
+                    controlledBus.setDiscreteVoltageControl(voltageControl);
+                }
             }
         }
     }
