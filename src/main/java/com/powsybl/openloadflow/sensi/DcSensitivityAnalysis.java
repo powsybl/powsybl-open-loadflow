@@ -937,7 +937,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                              .map(contingencyElement -> new ComputedContingencyElement(contingencyElement, lfNetwork, equationSystem))
                              .collect(Collectors.toMap(
                                  computedContingencyElement -> computedContingencyElement.getElement().getId(),
-                                 computedContingencyElement -> computedContingencyElement
+                                 computedContingencyElement -> computedContingencyElement,
+                                 (existing, replacement) -> existing
                              ));
         ComputedContingencyElement.setContingencyIndexes(contingenciesElements.values());
 
