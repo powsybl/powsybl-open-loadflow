@@ -114,4 +114,8 @@ public interface LfBus {
     boolean isDiscreteVoltageControlled();
 
     void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
+
+    boolean isParticipating();
+
+    void setParticipating(boolean participating);
 }

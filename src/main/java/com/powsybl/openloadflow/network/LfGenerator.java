@@ -48,4 +48,6 @@ public interface LfGenerator {
     void setCalculatedQ(double calculatedQ);
 
     void updateState();
+
+    void setParticipating(boolean participating);
 }

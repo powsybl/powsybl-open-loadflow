@@ -32,8 +32,6 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private final Generator generator;
 
-    private boolean participating;
-
     private double participationFactor;
 
     private LfGeneratorImpl(Generator generator, LfNetworkLoadingReport report) {

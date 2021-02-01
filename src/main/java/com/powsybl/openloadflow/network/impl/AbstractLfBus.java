@@ -63,6 +63,8 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected double targetV = Double.NaN;
 
+    private boolean participating = true;
+
     protected LfBus controlledBus;
 
     protected final List<LfBus> controllerBuses = new ArrayList<>();
@@ -520,5 +522,15 @@ public abstract class AbstractLfBus implements LfBus {
     @Override
     public void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl) {
         this.discreteVoltageControl = discreteVoltageControl;
+    }
+
+    @Override
+    public boolean isParticipating() {
+        return participating;
+    }
+
+    @Override
+    public void setParticipating(boolean participating) {
+        this.participating = participating;
     }
 }
