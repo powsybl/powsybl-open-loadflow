@@ -24,8 +24,6 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final double highVoltageLimit;
 
-    private boolean participating = true;
-
     protected LfBusImpl(Bus bus, double v, double angle) {
         super(v, angle);
         this.bus = bus;
