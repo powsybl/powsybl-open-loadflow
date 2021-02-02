@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -28,21 +27,9 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
 
     private final boolean loadPowerFactorConstant;
 
-    private Map<LfBus, Double> initialValues;
-
     public LoadActivePowerDistributionStep(boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         this.distributedOnConformLoad = distributedOnConformLoad;
         this.loadPowerFactorConstant = loadPowerFactorConstant;
-    }
-
-    public LoadActivePowerDistributionStep(boolean distributedOnConformLoad, boolean loadPowerFactorConstant, List<ParticipatingElement> elementsToMemorize) {
-        this(distributedOnConformLoad, loadPowerFactorConstant);
-        initialValues = elementsToMemorize.stream()
-                                          .map(participatingElement -> (LfBus) participatingElement.getElement())
-                                          .collect(Collectors.toMap(
-                                              lfBus -> lfBus,
-                                              LfBus::getLoadTargetP
-                                          ));
     }
 
     @Override

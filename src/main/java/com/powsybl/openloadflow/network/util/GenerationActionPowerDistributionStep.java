@@ -12,10 +12,8 @@ import com.powsybl.openloadflow.network.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -25,20 +23,8 @@ public class GenerationActionPowerDistributionStep implements ActivePowerDistrib
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GenerationActionPowerDistributionStep.class);
 
-    Map<LfGenerator, Double> initialValues = new HashMap<>();
-
     public GenerationActionPowerDistributionStep() {
         super();
-    }
-
-    public GenerationActionPowerDistributionStep(List<ParticipatingElement> elementsToMemorize) {
-        this();
-        initialValues = elementsToMemorize.stream()
-                                          .map(participatingElement -> (LfGenerator) participatingElement.getElement())
-                                          .collect(Collectors.toMap(
-                                              generator -> generator,
-                                              LfGenerator::getTargetP
-                                          ));
     }
 
     @Override
