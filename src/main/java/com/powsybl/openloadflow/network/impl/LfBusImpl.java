@@ -24,6 +24,8 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final double highVoltageLimit;
 
+    private boolean participating = true;
+
     protected LfBusImpl(Bus bus, double v, double angle) {
         super(v, angle);
         this.bus = bus;
@@ -77,5 +79,15 @@ public class LfBusImpl extends AbstractLfBus {
         }
 
         super.updateState(reactiveLimits, writeSlackBus);
+    }
+
+    @Override
+    public boolean isParticipating() {
+        return participating;
+    }
+
+    @Override
+    public void setParticipating(boolean participating) {
+        this.participating = participating;
     }
 }

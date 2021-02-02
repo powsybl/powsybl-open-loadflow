@@ -32,6 +32,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private final Generator generator;
 
+    private boolean participating;
+
     private double participationFactor;
 
     private LfGeneratorImpl(Generator generator, LfNetworkLoadingReport report) {
@@ -122,6 +124,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     @Override
     public boolean isParticipating() {
         return participating;
+    }
+
+    @Override
+    public void setParticipating(boolean participating) {
+        this.participating = participating;
     }
 
     @Override

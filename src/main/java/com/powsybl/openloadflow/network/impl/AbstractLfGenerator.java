@@ -27,8 +27,6 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     protected double calculatedQ = Double.NaN;
 
-    protected boolean participating = true;
-
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
     }
@@ -111,15 +109,5 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public void setCalculatedQ(double calculatedQ) {
         this.calculatedQ = calculatedQ * PerUnit.SB;
-    }
-
-    @Override
-    public boolean isParticipating() {
-        return participating;
-    }
-
-    @Override
-    public void setParticipating(boolean participating) {
-        this.participating = participating;
     }
 }

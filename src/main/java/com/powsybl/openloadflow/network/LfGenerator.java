@@ -41,6 +41,8 @@ public interface LfGenerator {
 
     boolean isParticipating();
 
+    void setParticipating(boolean participating);
+
     double getParticipationFactor();
 
     double getCalculatedQ();
@@ -48,6 +50,4 @@ public interface LfGenerator {
     void setCalculatedQ(double calculatedQ);
 
     void updateState();
-
-    void setParticipating(boolean participating);
 }

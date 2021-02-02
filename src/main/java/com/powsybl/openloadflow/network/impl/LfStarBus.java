@@ -60,4 +60,14 @@ public class LfStarBus extends AbstractLfBus {
 
         super.updateState(reactiveLimits, writeSlackBus);
     }
+
+    @Override
+    public boolean isParticipating() {
+        return false;
+    }
+
+    @Override
+    public void setParticipating(boolean participating) {
+        // nothing to do
+    }
 }

@@ -105,6 +105,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowProvider.getParametersExt(securityAnalysisParameters.getLoadFlowParameters());
+        lfParametersExt.setThrowsExceptionInCaseOfSlackDistributionFailure(false); //FIXME
 
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);

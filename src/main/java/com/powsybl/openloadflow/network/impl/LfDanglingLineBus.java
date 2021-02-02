@@ -30,7 +30,7 @@ public class LfDanglingLineBus extends AbstractLfBus {
             if (generation.isVoltageRegulationOn()) {
                 this.targetV = generation.getTargetV();
                 this.voltageControl = true;
-                this.voltageControlCapacility = true;
+                this.voltageControlCapability = true;
             } else {
                 if (!Double.isNaN(generation.getTargetQ())) {
                     generationTargetQ += generation.getTargetQ();
@@ -76,5 +76,15 @@ public class LfDanglingLineBus extends AbstractLfBus {
         Networks.setPropertyAngle(danglingLine, angle);
 
         super.updateState(reactiveLimits, writeSlackBus);
+    }
+
+    @Override
+    public boolean isParticipating() {
+        return false;
+    }
+
+    @Override
+    public void setParticipating(boolean participating) {
+        // nothing to do
     }
 }
