@@ -41,7 +41,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
     public List<ParticipatingElement> getParticipatingElements(LfNetwork network) {
         return network.getBuses()
                 .stream()
-                .filter(bus -> bus.getPositiveLoadCount() > 0 && getVariableLoadTargetP(bus) > 0)
+                .filter(bus -> bus.getPositiveLoadCount() > 0 && getVariableLoadTargetP(bus) > 0 && !(bus.isFictitious() || bus.isDisabled()))
                 .map(bus -> new ParticipatingElement(bus, getVariableLoadTargetP(bus)))
                 .collect(Collectors.toList());
     }
