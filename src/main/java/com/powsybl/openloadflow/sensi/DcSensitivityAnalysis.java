@@ -584,17 +584,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
     }
 
-    private ActivePowerDistribution.Step getStep(LoadFlowParameters loadFlowParameters) {
-        switch (loadFlowParameters.getBalanceType()) {
-            case PROPORTIONAL_TO_GENERATION_P_MAX:
-                return new GenerationActionPowerDistributionStep();
-            case PROPORTIONAL_TO_LOAD:
-                return new LoadActivePowerDistributionStep(false, false);
-            default:
-                throw new UnsupportedOperationException("Balance type not yet supported: " + loadFlowParameters.getBalanceType());
-        }
-    }
-
     private ActivePowerDistribution.Step getStep(LoadFlowParameters loadFlowParameters, List<ParticipatingElement> participatingElements) {
         switch (loadFlowParameters.getBalanceType()) {
             case PROPORTIONAL_TO_GENERATION_P_MAX:
@@ -607,7 +596,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     }
 
     protected List<ParticipatingElement> getParticipatingElements(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
-        ActivePowerDistribution.Step step = getStep(loadFlowParameters);
+        ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(loadFlowParameters.getBalanceType());
         List<ParticipatingElement> participatingElements =  step.getParticipatingElements(lfNetwork);
         ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
         return participatingElements;
