@@ -131,8 +131,8 @@ public final class Transformers {
         return rtc != null ? rtc.getTapPosition() : null;
     }
 
-    public static Integer getCurrentPosition(PhaseTapChanger rtc) {
-        return rtc != null ? rtc.getTapPosition() : 0;
+    public static Integer getCurrentPosition(PhaseTapChanger ptc) {
+        return ptc != null ? ptc.getTapPosition() : null;
     }
 
     public static TapCharacteristics getTapCharacteristics(TwoWindingsTransformer twt) {
