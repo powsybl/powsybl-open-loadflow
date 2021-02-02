@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -203,9 +204,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 // Create phase controls which link controller -> controlled
                 TwoWindingsTransformer t2wt = (TwoWindingsTransformer) branch;
                 PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
-                createPhaseControl(lfNetwork, ptc, t2wt.getId(), "");
+                createPhaseControl(lfNetwork, ptc, t2wt.getId(), "", breakers);
                 RatioTapChanger rtc = t2wt.getRatioTapChanger();
-                createVoltageControl(lfNetwork, rtc, t2wt.getId(), "");
+                createVoltageControl(lfNetwork, rtc, t2wt.getId(), "", breakers);
             }
         }
 
@@ -232,16 +233,79 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             int legNumber = 1;
             for (ThreeWindingsTransformer.Leg leg : Arrays.asList(t3wt.getLeg1(), t3wt.getLeg2(), t3wt.getLeg3())) {
                 PhaseTapChanger ptc = leg.getPhaseTapChanger();
-                createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + legNumber);
+                createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + legNumber, breakers);
 
                 RatioTapChanger rtc = leg.getRatioTapChanger();
-                createVoltageControl(lfNetwork, rtc, t3wt.getId(), "_leg_" + legNumber);
+                createVoltageControl(lfNetwork, rtc, t3wt.getId(), "_leg_" + legNumber, breakers);
                 legNumber++;
             }
         }
     }
 
-    private static void createPhaseControl(LfNetwork lfNetwork, PhaseTapChanger ptc, String controllerBranchId, String legId) {
+    private static void createSwitches(List<Switch> switches, LfNetwork lfNetwork) {
+        if (switches != null) {
+            for (Switch sw : switches) {
+                VoltageLevel vl = sw.getVoltageLevel();
+                Bus bus1 = vl.getBusBreakerView().getBus1(sw.getId());
+                Bus bus2 = vl.getBusBreakerView().getBus2(sw.getId());
+                LfBus lfBus1 = lfNetwork.getBusById(bus1.getId());
+                LfBus lfBus2 = lfNetwork.getBusById(bus2.getId());
+                lfNetwork.addBranch(new LfSwitch(lfBus1, lfBus2, sw));
+            }
+        }
+    }
+
+    private static void fixDiscreteVoltageControls(LfNetwork lfNetwork, boolean minImpedance) {
+        // If min impedance is set, there is no zero-impedance branch
+        if (!minImpedance) {
+            // Merge the discrete voltage control in each zero impedance connected set
+            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.createZeroImpedanceSubGraph()).connectedSets();
+            connectedSets.forEach(LfNetworkLoaderImpl::fixDiscreteVoltageControlsOnConnectedComponent);
+        }
+    }
+
+    private static void fixDiscreteVoltageControlsOnConnectedComponent(Set<LfBus> zeroImpedanceConnectedSet) {
+        // Get the list of discrete controlled buses in the zero impedance connected set
+        List<LfBus> discreteControlledBuses = zeroImpedanceConnectedSet.stream().filter(LfBus::isDiscreteVoltageControlled).collect(Collectors.toList());
+        if (discreteControlledBuses.isEmpty()) {
+            return;
+        }
+
+        // The first controlled bus is kept and removed from the list
+        LfBus firstControlledBus = discreteControlledBuses.remove(0);
+
+        // First resolve problem of discrete voltage controls
+        if (!discreteControlledBuses.isEmpty()) {
+            // We have several discrete controls whose controlled bus are in the same non-impedant connected set
+            // To solve that we keep only one discrete voltage control, the other ones are removed
+            // and the corresponding controllers are added to the discrete control kept
+            LOGGER.info("Zero impedance connected set with several discrete voltage controls: discrete controls merged");
+            DiscreteVoltageControl firstDvc = firstControlledBus.getDiscreteVoltageControl();
+            discreteControlledBuses.stream()
+                .flatMap(c -> c.getDiscreteVoltageControl().getControllers().stream())
+                .forEach(controller -> {
+                    firstDvc.addController(controller);
+                    controller.setDiscreteVoltageControl(firstDvc);
+                });
+            discreteControlledBuses.forEach(lfBus -> lfBus.setDiscreteVoltageControl(null));
+        }
+
+        // Then resolve problem of mixed shared controls, that is if there are any generator/svc voltage control together with discrete voltage control(s)
+        // Check if there is one bus with remote voltage control or local voltage control
+        boolean hasControlledBus = zeroImpedanceConnectedSet.stream().anyMatch(lfBus -> !lfBus.getControllerBuses().isEmpty()
+                || (lfBus.hasVoltageControl() && lfBus.getControllerBuses().isEmpty()));
+        if (hasControlledBus) {
+            // If any generator/svc voltage controls, remove the merged discrete voltage control
+            // TODO: deal with mixed shared controls instead of removing all discrete voltage controls
+            LOGGER.warn("Zero impedance connected set with voltage control and discrete voltage control: only generator control is kept");
+            // First remove it from controllers
+            firstControlledBus.getDiscreteVoltageControl().getControllers().forEach(c -> c.setDiscreteVoltageControl(null));
+            // Then remove it from the controlled lfBus
+            firstControlledBus.setDiscreteVoltageControl(null);
+        }
+    }
+
+    private static void createPhaseControl(LfNetwork lfNetwork, PhaseTapChanger ptc, String controllerBranchId, String legId, boolean breakers) {
         if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
             String controlledBranchId = ptc.getRegulationTerminal().getConnectable().getId();
             if (controlledBranchId.equals(controllerBranchId)) {
@@ -266,7 +330,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 LOGGER.warn("Regulating terminal of phase controller branch {} is out of voltage: no phase control created", controllerBranch.getId());
                 return;
             }
-            LfBus controlledBus = lfNetwork.getBusById(ptc.getRegulationTerminal().getBusView().getBus().getId());
+            LfBus controlledBus = getLfBus(ptc.getRegulationTerminal(), lfNetwork, breakers);
             DiscretePhaseControl.ControlledSide controlledSide = controlledBus == controlledBranch.getBus1() ?
                     DiscretePhaseControl.ControlledSide.ONE : DiscretePhaseControl.ControlledSide.TWO;
             if (controlledBranch instanceof LfLegBranch && controlledBus == controlledBranch.getBus2()) {
@@ -287,8 +351,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void createVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId, String legId) {
-        if (rtc != null && rtc.isRegulating()) {
+    private static void createVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId, String legId, boolean breakers) {
+        if (rtc != null && rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities()) {
             LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
             if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
                 LOGGER.warn("Voltage controller branch {} is open: no voltage control created", controllerBranch.getId());
@@ -299,20 +363,22 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 LOGGER.warn("Regulating terminal of voltage controller branch {} is out of voltage: no voltage control created", controllerBranch.getId());
                 return;
             }
-            LfBus controlledBus = lfNetwork.getBusById(regulationTerminal.getBusView().getBus().getId());
-            if ((controlledBus.getControllerBuses().isEmpty() && controlledBus.hasVoltageControl()) || !controlledBus.getControllerBuses().isEmpty()) {
-                LOGGER.warn("Controlled bus {} has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
-            } else if (controlledBus.isDiscreteVoltageControlled()) {
-                LOGGER.trace("Controlled bus {} already has a transformer voltage control: a shared control is created", controlledBus.getId());
-                controlledBus.getDiscreteVoltageControl().addController(controllerBranch);
-                controllerBranch.setDiscreteVoltageControl(controlledBus.getDiscreteVoltageControl());
-            } else {
-                double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
-                DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
-                        DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
-                voltageControl.addController(controllerBranch);
-                controllerBranch.setDiscreteVoltageControl(voltageControl);
-                controlledBus.setDiscreteVoltageControl(voltageControl);
+            LfBus controlledBus = getLfBus(rtc.getRegulationTerminal(), lfNetwork, breakers);
+            if (controlledBus != null) {
+                if ((controlledBus.getControllerBuses().isEmpty() && controlledBus.hasVoltageControl()) || !controlledBus.getControllerBuses().isEmpty()) {
+                    LOGGER.warn("Controlled bus {} has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
+                } else if (controlledBus.isDiscreteVoltageControlled()) {
+                    LOGGER.trace("Controlled bus {} already has a transformer voltage control: a shared control is created", controlledBus.getId());
+                    controlledBus.getDiscreteVoltageControl().addController(controllerBranch);
+                    controllerBranch.setDiscreteVoltageControl(controlledBus.getDiscreteVoltageControl());
+                } else {
+                    double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
+                    DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
+                            DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
+                    voltageControl.addController(controllerBranch);
+                    controllerBranch.setDiscreteVoltageControl(voltageControl);
+                    controlledBus.setDiscreteVoltageControl(voltageControl);
+                }
             }
         }
     }
@@ -331,16 +397,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
         createBuses(buses, parameters.isGeneratorVoltageRemoteControl(), parameters.isBreakers(), lfNetwork, loadingContext, report);
         createBranches(lfNetwork, loadingContext, report, parameters.isTwtSplitShuntAdmittance(), parameters.isBreakers());
-        if (switches != null) {
-            for (Switch sw : switches) {
-                VoltageLevel vl = sw.getVoltageLevel();
-                Bus bus1 = vl.getBusBreakerView().getBus1(sw.getId());
-                Bus bus2 = vl.getBusBreakerView().getBus2(sw.getId());
-                LfBus lfBus1 = lfNetwork.getBusById(bus1.getId());
-                LfBus lfBus2 = lfNetwork.getBusById(bus2.getId());
-                lfNetwork.addBranch(new LfSwitch(lfBus1, lfBus2, sw));
-            }
-        }
+        createSwitches(switches, lfNetwork);
+
+        fixDiscreteVoltageControls(lfNetwork, parameters.isMinImpedance());
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",

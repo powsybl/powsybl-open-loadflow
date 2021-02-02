@@ -13,11 +13,13 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityAnalysisResult;
 import com.powsybl.sensitivity.SensitivityFactorsProvider;
+import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
@@ -378,6 +380,34 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
                 factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join();
         assertEquals(0.0d, getValue(result, "d2", "l13"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testVscInjection() {
+        // test injection increase on loads
+        Network network = HvdcNetworkFactory.createVsc();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0", false);
+        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream()
+                                                                 .map(branch -> new BranchFlowPerInjectionIncrease(createBranchFlow(branch), createInjectionIncrease(network.getVscConverterStation("cs2"))))
+                                                                 .collect(Collectors.toList());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+                factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join();
+        assertEquals(-1d, getValue(result, "cs2", "l12"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testLccInjection() {
+        // test injection increase on loads
+        Network network = HvdcNetworkFactory.createLcc();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0", false);
+        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream()
+                                                                 .map(branch -> new BranchFlowPerInjectionIncrease(createBranchFlow(branch), createInjectionIncrease(network.getLccConverterStation("cs2"))))
+                                                                 .collect(Collectors.toList());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+                factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join();
+        assertEquals(-1d, getValue(result, "cs2", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test

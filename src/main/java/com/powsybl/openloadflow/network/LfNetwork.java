@@ -10,9 +10,10 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import net.jafama.FastMath;
+import org.jgrapht.Graph;
+import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +36,7 @@ public class LfNetwork {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
+    public static final double LOW_IMPEDANCE_THRESHOLD = Math.pow(10, -8); // in per unit
     private static final double TARGET_VOLTAGE_EPSILON = Math.pow(10, -6);
 
     private final int num;
@@ -382,9 +384,9 @@ public class LfNetwork {
         if (minImpedance) {
             for (LfBranch branch : network.getBranches()) {
                 PiModel piModel = branch.getPiModel();
-                if (Math.abs(piModel.getZ()) < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
+                if (Math.abs(piModel.getZ()) < LOW_IMPEDANCE_THRESHOLD) {
                     piModel.setR(0);
-                    piModel.setX(DcEquationSystem.LOW_IMPEDANCE_THRESHOLD);
+                    piModel.setX(LOW_IMPEDANCE_THRESHOLD);
                 }
             }
         }
@@ -394,7 +396,7 @@ public class LfNetwork {
         if (!minImpedance) {
             for (LfBranch branch : network.getBranches()) {
                 PiModel piModel = branch.getPiModel();
-                if (Math.abs(piModel.getZ()) < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) { // will be transformed to non impedant branch
+                if (Math.abs(piModel.getZ()) < LOW_IMPEDANCE_THRESHOLD) { // will be transformed to non impedant branch
                     LfBus bus1 = branch.getBus1();
                     LfBus bus2 = branch.getBus2();
                     // ensure target voltages are consistent
@@ -429,6 +431,32 @@ public class LfNetwork {
             }
         }
         throw new PowsyblException("Cannot importer network of type: " + network.getClass().getName());
+    }
+
+    /**
+     * Create the subgraph of zero-impedance LfBranches and their corresponding LfBuses
+     * The graph is intentionally not cached as a parameter so far, to avoid the complexity of invalidating it if changes occur
+     * @return the zero-impedance subgraph
+     */
+    public Graph<LfBus, LfBranch> createZeroImpedanceSubGraph() {
+        List<LfBranch> zeroImpedanceBranches = getBranches().stream()
+            .filter(LfNetwork::isZeroImpedanceBranch)
+            .filter(b -> b.getBus1() != null && b.getBus2() != null)
+            .collect(Collectors.toList());
+
+        Graph<LfBus, LfBranch> subGraph = new Pseudograph<>(LfBranch.class);
+        for (LfBranch branch : zeroImpedanceBranches) {
+            subGraph.addVertex(branch.getBus1());
+            subGraph.addVertex(branch.getBus2());
+            subGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
+        }
+
+        return  subGraph;
+    }
+
+    public static boolean isZeroImpedanceBranch(LfBranch branch) {
+        PiModel piModel = branch.getPiModel();
+        return piModel.getZ() < LOW_IMPEDANCE_THRESHOLD;
     }
 
 }
