@@ -22,12 +22,12 @@ import org.jgrapht.graph.Pseudograph;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.powsybl.openloadflow.network.LfNetwork.LOW_IMPEDANCE_THRESHOLD;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public final class DcEquationSystem {
-
-    public static final double LOW_IMPEDANCE_THRESHOLD = Math.pow(10, -8); // in per unit
 
     private DcEquationSystem() {
     }

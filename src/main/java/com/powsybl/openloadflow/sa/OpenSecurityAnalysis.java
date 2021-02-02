@@ -10,10 +10,7 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.Terminal;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -148,7 +145,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                         //TODO: support all kinds of contingencies
                         throw new UnsupportedOperationException("TODO");
                 }
-                new LfBranchTripping(element.getId(), null)
+                new BranchTripping(element.getId(), null)
                     .traverse(network, null, switchesToOpen, terminalsToDisconnect);
             }
 
@@ -172,12 +169,9 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         String tmpVariantId = "olf-tmp-" + UUID.randomUUID().toString();
         network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
         try {
-            for (Switch sw : network.getSwitches()) {
-                sw.setRetained(false);
-            }
-            for (Switch sw : allSwitchesToOpen) {
-                sw.setRetained(true);
-            }
+            network.getSwitchStream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
+                .forEach(sw -> sw.setRetained(false));
+            allSwitchesToOpen.forEach(sw -> sw.setRetained(true));
             lfNetworks = AcloadFlowEngine.createNetworks(network, acParameters);
         } finally {
             network.getVariantManager().removeVariant(tmpVariantId);

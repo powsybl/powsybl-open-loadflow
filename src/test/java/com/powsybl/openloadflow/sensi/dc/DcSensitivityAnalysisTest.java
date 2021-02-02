@@ -13,12 +13,17 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityAnalysisResult;
 import com.powsybl.sensitivity.SensitivityFactorsProvider;
+import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
+import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
+import com.powsybl.sensitivity.factors.functions.BranchFlow;
+import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
 import org.junit.jupiter.api.Test;
 
@@ -312,6 +317,59 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testGLSK() {
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", false);
+
+        Map<String, Float> glskMap = new HashMap<>();
+        glskMap.put("d2", 30f);
+        glskMap.put("g2", 10f);
+        glskMap.put("d3", 50f);
+        glskMap.put("g1", 10f);
+        LinearGlsk linearGlsk = new LinearGlsk("glsk", "glsk", glskMap);
+
+        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream().map(branch -> new BranchFlowPerLinearGlsk(new BranchFlow(branch.getId(), branch.getId(), branch.getId()), linearGlsk)).collect(Collectors.toList());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
+                sensiParameters, LocalComputationManager.getDefault())
+                                                        .join();
+
+        assertEquals(5, result.getSensitivityValues().size());
+        assertEquals(-7d / 40d, getValue(result, "glsk", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-3d / 8d, getValue(result, "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 40d, getValue(result, "glsk", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(7d / 40d, getValue(result, "glsk", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-7d / 20d, getValue(result, "glsk", "l13"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testGlskOnSlackBusDistributed() {
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        Map<String, Float> glskMap = new HashMap<>();
+        glskMap.put("d2", 30f);
+        glskMap.put("g2", 10f);
+        glskMap.put("d3", 50f);
+        glskMap.put("g1", 10f);
+        LinearGlsk linearGlsk = new LinearGlsk("glsk", "glsk", glskMap);
+
+        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream().map(branch -> new BranchFlowPerLinearGlsk(new BranchFlow(branch.getId(), branch.getId(), branch.getId()), linearGlsk)).collect(Collectors.toList());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, new EmptyContingencyListProvider(),
+                sensiParameters, LocalComputationManager.getDefault())
+                                                        .join();
+
+        assertEquals(5, result.getSensitivityValues().size());
+        assertEquals(0d, getValue(result, "glsk", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 10d, getValue(result, "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 10d, getValue(result, "glsk", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 5d, getValue(result, "glsk", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 5d, getValue(result, "glsk", "l13"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testLoadInjectionOnSlackBus() {
         // test injection increase on loads
         Network network = FourBusNetworkFactory.createBaseNetwork();
@@ -322,6 +380,34 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
                 factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join();
         assertEquals(0.0d, getValue(result, "d2", "l13"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testVscInjection() {
+        // test injection increase on loads
+        Network network = HvdcNetworkFactory.createVsc();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0", false);
+        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream()
+                                                                 .map(branch -> new BranchFlowPerInjectionIncrease(createBranchFlow(branch), createInjectionIncrease(network.getVscConverterStation("cs2"))))
+                                                                 .collect(Collectors.toList());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+                factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join();
+        assertEquals(-1d, getValue(result, "cs2", "l12"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testLccInjection() {
+        // test injection increase on loads
+        Network network = HvdcNetworkFactory.createLcc();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0", false);
+        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream()
+                                                                 .map(branch -> new BranchFlowPerInjectionIncrease(createBranchFlow(branch), createInjectionIncrease(network.getLccConverterStation("cs2"))))
+                                                                 .collect(Collectors.toList());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+                factorsProvider, new EmptyContingencyListProvider(), sensiParameters, LocalComputationManager.getDefault()).join();
+        assertEquals(-1d, getValue(result, "cs2", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -369,5 +455,10 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     @Test
     void testEmptyFactors() {
         testEmptyFactors(true);
+    }
+
+    @Test
+    void testGlskNotFound() {
+        testGlskInjectionNotFound(true);
     }
 }
