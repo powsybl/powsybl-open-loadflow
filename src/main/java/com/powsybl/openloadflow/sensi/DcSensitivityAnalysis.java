@@ -456,7 +456,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                                                                                .map(ParticipatingElement::getLfBus)
                                                                                .collect(Collectors.toSet()));
             int iteration = 0;
-            ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(lfParameters.getBalanceType());
+            ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(lfParameters.getBalanceType(), false);
             while (!participatingElements.isEmpty()
                    && Math.abs(mismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
                 mismatch -= step.run(participatingElements, iteration, mismatch);
@@ -595,7 +595,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     }
 
     protected List<ParticipatingElement> getParticipatingElements(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters, Function<ParticipatingElement, Boolean> filter) {
-        ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(loadFlowParameters.getBalanceType());
+        ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(loadFlowParameters.getBalanceType(), false);
         List<ParticipatingElement> participatingElements =  step.getParticipatingElements(lfNetwork).stream().filter(filter::apply).collect(Collectors.toList());
         ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
         return participatingElements;
@@ -664,6 +664,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     throw new PowsyblException("The contingency on the branch " + contingencyElement.getId() + " not found in the network");
                 }
             }
+        }
+    }
+
+    public void checkLfParameters(LoadFlowParameters lfParameters) {
+        if (
+                !lfParameters.getBalanceType().equals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX)
+                && !lfParameters.getBalanceType().equals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
+        ) {
+            throw new UnsupportedOperationException("Unsupported balance type mode: " + lfParameters.getBalanceType());
         }
     }
 
@@ -885,7 +894,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
         checkSensitivities(network, lfNetwork, factors);
-
+        checkLfParameters(lfParameters);
         // create DC equation system for sensitivity analysis
         EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet(),
                 new DcEquationSystemCreationParameters(true, true, true, lfParametersExt.isDcUseTransformerRatio()));

@@ -100,20 +100,4 @@ public final class ActivePowerDistribution {
         }
         return step;
     }
-
-    public static Step getStep(LoadFlowParameters.BalanceType balanceType) {
-        // Used for DC sensitivity analysis only.
-        Step step;
-        switch (balanceType) {
-            case PROPORTIONAL_TO_LOAD:
-                step = new LoadActivePowerDistributionStep(false, false);
-                break;
-            case PROPORTIONAL_TO_GENERATION_P_MAX:
-                step = new GenerationActionPowerDistributionStep();
-                break;
-            default:
-                throw new UnsupportedOperationException("Unsupported balance type mode: " + balanceType);
-        }
-        return step;
-    }
 }
