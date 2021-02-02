@@ -42,13 +42,6 @@ public class GenerationActionPowerDistributionStep implements ActivePowerDistrib
     }
 
     @Override
-    public void restoreInitialValues() {
-        for (Map.Entry<LfGenerator, Double> generatorTargetPEntry : initialValues.entrySet()) {
-            generatorTargetPEntry.getKey().setTargetP(generatorTargetPEntry.getValue());
-        }
-    }
-
-    @Override
     public String getElementType() {
         return "generation";
     }

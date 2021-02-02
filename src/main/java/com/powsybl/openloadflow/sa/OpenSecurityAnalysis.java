@@ -453,7 +453,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
      * @param buses the bus for which the state is returned
      * @return the map of the states of given buses, indexed by the bus itself
      */
-    private Map<LfBus, BusState> getBusStates(List<LfBus> buses) {
+    public static Map<LfBus, BusState> getBusStates(Collection<LfBus> buses) {
         return buses.stream().collect(Collectors.toMap(Function.identity(), BusState::new));
     }
 
@@ -462,8 +462,16 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
      * @param busStates the map containing the bus states, indexed by buses
      * @param engine AcLoadFlowEngine to operate the PqPv switching if the bus has lost its voltage control
      */
-    private void restoreBusStates(Map<LfBus, BusState> busStates, AcloadFlowEngine engine) {
+    public static void restoreBusStates(Map<LfBus, BusState> busStates, AcloadFlowEngine engine) {
         busStates.forEach((b, state) -> state.restoreBusState(b, engine));
+    }
+
+    /**
+     * Set the bus states based on the given map of states
+     * @param busStates the map containing the bus states, indexed by buses
+     */
+    public static void restoreDcBusStates(Map<LfBus, BusState> busStates) {
+        busStates.forEach((b, state) -> state.restoreDcBusState(b));
     }
 
 }

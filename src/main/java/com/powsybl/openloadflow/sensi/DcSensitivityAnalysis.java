@@ -25,9 +25,9 @@ import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
-import com.powsybl.openloadflow.network.util.GenerationActionPowerDistributionStep;
-import com.powsybl.openloadflow.network.util.LoadActivePowerDistributionStep;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
+import com.powsybl.openloadflow.sa.OpenSecurityAnalysis;
+import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
@@ -444,7 +444,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                                                  LoadFlowParameters lfParameters, List<ParticipatingElement> participatingElements, GraphDecrementalConnectivity<LfBus> connectivity) {
 
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
-        ActivePowerDistribution.Step step = null;
+        Map<LfBus, BusState> busStates = new HashMap<>();
         if (lfParameters.isDistributedSlack()) {
             double mismatch;
             if (connectivity != null) {
@@ -452,12 +452,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             } else {
                 mismatch = network.getActivePowerMismatch();
             }
+            busStates = OpenSecurityAnalysis.getBusStates(participatingElements.stream()
+                                                                               .map(ParticipatingElement::getLfBus)
+                                                                               .collect(Collectors.toSet()));
             int iteration = 0;
             List<ParticipatingElement> participatingElementsCopy = new ArrayList<>(participatingElements);
-            step = getStep(lfParameters, participatingElementsCopy);
+            ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(lfParameters.getBalanceType());
             while (!participatingElementsCopy.isEmpty()
                    && Math.abs(mismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
-
                 mismatch -= step.run(participatingElementsCopy, iteration, mismatch);
 
                 iteration++;
@@ -489,11 +491,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         double[] alpha1save = Arrays.copyOf(dx, dx.length);
         alpha1Variables.forEach(var -> dx[var.getRow()] = 0);
 
-        if (lfParameters.isDistributedSlack()) {
-            assert step != null; // step should be defined if slack is distributed
-            step.restoreInitialValues();
-        }
-
         lu.solveTransposed(dx);
 
         // The a1 var stay constant during the whole loadflow, so we set them back to their
@@ -509,6 +506,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
         for (LfSensitivityFactor factor : factors) {
             factor.setFunctionReference(network.getBranchById(factor.getFunctionLfBranchId()).getP1());
+        }
+
+        if (lfParameters.isDistributedSlack()) {
+            OpenSecurityAnalysis.restoreDcBusStates(busStates);
         }
 
         return new DenseMatrix(dx.length, 1, dx);
@@ -591,17 +592,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                          Map.Entry::getValue
                      ));
             glskGroup.setGlskMapInMainComponent(remainingGlskInjections);
-        }
-    }
-
-    private ActivePowerDistribution.Step getStep(LoadFlowParameters loadFlowParameters, List<ParticipatingElement> participatingElements) {
-        switch (loadFlowParameters.getBalanceType()) {
-            case PROPORTIONAL_TO_GENERATION_P_MAX:
-                return new GenerationActionPowerDistributionStep(participatingElements);
-            case PROPORTIONAL_TO_LOAD:
-                return new LoadActivePowerDistributionStep(false, false, participatingElements);
-            default:
-                throw new UnsupportedOperationException("Balance type not yet supported: " + loadFlowParameters.getBalanceType());
         }
     }
 

@@ -46,13 +46,6 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
     }
 
     @Override
-    public void restoreInitialValues() {
-        for (Map.Entry<LfBus, Double> busTargetLoadEntry : initialValues.entrySet()) {
-            busTargetLoadEntry.getKey().setLoadTargetP(busTargetLoadEntry.getValue());
-        }
-    }
-
-    @Override
     public String getElementType() {
         return "load";
     }
