@@ -483,12 +483,22 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             }
         }
 
+        // the alpha1 variables are required to compute sensitivity, but are giving a wrong result
+        // for the loadflow, so we set them to zero
+        List<Variable> alpha1Variables = equationSystem.getSortedVariablesToFind().stream().filter(var -> VariableType.BRANCH_ALPHA1.equals(var.getType())).collect(Collectors.toList());
+        double[] alpha1save = Arrays.copyOf(dx, dx.length);
+        alpha1Variables.forEach(var -> dx[var.getRow()] = 0);
+
         if (lfParameters.isDistributedSlack()) {
             assert step != null; // step should be defined if slack is distributed
             step.restoreInitialValues();
         }
 
         lu.solveTransposed(dx);
+
+        // The a1 var stay constant during the whole loadflow, so we set them back to their
+        // original values
+        alpha1Variables.forEach(var -> dx[var.getRow()] = alpha1save[var.getRow()]);
 
         equationSystem.updateEquations(dx);
         equationSystem.updateNetwork(dx);
