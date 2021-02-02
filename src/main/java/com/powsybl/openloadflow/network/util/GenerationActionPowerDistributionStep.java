@@ -23,10 +23,6 @@ public class GenerationActionPowerDistributionStep implements ActivePowerDistrib
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GenerationActionPowerDistributionStep.class);
 
-    public GenerationActionPowerDistributionStep() {
-        super();
-    }
-
     @Override
     public String getElementType() {
         return "generation";

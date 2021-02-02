@@ -456,11 +456,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                                                                                .map(ParticipatingElement::getLfBus)
                                                                                .collect(Collectors.toSet()));
             int iteration = 0;
-            List<ParticipatingElement> participatingElementsCopy = new ArrayList<>(participatingElements);
             ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(lfParameters.getBalanceType());
-            while (!participatingElementsCopy.isEmpty()
+            while (!participatingElements.isEmpty()
                    && Math.abs(mismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
-                mismatch -= step.run(participatingElementsCopy, iteration, mismatch);
+                mismatch -= step.run(participatingElements, iteration, mismatch);
 
                 iteration++;
             }
