@@ -45,7 +45,7 @@ public class DcLoadFlowEngine {
 
     public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory) {
         this.networks = Collections.singletonList(network);
-        parameters = new DcLoadFlowParameters(new FirstSlackBusSelector(), matrixFactory, false, true, false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        parameters = new DcLoadFlowParameters(new FirstSlackBusSelector(), matrixFactory, false, true, false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, false);
     }
 
     public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters) {
@@ -74,7 +74,8 @@ public class DcLoadFlowEngine {
             distributeSlack(network);
         }
 
-        EquationSystem equationSystem = DcEquationSystem.create(network, new VariableSet(), new DcEquationSystemCreationParameters(parameters.isUpdateFlows(), false, false, parameters.isUseTransformerRatio()));
+        DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(parameters.isUpdateFlows(), false, parameters.isForcePhaseControlOffAndAddAngle1Var(), parameters.isUseTransformerRatio());
+        EquationSystem equationSystem = DcEquationSystem.create(network, new VariableSet(), creationParameters);
 
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
 
