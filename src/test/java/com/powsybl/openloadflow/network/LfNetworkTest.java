@@ -106,4 +106,13 @@ class LfNetworkTest extends AbstractConverterTest {
         lfNetwork.getBusById("DL_BUS").getGenerators().get(0).setParticipating(true);
         assertFalse(lfNetwork.getBusById("DL_BUS").getGenerators().get(0).isParticipating());
     }
+
+    @Test
+    void testDanglingLine() {
+        Network network = DanglingLineNetworkFactory.create();
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        assertFalse(lfNetwork.getBusById("DL_BUS").isParticipatingToLoadActivePowerDistribution());
+    }
 }
