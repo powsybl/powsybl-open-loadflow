@@ -77,14 +77,4 @@ public class LfDanglingLineBus extends AbstractLfBus {
 
         super.updateState(reactiveLimits, writeSlackBus);
     }
-
-    @Override
-    public boolean isParticipatingToLoadActivePowerDistribution() {
-        return false;
-    }
-
-    @Override
-    public void setParticipatingToLoadActivePowerDistribution(boolean participating) {
-        // nothing to do
-    }
 }

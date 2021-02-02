@@ -268,10 +268,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                 LfContingency lfContingency = contingencyIt.next();
 
                 for (LfBus bus : lfContingency.getBuses()) {
-                    bus.setParticipatingToLoadActivePowerDistribution(false);
-                    for (LfGenerator generator : bus.getGenerators()) {
-                        generator.setParticipating(false);
-                    }
+                    bus.setDisabled(true);
                 }
 
                 distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);

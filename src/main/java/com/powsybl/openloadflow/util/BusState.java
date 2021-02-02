@@ -23,8 +23,7 @@ public class BusState {
     private final double loadTargetP;
     private final double loadTargetQ;
     private final Map<String, Double> generatorsTargetP;
-    private final Map<String, Boolean> generatorsIsParticipating;
-    private final boolean isParticipating;
+    private final boolean disabled;
     private final boolean hasVoltageControl;
     private final double generationTargetQ;
 
@@ -34,8 +33,7 @@ public class BusState {
         this.loadTargetP = b.getLoadTargetP();
         this.loadTargetQ = b.getLoadTargetQ();
         this.generatorsTargetP = b.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
-        this.generatorsIsParticipating = b.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::isParticipating));
-        this.isParticipating = b.isParticipatingToLoadActivePowerDistribution();
+        this.disabled = b.isDisabled();
         this.hasVoltageControl = b.hasVoltageControl();
         this.generationTargetQ = b.getGenerationTargetQ();
     }
@@ -58,9 +56,8 @@ public class BusState {
         bus.setLoadTargetP(loadTargetP);
         bus.getGenerators().forEach(g -> {
             g.setTargetP(generatorsTargetP.get(g.getId()));
-            g.setParticipating(generatorsIsParticipating.get(g.getId()));
         });
-        bus.setParticipatingToLoadActivePowerDistribution(isParticipating);
+        bus.setDisabled(disabled);
     }
 }
 

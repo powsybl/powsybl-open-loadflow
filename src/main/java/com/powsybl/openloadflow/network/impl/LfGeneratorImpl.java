@@ -127,11 +127,6 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
-    public void setParticipating(boolean participating) {
-        this.participating = participating;
-    }
-
-    @Override
     public double getParticipationFactor() {
         return participationFactor;
     }

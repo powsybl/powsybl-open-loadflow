@@ -80,14 +80,4 @@ public class LfBusImpl extends AbstractLfBus {
 
         super.updateState(reactiveLimits, writeSlackBus);
     }
-
-    @Override
-    public boolean isParticipatingToLoadActivePowerDistribution() {
-        return participating;
-    }
-
-    @Override
-    public void setParticipatingToLoadActivePowerDistribution(boolean participating) {
-        this.participating = participating;
-    }
 }

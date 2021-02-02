@@ -81,6 +81,8 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected DiscreteVoltageControl discreteVoltageControl;
 
+    protected boolean disabled = false;
+
     protected AbstractLfBus(double v, double angle) {
         this.v = v;
         this.angle = angle;
@@ -520,5 +522,15 @@ public abstract class AbstractLfBus implements LfBus {
     @Override
     public void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl) {
         this.discreteVoltageControl = discreteVoltageControl;
+    }
+
+    @Override
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    @Override
+    public void setDisabled(boolean disabled) {
+        this.disabled = disabled;
     }
 }
