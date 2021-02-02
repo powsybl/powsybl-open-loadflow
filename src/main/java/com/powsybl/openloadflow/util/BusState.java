@@ -41,7 +41,7 @@ public class BusState {
     }
 
     public void restoreBusState(LfBus bus, AcloadFlowEngine engine) {
-        restoreBusStateActiveOnly(bus);
+        restoreDcBusState(bus);
         bus.setV(v);
         bus.setLoadTargetQ(loadTargetQ);
         if (hasVoltageControl && !bus.hasVoltageControl()) { // b is now PQ bus.
@@ -53,7 +53,7 @@ public class BusState {
         bus.setVoltageControlSwitchOffCount(0);
     }
 
-    public void restoreBusStateActiveOnly(LfBus bus) {
+    public void restoreDcBusState(LfBus bus) {
         bus.setAngle(angle);
         bus.setLoadTargetP(loadTargetP);
         bus.getGenerators().forEach(g -> {
