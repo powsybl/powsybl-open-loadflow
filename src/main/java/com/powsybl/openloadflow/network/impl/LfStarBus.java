@@ -62,12 +62,12 @@ public class LfStarBus extends AbstractLfBus {
     }
 
     @Override
-    public boolean isParticipating() {
+    public boolean isParticipatingToLoadActivePowerDistribution() {
         return false;
     }
 
     @Override
-    public void setParticipating(boolean participating) {
+    public void setParticipatingToLoadActivePowerDistribution(boolean participating) {
         // nothing to do
     }
 }

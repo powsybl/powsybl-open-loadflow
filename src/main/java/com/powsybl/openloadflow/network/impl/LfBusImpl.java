@@ -82,12 +82,12 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
-    public boolean isParticipating() {
+    public boolean isParticipatingToLoadActivePowerDistribution() {
         return participating;
     }
 
     @Override
-    public void setParticipating(boolean participating) {
+    public void setParticipatingToLoadActivePowerDistribution(boolean participating) {
         this.participating = participating;
     }
 }

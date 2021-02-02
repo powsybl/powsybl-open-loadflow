@@ -268,7 +268,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                 LfContingency lfContingency = contingencyIt.next();
 
                 for (LfBus bus : lfContingency.getBuses()) {
-                    bus.setParticipating(false);
+                    bus.setParticipatingToLoadActivePowerDistribution(false);
                     for (LfGenerator generator : bus.getGenerators()) {
                         generator.setParticipating(false);
                     }

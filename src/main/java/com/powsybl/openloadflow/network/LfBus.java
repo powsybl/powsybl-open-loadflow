@@ -115,7 +115,7 @@ public interface LfBus {
 
     void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
 
-    boolean isParticipating();
+    boolean isParticipatingToLoadActivePowerDistribution();
 
-    void setParticipating(boolean participating);
+    void setParticipatingToLoadActivePowerDistribution(boolean participating);
 }

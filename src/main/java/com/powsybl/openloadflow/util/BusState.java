@@ -35,7 +35,7 @@ public class BusState {
         this.loadTargetQ = b.getLoadTargetQ();
         this.generatorsTargetP = b.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
         this.generatorsIsParticipating = b.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::isParticipating));
-        this.isParticipating = b.isParticipating();
+        this.isParticipating = b.isParticipatingToLoadActivePowerDistribution();
         this.hasVoltageControl = b.hasVoltageControl();
         this.generationTargetQ = b.getGenerationTargetQ();
     }
@@ -60,7 +60,7 @@ public class BusState {
             g.setTargetP(generatorsTargetP.get(g.getId()));
             g.setParticipating(generatorsIsParticipating.get(g.getId()));
         });
-        bus.setParticipating(isParticipating);
+        bus.setParticipatingToLoadActivePowerDistribution(isParticipating);
     }
 }
 
