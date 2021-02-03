@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
 import net.jafama.FastMath;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
@@ -25,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -457,6 +459,17 @@ public class LfNetwork {
     public static boolean isZeroImpedanceBranch(LfBranch branch) {
         PiModel piModel = branch.getPiModel();
         return piModel.getZ() < LOW_IMPEDANCE_THRESHOLD;
+    }
+
+    public GraphDecrementalConnectivity<LfBus> createDecrementalConnectivity() {
+        return createDecrementalConnectivity(() -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+    }
+
+    public GraphDecrementalConnectivity<LfBus> createDecrementalConnectivity(Supplier<GraphDecrementalConnectivity<LfBus>> connectivitySupplier) {
+        GraphDecrementalConnectivity<LfBus> connectivity = connectivitySupplier.get();
+        getBuses().forEach(connectivity::addVertex);
+        getBranches().forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2()));
+        return connectivity;
     }
 
 }

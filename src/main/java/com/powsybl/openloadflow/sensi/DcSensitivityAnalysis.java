@@ -10,7 +10,9 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.ContingencyElementType;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Injection;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
@@ -22,8 +24,10 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysis;
@@ -427,18 +431,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     public DcSensitivityAnalysis(MatrixFactory matrixFactory) {
         super(matrixFactory);
-    }
-
-    private GraphDecrementalConnectivity<LfBus> createConnectivity(LfNetwork lfNetwork) {
-        // FIXME: to be moved in a network util class with no explicit declaration of NaiveGraphDecrementalConnectivity.
-        GraphDecrementalConnectivity<LfBus> connectivity = new NaiveGraphDecrementalConnectivity<>(LfBus::getNum);
-        for (LfBus bus : lfNetwork.getBuses()) {
-            connectivity.addVertex(bus);
-        }
-        for (LfBranch branch : lfNetwork.getBranches()) {
-            connectivity.addEdge(branch.getBus1(), branch.getBus2());
-        }
-        return connectivity;
     }
 
     protected DenseMatrix setReferenceActivePowerFlows(LfNetwork network, EquationSystem equationSystem, LUDecomposition lu, List<LfSensitivityFactor> factors,
@@ -978,7 +970,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 return Pair.of(sensitivityValues, contingenciesValue);
             }
 
-            GraphDecrementalConnectivity<LfBus> connectivity = createConnectivity(lfNetwork);
+            GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.createDecrementalConnectivity();
 
             // compute the contingencies with loss of connectivity
             for (Map.Entry<Set<ComputedContingencyElement>, List<Contingency>> entry : contingenciesByGroupOfElementsBreakingConnectivity.entrySet()) {
