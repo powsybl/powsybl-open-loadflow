@@ -30,7 +30,6 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
-import com.powsybl.openloadflow.sa.OpenSecurityAnalysis;
 import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
@@ -445,7 +444,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             } else {
                 mismatch = network.getActivePowerMismatch();
             }
-            busStates = OpenSecurityAnalysis.getBusStates(participatingElements.stream()
+            busStates = BusState.createBusStates(participatingElements.stream()
                     .map(ParticipatingElement::getLfBus)
                     .collect(Collectors.toSet()));
             int iteration = 0;
@@ -502,7 +501,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
 
         if (lfParameters.isDistributedSlack()) {
-            OpenSecurityAnalysis.restoreDcBusStates(busStates);
+            BusState.restoreDcBusStates(busStates);
         }
 
         return new DenseMatrix(dx.length, 1, dx);

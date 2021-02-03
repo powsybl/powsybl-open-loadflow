@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -262,7 +261,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             LOGGER.info("Save pre-contingency state");
 
             // save base state for later restoration after each contingency
-            Map<LfBus, BusState> busStates = getBusStates(network.getBuses());
+            Map<LfBus, BusState> busStates = BusState.createBusStates(network.getBuses());
             for (LfBus bus : network.getBuses()) {
                 bus.setVoltageControlSwitchOffCount(0);
             }
@@ -285,7 +284,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                     LOGGER.info("Restore pre-contingency state");
 
                     // restore base state
-                    restoreBusStates(busStates, engine);
+                    BusState.restoreBusStates(busStates, engine);
                 }
             }
         }
@@ -449,32 +448,6 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             connectivity.addEdge(branch.getBus1(), branch.getBus2());
         }
         return connectivity;
-    }
-
-    /**
-     * Get the map of the states of given buses, indexed by the bus itself
-     * @param buses the bus for which the state is returned
-     * @return the map of the states of given buses, indexed by the bus itself
-     */
-    public static Map<LfBus, BusState> getBusStates(Collection<LfBus> buses) {
-        return buses.stream().collect(Collectors.toMap(Function.identity(), BusState::new));
-    }
-
-    /**
-     * Set the bus states based on the given map of states
-     * @param busStates the map containing the bus states, indexed by buses
-     * @param engine AcLoadFlowEngine to operate the PqPv switching if the bus has lost its voltage control
-     */
-    public static void restoreBusStates(Map<LfBus, BusState> busStates, AcloadFlowEngine engine) {
-        busStates.forEach((b, state) -> state.restoreBusState(b, engine));
-    }
-
-    /**
-     * Set the bus states based on the given map of states
-     * @param busStates the map containing the bus states, indexed by buses
-     */
-    public static void restoreDcBusStates(Map<LfBus, BusState> busStates) {
-        busStates.forEach((b, state) -> state.restoreDcBusState(b));
     }
 
 }
