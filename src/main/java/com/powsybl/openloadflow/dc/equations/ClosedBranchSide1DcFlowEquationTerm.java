@@ -47,7 +47,7 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
         Objects.requireNonNull(x);
         double ph1 = x.get(ph1Var.getRow(), column);
         double ph2 = x.get(ph2Var.getRow(), column);
-        double a1 = a1Var != null ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
+        double a1 = a1Var != null && a1Var.isActive() ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
         return calculate(ph1, ph2, a1);
     }
 
@@ -56,12 +56,12 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
         Objects.requireNonNull(x);
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
-        double a1 = a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1();
+        double a1 = a1Var != null && a1Var.isActive() ? x[a1Var.getRow()] : branch.getPiModel().getA1();
         p1 = calculate(ph1, ph2, a1);
-        if (a1Var == null) {
-            rhs = -power * (A2 - a1);
-        } else {
+        if (a1Var != null && a1Var.isActive()) {
             rhs = -power * A2;
+        } else {
+            rhs = -power * (A2 - a1);
         }
     }
 
