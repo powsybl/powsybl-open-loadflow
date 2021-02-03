@@ -369,7 +369,7 @@ public class LfNetwork {
         return -mismatch;
     }
 
-    public double getActivePowerMismatchWithinMainComponent(GraphDecrementalConnectivity<LfBus> connectivity) {
+    public double getActivePowerMismatchInMainComponent(GraphDecrementalConnectivity<LfBus> connectivity) {
         double mismatch = 0;
         int mainComponent = connectivity.getComponentNumber(getSlackBus());
         for (LfBus b : busesById.values()) {
