@@ -31,7 +31,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
     private final Graph<V, Object> graph = new Pseudograph<>(Object.class);
 
-    private final Map<V, Integer> vertexToConnectedComponent;
+    private final Map<V, Integer> vertexToNewConnectedComponent;
 
     private final List<Set<V>> newConnectedComponents;
     private final Map<V, LevelNeighbours> levelNeighboursMap;
@@ -49,7 +49,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
         this.cutEdges = new ArrayList<>();
         this.unprocessedCutEdges = new ArrayList<>();
         this.newConnectedComponents = new ArrayList<>();
-        this.vertexToConnectedComponent = new HashMap<>();
+        this.vertexToNewConnectedComponent = new HashMap<>();
         this.levelNeighboursMap = new HashMap<>();
         this.allSavedChangedLevels = new LinkedList<>();
         this.vertexMapCacheInvalidated = false;
@@ -99,7 +99,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
     private void invalidateVertexMapCache() {
         vertexMapCacheInvalidated = true;
-        vertexToConnectedComponent.clear();
+        vertexToNewConnectedComponent.clear();
     }
 
     private void initConnectedComponents() {
@@ -133,7 +133,12 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     public int getComponentNumber(V vertex) {
         lazyComputeConnectivity();
         updateVertexMapCache();
-        return vertexToConnectedComponent.get(vertex);
+        Integer newConnectedComponentNumber = vertexToNewConnectedComponent.get(vertex);
+        if (newConnectedComponentNumber == null) {
+            // either in main component or not in the graph at all
+            return vertices.contains(vertex) ? 0 : -1;
+        }
+        return newConnectedComponentNumber;
     }
 
     @Override
@@ -208,11 +213,9 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
     private void updateVertexMapCache() {
         if (vertexMapCacheInvalidated) {
-            vertices.forEach(v -> vertexToConnectedComponent.put(v, 0));
-            int i = 0;
-            for (Set<V> newConnectedComponent : newConnectedComponents) {
-                int indxCC = ++i;
-                newConnectedComponent.forEach(v -> vertexToConnectedComponent.put(v, indxCC));
+            for (int i = 0; i < newConnectedComponents.size(); i++) {
+                Integer indxCC = i + 1; // The new connected components are indexed starting from 1, as main connected component is indexed by 0
+                newConnectedComponents.get(i).forEach(v -> vertexToNewConnectedComponent.put(v, indxCC));
             }
             vertexMapCacheInvalidated = false;
         }

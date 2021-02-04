@@ -71,6 +71,24 @@ class ConnectivityTest {
         assertEquals("Algorithm not implemented for a network with several connected components at start", e.getMessage());
     }
 
+    @Test
+    void testVertexNotInGraph() {
+        // Testing with a non-connected graph
+        GraphDecrementalConnectivity<LfBus> connectivity = new EvenShiloachGraphDecrementalConnectivity<>();
+        String busRemoved = "b10_vl_0";
+        for (LfBus lfBus : lfNetwork.getBuses()) {
+            if (!lfBus.getId().equals(busRemoved)) {
+                connectivity.addVertex(lfBus);
+            }
+        }
+        for (LfBranch lfBranch : lfNetwork.getBranches()) {
+            if (!(lfBranch.getBus1().getId().equals(busRemoved) || lfBranch.getBus2().getId().equals(busRemoved))) {
+                connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2());
+            }
+        }
+        assertEquals(-1, connectivity.getComponentNumber(lfNetwork.getBusById(busRemoved)));
+    }
+
     private void testConnectivity(GraphDecrementalConnectivity<LfBus> connectivity) {
         updateConnectivity(connectivity);
         cutBranches(connectivity, "l34", "l48");
