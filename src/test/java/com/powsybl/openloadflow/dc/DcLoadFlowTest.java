@@ -35,6 +35,8 @@ class DcLoadFlowTest {
 
     private LoadFlowParameters parameters;
 
+    private OpenLoadFlowProvider loadFlowProvider;
+
     private LoadFlow.Runner loadFlowRunner;
 
     @BeforeEach
@@ -43,7 +45,8 @@ class DcLoadFlowTest {
                 .setDc(true);
         parameters.addExtension(OpenLoadFlowParameters.class, new OpenLoadFlowParameters()
                 .setSlackBusSelector(new FirstSlackBusSelector()));
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowProvider = new OpenLoadFlowProvider(new DenseMatrixFactory());
+        loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
     }
 
     /**
@@ -142,6 +145,18 @@ class DcLoadFlowTest {
         assertEquals(-50, ps1.getTerminal2().getP(), 0.01);
 
         ps1.getPhaseTapChanger().setTapPosition(2);
+
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(18.5, l1.getTerminal1().getP(), 0.01);
+        assertEquals(-18.5, l1.getTerminal2().getP(), 0.01);
+        assertEquals(81.5, l2.getTerminal1().getP(), 0.01);
+        assertEquals(-81.5, l2.getTerminal2().getP(), 0.01);
+        assertEquals(81.5, ps1.getTerminal1().getP(), 0.01);
+        assertEquals(-81.5, ps1.getTerminal2().getP(), 0.01);
+
+        // check we have same result if we consider phase shift as a variable with a fixed value
+        loadFlowProvider.setForcePhaseControlOffAndAddAngle1Var(true);
 
         loadFlowRunner.run(network, parameters);
 

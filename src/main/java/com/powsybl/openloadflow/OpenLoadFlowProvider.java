@@ -59,12 +59,18 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     private final MatrixFactory matrixFactory;
 
+    private boolean forcePhaseControlOffAndAddAngle1Var = false; // just for unit testing
+
     public OpenLoadFlowProvider() {
         this(new SparseMatrixFactory());
     }
 
     public OpenLoadFlowProvider(MatrixFactory matrixFactory) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
+    }
+
+    public void setForcePhaseControlOffAndAddAngle1Var(boolean forcePhaseControlOffAndAddAngle1Var) {
+        this.forcePhaseControlOffAndAddAngle1Var = forcePhaseControlOffAndAddAngle1Var;
     }
 
     @Override
@@ -232,7 +238,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
             DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector, matrixFactory, true,
                     parametersExt.isDcUseTransformerRatio(), parameters.isDistributedSlack(), parameters.getBalanceType(),
-                    parametersExt.getPlausibleActivePowerLimit());
+                    forcePhaseControlOffAndAddAngle1Var, parametersExt.getPlausibleActivePowerLimit());
 
             DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters)
                     .run();
