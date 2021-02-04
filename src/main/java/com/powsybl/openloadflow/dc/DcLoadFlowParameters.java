@@ -23,20 +23,24 @@ public class DcLoadFlowParameters {
 
     private final boolean updateFlows;
 
-    boolean useTransformerRatio;
+    private final boolean useTransformerRatio;
 
-    private boolean distributedSlack;
+    private final boolean distributedSlack;
 
-    private LoadFlowParameters.BalanceType balanceType;
+    private final LoadFlowParameters.BalanceType balanceType;
+
+    private final boolean forcePhaseControlOffAndAddAngle1Var;
 
     public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory, boolean updateFlows,
-                                boolean useTransformerRatio, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType) {
+                                boolean useTransformerRatio, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
+                                boolean forcePhaseControlOffAndAddAngle1Var) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.updateFlows = updateFlows;
         this.useTransformerRatio = useTransformerRatio;
         this.distributedSlack = distributedSlack;
         this.balanceType = balanceType;
+        this.forcePhaseControlOffAndAddAngle1Var = forcePhaseControlOffAndAddAngle1Var;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -61,5 +65,9 @@ public class DcLoadFlowParameters {
 
     public boolean isUseTransformerRatio() {
         return useTransformerRatio;
+    }
+
+    public boolean isForcePhaseControlOffAndAddAngle1Var() {
+        return forcePhaseControlOffAndAddAngle1Var;
     }
 }
