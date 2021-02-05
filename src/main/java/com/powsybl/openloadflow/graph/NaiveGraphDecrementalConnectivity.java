@@ -101,4 +101,10 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
         updateComponents();
         return componentSets.subList(1, componentSets.size());
     }
+
+    @Override
+    public Set<V> getConnectedComponent(V vertex) {
+        updateComponents();
+        return componentSets.get(components[numGetter.applyAsInt(vertex)]);
+    }
 }

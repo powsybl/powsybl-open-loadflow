@@ -437,7 +437,7 @@ public abstract class AbstractSensitivityAnalysis {
 
     protected List<ParticipatingElement> getParticipatingElements(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters, Function<ParticipatingElement, Boolean> filter) {
         ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(loadFlowParameters.getBalanceType(), openLoadFlowParameters.isLoadPowerFactorConstant());
-        List<ParticipatingElement> participatingElements =  step.getParticipatingElements(lfNetwork).stream().filter(filter::apply).collect(Collectors.toList());
+        List<ParticipatingElement> participatingElements =  step.getParticipatingElements(lfNetwork.getBuses()).stream().filter(filter::apply).collect(Collectors.toList());
         ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
         return participatingElements;
     }

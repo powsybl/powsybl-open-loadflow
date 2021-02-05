@@ -44,4 +44,6 @@ public interface GraphDecrementalConnectivity<V> {
      * @return the collection of small connected components
      */
     Collection<Set<V>> getSmallComponents();
+
+    Set<V> getConnectedComponent(V vertex);
 }

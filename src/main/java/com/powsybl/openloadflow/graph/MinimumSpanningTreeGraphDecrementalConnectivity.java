@@ -110,6 +110,11 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements Graph
             this.parentMap = mst.forest.getParentMap();
             this.sortedRoots = mst.forest.getSortedRoots();
         }
+        List<Set<V>> components = getConnectedComponents();
+        return components.subList(1, components.size());
+    }
+
+    private List<Set<V>> getConnectedComponents() {
         List<Set<V>> components = new ArrayList<>();
         for (V root : sortedRoots) {
             Set<V> set = parentMap.entrySet().stream()
@@ -117,7 +122,12 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements Graph
                 .map(Map.Entry::getKey).collect(Collectors.toSet());
             components.add(set);
         }
-        return components.subList(1, components.size());
+        return components;
+    }
+
+    @Override
+    public Set<V> getConnectedComponent(V vertex) {
+        return getConnectedComponents().get(getComponentNumber(vertex));
     }
 
     class KruskalMinimumSpanningTrees implements SpanningTreeAlgorithm<Object> {

@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Implementing the Even-Shiloach algorithm (see https://dl.acm.org/doi/10.1145/322234.322235)
@@ -140,6 +141,21 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
     public List<Set<V>> getSmallComponents() {
         lazyComputeConnectivity();
         return newConnectedComponents;
+    }
+
+    @Override
+    public Set<V> getConnectedComponent(V vertex) {
+        lazyComputeConnectivity();
+        updateVertexMapCache();
+        int cn = vertexToConnectedComponent.get(vertex);
+        if (cn >= 0) {
+            return cn == 0 ? getMainConnectedComponent() : newConnectedComponents.get(cn - 1);
+        }
+        return Collections.emptySet();
+    }
+
+    private Set<V> getMainConnectedComponent() {
+        return vertices.stream().filter(v -> newConnectedComponents.stream().noneMatch(cc -> cc.contains(v))).collect(Collectors.toSet());
     }
 
     private void lazyComputeConnectivity() {
