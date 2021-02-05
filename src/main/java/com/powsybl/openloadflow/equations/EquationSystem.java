@@ -109,6 +109,11 @@ public class EquationSystem {
             invalidate();
         }
 
+        @Override
+        public void stateUpdated(double[] x) {
+            // nothing to do
+        }
+
         private NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> getSortedEquationsToSolve() {
             update();
             return sortedEquationsToSolve;
@@ -264,8 +269,12 @@ public class EquationSystem {
     }
 
     public void updateEquations(double[] x) {
+        Objects.requireNonNull(x);
         for (Equation equation : equations.values()) {
             equation.update(x);
+        }
+        if (!listeners.isEmpty()) {
+            listeners.forEach(listener -> listener.stateUpdated(x));
         }
     }
 

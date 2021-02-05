@@ -873,8 +873,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         // create jacobian matrix either using base network calculated voltages or nominal voltages
         VoltageInitializer voltageInitializer = lfParameters.getVoltageInitMode() == LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES ? new PreviousValueVoltageInitializer()
                 : new UniformValueVoltageInitializer();
-        JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer);
-        try (LUDecomposition jlu = j.decomposeLU()) {
+        try (JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer)) {
+            LUDecomposition jlu = j.decomposeLU();
             // compute pre-contingency sensitivity values + the states with +1 -1 to model the contingencies
             DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorGroups); // this is the rhs for the moment
             DenseMatrix contingenciesStates = initContingencyRhs(lfNetwork, equationSystem, contingenciesElements); // rhs with +1 -1 on contingency elements

@@ -85,8 +85,7 @@ public class DcLoadFlowEngine {
 
         double[] targets = equationSystem.createTargetVector();
 
-        JacobianMatrix j = JacobianMatrix.create(equationSystem, parameters.getMatrixFactory());
-        try {
+        try (JacobianMatrix j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory())) {
             double[] dx = Arrays.copyOf(targets, targets.length);
 
             LoadFlowResult.ComponentResult.Status status;
@@ -113,8 +112,6 @@ public class DcLoadFlowEngine {
             LOGGER.info("Dc loadflow complete (status={})", status);
 
             return new DcLoadFlowResult(network, network.getActivePowerMismatch(), status);
-        } finally {
-            j.cleanLU();
         }
     }
 }

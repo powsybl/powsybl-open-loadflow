@@ -16,7 +16,7 @@ import java.util.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class JacobianMatrix {
+public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
 
     static final class PartialDerivative {
 
@@ -45,21 +45,42 @@ public class JacobianMatrix {
         }
     }
 
-    private final Matrix matrix;
+    private final EquationSystem equationSystem;
 
-    private final List<PartialDerivative> partialDerivatives;
+    private final MatrixFactory matrixFactory;
+
+    private Matrix matrix;
+
+    private List<PartialDerivative> partialDerivatives;
 
     private LUDecomposition lu;
 
-    JacobianMatrix(Matrix matrix, List<PartialDerivative> partialDerivatives) {
-        this.matrix = Objects.requireNonNull(matrix);
-        this.partialDerivatives = Objects.requireNonNull(partialDerivatives);
+    public JacobianMatrix(EquationSystem equationSystem, MatrixFactory matrixFactory) {
+        this.equationSystem = Objects.requireNonNull(equationSystem);
+        this.matrixFactory = Objects.requireNonNull(matrixFactory);
+        equationSystem.addListener(this);
     }
 
-    public static JacobianMatrix create(EquationSystem equationSystem, MatrixFactory matrixFactory) {
-        Objects.requireNonNull(equationSystem);
-        Objects.requireNonNull(matrixFactory);
+    @Override
+    public void equationListChanged(Equation equation, EquationEventType eventType) {
+        reset();
+    }
 
+    @Override
+    public void stateUpdated(double[] x) {
+        update();
+    }
+
+    private void reset() {
+        matrix = null;
+        partialDerivatives = null;
+        if (lu != null) {
+            lu.close();
+        }
+        lu = null;
+    }
+
+    private void init() {
         int rowCount = equationSystem.getSortedEquationsToSolve().size();
         int columnCount = equationSystem.getSortedVariablesToFind().size();
         if (rowCount != columnCount) {
@@ -68,8 +89,8 @@ public class JacobianMatrix {
         }
 
         int estimatedNonZeroValueCount = rowCount * 3;
-        Matrix j = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
-        List<JacobianMatrix.PartialDerivative> partialDerivatives = new ArrayList<>(estimatedNonZeroValueCount);
+        matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
+        partialDerivatives = new ArrayList<>(estimatedNonZeroValueCount);
 
         for (Map.Entry<Equation, NavigableMap<Variable, List<EquationTerm>>> e : equationSystem.getSortedEquationsToSolve().entrySet()) {
             Equation eq = e.getKey();
@@ -79,43 +100,46 @@ public class JacobianMatrix {
                 int row = var.getRow();
                 for (EquationTerm equationTerm : e2.getValue()) {
                     double value = equationTerm.der(var);
-                    Matrix.Element element = j.addAndGetElement(row, column, value);
+                    Matrix.Element element = matrix.addAndGetElement(row, column, value);
                     partialDerivatives.add(new JacobianMatrix.PartialDerivative(equationTerm, element, var));
                 }
             }
         }
+    }
 
-        return new JacobianMatrix(j, partialDerivatives);
+    private void update() {
+        if (matrix != null) {
+            matrix.reset();
+            for (PartialDerivative partialDerivative : partialDerivatives) {
+                EquationTerm equationTerm = partialDerivative.getEquationTerm();
+                Matrix.Element element = partialDerivative.getMatrixElement();
+                Variable var = partialDerivative.getVariable();
+                double value = equationTerm.der(var);
+                element.add(value);
+            }
+            if (lu != null) {
+                lu.update();
+            }
+        }
     }
 
     public Matrix getMatrix() {
-        return matrix;
-    }
-
-    public void update() {
-        matrix.reset();
-        for (PartialDerivative partialDerivative : partialDerivatives) {
-            EquationTerm equationTerm = partialDerivative.getEquationTerm();
-            Matrix.Element element = partialDerivative.getMatrixElement();
-            Variable var = partialDerivative.getVariable();
-            double value = equationTerm.der(var);
-            element.add(value);
+        if (matrix == null) {
+            init();
         }
+        return matrix;
     }
 
     public LUDecomposition decomposeLU() {
         if (lu == null) {
-            lu = matrix.decomposeLU();
-        } else {
-            lu.update();
+            lu = getMatrix().decomposeLU();
         }
         return lu;
     }
 
-    public void cleanLU() {
-        if (lu != null) {
-            lu.close();
-            lu = null;
-        }
+    @Override
+    public void close() {
+        equationSystem.removeListener(this);
+        reset();
     }
 }

@@ -245,49 +245,50 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         List<LfContingency> contingencies = createContingencies(contingencyContexts, network);
 
         // run pre-contingency simulation
-        AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters);
-        AcLoadFlowResult preContingencyLoadFlowResult = engine.run();
-        boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
-        List<LimitViolation> preContingencyLimitViolations = new ArrayList<>();
-        LimitViolationsResult preContingencyResult = new LimitViolationsResult(preContingencyComputationOk, preContingencyLimitViolations);
+        try (AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters)) {
+            AcLoadFlowResult preContingencyLoadFlowResult = engine.run();
+            boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
+            List<LimitViolation> preContingencyLimitViolations = new ArrayList<>();
+            LimitViolationsResult preContingencyResult = new LimitViolationsResult(preContingencyComputationOk, preContingencyLimitViolations);
 
-        // only run post-contingency simulations if pre-contingency simulation is ok
-        List<PostContingencyResult> postContingencyResults = new ArrayList<>();
-        if (preContingencyComputationOk) {
-            detectViolations(network.getBranches().stream(), network.getBuses().stream(), preContingencyLimitViolations);
+            // only run post-contingency simulations if pre-contingency simulation is ok
+            List<PostContingencyResult> postContingencyResults = new ArrayList<>();
+            if (preContingencyComputationOk) {
+                detectViolations(network.getBranches().stream(), network.getBuses().stream(), preContingencyLimitViolations);
 
-            LOGGER.info("Save pre-contingency state");
+                LOGGER.info("Save pre-contingency state");
 
-            // save base state for later restoration after each contingency
-            Map<LfBus, BusState> busStates = getBusStates(network.getBuses());
-            for (LfBus bus : network.getBuses()) {
-                bus.setVoltageControlSwitchOffCount(0);
-            }
-
-            // start a simulation for each of the contingency
-            Iterator<LfContingency> contingencyIt = contingencies.iterator();
-            while (contingencyIt.hasNext()) {
-                LfContingency lfContingency = contingencyIt.next();
-
-                for (LfBus bus : lfContingency.getBuses()) {
-                    bus.setDisabled(true);
+                // save base state for later restoration after each contingency
+                Map<LfBus, BusState> busStates = getBusStates(network.getBuses());
+                for (LfBus bus : network.getBuses()) {
+                    bus.setVoltageControlSwitchOffCount(0);
                 }
 
-                distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
+                // start a simulation for each of the contingency
+                Iterator<LfContingency> contingencyIt = contingencies.iterator();
+                while (contingencyIt.hasNext()) {
+                    LfContingency lfContingency = contingencyIt.next();
 
-                PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency);
-                postContingencyResults.add(postContingencyResult);
+                    for (LfBus bus : lfContingency.getBuses()) {
+                        bus.setDisabled(true);
+                    }
 
-                if (contingencyIt.hasNext()) {
-                    LOGGER.info("Restore pre-contingency state");
+                    distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
-                    // restore base state
-                    restoreBusStates(busStates, engine);
+                    PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency);
+                    postContingencyResults.add(postContingencyResult);
+
+                    if (contingencyIt.hasNext()) {
+                        LOGGER.info("Restore pre-contingency state");
+
+                        // restore base state
+                        restoreBusStates(busStates, engine);
+                    }
                 }
             }
+
+            return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
         }
-
-        return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
     }
 
     public static void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {

@@ -12,4 +12,6 @@ package com.powsybl.openloadflow.equations;
 public interface EquationSystemListener {
 
     void equationListChanged(Equation equation, EquationEventType eventType);
+
+    void stateUpdated(double[] x);
 }

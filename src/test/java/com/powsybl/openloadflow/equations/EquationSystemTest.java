@@ -41,9 +41,17 @@ class EquationSystemTest {
         LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector()).get(0);
         LfBus bus = network.getBus(0);
         EquationSystem equationSystem = new EquationSystem(network, true);
-        equationSystem.addListener((equation, eventType) -> {
-            equations.add(equation);
-            eventTypes.add(eventType);
+        equationSystem.addListener(new EquationSystemListener() {
+            @Override
+            public void equationListChanged(Equation equation, EquationEventType eventType) {
+                equations.add(equation);
+                eventTypes.add(eventType);
+            }
+
+            @Override
+            public void stateUpdated(double[] x) {
+                // nothing to do
+            }
         });
         VariableSet variableSet = new VariableSet();
         assertTrue(equations.isEmpty());
