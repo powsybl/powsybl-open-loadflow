@@ -210,10 +210,12 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
                 cutConnectivity(lfNetwork, connectivity, propagatedContingencyMap.get(lfContingency.getContingency()));
                 int mainComponent = connectivity.getComponentNumber(lfNetwork.getSlackBus());
-                Set<LfBus> slackConnectedComponent = connectivity.getConnectedComponent(lfNetwork.getSlackBus());
+                Set<LfBus> nonConnectedBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
+                Collection<LfBus> slackConnectedComponent = new ArrayList<>(lfNetwork.getBuses());
+                slackConnectedComponent.removeAll(nonConnectedBuses);
                 setPredefinedResults(lfFactors, connectivity, mainComponent); // check if factors are still in the main component
 
-                rescaleGlsk(factorGroups, slackConnectedComponent);
+                rescaleGlsk(factorGroups, nonConnectedBuses);
 
                 // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
                 // buses that contain elements participating to slack distribution

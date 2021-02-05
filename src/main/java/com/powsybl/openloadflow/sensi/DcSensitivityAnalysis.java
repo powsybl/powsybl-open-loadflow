@@ -124,7 +124,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     protected DenseMatrix setReferenceActivePowerFlows(DcLoadFlowEngine dcLoadFlowEngine, EquationSystem equationSystem, JacobianMatrix j,
             List<LfSensitivityFactor<ClosedBranchSide1DcFlowEquationTerm>> factors, LoadFlowParameters lfParameters,
-            List<ParticipatingElement> participatingElements, Collection<LfBus> buses) {
+            List<ParticipatingElement> participatingElements, Collection<LfBus> removedBuses) {
 
         Map<LfBus, BusState> busStates = new HashMap<>();
         if (lfParameters.isDistributedSlack()) {
@@ -133,7 +133,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 .collect(Collectors.toSet()));
         }
 
-        dcLoadFlowEngine.runWithLu(equationSystem, j, buses);
+        dcLoadFlowEngine.runWithLu(equationSystem, j, removedBuses);
 
         for (LfSensitivityFactor factor : factors) {
             factor.setFunctionReference(factor.getFunctionLfBranch().getP1());
@@ -411,7 +411,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         try (JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer)) {
 
             // run DC load on pre-contingency network
-            DenseMatrix flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElements, lfNetwork.getBuses());
+            DenseMatrix flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElements, Collections.emptyList());
 
             // compute the pre-contingency sensitivity values + the states with +1 -1 to model the contingencies
             DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorGroups); // this is the rhs for the moment
@@ -455,12 +455,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 lfFactors.forEach(factor -> factor.setPredefinedResult(null));
                 cutConnectivity(lfNetwork, connectivity, breakingConnectivityCandidates.stream().map(ComputedContingencyElement::getElement).map(ContingencyElement::getId).collect(Collectors.toSet()));
                 int mainComponent = connectivity.getComponentNumber(lfNetwork.getSlackBus());
-                Set<LfBus> slackConnectedComponent = connectivity.getConnectedComponent(lfNetwork.getSlackBus());
 
+                Set<LfBus> nonConnectedBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
+                Collection<LfBus> slackConnectedComponent = new ArrayList<>(lfNetwork.getBuses());
+                slackConnectedComponent.removeAll(nonConnectedBuses);
                 setPredefinedResults(lfFactors, connectivity, mainComponent); // check if factors are still in the main component
 
                 // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
-                rescaleGlsk(factorGroups, slackConnectedComponent);
+                rescaleGlsk(factorGroups, nonConnectedBuses);
 
                 // null and unused if slack is not distributed
                 List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
@@ -487,8 +489,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     setBaseCaseSensitivityValues(factorGroups, factorsStates); // use this state to compute the base sensitivity (without +1-1)
                 }
 
-                flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElementsForThisConnectivity,
-                    slackConnectedComponent);
+                flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters,
+                    participatingElementsForThisConnectivity, nonConnectedBuses);
 
                 Set<String> elementsToReconnect = getElementsToReconnect(connectivity, breakingConnectivityCandidates);
 

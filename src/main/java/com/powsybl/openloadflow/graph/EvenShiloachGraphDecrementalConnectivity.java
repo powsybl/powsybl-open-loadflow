@@ -158,6 +158,20 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
         return vertices.stream().filter(v -> newConnectedComponents.stream().noneMatch(cc -> cc.contains(v))).collect(Collectors.toSet());
     }
 
+    @Override
+    public Set<V> getNonConnectedVertices(V vertex) {
+        lazyComputeConnectivity();
+        if (!vertices.contains(vertex)) {
+            throw new AssertionError("given vertex is not in the graph");
+        }
+        List<Set<V>> nonConnectedComponents = new ArrayList<>(newConnectedComponents);
+        newConnectedComponents.stream().filter(c -> c.contains(vertex)).findFirst().ifPresent(c -> {
+            nonConnectedComponents.remove(c);
+            nonConnectedComponents.add(getMainConnectedComponent());
+        });
+        return nonConnectedComponents.stream().flatMap(Collection::stream).collect(Collectors.toSet());
+    }
+
     private void lazyComputeConnectivity() {
         if (init && unprocessedCutEdges.isEmpty()) {
             return;

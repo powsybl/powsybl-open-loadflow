@@ -480,7 +480,7 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    protected void rescaleGlsk(List<SensitivityFactorGroup> factorGroups, Set<LfBus> slackConnectedComponent) {
+    protected void rescaleGlsk(List<SensitivityFactorGroup> factorGroups, Set<LfBus> nonConnectedBuses) {
         // compute the corresponding injection (with participation) for each factor
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             if (!(factorGroup instanceof LinearGlskGroup)) {
@@ -488,7 +488,7 @@ public abstract class AbstractSensitivityAnalysis {
             }
             LinearGlskGroup glskGroup = (LinearGlskGroup) factorGroup;
             Map<String, Double> remainingGlskInjections = glskGroup.getGlskMap().entrySet().stream()
-                .filter(entry -> slackConnectedComponent.contains(entry.getKey()))
+                .filter(entry -> !nonConnectedBuses.contains(entry.getKey()))
                 .collect(Collectors.toMap(entry -> entry.getKey().getId(), Map.Entry::getValue));
             glskGroup.setGlskMapInMainComponent(remainingGlskInjections);
         }

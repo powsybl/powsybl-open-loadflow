@@ -73,7 +73,7 @@ public class DcLoadFlowEngine {
         LoadFlowResult.ComponentResult.Status status = LoadFlowResult.ComponentResult.Status.FAILED;
         try (JacobianMatrix j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory())) {
 
-            status = runWithLu(equationSystem, j, network.getBuses());
+            status = runWithLu(equationSystem, j, Collections.emptyList());
         } catch (Exception e) {
             LOGGER.error("Failed to solve linear system for DC load flow", e);
         }
@@ -81,10 +81,18 @@ public class DcLoadFlowEngine {
         return new DcLoadFlowResult(network, getActivePowerMismatch(network.getBuses()), status);
     }
 
-    public LoadFlowResult.ComponentResult.Status runWithLu(EquationSystem equationSystem, JacobianMatrix j, Collection<LfBus> buses) {
+    public LoadFlowResult.ComponentResult.Status runWithLu(EquationSystem equationSystem, JacobianMatrix j, Collection<LfBus> removedBuses) {
+
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
+
+        // only process main (largest) connected component
+        LfNetwork network = networks.get(0);
+
+        Collection<LfBus> remainingBuses = new HashSet<>(network.getBuses());
+        remainingBuses.removeAll(removedBuses);
+
         if (parameters.isDistributedSlack()) {
-            distributeSlack(buses);
+            distributeSlack(remainingBuses);
         }
 
         equationSystem.updateEquations(x);
@@ -93,12 +101,9 @@ public class DcLoadFlowEngine {
 
         this.dx = Arrays.copyOf(targets, targets.length);
 
-        // only process main (largest) connected component
-        LfNetwork network = networks.get(0);
-        if (network.getBuses().size() > buses.size()) {
-            // set buses injections and transformers to 0 outside the main connected component
-            network.getBuses().stream()
-                .filter(lfBus -> !buses.contains(lfBus))
+        if (!removedBuses.isEmpty()) {
+            // set buses injections and transformers to 0
+            removedBuses.stream()
                 .map(lfBus -> equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P))
                 .filter(Optional::isPresent)
                 .map(Optional::get)

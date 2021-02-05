@@ -107,4 +107,11 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
         updateComponents();
         return componentSets.get(components[numGetter.applyAsInt(vertex)]);
     }
+
+    @Override
+    public Set<V> getNonConnectedVertices(V vertex) {
+        updateComponents();
+        return componentSets.stream().filter(component -> !component.contains(vertex))
+            .flatMap(Collection::stream).collect(Collectors.toSet());
+    }
 }

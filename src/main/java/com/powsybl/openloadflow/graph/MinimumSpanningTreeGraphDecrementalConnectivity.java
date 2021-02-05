@@ -130,6 +130,12 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements Graph
         return getConnectedComponents().get(getComponentNumber(vertex));
     }
 
+    @Override
+    public Set<V> getNonConnectedVertices(V vertex) {
+        return getConnectedComponents().stream().filter(component -> !component.contains(vertex))
+            .flatMap(Collection::stream).collect(Collectors.toSet());
+    }
+
     class KruskalMinimumSpanningTrees implements SpanningTreeAlgorithm<Object> {
 
         @Override
