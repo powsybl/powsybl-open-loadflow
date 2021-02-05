@@ -290,8 +290,8 @@ public abstract class AbstractLfBus implements LfBus {
         }
     }
 
-    void addGenerator(Generator generator, double scaleV, LfNetworkLoadingReport report) {
-        add(LfGeneratorImpl.create(generator, report), generator.isVoltageRegulatorOn(), generator.getTargetV() * scaleV,
+    void addGenerator(Generator generator, double scaleV, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
+        add(LfGeneratorImpl.create(generator, report, plausibleActivePowerLimit), generator.isVoltageRegulatorOn(), generator.getTargetV() * scaleV,
                 generator.getTargetQ(), report);
     }
 

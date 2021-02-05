@@ -31,9 +31,11 @@ public class DcLoadFlowParameters {
 
     private final boolean forcePhaseControlOffAndAddAngle1Var;
 
+    private final double plausibleActivePowerLimit;
+
     public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory, boolean updateFlows,
                                 boolean useTransformerRatio, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
-                                boolean forcePhaseControlOffAndAddAngle1Var) {
+                                boolean forcePhaseControlOffAndAddAngle1Var, double plausibleActivePowerLimit) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.updateFlows = updateFlows;
@@ -41,6 +43,7 @@ public class DcLoadFlowParameters {
         this.distributedSlack = distributedSlack;
         this.balanceType = balanceType;
         this.forcePhaseControlOffAndAddAngle1Var = forcePhaseControlOffAndAddAngle1Var;
+        this.plausibleActivePowerLimit = plausibleActivePowerLimit;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -69,5 +72,9 @@ public class DcLoadFlowParameters {
 
     public boolean isForcePhaseControlOffAndAddAngle1Var() {
         return forcePhaseControlOffAndAddAngle1Var;
+    }
+
+    public double getPlausibleActivePowerLimit() {
+        return plausibleActivePowerLimit;
     }
 }
