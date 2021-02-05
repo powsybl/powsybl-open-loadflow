@@ -37,7 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -435,15 +434,11 @@ public abstract class AbstractSensitivityAnalysis {
         return new ArrayList<>(groupIndexedById.values());
     }
 
-    protected List<ParticipatingElement> getParticipatingElements(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters, Function<ParticipatingElement, Boolean> filter) {
+    protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
         ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(loadFlowParameters.getBalanceType(), openLoadFlowParameters.isLoadPowerFactorConstant());
-        List<ParticipatingElement> participatingElements =  step.getParticipatingElements(lfNetwork.getBuses()).stream().filter(filter::apply).collect(Collectors.toList());
+        List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
         ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
         return participatingElements;
-    }
-
-    protected List<ParticipatingElement> getParticipatingElements(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
-        return getParticipatingElements(lfNetwork, loadFlowParameters, openLoadFlowParameters, element -> true);
     }
 
     protected void computeInjectionFactors(Map<String, Double> participationFactorByBus, List<SensitivityFactorGroup> factorGroups) {
@@ -485,7 +480,7 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    protected void rescaleGlsk(List<SensitivityFactorGroup> factorGroups, GraphDecrementalConnectivity<LfBus> connectivity, Integer mainComponentNumber) {
+    protected void rescaleGlsk(List<SensitivityFactorGroup> factorGroups, Set<LfBus> slackConnectedComponent) {
         // compute the corresponding injection (with participation) for each factor
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             if (!(factorGroup instanceof LinearGlskGroup)) {
@@ -493,7 +488,7 @@ public abstract class AbstractSensitivityAnalysis {
             }
             LinearGlskGroup glskGroup = (LinearGlskGroup) factorGroup;
             Map<String, Double> remainingGlskInjections = glskGroup.getGlskMap().entrySet().stream()
-                .filter(entry -> connectivity.getComponentNumber(entry.getKey()) == mainComponentNumber)
+                .filter(entry -> slackConnectedComponent.contains(entry.getKey()))
                 .collect(Collectors.toMap(entry -> entry.getKey().getId(), Map.Entry::getValue));
             glskGroup.setGlskMapInMainComponent(remainingGlskInjections);
         }

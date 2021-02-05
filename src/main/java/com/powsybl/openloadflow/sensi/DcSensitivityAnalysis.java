@@ -381,7 +381,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         List<ParticipatingElement> participatingElements = null;
         Map<String, Double> slackParticipationByBus;
         if (lfParameters.isDistributedSlack()) {
-            participatingElements = getParticipatingElements(lfNetwork, lfParameters, lfParametersExt);
+            participatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters, lfParametersExt);
             slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
                 element -> element.getLfBus().getId(),
                 element -> -element.getFactor(),
@@ -455,10 +455,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 lfFactors.forEach(factor -> factor.setPredefinedResult(null));
                 cutConnectivity(lfNetwork, connectivity, breakingConnectivityCandidates.stream().map(ComputedContingencyElement::getElement).map(ContingencyElement::getId).collect(Collectors.toSet()));
                 int mainComponent = connectivity.getComponentNumber(lfNetwork.getSlackBus());
+                Set<LfBus> slackConnectedComponent = connectivity.getConnectedComponent(lfNetwork.getSlackBus());
+
                 setPredefinedResults(lfFactors, connectivity, mainComponent); // check if factors are still in the main component
 
                 // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
-                rescaleGlsk(factorGroups, connectivity, mainComponent);
+                rescaleGlsk(factorGroups, slackConnectedComponent);
 
                 // null and unused if slack is not distributed
                 List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
@@ -468,7 +470,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     Map<String, Double> slackParticipationByBusForThisConnectivity;
 
                     if (lfParameters.isDistributedSlack()) {
-                        participatingElementsForThisConnectivity = getParticipatingElements(lfNetwork, lfParameters, lfParametersExt, element -> connectivity.getComponentNumber(element.getLfBus()) == mainComponent); // will also be used to recompute the loadflow
+                        participatingElementsForThisConnectivity = getParticipatingElements(slackConnectedComponent, lfParameters, lfParametersExt); // will also be used to recompute the loadflow
                         slackParticipationByBusForThisConnectivity = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(
                             element -> element.getLfBus().getId(),
                             element -> -element.getFactor(),
@@ -486,7 +488,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 }
 
                 flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElementsForThisConnectivity,
-                    connectivity.getConnectedComponent(lfNetwork.getSlackBus()));
+                    slackConnectedComponent);
 
                 Set<String> elementsToReconnect = getElementsToReconnect(connectivity, breakingConnectivityCandidates);
 
