@@ -55,6 +55,8 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
 
     private LUDecomposition lu;
 
+    private boolean toUpdate = false;
+
     public JacobianMatrix(EquationSystem equationSystem, MatrixFactory matrixFactory) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
@@ -68,7 +70,9 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
 
     @Override
     public void stateUpdated(double[] x) {
-        update();
+        if (matrix != null) {
+            toUpdate = true;
+        }
     }
 
     private void reset() {
@@ -78,6 +82,7 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
             lu.close();
         }
         lu = null;
+        toUpdate = false;
     }
 
     private void init() {
@@ -108,24 +113,27 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
     }
 
     private void update() {
-        if (matrix != null) {
-            matrix.reset();
-            for (PartialDerivative partialDerivative : partialDerivatives) {
-                EquationTerm equationTerm = partialDerivative.getEquationTerm();
-                Matrix.Element element = partialDerivative.getMatrixElement();
-                Variable var = partialDerivative.getVariable();
-                double value = equationTerm.der(var);
-                element.add(value);
-            }
-            if (lu != null) {
-                lu.update();
-            }
+        matrix.reset();
+        for (PartialDerivative partialDerivative : partialDerivatives) {
+            EquationTerm equationTerm = partialDerivative.getEquationTerm();
+            Matrix.Element element = partialDerivative.getMatrixElement();
+            Variable var = partialDerivative.getVariable();
+            double value = equationTerm.der(var);
+            element.add(value);
+        }
+        if (lu != null) {
+            lu.update();
         }
     }
 
     public Matrix getMatrix() {
         if (matrix == null) {
             init();
+        } else {
+            if (toUpdate) {
+                update();
+                toUpdate = false;
+            }
         }
         return matrix;
     }
