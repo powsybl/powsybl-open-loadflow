@@ -437,7 +437,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     protected void setFunctionReferenceOnFactors(List<LfNetwork> lfNetworks, List<LfSensitivityFactor> factors,
                                                  LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
         DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfParametersExt.getSlackBusSelector(), matrixFactory,
-                true, lfParametersExt.isDcUseTransformerRatio(), lfParameters.isDistributedSlack(),  lfParameters.getBalanceType(), true);
+                true, lfParametersExt.isDcUseTransformerRatio(), lfParameters.isDistributedSlack(),  lfParameters.getBalanceType(), true,
+                lfParametersExt.getPlausibleActivePowerLimit());
         DcLoadFlowResult dcLoadFlowResult = new DcLoadFlowEngine(lfNetworks, dcLoadFlowParameters).run();
         for (LfSensitivityFactor factor : factors) {
             factor.setFunctionReference(dcLoadFlowResult.getNetwork().getBranchById(factor.getFunctionLfBranchId()).getP1() * PerUnit.SB);
