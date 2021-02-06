@@ -100,7 +100,7 @@ public class AcloadFlowEngine {
         private final Map<String, MutableInt> outerLoopIterationByType = new HashMap<>();
     }
 
-    private void runOuterLoop(OuterLoop outerLoop, LfNetwork network, EquationSystem equationSystem, VariableSet variableSet,
+    private void runOuterLoop(OuterLoop outerLoop, LfNetwork network, EquationSystem equationSystem,
                               NewtonRaphson newtonRaphson, NewtonRaphsonParameters nrParameters, RunningContext runningContext) {
         // for each outer loop re-run Newton-Raphson until stabilization
         OuterLoopStatus outerLoopStatus;
@@ -170,7 +170,7 @@ public class AcloadFlowEngine {
 
                     // outer loops are nested: inner most loop first in the list, outer most loop last
                     for (OuterLoop outerLoop : parameters.getOuterLoops()) {
-                        runOuterLoop(outerLoop, network, equationSystem, variableSet, newtonRaphson, nrParameters, runningContext);
+                        runOuterLoop(outerLoop, network, equationSystem, newtonRaphson, nrParameters, runningContext);
 
                         // continue with next outer loop only if last Newton-Raphson succeed
                         if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED) {
