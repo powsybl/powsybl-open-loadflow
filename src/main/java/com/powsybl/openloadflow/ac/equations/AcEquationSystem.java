@@ -397,7 +397,7 @@ public final class AcEquationSystem {
             @Override
             public void onPhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode) {
                 if (newMode == DiscretePhaseControl.Mode.OFF) {
-                    // de-activate a1 variable for next outer loop run
+                    // de-activate a1 variable
                     Variable a1 = variableSet.getVariable(phaseControl.getController().getNum(), VariableType.BRANCH_ALPHA1);
                     a1.setActive(false);
 
@@ -416,7 +416,6 @@ public final class AcEquationSystem {
                     Equation t = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
                     t.setActive(false);
 
-                    // at first iteration all branches controlling voltage are switched off
                     for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
                         // de-activate r1 variable
                         Variable r1 = variableSet.getVariable(controllerBranch.getNum(), VariableType.BRANCH_RHO1);
