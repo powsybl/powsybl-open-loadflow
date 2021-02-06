@@ -332,6 +332,22 @@ public final class AcEquationSystem {
         }
     }
 
+    public static void updateControlledBus(LfBus controlledBus, EquationSystem equationSystem, VariableSet variableSet) {
+        // clean reactive power distribution equations
+        controlledBus.getControllerBuses().forEach(b -> equationSystem.removeEquation(b.getNum(), EquationType.ZERO_Q));
+
+        // controlled bus has a voltage equation only if one of the controller bus has voltage control on
+        List<LfBus> controllerBusesWithVoltageControlOn = controlledBus.getControllerBuses().stream()
+                .filter(LfBus::hasVoltageControl)
+                .collect(Collectors.toList());
+        equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
+
+        // create reactive power equations on controller buses that have voltage control on
+        if (!controllerBusesWithVoltageControlOn.isEmpty()) {
+            AcEquationSystem.createReactivePowerDistributionEquations(equationSystem, variableSet, controllerBusesWithVoltageControlOn);
+        }
+    }
+
     public static EquationSystem create(LfNetwork network) {
         return create(network, new VariableSet());
     }
@@ -349,6 +365,35 @@ public final class AcEquationSystem {
 
         createBusEquations(network, variableSet, creationParameters, equationSystem);
         createBranchEquations(network, variableSet, creationParameters, equationSystem);
+
+        network.addListener(new LfNetworkListener() {
+            @Override
+            public void onVoltageControlChange(LfBus bus, boolean oldVoltageControl, boolean newVoltageControl) {
+                if (newVoltageControl) { // switch PQ/PV
+                    Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
+                    qEq.setActive(false);
+
+                    LfBus controlledBus = bus.getControlledBus().orElse(null);
+                    if (controlledBus != null) {
+                        updateControlledBus(controlledBus, equationSystem, variableSet);
+                    } else {
+                        Equation vEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
+                        vEq.setActive(true);
+                    }
+                } else { // switch PV/PQ
+                    Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
+                    qEq.setActive(true);
+
+                    LfBus controlledBus = bus.getControlledBus().orElse(null);
+                    if (controlledBus != null) {
+                        updateControlledBus(controlledBus, equationSystem, variableSet);
+                    } else {
+                        Equation vEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
+                        vEq.setActive(false);
+                    }
+                }
+            }
+        });
 
         return equationSystem;
     }

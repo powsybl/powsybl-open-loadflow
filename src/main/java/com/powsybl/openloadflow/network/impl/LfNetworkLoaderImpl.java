@@ -44,7 +44,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         Map<LfBusImpl, String> controllerBusToControlledBusId = new LinkedHashMap<>();
 
         for (Bus bus : buses) {
-            LfBusImpl lfBus = createBus(bus, parameters, loadingContext, report, controllerBusToControlledBusId);
+            LfBusImpl lfBus = createBus(bus, parameters, lfNetwork, loadingContext, report, controllerBusToControlledBusId);
             lfNetwork.addBus(lfBus);
         }
 
@@ -61,9 +61,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         return breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
     }
 
-    private static LfBusImpl createBus(Bus bus, LfNetworkParameters parameters, LoadingContext loadingContext,
+    private static LfBusImpl createBus(Bus bus, LfNetworkParameters parameters, LfNetwork lfNetwork, LoadingContext loadingContext,
                                        LfNetworkLoadingReport report, Map<LfBusImpl, String> controllerBusToControlledBusId) {
-        LfBusImpl lfBus = LfBusImpl.create(bus);
+        LfBusImpl lfBus = LfBusImpl.create(lfNetwork, bus);
 
         bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
 
@@ -211,14 +211,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
 
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
-            LfDanglingLineBus lfBus2 = new LfDanglingLineBus(danglingLine);
+            LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine);
             lfNetwork.addBus(lfBus2);
             LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, breakers);
             addBranch(lfNetwork, LfDanglingLineBranch.create(danglingLine, lfBus1, lfBus2), report);
         }
 
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
-            LfStarBus lfBus0 = new LfStarBus(t3wt);
+            LfStarBus lfBus0 = new LfStarBus(lfNetwork, t3wt);
             lfNetwork.addBus(lfBus0);
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork, breakers);
             LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork, breakers);

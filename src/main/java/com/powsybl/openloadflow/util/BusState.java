@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.util;
 
-import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
@@ -42,12 +41,8 @@ public class BusState {
         restoreDcBusState(bus);
         bus.setV(v);
         bus.setLoadTargetQ(loadTargetQ);
-        if (hasVoltageControl && !bus.hasVoltageControl()) { // b is now PQ bus.
-            ReactiveLimitsOuterLoop.switchPqPv(bus, engine.getEquationSystem(), engine.getVariableSet());
-        }
-        if (!hasVoltageControl && bus.hasVoltageControl()) { // b is now PV bus.
-            ReactiveLimitsOuterLoop.switchPvPq(bus, engine.getEquationSystem(), engine.getVariableSet(), generationTargetQ);
-        }
+        bus.setGenerationTargetQ(generationTargetQ);
+        bus.setVoltageControl(hasVoltageControl);
         bus.setVoltageControlSwitchOffCount(0);
     }
 

@@ -29,6 +29,8 @@ public abstract class AbstractLfBus implements LfBus {
     private static final double Q_DISPATCH_EPSILON = 1e-3;
     private static final double TARGET_V_EPSILON = 1e-2;
 
+    private final LfNetwork network;
+
     private int num = -1;
 
     protected boolean slack = false;
@@ -83,7 +85,8 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected boolean disabled = false;
 
-    protected AbstractLfBus(double v, double angle) {
+    protected AbstractLfBus(LfNetwork network, double v, double angle) {
+        this.network = Objects.requireNonNull(network);
         this.v = v;
         this.angle = angle;
     }
@@ -130,10 +133,15 @@ public abstract class AbstractLfBus implements LfBus {
 
     @Override
     public void setVoltageControl(boolean voltageControl) {
-        if (this.voltageControl && !voltageControl) {
-            voltageControlSwitchOffCount++;
+        if (this.voltageControl != voltageControl) {
+            if (this.voltageControl) {
+                voltageControlSwitchOffCount++;
+            }
+            this.voltageControl = voltageControl;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onVoltageControlChange(this, !voltageControl, voltageControl);
+            }
         }
-        this.voltageControl = voltageControl;
     }
 
     @Override
