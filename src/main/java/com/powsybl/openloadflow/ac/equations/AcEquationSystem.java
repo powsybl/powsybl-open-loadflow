@@ -393,6 +393,40 @@ public final class AcEquationSystem {
                     }
                 }
             }
+
+            @Override
+            public void onPhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode) {
+                if (newMode == DiscretePhaseControl.Mode.OFF) {
+                    // de-activate a1 variable for next outer loop run
+                    Variable a1 = variableSet.getVariable(phaseControl.getController().getNum(), VariableType.BRANCH_ALPHA1);
+                    a1.setActive(false);
+
+                    // de-activate phase control equation
+                    Equation t = equationSystem.createEquation(phaseControl.getControlled().getNum(), EquationType.BRANCH_P);
+                    t.setActive(false);
+                }
+            }
+
+            @Override
+            public void onVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode) {
+                if (newMode == DiscreteVoltageControl.Mode.OFF) {
+                    LfBus bus = voltageControl.getControlled();
+
+                    // de-activate transformer voltage control equation
+                    Equation t = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
+                    t.setActive(false);
+
+                    // at first iteration all branches controlling voltage are switched off
+                    for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
+                        // de-activate r1 variable
+                        Variable r1 = variableSet.getVariable(controllerBranch.getNum(), VariableType.BRANCH_RHO1);
+                        r1.setActive(false);
+
+                        // clean transformer distribution equations
+                        equationSystem.removeEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1);
+                    }
+                }
+            }
         });
 
         return equationSystem;

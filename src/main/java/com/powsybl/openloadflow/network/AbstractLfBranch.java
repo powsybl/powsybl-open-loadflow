@@ -23,6 +23,8 @@ public abstract class AbstractLfBranch implements LfBranch {
 
     private int num = -1;
 
+    private final LfNetwork network;
+
     private final LfBus bus1;
 
     private final LfBus bus2;
@@ -33,7 +35,8 @@ public abstract class AbstractLfBranch implements LfBranch {
 
     protected DiscreteVoltageControl discreteVoltageControl;
 
-    protected AbstractLfBranch(LfBus bus1, LfBus bus2, PiModel piModel) {
+    protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
+        this.network = Objects.requireNonNull(network);
         this.bus1 = bus1;
         this.bus2 = bus2;
         this.piModel = Objects.requireNonNull(piModel);
@@ -47,6 +50,11 @@ public abstract class AbstractLfBranch implements LfBranch {
     @Override
     public void setNum(int num) {
         this.num = num;
+    }
+
+    @Override
+    public LfNetwork getNetwork() {
+        return network;
     }
 
     @Override

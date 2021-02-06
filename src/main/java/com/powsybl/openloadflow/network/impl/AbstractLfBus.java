@@ -102,6 +102,11 @@ public abstract class AbstractLfBus implements LfBus {
     }
 
     @Override
+    public LfNetwork getNetwork() {
+        return network;
+    }
+
+    @Override
     public boolean isSlack() {
         return slack;
     }

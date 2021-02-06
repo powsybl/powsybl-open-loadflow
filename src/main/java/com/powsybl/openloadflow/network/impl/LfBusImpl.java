@@ -25,7 +25,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final double highVoltageLimit;
 
-    protected LfBusImpl(LfNetwork network, Bus bus, double v, double angle) {
+    protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle) {
         super(network, v, angle);
         this.bus = bus;
         nominalV = bus.getVoltageLevel().getNominalV();
@@ -33,9 +33,9 @@ public class LfBusImpl extends AbstractLfBus {
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
     }
 
-    public static LfBusImpl create(LfNetwork network, Bus bus) {
+    public static LfBusImpl create(Bus bus, LfNetwork network) {
         Objects.requireNonNull(bus);
-        return new LfBusImpl(network, bus, bus.getV(), bus.getAngle());
+        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle());
     }
 
     @Override
