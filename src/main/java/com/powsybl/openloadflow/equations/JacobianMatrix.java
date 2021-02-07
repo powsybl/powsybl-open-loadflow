@@ -55,7 +55,13 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
 
     private LUDecomposition lu;
 
-    private boolean toUpdate = false;
+    private enum Status {
+        VALID,
+        MATRIX_INVALID, // structure has changed
+        VALUES_INVALID // same structure but values have to be updated
+    }
+
+    private Status status = Status.MATRIX_INVALID;
 
     public JacobianMatrix(EquationSystem equationSystem, MatrixFactory matrixFactory) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
@@ -71,7 +77,7 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
             case EQUATION_ACTIVATED:
             case EQUATION_DEACTIVATED:
             case EQUATION_UPDATED:
-                reset();
+                status = Status.MATRIX_INVALID;
                 break;
 
             default:
@@ -81,26 +87,21 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
 
     @Override
     public void stateUpdated(double[] x) {
-        toUpdate();
-    }
-
-    private void toUpdate() {
-        if (matrix != null) {
-            toUpdate = true;
+        if (status == Status.VALID) {
+            status = Status.VALUES_INVALID;
         }
     }
 
-    private void reset() {
+    private void clear() {
         matrix = null;
         partialDerivatives = null;
         if (lu != null) {
             lu.close();
         }
         lu = null;
-        toUpdate = false;
     }
 
-    private void init() {
+    private void initMatrix() {
         int rowCount = equationSystem.getSortedEquationsToSolve().size();
         int columnCount = equationSystem.getSortedVariablesToFind().size();
         if (rowCount != columnCount) {
@@ -127,7 +128,7 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
         }
     }
 
-    private void update() {
+    private void updateValues() {
         matrix.reset();
         for (PartialDerivative partialDerivative : partialDerivatives) {
             EquationTerm equationTerm = partialDerivative.getEquationTerm();
@@ -142,14 +143,21 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
     }
 
     public Matrix getMatrix() {
-        if (matrix == null) {
-            init();
-            toUpdate = false;
-        } else {
-            if (toUpdate) {
-                update();
-                toUpdate = false;
+        if (status != Status.VALID) {
+            switch (status) {
+                case MATRIX_INVALID:
+                    clear();
+                    initMatrix();
+                    break;
+
+                case VALUES_INVALID:
+                    updateValues();
+                    break;
+
+                default:
+                    break;
             }
+            status = Status.VALID;
         }
         return matrix;
     }
@@ -164,6 +172,6 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
     @Override
     public void close() {
         equationSystem.removeListener(this);
-        reset();
+        clear();
     }
 }
