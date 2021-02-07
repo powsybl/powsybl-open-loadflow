@@ -111,13 +111,12 @@ public class EquationSystem {
         }
 
         @Override
-        public void equationListChanged(Equation equation, EquationEventType eventType) {
+        public void onEquationChange(Equation equation, EquationEventType eventType) {
             switch (eventType) {
                 case EQUATION_CREATED:
                 case EQUATION_REMOVED:
                 case EQUATION_ACTIVATED:
                 case EQUATION_DEACTIVATED:
-                case EQUATION_UPDATED:
                     invalidate();
                     break;
 
@@ -127,7 +126,21 @@ public class EquationSystem {
         }
 
         @Override
-        public void stateUpdated(double[] x) {
+        public void onEquationTermChange(EquationTerm term, EquationTermEventType eventType) {
+            switch (eventType) {
+                case EQUATION_TERM_ADDED:
+                case EQUATION_TERM_ACTIVATED:
+                case EQUATION_TERM_DEACTIVATED:
+                    invalidate();
+                    break;
+
+                default:
+                    throw new IllegalStateException("Event type not supported: " + eventType);
+            }
+        }
+
+        @Override
+        public void onStateUpdate(double[] x) {
             // nothing to do
         }
 
@@ -212,7 +225,7 @@ public class EquationSystem {
         if (equation != null) {
             Pair<SubjectType, Integer> subject = Pair.of(type.getSubjectType(), num);
             equationsBySubject.remove(subject);
-            notifyListeners(equation, EquationEventType.EQUATION_REMOVED);
+            notifyEquationChange(equation, EquationEventType.EQUATION_REMOVED);
         }
         return equation;
     }
@@ -223,7 +236,7 @@ public class EquationSystem {
         Pair<SubjectType, Integer> subject = Pair.of(p.getRight().getSubjectType(), p.getLeft());
         equationsBySubject.computeIfAbsent(subject, k -> new ArrayList<>())
                 .add(equation);
-        notifyListeners(equation, EquationEventType.EQUATION_CREATED);
+        notifyEquationChange(equation, EquationEventType.EQUATION_CREATED);
         return equation;
     }
 
@@ -291,7 +304,7 @@ public class EquationSystem {
             equation.update(x);
         }
         if (!listeners.isEmpty()) {
-            listeners.forEach(listener -> listener.stateUpdated(x));
+            listeners.forEach(listener -> listener.onStateUpdate(x));
         }
     }
 
@@ -311,11 +324,19 @@ public class EquationSystem {
         listeners.remove(listener);
     }
 
-    void notifyListeners(Equation equation, EquationEventType eventType) {
+    void notifyEquationChange(Equation equation, EquationEventType eventType) {
         Objects.requireNonNull(equation);
         Objects.requireNonNull(eventType);
         if (!listeners.isEmpty()) {
-            listeners.forEach(listener -> listener.equationListChanged(equation, eventType));
+            listeners.forEach(listener -> listener.onEquationChange(equation, eventType));
+        }
+    }
+
+    void notifyEquationTermChange(EquationTerm term, EquationTermEventType eventType) {
+        Objects.requireNonNull(term);
+        Objects.requireNonNull(eventType);
+        if (!listeners.isEmpty()) {
+            listeners.forEach(listener -> listener.onEquationTermChange(term, eventType));
         }
     }
 

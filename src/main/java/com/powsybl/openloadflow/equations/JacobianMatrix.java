@@ -70,13 +70,12 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
     }
 
     @Override
-    public void equationListChanged(Equation equation, EquationEventType eventType) {
+    public void onEquationChange(Equation equation, EquationEventType eventType) {
         switch (eventType) {
             case EQUATION_CREATED:
             case EQUATION_REMOVED:
             case EQUATION_ACTIVATED:
             case EQUATION_DEACTIVATED:
-            case EQUATION_UPDATED:
                 status = Status.MATRIX_INVALID;
                 break;
 
@@ -86,7 +85,29 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
     }
 
     @Override
-    public void stateUpdated(double[] x) {
+    public void onEquationTermChange(EquationTerm term, EquationTermEventType eventType) {
+        switch (eventType) {
+            case EQUATION_TERM_ADDED:
+            case EQUATION_TERM_ACTIVATED:
+            case EQUATION_TERM_DEACTIVATED:
+                // FIXME
+                // Note for later, it might be possible in the future in case of a term change to not fully rebuild
+                // the matrix as the structure has not changed (same equations and variables). But... we have for that
+                // to handle the case where the invalidation of an equation term break the graph connectivity. This
+                // is typically the case when the equation term is the active power flow of a branch which is also a
+                // bridge (so necessary for the connectivity). Normally in that case a bus equation should also have been
+                // deactivated and so it should work but for an unknown reason it fails with a KLU singular error (which
+                // means most of the time we have created the matrix with a non fully connected network)
+                status = Status.MATRIX_INVALID;
+                break;
+
+            default:
+                throw new IllegalStateException("Event type not supported: " + eventType);
+        }
+    }
+
+    @Override
+    public void onStateUpdate(double[] x) {
         if (status == Status.VALID) {
             status = Status.VALUES_INVALID;
         }
