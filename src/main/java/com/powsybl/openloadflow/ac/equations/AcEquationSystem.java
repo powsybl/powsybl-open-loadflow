@@ -404,6 +404,8 @@ public final class AcEquationSystem {
                     // de-activate phase control equation
                     Equation t = equationSystem.createEquation(phaseControl.getControlled().getNum(), EquationType.BRANCH_P);
                     t.setActive(false);
+                } else {
+                    throw new UnsupportedOperationException("TODO");
                 }
             }
 
@@ -424,6 +426,8 @@ public final class AcEquationSystem {
                         // clean transformer distribution equations
                         equationSystem.removeEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1);
                     }
+                } else {
+                    throw new UnsupportedOperationException("TODO");
                 }
             }
         });
