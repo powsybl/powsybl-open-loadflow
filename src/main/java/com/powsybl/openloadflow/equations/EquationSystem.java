@@ -81,8 +81,11 @@ public class EquationSystem {
             for (Equation equation : equations.values()) {
                 if (equation.isActive()) {
                     NavigableMap<Variable, List<EquationTerm>> equationTermsByVariable = null;
+                    // check we have at lest one equation term active
+                    boolean atLeastOneTermIsValid = false;
                     for (EquationTerm equationTerm : equation.getTerms()) {
                         if (equationTerm.isActive()) {
+                            atLeastOneTermIsValid = true;
                             if (equationTermsByVariable == null) {
                                 equationTermsByVariable = sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>());
                             }
@@ -95,6 +98,9 @@ public class EquationSystem {
                             }
                         }
                     }
+                    if (!atLeastOneTermIsValid) {
+                        throw new IllegalStateException("Equation " + equation + " is active but all of its terms are inactive");
+                    }
                 }
             }
             sortedVariablesToFind.addAll(variablesToFind);
@@ -106,7 +112,18 @@ public class EquationSystem {
 
         @Override
         public void equationListChanged(Equation equation, EquationEventType eventType) {
-            invalidate();
+            switch (eventType) {
+                case EQUATION_CREATED:
+                case EQUATION_REMOVED:
+                case EQUATION_ACTIVATED:
+                case EQUATION_DEACTIVATED:
+                case EQUATION_UPDATED:
+                    invalidate();
+                    break;
+
+                default:
+                    throw new IllegalStateException("Event type not supported: " + eventType);
+            }
         }
 
         @Override

@@ -65,11 +65,26 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
 
     @Override
     public void equationListChanged(Equation equation, EquationEventType eventType) {
-        reset();
+        switch (eventType) {
+            case EQUATION_CREATED:
+            case EQUATION_REMOVED:
+            case EQUATION_ACTIVATED:
+            case EQUATION_DEACTIVATED:
+            case EQUATION_UPDATED:
+                reset();
+                break;
+
+            default:
+                throw new IllegalStateException("Event type not supported: " + eventType);
+        }
     }
 
     @Override
     public void stateUpdated(double[] x) {
+        toUpdate();
+    }
+
+    private void toUpdate() {
         if (matrix != null) {
             toUpdate = true;
         }
@@ -129,6 +144,7 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
     public Matrix getMatrix() {
         if (matrix == null) {
             init();
+            toUpdate = false;
         } else {
             if (toUpdate) {
                 update();
