@@ -21,17 +21,13 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractLfBus implements LfBus {
+public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBus.class);
 
     private static final double POWER_EPSILON_SI = 1e-4;
     private static final double Q_DISPATCH_EPSILON = 1e-3;
     private static final double TARGET_V_EPSILON = 1e-2;
-
-    private final LfNetwork network;
-
-    private int num = -1;
 
     protected boolean slack = false;
 
@@ -86,24 +82,9 @@ public abstract class AbstractLfBus implements LfBus {
     protected boolean disabled = false;
 
     protected AbstractLfBus(LfNetwork network, double v, double angle) {
-        this.network = Objects.requireNonNull(network);
+        super(network);
         this.v = v;
         this.angle = angle;
-    }
-
-    @Override
-    public int getNum() {
-        return num;
-    }
-
-    @Override
-    public void setNum(int num) {
-        this.num = num;
-    }
-
-    @Override
-    public LfNetwork getNetwork() {
-        return network;
     }
 
     @Override
@@ -323,7 +304,7 @@ public abstract class AbstractLfBus implements LfBus {
     }
 
     void addShuntCompensator(ShuntCompensator sc) {
-        shunts.add(new LfShuntImpl(sc));
+        shunts.add(new LfShuntImpl(sc, network));
     }
 
     @Override
