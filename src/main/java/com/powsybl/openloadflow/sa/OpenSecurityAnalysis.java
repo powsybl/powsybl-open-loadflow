@@ -282,7 +282,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                     LOGGER.info("Restore pre-contingency state");
 
                     // restore base state
-                    restoreBusStates(busStates, engine);
+                    restoreBusStates(busStates);
                 }
             }
         }
@@ -460,10 +460,9 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
     /**
      * Set the bus states based on the given map of states
      * @param busStates the map containing the bus states, indexed by buses
-     * @param engine AcLoadFlowEngine to operate the PqPv switching if the bus has lost its voltage control
      */
-    private void restoreBusStates(Map<LfBus, BusState> busStates, AcloadFlowEngine engine) {
-        busStates.forEach((b, state) -> state.restoreBusState(b, engine));
+    private void restoreBusStates(Map<LfBus, BusState> busStates) {
+        busStates.forEach((b, state) -> state.restoreBusState(b));
     }
 
 }

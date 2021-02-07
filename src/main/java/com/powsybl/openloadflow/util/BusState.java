@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.util;
 
-import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 
@@ -37,7 +36,7 @@ public class BusState {
         this.generationTargetQ = b.getGenerationTargetQ();
     }
 
-    public void restoreBusState(LfBus bus, AcloadFlowEngine engine) {
+    public void restoreBusState(LfBus bus) {
         restoreDcBusState(bus);
         bus.setV(v);
         bus.setLoadTargetQ(loadTargetQ);
