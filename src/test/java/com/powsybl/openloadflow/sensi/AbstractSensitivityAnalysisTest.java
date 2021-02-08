@@ -100,6 +100,13 @@ public abstract class AbstractSensitivityAnalysisTest {
                 .orElse(Double.NaN);
     }
 
+    protected static double getContingencyFunctionReference(SensitivityAnalysisResult result, String functionId, String contingencyId) {
+        return result.getSensitivityValuesContingencies().get(contingencyId).stream().filter(value -> value.getFactor().getFunction().getId().equals(functionId))
+                     .findFirst()
+                     .map(SensitivityValue::getFunctionReference)
+                     .orElse(Double.NaN);
+    }
+
     protected void runAcLf(Network network) {
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
                 .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, new LoadFlowParameters())
@@ -113,6 +120,15 @@ public abstract class AbstractSensitivityAnalysisTest {
         LoadFlowParameters parameters =  new LoadFlowParameters().setDc(true);
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
                 .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, parameters)
+                .join();
+        if (!result.isOk()) {
+            throw new PowsyblException("DC LF failed");
+        }
+    }
+
+    protected void runLf(Network network, LoadFlowParameters loadFlowParameters) {
+        LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
+                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, loadFlowParameters)
                 .join();
         if (!result.isOk()) {
             throw new PowsyblException("DC LF failed");

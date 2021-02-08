@@ -9,7 +9,9 @@ package com.powsybl.openloadflow.util;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 
+import java.util.Collection;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -52,6 +54,32 @@ public class BusState {
             g.setTargetP(generatorsTargetP.get(g.getId()));
         });
         bus.setDisabled(disabled);
+    }
+
+    /**
+     * Get the map of the states of given buses, indexed by the bus itself
+     * @param buses the bus for which the state is returned
+     * @return the map of the states of given buses, indexed by the bus itself
+     */
+    public static Map<LfBus, BusState> createBusStates(Collection<LfBus> buses) {
+        return buses.stream().collect(Collectors.toMap(Function.identity(), BusState::new));
+    }
+
+    /**
+     * Set the bus states based on the given map of states
+     * @param busStates the map containing the bus states, indexed by buses
+     * @param engine AcLoadFlowEngine to operate the PqPv switching if the bus has lost its voltage control
+     */
+    public static void restoreBusStates(Map<LfBus, BusState> busStates, AcloadFlowEngine engine) {
+        busStates.forEach((b, state) -> state.restoreBusState(b, engine));
+    }
+
+    /**
+     * Set the bus states based on the given map of states
+     * @param busStates the map containing the bus states, indexed by buses
+     */
+    public static void restoreDcBusStates(Map<LfBus, BusState> busStates) {
+        busStates.forEach((b, state) -> state.restoreDcBusState(b));
     }
 }
 

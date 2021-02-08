@@ -18,8 +18,8 @@ import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisFactory;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 
-import javax.inject.Provider;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -27,13 +27,13 @@ import java.util.Objects;
 public class OpenSecurityAnalysisFactory implements SecurityAnalysisFactory {
 
     private final MatrixFactory matrixFactory;
-    private final Provider<GraphDecrementalConnectivity<LfBus>> connectivityProvider;
+    private final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider;
 
     public OpenSecurityAnalysisFactory() {
         this(new SparseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
     }
 
-    public OpenSecurityAnalysisFactory(MatrixFactory matrixFactory, Provider<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
+    public OpenSecurityAnalysisFactory(MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.connectivityProvider = Objects.requireNonNull(connectivityProvider);
     }
