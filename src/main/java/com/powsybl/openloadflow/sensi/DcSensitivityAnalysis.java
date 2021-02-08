@@ -460,24 +460,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         if (connectivity != null) {
             // set buses injections and transformers to 0 outside the main connected component
             int mainComponentNumber = connectivity.getComponentNumber(network.getSlackBus());
-            Set<Integer> columnsToSetToZero = new HashSet<>();
-            Collection<LfBus> disconnectedBuses = network.getBuses().stream()
+            Set<Integer> columnsToSetToZero = network.getBuses().stream()
                 .filter(lfBus -> connectivity.getComponentNumber(lfBus) != mainComponentNumber)
-                .collect(Collectors.toList());
-            for (LfBus lfBus : disconnectedBuses) {
-                // the number of disconnected buses is supposed to be small, so we only search alpha1 equations
-                // within the branches of those nodes, instead of the whole network
-                Equation busEquation = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                columnsToSetToZero.add(busEquation.getColumn());
-                columnsToSetToZero.addAll(
-                    lfBus.getBranches().stream()
-                        .map(lfBranch -> equationSystem.getEquation(lfBranch.getNum(), EquationType.BRANCH_ALPHA1))
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
-                        .map(Equation::getColumn)
-                        .collect(Collectors.toList())
-                );
-            }
+                .map(lfBus -> equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(Equation::getColumn)
+                .collect(Collectors.toSet());
             for (Integer column : columnsToSetToZero) {
                 dx[column] = 0;
             }
