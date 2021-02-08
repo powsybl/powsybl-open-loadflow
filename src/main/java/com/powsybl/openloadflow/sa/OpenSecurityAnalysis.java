@@ -21,7 +21,10 @@ import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.security.*;
@@ -29,11 +32,10 @@ import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Provider;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -54,10 +56,10 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
     private final MatrixFactory matrixFactory;
 
-    private final Provider<GraphDecrementalConnectivity<LfBus>> connectivityProvider;
+    private final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider;
 
     public OpenSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
-                                MatrixFactory matrixFactory, Provider<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
+                                MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
         this.network = Objects.requireNonNull(network);
         this.detector = Objects.requireNonNull(detector);
         this.filter = Objects.requireNonNull(filter);
@@ -259,7 +261,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             LOGGER.info("Save pre-contingency state");
 
             // save base state for later restoration after each contingency
-            Map<LfBus, BusState> busStates = getBusStates(network.getBuses());
+            Map<LfBus, BusState> busStates = BusState.createBusStates(network.getBuses());
             for (LfBus bus : network.getBuses()) {
                 bus.setVoltageControlSwitchOffCount(0);
             }
@@ -282,7 +284,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                     LOGGER.info("Restore pre-contingency state");
 
                     // restore base state
-                    restoreBusStates(busStates, engine);
+                    BusState.restoreBusStates(busStates, engine);
                 }
             }
         }
@@ -388,7 +390,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
     List<LfContingency> createContingencies(List<ContingencyContext> contingencyContexts, LfNetwork network) {
         // create connectivity data structure
-        GraphDecrementalConnectivity<LfBus> connectivity = createConnectivity(network);
+        GraphDecrementalConnectivity<LfBus> connectivity = network.createDecrementalConnectivity(connectivityProvider);
 
         List<LfContingency> contingencies = new ArrayList<>();
         Iterator<ContingencyContext> contingencyContextIt = contingencyContexts.iterator();
@@ -446,24 +448,6 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             connectivity.addEdge(branch.getBus1(), branch.getBus2());
         }
         return connectivity;
-    }
-
-    /**
-     * Get the map of the states of given buses, indexed by the bus itself
-     * @param buses the bus for which the state is returned
-     * @return the map of the states of given buses, indexed by the bus itself
-     */
-    private Map<LfBus, BusState> getBusStates(List<LfBus> buses) {
-        return buses.stream().collect(Collectors.toMap(Function.identity(), BusState::new));
-    }
-
-    /**
-     * Set the bus states based on the given map of states
-     * @param busStates the map containing the bus states, indexed by buses
-     * @param engine AcLoadFlowEngine to operate the PqPv switching if the bus has lost its voltage control
-     */
-    private void restoreBusStates(Map<LfBus, BusState> busStates, AcloadFlowEngine engine) {
-        busStates.forEach((b, state) -> state.restoreBusState(b, engine));
     }
 
 }
