@@ -13,6 +13,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
+import com.powsybl.openloadflow.util.ContingencyContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,8 +57,8 @@ class LfContingencyTest extends AbstractConverterTest {
 
         String branchId = "LINE_S3S4";
         Contingency contingency = new Contingency(branchId, new BranchContingency(branchId));
-        List<OpenSecurityAnalysis.ContingencyContext> contingencyContexts =
-            sa.getContingencyContexts(Collections.singletonList(contingency), new HashSet<>());
+        List<ContingencyContext> contingencyContexts =
+            ContingencyContext.getContingencyContexts(network, Collections.singletonList(contingency), new HashSet<>());
 
         List<LfContingency> lfContingencies = sa.createContingencies(contingencyContexts, lfNetworks.get(0));
         assertEquals(1, lfContingencies.size());
