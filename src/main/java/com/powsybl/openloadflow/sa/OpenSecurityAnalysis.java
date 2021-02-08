@@ -288,9 +288,9 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                     }
                 }
             }
-        }
 
-        return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
+            return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
+        }
     }
 
     public static void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
