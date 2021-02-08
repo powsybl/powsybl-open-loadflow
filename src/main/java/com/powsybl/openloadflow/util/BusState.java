@@ -68,10 +68,9 @@ public class BusState {
     /**
      * Set the bus states based on the given map of states
      * @param busStates the map containing the bus states, indexed by buses
-     * @param engine AcLoadFlowEngine to operate the PqPv switching if the bus has lost its voltage control
      */
-    public static void restoreBusStates(Map<LfBus, BusState> busStates, AcloadFlowEngine engine) {
-        busStates.forEach((b, state) -> state.restoreBusState(b, engine));
+    public static void restoreBusStates(Map<LfBus, BusState> busStates) {
+        busStates.forEach((b, state) -> state.restoreBusState(b));
     }
 
     /**
