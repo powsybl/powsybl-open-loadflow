@@ -342,10 +342,9 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
     }
 
     List<LfContingency> createContingencies(List<ContingencyContext> contingencyContexts, LfNetwork network) {
-        return createContingencies(contingencyContexts, network, createConnectivity(network));
-    }
+        // create connectivity data structure
+        GraphDecrementalConnectivity<LfBus> connectivity = network.createDecrementalConnectivity(connectivityProvider);
 
-    public static List<LfContingency> createContingencies(List<ContingencyContext> contingencyContexts, LfNetwork network, GraphDecrementalConnectivity<LfBus> connectivity) {
         List<LfContingency> contingencies = new ArrayList<>();
         Iterator<ContingencyContext> contingencyContextIt = contingencyContexts.iterator();
         while (contingencyContextIt.hasNext()) {
@@ -392,16 +391,4 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         return contingencies;
     }
-
-    private GraphDecrementalConnectivity<LfBus> createConnectivity(LfNetwork network) {
-        GraphDecrementalConnectivity<LfBus> connectivity = connectivityProvider.get();
-        for (LfBus bus : network.getBuses()) {
-            connectivity.addVertex(bus);
-        }
-        for (LfBranch branch : network.getBranches()) {
-            connectivity.addEdge(branch.getBus1(), branch.getBus2());
-        }
-        return connectivity;
-    }
-
 }
