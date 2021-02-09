@@ -39,12 +39,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         private final Set<ThreeWindingsTransformer> t3wtSet = new LinkedHashSet<>();
     }
 
-    private static void createBuses(List<Bus> buses, boolean voltageRemoteControl, boolean breakers, LfNetwork lfNetwork,
+    private static void createBuses(List<Bus> buses, LfNetworkParameters parameters, LfNetwork lfNetwork,
                                     LoadingContext loadingContext, LfNetworkLoadingReport report) {
         Map<LfBusImpl, String> controllerBusToControlledBusId = new LinkedHashMap<>();
 
         for (Bus bus : buses) {
-            LfBusImpl lfBus = createBus(bus, voltageRemoteControl, breakers, loadingContext, report, controllerBusToControlledBusId);
+            LfBusImpl lfBus = createBus(bus, parameters, loadingContext, report, controllerBusToControlledBusId);
             lfNetwork.addBus(lfBus);
         }
 
@@ -61,7 +61,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         return breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
     }
 
-    private static LfBusImpl createBus(Bus bus, boolean voltageRemoteControl, boolean breakers, LoadingContext loadingContext,
+    private static LfBusImpl createBus(Bus bus, LfNetworkParameters parameters, LoadingContext loadingContext,
                                        LfNetworkLoadingReport report, Map<LfBusImpl, String> controllerBusToControlledBusId) {
         LfBusImpl lfBus = LfBusImpl.create(bus);
 
@@ -88,15 +88,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
             private double checkVoltageRemoteControl(Injection injection, Terminal regulatingTerminal, double previousTargetV) {
                 double scaleV = 1;
-                Bus controlledBus = getBus(regulatingTerminal, breakers);
-                Bus connectedBus = getBus(injection.getTerminal(), breakers);
+                Bus controlledBus = getBus(regulatingTerminal, parameters.isBreakers());
+                Bus connectedBus = getBus(injection.getTerminal(), parameters.isBreakers());
                 if (controlledBus == null || connectedBus == null) {
                     return scaleV;
                 }
                 String controlledBusId = controlledBus.getId();
                 String connectedBusId = connectedBus.getId();
                 if (!Objects.equals(controlledBusId, connectedBusId)) {
-                    if (voltageRemoteControl) {
+                    if (parameters.isGeneratorVoltageRemoteControl()) {
                         // controller to controlled bus link will be set later because controlled bus might not have
                         // been yet created
                         controllerBusToControlledBusId.put(lfBus, controlledBusId);
@@ -115,7 +115,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             @Override
             public void visitGenerator(Generator generator) {
                 double scaleV = checkVoltageRemoteControl(generator, generator.getRegulatingTerminal(), generator.getTargetV());
-                lfBus.addGenerator(generator, scaleV, report);
+                lfBus.addGenerator(generator, scaleV, report, parameters.getPlausibleActivePowerLimit());
                 if (generator.isVoltageRegulatorOn()) {
                     report.voltageControllerCount++;
                 }
@@ -395,7 +395,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
 
-        createBuses(buses, parameters.isGeneratorVoltageRemoteControl(), parameters.isBreakers(), lfNetwork, loadingContext, report);
+        createBuses(buses, parameters, lfNetwork, loadingContext, report);
         createBranches(lfNetwork, loadingContext, report, parameters.isTwtSplitShuntAdmittance(), parameters.isBreakers());
         createSwitches(switches, lfNetwork);
 

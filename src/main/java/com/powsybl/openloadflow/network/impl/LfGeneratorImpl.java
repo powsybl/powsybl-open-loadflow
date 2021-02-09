@@ -11,7 +11,6 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.openloadflow.network.PerUnit;
-import com.powsybl.openloadflow.network.PlausibleValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +35,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double participationFactor;
 
-    private LfGeneratorImpl(Generator generator, LfNetworkLoadingReport report) {
+    private LfGeneratorImpl(Generator generator, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
         super(generator.getTargetP());
         this.generator = generator;
         participating = true;
@@ -62,9 +61,9 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP++;
             participating = false;
         }
-        if (generator.getMaxP() > PlausibleValues.ACTIVE_POWER_LIMIT) {
+        if (generator.getMaxP() > plausibleActivePowerLimit) {
             LOGGER.trace("Discard generator '{}' from active power control because maxP ({}) > {}} MW",
-                    generator.getId(), generator.getMaxP(), PlausibleValues.ACTIVE_POWER_LIMIT);
+                    generator.getId(), generator.getMaxP(), plausibleActivePowerLimit);
             report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
             participating = false;
         }
@@ -76,10 +75,10 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
     }
 
-    public static LfGeneratorImpl create(Generator generator, LfNetworkLoadingReport report) {
+    public static LfGeneratorImpl create(Generator generator, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
         Objects.requireNonNull(generator);
         Objects.requireNonNull(report);
-        return new LfGeneratorImpl(generator, report);
+        return new LfGeneratorImpl(generator, report, plausibleActivePowerLimit);
     }
 
     @Override

@@ -32,6 +32,7 @@ public class GenerationActionPowerDistributionStep implements ActivePowerDistrib
     public List<ParticipatingElement> getParticipatingElements(LfNetwork network) {
         return network.getBuses()
                 .stream()
+                .filter(bus -> !(bus.isDisabled() || bus.isFictitious()))
                 .flatMap(bus -> bus.getGenerators().stream())
                 .filter(generator -> generator.isParticipating() && generator.getParticipationFactor() != 0)
                 .map(generator -> new ParticipatingElement(generator, generator.getParticipationFactor()))
