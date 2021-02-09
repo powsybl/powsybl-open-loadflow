@@ -8,10 +8,6 @@ import java.util.*;
  */
 public class VoltageControl {
 
-    public Collection<LfBus> getControllers() {
-        return controllers;
-    }
-
     public enum Mode {
         VOLTAGE,        // Voltage control on
         OFF;            // Voltage control off: switched off after Pv Pq switching

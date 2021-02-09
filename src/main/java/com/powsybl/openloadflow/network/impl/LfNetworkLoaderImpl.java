@@ -107,7 +107,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                     + "' controlled by bus '" + controllerBus.getId() + "' has also a local voltage control with a different value: "
                     + voltageControlTargetV * controlledBus.getNominalV() + " and " + controllerTargetV * controlledBus.getNominalV());
             } else {
-                String busesId = vc.getControllers().stream().map(LfBus::getId).collect(Collectors.joining(", "));
+                String busesId = vc.getControllerBuses().stream().map(LfBus::getId).collect(Collectors.joining(", "));
                 LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by buses '{}' with a different target voltage: {} (kept) and {} (ignored)",
                     controllerBus.getId(), controlledBus.getId(), busesId,
                     voltageControlTargetV * controlledBus.getNominalV(), controllerTargetV * controlledBus.getNominalV());
