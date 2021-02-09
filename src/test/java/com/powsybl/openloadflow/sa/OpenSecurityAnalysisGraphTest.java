@@ -24,7 +24,7 @@ import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.ContingencyContext;
+import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
@@ -154,7 +154,7 @@ class OpenSecurityAnalysisGraphTest {
         // try to find all switches impacted by at least one contingency
         long start = System.currentTimeMillis();
         Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<ContingencyContext> contingencyContexts = ContingencyContext.getContingencyContexts(network, contingencies, allSwitchesToOpen);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, allSwitchesToOpen);
         LOGGER.info("Contingencies contexts calculated from contingencies in {} ms", System.currentTimeMillis() - start);
 
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network,
@@ -167,7 +167,7 @@ class OpenSecurityAnalysisGraphTest {
         start = System.currentTimeMillis();
         List<List<LfContingency>> listLfContingencies = new ArrayList<>();
         for (LfNetwork lfNetwork : lfNetworks) {
-            listLfContingencies.add(securityAnalysis.createContingencies(contingencyContexts, lfNetwork));
+            listLfContingencies.add(securityAnalysis.createContingencies(propagatedContingencies, lfNetwork));
         }
         LOGGER.info("LoadFlow contingencies calculated from contingency contexts in {} ms", System.currentTimeMillis() - start);
 

@@ -13,7 +13,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
-import com.powsybl.openloadflow.util.ContingencyContext;
+import com.powsybl.openloadflow.util.PropagatedContingency;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,10 +57,10 @@ class LfContingencyTest extends AbstractConverterTest {
 
         String branchId = "LINE_S3S4";
         Contingency contingency = new Contingency(branchId, new BranchContingency(branchId));
-        List<ContingencyContext> contingencyContexts =
-            ContingencyContext.getContingencyContexts(network, Collections.singletonList(contingency), new HashSet<>());
+        List<PropagatedContingency> propagatedContingencies =
+            PropagatedContingency.create(network, Collections.singletonList(contingency), new HashSet<>());
 
-        List<LfContingency> lfContingencies = sa.createContingencies(contingencyContexts, lfNetworks.get(0));
+        List<LfContingency> lfContingencies = sa.createContingencies(propagatedContingencies, lfNetworks.get(0));
         assertEquals(1, lfContingencies.size());
 
         Path file = fileSystem.getPath("/work/lfc.json");

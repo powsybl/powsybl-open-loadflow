@@ -15,7 +15,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.util.ContingencyContext;
+import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.*;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.apache.commons.lang3.tuple.Pair;
@@ -89,7 +89,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             List<SensitivityFactor> factors = sensitivityFactorsProvider.getFactors(network);
             List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
 
-            List<ContingencyContext> contingencyContexts = ContingencyContext.getContingencyContexts(network, contingencies, new HashSet<>());
+            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, new HashSet<>());
 
             LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
             OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
@@ -99,7 +99,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
             Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> sensitivityValues;
             if (lfParameters.isDc()) {
-                sensitivityValues = dcSensitivityAnalysis.analyse(network, factors, contingencyContexts, lfParameters, lfParametersExt);
+                sensitivityValues = dcSensitivityAnalysis.analyse(network, factors, propagatedContingencies, lfParameters, lfParametersExt);
             } else {
                 sensitivityValues = acSensitivityAnalysis.analyse(network, factors, lfParameters, lfParametersExt);
             }

@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2021, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package com.powsybl.openloadflow.util;
 
 import com.powsybl.contingency.Contingency;
@@ -13,7 +19,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class ContingencyContext {
+/**
+ * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Gaël Macherel <gael.macherel@artelys.com>
+ */
+public class PropagatedContingency {
 
     final Contingency contingency;
 
@@ -27,22 +37,22 @@ public class ContingencyContext {
         return branchIdsToOpen;
     }
 
-    public ContingencyContext(Contingency contingency) {
+    public PropagatedContingency(Contingency contingency) {
         this.contingency = contingency;
     }
 
-    public static List<ContingencyContext> getContingencyContexts(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen) {
-        List<ContingencyContext> contingencyContexts = new ArrayList<>();
+    public static List<PropagatedContingency> create(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen) {
+        List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (Contingency contingency : contingencies) {
-            ContingencyContext contingencyContext = new ContingencyContext(contingency);
-            contingencyContexts.add(contingencyContext);
+            PropagatedContingency propagatedContingency = new PropagatedContingency(contingency);
+            propagatedContingencies.add(propagatedContingency);
 
             Set<Switch> switchesToOpen = new HashSet<>();
             Set<Terminal> terminalsToDisconnect =  new HashSet<>();
             for (ContingencyElement element : contingency.getElements()) {
                 switch (element.getType()) {
                     case BRANCH:
-                        contingencyContext.getBranchIdsToOpen().add(element.getId());
+                        propagatedContingency.getBranchIdsToOpen().add(element.getId());
                         break;
                     default:
                         //TODO: support all kinds of contingencies
@@ -53,17 +63,17 @@ public class ContingencyContext {
             }
 
             for (Switch sw : switchesToOpen) {
-                contingencyContext.getBranchIdsToOpen().add(sw.getId());
+                propagatedContingency.getBranchIdsToOpen().add(sw.getId());
                 allSwitchesToOpen.add(sw);
             }
 
             for (Terminal terminal : terminalsToDisconnect) {
                 if (terminal.getConnectable() instanceof Branch) {
-                    contingencyContext.getBranchIdsToOpen().add(terminal.getConnectable().getId());
+                    propagatedContingency.getBranchIdsToOpen().add(terminal.getConnectable().getId());
                 }
             }
 
         }
-        return contingencyContexts;
+        return propagatedContingencies;
     }
 }
