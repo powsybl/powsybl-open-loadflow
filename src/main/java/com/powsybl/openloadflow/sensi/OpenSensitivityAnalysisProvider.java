@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.sensi;
 
 import com.google.auto.service.AutoService;
 import com.powsybl.computation.ComputationManager;
-import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -80,14 +79,22 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     @Override
     public CompletableFuture<SensitivityAnalysisResult> run(Network network, String workingStateId,
                                                             SensitivityFactorsProvider sensitivityFactorsProvider,
-                                                            ContingenciesProvider contingenciesProvider,
+                                                            List<Contingency> contingencies,
                                                             SensitivityAnalysisParameters sensitivityAnalysisParameters,
                                                             ComputationManager computationManager) {
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
-            List<SensitivityFactor> factors = sensitivityFactorsProvider.getFactors(network);
-            List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
+            List<SensitivityFactor> factors = sensitivityFactorsProvider.getCommonFactors(network);
+            // FIXME factors specifics to a contingency are ignored
+            if (!sensitivityFactorsProvider.getAdditionalFactors(network).isEmpty()) {
+                throw new UnsupportedOperationException("Factors specific to base case not yet supported");
+            }
+            for (Contingency contingency : contingencies) {
+                if (!sensitivityFactorsProvider.getAdditionalFactors(network, contingency.getId()).isEmpty()) {
+                    throw new UnsupportedOperationException("Factors specific to one contingency not yet supported");
+                }
+            }
 
             List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, new HashSet<>());
 
