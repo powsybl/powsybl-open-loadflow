@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.CurrentLimits;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.SortedSet;
@@ -48,9 +47,9 @@ public interface LfBranch {
 
     double getPermanentLimit2();
 
-    SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits1();
+    SortedSet<AbstractLfBranch.LfTemporaryLimit> getTemporaryLimits1();
 
-    SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits2();
+    SortedSet<AbstractLfBranch.LfTemporaryLimit> getTemporaryLimits2();
 
     boolean hasPhaseControlCapability();
 

@@ -23,10 +23,30 @@ import java.util.TreeSet;
  */
 public abstract class AbstractLfBranch implements LfBranch {
 
+    public static class LfTemporaryLimit {
+
+        private final int acceptableDuration;
+        private final double value;
+
+        public LfTemporaryLimit(int acceptableDuration, double value) {
+            this.acceptableDuration = acceptableDuration;
+            this.value = value;
+        }
+
+        public int getAcceptableDuration() {
+            return acceptableDuration;
+        }
+
+        public double getValue() {
+            return value;
+        }
+
+    }
+
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBranch.class);
 
-    private static final Comparator<CurrentLimits.TemporaryLimit> TEMPORARY_LIMITS_COMPARATOR =
-        Comparator.comparingDouble(CurrentLimits.TemporaryLimit::getValue).reversed();
+    private static final Comparator<LfTemporaryLimit> TEMPORARY_LIMITS_COMPARATOR =
+        Comparator.comparingDouble(LfTemporaryLimit::getValue).reversed();
 
     private int num = -1;
 
@@ -46,12 +66,15 @@ public abstract class AbstractLfBranch implements LfBranch {
         this.piModel = Objects.requireNonNull(piModel);
     }
 
-    protected static SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits(CurrentLimits currentLimits) {
-        TreeSet<CurrentLimits.TemporaryLimit> sortedLimits = new TreeSet<>(TEMPORARY_LIMITS_COMPARATOR);
+    protected static SortedSet<LfTemporaryLimit> createSortedTemporaryLimitsSet(CurrentLimits currentLimits, LfBus bus) {
+        SortedSet<LfTemporaryLimit> temporaryLimits = new TreeSet<>(TEMPORARY_LIMITS_COMPARATOR);
         if (currentLimits != null) {
-            sortedLimits.addAll(currentLimits.getTemporaryLimits());
+            for (CurrentLimits.TemporaryLimit temporaryLimit : currentLimits.getTemporaryLimits()) {
+                double valuePerUnit = temporaryLimit.getValue() != Double.MAX_VALUE ? temporaryLimit.getValue() * bus.getNominalV() / PerUnit.SB : Double.MAX_VALUE;
+                temporaryLimits.add(new LfTemporaryLimit(temporaryLimit.getAcceptableDuration(), valuePerUnit));
+            }
         }
-        return sortedLimits;
+        return temporaryLimits;
     }
 
     @Override

@@ -208,12 +208,12 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                     Integer.MAX_VALUE, branch.getPermanentLimit1() * scale1, (float) 1., branch.getI1() * scale1, Branch.Side.ONE));
             }
             // temporary limit violation detection
-            branch.getSortedTemporaryLimits1().stream()
-                    .filter(temporaryLimit1 -> branch.getI1() * scale1 > temporaryLimit1.getValue())
+            branch.getTemporaryLimits1().stream()
+                    .filter(temporaryLimit1 -> branch.getI1() > temporaryLimit1.getValue())
                     .findFirst().ifPresent(
                         temporaryLimit1 -> violations.add(
                             new LimitViolation(branch.getId(), LimitViolationType.CURRENT, temporaryLimit1.toString(),
-                                temporaryLimit1.getAcceptableDuration(), temporaryLimit1.getValue(), (float) 1., branch.getI1() * scale1, Branch.Side.ONE)));
+                                temporaryLimit1.getAcceptableDuration(), temporaryLimit1.getValue() * scale1, (float) 1., branch.getI1() * scale1, Branch.Side.ONE)));
         }
         if (branch.getBus2() != null) {
             double scale2 = PerUnit.SB / branch.getBus2().getNominalV();
@@ -223,12 +223,12 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                     Integer.MAX_VALUE, branch.getPermanentLimit2() * scale2, (float) 1., branch.getI2() * scale2, Branch.Side.TWO));
             }
             // temporary limit violation detection
-            branch.getSortedTemporaryLimits2().stream()
-                    .filter(temporaryLimit2 -> branch.getI2() * scale2 > temporaryLimit2.getValue())
+            branch.getTemporaryLimits2().stream()
+                    .filter(temporaryLimit2 -> branch.getI2() > temporaryLimit2.getValue())
                     .findFirst().ifPresent(
                         temporaryLimit2 -> violations.add(
                             new LimitViolation(branch.getId(), LimitViolationType.CURRENT, temporaryLimit2.toString(),
-                                temporaryLimit2.getAcceptableDuration(), temporaryLimit2.getValue(), (float) 1., branch.getI2() * scale2, Branch.Side.TWO)));
+                                temporaryLimit2.getAcceptableDuration(), temporaryLimit2.getValue() * scale2, (float) 1., branch.getI2() * scale2, Branch.Side.TWO)));
         }
     }
 

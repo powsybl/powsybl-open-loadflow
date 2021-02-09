@@ -69,10 +69,9 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
     }
 
     private double getTemporaryLimitValueFromAcceptableDuration(LfBranch branch, int acceptableDuration, Branch.Side side) {
-        double scale = (side == Branch.Side.ONE ? branch.getBus1().getNominalV() : branch.getBus2().getNominalV()) / PerUnit.SB;
-        return (side == Branch.Side.ONE ? branch.getSortedTemporaryLimits1() : branch.getSortedTemporaryLimits2()).stream()
+        return (side == Branch.Side.ONE ? branch.getTemporaryLimits1() : branch.getTemporaryLimits2()).stream()
             .filter(l -> l.getAcceptableDuration() == acceptableDuration)
-            .map(l -> l.getValue() != Double.MAX_VALUE ? l.getValue() * scale : Double.MAX_VALUE)
+            .map(AbstractLfBranch.LfTemporaryLimit::getValue)
             .findFirst().orElse(Double.NaN);
     }
 
@@ -92,7 +91,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(Double.isNaN(branch.getPermanentLimit2()));
         assertEquals(120, getTemporaryLimitValueFromAcceptableDuration(branch, 1200, Branch.Side.ONE), DELTA_CURRENT);
         assertEquals(140, getTemporaryLimitValueFromAcceptableDuration(branch, 600, Branch.Side.ONE), DELTA_CURRENT);
-        assertTrue(branch.getSortedTemporaryLimits2().isEmpty());
+        assertTrue(branch.getTemporaryLimits2().isEmpty());
     }
 
     @Test
@@ -109,8 +108,8 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(Double.isNaN(branch1.getI2()));
         assertTrue(Double.isNaN(branch1.getPermanentLimit1()));
         assertTrue(Double.isNaN(branch1.getPermanentLimit2()));
-        assertTrue(branch1.getSortedTemporaryLimits1().isEmpty());
-        assertTrue(branch1.getSortedTemporaryLimits2().isEmpty());
+        assertTrue(branch1.getTemporaryLimits1().isEmpty());
+        assertTrue(branch1.getTemporaryLimits2().isEmpty());
     }
 
     @Test

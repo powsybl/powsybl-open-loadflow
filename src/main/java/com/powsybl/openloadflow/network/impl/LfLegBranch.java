@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.iidm.network.CurrentLimits;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
@@ -193,12 +192,12 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
-    public SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits1() {
-        return getSortedTemporaryLimits(leg.getCurrentLimits());
+    public SortedSet<LfTemporaryLimit> getTemporaryLimits1() {
+        return createSortedTemporaryLimitsSet(leg.getCurrentLimits(), getBus1());
     }
 
     @Override
-    public SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits2() {
+    public SortedSet<LfTemporaryLimit> getTemporaryLimits2() {
         return Collections.emptySortedSet();
     }
 

@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.CurrentLimits;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.openloadflow.network.AbstractLfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -90,12 +89,12 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits1() {
+    public SortedSet<LfTemporaryLimit> getTemporaryLimits1() {
         return Collections.emptySortedSet();
     }
 
     @Override
-    public SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits2() {
+    public SortedSet<LfTemporaryLimit> getTemporaryLimits2() {
         return Collections.emptySortedSet();
     }
 

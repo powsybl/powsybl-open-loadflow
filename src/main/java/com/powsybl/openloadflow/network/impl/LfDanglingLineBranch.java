@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.CurrentLimits;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -111,12 +110,12 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
-    public SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits1() {
-        return getSortedTemporaryLimits(danglingLine.getCurrentLimits());
+    public SortedSet<LfTemporaryLimit> getTemporaryLimits1() {
+        return createSortedTemporaryLimitsSet(danglingLine.getCurrentLimits(), getBus1());
     }
 
     @Override
-    public SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits2() {
+    public SortedSet<LfTemporaryLimit> getTemporaryLimits2() {
         return Collections.emptySortedSet();
     }
 

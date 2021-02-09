@@ -11,7 +11,10 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.SortedSet;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -204,13 +207,13 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits1() {
-        return getSortedTemporaryLimits(branch.getCurrentLimits1());
+    public SortedSet<LfTemporaryLimit> getTemporaryLimits1() {
+        return createSortedTemporaryLimitsSet(branch.getCurrentLimits1(), getBus1());
     }
 
     @Override
-    public SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits2() {
-        return getSortedTemporaryLimits(branch.getCurrentLimits2());
+    public SortedSet<LfTemporaryLimit> getTemporaryLimits2() {
+        return createSortedTemporaryLimitsSet(branch.getCurrentLimits2(), getBus2());
     }
 
     @Override
