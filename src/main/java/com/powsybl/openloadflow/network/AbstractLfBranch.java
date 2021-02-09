@@ -6,13 +6,17 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.CurrentLimits;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.openloadflow.network.impl.Transformers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Comparator;
 import java.util.Objects;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -20,6 +24,9 @@ import java.util.Objects;
 public abstract class AbstractLfBranch implements LfBranch {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBranch.class);
+
+    private static final Comparator<CurrentLimits.TemporaryLimit> TEMPORARY_LIMITS_COMPARATOR =
+        Comparator.comparingDouble(CurrentLimits.TemporaryLimit::getValue).reversed();
 
     private int num = -1;
 
@@ -37,6 +44,14 @@ public abstract class AbstractLfBranch implements LfBranch {
         this.bus1 = bus1;
         this.bus2 = bus2;
         this.piModel = Objects.requireNonNull(piModel);
+    }
+
+    protected static SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits(CurrentLimits currentLimits) {
+        TreeSet<CurrentLimits.TemporaryLimit> sortedLimits = new TreeSet<>(TEMPORARY_LIMITS_COMPARATOR);
+        if (currentLimits != null) {
+            sortedLimits.addAll(currentLimits.getTemporaryLimits());
+        }
+        return sortedLimits;
     }
 
     @Override

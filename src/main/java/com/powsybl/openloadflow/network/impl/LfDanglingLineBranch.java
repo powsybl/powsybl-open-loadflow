@@ -12,9 +12,8 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
+import java.util.SortedSet;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -112,20 +111,13 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
-    public Map<Integer, Double> getTemporaryLimits1() {
-        Map<Integer, Double> map = new HashMap<>();
-        if (danglingLine.getCurrentLimits() != null) {
-            for (CurrentLimits.TemporaryLimit temporaryLimit : danglingLine.getCurrentLimits().getTemporaryLimits()) {
-                map.put(temporaryLimit.getAcceptableDuration(),
-                        temporaryLimit.getValue() != Double.NaN ? temporaryLimit.getValue() * getBus1().getNominalV() / PerUnit.SB : Double.NaN);
-            }
-        }
-        return map;
+    public SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits1() {
+        return getSortedTemporaryLimits(danglingLine.getCurrentLimits());
     }
 
     @Override
-    public Map<Integer, Double> getTemporaryLimits2() {
-        return Collections.emptyMap();
+    public SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits2() {
+        return Collections.emptySortedSet();
     }
 
     @Override

@@ -205,30 +205,30 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             // permanent limit detection
             if (branch.getI1() > branch.getPermanentLimit1()) {
                 violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, "permanent",
-                        2147483647, branch.getPermanentLimit1() * scale1, (float) 1., branch.getI1() * scale1, Branch.Side.ONE));
+                    Integer.MAX_VALUE, branch.getPermanentLimit1() * scale1, (float) 1., branch.getI1() * scale1, Branch.Side.ONE));
             }
             // temporary limit violation detection
-            branch.getTemporaryLimits1().entrySet()
-                    .stream()
-                    .sorted(Map.Entry.<Integer, Double>comparingByValue().reversed())
-                    .filter(temporaryLimit1 -> branch.getI1() > temporaryLimit1.getValue())
-                    .findFirst().ifPresent(temporaryLimit1 -> violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, temporaryLimit1.getKey().toString(),
-                    temporaryLimit1.getKey(), temporaryLimit1.getValue() * scale1, (float) 1., branch.getI1() * scale1, Branch.Side.ONE)));
+            branch.getSortedTemporaryLimits1().stream()
+                    .filter(temporaryLimit1 -> branch.getI1() * scale1 > temporaryLimit1.getValue())
+                    .findFirst().ifPresent(
+                        temporaryLimit1 -> violations.add(
+                            new LimitViolation(branch.getId(), LimitViolationType.CURRENT, temporaryLimit1.toString(),
+                                temporaryLimit1.getAcceptableDuration(), temporaryLimit1.getValue(), (float) 1., branch.getI1() * scale1, Branch.Side.ONE)));
         }
         if (branch.getBus2() != null) {
             double scale2 = PerUnit.SB / branch.getBus2().getNominalV();
             // permanent limit detection
             if (branch.getI2() > branch.getPermanentLimit2()) {
                 violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, "permanent",
-                        2147483647, branch.getPermanentLimit2() * scale2, (float) 1., branch.getI2() * scale2, Branch.Side.TWO));
+                    Integer.MAX_VALUE, branch.getPermanentLimit2() * scale2, (float) 1., branch.getI2() * scale2, Branch.Side.TWO));
             }
             // temporary limit violation detection
-            branch.getTemporaryLimits2().entrySet()
-                    .stream()
-                    .sorted(Map.Entry.<Integer, Double>comparingByValue().reversed())
-                    .filter(temporaryLimit2 -> branch.getI2() > temporaryLimit2.getValue())
-                    .findFirst().ifPresent(temporaryLimit2 -> violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, temporaryLimit2.getKey().toString(),
-                    temporaryLimit2.getKey(), temporaryLimit2.getValue() * scale2, (float) 1., branch.getI2() * scale2, Branch.Side.TWO)));
+            branch.getSortedTemporaryLimits2().stream()
+                    .filter(temporaryLimit2 -> branch.getI2() * scale2 > temporaryLimit2.getValue())
+                    .findFirst().ifPresent(
+                        temporaryLimit2 -> violations.add(
+                            new LimitViolation(branch.getId(), LimitViolationType.CURRENT, temporaryLimit2.toString(),
+                                temporaryLimit2.getAcceptableDuration(), temporaryLimit2.getValue(), (float) 1., branch.getI2() * scale2, Branch.Side.TWO)));
         }
     }
 

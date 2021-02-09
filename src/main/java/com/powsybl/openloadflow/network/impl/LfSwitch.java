@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.iidm.network.CurrentLimits;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.openloadflow.network.AbstractLfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -13,8 +14,8 @@ import com.powsybl.openloadflow.network.SimplePiModel;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.Objects;
+import java.util.SortedSet;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -89,13 +90,13 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public Map<Integer, Double> getTemporaryLimits1() {
-        return Collections.emptyMap();
+    public SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits1() {
+        return Collections.emptySortedSet();
     }
 
     @Override
-    public Map<Integer, Double> getTemporaryLimits2() {
-        return Collections.emptyMap();
+    public SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits2() {
+        return Collections.emptySortedSet();
     }
 
     @Override

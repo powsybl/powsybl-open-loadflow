@@ -6,9 +6,10 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.CurrentLimits;
 import com.powsybl.openloadflow.util.Evaluable;
 
-import java.util.Map;
+import java.util.SortedSet;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -47,9 +48,9 @@ public interface LfBranch {
 
     double getPermanentLimit2();
 
-    Map<Integer, Double> getTemporaryLimits1();
+    SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits1();
 
-    Map<Integer, Double> getTemporaryLimits2();
+    SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits2();
 
     boolean hasPhaseControlCapability();
 

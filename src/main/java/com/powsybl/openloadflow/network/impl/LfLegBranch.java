@@ -193,20 +193,13 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
-    public Map<Integer, Double> getTemporaryLimits1() {
-        Map<Integer, Double> map = new HashMap<>();
-        if (leg.getCurrentLimits() != null) {
-            for (CurrentLimits.TemporaryLimit temporaryLimit : leg.getCurrentLimits().getTemporaryLimits()) {
-                map.put(temporaryLimit.getAcceptableDuration(),
-                        temporaryLimit.getValue() != Double.NaN ? temporaryLimit.getValue() * getBus1().getNominalV() / PerUnit.SB : Double.NaN);
-            }
-        }
-        return map;
+    public SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits1() {
+        return getSortedTemporaryLimits(leg.getCurrentLimits());
     }
 
     @Override
-    public Map<Integer, Double> getTemporaryLimits2() {
-        return Collections.emptyMap();
+    public SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits2() {
+        return Collections.emptySortedSet();
     }
 
     @Override

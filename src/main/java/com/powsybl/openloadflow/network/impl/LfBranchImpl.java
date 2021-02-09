@@ -204,27 +204,13 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public Map<Integer, Double> getTemporaryLimits1() {
-        Map<Integer, Double> map = new HashMap<>();
-        if (branch.getCurrentLimits1() != null) {
-            for (CurrentLimits.TemporaryLimit temporaryLimit : branch.getCurrentLimits1().getTemporaryLimits()) {
-                map.put(temporaryLimit.getAcceptableDuration(),
-                        temporaryLimit.getValue() != Double.MAX_VALUE ? temporaryLimit.getValue() * getBus1().getNominalV() / PerUnit.SB : Double.MAX_VALUE);
-            }
-        }
-        return map;
+    public SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits1() {
+        return getSortedTemporaryLimits(branch.getCurrentLimits1());
     }
 
     @Override
-    public Map<Integer, Double> getTemporaryLimits2() {
-        Map<Integer, Double> map = new HashMap<>();
-        if (branch.getCurrentLimits2() != null) {
-            for (CurrentLimits.TemporaryLimit temporaryLimit : branch.getCurrentLimits2().getTemporaryLimits()) {
-                map.put(temporaryLimit.getAcceptableDuration(),
-                        temporaryLimit.getValue() != Double.MAX_VALUE ? temporaryLimit.getValue() * getBus2().getNominalV() / PerUnit.SB : Double.MAX_VALUE);
-            }
-        }
-        return map;
+    public SortedSet<CurrentLimits.TemporaryLimit> getSortedTemporaryLimits2() {
+        return getSortedTemporaryLimits(branch.getCurrentLimits2());
     }
 
     @Override
