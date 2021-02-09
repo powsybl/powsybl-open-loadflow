@@ -4,13 +4,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.sa;
+package com.powsybl.openloadflow.util;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.tasks.AbstractTrippingTask;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FictitiousSwitchFactory;
+import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -27,7 +28,7 @@ class BranchTrippingTest {
 
     @Test
     void testLineTripping() {
-        Network network = OpenSecurityAnalysisTest.createNetwork();
+        Network network = NodeBreakerNetworkFactory.create();
 
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
@@ -44,7 +45,7 @@ class BranchTrippingTest {
 
     @Test
     void testUnknownLineTripping() {
-        Network network = OpenSecurityAnalysisTest.createNetwork();
+        Network network = NodeBreakerNetworkFactory.create();
         AbstractTrippingTask trippingTaskUnknownBranch = new BranchTripping("L9");
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
@@ -55,7 +56,7 @@ class BranchTrippingTest {
 
     @Test
     void testUnconnectedVoltageLevel() {
-        Network network = OpenSecurityAnalysisTest.createNetwork();
+        Network network = NodeBreakerNetworkFactory.create();
         AbstractTrippingTask trippingTaskUnconnectedVl = new BranchTripping("L1", "VL3");
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
@@ -66,7 +67,7 @@ class BranchTrippingTest {
 
     @Test
     void testVoltageLevelFilter() {
-        Network network = OpenSecurityAnalysisTest.createNetwork();
+        Network network = NodeBreakerNetworkFactory.create();
 
         AbstractTrippingTask trippingTaskVl1 = new BranchTripping("L1", "VL1");
         Set<Switch> switchesToOpen = new HashSet<>();
