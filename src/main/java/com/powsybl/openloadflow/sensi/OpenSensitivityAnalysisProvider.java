@@ -86,7 +86,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             network.getVariantManager().setWorkingVariant(workingStateId);
 
             List<SensitivityFactor> factors = sensitivityFactorsProvider.getCommonFactors(network);
-            // FIXME factors specifics are ignored
+            // FIXME additional factors are not yet supported
             if (!sensitivityFactorsProvider.getAdditionalFactors(network).isEmpty()) {
                 throw new UnsupportedOperationException("Factors specific to base case not yet supported");
             }
