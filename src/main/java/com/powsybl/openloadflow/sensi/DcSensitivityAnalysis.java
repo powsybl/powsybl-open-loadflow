@@ -636,10 +636,20 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 if (!contingencyElement.getType().equals(ContingencyElementType.BRANCH)) {
                     throw new UnsupportedOperationException("Only contingencies on a branch are yet supported");
                 }
-                LfBranch lfBranch = lfNetwork.getBranchById(contingencyElement.getId());
+            }
+            Set<String> branchesToRemove = new HashSet<>(); // contains the branches that are connected only on one side
+            for (String branchId : contingency.getBranchIdsToOpen()) {
+                LfBranch lfBranch = lfNetwork.getBranchById(branchId);
                 if (lfBranch == null) {
-                    throw new PowsyblException("The contingency on the branch " + contingencyElement.getId() + " not found in the network");
+                    throw new PowsyblException("The contingency on the branch " + branchId + " not found in the network");
                 }
+                if (lfBranch.getBus2() == null || lfBranch.getBus1() == null) {
+                    branchesToRemove.add(branchId);
+                }
+            }
+            contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
+            if (contingency.getBranchIdsToOpen().isEmpty()) {
+                LOGGER.info("Contingency " + contingency.getContingency().getId() + " has no impact.");
             }
         }
     }
@@ -906,6 +916,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             contingencies.stream()
                              .flatMap(contingency -> contingency.getBranchIdsToOpen().stream())
                              .map(branch -> new ComputedContingencyElement(new BranchContingency(branch), lfNetwork, equationSystem))
+                             .filter(element -> element.getLfBranchEquation() != null)
                              .collect(Collectors.toMap(
                                  computedContingencyElement -> computedContingencyElement.getElement().getId(),
                                  computedContingencyElement -> computedContingencyElement,
