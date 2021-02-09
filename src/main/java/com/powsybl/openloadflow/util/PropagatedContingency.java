@@ -12,7 +12,6 @@ import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.Terminal;
-import com.powsybl.openloadflow.sa.BranchTripping;
 
 import java.util.ArrayList;
 import java.util.HashSet;
