@@ -68,11 +68,18 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
     }
 
     public static void updateControlledBus(LfBus controlledBus, EquationSystem equationSystem, VariableSet variableSet) {
+        List<LfBus> controllerBuses = new ArrayList<>(controlledBus.getControllerBuses());
+        // if controlled bus also control voltage locally, we add it the the controller list to create reactive power
+        // distribution equation for the controlled bus too
+        if (controlledBus.hasVoltageControl()) {
+            controllerBuses.add(controlledBus);
+        }
+
         // clean reactive power distribution equations
-        controlledBus.getControllerBuses().forEach(b -> equationSystem.removeEquation(b.getNum(), EquationType.ZERO_Q));
+        controllerBuses.forEach(b -> equationSystem.removeEquation(b.getNum(), EquationType.ZERO_Q));
 
         // controlled bus has a voltage equation only if one of the controller bus has voltage control on
-        List<LfBus> controllerBusesWithVoltageControlOn = controlledBus.getControllerBuses().stream()
+        List<LfBus> controllerBusesWithVoltageControlOn = controllerBuses.stream()
                 .filter(LfBus::hasVoltageControl)
                 .collect(Collectors.toList());
         equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
@@ -132,11 +139,17 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
                 if (LOGGER.isTraceEnabled()) {
                     if (pvToPqBus.limitDirection == ReactiveLimitDirection.MAX) {
-                        LOGGER.trace("Switch bus '{}' PV -> PQ, q={} > maxQ={}", pvToPqBus.bus.getId(), pvToPqBus.q * PerUnit.SB,
+                        LOGGER.trace("Switch bus '{}' PV -> PQ, q={} > maxQ={}", pvToPqBus.bus.getNum(), pvToPqBus.q * PerUnit.SB,
                                 pvToPqBus.qLimit * PerUnit.SB);
+                        if (pvToPqBus.bus.getControlledBus().isPresent()) {
+                            System.out.println("Controlled bus: " + pvToPqBus.bus.getControlledBus().get().getNum());
+                        }
                     } else {
-                        LOGGER.trace("Switch bus '{}' PV -> PQ, q={} < minQ={}", pvToPqBus.bus.getId(), pvToPqBus.q * PerUnit.SB,
+                        LOGGER.trace("Switch bus '{}' PV -> PQ, q={} < minQ={}", pvToPqBus.bus.getNum(), pvToPqBus.q * PerUnit.SB,
                                 pvToPqBus.qLimit * PerUnit.SB);
+                        if (pvToPqBus.bus.getControlledBus().isPresent()) {
+                            System.out.println("Controlled bus: " + pvToPqBus.bus.getControlledBus().get().getNum());
+                        }
                     }
                 }
             }
