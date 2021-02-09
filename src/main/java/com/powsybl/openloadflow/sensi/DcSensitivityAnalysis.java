@@ -636,15 +636,21 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 if (!contingencyElement.getType().equals(ContingencyElementType.BRANCH)) {
                     throw new UnsupportedOperationException("Only contingencies on a branch are yet supported");
                 }
+                LfBranch lfBranch = lfNetwork.getBranchById(contingencyElement.getId());
+                if (lfBranch == null) {
+                    throw new PowsyblException("The contingency on the branch " + contingencyElement.getId() + " not found in the network");
+                }
+
             }
-            Set<String> branchesToRemove = new HashSet<>(); // contains the branches that are connected only on one side
+            Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
             for (String branchId : contingency.getBranchIdsToOpen()) {
                 LfBranch lfBranch = lfNetwork.getBranchById(branchId);
                 if (lfBranch == null) {
-                    throw new PowsyblException("The contingency on the branch " + branchId + " not found in the network");
+                    branchesToRemove.add(branchId); // this is certainly a switch
+                    continue;
                 }
                 if (lfBranch.getBus2() == null || lfBranch.getBus1() == null) {
-                    branchesToRemove.add(branchId);
+                    branchesToRemove.add(branchId); // contains the branches that are connected only on one side
                 }
             }
             contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
