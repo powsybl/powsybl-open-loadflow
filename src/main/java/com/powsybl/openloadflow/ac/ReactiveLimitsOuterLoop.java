@@ -139,17 +139,11 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
                 if (LOGGER.isTraceEnabled()) {
                     if (pvToPqBus.limitDirection == ReactiveLimitDirection.MAX) {
-                        LOGGER.trace("Switch bus '{}' PV -> PQ, q={} > maxQ={}", pvToPqBus.bus.getNum(), pvToPqBus.q * PerUnit.SB,
+                        LOGGER.trace("Switch bus '{}' PV -> PQ, q={} > maxQ={}", pvToPqBus.bus.getId(), pvToPqBus.q * PerUnit.SB,
                                 pvToPqBus.qLimit * PerUnit.SB);
-                        if (pvToPqBus.bus.getControlledBus().isPresent()) {
-                            System.out.println("Controlled bus: " + pvToPqBus.bus.getControlledBus().get().getNum());
-                        }
                     } else {
-                        LOGGER.trace("Switch bus '{}' PV -> PQ, q={} < minQ={}", pvToPqBus.bus.getNum(), pvToPqBus.q * PerUnit.SB,
+                        LOGGER.trace("Switch bus '{}' PV -> PQ, q={} < minQ={}", pvToPqBus.bus.getId(), pvToPqBus.q * PerUnit.SB,
                                 pvToPqBus.qLimit * PerUnit.SB);
-                        if (pvToPqBus.bus.getControlledBus().isPresent()) {
-                            System.out.println("Controlled bus: " + pvToPqBus.bus.getControlledBus().get().getNum());
-                        }
                     }
                 }
             }
