@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.BusVoltageEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -121,7 +122,7 @@ class EquationSystemTest {
     @Test
     void writeDcSystemTest() throws IOException {
         LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector()).get(0);
-        EquationSystem equationSystem = DcEquationSystem.create(network);
+        EquationSystem equationSystem = DcEquationSystem.create(network, new DcEquationSystemCreationParameters(true, false, false, true));
         try (StringWriter writer = new StringWriter()) {
             equationSystem.write(writer);
             writer.flush();

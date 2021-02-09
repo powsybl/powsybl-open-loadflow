@@ -49,7 +49,11 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected int positiveLoadCount = 0;
 
+    protected double initialLoadTargetQ = 0;
+
     protected double loadTargetQ = 0;
+
+    protected double fixedLoadTargetQ = 0;
 
     protected double generationTargetQ = 0;
 
@@ -66,6 +70,10 @@ public abstract class AbstractLfBus implements LfBus {
     protected final List<LfBranch> branches = new ArrayList<>();
 
     private VoltageControl voltageControl;
+
+    protected DiscreteVoltageControl discreteVoltageControl;
+
+    protected boolean disabled = false;
 
     protected AbstractLfBus(double v, double angle) {
         this.v = v;
@@ -148,12 +156,14 @@ public abstract class AbstractLfBus implements LfBus {
     void addLoad(Load load) {
         loads.add(load);
         initialLoadTargetP += load.getP0();
+        initialLoadTargetQ += load.getQ0();
         loadTargetP += load.getP0();
+        loadTargetQ += load.getQ0();
         LoadDetail loadDetail = load.getExtension(LoadDetail.class);
         if (loadDetail != null) {
             fixedLoadTargetP = loadDetail.getFixedActivePower();
+            fixedLoadTargetQ = loadDetail.getFixedReactivePower();
         }
-        loadTargetQ += load.getQ0();
         if (load.getP0() >= 0) {
             positiveLoadCount++;
         }
@@ -162,6 +172,7 @@ public abstract class AbstractLfBus implements LfBus {
     void addBattery(Battery battery) {
         batteries.add(battery);
         initialLoadTargetP += battery.getP0();
+        initialLoadTargetQ += battery.getQ0();
         loadTargetP += battery.getP0();
         loadTargetQ += battery.getQ0();
     }
@@ -184,6 +195,7 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected void add(LfGenerator generator, LfNetworkLoadingReport report) {
         generators.add(generator);
+        generator.setBus(this);
         double maxRangeQ = generator.getMaxRangeQ();
         boolean discardGenerator = false;
         if (generator.hasVoltageControl() && maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
@@ -208,13 +220,13 @@ public abstract class AbstractLfBus implements LfBus {
         }
     }
 
-    void addGenerator(Generator generator, LfNetworkLoadingReport report) {
-        add(LfGeneratorImpl.create(generator, report), report);
+    void addGenerator(Generator generator, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
+        add(LfGeneratorImpl.create(generator, report, plausibleActivePowerLimit), report);
     }
 
     void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, LfNetworkLoadingReport report) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
-            add(LfStaticVarCompensatorImpl.create(staticVarCompensator), report);
+            add(LfStaticVarCompensatorImpl.create(staticVarCompensator, this), report);
         }
     }
 
@@ -264,6 +276,16 @@ public abstract class AbstractLfBus implements LfBus {
     @Override
     public double getLoadTargetQ() {
         return loadTargetQ / PerUnit.SB;
+    }
+
+    @Override
+    public void setLoadTargetQ(double loadTargetQ) {
+        this.loadTargetQ = loadTargetQ * PerUnit.SB;
+    }
+
+    @Override
+    public double getFixedLoadTargetQ() {
+        return fixedLoadTargetQ / PerUnit.SB;
     }
 
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
@@ -379,11 +401,12 @@ public abstract class AbstractLfBus implements LfBus {
         updateGeneratorsState(voltageControlEnabled ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
 
         // update load power
-        double factor = initialLoadTargetP != 0 ? loadTargetP / initialLoadTargetP : 1;
+        double factorP = initialLoadTargetP != 0 ? loadTargetP / initialLoadTargetP : 1;
+        double factorQ = initialLoadTargetQ != 0 ? loadTargetQ / initialLoadTargetQ : 1;
         for (Load load : loads) {
             load.getTerminal()
-                    .setP(load.getP0() >= 0 ? factor * load.getP0() : load.getP0())
-                    .setQ(load.getQ0());
+                    .setP(load.getP0() >= 0 ? factorP * load.getP0() : load.getP0())
+                    .setQ(load.getQ0() >= 0 ? factorQ * load.getQ0() : load.getQ0());
         }
 
         // update battery power (which are not part of slack distribution)
@@ -406,4 +429,28 @@ public abstract class AbstractLfBus implements LfBus {
         }
     }
 
+    @Override
+    public DiscreteVoltageControl getDiscreteVoltageControl() {
+        return discreteVoltageControl;
+    }
+
+    @Override
+    public boolean isDiscreteVoltageControlled() {
+        return discreteVoltageControl != null && discreteVoltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE;
+    }
+
+    @Override
+    public void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl) {
+        this.discreteVoltageControl = discreteVoltageControl;
+    }
+
+    @Override
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    @Override
+    public void setDisabled(boolean disabled) {
+        this.disabled = disabled;
+    }
 }

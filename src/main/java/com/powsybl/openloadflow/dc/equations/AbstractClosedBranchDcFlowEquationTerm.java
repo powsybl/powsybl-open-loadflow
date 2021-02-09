@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.dc.equations;
 
 import com.google.common.collect.ImmutableList;
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -28,13 +29,14 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
 
     protected final Variable ph2Var;
 
+    protected Variable a1Var;
+
     protected final List<Variable> variables;
 
     protected final double power;
 
-    protected final double a1;
-
-    protected AbstractClosedBranchDcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet) {
+    protected AbstractClosedBranchDcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
+                                                     boolean deriveA1, boolean useTransformerRatio) {
         this.branch = Objects.requireNonNull(branch);
         PiModel piModel = branch.getPiModel();
         if (piModel.getX() == 0) {
@@ -42,9 +44,31 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
         }
         ph1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_PHI);
-        variables = ImmutableList.of(ph1Var, ph2Var);
-        power =  1 / piModel.getX() * piModel.getR1() * R2;
-        a1 = piModel.getA1();
+        ImmutableList.Builder<Variable> variablesBuilder = ImmutableList.<Variable>builder().add(ph1Var, ph2Var);
+        power =  1 / piModel.getX() * (useTransformerRatio ? piModel.getR1() * R2 : 1);
+        if (deriveA1) {
+            a1Var = variableSet.getVariable(branch.getNum(), VariableType.BRANCH_ALPHA1);
+            variablesBuilder.add(a1Var);
+        }
+        variables = variablesBuilder.build();
+    }
+
+    public double calculate(DenseMatrix x, int column) {
+        Objects.requireNonNull(x);
+        double ph1 = x.get(ph1Var.getRow(), column);
+        double ph2 = x.get(ph2Var.getRow(), column);
+        double a1 = getA1(x, column);
+        return calculate(ph1, ph2, a1);
+    }
+
+    private double getA1(DenseMatrix x, int column) {
+        return a1Var != null && a1Var.isActive() ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
+    }
+
+    protected abstract double calculate(double ph1, double ph2, double a1);
+
+    protected double getA1(double[] stateVector) {
+        return a1Var != null && a1Var.isActive() ? stateVector[a1Var.getRow()] : branch.getPiModel().getA1();
     }
 
     @Override

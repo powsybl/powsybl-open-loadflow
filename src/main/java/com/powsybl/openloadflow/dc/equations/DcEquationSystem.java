@@ -22,18 +22,14 @@ import org.jgrapht.graph.Pseudograph;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.powsybl.openloadflow.network.LfNetwork.LOW_IMPEDANCE_THRESHOLD;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public final class DcEquationSystem {
 
-    public static final double LOW_IMPEDANCE_THRESHOLD = Math.pow(10, -8); // in per unit
-
     private DcEquationSystem() {
-    }
-
-    public static EquationSystem create(LfNetwork network) {
-        return create(network, new VariableSet(), true);
     }
 
     private static void createBuses(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem) {
@@ -67,29 +63,37 @@ public final class DcEquationSystem {
         }
     }
 
-    private static void createImpedantBranch(VariableSet variableSet, boolean updateFlows, EquationSystem equationSystem,
-                                             LfBranch branch, LfBus bus1, LfBus bus2) {
+    private static void createImpedantBranch(VariableSet variableSet, EquationSystem equationSystem,
+                                             DcEquationSystemCreationParameters creationParameters, LfBranch branch,
+                                             LfBus bus1, LfBus bus2) {
         if (bus1 != null && bus2 != null) {
-            ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, variableSet);
-            ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet);
+            boolean deriveA1 = creationParameters.isForcePhaseControlOffAndAddAngle1Var() && branch.hasPhaseControlCapability(); //TODO: phase control outer loop
+            ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, deriveA1, creationParameters.isUseTransformerRatio());
+            ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, deriveA1, creationParameters.isUseTransformerRatio());
             equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
-            if (updateFlows) {
+            if (deriveA1) {
+                if (creationParameters.isForcePhaseControlOffAndAddAngle1Var()) {
+                    // use for sensitiviy analysis only: with this equation term, we force the a1 variable to be constant.
+                    equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_ALPHA1)
+                            .addTerm(new BranchA1EquationTerm(branch, variableSet));
+                } else {
+                    //TODO
+                }
+            }
+            if (creationParameters.isUpdateFlows()) {
                 branch.setP1(p1);
                 branch.setP2(p2);
             }
-        } else if (bus1 != null) {
-            if (updateFlows) {
-                branch.setP1(EvaluableConstants.ZERO);
-            }
-        } else if (bus2 != null) {
-            if (updateFlows) {
-                branch.setP2(EvaluableConstants.ZERO);
-            }
+        } else if (bus1 != null && creationParameters.isUpdateFlows()) {
+            branch.setP1(EvaluableConstants.ZERO);
+        } else if (bus2 != null && creationParameters.isUpdateFlows()) {
+            branch.setP2(EvaluableConstants.ZERO);
         }
     }
 
-    private static void createBranches(LfNetwork network, VariableSet variableSet, boolean updateFlows, EquationSystem equationSystem) {
+    private static void createBranches(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem,
+                                       DcEquationSystemCreationParameters creationParameters) {
         List<LfBranch> nonImpedantBranches = new ArrayList<>();
 
         for (LfBranch branch : network.getBranches()) {
@@ -101,7 +105,7 @@ public final class DcEquationSystem {
                     nonImpedantBranches.add(branch);
                 }
             } else {
-                createImpedantBranch(variableSet, updateFlows, equationSystem, branch, bus1, bus2);
+                createImpedantBranch(variableSet, equationSystem, creationParameters, branch, bus1, bus2);
             }
         }
 
@@ -121,11 +125,15 @@ public final class DcEquationSystem {
         }
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet, boolean updateFlows) {
-        EquationSystem equationSystem = new EquationSystem(network);
+    public static EquationSystem create(LfNetwork network, DcEquationSystemCreationParameters creationParameters) {
+        return create(network, new VariableSet(), creationParameters);
+    }
+
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet, DcEquationSystemCreationParameters creationParameters) {
+        EquationSystem equationSystem = new EquationSystem(network, creationParameters.isIndexTerms());
 
         createBuses(network, variableSet, equationSystem);
-        createBranches(network, variableSet, updateFlows, equationSystem);
+        createBranches(network, variableSet, equationSystem, creationParameters);
 
         return equationSystem;
     }

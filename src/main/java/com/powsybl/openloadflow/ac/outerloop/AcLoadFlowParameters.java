@@ -36,17 +36,21 @@ public class AcLoadFlowParameters {
 
     private final boolean phaseControl;
 
+    private final boolean transformerVoltageControlOn;
+
     private final boolean minImpedance;
 
     private final boolean twtSplitShuntAdmittance;
 
     private final boolean breakers;
 
+    private double plausibleActivePowerLimit;
+
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
                                 MatrixFactory matrixFactory, AcLoadFlowObserver observer, boolean voltageRemoteControl,
-                                boolean phaseControl, boolean minImpedance, boolean twtSplitShuntAdmittance,
-                                boolean breakers) {
+                                boolean phaseControl, boolean transformerVoltageControlOn, boolean minImpedance,
+                                boolean twtSplitShuntAdmittance, boolean breakers, double plausibleActivePowerLimit) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -55,9 +59,11 @@ public class AcLoadFlowParameters {
         this.observer = Objects.requireNonNull(observer);
         this.voltageRemoteControl = voltageRemoteControl;
         this.phaseControl = phaseControl;
+        this.transformerVoltageControlOn = transformerVoltageControlOn;
         this.minImpedance = minImpedance;
         this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
         this.breakers = breakers;
+        this.plausibleActivePowerLimit = plausibleActivePowerLimit;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -96,6 +102,10 @@ public class AcLoadFlowParameters {
         return phaseControl;
     }
 
+    public boolean isTransformerVoltageControlOn() {
+        return transformerVoltageControlOn;
+    }
+
     public boolean isMinImpedance() {
         return minImpedance;
     }
@@ -106,5 +116,9 @@ public class AcLoadFlowParameters {
 
     public boolean isBreakers() {
         return breakers;
+    }
+
+    public double getPlausibleActivePowerLimit() {
+        return plausibleActivePowerLimit;
     }
 }

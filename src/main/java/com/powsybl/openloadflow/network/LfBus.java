@@ -62,6 +62,10 @@ public interface LfBus {
 
     double getLoadTargetQ();
 
+    void setLoadTargetQ(double loadTargetQ);
+
+    double getFixedLoadTargetQ();
+
     double getGenerationTargetP();
 
     double getGenerationTargetQ();
@@ -103,4 +107,14 @@ public interface LfBus {
     void addBranch(LfBranch branch);
 
     void updateState(boolean reactiveLimits, boolean writeSlackBus);
+
+    DiscreteVoltageControl getDiscreteVoltageControl();
+
+    boolean isDiscreteVoltageControlled();
+
+    void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
+
+    boolean isDisabled();
+
+    void setDisabled(boolean disabled);
 }

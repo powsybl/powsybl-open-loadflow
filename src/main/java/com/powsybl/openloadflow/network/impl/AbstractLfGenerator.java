@@ -10,6 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.MinMaxReactiveLimits;
 import com.powsybl.iidm.network.ReactiveCapabilityCurve;
 import com.powsybl.iidm.network.ReactiveLimits;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.PlausibleValues;
@@ -24,12 +25,22 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     protected double targetP;
 
+    protected LfBus bus;
+
     protected double calculatedQ = Double.NaN;
 
     private double targetV = Double.NaN;
 
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
+    }
+
+    public LfBus getBus() {
+        return bus;
+    }
+
+    public void setBus(LfBus bus) {
+        this.bus = bus;
     }
 
     @Override
@@ -116,4 +127,5 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     public void setCalculatedQ(double calculatedQ) {
         this.calculatedQ = calculatedQ * PerUnit.SB;
     }
+
 }

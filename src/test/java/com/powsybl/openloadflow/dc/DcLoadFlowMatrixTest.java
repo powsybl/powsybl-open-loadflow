@@ -13,6 +13,7 @@ import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
@@ -26,7 +27,6 @@ import java.io.PrintStream;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -53,7 +53,8 @@ class DcLoadFlowMatrixTest {
         LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
 
         VariableSet variableSet = new VariableSet();
-        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, variableSet, true);
+        DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(true, false, false, true);
+        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, variableSet, creationParameters);
 
         for (LfBus b : lfNetwork.getBuses()) {
             equationSystem.createEquation(b.getNum(), EquationType.BUS_P);
@@ -102,7 +103,7 @@ class DcLoadFlowMatrixTest {
 
         lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
 
-        equationSystem = DcEquationSystem.create(lfNetwork, variableSet, true);
+        equationSystem = DcEquationSystem.create(lfNetwork, variableSet, creationParameters);
 
         j = JacobianMatrix.create(equationSystem, matrixFactory).getMatrix();
 

@@ -156,10 +156,10 @@ class AcLoadFlowSvcTest {
     @Test
     void shouldReachReactiveMaxLimit() {
         svc1.setBmin(-0.002)
-                .setVoltageSetPoint(385)
+                .setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertReactivePowerEquals(320, svc1.getTerminal()); // min reactive limit has been correctly reached
+        assertReactivePowerEquals(-svc1.getBmin() * svc1.getVoltageSetpoint() * svc1.getVoltageSetpoint(), svc1.getTerminal()); // min reactive limit has been correctly reached
     }
 }

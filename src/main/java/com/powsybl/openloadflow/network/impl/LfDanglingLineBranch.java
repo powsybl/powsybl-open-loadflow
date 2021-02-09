@@ -52,13 +52,28 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
+    public boolean hasPhaseControlCapability() {
+        return false;
+    }
+
+    @Override
     public void setP1(Evaluable p1) {
         this.p = Objects.requireNonNull(p1);
     }
 
     @Override
+    public double getP1() {
+        return p.eval();
+    }
+
+    @Override
     public void setP2(Evaluable p2) {
         // nothing to do
+    }
+
+    @Override
+    public double getP2() {
+        return Double.NaN;
     }
 
     @Override
@@ -93,7 +108,7 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn) {
+    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn) {
         danglingLine.getTerminal().setP(p.eval() * PerUnit.SB);
         danglingLine.getTerminal().setQ(q.eval() * PerUnit.SB);
     }

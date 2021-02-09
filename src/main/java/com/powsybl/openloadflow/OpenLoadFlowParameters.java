@@ -31,7 +31,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean throwsExceptionInCaseOfSlackDistributionFailure = THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE;
 
-    private boolean voltageRemoteControl = VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE;
+    private boolean voltageRemoteControl = VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE;
 
     private LowImpedanceBranchMode lowImpedanceBranchMode = LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE;
 
@@ -42,9 +42,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private final List<AcLoadFlowObserver> additionalObservers = new ArrayList<>();
 
+    private boolean loadPowerFactorConstant = LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE;
+
+    private boolean dcUseTransformerRatio = DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE;
+
+    private double plausibleActivePowerLimit = PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
+
     @Override
     public String getName() {
-        return "SimpleLoadFlowParameters";
+        return "OpenLoadFlowParameters";
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -87,6 +93,36 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return additionalObservers;
     }
 
+    public boolean isLoadPowerFactorConstant() {
+        return loadPowerFactorConstant;
+    }
+
+    public OpenLoadFlowParameters setLoadPowerFactorConstant(boolean loadPowerFactorConstant) {
+        this.loadPowerFactorConstant = loadPowerFactorConstant;
+        return this;
+    }
+
+    public boolean isDcUseTransformerRatio() {
+        return dcUseTransformerRatio;
+    }
+
+    public OpenLoadFlowParameters setDcUseTransformerRatio(boolean dcUseTransformerRatio) {
+        this.dcUseTransformerRatio = dcUseTransformerRatio;
+        return this;
+    }
+
+    public double getPlausibleActivePowerLimit() {
+        return plausibleActivePowerLimit;
+    }
+
+    public OpenLoadFlowParameters setPlausibleActivePowerLimit(double plausibleActivePowerLimit) {
+        if (plausibleActivePowerLimit <= 0) {
+            throw new IllegalArgumentException("Invalid plausible active power limit: " + plausibleActivePowerLimit);
+        }
+        this.plausibleActivePowerLimit = plausibleActivePowerLimit;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return new OpenLoadFlowConfigLoader().load(PlatformConfig.defaultConfig());
     }
@@ -99,14 +135,17 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
 
             platformConfig.getOptionalModuleConfig("open-loadflow-default-parameters")
-                    .ifPresent(config -> {
-                        parameters.setSlackBusSelector(getSlackBusSelector(config));
-                        parameters.setLowImpedanceBranchMode(config.getEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class, LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE));
-                        parameters.setVoltageRemoteControl(config.getBooleanProperty(VOLTAGE_REMOTE_CONTROLE_PARAM_NAME, VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE));
-                        parameters.setThrowsExceptionInCaseOfSlackDistributionFailure(
+                .ifPresent(config -> parameters
+                        .setSlackBusSelector(getSlackBusSelector(config))
+                        .setLowImpedanceBranchMode(config.getEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class, LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE))
+                        .setVoltageRemoteControl(config.getBooleanProperty(VOLTAGE_REMOTE_CONTROL_PARAM_NAME, VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE))
+                        .setThrowsExceptionInCaseOfSlackDistributionFailure(
                                 config.getBooleanProperty(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE)
-                        );
-                    });
+                        )
+                        .setLoadPowerFactorConstant(config.getBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE))
+                        .setDcUseTransformerRatio(config.getBooleanProperty(DC_USE_TRANSFORMER_RATIO_PARAM_NAME, DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE))
+                        .setPlausibleActivePowerLimit(config.getDoubleProperty(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE))
+                );
             return parameters;
         }
 

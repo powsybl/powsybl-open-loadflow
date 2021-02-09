@@ -80,7 +80,7 @@ class OpenLoadFlowParametersTest {
         assertTrue(olfParameters.getSlackBusSelector() instanceof FirstSlackBusSelector);
 
         assertTrue(olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
-        assertFalse(olfParameters.hasVoltageRemoteControl());
+        assertTrue(olfParameters.hasVoltageRemoteControl());
         assertEquals(LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
     }
 
@@ -96,9 +96,11 @@ class OpenLoadFlowParametersTest {
 
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         assertEquals(SLACK_BUS_SELECTOR_DEFAULT_VALUE, olfParameters.getSlackBusSelector());
-        assertEquals(VOLTAGE_REMOTE_CONTROLE_DEFAULT_VALUE, olfParameters.hasVoltageRemoteControl());
+        assertEquals(VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.hasVoltageRemoteControl());
         assertEquals(LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
         assertEquals(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE, olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
+
+        assertEquals(DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE, olfParameters.isDcUseTransformerRatio());
     }
 
     @Test

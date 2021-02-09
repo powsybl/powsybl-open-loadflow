@@ -10,8 +10,12 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
+import com.powsybl.openloadflow.util.ParameterConstants;
 import net.jafama.FastMath;
+import org.jgrapht.Graph;
+import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -34,6 +39,7 @@ public class LfNetwork {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
+    public static final double LOW_IMPEDANCE_THRESHOLD = Math.pow(10, -8); // in per unit
     private static final double TARGET_VOLTAGE_EPSILON = Math.pow(10, -6);
 
     private final int num;
@@ -135,7 +141,8 @@ public class LfNetwork {
         return slackBus;
     }
 
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn) {
+    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
+                            boolean transformerVoltageControlOn) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         for (LfBus bus : busesById.values()) {
@@ -148,7 +155,7 @@ public class LfNetwork {
             }
         }
         for (LfBranch branch : branches) {
-            branch.updateState(phaseShifterRegulationOn);
+            branch.updateState(phaseShifterRegulationOn, transformerVoltageControlOn);
         }
 
         stopwatch.stop();
@@ -352,13 +359,32 @@ public class LfNetwork {
                 num, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
+    public double getActivePowerMismatch() {
+        double mismatch = 0;
+        for (LfBus b : busesById.values()) {
+            mismatch += b.getGenerationTargetP() - b.getLoadTargetP();
+        }
+        return -mismatch;
+    }
+
+    public double getActivePowerMismatchInMainComponent(GraphDecrementalConnectivity<LfBus> connectivity) {
+        double mismatch = 0;
+        int mainComponent = connectivity.getComponentNumber(getSlackBus());
+        for (LfBus b : busesById.values()) {
+            if (connectivity.getComponentNumber(b) == mainComponent) {
+                mismatch += b.getGenerationTargetP() - b.getLoadTargetP();
+            }
+        }
+        return -mismatch;
+    }
+
     private static void fix(LfNetwork network, boolean minImpedance) {
         if (minImpedance) {
             for (LfBranch branch : network.getBranches()) {
                 PiModel piModel = branch.getPiModel();
-                if (Math.abs(piModel.getZ()) < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) {
+                if (Math.abs(piModel.getZ()) < LOW_IMPEDANCE_THRESHOLD) {
                     piModel.setR(0);
-                    piModel.setX(DcEquationSystem.LOW_IMPEDANCE_THRESHOLD);
+                    piModel.setX(LOW_IMPEDANCE_THRESHOLD);
                 }
             }
         }
@@ -368,7 +394,7 @@ public class LfNetwork {
         if (!minImpedance) {
             for (LfBranch branch : network.getBranches()) {
                 PiModel piModel = branch.getPiModel();
-                if (Math.abs(piModel.getZ()) < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD) { // will be transformed to non impedant branch
+                if (Math.abs(piModel.getZ()) < LOW_IMPEDANCE_THRESHOLD) { // will be transformed to non impedant branch
                     LfBus bus1 = branch.getBus1();
                     LfBus bus2 = branch.getBus2();
                     // ensure target voltages are consistent
@@ -384,7 +410,7 @@ public class LfNetwork {
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
-        return load(network, new LfNetworkParameters(slackBusSelector, false, false, false, false));
+        return load(network, new LfNetworkParameters(slackBusSelector, false, false, false, false, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE));
     }
 
     public static List<LfNetwork> load(Object network, LfNetworkParameters parameters) {
@@ -403,6 +429,43 @@ public class LfNetwork {
             }
         }
         throw new PowsyblException("Cannot importer network of type: " + network.getClass().getName());
+    }
+
+    /**
+     * Create the subgraph of zero-impedance LfBranches and their corresponding LfBuses
+     * The graph is intentionally not cached as a parameter so far, to avoid the complexity of invalidating it if changes occur
+     * @return the zero-impedance subgraph
+     */
+    public Graph<LfBus, LfBranch> createZeroImpedanceSubGraph() {
+        List<LfBranch> zeroImpedanceBranches = getBranches().stream()
+            .filter(LfNetwork::isZeroImpedanceBranch)
+            .filter(b -> b.getBus1() != null && b.getBus2() != null)
+            .collect(Collectors.toList());
+
+        Graph<LfBus, LfBranch> subGraph = new Pseudograph<>(LfBranch.class);
+        for (LfBranch branch : zeroImpedanceBranches) {
+            subGraph.addVertex(branch.getBus1());
+            subGraph.addVertex(branch.getBus2());
+            subGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
+        }
+
+        return  subGraph;
+    }
+
+    public static boolean isZeroImpedanceBranch(LfBranch branch) {
+        PiModel piModel = branch.getPiModel();
+        return piModel.getZ() < LOW_IMPEDANCE_THRESHOLD;
+    }
+
+    public GraphDecrementalConnectivity<LfBus> createDecrementalConnectivity() {
+        return createDecrementalConnectivity(() -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+    }
+
+    public GraphDecrementalConnectivity<LfBus> createDecrementalConnectivity(Supplier<GraphDecrementalConnectivity<LfBus>> connectivitySupplier) {
+        GraphDecrementalConnectivity<LfBus> connectivity = connectivitySupplier.get();
+        getBuses().forEach(connectivity::addVertex);
+        getBranches().forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2()));
+        return connectivity;
     }
 
 }

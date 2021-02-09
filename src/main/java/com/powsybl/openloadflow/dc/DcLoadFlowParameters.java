@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.dc;
 
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 
@@ -22,14 +23,27 @@ public class DcLoadFlowParameters {
 
     private final boolean updateFlows;
 
-    private final boolean twtSplitShuntAdmittance;
+    private final boolean useTransformerRatio;
+
+    private final boolean distributedSlack;
+
+    private final LoadFlowParameters.BalanceType balanceType;
+
+    private final boolean forcePhaseControlOffAndAddAngle1Var;
+
+    private final double plausibleActivePowerLimit;
 
     public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory, boolean updateFlows,
-                                boolean twtSplitShuntAdmittance) {
+                                boolean useTransformerRatio, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
+                                boolean forcePhaseControlOffAndAddAngle1Var, double plausibleActivePowerLimit) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.updateFlows = updateFlows;
-        this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
+        this.useTransformerRatio = useTransformerRatio;
+        this.distributedSlack = distributedSlack;
+        this.balanceType = balanceType;
+        this.forcePhaseControlOffAndAddAngle1Var = forcePhaseControlOffAndAddAngle1Var;
+        this.plausibleActivePowerLimit = plausibleActivePowerLimit;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -44,7 +58,23 @@ public class DcLoadFlowParameters {
         return updateFlows;
     }
 
-    public boolean isTwtSplitShuntAdmittance() {
-        return twtSplitShuntAdmittance;
+    public boolean isDistributedSlack() {
+        return distributedSlack;
+    }
+
+    public LoadFlowParameters.BalanceType getBalanceType() {
+        return balanceType;
+    }
+
+    public boolean isUseTransformerRatio() {
+        return useTransformerRatio;
+    }
+
+    public boolean isForcePhaseControlOffAndAddAngle1Var() {
+        return forcePhaseControlOffAndAddAngle1Var;
+    }
+
+    public double getPlausibleActivePowerLimit() {
+        return plausibleActivePowerLimit;
     }
 }

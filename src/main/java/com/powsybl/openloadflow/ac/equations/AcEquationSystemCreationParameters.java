@@ -13,11 +13,18 @@ public class AcEquationSystemCreationParameters {
 
     private final boolean phaseControl;
 
-    public AcEquationSystemCreationParameters(boolean phaseControl) {
+    private final boolean transformerVoltageControl;
+
+    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl) {
         this.phaseControl = phaseControl;
+        this.transformerVoltageControl = transformerVoltageControl;
     }
 
     public boolean isPhaseControl() {
         return phaseControl;
+    }
+
+    public boolean isTransformerVoltageControl() {
+        return transformerVoltageControl;
     }
 }

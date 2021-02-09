@@ -25,7 +25,11 @@ public interface LfBranch {
 
     void setP1(Evaluable p1);
 
+    double getP1();
+
     void setP2(Evaluable p2);
+
+    double getP2();
 
     void setQ1(Evaluable q1);
 
@@ -41,9 +45,11 @@ public interface LfBranch {
 
     double getPermanentLimit2();
 
+    boolean hasPhaseControlCapability();
+
     DiscretePhaseControl getDiscretePhaseControl();
 
-    void updateState(boolean phaseShifterRegulationOn);
+    void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn);
 
     boolean isPhaseController();
 
@@ -52,4 +58,10 @@ public interface LfBranch {
     boolean isPhaseControlled();
 
     void setDiscretePhaseControl(DiscretePhaseControl discretePhaseControl);
+
+    DiscreteVoltageControl getDiscreteVoltageControl();
+
+    boolean isVoltageController();
+
+    void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
 }

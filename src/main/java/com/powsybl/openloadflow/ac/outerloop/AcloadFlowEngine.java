@@ -53,7 +53,7 @@ public class AcloadFlowEngine {
         parameters.getObserver().beforeNetworksCreation();
 
         List<LfNetwork> networks = LfNetwork.load(network, new LfNetworkParameters(parameters.getSlackBusSelector(), parameters.isVoltageRemoteControl(),
-                parameters.isMinImpedance(), parameters.isTwtSplitShuntAdmittance(), parameters.isBreakers()));
+                parameters.isMinImpedance(), parameters.isTwtSplitShuntAdmittance(), parameters.isBreakers(), parameters.getPlausibleActivePowerLimit()));
 
         parameters.getObserver().afterNetworksCreation(networks);
 
@@ -143,7 +143,7 @@ public class AcloadFlowEngine {
 
             variableSet = new VariableSet();
             AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(
-                parameters.isPhaseControl());
+                    parameters.isPhaseControl(), parameters.isTransformerVoltageControlOn());
             equationSystem = AcEquationSystem.create(network, variableSet, creationParameters);
 
             parameters.getObserver().afterEquationSystemCreation();

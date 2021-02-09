@@ -8,8 +8,10 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +28,7 @@ class GeneratorRemoteControlLocalRescaleTest {
     private Bus b1;
     private Bus b2;
     private LoadFlow.Runner loadFlowRunner;
+    private LoadFlowParameters parameters;
 
     @BeforeEach
     void setUp() {
@@ -86,11 +89,15 @@ class GeneratorRemoteControlLocalRescaleTest {
                 .add();
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+                .setVoltageRemoteControl(false);
+        this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
     @Test
     void test() {
-        LoadFlowResult result = loadFlowRunner.run(network);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         LoadFlowAssert.assertVoltageEquals(20.67, b1); // check local targetV has been correctly rescaled
         LoadFlowAssert.assertVoltageEquals(395.927, b2);

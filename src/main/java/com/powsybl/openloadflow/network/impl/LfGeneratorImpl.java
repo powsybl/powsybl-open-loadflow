@@ -13,7 +13,6 @@ import com.powsybl.iidm.network.Terminal;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.openloadflow.network.PerUnit;
-import com.powsybl.openloadflow.network.PlausibleValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,13 +29,15 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private static final double DEFAULT_DROOP = 4; // why not
 
+    private static final double TARGET_P_EPSILON = 1e-2;
+
     private final Generator generator;
 
     private boolean participating;
 
     private double participationFactor;
 
-    private LfGeneratorImpl(Generator generator, LfNetworkLoadingReport report) {
+    private LfGeneratorImpl(Generator generator, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
         super(generator.getTargetP());
         this.generator = generator;
         participating = true;
@@ -50,10 +51,10 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             }
         }
         participationFactor = generator.getMaxP() / droop;
-        if (generator.getTargetP() <= 0) {
-            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) <= 0",
+        if (Math.abs(generator.getTargetP()) < TARGET_P_EPSILON) {
+            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) equals 0",
                     generator.getId(), generator.getTargetP());
-            report.generatorsDiscardedFromActivePowerControlBecauseTargetPLesserOrEqualsToZero++;
+            report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero++;
             participating = false;
         }
         if (generator.getTargetP() > generator.getMaxP()) {
@@ -62,10 +63,16 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP++;
             participating = false;
         }
-        if (generator.getMaxP() > PlausibleValues.ACTIVE_POWER_LIMIT) {
+        if (generator.getMaxP() > plausibleActivePowerLimit) {
             LOGGER.trace("Discard generator '{}' from active power control because maxP ({}) > {}} MW",
-                    generator.getId(), generator.getMaxP(), PlausibleValues.ACTIVE_POWER_LIMIT);
+                    generator.getId(), generator.getMaxP(), plausibleActivePowerLimit);
             report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
+            participating = false;
+        }
+        if ((generator.getMaxP() - generator.getMinP()) < TARGET_P_EPSILON) {
+            LOGGER.trace("Discard generator '{}' from active power control because maxP ({} MW) equals minP ({} MW)",
+                generator.getId(), generator.getMaxP(), generator.getMinP());
+            report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP++;
             participating = false;
         }
 
@@ -75,10 +82,10 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
     }
 
-    public static LfGeneratorImpl create(Generator generator, LfNetworkLoadingReport report) {
+    public static LfGeneratorImpl create(Generator generator, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
         Objects.requireNonNull(generator);
         Objects.requireNonNull(report);
-        return new LfGeneratorImpl(generator, report);
+        return new LfGeneratorImpl(generator, report, plausibleActivePowerLimit);
     }
 
     @Override

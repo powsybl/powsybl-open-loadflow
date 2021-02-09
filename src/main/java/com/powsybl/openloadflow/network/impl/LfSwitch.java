@@ -32,13 +32,28 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
+    public boolean hasPhaseControlCapability() {
+        return false;
+    }
+
+    @Override
     public void setP1(Evaluable p1) {
         // nothing to do
     }
 
     @Override
+    public double getP1() {
+        return Double.NaN;
+    }
+
+    @Override
     public void setP2(Evaluable p2) {
         // nothing to do
+    }
+
+    @Override
+    public double getP2() {
+        return Double.NaN;
     }
 
     @Override
@@ -72,7 +87,7 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn) {
+    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn) {
         // nothing to do
     }
 }

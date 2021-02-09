@@ -1,5 +1,6 @@
 {
-  "resources":[
+  "resources":{
+  "includes":[
     {"pattern":"META-INF/services/com.powsybl.commons.config.PlatformConfigProvider"},
     {"pattern":"META-INF/services/com.powsybl.commons.extensions.ExtensionAdderProvider"},
     {"pattern":"META-INF/services/com.powsybl.commons.extensions.ExtensionXmlSerializer"},
@@ -24,8 +25,6 @@
     {"pattern":"org/slf4j/impl/StaticLoggerBinder.class"},
     {"pattern":"logback.xml"},
     {"pattern":"CIM16.sparql"}
-  ],
-  "bundles":[
-    {"name": "net.java.truecommons.key.spec.common.AesKeyStrength"}
-  ]
+  ]},
+  "bundles":[{"name":"net.java.truecommons.key.spec.common.AesKeyStrength"}]
 }
