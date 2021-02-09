@@ -172,9 +172,9 @@ class AcLoadFlowTransformerControlTest {
                 .setRegulationTerminal(network.getGenerator("GEN_1").getTerminal())
                 .setTargetV(33.0);
 
-        LoadFlowResult result = loadFlowRunner.run(network, parameters); //FIXME: result should be ok after merge
-//        assertTrue(result.isOk());
-//        assertVoltageEquals(135.0, bus1);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(135.0, bus1);
     }
 
     @Test

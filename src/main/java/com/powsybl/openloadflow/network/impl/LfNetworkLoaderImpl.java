@@ -251,8 +251,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 TwoWindingsTransformer t2wt = (TwoWindingsTransformer) branch;
                 PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
                 createPhaseControl(lfNetwork, ptc, t2wt.getId(), "", breakers);
-                RatioTapChanger rtc = t2wt.getRatioTapChanger();
-                createVoltageControl(lfNetwork, rtc, t2wt.getId(), "", breakers);
             }
         }
 
@@ -277,14 +275,27 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
             // Create phase controls which link controller -> controlled
-            int legNumber = 1;
-            for (ThreeWindingsTransformer.Leg leg : Arrays.asList(t3wt.getLeg1(), t3wt.getLeg2(), t3wt.getLeg3())) {
-                PhaseTapChanger ptc = leg.getPhaseTapChanger();
-                createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + legNumber, breakers);
+            List<ThreeWindingsTransformer.Leg> legs = t3wt.getLegs();
+            for (int legNumber = 0; legNumber < legs.size(); legNumber++) {
+                PhaseTapChanger ptc = legs.get(legNumber).getPhaseTapChanger();
+                createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + (legNumber + 1), breakers);
+            }
+        }
+    }
 
-                RatioTapChanger rtc = leg.getRatioTapChanger();
-                createVoltageControl(lfNetwork, rtc, t3wt.getId(), "_leg_" + legNumber, breakers);
-                legNumber++;
+    private static void createDiscreteVoltageControls(LfNetwork lfNetwork, boolean breakers, LoadingContext loadingContext) {
+        // Create discrete voltage controls which link controller -> controlled
+        for (Branch<?> branch : loadingContext.branchSet) {
+            if (branch instanceof TwoWindingsTransformer) {
+                RatioTapChanger rtc = ((TwoWindingsTransformer) branch).getRatioTapChanger();
+                createDiscreteVoltageControl(lfNetwork, rtc, branch.getId(), breakers);
+            }
+        }
+        for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
+            List<ThreeWindingsTransformer.Leg> legs = t3wt.getLegs();
+            for (int legNumber = 0; legNumber < legs.size(); legNumber++) {
+                RatioTapChanger rtc = legs.get(legNumber).getRatioTapChanger();
+                createDiscreteVoltageControl(lfNetwork, rtc, t3wt.getId() + "_leg_" + (legNumber + 1), breakers);
             }
         }
     }
@@ -397,9 +408,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void createVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId, String legId, boolean breakers) {
+    private static void createDiscreteVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId, boolean breakers) {
         if (rtc != null && rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities()) {
-            LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
+            LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId);
             if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
                 LOGGER.warn("Voltage controller branch {} is open: no voltage control created", controllerBranch.getId());
                 return;
@@ -445,8 +456,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report);
         createBranches(lfBuses, lfNetwork, parameters.isTwtSplitShuntAdmittance(), parameters.isBreakers(), loadingContext, report);
         createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isBreakers());
+
+        // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)
+        createDiscreteVoltageControls(lfNetwork, parameters.isBreakers(), loadingContext);
+
         createSwitches(switches, lfNetwork);
 
+        // Fixing discrete voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
         fixDiscreteVoltageControls(lfNetwork, parameters.isMinImpedance());
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
