@@ -81,7 +81,7 @@ public class EquationSystem {
             for (Equation equation : equations.values()) {
                 if (equation.isActive()) {
                     NavigableMap<Variable, List<EquationTerm>> equationTermsByVariable = null;
-                    // check we have at lest one equation term active
+                    // check we have at least one equation term active
                     boolean atLeastOneTermIsValid = false;
                     for (EquationTerm equationTerm : equation.getTerms()) {
                         if (equationTerm.isActive()) {
@@ -303,9 +303,7 @@ public class EquationSystem {
         for (Equation equation : equations.values()) {
             equation.update(x);
         }
-        if (!listeners.isEmpty()) {
-            listeners.forEach(listener -> listener.onStateUpdate(x));
-        }
+        listeners.forEach(listener -> listener.onStateUpdate(x));
     }
 
     public void updateNetwork(double[] x) {
@@ -327,17 +325,13 @@ public class EquationSystem {
     void notifyEquationChange(Equation equation, EquationEventType eventType) {
         Objects.requireNonNull(equation);
         Objects.requireNonNull(eventType);
-        if (!listeners.isEmpty()) {
-            listeners.forEach(listener -> listener.onEquationChange(equation, eventType));
-        }
+        listeners.forEach(listener -> listener.onEquationChange(equation, eventType));
     }
 
     void notifyEquationTermChange(EquationTerm term, EquationTermEventType eventType) {
         Objects.requireNonNull(term);
         Objects.requireNonNull(eventType);
-        if (!listeners.isEmpty()) {
-            listeners.forEach(listener -> listener.onEquationTermChange(term, eventType));
-        }
+        listeners.forEach(listener -> listener.onEquationTermChange(term, eventType));
     }
 
     public void write(Writer writer) {
