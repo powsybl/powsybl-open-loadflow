@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -183,11 +184,27 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
         return matrix;
     }
 
-    public LUDecomposition decomposeLU() {
+    private LUDecomposition getLUDecomposition() {
         if (lu == null) {
             lu = getMatrix().decomposeLU();
         }
         return lu;
+    }
+
+    public void solve(double[] b) {
+        getLUDecomposition().solve(b);
+    }
+
+    public void solveTransposed(double[] b) {
+        getLUDecomposition().solveTransposed(b);
+    }
+
+    public void solve(DenseMatrix b) {
+        getLUDecomposition().solve(b);
+    }
+
+    public void solveTransposed(DenseMatrix b) {
+        getLUDecomposition().solveTransposed(b);
     }
 
     @Override

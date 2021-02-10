@@ -429,7 +429,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         super(matrixFactory);
     }
 
-    protected DenseMatrix setReferenceActivePowerFlows(LfNetwork network, EquationSystem equationSystem, LUDecomposition lu, List<LfSensitivityFactor> factors,
+    protected DenseMatrix setReferenceActivePowerFlows(LfNetwork network, EquationSystem equationSystem, JacobianMatrix j, List<LfSensitivityFactor> factors,
                                                        LoadFlowParameters lfParameters, List<ParticipatingElement> participatingElements, GraphDecrementalConnectivity<LfBus> connectivity) {
 
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
@@ -473,7 +473,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             }
         }
 
-        lu.solveTransposed(dx);
+        j.solveTransposed(dx);
 
         equationSystem.updateEquations(dx);
         equationSystem.updateNetwork(dx);
@@ -934,16 +934,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         VoltageInitializer voltageInitializer = lfParameters.getVoltageInitMode() == LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES ? new PreviousValueVoltageInitializer()
                 : new UniformValueVoltageInitializer();
         try (JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer)) {
-            LUDecomposition jlu = j.decomposeLU();
 
             // run DC load on pre-contingency network
-            DenseMatrix flowStates = setReferenceActivePowerFlows(lfNetwork, equationSystem, jlu, lfFactors, lfParameters, participatingElements, null);
+            DenseMatrix flowStates = setReferenceActivePowerFlows(lfNetwork, equationSystem, j, lfFactors, lfParameters, participatingElements, null);
 
             // compute the pre-contingency sensitivity values + the states with +1 -1 to model the contingencies
             DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorGroups); // this is the rhs for the moment
             DenseMatrix contingenciesStates = initContingencyRhs(lfNetwork, equationSystem, contingenciesElements.values()); // rhs with +1 -1 on contingency elements
-            jlu.solveTransposed(factorsStates); // states for the sensitivity factors
-            jlu.solveTransposed(contingenciesStates); // states for the +1 -1 of the contingencies
+            j.solveTransposed(factorsStates); // states for the sensitivity factors
+            j.solveTransposed(contingenciesStates); // states for the +1 -1 of the contingencies
 
             // sensitivity values for pre-contingency network
             setBaseCaseSensitivityValues(factorGroups, factorsStates);
@@ -1007,11 +1006,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     computeInjectionFactors(slackParticipationByBusForThisConnectivity, factorGroups); // write the right injections in the factor groups
                     factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
                     fillRhsSensitivityVariable(lfNetwork, equationSystem, factorGroups, factorsStates);
-                    jlu.solveTransposed(factorsStates); // get the states for the new connectivity
+                    j.solveTransposed(factorsStates); // get the states for the new connectivity
                     setBaseCaseSensitivityValues(factorGroups, factorsStates); // use this state to compute the base sensitivity (without +1-1)
                 }
 
-                flowStates = setReferenceActivePowerFlows(lfNetwork, equationSystem, jlu, lfFactors, lfParameters, participatingElementsForThisConnectivity, connectivity);
+                flowStates = setReferenceActivePowerFlows(lfNetwork, equationSystem, j, lfFactors, lfParameters, participatingElementsForThisConnectivity, connectivity);
 
                 Set<String> elementsToReconnect = getElementsToReconnect(connectivity, breakingConnectivityCandidates);
 

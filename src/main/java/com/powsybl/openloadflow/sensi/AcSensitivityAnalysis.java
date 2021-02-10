@@ -12,7 +12,6 @@ import com.powsybl.iidm.network.Injection;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
@@ -164,8 +163,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             DenseMatrix rhs = initRhs(validFactors, lfNetwork, equationSystem);
 
             // solve system
-            LUDecomposition lu = j.decomposeLU();
-            lu.solve(rhs);
+            j.solve(rhs);
 
             // calculate sensitivity values
             return Pair.of(calculateSensitivityValues(network, factors, lfNetwork, equationSystem, rhs), Collections.emptyMap());

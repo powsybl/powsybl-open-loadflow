@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.dc;
 import com.google.common.base.Stopwatch;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
@@ -90,8 +89,7 @@ public class DcLoadFlowEngine {
 
             LoadFlowResult.ComponentResult.Status status;
             try {
-                LUDecomposition lu = j.decomposeLU();
-                lu.solveTransposed(dx);
+                j.solveTransposed(dx);
                 status = LoadFlowResult.ComponentResult.Status.CONVERGED;
             } catch (Exception e) {
                 status = LoadFlowResult.ComponentResult.Status.FAILED;

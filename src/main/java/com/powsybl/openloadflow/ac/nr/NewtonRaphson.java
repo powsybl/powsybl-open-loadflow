@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac.nr;
 
-import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
@@ -60,14 +59,12 @@ public class NewtonRaphson {
 
             observer.beforeLuDecomposition(iteration);
 
-            LUDecomposition lu = j.decomposeLU();
-
             observer.afterLuDecomposition(iteration);
 
             try {
                 observer.beforeLuSolve(iteration);
 
-                lu.solveTransposed(fx);
+                j.solveTransposed(fx);
 
                 observer.afterLuSolve(iteration);
             } catch (Exception e) {
