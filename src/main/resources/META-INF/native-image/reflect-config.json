@@ -346,10 +346,6 @@
   "name":"javax.management.ObjectName"
 },
 {
-  "name":"net.java.truevfs.comp.zip.WinZipAesExtraField",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
   "name":"org.jgrapht.graph.DefaultEdge",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
