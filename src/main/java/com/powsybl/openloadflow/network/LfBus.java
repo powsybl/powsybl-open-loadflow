@@ -114,4 +114,8 @@ public interface LfBus {
     boolean isDiscreteVoltageControlled();
 
     void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
+
+    boolean isDisabled();
+
+    void setDisabled(boolean disabled);
 }

@@ -39,7 +39,7 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected double calculatedQ = Double.NaN;
 
-    protected boolean voltageControlCapacility = false;
+    protected boolean voltageControlCapability = false;
 
     protected boolean voltageControl = false;
 
@@ -81,6 +81,8 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected DiscreteVoltageControl discreteVoltageControl;
 
+    protected boolean disabled = false;
+
     protected AbstractLfBus(double v, double angle) {
         this.v = v;
         this.angle = angle;
@@ -118,7 +120,7 @@ public abstract class AbstractLfBus implements LfBus {
 
     @Override
     public boolean hasVoltageControlCapability() {
-        return voltageControlCapacility;
+        return voltageControlCapability;
     }
 
     @Override
@@ -280,7 +282,7 @@ public abstract class AbstractLfBus implements LfBus {
         if (modifiedVoltageControl) {
             this.targetV = checkTargetV(targetV);
             this.voltageControl = true;
-            this.voltageControlCapacility = true;
+            this.voltageControlCapability = true;
         } else {
             if (!Double.isNaN(targetQ)) {
                 generationTargetQ += targetQ;
@@ -288,8 +290,8 @@ public abstract class AbstractLfBus implements LfBus {
         }
     }
 
-    void addGenerator(Generator generator, double scaleV, LfNetworkLoadingReport report) {
-        add(LfGeneratorImpl.create(generator, report), generator.isVoltageRegulatorOn(), generator.getTargetV() * scaleV,
+    void addGenerator(Generator generator, double scaleV, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
+        add(LfGeneratorImpl.create(generator, report, plausibleActivePowerLimit), generator.isVoltageRegulatorOn(), generator.getTargetV() * scaleV,
                 generator.getTargetQ(), report);
     }
 
@@ -520,5 +522,15 @@ public abstract class AbstractLfBus implements LfBus {
     @Override
     public void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl) {
         this.discreteVoltageControl = discreteVoltageControl;
+    }
+
+    @Override
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    @Override
+    public void setDisabled(boolean disabled) {
+        this.disabled = disabled;
     }
 }

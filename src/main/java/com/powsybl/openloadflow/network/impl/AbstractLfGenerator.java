@@ -110,4 +110,5 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     public void setCalculatedQ(double calculatedQ) {
         this.calculatedQ = calculatedQ * PerUnit.SB;
     }
+
 }

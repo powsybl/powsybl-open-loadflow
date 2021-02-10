@@ -20,10 +20,8 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
@@ -32,8 +30,8 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Provider;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,7 +51,7 @@ class OpenSecurityAnalysisGraphTest {
     @BeforeEach
     void setUp() {
 
-        network = OpenSecurityAnalysisTest.createNetwork();
+        network = NodeBreakerNetworkFactory.create();
 
         // Testing all contingencies at once
         contingenciesProvider = network -> network.getBranchStream()
@@ -139,7 +137,7 @@ class OpenSecurityAnalysisGraphTest {
         }
     }
 
-    List<List<LfContingency>> getLoadFlowContingencies(Provider<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
+    List<List<LfContingency>> getLoadFlowContingencies(Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
 
         OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
             new LimitViolationFilter(), new DenseMatrixFactory(), connectivityProvider);
@@ -153,7 +151,7 @@ class OpenSecurityAnalysisGraphTest {
         // try to find all switches impacted by at least one contingency
         long start = System.currentTimeMillis();
         Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<OpenSecurityAnalysis.ContingencyContext> contingencyContexts = securityAnalysis.getContingencyContexts(contingencies, allSwitchesToOpen);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, allSwitchesToOpen);
         LOGGER.info("Contingencies contexts calculated from contingencies in {} ms", System.currentTimeMillis() - start);
 
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network,
@@ -166,7 +164,7 @@ class OpenSecurityAnalysisGraphTest {
         start = System.currentTimeMillis();
         List<List<LfContingency>> listLfContingencies = new ArrayList<>();
         for (LfNetwork lfNetwork : lfNetworks) {
-            listLfContingencies.add(securityAnalysis.createContingencies(contingencyContexts, lfNetwork));
+            listLfContingencies.add(securityAnalysis.createContingencies(propagatedContingencies, lfNetwork));
         }
         LOGGER.info("LoadFlow contingencies calculated from contingency contexts in {} ms", System.currentTimeMillis() - start);
 
