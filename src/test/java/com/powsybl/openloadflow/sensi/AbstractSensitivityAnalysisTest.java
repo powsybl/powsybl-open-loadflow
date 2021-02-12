@@ -130,7 +130,7 @@ public abstract class AbstractSensitivityAnalysisTest {
                 .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, loadFlowParameters)
                 .join();
         if (!result.isOk()) {
-            throw new PowsyblException("DC LF failed");
+            throw new PowsyblException("LF failed");
         }
     }
 

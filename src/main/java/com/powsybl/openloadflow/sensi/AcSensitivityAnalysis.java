@@ -16,7 +16,6 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ActiveFlowEquationTerm;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -28,8 +27,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static com.powsybl.openloadflow.OpenLoadFlowProvider.getVoltageInitializer;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -85,7 +82,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         .collect(Collectors.toList());
     }
 
-    private DenseMatrix initRhs(List<SensitivityFactor> factors, LfNetwork lfNetwork, EquationSystem equationSystem) {
+    private DenseMatrix initRhs(List<SensitivityFactor> factors, Network network, LfNetwork lfNetwork, EquationSystem equationSystem) {
         DenseMatrix rhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), factors.size());
 
         for (int index = 0; index < factors.size(); index++) {
@@ -93,17 +90,15 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             if (factor instanceof BranchFlowPerInjectionIncrease) {
                 BranchFlowPerInjectionIncrease injectionIncrease = (BranchFlowPerInjectionIncrease) factor;
-
-                LfBranch branch = lfNetwork.getBranchById(injectionIncrease.getFunction().getBranchId());
-
-                // compute sensitivity regarding side with positive active power flow
-                EquationTerm p = equationSystem.getEquationTerm(SubjectType.BRANCH, branch.getNum(), ClosedBranchSide1ActiveFlowEquationTerm.class);
-                if (p.eval() < 0) {
-                    p = equationSystem.getEquationTerm(SubjectType.BRANCH, branch.getNum(), ClosedBranchSide2ActiveFlowEquationTerm.class);
+                LfBus lfBus = getInjectionLfBus(network, lfNetwork, injectionIncrease);
+                if (lfBus.isSlack()) {
+                    // cannot inject on slack atm (will change with compensation)
+                    // this is because slack is Theta/V, so we do not have any P equation
+                    continue;
                 }
-                for (Variable variable : p.getVariables()) {
-                    rhs.set(variable.getRow(), index, p.der(variable));
-                }
+                Equation pEquation = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow();
+
+                rhs.set(pEquation.getColumn(), index, 1);
             }
         }
 
@@ -119,15 +114,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             SensitivityFactor<?, ?> factor = factors.get(index);
             if (factor instanceof BranchFlowPerInjectionIncrease) {
                 BranchFlowPerInjectionIncrease injectionIncrease = (BranchFlowPerInjectionIncrease) factor;
-
-                String injectionId = injectionIncrease.getVariable().getInjectionId();
-                Injection<?> injection = getInjection(network, injectionId);
-                Bus bus = injection.getTerminal().getBusView().getBus();
-                LfBus lfBus = lfNetwork.getBusById(bus.getId());
-
-                Equation injEq = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                double value = states.get(injEq.getColumn(), index);
-                sensitivityValues.add(new SensitivityValue(factor, value, Double.NaN, Double.NaN));
+                LfBranch branch = lfNetwork.getBranchById(injectionIncrease.getFunction().getBranchId());
+                ClosedBranchSide1ActiveFlowEquationTerm eq = equationSystem.getEquationTerm(SubjectType.BRANCH, branch.getNum(), ClosedBranchSide1ActiveFlowEquationTerm.class);
+                sensitivityValues.add(new SensitivityValue(factor, eq.calculate(states, index), Double.NaN, Double.NaN));
             }
         }
 
@@ -155,16 +144,19 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, new VariableSet());
 
         // create jacobian matrix from current network state
-        VoltageInitializer voltageInitializer = getVoltageInitializer(lfParameters);
+        VoltageInitializer voltageInitializer = new PreviousValueVoltageInitializer();
 
+        // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
         JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer);
+        // ((DenseMatrix) j.getMatrix()).toJamaMatrix().inverse().transpose().print(1, 6);
 
+        // otherwise, defining the rhs matrix will result in integer overflow
+        assert Integer.MAX_VALUE / (equationSystem.getSortedEquationsToSolve().size() * Double.BYTES) > validFactors.size();
         // initialize right hand side from valid factors
-        DenseMatrix rhs = initRhs(validFactors, lfNetwork, equationSystem);
+        DenseMatrix rhs = initRhs(validFactors, network, lfNetwork, equationSystem);
 
         // solve system
-        DenseMatrix states = solve(rhs, j);
-
+        DenseMatrix states = solveTransposed(rhs, j);
         // calculate sensitivity values
         return Pair.of(calculateSensitivityValues(network, factors, lfNetwork, equationSystem, states), Collections.emptyMap());
     }

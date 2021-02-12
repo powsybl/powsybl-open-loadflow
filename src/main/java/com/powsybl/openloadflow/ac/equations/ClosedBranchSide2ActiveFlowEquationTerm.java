@@ -41,6 +41,13 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
 
+    protected double calculate(double ph1, double ph2, double v1, double v2, double a1, double r1) {
+        // todo: may be wrong
+        double theta = ksi - a1 + A2 - ph1 + ph2;
+        double sinTheta = FastMath.sin(theta);
+        return r1 * v1 * (g1 * r1 * v1 + y * r1 * v1 * sinKsi - y * R2 * v2 * sinTheta);
+    }
+
     @Override
     public void update(double[] x) {
         Objects.requireNonNull(x);
