@@ -40,6 +40,7 @@ public class LfNetwork {
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
     public static final double LOW_IMPEDANCE_THRESHOLD = Math.pow(10, -8); // in per unit
+    public static final double HIGH_IMPEDANCE_THRESHOLD = 50.; // in per unit
     private static final double TARGET_VOLTAGE_EPSILON = Math.pow(10, -6);
 
     private final int num;

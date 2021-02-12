@@ -196,7 +196,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         for (Branch<?> branch : loadingContext.branchSet) {
             LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork, breakers);
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork, breakers);
-            addBranch(lfNetwork, LfBranchImpl.create(branch, lfBus1, lfBus2, twtSplitShuntAdmittance), report);
+            if (branch instanceof Line) {
+                double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
+                double zb = nominalV2 * nominalV2 / PerUnit.SB;
+                if (((Line) branch).getX() / zb < LfNetwork.HIGH_IMPEDANCE_THRESHOLD) {
+                    addBranch(lfNetwork, LfBranchImpl.create(branch, lfBus1, lfBus2, twtSplitShuntAdmittance), report);
+                } else {
+                    LOGGER.warn("Discard branch '{}' because has a too high impedance", branch.getId());
+                }
+            } else {
+                addBranch(lfNetwork, LfBranchImpl.create(branch, lfBus1, lfBus2, twtSplitShuntAdmittance), report);
+            }
         }
 
         for (Branch<?> branch : loadingContext.branchSet) {
