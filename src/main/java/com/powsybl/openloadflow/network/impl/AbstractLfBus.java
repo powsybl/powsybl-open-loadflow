@@ -456,7 +456,7 @@ public abstract class AbstractLfBus implements LfBus {
         return residueQ;
     }
 
-    private void updateGeneratorsState(double generationQ, boolean reactiveLimits) {
+    void updateGeneratorsState(double generationQ, boolean reactiveLimits) {
         double qToDispatch = generationQ / PerUnit.SB;
         List<LfGenerator> generatorsThatControlVoltage = new LinkedList<>();
         for (LfGenerator generator : generators) {
