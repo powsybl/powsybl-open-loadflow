@@ -37,14 +37,14 @@ AC Newton-Raphson and linear DC calculation methods:
  - Non impedant branches support; we do not support loops of non impedant branches: in that case, a short number of non impedant lines will be treated with a minimal impedance;
  - HVDC and multiple synchronous component calculation.
  
-Powsybl Open Load Flow has also an implementation of the security analysis API that can be found in Powsybl Core. It supports:
+PowSyBl Open Load Flow has also an implementation of the security analysis API that can be found in PowSyBl Core. It supports:
  - Network in node/breaker topology and in bus/breaker topology;
  - Contingency on branches only;
  - Permanent current limits violations detection on branches;
  - High and low voltage violations detection on buses;
  - Complex cases where the contingency leads to another synchronous component where a new resolution has to be performed are not supported at that stage.
 
-Powsybl Open Load Flow has also an implementation of the sensitivity analysis API that can be found in Powsybl Core. It supports:
+PowSyBl Open Load Flow has also an implementation of the sensitivity analysis API that can be found in PowSyBl Core. It supports:
 - AC calculation: a very minimal version that supports factors of type branch flow per injection increase;
 - DC calculation: the version is much more successful that is fully documented [here](https://www.powsybl.org/pages/documentation/simulation/sensitivity/openlf.html).
 
@@ -131,7 +131,7 @@ PowSyBl Open Load Flow could support more features. The following list is not ex
 We are thinking about increasing features of the loadflow engine:
 - A distributed slack that can be configured by country;
 - Operational limits management;
-- Improve the voltage regulation: switched shunts can have voltage control and it is an on going work. We also have to work on shared controls with different kind of equipments as generators, static var compensators, tap changers and shunts;  
+- Improve the voltage regulation: switched shunts can have voltage control and it is an ongoing work. We also have to work on shared controls with different kinds of equipments as generators, static var compensators, tap changers and shunts;  
 - Allow generators to regulate reactive power, locally or remotely;
 - Support the extension ```VoltagePerReactivePowerControl``` of static var compensators as another alternative of voltage regulation (remotely and locally);
 - Phase control: support of current limiter mode.
