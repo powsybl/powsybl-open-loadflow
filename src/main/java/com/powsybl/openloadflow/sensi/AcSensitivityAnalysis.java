@@ -48,7 +48,18 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     protected void setBaseCaseSensitivityValues(List<SensitivityFactorGroup> factorGroups, DenseMatrix factorsState) {
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             for (LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm> factor : factorGroup.getFactors()) {
-                factor.setBaseCaseSensitivityValue(factor.getEquationTerm().calculate(factorsState, factorGroup.getIndex()));
+                double sensi = factor.getEquationTerm().calculate(factorsState, factorGroup.getIndex());
+                if (factor.getFunctionLfBranch().getId().equals(factorGroup.getId())) {
+                    // add nabla_p eta, fr specific cases
+                    // the only case currently: if we are computing the sensitivity of a phasetap change on itself
+                    Variable phi1Var = factor.getEquationTerm().getVariables()
+                        .stream()
+                        .filter(var -> var.getNum() == factor.getFunctionLfBranch().getNum() && var.getType().equals(VariableType.BRANCH_ALPHA1))
+                        .findAny()
+                        .orElseThrow(() -> new PowsyblException("No alpha_1 variable on the function branch"));
+                    sensi += Math.toRadians(factor.getEquationTerm().der(phi1Var));
+                }
+                factor.setBaseCaseSensitivityValue(sensi);
             }
         }
     }
@@ -83,7 +94,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         checkSensitivities(network, lfNetwork, factors);
         checkLoadFlowParameters(lfParameters);
         // create AC equation system
-        EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, new VariableSet(), new AcEquationSystemCreationParameters(false, true, false));
+        EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, new VariableSet(), new AcEquationSystemCreationParameters(false, false, false, true));
 
         List<LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm>> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, equationSystem, ClosedBranchSide1ActiveFlowEquationTerm.class)).collect(Collectors.toList());
 

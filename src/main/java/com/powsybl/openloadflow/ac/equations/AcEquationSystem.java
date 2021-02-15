@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.openloadflow.dc.equations.BranchA1EquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
@@ -267,6 +268,7 @@ public final class AcEquationSystem {
         EquationTerm q2 = null;
         boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
                 && branch.getDiscretePhaseControl().getMode() == DiscretePhaseControl.Mode.CONTROLLER;
+        deriveA1 = deriveA1 || (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability());
         boolean deriveR1 = creationParameters.isTransformerVoltageControl() && branch.isVoltageController();
         if (bus1 != null && bus2 != null) {
             p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
@@ -302,6 +304,11 @@ public final class AcEquationSystem {
         if (q2 != null) {
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
             branch.setQ2(q2);
+        }
+
+        if (deriveA1 && creationParameters.isForceA1Var()) {
+            equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_ALPHA1)
+                .addTerm(new BranchA1EquationTerm(branch, variableSet));
         }
     }
 
