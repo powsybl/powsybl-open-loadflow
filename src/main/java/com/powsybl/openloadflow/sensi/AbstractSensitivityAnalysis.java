@@ -232,7 +232,7 @@ public abstract class AbstractSensitivityAnalysis {
 
         LfBranchFlowPerInjectionIncrease(SensitivityFactor factor, Network network, LfNetwork lfNetwork, EquationSystem equationSystem, Class<T> clazz) {
             super(factor, lfNetwork, equationSystem, clazz);
-            injectionLfBus = DcSensitivityAnalysis.getInjectionLfBus(network, lfNetwork, (BranchFlowPerInjectionIncrease) factor);
+            injectionLfBus = AbstractSensitivityAnalysis.getInjectionLfBus(network, lfNetwork, (BranchFlowPerInjectionIncrease) factor);
         }
 
         @Override
@@ -283,7 +283,7 @@ public abstract class AbstractSensitivityAnalysis {
                 .entrySet()
                 .stream()
                 .collect(Collectors.toMap(
-                    entry -> DcSensitivityAnalysis.getInjectionLfBus(network, lfNetwork, entry.getKey()),
+                    entry -> AbstractSensitivityAnalysis.getInjectionLfBus(network, lfNetwork, entry.getKey()),
                     entry -> entry.getValue().doubleValue(),
                     Double::sum
                 ));
