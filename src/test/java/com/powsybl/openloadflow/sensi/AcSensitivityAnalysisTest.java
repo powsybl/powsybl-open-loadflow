@@ -200,6 +200,51 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void test4busesFunctionReference() {
+        Network network = FourBusNetworkFactory.create();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+            network.getBranchStream().collect(Collectors.toList()));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+
+        assertEquals(15, result.getSensitivityValues().size());
+
+        assertEquals(0.2512d, getFunctionReference(result, "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.2512d, getFunctionReference(result, "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.2512d, getFunctionReference(result, "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.2512d, getFunctionReference(result, "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.4976d, getFunctionReference(result, "l13"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void test4busesFunctionReferenceWithTransformer() {
+        Network network = FourBusNetworkFactory.createWithTransfoCompensed();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream()
+            .map(AcSensitivityAnalysisTest::createBranchFlow)
+            .map(branchFlow -> new BranchFlowPerPSTAngle(branchFlow, new PhaseTapChangerAngle("l23", "l23", "l23"))).collect(Collectors.toList());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+
+        assertEquals(5, result.getSensitivityValues().size());
+
+        assertEquals(0.2296d, getFunctionReference(result, "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.3154d, getFunctionReference(result, "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.2296d, getFunctionReference(result, "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.4549d, getFunctionReference(result, "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.3154d, getFunctionReference(result, "l23"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testInjectionNotFound() {
         testInjectionNotFound(false);
     }

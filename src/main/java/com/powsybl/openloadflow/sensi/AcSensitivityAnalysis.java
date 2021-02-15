@@ -71,14 +71,22 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             for (LfSensitivityFactor<?> factor : factorGroup.getFactors()) {
-                sensitivityValues.add(new SensitivityValue(factor.getFactor(), factor.getBaseSensitivityValue() * PerUnit.SB, Double.NaN, Double.NaN));
+                sensitivityValues.add(new SensitivityValue(factor.getFactor(), factor.getBaseSensitivityValue() * PerUnit.SB, factor.getFunctionReference(), Double.NaN));
             }
         }
         return sensitivityValues;
     }
 
+    protected void setReferenceActivePowerFlows(LfNetwork network, EquationSystem equationSystem,
+                                                       List<LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm>> factors, LoadFlowParameters lfParameters) {
+        for (LfSensitivityFactor factor : factors) {
+            factor.setFunctionReference(factor.getFunctionLfBranch().getP1() * PerUnit.SB);
+        }
+    }
+
     /**
      * https://people.montefiore.uliege.be/vct/elec0029/lf.pdf / Equation 32 is transposed
+     * WARNING: This function assumes that a loadflow has been run before
      */
     public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors, List<PropagatedContingency> contingencies, LoadFlowParameters lfParameters,
                                           OpenLoadFlowParameters lfParametersExt) {
@@ -134,7 +142,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         // solve system
         solveTransposed(factorsStates, j);
-
+        setReferenceActivePowerFlows(lfNetwork, equationSystem, lfFactors, lfParameters);
         setBaseCaseSensitivityValues(factorGroups, factorsStates);
         // calculate sensitivity values
         return Pair.of(calculateSensitivityValues(network, factorGroups, lfNetwork, equationSystem, factorsStates), Collections.emptyMap());
