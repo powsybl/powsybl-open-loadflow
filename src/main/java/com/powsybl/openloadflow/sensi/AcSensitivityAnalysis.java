@@ -157,15 +157,16 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         // create jacobian matrix from current network state
         VoltageInitializer voltageInitializer = getVoltageInitializer(lfParameters);
 
-        JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer);
+        try (JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer)) {
 
-        // initialize right hand side from valid factors
-        DenseMatrix rhs = initRhs(validFactors, lfNetwork, equationSystem);
+            // initialize right hand side from valid factors
+            DenseMatrix rhs = initRhs(validFactors, lfNetwork, equationSystem);
 
-        // solve system
-        DenseMatrix states = solve(rhs, j);
+            // solve system
+            j.solve(rhs);
 
-        // calculate sensitivity values
-        return Pair.of(calculateSensitivityValues(network, factors, lfNetwork, equationSystem, states), Collections.emptyMap());
+            // calculate sensitivity values
+            return Pair.of(calculateSensitivityValues(network, factors, lfNetwork, equationSystem, rhs), Collections.emptyMap());
+        }
     }
 }
