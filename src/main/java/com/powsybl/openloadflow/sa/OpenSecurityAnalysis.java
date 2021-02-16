@@ -26,6 +26,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.BusState;
+import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
@@ -36,7 +37,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -342,53 +342,6 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
     }
 
     List<LfContingency> createContingencies(List<PropagatedContingency> propagatedContingencies, LfNetwork network) {
-        // create connectivity data structure
-        GraphDecrementalConnectivity<LfBus> connectivity = network.createDecrementalConnectivity(connectivityProvider);
-
-        List<LfContingency> contingencies = new ArrayList<>();
-        Iterator<PropagatedContingency> contingencyContextIt = propagatedContingencies.iterator();
-        while (contingencyContextIt.hasNext()) {
-            PropagatedContingency propagatedContingency = contingencyContextIt.next();
-
-            // find contingency branches that are part of this network
-            Set<LfBranch> branches = new HashSet<>(1);
-            Iterator<String> branchIt = propagatedContingency.getBranchIdsToOpen().iterator();
-            while (branchIt.hasNext()) {
-                String branchId = branchIt.next();
-                LfBranch branch = network.getBranchById(branchId);
-                if (branch != null) {
-                    branches.add(branch);
-                    branchIt.remove();
-                }
-            }
-
-            // if no more branch in the contingency, remove contingency from the list because
-            // it won't be part of another network
-            if (propagatedContingency.getBranchIdsToOpen().isEmpty()) {
-                contingencyContextIt.remove();
-            }
-
-            // check if contingency split this network into multiple components
-            if (branches.isEmpty()) {
-                continue;
-            }
-
-            // update connectivity with triggered branches
-            for (LfBranch branch : branches) {
-                connectivity.cut(branch.getBus1(), branch.getBus2());
-            }
-
-            // add to contingency description buses and branches that won't be part of the main connected
-            // component in post contingency state
-            Set<LfBus> buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
-            buses.forEach(b -> branches.addAll(b.getBranches()));
-
-            // reset connectivity to discard triggered branches
-            connectivity.reset();
-
-            contingencies.add(new LfContingency(propagatedContingency.getContingency(), buses, branches));
-        }
-
-        return contingencies;
+        return LfContingency.createContingencies(propagatedContingencies, network, network.createDecrementalConnectivity(connectivityProvider));
     }
 }
