@@ -23,6 +23,7 @@ import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -72,10 +73,14 @@ public abstract class AbstractSensitivityAnalysisTest {
     }
 
     protected static double getValue(SensitivityAnalysisResult result, String variableId, String functionId) {
-        return result.getSensitivityValues().stream().filter(value -> value.getFactor().getVariable().getId().equals(variableId) && value.getFactor().getFunction().getId().equals(functionId))
-                .findFirst()
-                .map(SensitivityValue::getValue)
-                .orElse(Double.NaN);
+        return getValue(result.getSensitivityValues(), variableId, functionId);
+    }
+
+    protected static double getValue(Collection<SensitivityValue> result, String variableId, String functionId) {
+        return result.stream().filter(value -> value.getFactor().getVariable().getId().equals(variableId) && value.getFactor().getFunction().getId().equals(functionId))
+            .findFirst()
+            .map(SensitivityValue::getValue)
+            .orElse(Double.NaN);
     }
 
     protected static double getContingencyValue(SensitivityAnalysisResult result, String contingencyId, String variableId, String functionId) {
@@ -93,17 +98,18 @@ public abstract class AbstractSensitivityAnalysisTest {
     }
 
     protected static double getFunctionReference(SensitivityAnalysisResult result, String functionId) {
-        return result.getSensitivityValues().stream().filter(value -> value.getFactor().getFunction().getId().equals(functionId))
-                .findFirst()
-                .map(SensitivityValue::getFunctionReference)
-                .orElse(Double.NaN);
+        return getFunctionReference(result.getSensitivityValues(), functionId);
     }
 
     protected static double getContingencyFunctionReference(SensitivityAnalysisResult result, String functionId, String contingencyId) {
-        return result.getSensitivityValuesContingencies().get(contingencyId).stream().filter(value -> value.getFactor().getFunction().getId().equals(functionId))
-                     .findFirst()
-                     .map(SensitivityValue::getFunctionReference)
-                     .orElse(Double.NaN);
+        return getFunctionReference(result.getSensitivityValuesContingencies().get(contingencyId), functionId);
+    }
+
+    protected static double getFunctionReference(Collection<SensitivityValue> result, String functionId) {
+        return result.stream().filter(value -> value.getFactor().getFunction().getId().equals(functionId))
+            .findFirst()
+            .map(SensitivityValue::getFunctionReference)
+            .orElse(Double.NaN);
     }
 
     protected void runAcLf(Network network) {

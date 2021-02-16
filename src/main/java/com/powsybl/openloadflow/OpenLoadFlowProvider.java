@@ -118,7 +118,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
-                                                   OpenLoadFlowParameters parametersExt, boolean breakers) {
+                                                          OpenLoadFlowParameters parametersExt, boolean breakers) {
+        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false);
+    }
+
+    public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
+                                                   OpenLoadFlowParameters parametersExt, boolean breakers, boolean forceA1Var) {
 
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
@@ -162,7 +167,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
                 parameters.isTwtSplitShuntAdmittance(),
                 breakers,
-                parametersExt.getPlausibleActivePowerLimit());
+                parametersExt.getPlausibleActivePowerLimit(),
+                forceA1Var);
     }
 
     private CompletableFuture<LoadFlowResult> runAc(Network network, String workingStateId, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
