@@ -69,7 +69,7 @@ public class LfContingency {
     }
 
     public static List<LfContingency> createContingencies(List<PropagatedContingency> propagatedContingencies, LfNetwork network,
-                                                          GraphDecrementalConnectivity<LfBus> connectivity) {
+                                                          GraphDecrementalConnectivity<LfBus> connectivity, boolean useSmallComponents) {
         List<LfContingency> contingencies = new ArrayList<>();
         Iterator<PropagatedContingency> contingencyContextIt = propagatedContingencies.iterator();
         while (contingencyContextIt.hasNext()) {
@@ -105,7 +105,13 @@ public class LfContingency {
 
             // add to contingency description buses and branches that won't be part of the main connected
             // component in post contingency state
-            Set<LfBus> buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
+            Set<LfBus> buses;
+            if (useSmallComponents) {
+                buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
+            } else {
+                int slackBusComponent = connectivity.getComponentNumber(network.getSlackBus());
+                buses = network.getBuses().stream().filter(b -> connectivity.getComponentNumber(b) != slackBusComponent).collect(Collectors.toSet());
+            }
             buses.forEach(b -> branches.addAll(b.getBranches()));
 
             // reset connectivity to discard triggered branches
