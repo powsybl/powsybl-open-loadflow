@@ -18,7 +18,6 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -99,21 +98,9 @@ class AcLoadFlowEurostagTutorialExample1Test {
     @Test
     void dcLfVoltageInitTest() {
         parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
-        boolean[] stateVectorInitialized = new boolean[1];
-//        parametersExt.getAdditionalObservers().add(new DefaultAcLoadFlowObserver() {
-//            @Override
-//            public void afterStateVectorCreation(double[] x, int iteration) {
-//                assertEquals(0, x[1], LoadFlowAssert.DELTA_ANGLE);
-//                assertEquals(-0.043833, x[3], LoadFlowAssert.DELTA_ANGLE);
-//                assertEquals(-0.112393, x[5], LoadFlowAssert.DELTA_ANGLE);
-//                assertEquals(-0.220241, x[7], LoadFlowAssert.DELTA_ANGLE);
-//                stateVectorInitialized[0] = true;
-//            }
-//        });
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
-        assertTrue(stateVectorInitialized[0]);
     }
 
     @Test

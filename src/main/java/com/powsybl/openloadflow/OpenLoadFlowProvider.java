@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow;
 
 import com.google.auto.service.AutoService;
+import com.google.common.base.Stopwatch;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
@@ -34,6 +35,7 @@ import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.util.Markers;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.openloadflow.util.Profiler;
 import com.powsybl.tools.PowsyblCoreVersion;
@@ -45,6 +47,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static com.powsybl.openloadflow.network.LfNetwork.LOW_IMPEDANCE_THRESHOLD;
 
@@ -162,111 +165,102 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return LOGGER.isDebugEnabled() ? Profiler.create() : Profiler.NO_OP;
     }
 
-    private CompletableFuture<LoadFlowResult> runAc(Network network, String workingStateId, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        return CompletableFuture.supplyAsync(() -> {
-            network.getVariantManager().setWorkingVariant(workingStateId);
+    private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt, false);
+        Profiler profiler = createProfiler();
+        List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, acParameters, profiler);
 
-            AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt, false);
-            Profiler profiler = createProfiler();
-            List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, acParameters, profiler);
+        Networks.resetState(network, profiler);
 
-            Networks.resetState(network, profiler);
+        boolean ok = results.stream().anyMatch(result -> result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED);
+        // reset slack buses if at least one component has converged
+        if (ok && parameters.isWriteSlackBus()) {
+            SlackTerminal.reset(network);
+        }
 
-            boolean ok = results.stream().anyMatch(result -> result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED);
-            // reset slack buses if at least one component has converged
-            if (ok && parameters.isWriteSlackBus()) {
-                SlackTerminal.reset(network);
+        List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
+        for (AcLoadFlowResult result : results) {
+            // update network state
+            result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(), parameters.isWriteSlackBus(),
+                parameters.isPhaseShifterRegulationOn(), parameters.isTransformerVoltageControlOn());
+
+            LoadFlowResult.ComponentResult.Status status;
+            switch (result.getNewtonRaphsonStatus()) {
+                case CONVERGED:
+                    status = LoadFlowResult.ComponentResult.Status.CONVERGED;
+                    break;
+                case MAX_ITERATION_REACHED:
+                    status = LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
+                    break;
+                case SOLVER_FAILED:
+                    status = LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
+                    break;
+                default:
+                    status = LoadFlowResult.ComponentResult.Status.FAILED;
+                    break;
             }
+            componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNum(),
+                                                                            status,
+                                                                            result.getNewtonRaphsonIterations(),
+                                                                            result.getNetwork().getSlackBus().getId(),
+                                                                            result.getSlackBusActivePowerMismatch() * PerUnit.SB));
+        }
 
-            List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
-            for (AcLoadFlowResult result : results) {
-                // update network state
-                result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(), parameters.isWriteSlackBus(),
-                    parameters.isPhaseShifterRegulationOn(), parameters.isTransformerVoltageControlOn());
+        // zero or low impedance branch flows computation
+        if (ok) {
+            new Z0FlowsCompletion(network, line -> {
+                // to be consistent with low impedance criteria used in DcEquationSystem and AcEquationSystem
+                double nominalV = line.getTerminal1().getVoltageLevel().getNominalV();
+                double zb = nominalV * nominalV / PerUnit.SB;
+                double z = Math.hypot(line.getR(), line.getX());
+                return z / zb <= LOW_IMPEDANCE_THRESHOLD;
+            }).complete();
+        }
 
-                LoadFlowResult.ComponentResult.Status status;
-                switch (result.getNewtonRaphsonStatus()) {
-                    case CONVERGED:
-                        status = LoadFlowResult.ComponentResult.Status.CONVERGED;
-                        break;
-                    case MAX_ITERATION_REACHED:
-                        status = LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
-                        break;
-                    case SOLVER_FAILED:
-                        status = LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
-                        break;
-                    default:
-                        status = LoadFlowResult.ComponentResult.Status.FAILED;
-                        break;
-                }
-                componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNum(),
-                                                                                status,
-                                                                                result.getNewtonRaphsonIterations(),
-                                                                                result.getNetwork().getSlackBus().getId(),
-                                                                                result.getSlackBusActivePowerMismatch() * PerUnit.SB));
-            }
+        profiler.printSummary();
 
-            // zero or low impedance branch flows computation
-            if (ok) {
-                new Z0FlowsCompletion(network, line -> {
-                    // to be consistent with low impedance criteria used in DcEquationSystem and AcEquationSystem
-                    double nominalV = line.getTerminal1().getVoltageLevel().getNominalV();
-                    double zb = nominalV * nominalV / PerUnit.SB;
-                    double z = Math.hypot(line.getR(), line.getX());
-                    return z / zb <= LOW_IMPEDANCE_THRESHOLD;
-                }).complete();
-            }
-
-            profiler.printSummary();
-
-            return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
-        });
+        return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
-    private CompletableFuture<LoadFlowResult> runDc(Network network, String workingStateId, LoadFlowParameters parameters,
-                                                    OpenLoadFlowParameters parametersExt) {
-        return CompletableFuture.supplyAsync(() -> {
-            network.getVariantManager().setWorkingVariant(workingStateId);
+    private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
-            SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
+        LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
+        LOGGER.info("Use transformer ratio: {}", parametersExt.isDcUseTransformerRatio());
+        LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
+        LOGGER.info("Balance type: {}", parameters.getBalanceType());
+        LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
 
-            LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
-            LOGGER.info("Use transformer ratio: {}", parametersExt.isDcUseTransformerRatio());
-            LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
-            LOGGER.info("Balance type: {}", parameters.getBalanceType());
-            LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
+        DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector, matrixFactory, true,
+                parametersExt.isDcUseTransformerRatio(), parameters.isDistributedSlack(), parameters.getBalanceType(),
+                forcePhaseControlOffAndAddAngle1Var, parametersExt.getPlausibleActivePowerLimit());
+        Profiler profiler = createProfiler();
 
-            DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector, matrixFactory, true,
-                    parametersExt.isDcUseTransformerRatio(), parameters.isDistributedSlack(), parameters.getBalanceType(),
-                    forcePhaseControlOffAndAddAngle1Var, parametersExt.getPlausibleActivePowerLimit());
-            Profiler profiler = createProfiler();
+        DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters, profiler)
+                .run();
 
-            DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters, profiler)
-                    .run();
+        Networks.resetState(network, profiler);
 
-            Networks.resetState(network, profiler);
+        if (result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED && parameters.isWriteSlackBus()) {
+            SlackTerminal.reset(network);
+        }
 
-            if (result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED && parameters.isWriteSlackBus()) {
-                SlackTerminal.reset(network);
-            }
+        result.getNetwork().updateState(false, parameters.isWriteSlackBus(), parameters.isPhaseShifterRegulationOn(),
+                parameters.isTransformerVoltageControlOn());
 
-            result.getNetwork().updateState(false, parameters.isWriteSlackBus(), parameters.isPhaseShifterRegulationOn(),
-                    parameters.isTransformerVoltageControlOn());
+        LoadFlowResult.ComponentResult componentResult = new LoadFlowResultImpl.ComponentResultImpl(
+                result.getNetwork().getNum(),
+                result.getStatus(),
+                0,
+                result.getNetwork().getSlackBus().getId(),
+                result.getSlackBusActivePowerMismatch() * PerUnit.SB);
 
-            LoadFlowResult.ComponentResult componentResult = new LoadFlowResultImpl.ComponentResultImpl(
-                    result.getNetwork().getNum(),
-                    result.getStatus(),
-                    0,
-                    result.getNetwork().getSlackBus().getId(),
-                    result.getSlackBusActivePowerMismatch() * PerUnit.SB);
+        profiler.printSummary();
 
-            profiler.printSummary();
-
-            return new LoadFlowResultImpl(result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED,
-                                          Collections.emptyMap(),
-                                          null,
-                                          Collections.singletonList(componentResult));
-        });
+        return new LoadFlowResultImpl(result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED,
+                                      Collections.emptyMap(),
+                                      null,
+                                      Collections.singletonList(componentResult));
     }
 
     @Override
@@ -278,7 +272,18 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         OpenLoadFlowParameters parametersExt = getParametersExt(parameters);
 
-        return parameters.isDc() ? runDc(network, workingVariantId, parameters, parametersExt)
-                                    : runAc(network, workingVariantId, parameters, parametersExt);
+        return CompletableFuture.supplyAsync(() -> {
+            network.getVariantManager().setWorkingVariant(workingVariantId);
+
+            Stopwatch stopwatch = Stopwatch.createStarted();
+
+            LoadFlowResult result = parameters.isDc() ? runDc(network, parameters, parametersExt)
+                                                      : runAc(network, parameters, parametersExt);
+
+            stopwatch.stop();
+            LOGGER.info(Markers.PERFORMANCE_MARKER, "Load flow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+
+            return result;
+        });
     }
 }

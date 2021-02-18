@@ -68,6 +68,19 @@ public interface Profiler {
             Task(String name) {
                 this.name = Objects.requireNonNull(name);
             }
+
+            void stop() {
+                stopwatch.stop();
+            }
+
+            void removeTime(long time) {
+                timeToRemove += time;
+            }
+
+            long getOwnedElapsedTime() {
+                long elapsed = stopwatch.elapsed(TimeUnit.MICROSECONDS);
+                return elapsed - timeToRemove;
+            }
         }
 
         private final Deque<Task> tasks = new ArrayDeque<>();
@@ -83,15 +96,14 @@ public interface Profiler {
         public void afterTask(String taskName) {
             Objects.requireNonNull(taskName);
             Task task = tasks.pop();
-            task.stopwatch.stop();
+            task.stop();
             if (!taskName.equals(task.name)) {
                 throw new IllegalStateException("Task nesting issue, last is: " + task.name);
             }
-            long elapsed = task.stopwatch.elapsed(TimeUnit.MICROSECONDS);
-            long ownedElapsed = elapsed - task.timeToRemove;
+            long ownedElapsed = task.getOwnedElapsedTime();
             // remove this time from all parent tasks
             for (Task parentTask : tasks) {
-                parentTask.timeToRemove += ownedElapsed;
+                parentTask.removeTime(ownedElapsed);
             }
             cumulatedTimePerTaskName.compute(taskName, (s, time) -> {
                 if (time == null) {
@@ -99,7 +111,7 @@ public interface Profiler {
                 }
                 return time + ownedElapsed;
             });
-            LOGGER.debug(Markers.PERFORMANCE_MARKER, "Task '{}' done in {} us", taskName, ownedElapsed);
+            LOGGER.trace(Markers.PERFORMANCE_MARKER, "Task '{}' done in {} us", taskName, ownedElapsed);
         }
 
         @Override
@@ -107,7 +119,7 @@ public interface Profiler {
             if (LOGGER.isDebugEnabled()) {
                 StringWriter writer = new StringWriter();
                 try (AsciiTableFormatter formatter = new AsciiTableFormatter(writer,
-                        "Detailed profiling",
+                        "Profiling summary",
                         new Column("Task name"),
                         new Column("Time (ms)"))) {
                     for (Map.Entry<String, Long> e : cumulatedTimePerTaskName.entrySet()) {
