@@ -88,11 +88,11 @@ public interface Profiler {
                 throw new IllegalStateException("Task nesting issue, last is: " + task.name);
             }
             long elapsed = task.stopwatch.elapsed(TimeUnit.MICROSECONDS);
+            long ownedElapsed = elapsed - task.timeToRemove;
             // remove this time from all parent tasks
             for (Task parentTask : tasks) {
-                parentTask.timeToRemove += elapsed;
+                parentTask.timeToRemove += ownedElapsed;
             }
-            long ownedElapsed = elapsed - task.timeToRemove;
             cumulatedTimePerTaskName.compute(taskName, (s, time) -> {
                 if (time == null) {
                     return ownedElapsed;
