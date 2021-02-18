@@ -95,11 +95,11 @@ public interface Profiler {
             long ownedElapsed = elapsed - task.timeToRemove;
             cumulatedTimePerTaskName.compute(taskName, (s, time) -> {
                 if (time == null) {
-                    return 0L;
+                    return ownedElapsed;
                 }
                 return time + ownedElapsed;
             });
-            LOGGER.trace(Markers.PERFORMANCE_MARKER, "Task '{}' done in {} us", taskName, ownedElapsed);
+            LOGGER.debug(Markers.PERFORMANCE_MARKER, "Task '{}' done in {} us", taskName, ownedElapsed);
         }
 
         @Override
@@ -109,9 +109,9 @@ public interface Profiler {
                 try (AsciiTableFormatter formatter = new AsciiTableFormatter(writer,
                         "Detailed profiling",
                         new Column("Task name"),
-                        new Column("Cumulated time (us)"))) {
+                        new Column("Time (ms)"))) {
                     for (Map.Entry<String, Long> e : cumulatedTimePerTaskName.entrySet()) {
-                        formatter.writeCell(e.getKey()).writeCell(e.getValue().intValue());
+                        formatter.writeCell(e.getKey()).writeCell(e.getValue().intValue() / 1000);
                     }
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);

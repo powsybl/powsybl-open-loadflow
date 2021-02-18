@@ -128,7 +128,7 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
     }
 
     private void initMatrix() {
-        profiler.beforeTask("CreateJacobian");
+        profiler.beforeTask("JacobianCreation");
 
         int rowCount = equationSystem.getSortedEquationsToSolve().size();
         int columnCount = equationSystem.getSortedVariablesToFind().size();
@@ -155,11 +155,11 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
             }
         }
 
-        profiler.afterTask("CreateJacobian");
+        profiler.afterTask("JacobianCreation");
     }
 
     private void updateValues() {
-        profiler.beforeTask("UpdateJacobian");
+        profiler.beforeTask("JacobianUpdate");
 
         matrix.reset();
         for (PartialDerivative partialDerivative : partialDerivatives) {
@@ -173,7 +173,7 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
             lu.update();
         }
 
-        profiler.afterTask("UpdateJacobian");
+        profiler.afterTask("JacobianUpdate");
     }
 
     public Matrix getMatrix() {
@@ -199,45 +199,45 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
     private LUDecomposition getLUDecomposition() {
         Matrix matrix = getMatrix();
         if (lu == null) {
-            profiler.beforeTask("DecomposeLU");
+            profiler.beforeTask("LuDecomposition");
 
             lu = matrix.decomposeLU();
 
-            profiler.afterTask("DecomposeLU");
+            profiler.afterTask("LuDecomposition");
         }
         return lu;
     }
 
     public void solve(double[] b) {
-        profiler.beforeTask("Solve");
+        profiler.beforeTask("EquationSystemSolve");
 
         getLUDecomposition().solve(b);
 
-        profiler.afterTask("Solve");
+        profiler.afterTask("EquationSystemSolve");
     }
 
     public void solveTransposed(double[] b) {
-        profiler.beforeTask("Solve");
+        profiler.beforeTask("EquationSystemSolve");
 
         getLUDecomposition().solveTransposed(b);
 
-        profiler.afterTask("Solve");
+        profiler.afterTask("EquationSystemSolve");
     }
 
     public void solve(DenseMatrix b) {
-        profiler.beforeTask("Solve");
+        profiler.beforeTask("EquationSystemSolve");
 
         getLUDecomposition().solve(b);
 
-        profiler.afterTask("Solve");
+        profiler.afterTask("EquationSystemSolve");
     }
 
     public void solveTransposed(DenseMatrix b) {
-        profiler.beforeTask("Solve");
+        profiler.beforeTask("EquationSystemSolve");
 
         getLUDecomposition().solveTransposed(b);
 
-        profiler.afterTask("Solve");
+        profiler.afterTask("EquationSystemSolve");
     }
 
     @Override

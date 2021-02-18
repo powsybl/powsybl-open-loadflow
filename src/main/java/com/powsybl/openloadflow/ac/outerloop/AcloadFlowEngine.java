@@ -133,7 +133,7 @@ public class AcloadFlowEngine implements AutoCloseable {
     }
 
     public AcLoadFlowResult run() {
-        profiler.beforeTask("AcLoadFlow");
+        profiler.beforeTask("AcLoadFlowRun");
 
         if (equationSystem == null) {
             LOGGER.info("Start AC loadflow on network {}", network.getNum());
@@ -185,7 +185,7 @@ public class AcloadFlowEngine implements AutoCloseable {
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", network.getNum(), result);
 
-        profiler.afterTask("AcLoadFlow");
+        profiler.afterTask("AcLoadFlowRun");
 
         return result;
     }

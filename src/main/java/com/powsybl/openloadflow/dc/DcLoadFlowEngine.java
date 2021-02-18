@@ -69,7 +69,7 @@ public class DcLoadFlowEngine {
     }
 
     public DcLoadFlowResult run() {
-        profiler.beforeTask("DcLoadFlow");
+        profiler.beforeTask("DcLoadFlowRun");
 
         // only process main (largest) connected component
         LfNetwork network = networks.get(0);
@@ -107,7 +107,7 @@ public class DcLoadFlowEngine {
                 bus.setV(Double.NaN);
             }
 
-            profiler.afterTask("DcLoadFlow");
+            profiler.afterTask("DcLoadFlowRun");
 
             LOGGER.info("Dc loadflow complete (status={})", status);
 
