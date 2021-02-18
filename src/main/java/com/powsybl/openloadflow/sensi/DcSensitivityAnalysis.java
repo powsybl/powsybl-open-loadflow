@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.Network;
@@ -27,6 +28,7 @@ import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
+import com.powsybl.sensitivity.factors.BranchIntensityPerPSTAngle;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -376,6 +378,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
 
         return elementsToReconnect;
+    }
+
+    @Override
+    public void checkSensitivities(Network network, LfNetwork lfNetwork, List<SensitivityFactor> factors) {
+        super.checkSensitivities(network, lfNetwork, factors);
+        for (SensitivityFactor<?, ?> factor : factors) {
+            if (factor instanceof BranchIntensityPerPSTAngle) {
+                throw new PowsyblException("BranchIntensityPerPSTAngle factors are not supported in DC yet");
+            }
+        }
     }
 
     public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors,
