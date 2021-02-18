@@ -67,7 +67,7 @@ public class NewtonRaphson {
     private NewtonRaphsonStatus runIteration(double[] fx, double[] targets, double[] x) {
         LOGGER.debug("Start iteration {}", iteration);
 
-        profiler.beforeTask("NewtownRaphsonIterationRun");
+        profiler.beforeTask("NewtonRaphsonIterationRun");
 
         try {
             // solve f(x) = j * dx
@@ -107,7 +107,7 @@ public class NewtonRaphson {
             return null;
         } finally {
             iteration++;
-            profiler.afterTask("NewtownRaphsonIterationRun");
+            profiler.afterTask("NewtonRaphsonIterationRun");
         }
     }
 
