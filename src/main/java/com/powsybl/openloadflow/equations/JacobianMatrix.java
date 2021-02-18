@@ -11,6 +11,7 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.util.Profiler;
 
 import java.util.*;
 
@@ -50,6 +51,8 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
 
     private final MatrixFactory matrixFactory;
 
+    private final Profiler profiler;
+
     private Matrix matrix;
 
     private List<PartialDerivative> partialDerivatives;
@@ -64,9 +67,10 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
 
     private Status status = Status.MATRIX_INVALID;
 
-    public JacobianMatrix(EquationSystem equationSystem, MatrixFactory matrixFactory) {
+    public JacobianMatrix(EquationSystem equationSystem, MatrixFactory matrixFactory, Profiler profiler) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
+        this.profiler = Objects.requireNonNull(profiler);
         equationSystem.addListener(this);
     }
 
@@ -124,6 +128,8 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
     }
 
     private void initMatrix() {
+        profiler.beforeTask("CreateJacobian");
+
         int rowCount = equationSystem.getSortedEquationsToSolve().size();
         int columnCount = equationSystem.getSortedVariablesToFind().size();
         if (rowCount != columnCount) {
@@ -148,9 +154,13 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
                 }
             }
         }
+
+        profiler.afterTask("CreateJacobian");
     }
 
     private void updateValues() {
+        profiler.beforeTask("UpdateJacobian");
+
         matrix.reset();
         for (PartialDerivative partialDerivative : partialDerivatives) {
             EquationTerm equationTerm = partialDerivative.getEquationTerm();
@@ -162,6 +172,8 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
         if (lu != null) {
             lu.update();
         }
+
+        profiler.afterTask("UpdateJacobian");
     }
 
     public Matrix getMatrix() {
@@ -186,25 +198,45 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
 
     private LUDecomposition getLUDecomposition() {
         if (lu == null) {
+            profiler.beforeTask("DecomposeLU");
+
             lu = getMatrix().decomposeLU();
+
+            profiler.afterTask("DecomposeLU");
         }
         return lu;
     }
 
     public void solve(double[] b) {
+        profiler.beforeTask("Solve");
+
         getLUDecomposition().solve(b);
+
+        profiler.afterTask("Solve");
     }
 
     public void solveTransposed(double[] b) {
+        profiler.beforeTask("Solve");
+
         getLUDecomposition().solveTransposed(b);
+
+        profiler.afterTask("Solve");
     }
 
     public void solve(DenseMatrix b) {
+        profiler.beforeTask("Solve");
+
         getLUDecomposition().solve(b);
+
+        profiler.afterTask("Solve");
     }
 
     public void solveTransposed(DenseMatrix b) {
+        profiler.beforeTask("Solve");
+
         getLUDecomposition().solveTransposed(b);
+
+        profiler.afterTask("Solve");
     }
 
     @Override

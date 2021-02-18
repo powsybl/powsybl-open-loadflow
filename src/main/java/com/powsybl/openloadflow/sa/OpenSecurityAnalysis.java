@@ -26,6 +26,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.BusState;
+import com.powsybl.openloadflow.util.Profiler;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
@@ -109,12 +110,14 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters, lfParametersExt, true);
 
+        Profiler profiler = Profiler.create();
+
         // create networks including all necessary switches
-        List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters);
+        List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters, profiler);
 
         // run simulation on largest network
         LfNetwork largestNetwork = lfNetworks.get(0);
-        SecurityAnalysisResult result = runSimulations(largestNetwork, propagatedContingencies, acParameters, lfParameters, lfParametersExt);
+        SecurityAnalysisResult result = runSimulations(largestNetwork, propagatedContingencies, acParameters, lfParameters, lfParametersExt, profiler);
 
         stopwatch.stop();
         LOGGER.info("Security analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
@@ -122,7 +125,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         return result;
     }
 
-    List<LfNetwork> createNetworks(Set<Switch> allSwitchesToOpen, AcLoadFlowParameters acParameters) {
+    List<LfNetwork> createNetworks(Set<Switch> allSwitchesToOpen, AcLoadFlowParameters acParameters, Profiler profiler) {
         List<LfNetwork> lfNetworks;
         String tmpVariantId = "olf-tmp-" + UUID.randomUUID().toString();
         network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
@@ -130,7 +133,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             network.getSwitchStream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                 .forEach(sw -> sw.setRetained(false));
             allSwitchesToOpen.forEach(sw -> sw.setRetained(true));
-            lfNetworks = AcloadFlowEngine.createNetworks(network, acParameters);
+            lfNetworks = AcloadFlowEngine.createNetworks(network, acParameters, profiler);
         } finally {
             network.getVariantManager().removeVariant(tmpVariantId);
         }
@@ -195,12 +198,13 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
     }
 
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
-                                                  LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
+                                                  LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters,
+                                                  Profiler profiler) {
         // create a contingency list that impact the network
         List<LfContingency> contingencies = createContingencies(propagatedContingencies, network);
 
         // run pre-contingency simulation
-        try (AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters)) {
+        try (AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters, profiler)) {
             AcLoadFlowResult preContingencyLoadFlowResult = engine.run();
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             List<LimitViolation> preContingencyLimitViolations = new ArrayList<>();
@@ -228,7 +232,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                         bus.setDisabled(true);
                     }
 
-                    distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
+                    distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters, profiler);
 
                     PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency);
                     postContingencyResults.add(postContingencyResult);
@@ -246,10 +250,11 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         }
     }
 
-    public static void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
+    public static void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters,
+                                           OpenLoadFlowParameters openLoadFlowParameters, Profiler profiler) {
         if (loadFlowParameters.isDistributedSlack() && Math.abs(mismatch) > 0) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(loadFlowParameters.getBalanceType(), openLoadFlowParameters.isLoadPowerFactorConstant());
-            activePowerDistribution.run(network, mismatch);
+            activePowerDistribution.run(network, mismatch, profiler);
         }
     }
 

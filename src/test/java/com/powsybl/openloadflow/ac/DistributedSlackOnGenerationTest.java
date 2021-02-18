@@ -18,6 +18,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.Profiler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -122,7 +123,7 @@ class DistributedSlackOnGenerationTest {
     @SuppressWarnings("unchecked")
     void zeroDroopAndParticipatingTest() {
         g1.getExtension(ActivePowerControl.class).setDroop(0);
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector(), Profiler.NO_OP).get(0);
         LfBus lfB1 = lfNetwork.getBusById("b1_vl_0");
         LfGenerator lfG1 = lfB1.getGenerators().stream().filter(g -> g.getId().equals("g1")).findFirst().orElseThrow(AssertionError::new);
         assertTrue(lfG1.isParticipating());

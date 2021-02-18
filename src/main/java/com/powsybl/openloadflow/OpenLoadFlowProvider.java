@@ -35,6 +35,7 @@ import com.powsybl.openloadflow.network.SlackBusSelector;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
+import com.powsybl.openloadflow.util.Profiler;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,14 +82,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     @Override
     public String getVersion() {
         return new PowsyblCoreVersion().getMavenProjectVersion();
-    }
-
-    private static AcLoadFlowObserver getObserver(OpenLoadFlowParameters parametersExt) {
-        List<AcLoadFlowObserver> observers = new ArrayList<>(parametersExt.getAdditionalObservers().size() + 2);
-        observers.add(new AcLoadFlowLogger());
-        observers.add(new AcLoadFlowProfiler());
-        observers.addAll(parametersExt.getAdditionalObservers());
-        return AcLoadFlowObserver.of(observers);
     }
 
     public static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters) {
@@ -155,7 +148,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
 
         return new AcLoadFlowParameters(slackBusSelector, voltageInitializer, stoppingCriteria,
-                outerLoops, matrixFactory, getObserver(parametersExt),
+                outerLoops, matrixFactory,
                 parametersExt.hasVoltageRemoteControl(),
                 parameters.isPhaseShifterRegulationOn(),
                 parameters.isTransformerVoltageControlOn(),
@@ -170,9 +163,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
             AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt, false);
-            List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, acParameters);
+            Profiler profiler = Profiler.create();
+            List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, acParameters, profiler);
 
-            Networks.resetState(network);
+            Networks.resetState(network, profiler);
 
             boolean ok = results.stream().anyMatch(result -> result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED);
             // reset slack buses if at least one component has converged
@@ -239,11 +233,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector, matrixFactory, true,
                     parametersExt.isDcUseTransformerRatio(), parameters.isDistributedSlack(), parameters.getBalanceType(),
                     forcePhaseControlOffAndAddAngle1Var, parametersExt.getPlausibleActivePowerLimit());
+            Profiler profiler = Profiler.create();
 
-            DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters)
+            DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters, profiler)
                     .run();
 
-            Networks.resetState(network);
+            Networks.resetState(network, profiler);
 
             if (result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED && parameters.isWriteSlackBus()) {
                 SlackTerminal.reset(network);

@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.util.Profiler;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -91,7 +92,7 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .add();
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
-        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, slackBusSelector));
+        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, slackBusSelector, Profiler.NO_OP));
         assertEquals("Generators [g1, g2] are connected to the same bus 'vl1_0' with a different target voltages: 412.0 and 413.0", exception.getMessage());
     }
 
@@ -193,7 +194,7 @@ class GeneratorTargetVoltageInconsistencyTest {
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false);
-        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, parameters));
+        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, parameters, Profiler.NO_OP));
         assertEquals("Controller bus 'vl2_0' has an inconsistent remote target voltage: 0.5625 pu", exception.getMessage());
     }
 
@@ -295,7 +296,7 @@ class GeneratorTargetVoltageInconsistencyTest {
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false);
-        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, parameters));
+        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, parameters, Profiler.NO_OP));
         assertEquals("Bus 'vl2_0' controlled by bus 'vl1_0' has also a local voltage control with a different value: 413.0 and 412.0", exception.getMessage());
     }
 }

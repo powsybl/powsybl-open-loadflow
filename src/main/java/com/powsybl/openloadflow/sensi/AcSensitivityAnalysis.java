@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.util.Profiler;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
@@ -144,20 +145,22 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         Objects.requireNonNull(lfParameters);
         Objects.requireNonNull(lfParametersExt);
 
+        Profiler profiler = Profiler.create();
+
         // create LF network (we only manage main connected component)
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParametersExt.getSlackBusSelector());
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParametersExt.getSlackBusSelector(), profiler);
         LfNetwork lfNetwork = lfNetworks.get(0);
 
         // filter invalid factors
         List<SensitivityFactor> validFactors = validateFactors(network, factors, lfNetwork);
 
         // create AC equation system
-        EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, new VariableSet());
+        EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, new VariableSet(), profiler);
 
         // create jacobian matrix from current network state
         VoltageInitializer voltageInitializer = getVoltageInitializer(lfParameters);
 
-        try (JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer)) {
+        try (JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer, profiler)) {
 
             // initialize right hand side from valid factors
             DenseMatrix rhs = initRhs(validFactors, lfNetwork, equationSystem);

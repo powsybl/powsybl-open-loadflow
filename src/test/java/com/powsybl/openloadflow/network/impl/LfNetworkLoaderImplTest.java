@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
 import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.Profiler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -42,7 +43,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void initialTest() {
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector(), Profiler.NO_OP).get(0);
         LfGenerator lfGenerator = lfNetwork.getBus(0).getGenerators().get(0);
         assertEquals("g", lfGenerator.getId());
         assertTrue(lfGenerator.isParticipating());
@@ -52,7 +53,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     void generatorZeroActivePowerTargetTest() {
         // targetP == 0, generator is discarded from active power control
         g.setTargetP(0);
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector(), Profiler.NO_OP).get(0);
         assertFalse(lfNetwork.getBus(0).getGenerators().get(0).isParticipating());
     }
 
@@ -61,7 +62,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         // targetP > maxP, generator is discarded from active power control
         g.setTargetP(10);
         g.setMaxP(5);
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector(), Profiler.NO_OP).get(0);
         assertFalse(lfNetwork.getBus(0).getGenerators().get(0).isParticipating());
     }
 
@@ -80,7 +81,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
                 .setMaxQ(7.00000001)
                 .endPoint()
                 .add();
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector(), Profiler.NO_OP).get(0);
         assertFalse(lfNetwork.getBus(0).hasVoltageControl());
     }
 
@@ -89,21 +90,21 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         // targetP is zero and minP > 0, meansn generator is not started and cannot control voltage
         g.setTargetP(0);
         g.setMinP(1);
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector(), Profiler.NO_OP).get(0);
         assertFalse(lfNetwork.getBus(0).hasVoltageControl());
     }
 
     @Test
     void networkWithoutGeneratorTest() {
         g.remove();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector(), Profiler.NO_OP);
         assertTrue(lfNetworks.isEmpty());
     }
 
     @Test
     void networkWithDanglingLineTest() {
         network = DanglingLineNetworkFactory.create();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector(), Profiler.NO_OP);
         assertEquals(1, lfNetworks.size());
 
         LfBus lfDanglingLineBus = lfNetworks.get(0).getBusById("DL_BUS");
@@ -118,7 +119,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         assertNotNull(transformer);
         VoltageLevel voltageLevelLeg1 = transformer.getLeg1().getTerminal().getVoltageLevel();
 
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector(), Profiler.NO_OP);
         assertEquals(1, lfNetworks.size());
 
         LfBus lfStarBus = lfNetworks.get(0).getBusById("3WT_BUS0");

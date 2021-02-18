@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.equations.VoltageInitializer;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.util.Profiler;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
 import org.slf4j.Logger;
@@ -74,9 +75,10 @@ public abstract class AbstractSensitivityAnalysis {
         return lfNetwork.getBranchById(pstFactor.getVariable().getPhaseTapChangerHolderId());
     }
 
-    protected JacobianMatrix createJacobianMatrix(EquationSystem equationSystem, VoltageInitializer voltageInitializer) {
+    protected JacobianMatrix createJacobianMatrix(EquationSystem equationSystem, VoltageInitializer voltageInitializer,
+                                                  Profiler profiler) {
         double[] x = equationSystem.createStateVector(voltageInitializer);
         equationSystem.updateEquations(x);
-        return new JacobianMatrix(equationSystem, matrixFactory);
+        return new JacobianMatrix(equationSystem, matrixFactory, profiler);
     }
 }

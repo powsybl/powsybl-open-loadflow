@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.dc;
 
-import com.google.common.base.Stopwatch;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -21,8 +20,8 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
-import com.powsybl.openloadflow.util.Markers;
 import com.powsybl.openloadflow.util.ParameterConstants;
+import com.powsybl.openloadflow.util.Profiler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +29,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -43,30 +41,35 @@ public class DcLoadFlowEngine {
 
     private final DcLoadFlowParameters parameters;
 
-    public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory) {
+    private final Profiler profiler;
+
+    public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory, Profiler profiler) {
         this.networks = Collections.singletonList(network);
         parameters = new DcLoadFlowParameters(new FirstSlackBusSelector(), matrixFactory, false, true, false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, false,
                 ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE);
+        this.profiler = Objects.requireNonNull(profiler);
     }
 
-    public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters) {
-        this.networks = LfNetwork.load(network, new LfNetworkParameters(parameters.getSlackBusSelector(), false, false, false, false, parameters.getPlausibleActivePowerLimit()));
+    public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters, Profiler profiler) {
+        this.networks = LfNetwork.load(network, new LfNetworkParameters(parameters.getSlackBusSelector(), false, false, false, false, parameters.getPlausibleActivePowerLimit()), profiler);
         this.parameters = Objects.requireNonNull(parameters);
+        this.profiler = Objects.requireNonNull(profiler);
     }
 
-    public DcLoadFlowEngine(List<LfNetwork> networks, DcLoadFlowParameters parameters) {
+    public DcLoadFlowEngine(List<LfNetwork> networks, DcLoadFlowParameters parameters, Profiler profiler) {
         this.networks = networks;
         this.parameters = Objects.requireNonNull(parameters);
+        this.profiler = Objects.requireNonNull(profiler);
     }
 
     private void distributeSlack(LfNetwork network) {
         double mismatch = network.getActivePowerMismatch();
         ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), false);
-        activePowerDistribution.run(network, mismatch);
+        activePowerDistribution.run(network, mismatch, profiler);
     }
 
     public DcLoadFlowResult run() {
-        Stopwatch stopwatch = Stopwatch.createStarted();
+        profiler.beforeTask("DcLoadFlow");
 
         // only process main (largest) connected component
         LfNetwork network = networks.get(0);
@@ -76,7 +79,7 @@ public class DcLoadFlowEngine {
         }
 
         DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(parameters.isUpdateFlows(), false, parameters.isForcePhaseControlOffAndAddAngle1Var(), parameters.isUseTransformerRatio());
-        EquationSystem equationSystem = DcEquationSystem.create(network, new VariableSet(), creationParameters);
+        EquationSystem equationSystem = DcEquationSystem.create(network, new VariableSet(), creationParameters, profiler);
 
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
 
@@ -84,7 +87,7 @@ public class DcLoadFlowEngine {
 
         double[] targets = equationSystem.createTargetVector();
 
-        try (JacobianMatrix j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory())) {
+        try (JacobianMatrix j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory(), profiler)) {
             double[] dx = Arrays.copyOf(targets, targets.length);
 
             LoadFlowResult.ComponentResult.Status status;
@@ -104,8 +107,7 @@ public class DcLoadFlowEngine {
                 bus.setV(Double.NaN);
             }
 
-            stopwatch.stop();
-            LOGGER.debug(Markers.PERFORMANCE_MARKER, "Dc loadflow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            profiler.afterTask("DcLoadFlow");
 
             LOGGER.info("Dc loadflow complete (status={})", status);
 

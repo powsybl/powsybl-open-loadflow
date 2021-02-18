@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.util.Profiler;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,24 +38,29 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     private final AcLoadFlowParameters parameters;
 
+    private final Profiler profiler;
+
     private VariableSet variableSet;
 
     private EquationSystem equationSystem;
 
     private JacobianMatrix j;
 
-    public AcloadFlowEngine(LfNetwork network, AcLoadFlowParameters parameters) {
+    public AcloadFlowEngine(LfNetwork network, AcLoadFlowParameters parameters,
+                            Profiler profiler) {
         this.network = Objects.requireNonNull(network);
         this.parameters = Objects.requireNonNull(parameters);
+        this.profiler = Objects.requireNonNull(profiler);
     }
 
-    public static List<LfNetwork> createNetworks(Object network, AcLoadFlowParameters parameters) {
-        parameters.getObserver().beforeNetworksCreation();
-
-        List<LfNetwork> networks = LfNetwork.load(network, new LfNetworkParameters(parameters.getSlackBusSelector(), parameters.isVoltageRemoteControl(),
-                parameters.isMinImpedance(), parameters.isTwtSplitShuntAdmittance(), parameters.isBreakers(), parameters.getPlausibleActivePowerLimit()));
-
-        parameters.getObserver().afterNetworksCreation(networks);
+    public static List<LfNetwork> createNetworks(Object network, AcLoadFlowParameters parameters, Profiler profiler) {
+        LfNetworkParameters networkParameters = new LfNetworkParameters(parameters.getSlackBusSelector(),
+                                                                        parameters.isVoltageRemoteControl(),
+                                                                        parameters.isMinImpedance(),
+                                                                        parameters.isTwtSplitShuntAdmittance(),
+                                                                        parameters.isBreakers(),
+                                                                        parameters.getPlausibleActivePowerLimit());
+        List<LfNetwork> networks = LfNetwork.load(network, networkParameters, profiler);
 
         return networks;
     }
@@ -77,7 +83,7 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     private void updatePvBusesReactivePower(NewtonRaphsonResult lastNrResult, LfNetwork network, EquationSystem equationSystem) {
         if (lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
-            parameters.getObserver().beforePvBusesReactivePowerUpdate();
+            profiler.beforeTask("PvBusesReactivePowerUpdate");
 
             for (LfBus bus : network.getBuses()) {
                 if (bus.hasVoltageControl()) {
@@ -88,7 +94,7 @@ public class AcloadFlowEngine implements AutoCloseable {
                 }
             }
 
-            parameters.getObserver().afterPvBusesReactivePowerUpdate();
+            profiler.afterTask("PvBusesReactivePowerUpdate");
         }
     }
 
@@ -106,23 +112,17 @@ public class AcloadFlowEngine implements AutoCloseable {
         do {
             MutableInt outerLoopIteration = runningContext.outerLoopIterationByType.computeIfAbsent(outerLoop.getType(), k -> new MutableInt());
 
-            parameters.getObserver().beforeOuterLoopStatusCheck(outerLoopIteration.getValue(), outerLoop.getType());
-
             // check outer loop status
-            outerLoopStatus = outerLoop.check(new OuterLoopContext(outerLoopIteration.getValue(), network, equationSystem, variableSet, runningContext.lastNrResult));
-
-            parameters.getObserver().afterOuterLoopStatusCheck(outerLoopIteration.getValue(), outerLoop.getType(), outerLoopStatus == OuterLoopStatus.STABLE);
+            outerLoopStatus = outerLoop.check(new OuterLoopContext(outerLoopIteration.getValue(), network, equationSystem, variableSet, runningContext.lastNrResult, profiler));
 
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
-                parameters.getObserver().beforeOuterLoopBody(outerLoopIteration.getValue(), outerLoop.getType());
+                LOGGER.debug("Start outer loop iteration {} (name='{}')", outerLoopIteration, outerLoop.getType());
 
                 // if not yet stable, restart Newton-Raphson
                 runningContext.lastNrResult = newtonRaphson.run(nrParameters);
                 if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED) {
                     return;
                 }
-
-                parameters.getObserver().afterOuterLoopBody(outerLoopIteration.getValue(), outerLoop.getType());
 
                 // update PV buses reactive power some outer loops might need this information
                 updatePvBusesReactivePower(runningContext.lastNrResult, network, equationSystem);
@@ -133,26 +133,22 @@ public class AcloadFlowEngine implements AutoCloseable {
     }
 
     public AcLoadFlowResult run() {
-        parameters.getObserver().beforeLoadFlow(network);
+        profiler.beforeTask("AcLoadFlow");
 
         if (equationSystem == null) {
             LOGGER.info("Start AC loadflow on network {}", network.getNum());
 
-            parameters.getObserver().beforeEquationSystemCreation();
-
             variableSet = new VariableSet();
             AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(parameters.isVoltageRemoteControl(),
                     parameters.isPhaseControl(), parameters.isTransformerVoltageControlOn());
-            equationSystem = AcEquationSystem.create(network, variableSet, creationParameters);
-            j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory());
-
-            parameters.getObserver().afterEquationSystemCreation();
+            equationSystem = AcEquationSystem.create(network, variableSet, creationParameters, profiler);
+            j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory(), profiler);
         } else {
             LOGGER.info("Restart AC loadflow on network {}", network.getNum());
         }
 
         RunningContext runningContext = new RunningContext();
-        NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getMatrixFactory(), parameters.getObserver(), equationSystem, j, parameters.getStoppingCriteria());
+        NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getMatrixFactory(), profiler, equationSystem, j, parameters.getStoppingCriteria());
 
         NewtonRaphsonParameters nrParameters = new NewtonRaphsonParameters().setVoltageInitializer(parameters.getVoltageInitializer());
 
@@ -184,12 +180,12 @@ public class AcloadFlowEngine implements AutoCloseable {
         int nrIterations = runningContext.lastNrResult.getIteration();
         int outerLoopIterations = runningContext.outerLoopIterationByType.values().stream().mapToInt(MutableInt::getValue).sum() + 1;
 
-        parameters.getObserver().afterLoadFlow(network);
-
         AcLoadFlowResult result = new AcLoadFlowResult(network, outerLoopIterations, nrIterations, runningContext.lastNrResult.getStatus(),
                 runningContext.lastNrResult.getSlackBusActivePowerMismatch());
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", network.getNum(), result);
+
+        profiler.afterTask("AcLoadFlow");
 
         return result;
     }
@@ -201,11 +197,11 @@ public class AcloadFlowEngine implements AutoCloseable {
         }
     }
 
-    public static List<AcLoadFlowResult> run(Object network, AcLoadFlowParameters parameters) {
-        return createNetworks(network, parameters)
+    public static List<AcLoadFlowResult> run(Object network, AcLoadFlowParameters parameters, Profiler profiler) {
+        return createNetworks(network, parameters, profiler)
                 .stream()
                 .map(n -> {
-                    try (AcloadFlowEngine engine = new AcloadFlowEngine(n, parameters)) {
+                    try (AcloadFlowEngine engine = new AcloadFlowEngine(n, parameters, profiler)) {
                         return engine.run();
                     }
                 })

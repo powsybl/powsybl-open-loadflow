@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.util.Profiler;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.usefultoys.slf4j.LoggerFactory;
@@ -50,11 +51,13 @@ class DcLoadFlowMatrixTest {
 
         logNetwork(network);
 
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        Profiler profiler = Profiler.NO_OP;
+
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector(), profiler).get(0);
 
         VariableSet variableSet = new VariableSet();
         DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(true, false, false, true);
-        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, variableSet, creationParameters);
+        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, variableSet, creationParameters, profiler);
 
         for (LfBus b : lfNetwork.getBuses()) {
             equationSystem.createEquation(b.getNum(), EquationType.BUS_P);
@@ -70,7 +73,7 @@ class DcLoadFlowMatrixTest {
 
         equationSystem.updateEquations(x);
 
-        Matrix j = new JacobianMatrix(equationSystem, matrixFactory).getMatrix();
+        Matrix j = new JacobianMatrix(equationSystem, matrixFactory, profiler).getMatrix();
         try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
             ps.println("J=");
             j.print(ps, equationSystem.getRowNames(), equationSystem.getColumnNames());
@@ -93,7 +96,7 @@ class DcLoadFlowMatrixTest {
         assertEquals(-0.11239308112163815d, dx[2], 1E-14d);
         assertEquals(-0.2202418845341654d, dx[3], 1E-14d);
 
-        Networks.resetState(network);
+        Networks.resetState(network, profiler);
         equationSystem.updateNetwork(dx);
 
         logNetwork(network);
@@ -101,18 +104,18 @@ class DcLoadFlowMatrixTest {
         network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
         network.getLine("NHV1_NHV2_1").getTerminal2().disconnect();
 
-        lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector(), profiler).get(0);
 
-        equationSystem = DcEquationSystem.create(lfNetwork, variableSet, creationParameters);
+        equationSystem = DcEquationSystem.create(lfNetwork, variableSet, creationParameters, profiler);
 
-        j = new JacobianMatrix(equationSystem, matrixFactory).getMatrix();
+        j = new JacobianMatrix(equationSystem, matrixFactory, profiler).getMatrix();
 
         dx = Arrays.copyOf(targets, targets.length);
         try (LUDecomposition lu = j.decomposeLU()) {
             lu.solveTransposed(dx);
         }
 
-        Networks.resetState(network);
+        Networks.resetState(network, profiler);
         equationSystem.updateNetwork(dx);
 
         logNetwork(network);

@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VoltageLevel;
 import com.powsybl.iidm.network.extensions.SlackTerminalAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.openloadflow.util.Profiler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +41,7 @@ class NetworkSlackBusSelectorTest {
 
     @Test
     void noExtensionTest() {
-        LfNetwork lfNetwork = LfNetwork.load(network, new NetworkSlackBusSelector(network, selectorMock)).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new NetworkSlackBusSelector(network, selectorMock), Profiler.NO_OP).get(0);
         assertEquals("VLHV1_0", lfNetwork.getSlackBus().getId());
         assertEquals(4, fallbackBusCount);
     }
@@ -52,7 +53,7 @@ class NetworkSlackBusSelectorTest {
         vlload.newExtension(SlackTerminalAdder.class)
                 .withTerminal(load.getTerminal())
                 .add();
-        LfNetwork lfNetwork = LfNetwork.load(network, new NetworkSlackBusSelector(network, selectorMock)).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new NetworkSlackBusSelector(network, selectorMock), Profiler.NO_OP).get(0);
         assertEquals("VLLOAD_0", lfNetwork.getSlackBus().getId());
         assertEquals(-1, fallbackBusCount);
     }
@@ -69,7 +70,7 @@ class NetworkSlackBusSelectorTest {
         vlgen.newExtension(SlackTerminalAdder.class)
                 .withTerminal(gen.getTerminal())
                 .add();
-        LfNetwork lfNetwork = LfNetwork.load(network, new NetworkSlackBusSelector(network, selectorMock)).get(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new NetworkSlackBusSelector(network, selectorMock), Profiler.NO_OP).get(0);
         assertEquals("VLLOAD_0", lfNetwork.getSlackBus().getId());
         assertEquals(2, fallbackBusCount);
     }

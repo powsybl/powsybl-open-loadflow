@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.util.EvaluableConstants;
+import com.powsybl.openloadflow.util.Profiler;
 import net.jafama.FastMath;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
@@ -125,12 +126,14 @@ public final class DcEquationSystem {
         }
     }
 
-    public static EquationSystem create(LfNetwork network, DcEquationSystemCreationParameters creationParameters) {
-        return create(network, new VariableSet(), creationParameters);
+    public static EquationSystem create(LfNetwork network, DcEquationSystemCreationParameters creationParameters,
+                                        Profiler profiler) {
+        return create(network, new VariableSet(), creationParameters, profiler);
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet, DcEquationSystemCreationParameters creationParameters) {
-        EquationSystem equationSystem = new EquationSystem(network, creationParameters.isIndexTerms());
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet, DcEquationSystemCreationParameters creationParameters,
+                                        Profiler profiler) {
+        EquationSystem equationSystem = new EquationSystem(network, creationParameters.isIndexTerms(), profiler);
 
         createBuses(network, variableSet, equationSystem);
         createBranches(network, variableSet, equationSystem, creationParameters);
