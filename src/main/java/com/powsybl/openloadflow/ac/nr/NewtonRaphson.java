@@ -70,7 +70,6 @@ public class NewtonRaphson {
         profiler.beforeTask("NewtownRaphsonIteration");
 
         try {
-
             // solve f(x) = j * dx
             try {
                 j.solveTransposed(fx);

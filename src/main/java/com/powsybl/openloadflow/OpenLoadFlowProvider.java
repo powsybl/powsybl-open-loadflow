@@ -158,12 +158,16 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 parametersExt.getPlausibleActivePowerLimit());
     }
 
+    private static Profiler createProfiler() {
+        return LOGGER.isDebugEnabled() ? Profiler.create() : Profiler.NO_OP;
+    }
+
     private CompletableFuture<LoadFlowResult> runAc(Network network, String workingStateId, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
             AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt, false);
-            Profiler profiler = Profiler.create();
+            Profiler profiler = createProfiler();
             List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, acParameters, profiler);
 
             Networks.resetState(network, profiler);
@@ -213,6 +217,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 }).complete();
             }
 
+            profiler.printSummary();
+
             return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
         });
     }
@@ -233,7 +239,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector, matrixFactory, true,
                     parametersExt.isDcUseTransformerRatio(), parameters.isDistributedSlack(), parameters.getBalanceType(),
                     forcePhaseControlOffAndAddAngle1Var, parametersExt.getPlausibleActivePowerLimit());
-            Profiler profiler = Profiler.create();
+            Profiler profiler = createProfiler();
 
             DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters, profiler)
                     .run();
@@ -253,6 +259,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     0,
                     result.getNetwork().getSlackBus().getId(),
                     result.getSlackBusActivePowerMismatch() * PerUnit.SB);
+
+            profiler.printSummary();
 
             return new LoadFlowResultImpl(result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED,
                                           Collections.emptyMap(),

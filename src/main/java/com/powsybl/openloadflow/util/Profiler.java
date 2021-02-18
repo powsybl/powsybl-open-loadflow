@@ -29,6 +29,8 @@ public interface Profiler {
 
     void afterTask(String taskName);
 
+    void printSummary();
+
     class NoOpProfilerImpl implements Profiler {
 
         @Override
@@ -38,6 +40,11 @@ public interface Profiler {
 
         @Override
         public void afterTask(String taskName) {
+            // no-op
+        }
+
+        @Override
+        public void printSummary() {
             // no-op
         }
     }
@@ -67,10 +74,12 @@ public interface Profiler {
 
         private final Map<String, Long> cumulatedTimePerTaskName = new TreeMap<>();
 
+        @Override
         public void beforeTask(String taskName) {
             tasks.push(new Task(taskName));
         }
 
+        @Override
         public void afterTask(String taskName) {
             Objects.requireNonNull(taskName);
             Task task = tasks.pop();
@@ -90,9 +99,10 @@ public interface Profiler {
                 }
                 return time + ownedElapsed;
             });
-            LOGGER.debug(Markers.PERFORMANCE_MARKER, "Task '{}' done in {} us", taskName, ownedElapsed);
+            LOGGER.trace(Markers.PERFORMANCE_MARKER, "Task '{}' done in {} us", taskName, ownedElapsed);
         }
 
+        @Override
         public void printSummary() {
             if (LOGGER.isDebugEnabled()) {
                 StringWriter writer = new StringWriter();

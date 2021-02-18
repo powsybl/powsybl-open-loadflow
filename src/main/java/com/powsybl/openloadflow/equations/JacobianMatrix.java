@@ -197,10 +197,11 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
     }
 
     private LUDecomposition getLUDecomposition() {
+        Matrix matrix = getMatrix();
         if (lu == null) {
             profiler.beforeTask("DecomposeLU");
 
-            lu = getMatrix().decomposeLU();
+            lu = matrix.decomposeLU();
 
             profiler.afterTask("DecomposeLU");
         }
