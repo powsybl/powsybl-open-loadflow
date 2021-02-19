@@ -169,11 +169,16 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
             double value = equationTerm.der(var);
             element.add(value);
         }
+        profiler.afterTask("JacobianUpdate");
+
         if (lu != null) {
+            profiler.beforeTask("LuDecompositionUpdate");
+
             lu.update();
+
+            profiler.afterTask("LuDecompositionUpdate");
         }
 
-        profiler.afterTask("JacobianUpdate");
     }
 
     public Matrix getMatrix() {

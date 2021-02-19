@@ -77,15 +77,22 @@ public interface Profiler {
                 timeToRemove += time;
             }
 
-            long getOwnedElapsedTime() {
+            long getSelfElapsedTime() {
                 long elapsed = stopwatch.elapsed(TimeUnit.MICROSECONDS);
                 return elapsed - timeToRemove;
             }
         }
 
+        class TaskStatistics {
+
+            long cumulatedTime = 0;
+
+            int count = 0;
+        }
+
         private final Deque<Task> tasks = new ArrayDeque<>();
 
-        private final Map<String, Long> cumulatedTimePerTaskName = new TreeMap<>();
+        private final Map<String, TaskStatistics> tasksStatistics = new TreeMap<>();
 
         @Override
         public void beforeTask(String taskName) {
@@ -100,18 +107,19 @@ public interface Profiler {
             if (!taskName.equals(task.name)) {
                 throw new IllegalStateException("Task nesting issue, last is: " + task.name);
             }
-            long ownedElapsed = task.getOwnedElapsedTime();
+            long selfElapsedTime = task.getSelfElapsedTime();
             // remove this time from all parent tasks
             for (Task parentTask : tasks) {
-                parentTask.removeTime(ownedElapsed);
+                parentTask.removeTime(selfElapsedTime);
             }
-            cumulatedTimePerTaskName.compute(taskName, (s, time) -> {
-                if (time == null) {
-                    return ownedElapsed;
-                }
-                return time + ownedElapsed;
+            tasksStatistics.compute(taskName, (s, prevStats) -> {
+                TaskStatistics stats;
+                stats = Objects.requireNonNullElseGet(prevStats, TaskStatistics::new);
+                stats.count++;
+                stats.cumulatedTime += selfElapsedTime;
+                return stats;
             });
-            LOGGER.trace(Markers.PERFORMANCE_MARKER, "Task '{}' done in {} us", taskName, ownedElapsed);
+            LOGGER.trace(Markers.PERFORMANCE_MARKER, "Task '{}' done in {} us", taskName, selfElapsedTime);
         }
 
         @Override
@@ -121,9 +129,14 @@ public interface Profiler {
                 try (AsciiTableFormatter formatter = new AsciiTableFormatter(writer,
                         "Profiling summary",
                         new Column("Task name"),
+                        new Column("Calls"),
                         new Column("Time (ms)"))) {
-                    for (Map.Entry<String, Long> e : cumulatedTimePerTaskName.entrySet()) {
-                        formatter.writeCell(e.getKey()).writeCell(e.getValue().intValue() / 1000);
+                    for (Map.Entry<String, TaskStatistics> e : tasksStatistics.entrySet()) {
+                        String taskName = e.getKey();
+                        TaskStatistics stats = e.getValue();
+                        formatter.writeCell(taskName)
+                                .writeCell(stats.count)
+                                .writeCell((int) (stats.cumulatedTime / 1000L));
                     }
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
