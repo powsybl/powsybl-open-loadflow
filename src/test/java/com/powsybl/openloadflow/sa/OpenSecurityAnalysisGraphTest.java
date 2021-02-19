@@ -165,7 +165,7 @@ class OpenSecurityAnalysisGraphTest {
         start = System.currentTimeMillis();
         List<List<LfContingency>> listLfContingencies = new ArrayList<>();
         for (LfNetwork lfNetwork : lfNetworks) {
-            listLfContingencies.add(securityAnalysis.createContingencies(propagatedContingencies, lfNetwork));
+            listLfContingencies.add(securityAnalysis.createContingencies(propagatedContingencies, lfNetwork, Profiler.NO_OP));
         }
         LOGGER.info("LoadFlow contingencies calculated from contingency contexts in {} ms", System.currentTimeMillis() - start);
 

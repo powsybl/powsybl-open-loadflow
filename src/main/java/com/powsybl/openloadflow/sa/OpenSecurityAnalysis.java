@@ -92,6 +92,10 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         });
     }
 
+    private static Profiler createProfiler() {
+        return LOGGER.isDebugEnabled() ? Profiler.create() : Profiler.NO_OP;
+    }
+
     SecurityAnalysisResult runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
@@ -110,7 +114,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters, lfParametersExt, true);
 
-        Profiler profiler = Profiler.create();
+        Profiler profiler = createProfiler();
 
         // create networks including all necessary switches
         List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters, profiler);
@@ -121,6 +125,8 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         stopwatch.stop();
         LOGGER.info("Security analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+
+        profiler.printSummary();
 
         return result;
     }
@@ -201,7 +207,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                                                   LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters,
                                                   Profiler profiler) {
         // create a contingency list that impact the network
-        List<LfContingency> contingencies = createContingencies(propagatedContingencies, network);
+        List<LfContingency> contingencies = createContingencies(propagatedContingencies, network, profiler);
 
         // run pre-contingency simulation
         try (AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters, profiler)) {
@@ -347,7 +353,9 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         }
     }
 
-    List<LfContingency> createContingencies(List<PropagatedContingency> propagatedContingencies, LfNetwork network) {
+    List<LfContingency> createContingencies(List<PropagatedContingency> propagatedContingencies, LfNetwork network, Profiler profiler) {
+        profiler.beforeTask("ContingenciesCreation");
+
         // create connectivity data structure
         GraphDecrementalConnectivity<LfBus> connectivity = network.createDecrementalConnectivity(connectivityProvider);
 
@@ -394,6 +402,8 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
             contingencies.add(new LfContingency(propagatedContingency.getContingency(), buses, branches));
         }
+
+        profiler.afterTask("ContingenciesCreation");
 
         return contingencies;
     }

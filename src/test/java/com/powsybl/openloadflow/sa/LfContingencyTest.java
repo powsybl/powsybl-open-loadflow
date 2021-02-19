@@ -61,7 +61,7 @@ class LfContingencyTest extends AbstractConverterTest {
         List<PropagatedContingency> propagatedContingencies =
             PropagatedContingency.create(network, Collections.singletonList(contingency), new HashSet<>());
 
-        List<LfContingency> lfContingencies = sa.createContingencies(propagatedContingencies, lfNetworks.get(0));
+        List<LfContingency> lfContingencies = sa.createContingencies(propagatedContingencies, lfNetworks.get(0), Profiler.NO_OP);
         assertEquals(1, lfContingencies.size());
 
         Path file = fileSystem.getPath("/work/lfc.json");
