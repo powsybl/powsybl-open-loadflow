@@ -55,7 +55,7 @@ public interface Profiler {
 
     class ProfilerImpl implements Profiler {
 
-        private static final Logger LOGGER = LoggerFactory.getLogger(Profiler.class);
+        private static final Logger LOGGER = LoggerFactory.getLogger(ProfilerImpl.class);
 
         class Task {
 
