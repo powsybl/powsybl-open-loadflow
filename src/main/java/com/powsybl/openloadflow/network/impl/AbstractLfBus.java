@@ -35,8 +35,6 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected double calculatedQ = Double.NaN;
 
-    protected boolean voltageControlCapability = false;
-
     protected boolean voltageControlEnabled = false;
 
     protected int voltageControlSwitchOffCount = 0;
@@ -112,7 +110,7 @@ public abstract class AbstractLfBus implements LfBus {
 
     @Override
     public boolean hasVoltageControllerCapability() {
-        return voltageControlCapability;
+        return getVoltageControl() != null;
     }
 
     @Override
@@ -212,7 +210,6 @@ public abstract class AbstractLfBus implements LfBus {
         }
         if (generator.hasVoltageControl() && !discardGenerator) {
             this.voltageControlEnabled = true;
-            this.voltageControlCapability = true;
         } else {
             if (!Double.isNaN(generator.getTargetQ())) {
                 generationTargetQ += generator.getTargetQ() * PerUnit.SB;
