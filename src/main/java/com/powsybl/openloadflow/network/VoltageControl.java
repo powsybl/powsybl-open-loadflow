@@ -8,13 +8,6 @@ import java.util.*;
  */
 public class VoltageControl {
 
-    public enum Mode {
-        VOLTAGE,        // Voltage control on
-        OFF;            // Voltage control off: switched off after Pv Pq switching
-    }
-
-    private final Mode mode;
-
     private final LfBus controlled;
 
     private final Set<LfBus> controllers;
@@ -25,11 +18,6 @@ public class VoltageControl {
         this.controlled = controlled;
         this.targetValue = targetValue;
         this.controllers = new LinkedHashSet<>();
-        this.mode = Mode.VOLTAGE;
-    }
-
-    public Mode getMode() {
-        return mode;
     }
 
     public double getTargetValue() {
