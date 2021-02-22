@@ -151,13 +151,13 @@ public abstract class AbstractSensitivityAnalysis {
 
         public static <T extends EquationTerm> LfSensitivityFactor<T> create(SensitivityFactor factor, Network network, LfNetwork lfNetwork, EquationSystem equationSystem, Class<T> clazz) {
             if (factor instanceof BranchFlowPerInjectionIncrease) {
-                return new LfBranchFlowPerInjectionIncrease<T>(factor, network, lfNetwork, equationSystem, clazz);
+                return new LfBranchFlowPerInjectionIncrease<>(factor, network, lfNetwork, equationSystem, clazz);
             } else if (factor instanceof BranchFlowPerPSTAngle) {
-                return new LfBranchFlowPerPSTAngle<T>(factor, lfNetwork, equationSystem, clazz);
+                return new LfBranchFlowPerPSTAngle<>(factor, lfNetwork, equationSystem, clazz);
             } else if (factor instanceof BranchIntensityPerPSTAngle) {
                 return new LfBranchIntensityPerPSTAngle<>(factor, lfNetwork, equationSystem, clazz);
             }  else if (factor instanceof BranchFlowPerLinearGlsk) {
-                return new LfBranchFlowPerLinearGlsk<T>(factor, network, lfNetwork, equationSystem, clazz);
+                return new LfBranchFlowPerLinearGlsk<>(factor, network, lfNetwork, equationSystem, clazz);
             } else {
                 throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
             }
@@ -386,8 +386,8 @@ public abstract class AbstractSensitivityAnalysis {
 
         @Override
         void fillRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Matrix rhs) {
-            for (Map.Entry<String, Double> injectionByBus : injectionByBus.entrySet()) {
-                LfBus lfBus = lfNetwork.getBusById(injectionByBus.getKey());
+            for (Map.Entry<String, Double> busIdAndInjectionValue : injectionByBus.entrySet()) {
+                LfBus lfBus = lfNetwork.getBusById(busIdAndInjectionValue.getKey());
                 if (lfBus.isSlack()) {
                     continue;
                 }
@@ -396,7 +396,7 @@ public abstract class AbstractSensitivityAnalysis {
                     continue;
                 }
                 int column = p.getColumn();
-                rhs.set(column, getIndex(), injectionByBus.getValue() / PerUnit.SB);
+                rhs.set(column, getIndex(), busIdAndInjectionValue.getValue() / PerUnit.SB);
             }
         }
     }
