@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.dc;
 import com.google.common.base.Stopwatch;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
@@ -85,14 +84,12 @@ public class DcLoadFlowEngine {
 
         double[] targets = equationSystem.createTargetVector();
 
-        JacobianMatrix j = JacobianMatrix.create(equationSystem, parameters.getMatrixFactory());
-        try {
+        try (JacobianMatrix j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory())) {
             double[] dx = Arrays.copyOf(targets, targets.length);
 
             LoadFlowResult.ComponentResult.Status status;
             try {
-                LUDecomposition lu = j.decomposeLU();
-                lu.solveTransposed(dx);
+                j.solveTransposed(dx);
                 status = LoadFlowResult.ComponentResult.Status.CONVERGED;
             } catch (Exception e) {
                 status = LoadFlowResult.ComponentResult.Status.FAILED;
@@ -113,8 +110,6 @@ public class DcLoadFlowEngine {
             LOGGER.info("Dc loadflow complete (status={})", status);
 
             return new DcLoadFlowResult(network, network.getActivePowerMismatch(), status);
-        } finally {
-            j.cleanLU();
         }
     }
 }

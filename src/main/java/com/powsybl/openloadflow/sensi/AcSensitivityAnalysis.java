@@ -141,17 +141,18 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         engine.run();
 
         // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
-        JacobianMatrix j = createJacobianMatrix(equationSystem, new PreviousValueVoltageInitializer());
+        List<SensitivityValue> sensitivityValues = new ArrayList<>();
+        try (JacobianMatrix j = createJacobianMatrix(equationSystem, new PreviousValueVoltageInitializer())) {
+            // solve system
+            DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorGroups); // this is the rhs for the moment
+            j.solveTransposed(factorsStates);
+            setReferenceActivePowerFlows(lfNetwork, equationSystem, lfFactors, lfParameters);
+            setBaseCaseSensitivityValues(factorGroups, factorsStates);
 
-        DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorGroups); // this is the rhs for the moment
+            // calculate sensitivity values
+            sensitivityValues = calculateSensitivityValues(factorGroups, lfNetwork, equationSystem, factorsStates);
+        }
 
-        // solve system
-        solveTransposed(factorsStates, j);
-        setReferenceActivePowerFlows(lfNetwork, equationSystem, lfFactors, lfParameters);
-        setBaseCaseSensitivityValues(factorGroups, factorsStates);
-
-        // calculate sensitivity values
-        List<SensitivityValue> sensitivityValues = calculateSensitivityValues(factorGroups, lfNetwork, equationSystem, factorsStates);
         LfContingency.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
         return sensitivityValues;
     }
@@ -207,21 +208,23 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
         computeInjectionFactors(slackParticipationByBus, factorGroups);
 
+        List<SensitivityValue> baseValues = new ArrayList<>();
+
         // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
-        JacobianMatrix j = createJacobianMatrix(equationSystem, new PreviousValueVoltageInitializer());
+        try (JacobianMatrix j = createJacobianMatrix(equationSystem, new PreviousValueVoltageInitializer())) {
+            // otherwise, defining the rhs matrix will result in integer overflow
+            assert Integer.MAX_VALUE / (equationSystem.getSortedEquationsToSolve().size() * Double.BYTES) > factorGroups.size();
+            // initialize right hand side from valid factors
+            DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorGroups); // this is the rhs for the moment
 
-        // otherwise, defining the rhs matrix will result in integer overflow
-        assert Integer.MAX_VALUE / (equationSystem.getSortedEquationsToSolve().size() * Double.BYTES) > factorGroups.size();
-        // initialize right hand side from valid factors
-        DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorGroups); // this is the rhs for the moment
+            // solve system
+            j.solveTransposed(factorsStates);
 
-        // solve system
-        solveTransposed(factorsStates, j);
-        setReferenceActivePowerFlows(lfNetwork, equationSystem, lfFactors, lfParameters);
-        setBaseCaseSensitivityValues(factorGroups, factorsStates);
-
-        // calculate sensitivity values
-        List<SensitivityValue> baseValues = calculateSensitivityValues(factorGroups, lfNetwork, equationSystem, factorsStates);
+            // calculate sensitivity values
+            setReferenceActivePowerFlows(lfNetwork, equationSystem, lfFactors, lfParameters);
+            setBaseCaseSensitivityValues(factorGroups, factorsStates);
+            baseValues = calculateSensitivityValues(factorGroups, lfNetwork, equationSystem, factorsStates);
+        }
 
         GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.createDecrementalConnectivity();
 
