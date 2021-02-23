@@ -29,7 +29,6 @@ import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
-import com.powsybl.sensitivity.factors.functions.BranchIntensity;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -50,25 +49,16 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 if (!factor.getEquationTerm().isActive()) {
                     continue;
                 }
-                double sensi;
-                if (factor.getFactor().getFunction() instanceof BranchIntensity) {
-                    sensi = factor.getEquationTerm().calculateI(factorsState, factorGroup.getIndex());
-                } else {
-                    sensi = factor.getEquationTerm().calculate(factorsState, factorGroup.getIndex());
-                }
+                double sensi = factor.getEquationTerm().calculate(factorsState, factorGroup.getIndex());
                 if (factor.getFunctionLfBranch().getId().equals(factorGroup.getId())) {
                     // add nabla_p eta, fr specific cases
                     // the only case currently: if we are computing the sensitivity of a phasetap change on itself
-                    Variable a1Var = factor.getEquationTerm().getVariables()
+                    Variable phi1Var = factor.getEquationTerm().getVariables()
                         .stream()
                         .filter(var -> var.getNum() == factor.getFunctionLfBranch().getNum() && var.getType().equals(VariableType.BRANCH_ALPHA1))
                         .findAny()
                         .orElseThrow(() -> new PowsyblException("No alpha_1 variable on the function branch"));
-                    if (factor.getFactor().getFunction() instanceof BranchIntensity) {
-                        sensi += Math.toRadians(factor.getEquationTerm().derI(a1Var));
-                    } else {
-                        sensi += Math.toRadians(factor.getEquationTerm().der(a1Var));
-                    }
+                    sensi += Math.toRadians(factor.getEquationTerm().der(phi1Var));
                 }
                 factor.setBaseCaseSensitivityValue(sensi);
             }
@@ -96,12 +86,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     protected void setReferenceActivePowerFlows(List<LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm>> factors) {
         for (LfSensitivityFactor factor : factors) {
-            if (factor.getFactor().getFunction() instanceof BranchIntensity) {
-                factor.setFunctionReference(factor.getFunctionLfBranch().getI1());
-            } else {
-                // Branch flow
-                factor.setFunctionReference(factor.getFunctionLfBranch().getP1());
-            }
+            factor.setFunctionReference(factor.getFunctionLfBranch().getP1());
         }
     }
 

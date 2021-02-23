@@ -90,27 +90,6 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
      * b1 (d1) ----------+
      * |                 |
      * b2 (g2) -------- b3 (d3)
-     * |                 |
-     * b4 (d4) -------- b5 (d5)
-     * |                 |
-     * b6 (g6) ----------+
-     * </pre>
-     *
-     * @return network
-     */
-    public static Network createTwoCcLinkedByTwoLinesWithAdditionnalGens() {
-        Network network = createTwoCcLinkedByTwoLines();
-        Bus b3 = network.getBusBreakerView().getBus("b3");
-        createGenerator(b3, "g3", 2);
-        createLoad(b3, "d3_bis", 2);
-        return network;
-    }
-
-    /**
-     * <pre>
-     * b1 (d1) ----------+
-     * |                 |
-     * b2 (g2) -------- b3 (d3)
      *                   |
      * b5 (d5) -------- b4 (d4)
      * |                 |

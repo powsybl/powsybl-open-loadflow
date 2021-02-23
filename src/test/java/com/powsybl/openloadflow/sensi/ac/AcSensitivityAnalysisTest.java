@@ -20,7 +20,6 @@ import com.powsybl.sensitivity.SensitivityAnalysisResult;
 import com.powsybl.sensitivity.SensitivityFactorsProvider;
 import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
-import com.powsybl.sensitivity.factors.BranchIntensityPerPSTAngle;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
@@ -244,51 +243,6 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(-1.2296d, getFunctionReference(result, "l34"), LoadFlowAssert.DELTA_POWER);
         assertEquals(1.4549d, getFunctionReference(result, "l13"), LoadFlowAssert.DELTA_POWER);
         assertEquals(1.3154d, getFunctionReference(result, "l23"), LoadFlowAssert.DELTA_POWER);
-    }
-
-    @Test
-    void test4busesPhaseShiftIntensity() {
-        Network network = FourBusNetworkFactory.createWithTransfoCompensed();
-        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
-        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-
-        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream()
-            .map(AcSensitivityAnalysisTest::createBranchIntensity)
-            .map(branchIntensity -> new BranchIntensityPerPSTAngle(branchIntensity, new PhaseTapChangerAngle("l23", "l23", "l23"))).collect(Collectors.toList());
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
-            sensiParameters, LocalComputationManager.getDefault())
-            .join();
-
-        assertEquals(5, result.getSensitivityValues().size());
-
-        assertEquals(37.6799d, getValue(result, "l23", "l23"), LoadFlowAssert.DELTA_I);
-        assertEquals(-12.5507d, getValue(result, "l23", "l14"), LoadFlowAssert.DELTA_I);
-        assertEquals(37.3710d, getValue(result, "l23", "l12"), LoadFlowAssert.DELTA_I);
-        assertEquals(-12.6565d, getValue(result, "l23", "l34"), LoadFlowAssert.DELTA_I);
-        assertEquals(-25.0905d, getValue(result, "l23", "l13"), LoadFlowAssert.DELTA_I);
-    }
-
-    @Test
-    void test4busesPhaseShiftIntensityFunctionReference() {
-        Network network = FourBusNetworkFactory.createWithTransfoCompensed();
-        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
-        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-
-        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream()
-            .map(AcSensitivityAnalysisTest::createBranchIntensity)
-            .map(branchIntensity -> new BranchIntensityPerPSTAngle(branchIntensity, new PhaseTapChangerAngle("l23", "l23", "l23"))).collect(Collectors.toList());
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
-            sensiParameters, LocalComputationManager.getDefault())
-            .join();
-
-        assertEquals(5, result.getSensitivityValues().size());
-        // todo: Remove the *100 from assert. Currently the
-        // todo: loadflow from OLF and Hades provides different results
-        assertEquals(766.4654d, getFunctionReference(result, "l23"), LoadFlowAssert.DELTA_I * 100);
-        assertEquals(132.5631d, getFunctionReference(result, "l14"), LoadFlowAssert.DELTA_I * 100);
-        assertEquals(182.1272d, getFunctionReference(result, "l12"), LoadFlowAssert.DELTA_I * 100);
-        assertEquals(716.5036d, getFunctionReference(result, "l34"), LoadFlowAssert.DELTA_I * 100);
-        assertEquals(847.8542d, getFunctionReference(result, "l13"), LoadFlowAssert.DELTA_I * 100);
     }
 
     @Test

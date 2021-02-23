@@ -20,7 +20,6 @@ import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
-import com.powsybl.sensitivity.factors.functions.BranchIntensity;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 
@@ -71,10 +70,6 @@ public abstract class AbstractSensitivityAnalysisTest {
 
     protected static BranchFlow createBranchFlow(Branch branch) {
         return new BranchFlow(branch.getId(), branch.getNameOrId(), branch.getId());
-    }
-
-    protected static BranchIntensity createBranchIntensity(Branch branch) {
-        return new BranchIntensity(branch.getId(), branch.getNameOrId(), branch.getId());
     }
 
     protected static double getValue(SensitivityAnalysisResult result, String variableId, String functionId) {

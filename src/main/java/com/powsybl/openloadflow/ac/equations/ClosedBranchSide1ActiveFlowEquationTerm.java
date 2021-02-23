@@ -36,16 +36,6 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
 
     private double dp1dr1;
 
-    private double di1dv1;
-
-    private double di1dv2;
-
-    private double di1dph1;
-
-    private double di1dph2;
-
-    private double di1da1;
-
     public ClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
                                                    boolean deriveA1, boolean deriveR1) {
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
@@ -53,10 +43,6 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
 
     protected double calculate(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
         return dp1dph1 * dph1 + dp1dph2 * dph2 + dp1dv1 * dv1 + dp1dv2 * dv2;
-    }
-
-    protected double calculateI(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
-        return di1dph1 * dph1 + di1dph2 * dph2 + di1dv1 * dv1 + di1dv2 * dv2;
     }
 
     @Override
@@ -82,26 +68,6 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         if (r1Var != null) {
             dp1dr1 = v1 * (2 * r1 * v1 * (g1 + y * sinKsi) - y * R2 * v2 * sinTheta);
         }
-
-        double vv1 = r1 * v1;
-        double vv2 = y * R2 * v2;
-        double tv1v1 = g1 * g1 + b1 * b1 + y * y + 2 * g1 * y * sinKsi - 2 * y * b1 * cosKsi;
-        double tv1v2 = -g1 * sinTheta - y * sinKsi * sinTheta + b1 * cosTheta - y * cosKsi * cosTheta;
-        double tsqrt = r1 * r1 * (vv1 * vv1 * tv1v1 + vv2 * vv2 + 2 * vv1 * vv2 * tv1v2);
-        double dtsqrtv1 = r1 * r1 * (2 * r1 * vv1 * tv1v1 + 2 * r1 * vv2 * tv1v2);
-        double dtsqrtv2 = r1 * r1 * (2 * y * R2 * vv2 + 2 * y * R2 * vv1 * tv1v2);
-        double dtv1v2ph1 = g1 * cosTheta + y * sinKsi * cosTheta + b1 * sinTheta - y * cosKsi * sinTheta;
-        double dtsqrtph1 = r1 * r1 * (2 * vv1 * vv2 * dtv1v2ph1);
-        double ti1 = 1000 / (2 * Math.sqrt(3 * tsqrt));
-
-        di1dv1 = ti1 * dtsqrtv1;
-        di1dv2 = ti1 * dtsqrtv2;
-        di1dph1 = ti1 * dtsqrtph1;
-        di1dph2 = -di1dph1;
-
-        if (a1Var != null) {
-            di1da1 = di1dph1;
-        }
     }
 
     @Override
@@ -124,23 +90,6 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
             return dp1da1;
         } else if (variable.equals(r1Var)) {
             return dp1dr1;
-        } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
-        }
-    }
-
-    public double derI(Variable variable) {
-        Objects.requireNonNull(variable);
-        if (variable.equals(v1Var)) {
-            return di1dv1;
-        } else if (variable.equals(v2Var)) {
-            return di1dv2;
-        } else if (variable.equals(ph1Var)) {
-            return di1dph1;
-        } else if (variable.equals(ph2Var)) {
-            return di1dph2;
-        } else if (variable.equals(a1Var)) {
-            return di1da1;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

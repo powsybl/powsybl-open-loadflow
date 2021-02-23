@@ -23,7 +23,6 @@ public final class LoadFlowAssert {
     public static final double DELTA_ANGLE = 1E-6d;
     public static final double DELTA_V = 1E-3d;
     public static final double DELTA_POWER = 1E-3d;
-    public static final double DELTA_I = 1E-2d;
     public static final double DELTA_MISMATCH = 1E-4d;
 
     private LoadFlowAssert() {
