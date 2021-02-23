@@ -497,10 +497,7 @@ public abstract class AbstractSensitivityAnalysis {
             LfBranch monitoredBranch;
             if (factor instanceof  BranchFlowPerInjectionIncrease) {
                 BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
-                Injection<?> injection = getInjection(network, injectionFactor.getVariable().getInjectionId());
-                if (injection == null) {
-                    throw new PowsyblException("Injection " + injectionFactor.getVariable().getInjectionId() + " not found in the network");
-                }
+                getInjection(network, injectionFactor.getVariable().getInjectionId()); // will crash if injection is not found
                 if (lfNetwork.getBranchById(factor.getFunction().getId()) == null) {
                     throw new PowsyblException("Branch '" + factor.getFunction().getId() + "' not found");
                 }
@@ -522,10 +519,7 @@ public abstract class AbstractSensitivityAnalysis {
                     throw new PowsyblException("The glsk '" + factor.getVariable().getId() + "' cannot be empty");
                 }
                 for (Map.Entry<String, Float> injectionEntry : glskFactor.getVariable().getGLSKs().entrySet()) {
-                    Injection<?> injection = getInjection(network, injectionEntry.getKey());
-                    if (injection == null) {
-                        throw new PowsyblException("Injection " + injectionEntry.getKey() + " not found in the network");
-                    }
+                    getInjection(network, injectionEntry.getKey()); // will crash if the injection is not found
                 }
                 if (lfNetwork.getBranchById(factor.getFunction().getId()) == null) {
                     throw new PowsyblException("Branch '" + factor.getFunction().getId() + "' not found");
