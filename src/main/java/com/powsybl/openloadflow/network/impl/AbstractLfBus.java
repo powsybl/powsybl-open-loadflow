@@ -134,11 +134,11 @@ public abstract class AbstractLfBus implements LfBus {
     }
 
     @Override
-    public void setVoltageControl(boolean voltageControl) {
-        if (this.voltageControlEnabled && !voltageControl) {
+    public void setVoltageControlEnabled(boolean voltageControlEnabled) {
+        if (this.voltageControlEnabled && !voltageControlEnabled) {
             voltageControlSwitchOffCount++;
         }
-        this.voltageControlEnabled = voltageControl;
+        this.voltageControlEnabled = voltageControlEnabled;
     }
 
     @Override

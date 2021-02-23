@@ -42,7 +42,7 @@ public interface LfBus {
 
     void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount);
 
-    void setVoltageControl(boolean voltageControl);
+    void setVoltageControlEnabled(boolean voltageControl);
 
     VoltageControl getVoltageControl();
 

@@ -55,7 +55,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
     public static void switchPvPq(LfBus bus, EquationSystem equationSystem, VariableSet variableSet, double newGenerationTargetQ) {
         bus.setGenerationTargetQ(newGenerationTargetQ);
-        bus.setVoltageControl(false);
+        bus.setVoltageControlEnabled(false);
 
         Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
         qEq.setActive(true);
@@ -153,7 +153,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
     }
 
     public static void switchPqPv(LfBus bus, EquationSystem equationSystem, VariableSet variableSet) {
-        bus.setVoltageControl(true);
+        bus.setVoltageControlEnabled(true);
         bus.setGenerationTargetQ(0);
 
         Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
