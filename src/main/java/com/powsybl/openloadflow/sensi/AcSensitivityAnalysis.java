@@ -90,7 +90,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
     }
 
-    private List<SensitivityValue> getSensitivitiesContingency(List<LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm>> lfFactors,
+    private List<SensitivityValue> getPostContingencySensitivityValues(List<LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm>> lfFactors,
                                                                LfContingency lfContingency, LfNetwork lfNetwork,
                                                                AcloadFlowEngine engine, List<SensitivityFactorGroup> factorGroups,
                                                                LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt
@@ -215,7 +215,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     .filter(lfFactor -> lfContingency.getBranches().contains(lfFactor.getFunctionLfBranch()))
                     .forEach(lfFactor -> lfFactor.setPredefinedResult(0d));
                 contingenciesValues.put(lfContingency.getContingency().getId(),
-                    getSensitivitiesContingency(lfFactors, lfContingency, lfNetwork, engine, factorGroups, lfParameters, lfParametersExt));
+                    getPostContingencySensitivityValues(lfFactors, lfContingency, lfNetwork, engine, factorGroups, lfParameters, lfParametersExt));
                 BusState.restoreBusStates(busStates, equationSystem, variableSet);
             }
 
@@ -247,7 +247,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 computeInjectionFactors(slackParticipationByBusForThisConnectivity, factorGroups);
 
                 contingenciesValues.put(lfContingency.getContingency().getId(),
-                    getSensitivitiesContingency(lfFactors, lfContingency, lfNetwork, engine, factorGroups, lfParameters, lfParametersExt));
+                    getPostContingencySensitivityValues(lfFactors, lfContingency, lfNetwork, engine, factorGroups, lfParameters, lfParametersExt));
                 BusState.restoreBusStates(busStates, equationSystem, variableSet);
 
                 connectivity.reset();
