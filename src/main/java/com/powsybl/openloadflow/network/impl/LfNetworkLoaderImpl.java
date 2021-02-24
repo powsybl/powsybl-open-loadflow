@@ -83,15 +83,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                     controlledBus = controllerBus;
                 }
 
-                VoltageControl voltageControl = controlledBus.getVoltageControl();
-                if (voltageControl == null) {
-                    voltageControl = new VoltageControl(controlledBus, controllerTargetV);
-                    controlledBus.setVoltageControl(voltageControl);
-                } else {
-                    checkUniqueTargetVControlledBus(controllerTargetV, controllerBus, voltageControl);
-                }
-
+                VoltageControl voltageControl = controlledBus.getVoltageControl().orElse(new VoltageControl(controlledBus, controllerTargetV));
                 voltageControl.addControllerBus(controllerBus);
+
+                controlledBus.setVoltageControl(voltageControl); // is set even if already present, for simplicity sake
+                checkUniqueTargetVControlledBus(controllerTargetV, controllerBus, voltageControl); // check even if voltage control just created, for simplicity sake
             }
         }
     }

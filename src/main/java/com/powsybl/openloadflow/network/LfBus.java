@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -44,7 +45,7 @@ public interface LfBus {
 
     void setVoltageControlEnabled(boolean voltageControl);
 
-    VoltageControl getVoltageControl();
+    Optional<VoltageControl> getVoltageControl();
 
     void setVoltageControl(VoltageControl voltageControl);
 

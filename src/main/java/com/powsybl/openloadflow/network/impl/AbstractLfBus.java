@@ -67,7 +67,7 @@ public abstract class AbstractLfBus implements LfBus {
 
     protected final List<LfBranch> branches = new ArrayList<>();
 
-    private VoltageControl voltageControl;
+    private Optional<VoltageControl> voltageControl = Optional.empty();
 
     protected DiscreteVoltageControl discreteVoltageControl;
 
@@ -110,27 +110,27 @@ public abstract class AbstractLfBus implements LfBus {
 
     @Override
     public boolean hasVoltageControllerCapability() {
-        return getVoltageControl() != null;
+        return getVoltageControl().isPresent();
     }
 
     @Override
-    public VoltageControl getVoltageControl() {
+    public Optional<VoltageControl> getVoltageControl() {
         return voltageControl;
     }
 
     @Override
     public void setVoltageControl(VoltageControl voltageControl) {
-        this.voltageControl = voltageControl;
+        this.voltageControl = Optional.of(voltageControl);
     }
 
     @Override
     public boolean isVoltageControlled() {
-        return voltageControl != null && voltageControl.getControlledBus() == this;
+        return voltageControl.map(vc -> vc.getControlledBus() == this).orElse(false);
     }
 
     @Override
     public boolean isVoltageController() {
-        return voltageControlEnabled;
+        return voltageControl.map(vc -> vc.getControllerBuses().contains(this)).orElse(false) && voltageControlEnabled;
     }
 
     @Override

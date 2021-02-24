@@ -114,11 +114,12 @@ public class Equation implements Evaluable, Comparable<Equation> {
         if (bus.isDiscreteVoltageControlled()) {
             return bus.getDiscreteVoltageControl().getTargetValue();
         }
-        if (bus.isVoltageControlled()) {
-            if (bus.getVoltageControl().getControllerBuses().stream().noneMatch(LfBus::isVoltageController)) {
+        if (bus.getVoltageControl().isPresent() && bus.isVoltageControlled()) {
+            VoltageControl voltageControl = bus.getVoltageControl().get();
+            if (voltageControl.getControllerBuses().stream().noneMatch(LfBus::isVoltageController)) {
                 throw new IllegalStateException("None of the controller buses of bus '" + bus.getId() + "'has voltage control on");
             }
-            return bus.getVoltageControl().getTargetValue();
+            return voltageControl.getTargetValue();
         } else {
             return Double.NaN;
         }

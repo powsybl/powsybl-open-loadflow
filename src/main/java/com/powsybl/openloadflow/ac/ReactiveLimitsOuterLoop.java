@@ -21,10 +21,7 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -36,11 +33,10 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
     private static final double Q_EPS = Math.pow(10, -5); // 10^-5 in p.u => 10^-3 in Mw
 
-    private static final Comparator<PvToPqBus> BY_NOMINAL_V_COMPARATOR = Comparator.comparingDouble(pvToPqBus -> {
-        LfBus bus = pvToPqBus.bus;
-        LfBus controlledBus = bus.hasVoltageControllerCapability() ? bus.getVoltageControl().getControlledBus() : null;
-        return controlledBus == null ? -bus.getNominalV() : -controlledBus.getNominalV();
-    });
+    private static final Comparator<PvToPqBus> BY_NOMINAL_V_COMPARATOR = Comparator.comparingDouble(
+        pvToPqBus -> pvToPqBus.bus.getVoltageControl()
+            .map(vc -> -vc.getControlledBus().getNominalV())
+            .orElse(-pvToPqBus.bus.getNominalV()));
 
     private static final Comparator<PvToPqBus> BY_TARGET_P_COMPARATOR = Comparator.comparingDouble(pvToPqBus -> -pvToPqBus.bus.getTargetP());
 
@@ -60,12 +56,10 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
         qEq.setActive(true);
 
-        if (bus.hasVoltageControllerCapability()) {
-            updateControlledBus(bus.getVoltageControl(), equationSystem, variableSet);
-        } else {
-            Equation vEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
-            vEq.setActive(false);
-        }
+        bus.getVoltageControl().ifPresentOrElse(
+            voltageControl -> updateControlledBus(voltageControl, equationSystem, variableSet),
+            () -> equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).setActive(false)
+        );
     }
 
     public static void updateControlledBus(VoltageControl voltageControl, EquationSystem equationSystem, VariableSet variableSet) {
@@ -159,12 +153,10 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
         qEq.setActive(false);
 
-        if (bus.hasVoltageControllerCapability()) {
-            updateControlledBus(bus.getVoltageControl(), equationSystem, variableSet);
-        } else {
-            Equation vEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
-            vEq.setActive(true);
-        }
+        bus.getVoltageControl().ifPresentOrElse(
+            voltageControl -> updateControlledBus(voltageControl, equationSystem, variableSet),
+            () -> equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).setActive(true)
+        );
     }
 
     private static final class PqToPvBus {
@@ -194,11 +186,9 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
                 if (LOGGER.isTraceEnabled()) {
                     if (pqToPvBus.limitDirection == ReactiveLimitDirection.MAX) {
-                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=maxQ and v={} > targetV={}", bus.getId(), bus.getV(),
-                            bus.getVoltageControl().getTargetValue());
+                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=maxQ and v={} > targetV={}", bus.getId(), bus.getV(), getBusTargetV(bus));
                     } else {
-                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=minQ and v={} < targetV={}", bus.getId(), bus.getV(),
-                            bus.getVoltageControl().getTargetValue());
+                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=minQ and v={} < targetV={}", bus.getId(), bus.getV(), getBusTargetV(bus));
                     }
                 }
             }
@@ -237,12 +227,16 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         double minQ = bus.getMinQ();
         double maxQ = bus.getMaxQ();
         double q = bus.getGenerationTargetQ();
-        if (Math.abs(q - maxQ) < Q_EPS && bus.getV() > bus.getVoltageControl().getTargetValue()) { // bus produce too much reactive power
+        if (Math.abs(q - maxQ) < Q_EPS && bus.getV() > getBusTargetV(bus)) { // bus produce too much reactive power
             pqToPvBuses.add(new PqToPvBus(bus, ReactiveLimitDirection.MAX));
         }
-        if (Math.abs(q - minQ) < Q_EPS && bus.getV() < bus.getVoltageControl().getTargetValue()) { // bus absorb too much reactive power
+        if (Math.abs(q - minQ) < Q_EPS && bus.getV() < getBusTargetV(bus)) { // bus absorb too much reactive power
             pqToPvBuses.add(new PqToPvBus(bus, ReactiveLimitDirection.MIN));
         }
+    }
+
+    private double getBusTargetV(LfBus bus) {
+        return bus.getVoltageControl().map(VoltageControl::getTargetValue).orElse(Double.NaN);
     }
 
     @Override
