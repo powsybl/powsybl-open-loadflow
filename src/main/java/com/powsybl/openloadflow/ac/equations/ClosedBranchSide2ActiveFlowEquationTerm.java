@@ -41,8 +41,8 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
 
-    protected double calculate(double ph1, double ph2, double v1, double v2, double a1, double r1) {
-        return 0;
+    protected double calculate(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
+        return dp2dph1 * dph1 + dp2dph2 * dph2 + dp2dv1 * dv1 + dp2dv2 * dv2;
     }
 
     @Override
