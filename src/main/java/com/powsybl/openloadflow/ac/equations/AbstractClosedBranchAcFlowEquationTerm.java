@@ -59,9 +59,9 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         variables = variablesBuilder.build();
     }
 
-    protected abstract double calculate(double ph1, double ph2, double v1, double v2, double a1, double r1);
+    protected abstract double calculateDer(double ph1, double ph2, double v1, double v2, double a1, double r1);
 
-    public double calculate(DenseMatrix x, int column) {
+    public double calculateDer(DenseMatrix x, int column) {
         Objects.requireNonNull(x);
         double ph1 = x.get(ph1Var.getRow(), column);
         double ph2 = x.get(ph2Var.getRow(), column);
@@ -69,7 +69,7 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         double v2 = x.get(v2Var.getRow(), column);
         double a1 = getA1(x, column);
         double r1 = getR1(x, column);
-        return calculate(ph1, ph2, v1, v2, a1, r1);
+        return calculateDer(ph1, ph2, v1, v2, a1, r1);
     }
 
     protected double getA1(DenseMatrix x, int column) {

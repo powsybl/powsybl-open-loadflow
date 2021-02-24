@@ -49,7 +49,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 if (!factor.getEquationTerm().isActive()) {
                     continue;
                 }
-                double sensi = factor.getEquationTerm().calculate(factorsState, factorGroup.getIndex());
+                double sensi = factor.getEquationTerm().calculateDer(factorsState, factorGroup.getIndex());
                 if (factor.getFunctionLfBranch().getId().equals(factorGroup.getId())) {
                     // add nabla_p eta, fr specific cases
                     // the only case currently: if we are computing the sensitivity of a phasetap change on itself
