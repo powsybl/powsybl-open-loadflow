@@ -421,7 +421,6 @@ public class LfNetwork {
     public static List<LfNetwork> load(Object network, LfNetworkParameters parameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
-
         for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
             List<LfNetwork> lfNetworks = importer.load(network, parameters).orElse(null);
             if (lfNetworks != null) {
@@ -434,7 +433,6 @@ public class LfNetwork {
                 return lfNetworks;
             }
         }
-
         throw new PowsyblException("Cannot importer network of type: " + network.getClass().getName());
     }
 
