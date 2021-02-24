@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+ * Copyright (c) 2021, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,11 +9,8 @@ package com.powsybl.openloadflow.equations;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface EquationSystemListener {
-
-    void onEquationChange(Equation equation, EquationEventType eventType);
-
-    void onEquationTermChange(EquationTerm term, EquationTermEventType eventType);
-
-    void onStateUpdate(double[] x);
+public enum EquationTermEventType {
+    EQUATION_TERM_ADDED,
+    EQUATION_TERM_ACTIVATED,
+    EQUATION_TERM_DEACTIVATED,
 }

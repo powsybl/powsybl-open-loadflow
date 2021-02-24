@@ -29,11 +29,13 @@ import static org.junit.jupiter.api.Assertions.*;
 class EquationSystemTest {
 
     private final List<Equation> equations = new ArrayList<>();
-    private final List<EquationEventType> eventTypes = new ArrayList<>();
+    private final List<EquationEventType> equationEventTypes = new ArrayList<>();
+    private final List<EquationTermEventType> equationTermEventTypes = new ArrayList<>();
 
     private void clearEvents() {
         equations.clear();
-        eventTypes.clear();
+        equationEventTypes.clear();
+        equationTermEventTypes.clear();
     }
 
     @Test
@@ -41,38 +43,52 @@ class EquationSystemTest {
         LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector()).get(0);
         LfBus bus = network.getBus(0);
         EquationSystem equationSystem = new EquationSystem(network, true);
-        equationSystem.addListener((equation, eventType) -> {
-            equations.add(equation);
-            eventTypes.add(eventType);
+        equationSystem.addListener(new EquationSystemListener() {
+            @Override
+            public void onEquationChange(Equation equation, EquationEventType eventType) {
+                equations.add(equation);
+                equationEventTypes.add(eventType);
+            }
+
+            @Override
+            public void onEquationTermChange(EquationTerm term, EquationTermEventType eventType) {
+                equationTermEventTypes.add(eventType);
+            }
+
+            @Override
+            public void onStateUpdate(double[] x) {
+                // nothing to do
+            }
         });
         VariableSet variableSet = new VariableSet();
         assertTrue(equations.isEmpty());
-        assertTrue(eventTypes.isEmpty());
+        assertTrue(equationEventTypes.isEmpty());
         assertTrue(equationSystem.getSortedEquationsToSolve().isEmpty());
 
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusPhaseEquationTerm(bus, variableSet));
-        assertEquals(2, equations.size());
-        assertEquals(2, eventTypes.size());
-        assertEquals(EquationEventType.EQUATION_CREATED, eventTypes.get(0));
-        assertEquals(EquationEventType.EQUATION_UPDATED, eventTypes.get(1));
+        assertEquals(1, equations.size());
+        assertEquals(1, equationEventTypes.size());
+        assertEquals(1, equationTermEventTypes.size());
+        assertEquals(EquationEventType.EQUATION_CREATED, equationEventTypes.get(0));
+        assertEquals(EquationTermEventType.EQUATION_TERM_ADDED, equationTermEventTypes.get(0));
         assertEquals(1, equationSystem.getSortedEquationsToSolve().size());
 
         clearEvents();
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).setActive(true);
         assertTrue(equations.isEmpty());
-        assertTrue(eventTypes.isEmpty());
+        assertTrue(equationEventTypes.isEmpty());
 
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).setActive(false);
         assertEquals(1, equations.size());
-        assertEquals(1, eventTypes.size());
-        assertEquals(EquationEventType.EQUATION_DEACTIVATED, eventTypes.get(0));
+        assertEquals(1, equationEventTypes.size());
+        assertEquals(EquationEventType.EQUATION_DEACTIVATED, equationEventTypes.get(0));
         assertTrue(equationSystem.getSortedEquationsToSolve().isEmpty());
 
         clearEvents();
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).setActive(true);
         assertEquals(1, equations.size());
-        assertEquals(1, eventTypes.size());
-        assertEquals(EquationEventType.EQUATION_ACTIVATED, eventTypes.get(0));
+        assertEquals(1, equationEventTypes.size());
+        assertEquals(EquationEventType.EQUATION_ACTIVATED, equationEventTypes.get(0));
         assertEquals(1, equationSystem.getSortedEquationsToSolve().size());
 
         assertTrue(equationSystem.getEquation(bus.getNum(), EquationType.BUS_V).isPresent());
@@ -87,15 +103,17 @@ class EquationSystemTest {
         BusVoltageEquationTerm equationTerm = new BusVoltageEquationTerm(bus, variableSet);
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(equationTerm);
         assertEquals(2, equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).getTerms().size());
-        assertEquals(1, equations.size());
-        assertEquals(1, eventTypes.size());
-        assertEquals(EquationEventType.EQUATION_UPDATED, eventTypes.get(0));
+        assertEquals(0, equations.size());
+        assertEquals(0, equationEventTypes.size());
+        assertEquals(1, equationTermEventTypes.size());
+        assertEquals(EquationTermEventType.EQUATION_TERM_ADDED, equationTermEventTypes.get(0));
 
         clearEvents();
         equationTerm.setActive(false);
-        assertEquals(1, equations.size());
-        assertEquals(1, eventTypes.size());
-        assertEquals(EquationEventType.EQUATION_UPDATED, eventTypes.get(0));
+        assertEquals(0, equations.size());
+        assertEquals(0, equationEventTypes.size());
+        assertEquals(1, equationTermEventTypes.size());
+        assertEquals(EquationTermEventType.EQUATION_TERM_DEACTIVATED, equationTermEventTypes.get(0));
     }
 
     @Test

@@ -76,7 +76,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
     public void setActive(boolean active) {
         if (active != this.active) {
             this.active = active;
-            equationSystem.notifyListeners(this, active ? EquationEventType.EQUATION_ACTIVATED : EquationEventType.EQUATION_DEACTIVATED);
+            equationSystem.notifyEquationChange(this, active ? EquationEventType.EQUATION_ACTIVATED : EquationEventType.EQUATION_DEACTIVATED);
         }
     }
 
@@ -93,7 +93,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
         terms.add(term);
         term.setEquation(this);
         equationSystem.addEquationTerm(term);
-        equationSystem.notifyListeners(this, EquationEventType.EQUATION_UPDATED);
+        equationSystem.notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_ADDED);
         return this;
     }
 

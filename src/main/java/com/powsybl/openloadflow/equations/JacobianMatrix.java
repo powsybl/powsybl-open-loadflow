@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -16,7 +17,7 @@ import java.util.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class JacobianMatrix {
+public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
 
     static final class PartialDerivative {
 
@@ -45,21 +46,84 @@ public class JacobianMatrix {
         }
     }
 
-    private final Matrix matrix;
+    private final EquationSystem equationSystem;
 
-    private final List<PartialDerivative> partialDerivatives;
+    private final MatrixFactory matrixFactory;
+
+    private Matrix matrix;
+
+    private List<PartialDerivative> partialDerivatives;
 
     private LUDecomposition lu;
 
-    JacobianMatrix(Matrix matrix, List<PartialDerivative> partialDerivatives) {
-        this.matrix = Objects.requireNonNull(matrix);
-        this.partialDerivatives = Objects.requireNonNull(partialDerivatives);
+    private enum Status {
+        VALID,
+        MATRIX_INVALID, // structure has changed
+        VALUES_INVALID // same structure but values have to be updated
     }
 
-    public static JacobianMatrix create(EquationSystem equationSystem, MatrixFactory matrixFactory) {
-        Objects.requireNonNull(equationSystem);
-        Objects.requireNonNull(matrixFactory);
+    private Status status = Status.MATRIX_INVALID;
 
+    public JacobianMatrix(EquationSystem equationSystem, MatrixFactory matrixFactory) {
+        this.equationSystem = Objects.requireNonNull(equationSystem);
+        this.matrixFactory = Objects.requireNonNull(matrixFactory);
+        equationSystem.addListener(this);
+    }
+
+    @Override
+    public void onEquationChange(Equation equation, EquationEventType eventType) {
+        switch (eventType) {
+            case EQUATION_CREATED:
+            case EQUATION_REMOVED:
+            case EQUATION_ACTIVATED:
+            case EQUATION_DEACTIVATED:
+                status = Status.MATRIX_INVALID;
+                break;
+
+            default:
+                throw new IllegalStateException("Event type not supported: " + eventType);
+        }
+    }
+
+    @Override
+    public void onEquationTermChange(EquationTerm term, EquationTermEventType eventType) {
+        switch (eventType) {
+            case EQUATION_TERM_ADDED:
+            case EQUATION_TERM_ACTIVATED:
+            case EQUATION_TERM_DEACTIVATED:
+                // FIXME
+                // Note for later, it might be possible in the future in case of a term change to not fully rebuild
+                // the matrix as the structure has not changed (same equations and variables). But... we have for that
+                // to handle the case where the invalidation of an equation term break the graph connectivity. This
+                // is typically the case when the equation term is the active power flow of a branch which is also a
+                // bridge (so necessary for the connectivity). Normally in that case a bus equation should also have been
+                // deactivated and so it should work but for an unknown reason it fails with a KLU singular error (which
+                // means most of the time we have created the matrix with a non fully connected network)
+                status = Status.MATRIX_INVALID;
+                break;
+
+            default:
+                throw new IllegalStateException("Event type not supported: " + eventType);
+        }
+    }
+
+    @Override
+    public void onStateUpdate(double[] x) {
+        if (status == Status.VALID) {
+            status = Status.VALUES_INVALID;
+        }
+    }
+
+    private void clear() {
+        matrix = null;
+        partialDerivatives = null;
+        if (lu != null) {
+            lu.close();
+        }
+        lu = null;
+    }
+
+    private void initMatrix() {
         int rowCount = equationSystem.getSortedEquationsToSolve().size();
         int columnCount = equationSystem.getSortedVariablesToFind().size();
         if (rowCount != columnCount) {
@@ -68,8 +132,8 @@ public class JacobianMatrix {
         }
 
         int estimatedNonZeroValueCount = rowCount * 3;
-        Matrix j = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
-        List<JacobianMatrix.PartialDerivative> partialDerivatives = new ArrayList<>(estimatedNonZeroValueCount);
+        matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
+        partialDerivatives = new ArrayList<>(estimatedNonZeroValueCount);
 
         for (Map.Entry<Equation, NavigableMap<Variable, List<EquationTerm>>> e : equationSystem.getSortedEquationsToSolve().entrySet()) {
             Equation eq = e.getKey();
@@ -79,20 +143,14 @@ public class JacobianMatrix {
                 int row = var.getRow();
                 for (EquationTerm equationTerm : e2.getValue()) {
                     double value = equationTerm.der(var);
-                    Matrix.Element element = j.addAndGetElement(row, column, value);
+                    Matrix.Element element = matrix.addAndGetElement(row, column, value);
                     partialDerivatives.add(new JacobianMatrix.PartialDerivative(equationTerm, element, var));
                 }
             }
         }
-
-        return new JacobianMatrix(j, partialDerivatives);
     }
 
-    public Matrix getMatrix() {
-        return matrix;
-    }
-
-    public void update() {
+    private void updateValues() {
         matrix.reset();
         for (PartialDerivative partialDerivative : partialDerivatives) {
             EquationTerm equationTerm = partialDerivative.getEquationTerm();
@@ -101,21 +159,57 @@ public class JacobianMatrix {
             double value = equationTerm.der(var);
             element.add(value);
         }
+        if (lu != null) {
+            lu.update();
+        }
     }
 
-    public LUDecomposition decomposeLU() {
+    public Matrix getMatrix() {
+        if (status != Status.VALID) {
+            switch (status) {
+                case MATRIX_INVALID:
+                    clear();
+                    initMatrix();
+                    break;
+
+                case VALUES_INVALID:
+                    updateValues();
+                    break;
+
+                default:
+                    break;
+            }
+            status = Status.VALID;
+        }
+        return matrix;
+    }
+
+    private LUDecomposition getLUDecomposition() {
         if (lu == null) {
-            lu = matrix.decomposeLU();
-        } else {
-            lu.update();
+            lu = getMatrix().decomposeLU();
         }
         return lu;
     }
 
-    public void cleanLU() {
-        if (lu != null) {
-            lu.close();
-            lu = null;
-        }
+    public void solve(double[] b) {
+        getLUDecomposition().solve(b);
+    }
+
+    public void solveTransposed(double[] b) {
+        getLUDecomposition().solveTransposed(b);
+    }
+
+    public void solve(DenseMatrix b) {
+        getLUDecomposition().solve(b);
+    }
+
+    public void solveTransposed(DenseMatrix b) {
+        getLUDecomposition().solveTransposed(b);
+    }
+
+    @Override
+    public void close() {
+        equationSystem.removeListener(this);
+        clear();
     }
 }
