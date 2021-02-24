@@ -12,10 +12,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -114,15 +111,16 @@ public class Equation implements Evaluable, Comparable<Equation> {
         if (bus.isDiscreteVoltageControlled()) {
             return bus.getDiscreteVoltageControl().getTargetValue();
         }
-        if (bus.getVoltageControl().isPresent() && bus.isVoltageControlled()) {
-            VoltageControl voltageControl = bus.getVoltageControl().get();
-            if (voltageControl.getControllerBuses().stream().noneMatch(LfBus::isVoltageController)) {
+        return getVoltageControlledTargetValue(bus).orElse(Double.NaN);
+    }
+
+    private static Optional<Double> getVoltageControlledTargetValue(LfBus bus) {
+        return bus.getVoltageControl().filter(vc -> bus.isVoltageControlled()).map(vc -> {
+            if (vc.getControllerBuses().stream().noneMatch(LfBus::isVoltageController)) {
                 throw new IllegalStateException("None of the controller buses of bus '" + bus.getId() + "'has voltage control on");
             }
-            return voltageControl.getTargetValue();
-        } else {
-            return Double.NaN;
-        }
+            return vc.getTargetValue();
+        });
     }
 
     private static double getBranchA(LfBranch branch) {
