@@ -38,29 +38,31 @@ public final class AcEquationSystem {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
 
-            bus.getVoltageControl().ifPresent(voltageControl -> {
-                boolean hasLocalControl = bus.isVoltageController() && voltageControl.isVoltageControlLocal();
-                boolean hasLocalControlOnly = hasLocalControl && voltageControl.getControllerBuses().size() == 1;
-                if (hasLocalControlOnly) {
-                    equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
-                }
-
-                if (bus.isVoltageController()) {
-                    equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
-                }
-
-                // in case voltage remote control is activated, set voltage equation on this controlled bus
-                boolean hasRemoteControl = bus.isVoltageControlled() && !hasLocalControlOnly;
-                if (hasRemoteControl) {
-                    createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet);
-                }
-            });
+            bus.getVoltageControl().ifPresent(vc -> createVoltageControlEquations(vc, bus, variableSet, equationSystem));
 
             createShuntEquations(variableSet, equationSystem, bus);
 
             if (creationParameters.isTransformerVoltageControl()) {
                 createDiscreteVoltageControlEquation(bus, variableSet, equationSystem);
             }
+        }
+    }
+
+    private static void createVoltageControlEquations(VoltageControl voltageControl, LfBus bus, VariableSet variableSet, EquationSystem equationSystem) {
+        boolean hasLocalControl = bus.isVoltageController() && voltageControl.isVoltageControlLocal();
+        boolean hasLocalControlOnly = hasLocalControl && voltageControl.getControllerBuses().size() == 1;
+        if (hasLocalControlOnly) {
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+        }
+
+        if (bus.isVoltageController()) {
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
+        }
+
+        // in case voltage remote control is activated, set voltage equation on this controlled bus
+        boolean hasRemoteControl = bus.isVoltageControlled() && !hasLocalControlOnly;
+        if (hasRemoteControl) {
+            createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet);
         }
     }
 
