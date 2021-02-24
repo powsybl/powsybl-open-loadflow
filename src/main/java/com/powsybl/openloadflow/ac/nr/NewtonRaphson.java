@@ -10,11 +10,11 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -48,11 +48,8 @@ public class NewtonRaphson {
 
     public void logLargestMismatches(double[] mismatch, EquationSystem equationSystem, int count) {
         if (LOGGER.isTraceEnabled()) {
-            Map<Equation, Double> mismatchByEquation = new HashMap<>(equationSystem.getSortedEquationsToSolve().size());
-            for (Equation equation : equationSystem.getSortedEquationsToSolve().keySet()) {
-                mismatchByEquation.put(equation, mismatch[equation.getColumn()]);
-            }
-            mismatchByEquation.entrySet().stream()
+            equationSystem.getSortedEquationsToSolve().keySet().stream()
+                    .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
                     .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))
                     .sorted(Comparator.comparingDouble((Map.Entry<Equation, Double> e) -> Math.abs(e.getValue())).reversed())
                     .limit(count)
