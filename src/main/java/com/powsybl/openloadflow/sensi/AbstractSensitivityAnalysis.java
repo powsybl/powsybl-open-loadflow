@@ -96,23 +96,6 @@ public abstract class AbstractSensitivityAnalysis {
         return new JacobianMatrix(equationSystem, matrixFactory);
     }
 
-    protected void fillRhsSensitivityVariable(LfNetwork lfNetwork, EquationSystem equationSystem, List<SensitivityFactorGroup> factorGroups, Matrix rhs) {
-        for (SensitivityFactorGroup factorGroup : factorGroups) {
-            factorGroup.fillRhs(lfNetwork, equationSystem, rhs);
-        }
-    }
-
-    protected List<ParticipatingElement> getParticipatingElements(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters, Function<ParticipatingElement, Boolean> filter) {
-        ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(loadFlowParameters.getBalanceType(), openLoadFlowParameters.isLoadPowerFactorConstant());
-        List<ParticipatingElement> participatingElements =  step.getParticipatingElements(lfNetwork).stream().filter(filter::apply).collect(Collectors.toList());
-        ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
-        return participatingElements;
-    }
-
-    protected List<ParticipatingElement> getParticipatingElements(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
-        return getParticipatingElements(lfNetwork, loadFlowParameters, openLoadFlowParameters, element -> true);
-    }
-
     static class LfSensitivityFactor<T extends EquationTerm> {
         // Wrap factors in specific class to have instant access to their branch, and their equation term
         private final SensitivityFactor factor;
@@ -451,12 +434,52 @@ public abstract class AbstractSensitivityAnalysis {
         return new ArrayList<>(groupIndexedById.values());
     }
 
+    protected List<ParticipatingElement> getParticipatingElements(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters, Function<ParticipatingElement, Boolean> filter) {
+        ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(loadFlowParameters.getBalanceType(), openLoadFlowParameters.isLoadPowerFactorConstant());
+        List<ParticipatingElement> participatingElements =  step.getParticipatingElements(lfNetwork).stream().filter(filter::apply).collect(Collectors.toList());
+        ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
+        return participatingElements;
+    }
+
+    protected List<ParticipatingElement> getParticipatingElements(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
+        return getParticipatingElements(lfNetwork, loadFlowParameters, openLoadFlowParameters, element -> true);
+    }
+
     protected void computeInjectionFactors(Map<String, Double> participationFactorByBus, List<SensitivityFactorGroup> factorGroups) {
         // compute the corresponding injection (including participation) for each factor
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             if (factorGroup instanceof InjectionFactorGroup) {
                 InjectionFactorGroup injectionGroup = (InjectionFactorGroup) factorGroup;
                 injectionGroup.setInjectionByBus(new HashMap<>(participationFactorByBus));
+            }
+        }
+    }
+
+    protected DenseMatrix initFactorsRhs(LfNetwork lfNetwork, EquationSystem equationSystem, List<SensitivityFactorGroup> factorsGroups) {
+        DenseMatrix rhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), factorsGroups.size());
+        fillRhsSensitivityVariable(lfNetwork, equationSystem, factorsGroups, rhs);
+        return rhs;
+    }
+
+    protected void fillRhsSensitivityVariable(LfNetwork lfNetwork, EquationSystem equationSystem, List<SensitivityFactorGroup> factorGroups, Matrix rhs) {
+        for (SensitivityFactorGroup factorGroup : factorGroups) {
+            factorGroup.fillRhs(lfNetwork, equationSystem, rhs);
+        }
+    }
+
+    public void cutConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, Collection<String> elementsPotentiallyBreakingConnectivity) {
+        elementsPotentiallyBreakingConnectivity.stream()
+            .map(lfNetwork::getBranchById)
+            .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
+    }
+
+    protected <T extends EquationTerm> void setPredefinedResults(Collection<LfSensitivityFactor<T>> lfFactors, GraphDecrementalConnectivity<LfBus> connectivity, int mainComponent) {
+        for (LfSensitivityFactor<T> factor : lfFactors) {
+            // check if the factor function and variable are in different connected components
+            if (factor.areVariableAndFunctionDisconnected(connectivity)) {
+                factor.setPredefinedResult(0d);
+            } else if (!factor.isConnectedToComponent(mainComponent, connectivity)) {
+                factor.setPredefinedResult(Double.NaN); // works for sensitivity and function reference
             }
         }
     }
@@ -472,23 +495,6 @@ public abstract class AbstractSensitivityAnalysis {
                 .filter(entry -> connectivity.getComponentNumber(entry.getKey()) == mainComponentNumber)
                 .collect(Collectors.toMap(entry -> entry.getKey().getId(), Map.Entry::getValue));
             glskGroup.setGlskMapInMainComponent(remainingGlskInjections);
-        }
-    }
-
-    protected DenseMatrix initFactorsRhs(LfNetwork lfNetwork, EquationSystem equationSystem, List<SensitivityFactorGroup> factorsGroups) {
-        DenseMatrix rhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), factorsGroups.size());
-        fillRhsSensitivityVariable(lfNetwork, equationSystem, factorsGroups, rhs);
-        return rhs;
-    }
-
-    protected <T extends EquationTerm> void setPredefinedResults(Collection<LfSensitivityFactor<T>> lfFactors, GraphDecrementalConnectivity<LfBus> connectivity, int mainComponent) {
-        for (LfSensitivityFactor<T> factor : lfFactors) {
-            // check if the factor function and variable are in different connected components
-            if (factor.areVariableAndFunctionDisconnected(connectivity)) {
-                factor.setPredefinedResult(0d);
-            } else if (!factor.isConnectedToComponent(mainComponent, connectivity)) {
-                factor.setPredefinedResult(Double.NaN); // works for sensitivity and function reference
-            }
         }
     }
 
@@ -532,12 +538,6 @@ public abstract class AbstractSensitivityAnalysis {
                 throw new PowsyblException("Monitored branch " + factor.getFunction().getId() + " not found in the network");
             }
         }
-    }
-
-    public void cutConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, Collection<String> elementsPotentiallyBreakingConnectivity) {
-        elementsPotentiallyBreakingConnectivity.stream()
-            .map(lfNetwork::getBranchById)
-            .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
     }
 
     public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
