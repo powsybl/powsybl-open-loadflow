@@ -13,7 +13,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.util.ParameterConstants;
-import com.powsybl.openloadflow.util.Profiler;
 import net.jafama.FastMath;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
@@ -415,31 +414,27 @@ public class LfNetwork {
         }
     }
 
-    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, Profiler profiler) {
-        return load(network, new LfNetworkParameters(slackBusSelector, false, false, false, false, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE), profiler);
+    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
+        return load(network, new LfNetworkParameters(slackBusSelector, false, false, false, false, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE));
     }
 
-    public static List<LfNetwork> load(Object network, LfNetworkParameters parameters, Profiler profiler) {
+    public static List<LfNetwork> load(Object network, LfNetworkParameters parameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
-        profiler.beforeTask("NetworkCreation");
-        try {
-            for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
-                List<LfNetwork> lfNetworks = importer.load(network, parameters).orElse(null);
-                if (lfNetworks != null) {
-                    for (LfNetwork lfNetwork : lfNetworks) {
-                        fix(lfNetwork, parameters.isMinImpedance());
-                        validate(lfNetwork, parameters.isMinImpedance());
-                        lfNetwork.logSize();
-                        lfNetwork.logBalance();
-                    }
-                    return lfNetworks;
+        for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
+            List<LfNetwork> lfNetworks = importer.load(network, parameters).orElse(null);
+            if (lfNetworks != null) {
+                for (LfNetwork lfNetwork : lfNetworks) {
+                    fix(lfNetwork, parameters.isMinImpedance());
+                    validate(lfNetwork, parameters.isMinImpedance());
+                    lfNetwork.logSize();
+                    lfNetwork.logBalance();
                 }
+                return lfNetworks;
             }
-        } finally {
-            profiler.afterTask("NetworkCreation");
         }
+
         throw new PowsyblException("Cannot importer network of type: " + network.getClass().getName());
     }
 

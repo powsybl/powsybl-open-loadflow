@@ -6,17 +6,16 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.util.Profiler;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public interface VoltageInitializer {
 
-    void prepare(LfNetwork network, MatrixFactory matrixFactory, Profiler profiler);
+    void prepare(LfNetwork network, MatrixFactory matrixFactory);
 
     double getMagnitude(LfBus bus);
 

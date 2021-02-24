@@ -18,8 +18,14 @@ import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.loadflow.resultscompletion.z0flows.Z0FlowsCompletion;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.ac.*;
-import com.powsybl.openloadflow.ac.nr.*;
+import com.powsybl.openloadflow.ac.DistributedSlackOuterLoop;
+import com.powsybl.openloadflow.ac.PhaseControlOuterLoop;
+import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
+import com.powsybl.openloadflow.ac.TransformerVoltageControlOuterLoop;
+import com.powsybl.openloadflow.ac.nr.DcValueVoltageInitializer;
+import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
@@ -37,7 +43,6 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.Markers;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
-import com.powsybl.openloadflow.util.Profiler;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -161,16 +166,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 parametersExt.getPlausibleActivePowerLimit());
     }
 
-    private static Profiler createProfiler() {
-        return LOGGER.isDebugEnabled() ? Profiler.create() : Profiler.NO_OP;
-    }
-
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt, false);
-        Profiler profiler = createProfiler();
-        List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, acParameters, profiler);
+        List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, acParameters);
 
-        Networks.resetState(network, profiler);
+        Networks.resetState(network);
 
         boolean ok = results.stream().anyMatch(result -> result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED);
         // reset slack buses if at least one component has converged
@@ -217,8 +217,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             }).complete();
         }
 
-        profiler.printSummary();
-
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
@@ -234,12 +232,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector, matrixFactory, true,
                 parametersExt.isDcUseTransformerRatio(), parameters.isDistributedSlack(), parameters.getBalanceType(),
                 forcePhaseControlOffAndAddAngle1Var, parametersExt.getPlausibleActivePowerLimit());
-        Profiler profiler = createProfiler();
 
-        DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters, profiler)
+        DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters)
                 .run();
 
-        Networks.resetState(network, profiler);
+        Networks.resetState(network);
 
         if (result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED && parameters.isWriteSlackBus()) {
             SlackTerminal.reset(network);
@@ -254,8 +251,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 0,
                 result.getNetwork().getSlackBus().getId(),
                 result.getSlackBusActivePowerMismatch() * PerUnit.SB);
-
-        profiler.printSummary();
 
         return new LoadFlowResultImpl(result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED,
                                       Collections.emptyMap(),

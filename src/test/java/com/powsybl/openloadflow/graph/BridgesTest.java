@@ -13,7 +13,6 @@ import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.Profiler;
 import org.jgrapht.alg.connectivity.BiconnectivityInspector;
 import org.jgrapht.graph.Pseudograph;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +44,7 @@ class BridgesTest {
     void setUp() {
         long start = System.currentTimeMillis();
         Network network = EurostagTutorialExample1Factory.create();
-        List<LfNetwork> lfn = LfNetwork.load(network, new FirstSlackBusSelector(), Profiler.NO_OP);
+        List<LfNetwork> lfn = LfNetwork.load(network, new FirstSlackBusSelector());
         this.lfNetwork = lfn.get(0);
         LOGGER.info("Reading network of {} buses in {} ms", lfNetwork.getBuses().size(), System.currentTimeMillis() - start);
 

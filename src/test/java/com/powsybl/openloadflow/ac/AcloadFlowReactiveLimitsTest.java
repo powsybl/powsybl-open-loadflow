@@ -18,7 +18,6 @@ import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.Profiler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -118,7 +117,7 @@ class AcloadFlowReactiveLimitsTest {
 
     @Test
     void diagramTest() {
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector(), Profiler.NO_OP);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         LfBus genBus = lfNetwork.getBus(0);

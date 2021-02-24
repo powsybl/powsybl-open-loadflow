@@ -10,7 +10,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.Profiler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +30,7 @@ class ConnectivityTest {
     @BeforeEach
     void setup() {
         Network network = new ConnectedFactory().createThreeCcLinkedByASingleBus();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector(), Profiler.NO_OP);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
         lfNetwork = lfNetworks.get(0);
     }
 

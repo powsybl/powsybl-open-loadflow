@@ -13,7 +13,6 @@ import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
-import com.powsybl.openloadflow.util.Profiler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,7 +56,7 @@ class LfNetworkTest extends AbstractConverterTest {
                     .add()
                 .add();
 
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector(), Profiler.NO_OP);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         Path file = fileSystem.getPath("/work/n.json");
         lfNetworks.get(0).writeJson(file);
@@ -78,7 +77,7 @@ class LfNetworkTest extends AbstractConverterTest {
                 .setRegulationTerminal(ps1.getTerminal1())
                 .setRegulationValue(83);
 
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector(), Profiler.NO_OP);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         Path file = fileSystem.getPath("/work/n2.json");
         lfNetworks.get(0).writeJson(file);
@@ -90,7 +89,7 @@ class LfNetworkTest extends AbstractConverterTest {
     @Test
     void getBranchByIdtest() {
         Network network = EurostagTutorialExample1Factory.create();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector(), Profiler.NO_OP);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertNull(lfNetwork.getBranchById("AAA"));
@@ -100,7 +99,7 @@ class LfNetworkTest extends AbstractConverterTest {
     @Test
     void testDanglingLine() {
         Network network = DanglingLineNetworkFactory.create();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector(), Profiler.NO_OP);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertFalse(lfNetwork.getBusById("DL_BUS").isDisabled());

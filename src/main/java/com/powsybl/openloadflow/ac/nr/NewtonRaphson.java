@@ -10,7 +10,6 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.Profiler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,8 +29,6 @@ public class NewtonRaphson {
 
     private final MatrixFactory matrixFactory;
 
-    private final Profiler profiler;
-
     private final EquationSystem equationSystem;
 
     private final NewtonRaphsonStoppingCriteria stoppingCriteria;
@@ -40,11 +37,10 @@ public class NewtonRaphson {
 
     private final JacobianMatrix j;
 
-    public NewtonRaphson(LfNetwork network, MatrixFactory matrixFactory, Profiler profiler,
-                         EquationSystem equationSystem, JacobianMatrix j, NewtonRaphsonStoppingCriteria stoppingCriteria) {
+    public NewtonRaphson(LfNetwork network, MatrixFactory matrixFactory, EquationSystem equationSystem, JacobianMatrix j,
+                         NewtonRaphsonStoppingCriteria stoppingCriteria) {
         this.network = Objects.requireNonNull(network);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        this.profiler = Objects.requireNonNull(profiler);
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.j = Objects.requireNonNull(j);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -66,8 +62,6 @@ public class NewtonRaphson {
 
     private NewtonRaphsonStatus runIteration(double[] fx, double[] targets, double[] x) {
         LOGGER.debug("Start iteration {}", iteration);
-
-        profiler.beforeTask("NewtonRaphsonIterationRun");
 
         try {
             // solve f(x) = j * dx
@@ -92,13 +86,9 @@ public class NewtonRaphson {
             // test stopping criteria and log norm(fx)
             logLargestMismatches(fx, equationSystem, iteration);
 
-            profiler.beforeTask("StoppingCriteriaEvaluation");
-
             NewtonRaphsonStoppingCriteria.TestResult testResult = stoppingCriteria.test(fx);
 
             LOGGER.debug("|f(x)|={}", testResult.getNorm());
-
-            profiler.afterTask("StoppingCriteriaEvaluation");
 
             if (testResult.isStop()) {
                 return NewtonRaphsonStatus.CONVERGED;
@@ -107,7 +97,6 @@ public class NewtonRaphson {
             return null;
         } finally {
             iteration++;
-            profiler.afterTask("NewtonRaphsonIterationRun");
         }
     }
 
@@ -127,11 +116,7 @@ public class NewtonRaphson {
         VoltageInitializer voltageInitializer = iteration == 0 ? parameters.getVoltageInitializer()
                                                                : new PreviousValueVoltageInitializer();
 
-        profiler.beforeTask("VoltageInitializerPreparation");
-
-        voltageInitializer.prepare(network, matrixFactory, profiler);
-
-        profiler.afterTask("VoltageInitializerPreparation");
+        voltageInitializer.prepare(network, matrixFactory);
 
         double[] x = equationSystem.createStateVector(voltageInitializer);
 

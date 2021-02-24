@@ -7,10 +7,9 @@
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.util.Profiler;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -18,7 +17,7 @@ import com.powsybl.openloadflow.util.Profiler;
 public class PreviousValueVoltageInitializer implements VoltageInitializer {
 
     @Override
-    public void prepare(LfNetwork network, MatrixFactory matrixFactory, Profiler profiler) {
+    public void prepare(LfNetwork network, MatrixFactory matrixFactory) {
         // nothing to do
     }
 

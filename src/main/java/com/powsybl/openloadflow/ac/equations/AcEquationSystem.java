@@ -10,7 +10,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.Profiler;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
@@ -333,29 +332,23 @@ public final class AcEquationSystem {
         }
     }
 
-    public static EquationSystem create(LfNetwork network, Profiler profiler) {
-        return create(network, new VariableSet(), profiler);
+    public static EquationSystem create(LfNetwork network) {
+        return create(network, new VariableSet());
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet, Profiler profiler) {
-        return create(network, variableSet, new AcEquationSystemCreationParameters(false, false, false), profiler);
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
+        return create(network, variableSet, new AcEquationSystemCreationParameters(false, false, false));
     }
 
-    public static EquationSystem create(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters,
-                                        Profiler profiler) {
+    public static EquationSystem create(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(variableSet);
         Objects.requireNonNull(creationParameters);
-        Objects.requireNonNull(profiler);
 
-        profiler.beforeTask("AcEquationSystemCreation");
-
-        EquationSystem equationSystem = new EquationSystem(network, true, profiler);
+        EquationSystem equationSystem = new EquationSystem(network, true);
 
         createBusEquations(network, variableSet, creationParameters, equationSystem);
         createBranchEquations(network, variableSet, creationParameters, equationSystem);
-
-        profiler.afterTask("AcEquationSystemCreation");
 
         return equationSystem;
     }

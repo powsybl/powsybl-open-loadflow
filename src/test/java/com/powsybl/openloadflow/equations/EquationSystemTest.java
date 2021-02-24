@@ -14,7 +14,6 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.Profiler;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -41,10 +40,9 @@ class EquationSystemTest {
 
     @Test
     void test() {
-        Profiler profiler = Profiler.NO_OP;
-        LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector(), profiler).get(0);
+        LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector()).get(0);
         LfBus bus = network.getBus(0);
-        EquationSystem equationSystem = new EquationSystem(network, true, profiler);
+        EquationSystem equationSystem = new EquationSystem(network, true);
         equationSystem.addListener(new EquationSystemListener() {
             @Override
             public void onEquationChange(Equation equation, EquationEventType eventType) {
@@ -120,9 +118,8 @@ class EquationSystemTest {
 
     @Test
     void writeAcSystemTest() throws IOException {
-        Profiler profiler = Profiler.NO_OP;
-        LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector(), profiler).get(0);
-        EquationSystem equationSystem = AcEquationSystem.create(network, profiler);
+        LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector()).get(0);
+        EquationSystem equationSystem = AcEquationSystem.create(network);
         try (StringWriter writer = new StringWriter()) {
             equationSystem.write(writer);
             writer.flush();
@@ -142,9 +139,8 @@ class EquationSystemTest {
 
     @Test
     void writeDcSystemTest() throws IOException {
-        Profiler profiler = Profiler.NO_OP;
-        LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector(), profiler).get(0);
-        EquationSystem equationSystem = DcEquationSystem.create(network, new DcEquationSystemCreationParameters(true, false, false, true), profiler);
+        LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector()).get(0);
+        EquationSystem equationSystem = DcEquationSystem.create(network, new DcEquationSystemCreationParameters(true, false, false, true));
         try (StringWriter writer = new StringWriter()) {
             equationSystem.write(writer);
             writer.flush();

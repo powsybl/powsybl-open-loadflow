@@ -10,7 +10,6 @@ import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.Profiler;
 
 import java.util.Objects;
 
@@ -29,16 +28,13 @@ public class OuterLoopContext {
 
     private final NewtonRaphsonResult lastNewtonRaphsonResult;
 
-    private final Profiler profiler;
-
     OuterLoopContext(int iteration, LfNetwork network, EquationSystem equationSystem, VariableSet variableSet,
-                     NewtonRaphsonResult lastNewtonRaphsonResult, Profiler profiler) {
+                     NewtonRaphsonResult lastNewtonRaphsonResult) {
         this.iteration = iteration;
         this.network = Objects.requireNonNull(network);
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.variableSet = Objects.requireNonNull(variableSet);
         this.lastNewtonRaphsonResult = Objects.requireNonNull(lastNewtonRaphsonResult);
-        this.profiler = Objects.requireNonNull(profiler);
     }
 
     public int getIteration() {
@@ -59,9 +55,5 @@ public class OuterLoopContext {
 
     public NewtonRaphsonResult getLastNewtonRaphsonResult() {
         return lastNewtonRaphsonResult;
-    }
-
-    public Profiler getProfiler() {
-        return profiler;
     }
 }

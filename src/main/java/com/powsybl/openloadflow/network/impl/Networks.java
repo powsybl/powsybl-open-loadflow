@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.util.Profiler;
 
 import java.util.Objects;
 
@@ -22,9 +21,7 @@ public final class Networks {
     private Networks() {
     }
 
-    public static void resetState(Network network, Profiler profiler) {
-        profiler.beforeTask("NetworkStateReset");
-
+    public static void resetState(Network network) {
         for (Bus b : network.getBusView().getBuses()) {
             b.setV(Double.NaN);
             b.setAngle(Double.NaN);
@@ -38,8 +35,6 @@ public final class Networks {
             b.getTerminal2().setP(Double.NaN);
             b.getTerminal2().setQ(Double.NaN);
         }
-
-        profiler.afterTask("NetworkStateReset");
     }
 
     private static double getDoubleProperty(Identifiable identifiable, String name) {

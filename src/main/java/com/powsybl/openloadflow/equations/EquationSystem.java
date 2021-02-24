@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.Profiler;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.IOException;
@@ -25,8 +24,6 @@ public class EquationSystem {
     private final LfNetwork network;
 
     private final boolean indexTerms;
-
-    private final Profiler profiler;
 
     private final Map<Pair<Integer, EquationType>, Equation> equations = new HashMap<>();
 
@@ -47,8 +44,6 @@ public class EquationSystem {
                 return;
             }
 
-            profiler.beforeTask("EquationSystemIndexUpdate");
-
             // index derivatives per variable then per equation
             reIndex();
 
@@ -63,8 +58,6 @@ public class EquationSystem {
             }
 
             invalide = false;
-
-            profiler.afterTask("EquationSystemIndexUpdate");
         }
 
         private void reIndex() {
@@ -153,14 +146,13 @@ public class EquationSystem {
 
     private final List<EquationSystemListener> listeners = new ArrayList<>();
 
-    public EquationSystem(LfNetwork network, Profiler profiler) {
-        this(network, false, profiler);
+    public EquationSystem(LfNetwork network) {
+        this(network, false);
     }
 
-    public EquationSystem(LfNetwork network, boolean indexTerms, Profiler profiler) {
+    public EquationSystem(LfNetwork network, boolean indexTerms) {
         this.network = Objects.requireNonNull(network);
         this.indexTerms = indexTerms;
-        this.profiler = Objects.requireNonNull(profiler);
         addListener(equationCache);
     }
 
@@ -262,15 +254,10 @@ public class EquationSystem {
     }
 
     public double[] createStateVector(VoltageInitializer initializer) {
-        profiler.beforeTask("StateVectorCreation");
-
         double[] x = new double[getSortedVariablesToFind().size()];
         for (Variable v : getSortedVariablesToFind()) {
             v.initState(initializer, network, x);
         }
-
-        profiler.afterTask("StateVectorCreation");
-
         return x;
     }
 
@@ -289,8 +276,6 @@ public class EquationSystem {
     }
 
     public void updateEquationVector(double[] fx) {
-        profiler.beforeTask("EquationVectorCreation");
-
         if (fx.length != equationCache.getSortedEquationsToSolve().size()) {
             throw new IllegalArgumentException("Bad equation vector length: " + fx.length);
         }
@@ -298,32 +283,21 @@ public class EquationSystem {
         for (Equation equation : equationCache.getSortedEquationsToSolve().keySet()) {
             fx[equation.getColumn()] = equation.eval();
         }
-
-        profiler.afterTask("EquationVectorCreation");
     }
 
     public void updateEquations(double[] x) {
         Objects.requireNonNull(x);
-
-        profiler.beforeTask("EquationsUpdate");
-
         for (Equation equation : equations.values()) {
             equation.update(x);
         }
         listeners.forEach(listener -> listener.onStateUpdate(x));
-
-        profiler.afterTask("EquationsUpdate");
     }
 
     public void updateNetwork(double[] x) {
-        profiler.beforeTask("NetworkUpdate");
-
         // update state variable
         for (Variable v : getSortedVariablesToFind()) {
             v.updateState(network, x);
         }
-
-        profiler.afterTask("NetworkUpdate");
     }
 
     public void addListener(EquationSystemListener listener) {

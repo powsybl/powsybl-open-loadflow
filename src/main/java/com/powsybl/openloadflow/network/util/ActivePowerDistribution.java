@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.Profiler;
 
 import java.util.List;
 import java.util.Objects;
@@ -62,9 +61,7 @@ public final class ActivePowerDistribution {
         return step.getElementType();
     }
 
-    public Result run(LfNetwork network, double activePowerMismatch, Profiler profiler) {
-        profiler.beforeTask("ActivePowerDistribution");
-
+    public Result run(LfNetwork network, double activePowerMismatch) {
         List<ParticipatingElement> participatingElements = step.getParticipatingElements(network);
 
         int iteration = 0;
@@ -76,8 +73,6 @@ public final class ActivePowerDistribution {
 
             iteration++;
         }
-
-        profiler.afterTask("ActivePowerDistribution");
 
         return new Result(iteration, remainingMismatch);
     }
