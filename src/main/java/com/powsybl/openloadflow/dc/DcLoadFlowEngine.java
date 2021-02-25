@@ -49,13 +49,13 @@ public class DcLoadFlowEngine {
         this.parameters = Objects.requireNonNull(parameters);
     }
 
-    protected void distributeSlack(Collection<LfBus> buses) {
+    private void distributeSlack(Collection<LfBus> buses) {
         double mismatch = getActivePowerMismatch(buses);
         ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), false);
         activePowerDistribution.run(buses, mismatch);
     }
 
-    public static double getActivePowerMismatch(Collection<LfBus> buses) {
+    private static double getActivePowerMismatch(Collection<LfBus> buses) {
         double mismatch = 0;
         for (LfBus b : buses) {
             mismatch += b.getGenerationTargetP() - b.getLoadTargetP();
