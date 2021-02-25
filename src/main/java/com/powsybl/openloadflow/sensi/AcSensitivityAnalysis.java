@@ -44,11 +44,18 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         super(matrixFactory);
     }
 
-    protected void setBaseCaseSensitivityValues(List<SensitivityFactorGroup> factorGroups, DenseMatrix factorsState) {
+    private List<SensitivityValue> calculateSensitivityValues(List<SensitivityFactorGroup> factorGroups, DenseMatrix factorsState) {
+        List<SensitivityValue> sensitivityValues = new ArrayList<>(factorGroups.size());
+
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             for (LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm> factor : factorGroup.getFactors()) {
-                if (!factor.getEquationTerm().isActive()) {
+                if (factor.getPredefinedResult() != null) {
+                    sensitivityValues.add(new SensitivityValue(factor.getFactor(), factor.getPredefinedResult(), factor.getPredefinedResult(), Double.NaN));
                     continue;
+                }
+
+                if (!factor.getEquationTerm().isActive()) {
+                    throw new PowsyblException("Found an inactive equation for a factor that has no predefined result");
                 }
                 double sensi = factor.getEquationTerm().calculateDer(factorsState, factorGroup.getIndex());
                 if (factor.getFunctionLfBranch().getId().equals(factorGroup.getId())) {
@@ -61,25 +68,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                         .orElseThrow(() -> new PowsyblException("No alpha_1 variable on the function branch"));
                     sensi += Math.toRadians(factor.getEquationTerm().der(phi1Var));
                 }
-                factor.setBaseCaseSensitivityValue(sensi);
-            }
-        }
-    }
-
-    private List<SensitivityValue> calculateSensitivityValues(List<SensitivityFactorGroup> factorGroups) {
-        List<SensitivityValue> sensitivityValues = new ArrayList<>(factorGroups.size());
-
-        for (SensitivityFactorGroup factorGroup : factorGroups) {
-            for (LfSensitivityFactor<?> factor : factorGroup.getFactors()) {
-                double sensitivityValue = factor.getPredefinedResult() != null
-                    ? factor.getPredefinedResult()
-                    : factor.getBaseSensitivityValue() * PerUnit.SB;
-
-                double functionReference = factor.getPredefinedResult() != null
-                    ? factor.getPredefinedResult()
-                    : factor.getFunctionReference() * PerUnit.SB;
-
-                sensitivityValues.add(new SensitivityValue(factor.getFactor(), sensitivityValue, functionReference, Double.NaN));
+                sensitivityValues.add(new SensitivityValue(factor.getFactor(), sensi * PerUnit.SB, factor.getFunctionReference() * PerUnit.SB, Double.NaN));
             }
         }
         return sensitivityValues;
@@ -120,10 +109,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             DenseMatrix factorsStates = initFactorsRhs(lfNetwork, engine.getEquationSystem(), factorGroups); // this is the rhs for the moment
             j.solveTransposed(factorsStates);
             setReferenceActivePowerFlows(lfFactors);
-            setBaseCaseSensitivityValues(factorGroups, factorsStates);
 
             // calculate sensitivity values
-            sensitivityValues = calculateSensitivityValues(factorGroups);
+            sensitivityValues = calculateSensitivityValues(factorGroups, factorsStates);
         }
 
         LfContingency.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
@@ -193,8 +181,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
                 // calculate sensitivity values
                 setReferenceActivePowerFlows(lfFactors);
-                setBaseCaseSensitivityValues(factorGroups, factorsStates);
-                baseValues = calculateSensitivityValues(factorGroups);
+                baseValues = calculateSensitivityValues(factorGroups, factorsStates);
             }
 
             GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.createDecrementalConnectivity();
