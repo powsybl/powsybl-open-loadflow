@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Gael Macherel <gael.macherel at artelys.com>
  */
 public abstract class AbstractSensitivityAnalysis {
 
