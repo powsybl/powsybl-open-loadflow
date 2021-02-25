@@ -11,12 +11,9 @@ import com.powsybl.commons.config.ModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.ac.nr.AcLoadFlowObserver;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 import com.powsybl.openloadflow.network.SlackBusSelectorParametersReader;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.ServiceLoader;
 
@@ -39,8 +36,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         REPLACE_BY_ZERO_IMPEDANCE_LINE,
         REPLACE_BY_MIN_IMPEDANCE_LINE
     }
-
-    private final List<AcLoadFlowObserver> additionalObservers = new ArrayList<>();
 
     private boolean loadPowerFactorConstant = LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE;
 
@@ -87,10 +82,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public OpenLoadFlowParameters setLowImpedanceBranchMode(LowImpedanceBranchMode lowImpedanceBranchMode) {
         this.lowImpedanceBranchMode = Objects.requireNonNull(lowImpedanceBranchMode);
         return this;
-    }
-
-    public List<AcLoadFlowObserver> getAdditionalObservers() {
-        return additionalObservers;
     }
 
     public boolean isLoadPowerFactorConstant() {

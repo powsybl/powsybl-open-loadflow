@@ -6,10 +6,10 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
 
 import java.util.Objects;
 
