@@ -6,27 +6,20 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.Markers;
 import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class EquationSystem {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(EquationSystem.class);
 
     private final LfNetwork network;
 
@@ -51,8 +44,6 @@ public class EquationSystem {
                 return;
             }
 
-            Stopwatch stopwatch = Stopwatch.createStarted();
-
             // index derivatives per variable then per equation
             reIndex();
 
@@ -65,10 +56,6 @@ public class EquationSystem {
             for (Variable variable : sortedVariablesToFind) {
                 variable.setRow(rowCount++);
             }
-
-            stopwatch.stop();
-            LOGGER.debug(Markers.PERFORMANCE_MARKER, "Equation system ({} equations, {} variables) updated in {} ms",
-                    columnCount, rowCount, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
             invalide = false;
         }
@@ -346,5 +333,14 @@ public class EquationSystem {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    public List<Pair<Equation, Double>> findLargestMismatches(double[] mismatch, int count) {
+        return getSortedEquationsToSolve().keySet().stream()
+                .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
+                .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))
+                .sorted(Comparator.comparingDouble((Map.Entry<Equation, Double> e) -> Math.abs(e.getValue())).reversed())
+                .limit(count)
+                .collect(Collectors.toList());
     }
 }

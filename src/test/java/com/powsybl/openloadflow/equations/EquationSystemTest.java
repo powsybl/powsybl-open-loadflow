@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.BusVoltageEquationTerm;
@@ -14,6 +15,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -152,5 +154,22 @@ class EquationSystemTest {
                     + System.lineSeparator();
             assertEquals(ref, writer.toString());
         }
+    }
+
+    @Test
+    void findLargestMismatchesTest() {
+        Network network = EurostagTutorialExample1Factory.create();
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        EquationSystem equationSystem = AcEquationSystem.create(lfNetwork);
+        double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
+        double[] targets = equationSystem.createTargetVector();
+        equationSystem.updateEquations(x);
+        double[] fx = equationSystem.createEquationVector();
+        Vectors.minus(fx, targets);
+        List<Pair<Equation, Double>> largestMismatches = equationSystem.findLargestMismatches(fx, 3);
+        assertEquals(3, largestMismatches.size());
+        assertEquals(-7.397518453004565, largestMismatches.get(0).getValue(), 0);
+        assertEquals(5.999135514403292, largestMismatches.get(1).getValue(), 0);
+        assertEquals(1.9259062775721603, largestMismatches.get(2).getValue(), 0);
     }
 }
