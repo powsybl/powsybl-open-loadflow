@@ -9,8 +9,10 @@ package com.powsybl.openloadflow.sa;
 import com.google.common.base.Stopwatch;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
-import com.powsybl.contingency.ContingencyElement;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Branch;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Switch;
+import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -27,6 +29,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.BusState;
+import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import org.slf4j.Logger;
@@ -91,17 +94,6 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         });
     }
 
-    static class ContingencyContext {
-
-        final Contingency contingency;
-
-        final Set<String> branchIdsToOpen = new HashSet<>();
-
-        ContingencyContext(Contingency contingency) {
-            this.contingency = contingency;
-        }
-    }
-
     SecurityAnalysisResult runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
@@ -116,7 +108,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<ContingencyContext> contingencyContexts = getContingencyContexts(contingencies, allSwitchesToOpen);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, allSwitchesToOpen);
 
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters, lfParametersExt, true);
 
@@ -125,48 +117,12 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         // run simulation on largest network
         LfNetwork largestNetwork = lfNetworks.get(0);
-        SecurityAnalysisResult result = runSimulations(largestNetwork, contingencyContexts, acParameters, lfParameters, lfParametersExt);
+        SecurityAnalysisResult result = runSimulations(largestNetwork, propagatedContingencies, acParameters, lfParameters, lfParametersExt);
 
         stopwatch.stop();
         LOGGER.info("Security analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
         return result;
-    }
-
-    List<ContingencyContext> getContingencyContexts(List<Contingency> contingencies, Set<Switch> allSwitchesToOpen) {
-        List<ContingencyContext> contingencyContexts = new ArrayList<>();
-        for (Contingency contingency : contingencies) {
-            ContingencyContext contingencyContext = new ContingencyContext(contingency);
-            contingencyContexts.add(contingencyContext);
-
-            Set<Switch> switchesToOpen = new HashSet<>();
-            Set<Terminal> terminalsToDisconnect =  new HashSet<>();
-            for (ContingencyElement element : contingency.getElements()) {
-                switch (element.getType()) {
-                    case BRANCH:
-                        contingencyContext.branchIdsToOpen.add(element.getId());
-                        break;
-                    default:
-                        //TODO: support all kinds of contingencies
-                        throw new UnsupportedOperationException("TODO");
-                }
-                new BranchTripping(element.getId(), null)
-                    .traverse(network, null, switchesToOpen, terminalsToDisconnect);
-            }
-
-            for (Switch sw : switchesToOpen) {
-                contingencyContext.branchIdsToOpen.add(sw.getId());
-                allSwitchesToOpen.add(sw);
-            }
-
-            for (Terminal terminal : terminalsToDisconnect) {
-                if (terminal.getConnectable() instanceof Branch) {
-                    contingencyContext.branchIdsToOpen.add(terminal.getConnectable().getId());
-                }
-            }
-
-        }
-        return contingencyContexts;
     }
 
     List<LfNetwork> createNetworks(Set<Switch> allSwitchesToOpen, AcLoadFlowParameters acParameters) {
@@ -241,58 +197,60 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         }
     }
 
-    private SecurityAnalysisResult runSimulations(LfNetwork network, List<ContingencyContext> contingencyContexts, AcLoadFlowParameters acParameters,
+    private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
                                                   LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
         // create a contingency list that impact the network
-        List<LfContingency> contingencies = createContingencies(contingencyContexts, network);
+        List<LfContingency> contingencies = createContingencies(propagatedContingencies, network);
 
         // run pre-contingency simulation
-        AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters);
-        AcLoadFlowResult preContingencyLoadFlowResult = engine.run();
-        boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
-        List<LimitViolation> preContingencyLimitViolations = new ArrayList<>();
-        LimitViolationsResult preContingencyResult = new LimitViolationsResult(preContingencyComputationOk, preContingencyLimitViolations);
+        try (AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters)) {
+            AcLoadFlowResult preContingencyLoadFlowResult = engine.run();
+            boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
+            List<LimitViolation> preContingencyLimitViolations = new ArrayList<>();
+            LimitViolationsResult preContingencyResult = new LimitViolationsResult(preContingencyComputationOk, preContingencyLimitViolations);
 
-        // only run post-contingency simulations if pre-contingency simulation is ok
-        List<PostContingencyResult> postContingencyResults = new ArrayList<>();
-        if (preContingencyComputationOk) {
-            detectViolations(network.getBranches().stream(), network.getBuses().stream(), preContingencyLimitViolations);
+            // only run post-contingency simulations if pre-contingency simulation is ok
+            List<PostContingencyResult> postContingencyResults = new ArrayList<>();
+            if (preContingencyComputationOk) {
+                detectViolations(network.getBranches().stream(), network.getBuses().stream(), preContingencyLimitViolations);
 
-            LOGGER.info("Save pre-contingency state");
+                LOGGER.info("Save pre-contingency state");
 
-            // save base state for later restoration after each contingency
-            Map<LfBus, BusState> busStates = BusState.createBusStates(network.getBuses());
-            for (LfBus bus : network.getBuses()) {
-                bus.setVoltageControlSwitchOffCount(0);
-            }
-
-            // start a simulation for each of the contingency
-            Iterator<LfContingency> contingencyIt = contingencies.iterator();
-            while (contingencyIt.hasNext()) {
-                LfContingency lfContingency = contingencyIt.next();
-
-                for (LfBus bus : lfContingency.getBuses()) {
-                    bus.setDisabled(true);
+                // save base state for later restoration after each contingency
+                Map<LfBus, BusState> busStates = BusState.createBusStates(network.getBuses());
+                for (LfBus bus : network.getBuses()) {
+                    bus.setVoltageControlSwitchOffCount(0);
                 }
 
-                distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
+                // start a simulation for each of the contingency
+                Iterator<LfContingency> contingencyIt = contingencies.iterator();
+                while (contingencyIt.hasNext()) {
+                    LfContingency lfContingency = contingencyIt.next();
 
-                PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency);
-                postContingencyResults.add(postContingencyResult);
+                    for (LfBus bus : lfContingency.getBuses()) {
+                        bus.setDisabled(true);
+                    }
 
-                if (contingencyIt.hasNext()) {
-                    LOGGER.info("Restore pre-contingency state");
+                    distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
-                    // restore base state
-                    BusState.restoreBusStates(busStates, engine);
+                    PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency);
+                    postContingencyResults.add(postContingencyResult);
+
+                    if (contingencyIt.hasNext()) {
+                        LOGGER.info("Restore pre-contingency state");
+
+                        // restore base state
+                        BusState.restoreBusStates(busStates, engine);
+                    }
                 }
             }
+
+            return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
         }
-
-        return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
     }
 
-    public static void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
+    public static void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters,
+                                           OpenLoadFlowParameters openLoadFlowParameters) {
         if (loadFlowParameters.isDistributedSlack() && Math.abs(mismatch) > 0) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(loadFlowParameters.getBalanceType(), openLoadFlowParameters.isLoadPowerFactorConstant());
             activePowerDistribution.run(network, mismatch);
@@ -388,18 +346,18 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         }
     }
 
-    List<LfContingency> createContingencies(List<ContingencyContext> contingencyContexts, LfNetwork network) {
+    List<LfContingency> createContingencies(List<PropagatedContingency> propagatedContingencies, LfNetwork network) {
         // create connectivity data structure
         GraphDecrementalConnectivity<LfBus> connectivity = network.createDecrementalConnectivity(connectivityProvider);
 
         List<LfContingency> contingencies = new ArrayList<>();
-        Iterator<ContingencyContext> contingencyContextIt = contingencyContexts.iterator();
+        Iterator<PropagatedContingency> contingencyContextIt = propagatedContingencies.iterator();
         while (contingencyContextIt.hasNext()) {
-            ContingencyContext contingencyContext = contingencyContextIt.next();
+            PropagatedContingency propagatedContingency = contingencyContextIt.next();
 
             // find contingency branches that are part of this network
             Set<LfBranch> branches = new HashSet<>(1);
-            Iterator<String> branchIt = contingencyContext.branchIdsToOpen.iterator();
+            Iterator<String> branchIt = propagatedContingency.getBranchIdsToOpen().iterator();
             while (branchIt.hasNext()) {
                 String branchId = branchIt.next();
                 LfBranch branch = network.getBranchById(branchId);
@@ -411,7 +369,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
             // if no more branch in the contingency, remove contingency from the list because
             // it won't be part of another network
-            if (contingencyContext.branchIdsToOpen.isEmpty()) {
+            if (propagatedContingency.getBranchIdsToOpen().isEmpty()) {
                 contingencyContextIt.remove();
             }
 
@@ -433,21 +391,9 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             // reset connectivity to discard triggered branches
             connectivity.reset();
 
-            contingencies.add(new LfContingency(contingencyContext.contingency, buses, branches));
+            contingencies.add(new LfContingency(propagatedContingency.getContingency(), buses, branches));
         }
 
         return contingencies;
     }
-
-    private GraphDecrementalConnectivity<LfBus> createConnectivity(LfNetwork network) {
-        GraphDecrementalConnectivity<LfBus> connectivity = connectivityProvider.get();
-        for (LfBus bus : network.getBuses()) {
-            connectivity.addVertex(bus);
-        }
-        for (LfBranch branch : network.getBranches()) {
-            connectivity.addEdge(branch.getBus1(), branch.getBus2());
-        }
-        return connectivity;
-    }
-
 }

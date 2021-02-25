@@ -6,10 +6,8 @@
  */
 package com.powsybl.openloadflow.dc;
 
-import com.google.common.base.Stopwatch;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
@@ -22,7 +20,6 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
-import com.powsybl.openloadflow.util.Markers;
 import com.powsybl.openloadflow.util.ParameterConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +28,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -67,8 +63,6 @@ public class DcLoadFlowEngine {
     }
 
     public DcLoadFlowResult run() {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-
         // only process main (largest) connected component
         LfNetwork network = networks.get(0);
 
@@ -85,14 +79,12 @@ public class DcLoadFlowEngine {
 
         double[] targets = equationSystem.createTargetVector();
 
-        JacobianMatrix j = JacobianMatrix.create(equationSystem, parameters.getMatrixFactory());
-        try {
+        try (JacobianMatrix j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory())) {
             double[] dx = Arrays.copyOf(targets, targets.length);
 
             LoadFlowResult.ComponentResult.Status status;
             try {
-                LUDecomposition lu = j.decomposeLU();
-                lu.solveTransposed(dx);
+                j.solveTransposed(dx);
                 status = LoadFlowResult.ComponentResult.Status.CONVERGED;
             } catch (Exception e) {
                 status = LoadFlowResult.ComponentResult.Status.FAILED;
@@ -107,14 +99,9 @@ public class DcLoadFlowEngine {
                 bus.setV(Double.NaN);
             }
 
-            stopwatch.stop();
-            LOGGER.debug(Markers.PERFORMANCE_MARKER, "Dc loadflow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
-
             LOGGER.info("Dc loadflow complete (status={})", status);
 
             return new DcLoadFlowResult(network, network.getActivePowerMismatch(), status);
-        } finally {
-            j.cleanLU();
         }
     }
 }
