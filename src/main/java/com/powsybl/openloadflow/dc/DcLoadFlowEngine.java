@@ -32,7 +32,7 @@ public class DcLoadFlowEngine {
 
     private final DcLoadFlowParameters parameters;
 
-    private double[] dx;
+    private double[] targetVector;
 
     public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory) {
         this.networks = Collections.singletonList(network);
@@ -97,9 +97,7 @@ public class DcLoadFlowEngine {
 
         equationSystem.updateEquations(x);
 
-        double[] targets = equationSystem.createTargetVector();
-
-        this.dx = Arrays.copyOf(targets, targets.length);
+        this.targetVector = equationSystem.createTargetVector();
 
         if (!removedBuses.isEmpty()) {
             // set buses injections and transformers to 0
@@ -108,20 +106,20 @@ public class DcLoadFlowEngine {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .map(Equation::getColumn)
-                .forEach(column -> dx[column] = 0);
+                .forEach(column -> targetVector[column] = 0);
         }
 
         LoadFlowResult.ComponentResult.Status status;
         try {
-            j.solveTransposed(dx);
+            j.solveTransposed(targetVector);
             status = LoadFlowResult.ComponentResult.Status.CONVERGED;
         } catch (Exception e) {
             status = LoadFlowResult.ComponentResult.Status.FAILED;
             LOGGER.error("Failed to solve linear system for DC load flow", e);
         }
 
-        equationSystem.updateEquations(dx);
-        equationSystem.updateNetwork(dx);
+        equationSystem.updateEquations(targetVector);
+        equationSystem.updateNetwork(targetVector);
 
         // set all calculated voltages to NaN
         for (LfBus bus : network.getBuses()) {
@@ -133,6 +131,6 @@ public class DcLoadFlowEngine {
     }
 
     public double[] getTargetVector() {
-        return dx;
+        return targetVector;
     }
 }
