@@ -10,6 +10,8 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +23,8 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class LfBranchImpl extends AbstractLfBranch {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
 
     private final Branch<?> branch;
 
@@ -37,8 +41,18 @@ public class LfBranchImpl extends AbstractLfBranch {
         this.branch = branch;
     }
 
-    private static LfBranchImpl createLine(Line line, LfBus bus1, LfBus bus2, double zb) {
+    private static LfBranchImpl createLine(Line line, LfBus bus1, LfBus bus2, double zb, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
+                                           LfNetworkLoadingReport report) {
+        double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
+        double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
+        double r1 = 1;
+        if (addRatioToLinesWithDifferentNominalVoltageAtBothEnds && nominalV1 != nominalV2) {
+            LOGGER.trace("Line '{}' has a different nominal voltage at both ends ({} and {}): add a ration", line.getId(), nominalV1, nominalV2);
+            report.linesWithDifferentNominalVoltageAtBothEnds++;
+            r1 = PiModel.R2 * nominalV1 / nominalV2;
+        }
         PiModel piModel = new SimplePiModel()
+                .setR1(r1)
                 .setR(line.getR() / zb)
                 .setX(line.getX() / zb)
                 .setG1(line.getG1() * zb)
@@ -96,12 +110,13 @@ public class LfBranchImpl extends AbstractLfBranch {
         return new LfBranchImpl(bus1, bus2, piModel, twt);
     }
 
-    public static LfBranchImpl create(Branch<?> branch, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance) {
+    public static LfBranchImpl create(Branch<?> branch, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance,
+                                      boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds, LfNetworkLoadingReport report) {
         Objects.requireNonNull(branch);
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
         double zb = nominalV2 * nominalV2 / PerUnit.SB;
         if (branch instanceof Line) {
-            return createLine((Line) branch, bus1, bus2, zb);
+            return createLine((Line) branch, bus1, bus2, zb, addRatioToLinesWithDifferentNominalVoltageAtBothEnds, report);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
             return createTransformer(twt, bus1, bus2, zb, twtSplitShuntAdmittance);
