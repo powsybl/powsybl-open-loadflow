@@ -159,6 +159,7 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
             double value = equationTerm.der(var);
             element.add(value);
         }
+
         if (lu != null) {
             lu.update();
         }
@@ -185,8 +186,9 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
     }
 
     private LUDecomposition getLUDecomposition() {
+        Matrix matrix = getMatrix();
         if (lu == null) {
-            lu = getMatrix().decomposeLU();
+            lu = matrix.decomposeLU();
         }
         return lu;
     }
