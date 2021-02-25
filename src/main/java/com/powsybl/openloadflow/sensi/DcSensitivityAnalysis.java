@@ -133,7 +133,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 .collect(Collectors.toSet()));
         }
 
-        dcLoadFlowEngine.runWithLu(equationSystem, j, removedBuses);
+        dcLoadFlowEngine.run(equationSystem, j, removedBuses);
 
         for (LfSensitivityFactor factor : factors) {
             factor.setFunctionReference(factor.getFunctionLfBranch().getP1());

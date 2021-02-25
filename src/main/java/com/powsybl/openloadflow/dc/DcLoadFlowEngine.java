@@ -73,7 +73,7 @@ public class DcLoadFlowEngine {
         LoadFlowResult.ComponentResult.Status status = LoadFlowResult.ComponentResult.Status.FAILED;
         try (JacobianMatrix j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory())) {
 
-            status = runWithLu(equationSystem, j, Collections.emptyList());
+            status = run(equationSystem, j, Collections.emptyList());
         } catch (Exception e) {
             LOGGER.error("Failed to solve linear system for DC load flow", e);
         }
@@ -81,7 +81,7 @@ public class DcLoadFlowEngine {
         return new DcLoadFlowResult(network, getActivePowerMismatch(network.getBuses()), status);
     }
 
-    public LoadFlowResult.ComponentResult.Status runWithLu(EquationSystem equationSystem, JacobianMatrix j, Collection<LfBus> removedBuses) {
+    public LoadFlowResult.ComponentResult.Status run(EquationSystem equationSystem, JacobianMatrix j, Collection<LfBus> removedBuses) {
 
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
 
