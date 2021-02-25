@@ -454,12 +454,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 List<PropagatedContingency> contingencyList = entry.getValue();
                 lfFactors.forEach(factor -> factor.setPredefinedResult(null));
                 cutConnectivity(lfNetwork, connectivity, breakingConnectivityCandidates.stream().map(ComputedContingencyElement::getElement).map(ContingencyElement::getId).collect(Collectors.toSet()));
-                int mainComponent = connectivity.getComponentNumber(lfNetwork.getSlackBus());
 
                 Set<LfBus> nonConnectedBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
-                Collection<LfBus> slackConnectedComponent = new ArrayList<>(lfNetwork.getBuses());
+                Set<LfBus> slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
                 slackConnectedComponent.removeAll(nonConnectedBuses);
-                setPredefinedResults(lfFactors, connectivity, mainComponent); // check if factors are still in the main component
+                setPredefinedResults(lfFactors, slackConnectedComponent, connectivity); // check if factors are still in the main component
 
                 // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
                 rescaleGlsk(factorGroups, nonConnectedBuses);

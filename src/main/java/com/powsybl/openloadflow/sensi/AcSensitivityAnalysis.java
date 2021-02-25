@@ -209,11 +209,10 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 lfFactors.forEach(lfFactor -> lfFactor.setPredefinedResult(null));
 
                 cutConnectivity(lfNetwork, connectivity, propagatedContingencyMap.get(lfContingency.getContingency()));
-                int mainComponent = connectivity.getComponentNumber(lfNetwork.getSlackBus());
                 Set<LfBus> nonConnectedBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
-                Collection<LfBus> slackConnectedComponent = new ArrayList<>(lfNetwork.getBuses());
+                Set<LfBus> slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
                 slackConnectedComponent.removeAll(nonConnectedBuses);
-                setPredefinedResults(lfFactors, connectivity, mainComponent); // check if factors are still in the main component
+                setPredefinedResults(lfFactors, slackConnectedComponent, connectivity); // check if factors are still in the main component
 
                 rescaleGlsk(factorGroups, nonConnectedBuses);
 

@@ -184,7 +184,7 @@ public abstract class AbstractSensitivityAnalysis {
             throw new NotImplementedException("areVariableAndFunctionDisconnected should have an override");
         }
 
-        public boolean isConnectedToComponent(Integer componentNumber, GraphDecrementalConnectivity<LfBus> connectivity) {
+        public boolean isConnectedToComponent(Set<LfBus> connectedComponent) {
             throw new NotImplementedException("isConnectedToComponent should have an override");
         }
     }
@@ -205,8 +205,8 @@ public abstract class AbstractSensitivityAnalysis {
         }
 
         @Override
-        public boolean isConnectedToComponent(Integer componentNumber, GraphDecrementalConnectivity<LfBus> connectivity) {
-            return connectivity.getComponentNumber(injectionLfBus) == componentNumber;
+        public boolean isConnectedToComponent(Set<LfBus> connectedComponent) {
+            return connectedComponent.contains(injectionLfBus);
         }
 
         public LfBus getInjectionLfBus() {
@@ -230,8 +230,8 @@ public abstract class AbstractSensitivityAnalysis {
         }
 
         @Override
-        public boolean isConnectedToComponent(Integer componentNumber, GraphDecrementalConnectivity<LfBus> connectivity) {
-            return componentNumber == connectivity.getComponentNumber(phaseTapChangerLfBranch.getBus1());
+        public boolean isConnectedToComponent(Set<LfBus> connectedComponent) {
+            return connectedComponent.contains(phaseTapChangerLfBranch.getBus1());
         }
 
     }
@@ -264,13 +264,13 @@ public abstract class AbstractSensitivityAnalysis {
         }
 
         @Override
-        public boolean isConnectedToComponent(Integer componentNumber, GraphDecrementalConnectivity<LfBus> connectivity) {
-            if (connectivity.getComponentNumber(getFunctionLfBranch().getBus1()) != componentNumber
-                || connectivity.getComponentNumber(getFunctionLfBranch().getBus2()) != componentNumber) {
+        public boolean isConnectedToComponent(Set<LfBus> connectedComponent) {
+            if (!connectedComponent.contains(getFunctionLfBranch().getBus1())
+                || !connectedComponent.contains(getFunctionLfBranch().getBus2())) {
                 return false;
             }
             for (LfBus lfBus : injectionBuses.keySet()) {
-                if (connectivity.getComponentNumber(lfBus) == componentNumber) {
+                if (connectedComponent.contains(lfBus)) {
                     return true;
                 }
             }
@@ -469,12 +469,13 @@ public abstract class AbstractSensitivityAnalysis {
             .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
     }
 
-    protected <T extends EquationTerm> void setPredefinedResults(Collection<LfSensitivityFactor<T>> lfFactors, GraphDecrementalConnectivity<LfBus> connectivity, int mainComponent) {
+    protected <T extends EquationTerm> void setPredefinedResults(Collection<LfSensitivityFactor<T>> lfFactors, Set<LfBus> connectedComponent,
+                                                                 GraphDecrementalConnectivity<LfBus> connectivity) {
         for (LfSensitivityFactor<T> factor : lfFactors) {
             // check if the factor function and variable are in different connected components
             if (factor.areVariableAndFunctionDisconnected(connectivity)) {
                 factor.setPredefinedResult(0d);
-            } else if (!factor.isConnectedToComponent(mainComponent, connectivity)) {
+            } else if (!factor.isConnectedToComponent(connectedComponent)) {
                 factor.setPredefinedResult(Double.NaN); // works for sensitivity and function reference
             }
         }
