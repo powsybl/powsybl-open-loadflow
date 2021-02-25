@@ -95,7 +95,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                                                                AcloadFlowEngine engine, List<SensitivityFactorGroup> factorGroups,
                                                                LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt
     ) {
-        EquationSystem equationSystem = engine.getEquationSystem();
         for (LfBus bus : lfContingency.getBuses()) {
             bus.setDisabled(true);
         }
@@ -108,16 +107,16 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         List<Equation> deactivatedEquations = new ArrayList<>();
         List<EquationTerm> deactivatedEquationTerms = new ArrayList<>();
 
-        LfContingency.deactivateEquations(lfContingency, equationSystem, deactivatedEquations, deactivatedEquationTerms);
+        LfContingency.deactivateEquations(lfContingency, engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
 
         engine.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
         engine.run();
 
         // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
         List<SensitivityValue> sensitivityValues = new ArrayList<>();
-        try (JacobianMatrix j = createJacobianMatrix(equationSystem, new PreviousValueVoltageInitializer())) {
+        try (JacobianMatrix j = createJacobianMatrix(engine.getEquationSystem(), new PreviousValueVoltageInitializer())) {
             // solve system
-            DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorGroups); // this is the rhs for the moment
+            DenseMatrix factorsStates = initFactorsRhs(lfNetwork, engine.getEquationSystem(), factorGroups); // this is the rhs for the moment
             j.solveTransposed(factorsStates);
             setReferenceActivePowerFlows(lfFactors);
             setBaseCaseSensitivityValues(factorGroups, factorsStates);
@@ -155,10 +154,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             engine.run();
 
-            VariableSet variableSet = engine.getVariableSet();
-            EquationSystem equationSystem = engine.getEquationSystem();
-
-            List<LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm>> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, equationSystem, ClosedBranchSide1ActiveFlowEquationTerm.class)).collect(Collectors.toList());
+            List<LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm>> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, engine.getEquationSystem(), ClosedBranchSide1ActiveFlowEquationTerm.class)).collect(Collectors.toList());
 
             // index factors by variable group to compute a minimal number of states
             List<SensitivityFactorGroup> factorGroups = createFactorGroups(network, lfFactors);
@@ -185,11 +181,11 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             List<SensitivityValue> baseValues = new ArrayList<>();
 
             // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
-            try (JacobianMatrix j = createJacobianMatrix(equationSystem, new PreviousValueVoltageInitializer())) {
+            try (JacobianMatrix j = createJacobianMatrix(engine.getEquationSystem(), new PreviousValueVoltageInitializer())) {
                 // otherwise, defining the rhs matrix will result in integer overflow
-                assert Integer.MAX_VALUE / (equationSystem.getSortedEquationsToSolve().size() * Double.BYTES) > factorGroups.size();
+                assert Integer.MAX_VALUE / (engine.getEquationSystem().getSortedEquationsToSolve().size() * Double.BYTES) > factorGroups.size();
                 // initialize right hand side from valid factors
-                DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorGroups); // this is the rhs for the moment
+                DenseMatrix factorsStates = initFactorsRhs(lfNetwork, engine.getEquationSystem(), factorGroups); // this is the rhs for the moment
 
                 // solve system
                 j.solveTransposed(factorsStates);
@@ -216,7 +212,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     .forEach(lfFactor -> lfFactor.setPredefinedResult(0d));
                 contingenciesValues.put(lfContingency.getContingency().getId(),
                     getPostContingencySensitivityValues(lfFactors, lfContingency, lfNetwork, engine, factorGroups, lfParameters, lfParametersExt));
-                BusState.restoreBusStates(busStates, equationSystem, variableSet);
+                BusState.restoreBusStates(busStates, engine);
             }
 
             // Contingency breaking connectivity
@@ -248,7 +244,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
                 contingenciesValues.put(lfContingency.getContingency().getId(),
                     getPostContingencySensitivityValues(lfFactors, lfContingency, lfNetwork, engine, factorGroups, lfParameters, lfParametersExt));
-                BusState.restoreBusStates(busStates, equationSystem, variableSet);
+                BusState.restoreBusStates(busStates, engine);
 
                 connectivity.reset();
             }
