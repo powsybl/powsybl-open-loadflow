@@ -334,4 +334,13 @@ public class EquationSystem {
             throw new UncheckedIOException(e);
         }
     }
+
+    public List<Pair<Equation, Double>> findLargestMismatches(double[] mismatch, int count) {
+        return getSortedEquationsToSolve().keySet().stream()
+                .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
+                .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))
+                .sorted(Comparator.comparingDouble((Map.Entry<Equation, Double> e) -> Math.abs(e.getValue())).reversed())
+                .limit(count)
+                .collect(Collectors.toList());
+    }
 }

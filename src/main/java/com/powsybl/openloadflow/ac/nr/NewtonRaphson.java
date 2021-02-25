@@ -10,12 +10,9 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Comparator;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -46,17 +43,6 @@ public class NewtonRaphson {
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
     }
 
-    public void logLargestMismatches(double[] mismatch, EquationSystem equationSystem, int count) {
-        if (LOGGER.isTraceEnabled()) {
-            equationSystem.getSortedEquationsToSolve().keySet().stream()
-                    .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
-                    .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))
-                    .sorted(Comparator.comparingDouble((Map.Entry<Equation, Double> e) -> Math.abs(e.getValue())).reversed())
-                    .limit(count)
-                    .forEach(e -> LOGGER.trace("Mismatch for {}: {}", e.getKey(), e.getValue()));
-        }
-    }
-
     private NewtonRaphsonStatus runIteration(double[] fx, double[] targets, double[] x) {
         LOGGER.debug("Start iteration {}", iteration);
 
@@ -80,9 +66,12 @@ public class NewtonRaphson {
 
             Vectors.minus(fx, targets);
 
-            // test stopping criteria and log norm(fx)
-            logLargestMismatches(fx, equationSystem, iteration);
+            if (LOGGER.isTraceEnabled()) {
+                equationSystem.findLargestMismatches(fx, 5)
+                        .forEach(e -> LOGGER.trace("Mismatch for {}: {}", e.getKey(), e.getValue()));
+            }
 
+            // test stopping criteria and log norm(fx)
             NewtonRaphsonStoppingCriteria.TestResult testResult = stoppingCriteria.test(fx);
 
             LOGGER.debug("|f(x)|={}", testResult.getNorm());
