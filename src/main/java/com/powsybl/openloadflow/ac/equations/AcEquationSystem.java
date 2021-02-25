@@ -306,7 +306,7 @@ public final class AcEquationSystem {
             branch.setQ2(q2);
         }
 
-        if (deriveA1 && creationParameters.isForceA1Var()) {
+        if (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability()) {
             equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_ALPHA1)
                 .addTerm(new BranchA1EquationTerm(branch, variableSet));
         }
