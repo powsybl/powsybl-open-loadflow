@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.Network;
@@ -15,6 +16,7 @@ import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.dc.equations.AbstractClosedBranchDcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
@@ -27,6 +29,9 @@ import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
+import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
+import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
+import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -121,7 +126,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         super(matrixFactory);
     }
 
-    protected DenseMatrix setReferenceActivePowerFlows(LfNetwork network, EquationSystem equationSystem, JacobianMatrix j, List<LfSensitivityFactor<ClosedBranchSide1DcFlowEquationTerm>> factors,
+    protected DenseMatrix setReferenceActivePowerFlows(LfNetwork network, EquationSystem equationSystem, JacobianMatrix j, List<LfSensitivityFactor<? extends AbstractClosedBranchDcFlowEquationTerm>> factors,
                                                        LoadFlowParameters lfParameters, List<ParticipatingElement> participatingElements, GraphDecrementalConnectivity<LfBus> connectivity) {
 
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
@@ -378,6 +383,18 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return elementsToReconnect;
     }
 
+    @Override
+    public void checkSensitivities(Network network, LfNetwork lfNetwork, List<SensitivityFactor> factors) {
+        super.checkSensitivities(network, lfNetwork, factors);
+        for (SensitivityFactor factor : factors) {
+            if (!(factor instanceof BranchFlowPerInjectionIncrease)
+                && !(factor instanceof BranchFlowPerLinearGlsk)
+                && !(factor instanceof BranchFlowPerPSTAngle)) {
+                throw new PowsyblException("Only sensitivity factors of type BranchFlowPerInjectionIncrease, BranchFlowPerLinearGlsk and BranchFlowPerPSTAngle are yet supported in DC");
+            }
+        }
+    }
+
     public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors,
                                                                                      List<PropagatedContingency> contingencies, LoadFlowParameters lfParameters,
                                                                                      OpenLoadFlowParameters lfParametersExt) {
@@ -396,7 +413,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 new DcEquationSystemCreationParameters(true, true, true, lfParametersExt.isDcUseTransformerRatio()));
 
         // we wrap the factor into a class that allows us to have access to their branch and EquationTerm instantly
-        List<LfSensitivityFactor<ClosedBranchSide1DcFlowEquationTerm>> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, equationSystem, ClosedBranchSide1DcFlowEquationTerm.class)).collect(Collectors.toList());
+        List<LfSensitivityFactor<? extends AbstractClosedBranchDcFlowEquationTerm>> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, equationSystem, ClosedBranchSide1DcFlowEquationTerm.class)).collect(Collectors.toList());
 
         // index factors by variable group to compute a minimal number of states
         List<SensitivityFactorGroup> factorGroups = createFactorGroups(network, lfFactors);

@@ -68,6 +68,16 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
+    public void setI1(Evaluable i1) {
+        // nothing to do
+    }
+
+    @Override
+    public void setI2(Evaluable i2) {
+        // nothing to do
+    }
+
+    @Override
     public double getI1() {
         return Double.NaN;
     }

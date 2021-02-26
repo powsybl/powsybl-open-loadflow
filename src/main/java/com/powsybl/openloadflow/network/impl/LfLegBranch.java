@@ -32,6 +32,8 @@ public class LfLegBranch extends AbstractLfBranch {
 
     private Evaluable q = NAN;
 
+    private Evaluable i = NAN;
+
     protected LfLegBranch(LfNetwork network, LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
         super(network, bus1, bus0, piModel);
         this.twt = twt;
@@ -142,9 +144,18 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
+    public void setI1(Evaluable i1) {
+        this.i = Objects.requireNonNull(i1);
+    }
+
+    @Override
+    public void setI2(Evaluable i2) {
+        // nothing to do
+    }
+
+    @Override
     public double getI1() {
-        return getBus1() != null ? Math.hypot(p.eval(), q.eval())
-            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
+        return i.eval();
     }
 
     @Override

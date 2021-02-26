@@ -14,15 +14,14 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.equations.AbstractClosedBranchAcFlowEquationTerm;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1IntensityMagnitudeEquationTerm;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BusState;
@@ -30,6 +29,9 @@ import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
+import com.powsybl.sensitivity.factors.functions.BranchFlow;
+import com.powsybl.sensitivity.factors.functions.BranchIntensity;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -49,7 +51,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         List<SensitivityValue> sensitivityValues = new ArrayList<>(factorGroups.size());
 
         for (SensitivityFactorGroup factorGroup : factorGroups) {
-            for (LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm> factor : factorGroup.getFactors()) {
+            for (LfSensitivityFactor<? extends AbstractClosedBranchAcFlowEquationTerm> factor : factorGroup.getFactors()) {
                 if (factor.getPredefinedResult() != null) {
                     sensitivityValues.add(new SensitivityValue(factor.getFactor(), factor.getPredefinedResult(), factor.getPredefinedResult(), Double.NaN));
                     continue;
@@ -75,13 +77,31 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return sensitivityValues;
     }
 
-    protected void setReferenceActivePowerFlows(List<LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm>> factors) {
-        for (LfSensitivityFactor factor : factors) {
-            factor.setFunctionReference(factor.getFunctionLfBranch().getP1());
+    private Class<? extends AbstractClosedBranchAcFlowEquationTerm> getEquationTermClass(SensitivityFactor factor) {
+        if (factor.getFunction() instanceof BranchFlow) {
+            return ClosedBranchSide1ActiveFlowEquationTerm.class;
+        } else if (factor.getFunction() instanceof BranchIntensity) {
+            return ClosedBranchSide1IntensityMagnitudeEquationTerm.class;
+        } else {
+            throw new NotImplementedException("Unknown function type: " + factor.getFunction().getClass().getSimpleName());
         }
     }
 
-    private List<SensitivityValue> getPostContingencySensitivityValues(List<LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm>> lfFactors,
+    protected void setReferenceActivePowerFlows(List<LfSensitivityFactor<? extends AbstractClosedBranchAcFlowEquationTerm>> factors) {
+        for (LfSensitivityFactor<?> factor : factors) {
+            double functionReference;
+            if (factor.getFactor().getFunction() instanceof BranchFlow) {
+                functionReference = factor.getFunctionLfBranch().getP1();
+            } else if (factor.getFactor().getFunction() instanceof BranchIntensity) {
+                functionReference = factor.getFunctionLfBranch().getI1();
+            } else {
+                throw new PowsyblException("Function reference cannot be computed for function: " + factor.getFactor().getFunction().getClass().getSimpleName());
+            }
+            factor.setFunctionReference(functionReference);
+        }
+    }
+
+    private List<SensitivityValue> getPostContingencySensitivityValues(List<LfSensitivityFactor<? extends AbstractClosedBranchAcFlowEquationTerm>> lfFactors,
                                                                LfContingency lfContingency, LfNetwork lfNetwork,
                                                                AcloadFlowEngine engine, List<SensitivityFactorGroup> factorGroups,
                                                                LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt
@@ -144,7 +164,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             engine.run();
 
-            List<LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm>> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, engine.getEquationSystem(), ClosedBranchSide1ActiveFlowEquationTerm.class)).collect(Collectors.toList());
+            List<LfSensitivityFactor<? extends AbstractClosedBranchAcFlowEquationTerm>> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, engine.getEquationSystem(), getEquationTermClass(factor))).collect(Collectors.toList());
 
             // index factors by variable group to compute a minimal number of states
             List<SensitivityFactorGroup> factorGroups = createFactorGroups(network, lfFactors);

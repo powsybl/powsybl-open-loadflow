@@ -17,18 +17,18 @@ import java.util.Objects;
 import static com.powsybl.openloadflow.network.PiModel.R2;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Gael Macherel <gael.macherel at artelys.com>
  */
-public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1BranchAcFlowEquationTerm {
+public class OpenBranchSide1IntensityMagnitudeEquationTerm extends AbstractOpenSide1BranchAcFlowEquationTerm {
 
     private final Variable v2Var;
 
-    private double q2;
+    private double i2;
 
-    private double dq2dv2;
+    private double di2dv2;
 
-    public OpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, VariableSet variableSet,
-                                                   boolean deriveA1, boolean deriveR1) {
+    public OpenBranchSide1IntensityMagnitudeEquationTerm(LfBranch branch, LfBus bus2, VariableSet variableSet,
+                                                         boolean deriveA1, boolean deriveR1) {
         super(branch, VariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
         v2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_V);
     }
@@ -37,20 +37,27 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
     public void update(double[] x) {
         Objects.requireNonNull(x);
         double v2 = x[v2Var.getRow()];
-        q2 = -R2 * R2 * v2 * v2 * (b2 + y * y * b1 / shunt - (b1 * b1 + g1 * g1) * y * cosKsi / shunt);
-        dq2dv2 = -2 * v2 * R2 * R2 * (b2 + y * y * b1 / shunt - (b1 * b1 + g1 * g1) * y * cosKsi / shunt);
+        double p2 = R2 * R2 * v2 * v2 * (g2 + y * y * g1 / shunt + (b1 * b1 + g1 * g1) * y * sinKsi / shunt);
+        double q2 = -R2 * R2 * v2 * v2 * (b2 + y * y * b1 / shunt - (b1 * b1 + g1 * g1) * y * cosKsi / shunt);
+
+        i2 = Math.hypot(p2, q2) / (Math.sqrt(3.) * v2 / 1000);
+
+        double tpv2 = R2 * R2 * (g2 + y * y * g1 / shunt + (b1 * b1 + g1 * g1) * y * sinKsi / shunt);
+        double tqv2 = R2 * R2 * (b2 + y * y * b1 / shunt - (b1 * b1 + g1 * g1) * y * cosKsi / shunt);
+
+        di2dv2 = 1000 / Math.sqrt(3) * Math.hypot(tpv2, tqv2);
     }
 
     @Override
     public double eval() {
-        return q2;
+        return i2;
     }
 
     @Override
     public double der(Variable variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v2Var)) {
-            return dq2dv2;
+            return di2dv2;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
@@ -58,6 +65,6 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
 
     @Override
     protected String getName() {
-        return "ac_q_open_1";
+        return "ac_i_open_1";
     }
 }

@@ -16,15 +16,15 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Gael Macherel <gael.macherel at artelys.com>
  */
-abstract class AbstractOpenBranchAcFlowEquationTerm extends AbstractBranchAcFlowEquationTerm {
+abstract class AbstractOpenSide1BranchAcFlowEquationTerm extends AbstractBranchAcFlowEquationTerm {
 
     protected final List<Variable> variables;
 
     protected double shunt;
 
-    protected AbstractOpenBranchAcFlowEquationTerm(LfBranch branch, VariableType variableType,
+    protected AbstractOpenSide1BranchAcFlowEquationTerm(LfBranch branch, VariableType variableType,
                                                    LfBus bus, VariableSet variableSet,
                                                    boolean deriveA1, boolean deriveR1) {
         super(branch);
