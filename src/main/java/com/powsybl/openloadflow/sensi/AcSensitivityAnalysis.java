@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
@@ -129,7 +130,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         Objects.requireNonNull(lfParametersExt);
 
         // create LF network (we only manage main connected component)
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParametersExt.getSlackBusSelector());
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkParameters(lfParametersExt.getSlackBusSelector(), false, true, lfParameters.isTwtSplitShuntAdmittance(), false, lfParametersExt.getPlausibleActivePowerLimit()));
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
         checkSensitivities(network, lfNetwork, factors);
@@ -153,10 +154,10 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
             // buses that contain elements participating to slack distribution
-            List<ParticipatingElement> participatingElements = null;
+
             Map<String, Double> slackParticipationByBus;
             if (lfParameters.isDistributedSlack()) {
-                participatingElements = getParticipatingElements(lfNetwork, lfParameters, lfParametersExt);
+                List<ParticipatingElement> participatingElements = getParticipatingElements(lfNetwork, lfParameters, lfParametersExt);
                 slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
                     element -> element.getLfBus().getId(),
                     element -> -element.getFactor(),
@@ -167,7 +168,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             }
             computeInjectionFactors(slackParticipationByBus, factorGroups);
 
-            List<SensitivityValue> baseValues = new ArrayList<>();
+            List<SensitivityValue> baseValues;
 
             // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
             try (JacobianMatrix j = createJacobianMatrix(engine.getEquationSystem(), new PreviousValueVoltageInitializer())) {
