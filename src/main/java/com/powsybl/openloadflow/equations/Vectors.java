@@ -17,11 +17,15 @@ public final class Vectors {
     }
 
     public static void minus(double[] a, double[] b) {
+        minus(a, b, 1d);
+    }
+
+    public static void minus(double[] a, double[] b, double c) {
         if (a.length != b.length) {
             throw new IllegalArgumentException("a and b have different length");
         }
         for (int i = 0; i < a.length; i++) {
-            a[i] -= b[i];
+            a[i] -= b[i] * c;
         }
     }
 

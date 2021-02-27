@@ -43,42 +43,110 @@ public class NewtonRaphson {
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
     }
 
-    private NewtonRaphsonStatus runIteration(double[] fx, double[] targets, double[] x) {
+    private final class NewtonRaphsonContext {
+
+        private final double[] fx;
+
+        private final double[] targets;
+
+        private final double[] x;
+
+        private double[] oldX;
+
+        private double[] dx;
+
+        private double norm = Double.NaN;
+
+        private NewtonRaphsonContext(double[] fx, double[] targets, double[] x) {
+            this.fx = fx;
+            this.targets = targets;
+            this.x = x;
+        }
+    }
+
+    private NewtonRaphsonStatus runIteration(NewtonRaphsonContext context) {
         LOGGER.debug("Start iteration {}", iteration);
 
         try {
             // solve f(x) = j * dx
+            if (context.dx == null) {
+                context.dx = new double[context.fx.length];
+            }
+            System.arraycopy(context.fx, 0, context.dx, 0, context.fx.length);
             try {
-                j.solveTransposed(fx);
+                j.solveTransposed(context.dx);
             } catch (Exception e) {
                 LOGGER.error(e.toString(), e);
                 return NewtonRaphsonStatus.SOLVER_FAILED;
             }
 
+            // save x
+            if (context.oldX == null) {
+                context.oldX = new double[context.x.length];
+            }
+            System.arraycopy(context.x, 0, context.oldX, 0, context.x.length);
+
             // update x
-            Vectors.minus(x, fx);
+            Vectors.minus(context.x, context.dx);
 
             // evaluate equation terms with new x
-            equationSystem.updateEquations(x);
+            equationSystem.updateEquations(context.x);
 
             // recalculate f(x) with new x
-            equationSystem.updateEquationVector(fx);
+            equationSystem.updateEquationVector(context.fx);
 
-            Vectors.minus(fx, targets);
+            Vectors.minus(context.fx, context.targets);
+            // now fx contains mismatch
 
             if (LOGGER.isTraceEnabled()) {
-                equationSystem.findLargestMismatches(fx, 5)
+                equationSystem.findLargestMismatches(context.fx, 5)
                         .forEach(e -> LOGGER.trace("Mismatch for {}: {}", e.getKey(), e.getValue()));
             }
 
             // test stopping criteria and log norm(fx)
-            NewtonRaphsonStoppingCriteria.TestResult testResult = stoppingCriteria.test(fx);
-
-            LOGGER.debug("|f(x)|={}", testResult.getNorm());
+            NewtonRaphsonStoppingCriteria.TestResult testResult = stoppingCriteria.test(context.fx);
+            double norm = testResult.getNorm();
+            LOGGER.debug("|f(x)|={}", norm);
 
             if (testResult.isStop()) {
                 return NewtonRaphsonStatus.CONVERGED;
             }
+
+            if (context.norm < norm) {
+                LOGGER.info("OUPS " + context.norm + " " + norm);
+                double mu = 1;
+                for (int i = 0; i < 10 && context.norm < norm; i++) {
+                    mu /= 4;
+
+                    // restore x from previous iteration
+                    System.arraycopy(context.oldX, 0, context.x, 0, context.oldX.length);
+
+                    // update x
+                    Vectors.minus(context.x, context.dx, mu);
+
+                    // evaluate equation terms with new x
+                    equationSystem.updateEquations(context.x);
+
+                    // recalculate f(x) with new x
+                    equationSystem.updateEquationVector(context.fx);
+
+                    Vectors.minus(context.fx, context.targets);
+                    // now fx contains mismatch
+
+                    testResult = stoppingCriteria.test(context.fx);
+                    norm = testResult.getNorm();
+                    LOGGER.debug("New |f(x)|={}", norm);
+
+                    if (testResult.isStop()) {
+                        return NewtonRaphsonStatus.CONVERGED;
+                    }
+                }
+
+//                throw new AssertionError("OUPS");
+            }
+
+            // save norm for next iteration check
+            context.norm = norm;
 
             return null;
         } finally {
@@ -117,9 +185,10 @@ public class NewtonRaphson {
         Vectors.minus(fx, targets);
 
         // start iterations
+        NewtonRaphsonContext context = new NewtonRaphsonContext(fx, targets, x);
         NewtonRaphsonStatus status = NewtonRaphsonStatus.NO_CALCULATION;
         while (iteration <= parameters.getMaxIteration()) {
-            NewtonRaphsonStatus newStatus = runIteration(fx, targets, x);
+            NewtonRaphsonStatus newStatus = runIteration(context);
             if (newStatus != null) {
                 status = newStatus;
                 break;

@@ -16,7 +16,7 @@ import java.util.Objects;
  */
 public class NewtonRaphsonParameters {
 
-    private static final int DEFAULT_MAX_ITERATION = 30;
+    private static final int DEFAULT_MAX_ITERATION = 50;
 
     private int maxIteration = DEFAULT_MAX_ITERATION;
 
