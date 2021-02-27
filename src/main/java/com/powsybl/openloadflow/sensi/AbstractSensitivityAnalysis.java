@@ -566,7 +566,7 @@ public abstract class AbstractSensitivityAnalysis {
             }
             contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
             if (contingency.getBranchIdsToOpen().isEmpty()) {
-                LOGGER.warn("Contingency " + contingency.getContingency().getId() + " has no impact.");
+                LOGGER.warn("Contingency {} has no impact", contingency.getContingency().getId());
             }
         }
     }
