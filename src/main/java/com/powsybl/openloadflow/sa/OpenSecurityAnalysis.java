@@ -29,6 +29,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.BusState;
+import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
@@ -39,7 +40,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -265,7 +265,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         List<Equation> deactivatedEquations = new ArrayList<>();
         List<EquationTerm> deactivatedEquationTerms = new ArrayList<>();
 
-        deactivateEquations(lfContingency, engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
+        LfContingency.deactivateEquations(lfContingency, engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
 
         // restart LF on post contingency equation system
         engine.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
@@ -279,7 +279,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                 postContingencyLimitViolations);
         }
 
-        reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
+        LfContingency.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
 
         stopwatch.stop();
         LOGGER.info("Post contingency '{}' simulation done in {} ms", lfContingency.getContingency().getId(),
@@ -288,112 +288,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         return new PostContingencyResult(lfContingency.getContingency(), postContingencyComputationOk, postContingencyLimitViolations);
     }
 
-    private void deactivateEquations(LfContingency lfContingency, EquationSystem equationSystem, List<Equation> deactivatedEquations, List<EquationTerm> deactivatedEquationTerms) {
-        for (LfBranch branch : lfContingency.getBranches()) {
-            LOGGER.trace("Remove equations and equations terms related to branch '{}'", branch.getId());
-
-            // deactivate all equations related to a branch
-            for (Equation equation : equationSystem.getEquations(SubjectType.BRANCH, branch.getNum())) {
-                if (equation.isActive()) {
-                    equation.setActive(false);
-                    deactivatedEquations.add(equation);
-                }
-            }
-
-            // deactivate all equation terms related to a branch
-            for (EquationTerm equationTerm : equationSystem.getEquationTerms(SubjectType.BRANCH, branch.getNum())) {
-                if (equationTerm.isActive()) {
-                    equationTerm.setActive(false);
-                    deactivatedEquationTerms.add(equationTerm);
-                }
-            }
-        }
-
-        for (LfBus bus : lfContingency.getBuses()) {
-            LOGGER.trace("Remove equations and equation terms related to bus '{}'", bus.getId());
-
-            // deactivate all equations related to a bus
-            for (Equation equation : equationSystem.getEquations(SubjectType.BUS, bus.getNum())) {
-                if (equation.isActive()) {
-                    equation.setActive(false);
-                    deactivatedEquations.add(equation);
-                }
-            }
-
-            // deactivate all equation terms related to a bus
-            for (EquationTerm equationTerm : equationSystem.getEquationTerms(SubjectType.BUS, bus.getNum())) {
-                if (equationTerm.isActive()) {
-                    equationTerm.setActive(false);
-                    deactivatedEquationTerms.add(equationTerm);
-                }
-            }
-        }
-    }
-
-    private void reactivateEquations(List<Equation> deactivatedEquations, List<EquationTerm> deactivatedEquationTerms) {
-        // restore deactivated equations and equations terms from previous contingency
-        if (!deactivatedEquations.isEmpty()) {
-            for (Equation equation : deactivatedEquations) {
-                equation.setActive(true);
-            }
-            deactivatedEquations.clear();
-        }
-        if (!deactivatedEquationTerms.isEmpty()) {
-            for (EquationTerm equationTerm : deactivatedEquationTerms) {
-                equationTerm.setActive(true);
-            }
-            deactivatedEquationTerms.clear();
-        }
-    }
-
     List<LfContingency> createContingencies(List<PropagatedContingency> propagatedContingencies, LfNetwork network) {
-        // create connectivity data structure
-        GraphDecrementalConnectivity<LfBus> connectivity = network.createDecrementalConnectivity(connectivityProvider);
-
-        List<LfContingency> contingencies = new ArrayList<>();
-        Iterator<PropagatedContingency> contingencyContextIt = propagatedContingencies.iterator();
-        while (contingencyContextIt.hasNext()) {
-            PropagatedContingency propagatedContingency = contingencyContextIt.next();
-
-            // find contingency branches that are part of this network
-            Set<LfBranch> branches = new HashSet<>(1);
-            Iterator<String> branchIt = propagatedContingency.getBranchIdsToOpen().iterator();
-            while (branchIt.hasNext()) {
-                String branchId = branchIt.next();
-                LfBranch branch = network.getBranchById(branchId);
-                if (branch != null) {
-                    branches.add(branch);
-                    branchIt.remove();
-                }
-            }
-
-            // if no more branch in the contingency, remove contingency from the list because
-            // it won't be part of another network
-            if (propagatedContingency.getBranchIdsToOpen().isEmpty()) {
-                contingencyContextIt.remove();
-            }
-
-            // check if contingency split this network into multiple components
-            if (branches.isEmpty()) {
-                continue;
-            }
-
-            // update connectivity with triggered branches
-            for (LfBranch branch : branches) {
-                connectivity.cut(branch.getBus1(), branch.getBus2());
-            }
-
-            // add to contingency description buses and branches that won't be part of the main connected
-            // component in post contingency state
-            Set<LfBus> buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
-            buses.forEach(b -> branches.addAll(b.getBranches()));
-
-            // reset connectivity to discard triggered branches
-            connectivity.reset();
-
-            contingencies.add(new LfContingency(propagatedContingency.getContingency(), buses, branches));
-        }
-
-        return contingencies;
+        return LfContingency.createContingencies(propagatedContingencies, network, network.createDecrementalConnectivity(connectivityProvider), true);
     }
 }
