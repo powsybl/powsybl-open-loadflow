@@ -201,7 +201,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     .forEach(lfFactor -> lfFactor.setPredefinedResult(0d));
                 contingenciesValues.put(lfContingency.getContingency().getId(),
                     getPostContingencySensitivityValues(lfFactors, lfContingency, lfNetwork, engine, factorGroups, lfParameters, lfParametersExt));
-                BusState.restoreBusStates(busStates, engine);
+                BusState.restoreBusStates(busStates);
             }
 
             // Contingency breaking connectivity
@@ -233,7 +233,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
                 contingenciesValues.put(lfContingency.getContingency().getId(),
                     getPostContingencySensitivityValues(lfFactors, lfContingency, lfNetwork, engine, factorGroups, lfParameters, lfParametersExt));
-                BusState.restoreBusStates(busStates, engine);
+                BusState.restoreBusStates(busStates);
 
                 connectivity.reset();
             }
