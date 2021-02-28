@@ -229,7 +229,6 @@ public final class AcEquationSystem {
                 if (phaseControl.getUnit() == DiscretePhaseControl.Unit.A) {
                     throw new PowsyblException("Phase control in A is not yet supported");
                 }
-
                 equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_P).addTerm(p);
             }
         }
@@ -375,7 +374,7 @@ public final class AcEquationSystem {
 
         network.addListener(new LfNetworkListener() {
             @Override
-            public void onVoltageControlChange(LfBus bus, boolean oldVoltageControl, boolean newVoltageControl) {
+            public void onVoltageControlChange(LfBus bus, boolean newVoltageControl) {
                 if (newVoltageControl) { // switch PQ/PV
                     Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
                     qEq.setActive(false);

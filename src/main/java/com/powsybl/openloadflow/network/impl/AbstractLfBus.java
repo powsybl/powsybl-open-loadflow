@@ -125,7 +125,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             }
             this.voltageControl = voltageControl;
             for (LfNetworkListener listener : network.getListeners()) {
-                listener.onVoltageControlChange(this, !voltageControl, voltageControl);
+                listener.onVoltageControlChange(this, voltageControl);
             }
         }
     }
