@@ -31,7 +31,8 @@ public abstract class AbstractEquationTerm implements EquationTerm {
     public void setActive(boolean active) {
         if (this.active != active) {
             this.active = active;
-            equation.getEquationSystem().notifyListeners(equation, EquationEventType.EQUATION_UPDATED);
+            equation.getEquationSystem().notifyEquationTermChange(this, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED
+                                                                               : EquationTermEventType.EQUATION_TERM_DEACTIVATED);
         }
     }
 

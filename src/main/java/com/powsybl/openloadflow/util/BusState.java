@@ -6,6 +6,10 @@
  */
 package com.powsybl.openloadflow.util;
 
+import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 
@@ -68,6 +72,17 @@ public class BusState {
     /**
      * Set the bus states based on the given map of states
      * @param busStates the map containing the bus states, indexed by buses
+     * @param engine AcLoadFlowEngine to operate the PqPv switching if the bus has lost its voltage control
+     */
+    public static void restoreBusStates(Map<LfBus, BusState> busStates) {
+        restoreBusStates(busStates);
+    }
+
+    /**
+     * Set the bus states based on the given map of states
+     * @param busStates the map containing the bus states, indexed by buses
+     * @param equationSystem to operate the PqPv switching if the bus has lost its voltage control
+     * @param variableSet to operate the PqPv switching if the bus has lost its voltage control
      */
     public static void restoreBusStates(Map<LfBus, BusState> busStates) {
         busStates.forEach((b, state) -> state.restoreBusState(b));
