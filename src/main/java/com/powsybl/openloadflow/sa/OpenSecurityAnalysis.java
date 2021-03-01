@@ -240,7 +240,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                         LOGGER.info("Restore pre-contingency state");
 
                         // restore base state
-                        BusState.restoreBusStates(busStates, engine);
+                        BusState.restoreBusStates(busStates);
                     }
                 }
             }
