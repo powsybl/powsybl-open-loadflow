@@ -11,10 +11,11 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.util.ParameterConstants;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -192,7 +193,7 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .add();
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
-        LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false);
+        LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false);
         PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, parameters));
         assertEquals("Controller bus 'vl2_0' has an inconsistent remote target voltage: 0.5625 pu", exception.getMessage());
     }
@@ -294,7 +295,7 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .add();
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
-        LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false);
+        LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false);
         PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, parameters));
         assertEquals("Bus 'vl2_0' controlled by bus 'vl1_0' has also a local voltage control with a different value: 413.0 and 412.0", exception.getMessage());
     }
