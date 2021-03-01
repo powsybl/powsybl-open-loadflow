@@ -246,7 +246,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
                 distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
-                PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency);
+                PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency, new PostContingencyLimitViolationList(preContingencyLimitViolations));
                 postContingencyResults.add(postContingencyResult);
 
                 if (contingencyIt.hasNext()) {
@@ -268,7 +268,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         }
     }
 
-    private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcloadFlowEngine engine, LfContingency lfContingency) {
+    private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcloadFlowEngine engine, LfContingency lfContingency, PostContingencyLimitViolationList postContingencyLimitViolations) {
         LOGGER.info("Start post contingency '{}' simulation", lfContingency.getContingency().getId());
 
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -282,7 +282,6 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         engine.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
         AcLoadFlowResult postContingencyLoadFlowResult = engine.run();
         boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
-        List<LimitViolation> postContingencyLimitViolations = new ArrayList<>();
         if (postContingencyComputationOk) {
             detectViolations(
                 network.getBranches().stream().filter(b -> !lfContingency.getBranches().contains(b)),
