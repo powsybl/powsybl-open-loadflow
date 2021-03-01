@@ -207,4 +207,10 @@ public final class Transformers {
         double nominalV2 = twt.getTerminal2().getVoltageLevel().getNominalV();
         return nominalV2 / nominalV1;
     }
+
+    public static double getRatioPerUnitBase(Line line) {
+        double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
+        double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
+        return nominalV2 / nominalV1;
+    }
 }

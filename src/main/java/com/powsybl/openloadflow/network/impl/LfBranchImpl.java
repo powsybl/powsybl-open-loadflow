@@ -49,7 +49,7 @@ public class LfBranchImpl extends AbstractLfBranch {
         if (addRatioToLinesWithDifferentNominalVoltageAtBothEnds && nominalV1 != nominalV2) {
             LOGGER.trace("Line '{}' has a different nominal voltage at both ends ({} and {}): add a ration", line.getId(), nominalV1, nominalV2);
             report.linesWithDifferentNominalVoltageAtBothEnds++;
-            r1 = PiModel.R2 * nominalV1 / nominalV2;
+            r1 = 1 / Transformers.getRatioPerUnitBase(line);
         }
         PiModel piModel = new SimplePiModel()
                 .setR1(r1)
