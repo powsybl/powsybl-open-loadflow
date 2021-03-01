@@ -39,8 +39,8 @@ public class DiscretePhaseControl {
 
     public DiscretePhaseControl(LfBranch controller, LfBranch controlled, ControlledSide controlledSide, DiscretePhaseControl.Mode mode,
                                 double targetValue, double targetDeadband, Unit unit) {
-        this.controller = controller;
-        this.controlled = controlled;
+        this.controller = Objects.requireNonNull(controller);
+        this.controlled = Objects.requireNonNull(controlled);
         this.targetValue = targetValue;
         this.targetDeadband = targetDeadband;
         this.controlledSide = Objects.requireNonNull(controlledSide);
@@ -73,7 +73,14 @@ public class DiscretePhaseControl {
     }
 
     public void setMode(Mode mode) {
-        this.mode = Objects.requireNonNull(mode);
+        Objects.requireNonNull(mode);
+        if (this.mode != mode) {
+            Mode oldMode = this.mode;
+            this.mode = mode;
+            for (LfNetworkListener listener : controller.getNetwork().getListeners()) {
+                listener.onPhaseControlModeChange(this, oldMode, mode);
+            }
+        }
     }
 
     public Unit getUnit() {

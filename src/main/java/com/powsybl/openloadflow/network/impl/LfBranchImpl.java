@@ -36,12 +36,12 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private Evaluable q2 = NAN;
 
-    protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
-        super(bus1, bus2, piModel);
+    protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
+        super(network, bus1, bus2, piModel);
         this.branch = branch;
     }
 
-    private static LfBranchImpl createLine(Line line, LfBus bus1, LfBus bus2, double zb, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
+    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                            LfNetworkLoadingReport report) {
         double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
         double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
@@ -60,10 +60,10 @@ public class LfBranchImpl extends AbstractLfBranch {
                 .setB1(line.getB1() * zb)
                 .setB2(line.getB2() * zb);
 
-        return new LfBranchImpl(bus1, bus2, piModel, line);
+        return new LfBranchImpl(network, bus1, bus2, piModel, line);
     }
 
-    private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfBus bus1, LfBus bus2, double zb, boolean twtSplitShuntAdmittance) {
+    private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean twtSplitShuntAdmittance) {
         PiModel piModel = null;
 
         double baseRatio = Transformers.getRatioPerUnitBase(twt);
@@ -107,19 +107,19 @@ public class LfBranchImpl extends AbstractLfBranch {
             piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance);
         }
 
-        return new LfBranchImpl(bus1, bus2, piModel, twt);
+        return new LfBranchImpl(network, bus1, bus2, piModel, twt);
     }
 
-    public static LfBranchImpl create(Branch<?> branch, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance,
+    public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance,
                                       boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds, LfNetworkLoadingReport report) {
         Objects.requireNonNull(branch);
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
         double zb = nominalV2 * nominalV2 / PerUnit.SB;
         if (branch instanceof Line) {
-            return createLine((Line) branch, bus1, bus2, zb, addRatioToLinesWithDifferentNominalVoltageAtBothEnds, report);
+            return createLine((Line) branch, network, bus1, bus2, zb, addRatioToLinesWithDifferentNominalVoltageAtBothEnds, report);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-            return createTransformer(twt, bus1, bus2, zb, twtSplitShuntAdmittance);
+            return createTransformer(twt, network, bus1, bus2, zb, twtSplitShuntAdmittance);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }

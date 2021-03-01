@@ -57,6 +57,8 @@ public class LfNetwork {
 
     private int shuntCount = 0;
 
+    private final List<LfNetworkListener> listeners = new ArrayList<>();
+
     public LfNetwork(int num, SlackBusSelector slackBusSelector) {
         this.num = num;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
@@ -472,4 +474,15 @@ public class LfNetwork {
         return connectivity;
     }
 
+    public void addListener(LfNetworkListener listener) {
+        listeners.add(listener);
+    }
+
+    public void removeListener(LfNetworkListener listener) {
+        listeners.remove(listener);
+    }
+
+    public List<LfNetworkListener> getListeners() {
+        return listeners;
+    }
 }
