@@ -202,9 +202,9 @@ public final class Transformers {
         return nominalV2 / nominalV1;
     }
 
-    public static double getRatioPerUnitBase(TwoWindingsTransformer twt) {
-        double nominalV1 = twt.getTerminal1().getVoltageLevel().getNominalV();
-        double nominalV2 = twt.getTerminal2().getVoltageLevel().getNominalV();
+    public static double getRatioPerUnitBase(Branch branch) {
+        double nominalV1 = branch.getTerminal1().getVoltageLevel().getNominalV();
+        double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
         return nominalV2 / nominalV1;
     }
 }

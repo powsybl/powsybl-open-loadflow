@@ -45,11 +45,14 @@ public class AcLoadFlowParameters {
 
     private final boolean forceA1Var;
 
+    private final boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
                                 MatrixFactory matrixFactory, boolean voltageRemoteControl,
                                 boolean phaseControl, boolean transformerVoltageControlOn, boolean minImpedance,
-                                boolean twtSplitShuntAdmittance, boolean breakers, double plausibleActivePowerLimit, boolean forceA1Var) {
+                                boolean twtSplitShuntAdmittance, boolean breakers, double plausibleActivePowerLimit,
+                                boolean forceA1Var, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -63,6 +66,7 @@ public class AcLoadFlowParameters {
         this.breakers = breakers;
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
         this.forceA1Var = forceA1Var;
+        this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -119,5 +123,9 @@ public class AcLoadFlowParameters {
 
     public boolean isForceA1Var() {
         return forceA1Var;
+    }
+
+    public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
+        return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
     }
 }
