@@ -13,9 +13,9 @@ import com.powsybl.openloadflow.util.ParameterConstants;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -302,7 +302,14 @@ class GeneratorTargetVoltageInconsistencyTest {
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false);
-        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, parameters));
-        assertEquals("Bus 'vl2_0' controlled by bus 'vl1_0' has also a local voltage control with a different value: 413.0 and 412.0", exception.getMessage());
+
+        assertEquals(412, network.getGenerator("g1").getTargetV());
+        assertEquals(413, g2.getTargetV());
+
+        List<LfNetwork> networkList = LfNetwork.load(network, parameters);
+        Optional<VoltageControl> sharedVoltageControl = networkList.get(0).getBusById("vl2_0").getVoltageControl();
+        assertTrue(sharedVoltageControl.isPresent());
+
+        assertEquals(413 / g2.getTerminal().getVoltageLevel().getNominalV(), sharedVoltageControl.get().getTargetValue());
     }
 }
