@@ -20,6 +20,8 @@ public interface LfBus {
 
     void setNum(int num);
 
+    LfNetwork getNetwork();
+
     String getVoltageLevelId();
 
     boolean isFictitious();

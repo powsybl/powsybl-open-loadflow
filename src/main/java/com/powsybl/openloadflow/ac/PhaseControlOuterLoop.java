@@ -9,12 +9,8 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.EquationType;
-import com.powsybl.openloadflow.equations.Variable;
-import com.powsybl.openloadflow.equations.VariableType;
-import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.DiscretePhaseControl;
+import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,12 +30,12 @@ public class PhaseControlOuterLoop implements OuterLoop {
     @Override
     public OuterLoopStatus check(OuterLoopContext context) {
         if (context.getIteration() == 0) {
-            // at first outerloop iteration:
+            // at first outer loop iteration:
             // branches with active power control are switched off and taps are rounded
             // branches with current limiter control will wait for second iteration
             return  firstIteration(context);
         } else if (context.getIteration() > 0) {
-            // at second outerloop iteration:
+            // at second outer loop iteration:
             // flow of branches with fixed tap are recomputed
             return nextIteration(context);
         }
@@ -52,8 +48,8 @@ public class PhaseControlOuterLoop implements OuterLoop {
             if (branch.isPhaseControlled()) {
                 switch (branch.getDiscretePhaseControl().getMode()) {
                     case CONTROLLER:
-                        // at firall branches with active power control are switched off
-                        desactivateActivePowerControlEquation(context, branch);
+                        // all branches with active power control are switched off
+                        switchOffPhaseControl(branch);
                         // if at least one phase shifter has been switched off we need to continue
                         status = OuterLoopStatus.UNSTABLE;
                         break;
@@ -69,7 +65,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
     }
 
     private OuterLoopStatus nextIteration(OuterLoopContext context) {
-        // at second outerloop iteration we switch on phase control for branches that are in limiter mode
+        // at second outer loop iteration we switch on phase control for branches that are in limiter mode
         // and a current greater than the limit
         for (LfBranch branch : context.getNetwork().getBranches()) {
             if (branch.isPhaseControlled()) {
@@ -85,20 +81,12 @@ public class PhaseControlOuterLoop implements OuterLoop {
         return OuterLoopStatus.STABLE;
     }
 
-    private void desactivateActivePowerControlEquation(OuterLoopContext context, LfBranch branch) {
-        // switch off phase shifter
+    private void switchOffPhaseControl(LfBranch branch) {
+        // switch off phase control
         branch.getDiscretePhaseControl().setMode(DiscretePhaseControl.Mode.OFF);
 
-        // de-activate a1 variable for next outer loop run
-        LfBranch controllerBranch = branch.getDiscretePhaseControl().getController();
-        Variable a1 = context.getVariableSet().getVariable(controllerBranch.getNum(), VariableType.BRANCH_ALPHA1);
-        a1.setActive(false);
-
-        // de-activate phase control equation
-        Equation t = context.getEquationSystem().createEquation(branch.getNum(), EquationType.BRANCH_P);
-        t.setActive(false);
-
         // round the phase shift to the closest tap
+        LfBranch controllerBranch = branch.getDiscretePhaseControl().getController();
         PiModel piModel = controllerBranch.getPiModel();
         double a1Value = piModel.getA1();
         piModel.roundA1ToClosestTap();

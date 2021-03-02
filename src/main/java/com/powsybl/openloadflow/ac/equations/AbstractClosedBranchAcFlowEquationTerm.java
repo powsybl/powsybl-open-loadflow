@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.google.common.collect.ImmutableList;
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.equations.VariableType;
@@ -56,6 +57,27 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
             variablesBuilder.add(r1Var);
         }
         variables = variablesBuilder.build();
+    }
+
+    protected abstract double calculateDer(double ph1, double ph2, double v1, double v2, double a1, double r1);
+
+    public double calculateDer(DenseMatrix x, int column) {
+        Objects.requireNonNull(x);
+        double ph1 = x.get(ph1Var.getRow(), column);
+        double ph2 = x.get(ph2Var.getRow(), column);
+        double v1 = x.get(v1Var.getRow(), column);
+        double v2 = x.get(v2Var.getRow(), column);
+        double a1 = getA1(x, column);
+        double r1 = getR1(x, column);
+        return calculateDer(ph1, ph2, v1, v2, a1, r1);
+    }
+
+    protected double getA1(DenseMatrix x, int column) {
+        return a1Var != null && a1Var.isActive() ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
+    }
+
+    protected double getR1(DenseMatrix x, int column) {
+        return r1Var != null && r1Var.isActive() ? x.get(r1Var.getRow(), column) : branch.getPiModel().getR1();
     }
 
     @Override

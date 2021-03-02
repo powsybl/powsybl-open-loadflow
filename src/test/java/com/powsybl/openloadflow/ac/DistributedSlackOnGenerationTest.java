@@ -145,7 +145,7 @@ class DistributedSlackOnGenerationTest {
         network.getLoad("LOAD").setQ0(-200);
         LoadFlowResult result = LoadFlow.find("OpenLoadFlow").run(network, parameters);
         assertTrue(result.isOk());
-        assertActivePowerEquals(595.350, network.getGenerator("GEN").getTerminal());
+        assertActivePowerEquals(595.328, network.getGenerator("GEN").getTerminal());
     }
 
     @Test

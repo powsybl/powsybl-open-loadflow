@@ -44,7 +44,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         Map<LfBusImpl, String> controllerBusToControlledBusId = new LinkedHashMap<>();
 
         for (Bus bus : buses) {
-            LfBusImpl lfBus = createBus(bus, parameters, loadingContext, report, controllerBusToControlledBusId);
+            LfBusImpl lfBus = createBus(bus, parameters, lfNetwork, loadingContext, report, controllerBusToControlledBusId);
             lfNetwork.addBus(lfBus);
         }
 
@@ -61,9 +61,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         return breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
     }
 
-    private static LfBusImpl createBus(Bus bus, LfNetworkParameters parameters, LoadingContext loadingContext,
+    private static LfBusImpl createBus(Bus bus, LfNetworkParameters parameters, LfNetwork lfNetwork, LoadingContext loadingContext,
                                        LfNetworkLoadingReport report, Map<LfBusImpl, String> controllerBusToControlledBusId) {
-        LfBusImpl lfBus = LfBusImpl.create(bus);
+        LfBusImpl lfBus = LfBusImpl.create(bus, lfNetwork);
 
         bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
 
@@ -191,12 +191,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void createBranches(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkLoadingReport report,
-                                       boolean twtSplitShuntAdmittance, boolean breakers) {
+    private static void createBranches(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkLoadingReport report, LfNetworkParameters parameters) {
         for (Branch<?> branch : loadingContext.branchSet) {
-            LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork, breakers);
-            LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork, breakers);
-            addBranch(lfNetwork, LfBranchImpl.create(branch, lfBus1, lfBus2, twtSplitShuntAdmittance), report);
+            LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork, parameters.isBreakers());
+            LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork, parameters.isBreakers());
+            addBranch(lfNetwork, LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, parameters.isTwtSplitShuntAdmittance(), parameters.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(), report), report);
         }
 
         for (Branch<?> branch : loadingContext.branchSet) {
@@ -204,28 +203,28 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 // Create phase controls which link controller -> controlled
                 TwoWindingsTransformer t2wt = (TwoWindingsTransformer) branch;
                 PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
-                createPhaseControl(lfNetwork, ptc, t2wt.getId(), "", breakers);
+                createPhaseControl(lfNetwork, ptc, t2wt.getId(), "", parameters.isBreakers());
                 RatioTapChanger rtc = t2wt.getRatioTapChanger();
-                createVoltageControl(lfNetwork, rtc, t2wt.getId(), "", breakers);
+                createVoltageControl(lfNetwork, rtc, t2wt.getId(), "", parameters.isBreakers());
             }
         }
 
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
-            LfDanglingLineBus lfBus2 = new LfDanglingLineBus(danglingLine);
+            LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine);
             lfNetwork.addBus(lfBus2);
-            LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, breakers);
-            addBranch(lfNetwork, LfDanglingLineBranch.create(danglingLine, lfBus1, lfBus2), report);
+            LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
+            addBranch(lfNetwork, LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2), report);
         }
 
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
-            LfStarBus lfBus0 = new LfStarBus(t3wt);
+            LfStarBus lfBus0 = new LfStarBus(lfNetwork, t3wt);
             lfNetwork.addBus(lfBus0);
-            LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork, breakers);
-            LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork, breakers);
-            LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork, breakers);
-            addBranch(lfNetwork, LfLegBranch.create(lfBus1, lfBus0, t3wt, t3wt.getLeg1(), twtSplitShuntAdmittance), report);
-            addBranch(lfNetwork, LfLegBranch.create(lfBus2, lfBus0, t3wt, t3wt.getLeg2(), twtSplitShuntAdmittance), report);
-            addBranch(lfNetwork, LfLegBranch.create(lfBus3, lfBus0, t3wt, t3wt.getLeg3(), twtSplitShuntAdmittance), report);
+            LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork, parameters.isBreakers());
+            LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork, parameters.isBreakers());
+            LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork, parameters.isBreakers());
+            addBranch(lfNetwork, LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), parameters.isTwtSplitShuntAdmittance()), report);
+            addBranch(lfNetwork, LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(), parameters.isTwtSplitShuntAdmittance()), report);
+            addBranch(lfNetwork, LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(), parameters.isTwtSplitShuntAdmittance()), report);
         }
 
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
@@ -233,10 +232,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             int legNumber = 1;
             for (ThreeWindingsTransformer.Leg leg : Arrays.asList(t3wt.getLeg1(), t3wt.getLeg2(), t3wt.getLeg3())) {
                 PhaseTapChanger ptc = leg.getPhaseTapChanger();
-                createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + legNumber, breakers);
+                createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + legNumber, parameters.isBreakers());
 
                 RatioTapChanger rtc = leg.getRatioTapChanger();
-                createVoltageControl(lfNetwork, rtc, t3wt.getId(), "_leg_" + legNumber, breakers);
+                createVoltageControl(lfNetwork, rtc, t3wt.getId(), "_leg_" + legNumber, parameters.isBreakers());
                 legNumber++;
             }
         }
@@ -250,7 +249,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 Bus bus2 = vl.getBusBreakerView().getBus2(sw.getId());
                 LfBus lfBus1 = lfNetwork.getBusById(bus1.getId());
                 LfBus lfBus2 = lfNetwork.getBusById(bus2.getId());
-                lfNetwork.addBranch(new LfSwitch(lfBus1, lfBus2, sw));
+                lfNetwork.addBranch(new LfSwitch(lfNetwork, lfBus1, lfBus2, sw));
             }
         }
     }
@@ -396,7 +395,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
 
         createBuses(buses, parameters, lfNetwork, loadingContext, report);
-        createBranches(lfNetwork, loadingContext, report, parameters.isTwtSplitShuntAdmittance(), parameters.isBreakers());
+        createBranches(lfNetwork, loadingContext, report, parameters);
         createSwitches(switches, lfNetwork);
 
         fixDiscreteVoltageControls(lfNetwork, parameters.isMinImpedance());
@@ -428,6 +427,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         if (report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds > 0) {
             LOGGER.warn("Network {}: {} branches have been discarded because connected to same bus at both ends",
                     lfNetwork.getNum(), report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds);
+        }
+        if (report.linesWithDifferentNominalVoltageAtBothEnds > 0) {
+            LOGGER.warn("Network {}: {} lines have a different nominal voltage at both ends: a ratio has been added",
+                    lfNetwork.getNum(), report.linesWithDifferentNominalVoltageAtBothEnds);
         }
         if (report.nonImpedantBranches > 0) {
             LOGGER.warn("Network {}: {} branches are non impedant", lfNetwork.getNum(), report.nonImpedantBranches);
