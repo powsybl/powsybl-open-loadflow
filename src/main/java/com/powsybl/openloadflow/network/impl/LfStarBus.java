@@ -21,7 +21,7 @@ public class LfStarBus extends AbstractLfBus {
     public LfStarBus(LfNetwork network, ThreeWindingsTransformer t3wt) {
         super(network, Networks.getPropertyV(t3wt), Networks.getPropertyAngle(t3wt));
         this.t3wt = t3wt;
-        nominalV = t3wt.getLeg1().getTerminal().getVoltageLevel().getNominalV();
+        nominalV = t3wt.getRatedU0();
     }
 
     @Override
