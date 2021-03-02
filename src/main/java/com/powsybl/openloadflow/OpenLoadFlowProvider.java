@@ -191,8 +191,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
         for (AcLoadFlowResult result : results) {
             // update network state
-            result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(), parameters.isWriteSlackBus(),
-                parameters.isPhaseShifterRegulationOn(), parameters.isTransformerVoltageControlOn());
+            if (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
+                result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(),
+                                                parameters.isWriteSlackBus(),
+                                                parameters.isPhaseShifterRegulationOn(),
+                                                parameters.isTransformerVoltageControlOn());
+            }
 
             LoadFlowResult.ComponentResult.Status status;
             switch (result.getNewtonRaphsonStatus()) {
@@ -259,8 +263,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             SlackTerminal.reset(network);
         }
 
-        result.getNetwork().updateState(false, parameters.isWriteSlackBus(), parameters.isPhaseShifterRegulationOn(),
-                parameters.isTransformerVoltageControlOn());
+        if (result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED) {
+            result.getNetwork().updateState(false,
+                                            parameters.isWriteSlackBus(),
+                                            parameters.isPhaseShifterRegulationOn(),
+                                            parameters.isTransformerVoltageControlOn());
+        }
 
         LoadFlowResult.ComponentResult componentResult = new LoadFlowResultImpl.ComponentResultImpl(
                 result.getNetwork().getNum(),
