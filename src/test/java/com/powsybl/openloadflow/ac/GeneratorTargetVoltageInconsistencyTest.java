@@ -8,14 +8,14 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.ParameterConstants;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -194,8 +194,14 @@ class GeneratorTargetVoltageInconsistencyTest {
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false);
-        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, parameters));
-        assertEquals("LfGeneratorImpl 'g2' has an inconsistent target voltage: 0.5625 pu", exception.getMessage());
+
+        Generator g = network.getGenerator("g2");
+        assertEquals(0.5625, g.getTargetV() / g.getTerminal().getVoltageLevel().getNominalV());
+
+        List<LfNetwork> networkList = LfNetwork.load(network, parameters);
+        LfGenerator generator = networkList.get(0).getBusById("vl2_0").getGenerators().get(0);
+        assertEquals("g2", generator.getId());
+        assertEquals(PlausibleValues.MIN_TARGET_VOLTAGE_PU, generator.getTargetV());
     }
 
     @Test
