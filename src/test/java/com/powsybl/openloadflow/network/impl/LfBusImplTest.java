@@ -125,9 +125,9 @@ class LfBusImplTest {
     void updateGeneratorsStateTest() {
         LfBusImpl lfBus = new LfBusImpl(bus1, LfNetwork.load(EurostagTutorialExample1Factory.create(), new MostMeshedSlackBusSelector()).get(0), 385, 0);
         LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
-        lfBus.addStaticVarCompensator(svc1, 1.0, lfNetworkLoadingReport);
-        lfBus.addStaticVarCompensator(svc2, 1.0, lfNetworkLoadingReport);
-        lfBus.addStaticVarCompensator(svc3, 1.0, lfNetworkLoadingReport);
+        lfBus.addStaticVarCompensator(svc1, lfNetworkLoadingReport);
+        lfBus.addStaticVarCompensator(svc2, lfNetworkLoadingReport);
+        lfBus.addStaticVarCompensator(svc3, lfNetworkLoadingReport);
         double generationQ = -6.412103131789854;
         lfBus.updateGeneratorsState(generationQ * PerUnit.SB, true);
         double sumQ = 0;
