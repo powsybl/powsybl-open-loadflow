@@ -260,4 +260,47 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         return network;
     }
+
+    /**
+     * LCC test case with bigger components
+     * <pre>
+     *                       g1       ld2               ld3
+     *                       |         |                 |
+     * lots of buses ------ b1 ------- b2-cs2--------cs3-b3 ----- b4 ----- b5 ------ b6
+     *                           l12          hvdc23     |         (transfo)
+     *                                                  g3
+     * </pre>
+     *
+     * @author Gael Macherel <gael.macherel at artelys.com>
+     */
+    public static Network createLccWithBiggerComponents() {
+        Network network = createLcc();
+        Bus b1 = network.getBusBreakerView().getBus("b1");
+        Bus b3 = network.getBusBreakerView().getBus("b3");
+        Bus b4 = createBus(network, "test_s", "b4");
+        Bus b5 = createBus(network, "test_s", "b5");
+        Bus b6 = createBus(network, "b6");
+        createLine(network, b3, b4, "l34", 0.1f);
+        createLine(network, b5, b6, "l56", 0.1f);
+        TwoWindingsTransformer twt = createTransformer(network, "test_s", b4, b5, "l45", 0.1f, 1d);
+        twt.newPhaseTapChanger().setTapPosition(0)
+            .beginStep()
+            .setR(0)
+            .setX(0.1f)
+            .setG(0)
+            .setB(0)
+            .setRho(1)
+            .setAlpha(1)
+            .endStep()
+            .add();
+
+        createGenerator(b6, "g6", 1);
+
+        for (int i = 0; i < 10; i++) {
+            Bus b = createBus(network, "additionnalbus_" + i);
+            createLine(network, b1, b, "additionnalline_" + i, 0.1f);
+        }
+
+        return network;
+    }
 }
