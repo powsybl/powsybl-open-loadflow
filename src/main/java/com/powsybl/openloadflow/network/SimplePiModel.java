@@ -124,4 +124,20 @@ public class SimplePiModel implements PiModel {
     public void roundR1ToClosestTap() {
         throw new IllegalStateException("R1 rounding is not supported in simple Pi model implementation");
     }
+
+    private void rescaleZ(double z) {
+        double ksi = getKsi();
+        r = z * FastMath.cos(ksi);
+        x = z * FastMath.sin(ksi);
+    }
+
+    @Override
+    public boolean setMinZ(double minZ) {
+        double z = getZ();
+        if (z < minZ) {
+            rescaleZ(minZ);
+            return true;
+        }
+        return false;
+    }
 }

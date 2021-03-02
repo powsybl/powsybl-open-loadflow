@@ -47,4 +47,5 @@ public interface PiModel {
 
     void roundR1ToClosestTap();
 
+    boolean setMinZ(double minZ);
 }

@@ -388,9 +388,8 @@ public class LfNetwork {
         if (minImpedance) {
             for (LfBranch branch : network.getBranches()) {
                 PiModel piModel = branch.getPiModel();
-                if (Math.abs(piModel.getZ()) < LOW_IMPEDANCE_THRESHOLD) {
-                    piModel.setR(0);
-                    piModel.setX(LOW_IMPEDANCE_THRESHOLD);
+                if (piModel.setMinZ(LOW_IMPEDANCE_THRESHOLD)) {
+                    LOGGER.trace("Branch {} has a low impedance, set to min {}", branch.getId(), LOW_IMPEDANCE_THRESHOLD);
                 }
             }
         }
