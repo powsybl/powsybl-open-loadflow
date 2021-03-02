@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DanglingLine;
+import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.Objects;
 
@@ -19,8 +20,8 @@ public class LfDanglingLineBus extends AbstractLfBus {
 
     private final double nominalV;
 
-    public LfDanglingLineBus(DanglingLine danglingLine, LfNetworkLoadingReport report) {
-        super(Networks.getPropertyV(danglingLine), Networks.getPropertyAngle(danglingLine));
+    public LfDanglingLineBus(LfNetwork network, DanglingLine danglingLine, LfNetworkLoadingReport report) {
+        super(network, Networks.getPropertyV(danglingLine), Networks.getPropertyAngle(danglingLine));
         this.danglingLine = Objects.requireNonNull(danglingLine);
         nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
         loadTargetP += danglingLine.getP0();

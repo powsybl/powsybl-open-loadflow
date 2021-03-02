@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
+import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.Objects;
 
@@ -24,17 +25,17 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final double highVoltageLimit;
 
-    protected LfBusImpl(Bus bus, double v, double angle) {
-        super(v, angle);
+    protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle) {
+        super(network, v, angle);
         this.bus = bus;
         nominalV = bus.getVoltageLevel().getNominalV();
         lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
     }
 
-    public static LfBusImpl create(Bus bus) {
+    public static LfBusImpl create(Bus bus, LfNetwork network) {
         Objects.requireNonNull(bus);
-        return new LfBusImpl(bus, bus.getV(), bus.getAngle());
+        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle());
     }
 
     @Override

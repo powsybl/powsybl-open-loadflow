@@ -119,7 +119,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
-                                                   OpenLoadFlowParameters parametersExt, boolean breakers) {
+                                                          OpenLoadFlowParameters parametersExt, boolean breakers) {
+        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false);
+    }
+
+    public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
+                                                   OpenLoadFlowParameters parametersExt, boolean breakers, boolean forceA1Var) {
 
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
@@ -139,6 +144,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Transformer voltage control: {}", parameters.isTransformerVoltageControlOn());
         LOGGER.info("Load power factor constant: {}", parametersExt.isLoadPowerFactorConstant());
         LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
+        LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
 
         List<OuterLoop> outerLoops = new ArrayList<>();
         if (parameters.isDistributedSlack()) {
@@ -155,15 +161,19 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             outerLoops.add(new TransformerVoltageControlOuterLoop());
         }
 
-        return new AcLoadFlowParameters(slackBusSelector, voltageInitializer, stoppingCriteria,
-                outerLoops, matrixFactory,
-                parametersExt.hasVoltageRemoteControl(),
-                parameters.isPhaseShifterRegulationOn(),
-                parameters.isTransformerVoltageControlOn(),
-                parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
-                parameters.isTwtSplitShuntAdmittance(),
-                breakers,
-                parametersExt.getPlausibleActivePowerLimit());
+        return new AcLoadFlowParameters(slackBusSelector,
+                                        voltageInitializer,
+                                        stoppingCriteria,
+                                        outerLoops, matrixFactory,
+                                        parametersExt.hasVoltageRemoteControl(),
+                                        parameters.isPhaseShifterRegulationOn(),
+                                        parameters.isTransformerVoltageControlOn(),
+                                        parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
+                                        parameters.isTwtSplitShuntAdmittance(),
+                                        breakers,
+                                        parametersExt.getPlausibleActivePowerLimit(),
+                                        forceA1Var,
+                                        parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
     }
 
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
@@ -228,10 +238,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
         LOGGER.info("Balance type: {}", parameters.getBalanceType());
         LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
+        LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
 
-        DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector, matrixFactory, true,
-                parametersExt.isDcUseTransformerRatio(), parameters.isDistributedSlack(), parameters.getBalanceType(),
-                forcePhaseControlOffAndAddAngle1Var, parametersExt.getPlausibleActivePowerLimit());
+        DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector,
+                                                                     matrixFactory,
+                                                                     true,
+                                                                     parametersExt.isDcUseTransformerRatio(),
+                                                                     parameters.isDistributedSlack(),
+                                                                     parameters.getBalanceType(),
+                                                                     forcePhaseControlOffAndAddAngle1Var,
+                                                                     parametersExt.getPlausibleActivePowerLimit(),
+                                                                     parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
 
         DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters)
                 .run();

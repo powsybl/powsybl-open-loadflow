@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.util;
 
-import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 
@@ -40,16 +38,12 @@ public class BusState {
         this.generationTargetQ = b.getGenerationTargetQ();
     }
 
-    public void restoreBusState(LfBus bus, AcloadFlowEngine engine) {
+    public void restoreBusState(LfBus bus) {
         restoreDcBusState(bus);
         bus.setV(v);
         bus.setLoadTargetQ(loadTargetQ);
-        if (isVoltageController && !bus.isVoltageController()) { // b is now PQ bus.
-            ReactiveLimitsOuterLoop.switchPqPv(bus, engine.getEquationSystem(), engine.getVariableSet());
-        }
-        if (!isVoltageController && bus.isVoltageController()) { // b is now PV bus.
-            ReactiveLimitsOuterLoop.switchPvPq(bus, engine.getEquationSystem(), engine.getVariableSet(), generationTargetQ);
-        }
+        bus.setGenerationTargetQ(generationTargetQ);
+        bus.setVoltageControlEnabled(isVoltageController);
         bus.setVoltageControlSwitchOffCount(0);
     }
 
@@ -74,10 +68,9 @@ public class BusState {
     /**
      * Set the bus states based on the given map of states
      * @param busStates the map containing the bus states, indexed by buses
-     * @param engine AcLoadFlowEngine to operate the PqPv switching if the bus has lost its voltage control
      */
-    public static void restoreBusStates(Map<LfBus, BusState> busStates, AcloadFlowEngine engine) {
-        busStates.forEach((b, state) -> state.restoreBusState(b, engine));
+    public static void restoreBusStates(Map<LfBus, BusState> busStates) {
+        busStates.forEach((b, state) -> state.restoreBusState(b));
     }
 
     /**

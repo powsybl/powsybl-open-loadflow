@@ -15,9 +15,16 @@ public class AcEquationSystemCreationParameters {
 
     private final boolean transformerVoltageControl;
 
+    private final boolean forceA1Var;
+
     public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl) {
+        this(phaseControl, transformerVoltageControl, false);
+    }
+
+    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var) {
         this.phaseControl = phaseControl;
         this.transformerVoltageControl = transformerVoltageControl;
+        this.forceA1Var = forceA1Var;
     }
 
     public boolean isPhaseControl() {
@@ -26,5 +33,9 @@ public class AcEquationSystemCreationParameters {
 
     public boolean isTransformerVoltageControl() {
         return transformerVoltageControl;
+    }
+
+    public boolean isForceA1Var() {
+        return forceA1Var;
     }
 }

@@ -108,7 +108,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             if (lfParameters.isDc()) {
                 sensitivityValues = dcSensitivityAnalysis.analyse(network, factors, propagatedContingencies, lfParameters, lfParametersExt);
             } else {
-                sensitivityValues = acSensitivityAnalysis.analyse(network, factors, lfParameters, lfParametersExt);
+                sensitivityValues = acSensitivityAnalysis.analyse(network, factors, propagatedContingencies, lfParameters, lfParametersExt);
             }
 
             boolean ok = true;
