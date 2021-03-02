@@ -8,6 +8,8 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Objects;
@@ -19,6 +21,8 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class AcEquationSystemUpdater implements LfNetworkListener {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AcEquationSystemUpdater.class);
 
     private final EquationSystem equationSystem;
 
@@ -50,26 +54,26 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
     }
 
     @Override
-    public void onVoltageControlChange(LfBus bus, boolean newVoltageControl) {
-        if (newVoltageControl) { // switch PQ/PV
-            Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
+    public void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
+        if (newVoltageControllerEnabled) { // switch PQ/PV
+            Equation qEq = equationSystem.createEquation(controllerBus.getNum(), EquationType.BUS_Q);
             qEq.setActive(false);
 
-            Optional<VoltageControl> vc = bus.getVoltageControl();
-            if (vc.isPresent() && bus.isVoltageControllerEnabled()) {
+            Optional<VoltageControl> vc = controllerBus.getVoltageControl();
+            if (vc.isPresent() && controllerBus.isVoltageControllerEnabled()) {
                 updateControlledBus(vc.get(), equationSystem, variableSet);
             } else {
-                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).setActive(true);
+                equationSystem.createEquation(controllerBus.getNum(), EquationType.BUS_V).setActive(true);
             }
         } else { // switch PV/PQ
-            Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
+            Equation qEq = equationSystem.createEquation(controllerBus.getNum(), EquationType.BUS_Q);
             qEq.setActive(true);
 
-            Optional<VoltageControl> vc = bus.getVoltageControl();
-            if (vc.isPresent() && bus.hasVoltageControllerCapability()) {
+            Optional<VoltageControl> vc = controllerBus.getVoltageControl();
+            if (vc.isPresent() && controllerBus.hasVoltageControllerCapability()) {
                 updateControlledBus(vc.get(), equationSystem, variableSet);
             } else {
-                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).setActive(false);
+                equationSystem.createEquation(controllerBus.getNum(), EquationType.BUS_V).setActive(false);
             }
         }
     }
