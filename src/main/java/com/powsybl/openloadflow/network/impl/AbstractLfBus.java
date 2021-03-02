@@ -348,10 +348,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private double dispatchQ(List<LfGenerator> generatorsThatControlVoltage, boolean reactiveLimits, double qToDispatch) {
         double residueQ = 0;
+        double calculatedQ = qToDispatch / generatorsThatControlVoltage.size();
         Iterator<LfGenerator> itG = generatorsThatControlVoltage.iterator();
         while (itG.hasNext()) {
             LfGenerator generator = itG.next();
-            double calculatedQ = qToDispatch / generatorsThatControlVoltage.size();
             if (reactiveLimits && calculatedQ < generator.getMinQ()) {
                 generator.setCalculatedQ(generator.getCalculatedQ() + generator.getMinQ());
                 residueQ += calculatedQ - generator.getMinQ();
@@ -367,7 +367,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return residueQ;
     }
 
-    private void updateGeneratorsState(double generationQ, boolean reactiveLimits) {
+    void updateGeneratorsState(double generationQ, boolean reactiveLimits) {
         double qToDispatch = generationQ / PerUnit.SB;
         List<LfGenerator> generatorsThatControlVoltage = new LinkedList<>();
         for (LfGenerator generator : generators) {
