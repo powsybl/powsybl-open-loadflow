@@ -33,7 +33,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double calculatedQ = Double.NaN;
 
-    protected boolean voltageControlEnabled = false;
+    protected boolean voltageControllerEnabled = false;
 
     protected int voltageControlSwitchOffCount = 0;
 
@@ -118,17 +118,17 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public boolean isVoltageController() {
-        return voltageControl.map(vc -> vc.getControllerBuses().contains(this)).orElse(false) && voltageControlEnabled;
+    public boolean isVoltageControllerEnabled() {
+        return voltageControllerEnabled;
     }
 
     @Override
-    public void setVoltageControlEnabled(boolean voltageControlEnabled) {
-        if (this.voltageControlEnabled != voltageControlEnabled) {
-            if (this.voltageControlEnabled) {
+    public void setVoltageControllerEnabled(boolean voltageControlEnabled) {
+        if (this.voltageControllerEnabled != voltageControlEnabled) {
+            if (this.voltageControllerEnabled) {
                 voltageControlSwitchOffCount++;
             }
-            this.voltageControlEnabled = voltageControlEnabled;
+            this.voltageControllerEnabled = voltageControlEnabled;
             for (LfNetworkListener listener : network.getListeners()) {
                 listener.onVoltageControlChange(this, voltageControlEnabled);
             }
@@ -203,7 +203,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             discardGenerator = true;
         }
         if (generator.hasVoltageControl() && !discardGenerator) {
-            this.voltageControlEnabled = true;
+            this.voltageControllerEnabled = true;
         } else {
             if (!Double.isNaN(generator.getTargetQ())) {
                 generationTargetQ += generator.getTargetQ() * PerUnit.SB;
@@ -389,7 +389,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
         // update generator reactive power
-        updateGeneratorsState(voltageControlEnabled ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
+        updateGeneratorsState(voltageControllerEnabled ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
 
         // update load power
         double factorP = initialLoadTargetP != 0 ? loadTargetP / initialLoadTargetP : 1;

@@ -34,7 +34,7 @@ public class BusState {
         this.loadTargetQ = b.getLoadTargetQ();
         this.generatorsTargetP = b.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
         this.disabled = b.isDisabled();
-        this.isVoltageController = b.isVoltageController();
+        this.isVoltageController = b.isVoltageControllerEnabled();
         this.generationTargetQ = b.getGenerationTargetQ();
     }
 
@@ -43,7 +43,7 @@ public class BusState {
         bus.setV(v);
         bus.setLoadTargetQ(loadTargetQ);
         bus.setGenerationTargetQ(generationTargetQ);
-        bus.setVoltageControlEnabled(isVoltageController);
+        bus.setVoltageControllerEnabled(isVoltageController);
         bus.setVoltageControlSwitchOffCount(0);
     }
 

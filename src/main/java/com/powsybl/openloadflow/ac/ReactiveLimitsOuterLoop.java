@@ -91,7 +91,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             for (PvToPqBus pvToPqBus : pvToPqBuses) {
                 // switch PV -> PQ
                 pvToPqBus.bus.setGenerationTargetQ(pvToPqBus.qLimit);
-                pvToPqBus.bus.setVoltageControlEnabled(false);
+                pvToPqBus.bus.setVoltageControllerEnabled(false);
 
                 if (LOGGER.isTraceEnabled()) {
                     if (pvToPqBus.limitDirection == ReactiveLimitDirection.MAX) {
@@ -132,7 +132,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
                 LOGGER.trace("Bus '{}' blocked PQ as it has reach its max number of PQ -> PV switch ({})",
                         bus.getId(), bus.getVoltageControlSwitchOffCount());
             } else {
-                bus.setVoltageControlEnabled(true);
+                bus.setVoltageControllerEnabled(true);
                 bus.setGenerationTargetQ(0);
                 pqPvSwitchCount++;
 
@@ -199,7 +199,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         MutableInt remainingPvBusCount = new MutableInt();
         for (LfBus bus : context.getNetwork().getBuses()) {
-            if (bus.isVoltageController()) {
+            if (bus.isVoltageControllerEnabled()) {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
             } else if (bus.hasVoltageControllerCapability()) {
                 checkPqBus(bus, pqToPvBuses);

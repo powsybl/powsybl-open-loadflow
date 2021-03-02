@@ -185,7 +185,7 @@ public class LfNetwork {
             jsonGenerator.writeNumberField("loadTargetQ", bus.getLoadTargetQ());
         }
         bus.getVoltageControl().ifPresent(vc -> {
-            if (bus.isVoltageController()) {
+            if (bus.isVoltageControllerEnabled()) {
                 try {
                     if (vc.getControlledBus() != bus) {
                         jsonGenerator.writeNumberField("remoteControlTargetBus", vc.getControlledBus().getNum());
@@ -337,7 +337,7 @@ public class LfNetwork {
     }
 
     private void logSize() {
-        long controllerBusCount = busesById.values().stream().filter(LfBus::isVoltageController).count();
+        long controllerBusCount = busesById.values().stream().filter(LfBus::isVoltageControllerEnabled).count();
         long controlledBusCount = busesById.values().stream().filter(LfBus::isVoltageControlled).count();
         LOGGER.info("Network {} has {} buses (voltage remote control: {} controllers, {} controlled) and {} branches",
                 num, busesById.values().size(), controlledBusCount, controllerBusCount, branches.size());
@@ -403,7 +403,7 @@ public class LfNetwork {
                 if (bus1 != null && bus2 != null) {
                     Optional<VoltageControl> vc1 = bus1.getVoltageControl();
                     Optional<VoltageControl> vc2 = bus2.getVoltageControl();
-                    if (vc1.isPresent() && vc2.isPresent() && bus1.isVoltageController() && bus2.isVoltageController()
+                    if (vc1.isPresent() && vc2.isPresent() && bus1.isVoltageControllerEnabled() && bus2.isVoltageControllerEnabled()
                         && FastMath.abs((vc1.get().getTargetValue() / vc2.get().getTargetValue()) - piModel.getR1() / PiModel.R2) > TARGET_VOLTAGE_EPSILON) {
                         throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
                             + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "

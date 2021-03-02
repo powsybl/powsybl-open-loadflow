@@ -49,13 +49,13 @@ public final class AcEquationSystem {
     }
 
     private static void createVoltageControlEquations(VoltageControl voltageControl, LfBus bus, VariableSet variableSet, EquationSystem equationSystem) {
-        boolean hasLocalControl = bus.isVoltageController() && voltageControl.isVoltageControlLocal();
+        boolean hasLocalControl = bus.isVoltageControllerEnabled() && voltageControl.isVoltageControlLocal();
         boolean hasLocalControlOnly = hasLocalControl && voltageControl.getControllerBuses().size() == 1;
         if (hasLocalControlOnly) {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
         }
 
-        if (bus.isVoltageController()) {
+        if (bus.isVoltageControllerEnabled()) {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
         }
 
@@ -82,7 +82,7 @@ public final class AcEquationSystem {
                 .addTerm(new BusVoltageEquationTerm(controlledBus, variableSet));
 
         List<LfBus> controllerBuses = voltageControl.getControllerBuses().stream()
-                .filter(LfBus::isVoltageController)
+                .filter(LfBus::isVoltageControllerEnabled)
                 .collect(Collectors.toList());
         if (controllerBuses.isEmpty()) {
             vEq.setActive(false);
@@ -325,7 +325,7 @@ public final class AcEquationSystem {
         if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
             List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(zeroImpedanceSubGraph).connectedSets();
             for (Set<LfBus> connectedSet : connectedSets) {
-                if (connectedSet.size() > 2 && connectedSet.stream().filter(LfBus::isVoltageController).count() > 1) {
+                if (connectedSet.size() > 2 && connectedSet.stream().filter(LfBus::isVoltageControllerEnabled).count() > 1) {
                     String problBuses = connectedSet.stream().map(LfBus::getId).collect(Collectors.joining(", "));
                     throw new PowsyblException(
                         "Zero impedance branches that connect at least two buses with voltage control (buses: " + problBuses + ")");

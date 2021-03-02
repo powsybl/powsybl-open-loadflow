@@ -39,7 +39,7 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
 
         // controlled bus has a voltage equation only if one of the controller bus has voltage control on
         List<LfBus> controllerBusesWithVoltageControlOn = controllerBuses.stream()
-            .filter(LfBus::isVoltageController)
+            .filter(LfBus::isVoltageControllerEnabled)
             .collect(Collectors.toList());
         equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
 
@@ -56,7 +56,7 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
             qEq.setActive(false);
 
             Optional<VoltageControl> vc = bus.getVoltageControl();
-            if (vc.isPresent() && bus.isVoltageController()) {
+            if (vc.isPresent() && bus.isVoltageControllerEnabled()) {
                 updateControlledBus(vc.get(), equationSystem, variableSet);
             } else {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).setActive(true);

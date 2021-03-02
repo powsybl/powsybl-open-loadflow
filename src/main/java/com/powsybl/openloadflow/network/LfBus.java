@@ -32,7 +32,7 @@ public interface LfBus {
 
     boolean hasVoltageControllerCapability();
 
-    boolean isVoltageController();
+    boolean isVoltageControllerEnabled();
 
     boolean isVoltageControlled();
 
@@ -45,7 +45,7 @@ public interface LfBus {
 
     void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount);
 
-    void setVoltageControlEnabled(boolean voltageControl);
+    void setVoltageControllerEnabled(boolean voltageControl);
 
     Optional<VoltageControl> getVoltageControl();
 

@@ -78,7 +78,7 @@ public class AcloadFlowEngine implements AutoCloseable {
     private void updatePvBusesReactivePower(NewtonRaphsonResult lastNrResult, LfNetwork network, EquationSystem equationSystem) {
         if (lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
             for (LfBus bus : network.getBuses()) {
-                if (bus.isVoltageController()) {
+                if (bus.isVoltageControllerEnabled()) {
                     Equation q = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
                     bus.setCalculatedQ(q.eval());
                 } else {
