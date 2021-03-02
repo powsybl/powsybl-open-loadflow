@@ -6,14 +6,12 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.MinMaxReactiveLimits;
 import com.powsybl.iidm.network.ReactiveCapabilityCurve;
 import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.PerUnit;
-import com.powsybl.openloadflow.network.PlausibleValues;
+import com.powsybl.openloadflow.network.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -22,6 +20,8 @@ import java.util.OptionalDouble;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public abstract class AbstractLfGenerator implements LfGenerator {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfGenerator.class);
 
     protected double targetP;
 
@@ -59,11 +59,13 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     }
 
     protected void setTargetV(double targetV) {
+        double newTargetV = targetV;
         // check that targetV has a plausible value (wrong nominal voltage issue)
         if (targetV < PlausibleValues.MIN_TARGET_VOLTAGE_PU || targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
-            throw new PowsyblException(getClass().getSimpleName() + " '" + getId() + "' has an inconsistent target voltage: " + targetV + " pu");
+            LOGGER.warn("Generator " + getId() + "' has an inconsistent target voltage: " + targetV + " pu");
+            newTargetV = (targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) ? PlausibleValues.MAX_TARGET_VOLTAGE_PU : PlausibleValues.MAX_TARGET_VOLTAGE_PU;
         }
-        this.targetV = targetV;
+        this.targetV = newTargetV;
     }
 
     @Override

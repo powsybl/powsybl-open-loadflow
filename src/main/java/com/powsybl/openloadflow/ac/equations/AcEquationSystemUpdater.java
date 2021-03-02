@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.network.*;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -54,18 +55,22 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
             Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
             qEq.setActive(false);
 
-            bus.getVoltageControl().ifPresentOrElse(
-                vc -> updateControlledBus(vc, equationSystem, variableSet),
-                () -> equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).setActive(true)
-            );
+            Optional<VoltageControl> vc = bus.getVoltageControl();
+            if (vc.isPresent() && bus.isVoltageController()) {
+                updateControlledBus(vc.get(), equationSystem, variableSet);
+            } else {
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).setActive(true);
+            }
         } else { // switch PV/PQ
             Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
             qEq.setActive(true);
 
-            bus.getVoltageControl().ifPresentOrElse(
-                vc -> updateControlledBus(vc, equationSystem, variableSet),
-                () -> equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).setActive(false)
-            );
+            Optional<VoltageControl> vc = bus.getVoltageControl();
+            if (vc.isPresent() && bus.hasVoltageControllerCapability()) {
+                updateControlledBus(vc.get(), equationSystem, variableSet);
+            } else {
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).setActive(false);
+            }
         }
     }
 

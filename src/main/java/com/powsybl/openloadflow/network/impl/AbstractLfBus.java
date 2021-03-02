@@ -99,7 +99,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean hasVoltageControllerCapability() {
-        return getVoltageControl().isPresent();
+        return voltageControl.map(vc -> vc.getControllerBuses().contains(this)).orElse(false);
     }
 
     @Override

@@ -98,16 +98,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         double deltaTargetV = FastMath.abs(voltageControlTargetV - controllerTargetV);
         LfBus controlledBus = vc.getControlledBus();
         if (deltaTargetV * controlledBus.getNominalV() > TARGET_V_EPSILON) {
-            if (controlledBus.isVoltageController()) { // controlled bus has also local voltage control
-                throw new PowsyblException("Bus '" + controlledBus.getId()
-                    + "' controlled by bus '" + controllerBus.getId() + "' has also a local voltage control with a different value: "
-                    + voltageControlTargetV * controlledBus.getNominalV() + " and " + controllerTargetV * controlledBus.getNominalV());
-            } else {
-                String busesId = vc.getControllerBuses().stream().map(LfBus::getId).collect(Collectors.joining(", "));
-                LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by buses '{}' with a different target voltage: {} (kept) and {} (ignored)",
+            String busesId = vc.getControllerBuses().stream().map(LfBus::getId).collect(Collectors.joining(", "));
+            LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by buses '{}' with a different target voltage: {} (kept) and {} (ignored)",
                     controllerBus.getId(), controlledBus.getId(), busesId,
                     voltageControlTargetV * controlledBus.getNominalV(), controllerTargetV * controlledBus.getNominalV());
-            }
         }
     }
 
