@@ -22,7 +22,7 @@ import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_POWER;
 /**
  * @author Fabien Rigaux (https://github.com/frigaux)
  */
-public class LfBusImplTest {
+class LfBusImplTest {
     private Network network;
     private LfNetwork lfNetwork;
     private Bus bus1;
