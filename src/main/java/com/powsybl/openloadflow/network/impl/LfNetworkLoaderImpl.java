@@ -60,7 +60,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             double controllerTargetV = Double.NaN;
 
             for (LfGenerator lfGenerator : controllerBus.getGenerators()) {
-                if (lfGenerator.hasVoltageControl() && controllerBus.isVoltageControllerEnabled()) {
+                if (lfGenerator.hasVoltageControl()) {
                     LfBus generatorControlledBus = lfNetwork.getBusById(lfGenerator.getControlledBusId(breakers));
 
                     // check that remote control bus is the same for the generators of current controller bus which have voltage control on

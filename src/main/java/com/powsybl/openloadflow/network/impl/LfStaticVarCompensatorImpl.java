@@ -23,7 +23,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     double nominalV;
 
-    private LfStaticVarCompensatorImpl(StaticVarCompensator svc, AbstractLfBus bus) {
+    private LfStaticVarCompensatorImpl(StaticVarCompensator svc, AbstractLfBus bus, LfNetworkLoadingReport report) {
         super(0);
         this.svc = svc;
         this.nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
@@ -56,25 +56,21 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
                 return getMaxQ();
             }
         };
-        if (hasVoltageControl()) {
-            // compute targetV in per-unit system
+
+        if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE && checkVoltageControlConsistency(report)) {
             setTargetV(svc.getVoltageSetpoint() / svc.getRegulatingTerminal().getVoltageLevel().getNominalV());
+            this.hasVoltageControl = true;
         }
     }
 
-    public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, AbstractLfBus bus) {
+    public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, AbstractLfBus bus, LfNetworkLoadingReport report) {
         Objects.requireNonNull(svc);
-        return new LfStaticVarCompensatorImpl(svc, bus);
+        return new LfStaticVarCompensatorImpl(svc, bus, report);
     }
 
     @Override
     public String getId() {
         return svc.getId();
-    }
-
-    @Override
-    public boolean hasVoltageControl() {
-        return svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE;
     }
 
     @Override

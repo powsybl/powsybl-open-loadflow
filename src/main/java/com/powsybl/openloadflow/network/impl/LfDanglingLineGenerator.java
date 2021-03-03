@@ -22,7 +22,7 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     private final String controlledLfBusId;
 
-    public LfDanglingLineGenerator(DanglingLine danglingLine, String controlledLfBusId) {
+    public LfDanglingLineGenerator(DanglingLine danglingLine, String controlledLfBusId, LfNetworkLoadingReport report) {
         super(danglingLine.getGeneration().getTargetP());
         this.danglingLine = danglingLine;
 
@@ -30,21 +30,16 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
         // hence the id of the controlled LfBus needs to be remembered
         this.controlledLfBusId = controlledLfBusId;
 
-        if (hasVoltageControl()) {
-            // compute targetV in per-unit system
+        if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(report)) {
             // local control only
             setTargetV(danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV());
+            this.hasVoltageControl = true;
         }
     }
 
     @Override
     public String getId() {
         return danglingLine.getId() + "_GEN";
-    }
-
-    @Override
-    public boolean hasVoltageControl() {
-        return danglingLine.getGeneration().isVoltageRegulationOn();
     }
 
     @Override

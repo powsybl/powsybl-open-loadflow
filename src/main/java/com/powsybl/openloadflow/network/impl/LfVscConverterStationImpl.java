@@ -19,20 +19,20 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
 
     private final VscConverterStation station;
 
-    private LfVscConverterStationImpl(VscConverterStation station) {
+    private LfVscConverterStationImpl(VscConverterStation station, LfNetworkLoadingReport report) {
         super(getHvdcLineTargetP(station));
         this.station = station;
 
-        if (hasVoltageControl()) {
-            // compute targetV in per-unit system
+        if (station.isVoltageRegulatorOn() && checkVoltageControlConsistency(report)) {
             // local control only
             setTargetV(station.getVoltageSetpoint() / station.getTerminal().getVoltageLevel().getNominalV());
+            this.hasVoltageControl = true;
         }
     }
 
-    public static LfVscConverterStationImpl create(VscConverterStation station) {
+    public static LfVscConverterStationImpl create(VscConverterStation station, LfNetworkLoadingReport report) {
         Objects.requireNonNull(station);
-        return new LfVscConverterStationImpl(station);
+        return new LfVscConverterStationImpl(station, report);
     }
 
     private static double getHvdcLineTargetP(VscConverterStation vscCs) {
@@ -49,11 +49,6 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     @Override
     public String getId() {
         return station.getId();
-    }
-
-    @Override
-    public boolean hasVoltageControl() {
-        return station.isVoltageRegulatorOn();
     }
 
     @Override

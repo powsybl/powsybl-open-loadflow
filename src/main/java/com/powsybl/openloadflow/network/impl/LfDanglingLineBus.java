@@ -28,7 +28,7 @@ public class LfDanglingLineBus extends AbstractLfBus {
         loadTargetQ += danglingLine.getQ0();
         DanglingLine.Generation generation = danglingLine.getGeneration();
         if (generation != null) {
-            add(new LfDanglingLineGenerator(danglingLine, getId()), report);
+            add(new LfDanglingLineGenerator(danglingLine, getId(), report));
         }
     }
 

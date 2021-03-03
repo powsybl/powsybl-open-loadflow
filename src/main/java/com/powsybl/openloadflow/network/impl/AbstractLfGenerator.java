@@ -23,6 +23,8 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfGenerator.class);
 
+    private static final double POWER_EPSILON_SI = 1e-4;
+
     protected double targetP;
 
     protected LfBus bus;
@@ -30,6 +32,8 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     protected double calculatedQ = Double.NaN;
 
     private double targetV = Double.NaN;
+
+    protected boolean hasVoltageControl = false;
 
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
@@ -66,6 +70,27 @@ public abstract class AbstractLfGenerator implements LfGenerator {
             newTargetV = (targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) ? PlausibleValues.MAX_TARGET_VOLTAGE_PU : PlausibleValues.MIN_TARGET_VOLTAGE_PU;
         }
         this.targetV = newTargetV;
+    }
+
+    protected boolean checkVoltageControlConsistency(LfNetworkLoadingReport report) {
+        boolean consistency = true;
+        double maxRangeQ = getMaxRangeQ();
+        if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
+            LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small", getId(), maxRangeQ);
+            report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
+            consistency = false;
+        }
+        if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
+            LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());
+            report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
+            consistency = false;
+        }
+        return consistency;
+    }
+
+    @Override
+    public boolean hasVoltageControl() {
+        return hasVoltageControl;
     }
 
     @Override

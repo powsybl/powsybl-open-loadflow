@@ -22,7 +22,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBus.class);
 
-    private static final double POWER_EPSILON_SI = 1e-4;
     private static final double Q_DISPATCH_EPSILON = 1e-3;
 
     protected boolean slack = false;
@@ -185,24 +184,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         loadTargetQ += q;
     }
 
-    protected void add(LfGenerator generator, LfNetworkLoadingReport report) {
+    protected void add(LfGenerator generator) {
         generators.add(generator);
         generator.setBus(this);
-        double maxRangeQ = generator.getMaxRangeQ();
-        boolean discardGenerator = false;
-        if (generator.hasVoltageControl() && maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
-            LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small",
-                    generator.getId(), maxRangeQ);
-            report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
-            discardGenerator = true;
-        }
-        if (generator.hasVoltageControl() && Math.abs(generator.getTargetP()) < POWER_EPSILON_SI && generator.getMinP() > POWER_EPSILON_SI) {
-            LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)",
-                    generator.getId(), generator.getTargetP(), generator.getMinP());
-            report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
-            discardGenerator = true;
-        }
-        if (generator.hasVoltageControl() && !discardGenerator) {
+        if (generator.hasVoltageControl()) {
             this.voltageControllerEnabled = true;
         } else {
             if (!Double.isNaN(generator.getTargetQ())) {
@@ -212,17 +197,17 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addGenerator(Generator generator, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
-        add(LfGeneratorImpl.create(generator, report, plausibleActivePowerLimit), report);
+        add(LfGeneratorImpl.create(generator, report, plausibleActivePowerLimit));
     }
 
     void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, LfNetworkLoadingReport report) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
-            add(LfStaticVarCompensatorImpl.create(staticVarCompensator, this), report);
+            add(LfStaticVarCompensatorImpl.create(staticVarCompensator, this, report));
         }
     }
 
     void addVscConverterStation(VscConverterStation vscCs, LfNetworkLoadingReport report) {
-        add(LfVscConverterStationImpl.create(vscCs), report);
+        add(LfVscConverterStationImpl.create(vscCs, report));
     }
 
     void addShuntCompensator(ShuntCompensator sc) {
