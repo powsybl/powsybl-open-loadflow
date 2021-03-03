@@ -19,20 +19,19 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
 
     private final VscConverterStation station;
 
-    private LfVscConverterStationImpl(VscConverterStation station, LfNetworkLoadingReport report) {
+    private LfVscConverterStationImpl(VscConverterStation station, boolean breakers, LfNetworkLoadingReport report) {
         super(getHvdcLineTargetP(station));
         this.station = station;
 
-        if (station.isVoltageRegulatorOn() && checkVoltageControlConsistency(report)) {
-            // local control only
-            setTargetV(station.getVoltageSetpoint() / station.getTerminal().getVoltageLevel().getNominalV());
-            this.hasVoltageControl = true;
+        // local control only
+        if (station.isVoltageRegulatorOn()) {
+            setVoltageControl(station.getVoltageSetpoint(), station.getTerminal(), breakers, report);
         }
     }
 
-    public static LfVscConverterStationImpl create(VscConverterStation station, LfNetworkLoadingReport report) {
+    public static LfVscConverterStationImpl create(VscConverterStation station, boolean breakers, LfNetworkLoadingReport report) {
         Objects.requireNonNull(station);
-        return new LfVscConverterStationImpl(station, report);
+        return new LfVscConverterStationImpl(station, breakers, report);
     }
 
     private static double getHvdcLineTargetP(VscConverterStation vscCs) {
@@ -79,11 +78,6 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
         return Optional.of(station.getReactiveLimits());
-    }
-
-    @Override
-    protected Terminal getRegulatingTerminal() {
-        return station.getTerminal();
     }
 
     @Override

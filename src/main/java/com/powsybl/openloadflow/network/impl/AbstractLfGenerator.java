@@ -33,6 +33,8 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     protected boolean hasVoltageControl = false;
 
+    protected String controlledBusId;
+
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
     }
@@ -58,32 +60,6 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public double getTargetV() {
         return targetV;
-    }
-
-    protected void setTargetV(double targetV) {
-        double newTargetV = targetV;
-        // check that targetV has a plausible value (wrong nominal voltage issue)
-        if (targetV < PlausibleValues.MIN_TARGET_VOLTAGE_PU || targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
-            LOGGER.warn("Generator '{}' has an inconsistent target voltage: {} pu", getId(), targetV);
-            newTargetV = (targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) ? PlausibleValues.MAX_TARGET_VOLTAGE_PU : PlausibleValues.MIN_TARGET_VOLTAGE_PU;
-        }
-        this.targetV = newTargetV;
-    }
-
-    protected boolean checkVoltageControlConsistency(LfNetworkLoadingReport report) {
-        boolean consistency = true;
-        double maxRangeQ = getMaxRangeQ();
-        if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
-            LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small", getId(), maxRangeQ);
-            report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
-            consistency = false;
-        }
-        if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
-            LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());
-            report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
-            consistency = false;
-        }
-        return consistency;
     }
 
     @Override
@@ -154,13 +130,48 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     }
 
     @Override
-    public LfBus getControlledBus(LfNetwork lfNetwork, boolean breakers) {
-        Terminal regulatingTerminal = getRegulatingTerminal();
-        Bus controlled = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
-        String controlledBusId = controlled != null ? controlled.getId() : null;
-        return controlledBusId != null ? lfNetwork.getBusById(controlledBusId) : null;
+    public LfBus getControlledBus(LfNetwork lfNetwork) {
+        return lfNetwork.getBusById(controlledBusId);
     }
 
-    protected abstract Terminal getRegulatingTerminal();
+    protected void setVoltageControl(double targetV, Terminal regulatingTerminal, boolean breakers, LfNetworkLoadingReport report) {
+        if (!checkVoltageControlConsistency(report)) {
+            return;
+        }
+        Bus controlledBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
+        if (controlledBus == null) {
+            LOGGER.warn("Regulating terminal of LfGenerator {} is out of voltage: voltage control discarded", getId());
+            return;
+        }
+        this.controlledBusId = controlledBus.getId();
+        setTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV());
+        this.hasVoltageControl = true;
+    }
+
+    protected boolean checkVoltageControlConsistency(LfNetworkLoadingReport report) {
+        boolean consistency = true;
+        double maxRangeQ = getMaxRangeQ();
+        if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
+            LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small", getId(), maxRangeQ);
+            report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
+            consistency = false;
+        }
+        if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
+            LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());
+            report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
+            consistency = false;
+        }
+        return consistency;
+    }
+
+    protected void setTargetV(double targetV) {
+        double newTargetV = targetV;
+        // check that targetV has a plausible value (wrong nominal voltage issue)
+        if (targetV < PlausibleValues.MIN_TARGET_VOLTAGE_PU || targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
+            LOGGER.warn("Generator '{}' has an inconsistent target voltage: {} pu", getId(), targetV);
+            newTargetV = (targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) ? PlausibleValues.MAX_TARGET_VOLTAGE_PU : PlausibleValues.MIN_TARGET_VOLTAGE_PU;
+        }
+        this.targetV = newTargetV;
+    }
 
 }

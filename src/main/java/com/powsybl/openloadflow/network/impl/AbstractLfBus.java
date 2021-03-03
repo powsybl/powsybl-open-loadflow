@@ -199,18 +199,18 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    void addGenerator(Generator generator, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
-        add(LfGeneratorImpl.create(generator, report, plausibleActivePowerLimit));
+    void addGenerator(Generator generator, boolean breakers, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
+        add(LfGeneratorImpl.create(generator, breakers, report, plausibleActivePowerLimit));
     }
 
-    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, LfNetworkLoadingReport report) {
+    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean breakers, LfNetworkLoadingReport report) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
-            add(LfStaticVarCompensatorImpl.create(staticVarCompensator, this, report));
+            add(LfStaticVarCompensatorImpl.create(staticVarCompensator, this, breakers, report));
         }
     }
 
-    void addVscConverterStation(VscConverterStation vscCs, LfNetworkLoadingReport report) {
-        add(LfVscConverterStationImpl.create(vscCs, report));
+    void addVscConverterStation(VscConverterStation vscCs, boolean breakers, LfNetworkLoadingReport report) {
+        add(LfVscConverterStationImpl.create(vscCs, breakers, report));
     }
 
     void addShuntCompensator(ShuntCompensator sc) {

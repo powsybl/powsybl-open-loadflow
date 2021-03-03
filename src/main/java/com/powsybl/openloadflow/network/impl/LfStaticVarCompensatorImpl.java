@@ -23,7 +23,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     double nominalV;
 
-    private LfStaticVarCompensatorImpl(StaticVarCompensator svc, AbstractLfBus bus, LfNetworkLoadingReport report) {
+    private LfStaticVarCompensatorImpl(StaticVarCompensator svc, AbstractLfBus bus, boolean breakers, LfNetworkLoadingReport report) {
         super(0);
         this.svc = svc;
         this.nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
@@ -57,15 +57,14 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
             }
         };
 
-        if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE && checkVoltageControlConsistency(report)) {
-            setTargetV(svc.getVoltageSetpoint() / svc.getRegulatingTerminal().getVoltageLevel().getNominalV());
-            this.hasVoltageControl = true;
+        if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
+            setVoltageControl(svc.getVoltageSetpoint(), svc.getRegulatingTerminal(), breakers, report);
         }
     }
 
-    public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, AbstractLfBus bus, LfNetworkLoadingReport report) {
+    public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, AbstractLfBus bus, boolean breakers, LfNetworkLoadingReport report) {
         Objects.requireNonNull(svc);
-        return new LfStaticVarCompensatorImpl(svc, bus, report);
+        return new LfStaticVarCompensatorImpl(svc, bus, breakers, report);
     }
 
     @Override
@@ -101,11 +100,6 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
         return Optional.of(reactiveLimits);
-    }
-
-    @Override
-    protected Terminal getRegulatingTerminal() {
-        return svc.getRegulatingTerminal();
     }
 
     @Override

@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.iidm.network.Terminal;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.openloadflow.network.PerUnit;
@@ -36,7 +35,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double participationFactor;
 
-    private LfGeneratorImpl(Generator generator, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
+    private LfGeneratorImpl(Generator generator, boolean breakers, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
         super(generator.getTargetP());
         this.generator = generator;
         participating = true;
@@ -75,16 +74,15 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             participating = false;
         }
 
-        if (generator.isVoltageRegulatorOn() && checkVoltageControlConsistency(report)) {
-            setTargetV(generator.getTargetV() / generator.getRegulatingTerminal().getVoltageLevel().getNominalV());
-            this.hasVoltageControl = true;
+        if (generator.isVoltageRegulatorOn()) {
+            setVoltageControl(generator.getTargetV(), generator.getRegulatingTerminal(), breakers, report);
         }
     }
 
-    public static LfGeneratorImpl create(Generator generator, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
+    public static LfGeneratorImpl create(Generator generator, boolean breakers, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
         Objects.requireNonNull(generator);
         Objects.requireNonNull(report);
-        return new LfGeneratorImpl(generator, report, plausibleActivePowerLimit);
+        return new LfGeneratorImpl(generator, breakers, report, plausibleActivePowerLimit);
     }
 
     @Override
@@ -129,11 +127,6 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     @Override
     public double getParticipationFactor() {
         return participationFactor;
-    }
-
-    @Override
-    protected Terminal getRegulatingTerminal() {
-        return generator.getRegulatingTerminal();
     }
 
     @Override

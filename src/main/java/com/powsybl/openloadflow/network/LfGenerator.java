@@ -51,5 +51,5 @@ public interface LfGenerator {
 
     void updateState();
 
-    LfBus getControlledBus(LfNetwork lfNetwork, boolean breakers);
+    LfBus getControlledBus(LfNetwork lfNetwork);
 }

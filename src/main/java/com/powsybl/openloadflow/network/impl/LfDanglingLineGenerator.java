@@ -8,9 +8,6 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.iidm.network.Terminal;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PerUnit;
 
 import java.util.Objects;
@@ -24,18 +21,14 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     private final DanglingLine danglingLine;
 
-    private final String controlledLfBusId;
-
     public LfDanglingLineGenerator(DanglingLine danglingLine, String controlledLfBusId, LfNetworkLoadingReport report) {
         super(danglingLine.getGeneration().getTargetP());
         this.danglingLine = danglingLine;
 
-        // The controlled bus cannot be reached from the DanglingLine parameters (there is no terminal in DanglingLine.Generation)
-        // hence the id of the controlled LfBus needs to be remembered
-        this.controlledLfBusId = Objects.requireNonNull(controlledLfBusId);
-
+        // local control only
         if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(report)) {
-            // local control only
+            // The controlled bus cannot be reached from the DanglingLine parameters (there is no terminal in DanglingLine.Generation)
+            this.controlledBusId = Objects.requireNonNull(controlledLfBusId);
             setTargetV(danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV());
             this.hasVoltageControl = true;
         }
@@ -79,16 +72,6 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
         return Optional.ofNullable(danglingLine.getGeneration().getReactiveLimits());
-    }
-
-    @Override
-    protected Terminal getRegulatingTerminal() {
-        return null; // No terminal for dangling line generators
-    }
-
-    @Override
-    public LfBus getControlledBus(LfNetwork lfNetwork, boolean breakers) {
-        return lfNetwork.getBusById(controlledLfBusId);
     }
 
     @Override
