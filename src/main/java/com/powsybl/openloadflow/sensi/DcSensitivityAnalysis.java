@@ -124,7 +124,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     protected DenseMatrix setReferenceActivePowerFlows(DcLoadFlowEngine dcLoadFlowEngine, EquationSystem equationSystem, JacobianMatrix j,
             List<LfSensitivityFactor<ClosedBranchSide1DcFlowEquationTerm>> factors, LoadFlowParameters lfParameters,
-            List<ParticipatingElement> participatingElements, Collection<LfBus> removedBuses) {
+            List<ParticipatingElement> participatingElements, Collection<LfBus> removedBuses, Collection<LfBranch> removedBranches) {
 
         Map<LfBus, BusState> busStates = new HashMap<>();
         if (lfParameters.isDistributedSlack()) {
@@ -133,7 +133,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 .collect(Collectors.toSet()));
         }
 
-        dcLoadFlowEngine.run(equationSystem, j, removedBuses);
+        dcLoadFlowEngine.run(equationSystem, j, removedBuses, removedBranches);
 
         for (LfSensitivityFactor factor : factors) {
             factor.setFunctionReference(factor.getFunctionLfBranch().getP1());
@@ -340,6 +340,41 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return elementsToReconnect;
     }
 
+    static class ContingenciesTransformerIndexing {
+        private Collection<PropagatedContingency> contingenciesWithoutTransformers;
+        private Map<Set<LfBranch>, Collection<PropagatedContingency>> contingenciesIndexedByTransformers;
+
+        public ContingenciesTransformerIndexing(Collection<PropagatedContingency> contingencies, Map<String, ComputedContingencyElement> contingenciesElements) {
+            this(contingencies, contingenciesElements, Collections.emptySet());
+        }
+
+        public ContingenciesTransformerIndexing(Collection<PropagatedContingency> contingencies, Map<String, ComputedContingencyElement> contingenciesElements, Collection<String> elementIdsToSkip) {
+            contingenciesIndexedByTransformers = new HashMap<>();
+            contingenciesWithoutTransformers = new ArrayList<>();
+            for (PropagatedContingency contingency : contingencies) {
+                Set<LfBranch> lostTransformers = contingency.getBranchIdsToOpen().stream()
+                    .filter(element -> !elementIdsToSkip.contains(element))
+                    .map(contingenciesElements::get)
+                    .map(ComputedContingencyElement::getLfBranch)
+                    .filter(LfBranch::hasPhaseControlCapability)
+                    .collect(Collectors.toSet());
+                if (lostTransformers.isEmpty()) {
+                    contingenciesWithoutTransformers.add(contingency);
+                } else {
+                    contingenciesIndexedByTransformers.computeIfAbsent(lostTransformers, key -> new ArrayList<>()).add(contingency);
+                }
+            }
+        }
+
+        public Collection<PropagatedContingency> getContingenciesWithoutTransformers() {
+            return contingenciesWithoutTransformers;
+        }
+
+        public Map<Set<LfBranch>, Collection<PropagatedContingency>> getContingenciesIndexedByTransformers() {
+            return contingenciesIndexedByTransformers;
+        }
+    }
+
     public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors,
                                                                                      List<PropagatedContingency> contingencies, LoadFlowParameters lfParameters,
                                                                                      OpenLoadFlowParameters lfParametersExt) {
@@ -411,7 +446,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         try (JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer)) {
 
             // run DC load on pre-contingency network
-            DenseMatrix flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElements, Collections.emptyList());
+            DenseMatrix flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElements, Collections.emptyList(), Collections.emptyList());
 
             // compute the pre-contingency sensitivity values + the states with +1 -1 to model the contingencies
             DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorGroups); // this is the rhs for the moment
@@ -434,12 +469,23 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             detectConnectivityLoss(lfNetwork, contingenciesStates, contingencies, contingenciesElements, equationSystem,
                     nonLosingConnectivityContingencies, contingenciesByGroupOfElementsBreakingConnectivity);
+            ContingenciesTransformerIndexing contingenciesTransformerIndexing = new ContingenciesTransformerIndexing(nonLosingConnectivityContingencies, contingenciesElements);
 
             Map<String, List<SensitivityValue>> contingenciesValue = new HashMap<>();
             // compute the contingencies without loss of connectivity
-            for (PropagatedContingency contingency : nonLosingConnectivityContingencies) {
+            // first we compute the one without loss of transformer (because we reuse the same loadflow for all of them)
+            for (PropagatedContingency contingency : contingenciesTransformerIndexing.getContingenciesWithoutTransformers()) {
                 contingenciesValue.put(contingency.getContingency().getId(), calculateSensitivityValues(factorGroups, factorsStates, contingenciesStates,
+                    flowStates, contingency.getBranchIdsToOpen().stream().map(contingenciesElements::get).collect(Collectors.toList())));
+            }
+
+            // then we compute the one were we are losing a transformer (need to recompute the loadflow)
+            for (Map.Entry<Set<LfBranch>, Collection<PropagatedContingency>> transformerAndContingency : contingenciesTransformerIndexing.getContingenciesIndexedByTransformers().entrySet()) {
+                flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElements, Collections.emptyList(), transformerAndContingency.getKey());
+                for (PropagatedContingency contingency : transformerAndContingency.getValue()) {
+                    contingenciesValue.put(contingency.getContingency().getId(), calculateSensitivityValues(factorGroups, factorsStates, contingenciesStates,
                         flowStates, contingency.getBranchIdsToOpen().stream().map(contingenciesElements::get).collect(Collectors.toList())));
+                }
             }
 
             if (contingenciesByGroupOfElementsBreakingConnectivity.isEmpty()) {
@@ -488,17 +534,28 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     setBaseCaseSensitivityValues(factorGroups, factorsStates); // use this state to compute the base sensitivity (without +1-1)
                 }
 
-                flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters,
-                    participatingElementsForThisConnectivity, nonConnectedBuses);
-
                 Set<String> elementsToReconnect = getElementsToReconnect(connectivity, breakingConnectivityCandidates);
+                contingenciesTransformerIndexing = new ContingenciesTransformerIndexing(contingencyList, contingenciesElements, elementsToReconnect);
 
-                for (PropagatedContingency contingency : contingencyList) {
+                flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters,
+                    participatingElementsForThisConnectivity, nonConnectedBuses, Collections.emptyList());
+
+                // compute contingencies without transformer
+                for (PropagatedContingency contingency : contingenciesTransformerIndexing.getContingenciesWithoutTransformers()) {
+                    Collection<ComputedContingencyElement> disconnectedElements = contingency.getBranchIdsToOpen().stream().filter(element -> !elementsToReconnect.contains(element)).map(contingenciesElements::get).collect(Collectors.toList());
                     contingenciesValue.put(contingency.getContingency().getId(), calculateSensitivityValues(factorGroups, factorsStates, contingenciesStates, flowStates,
-                        contingency.getBranchIdsToOpen().stream().filter(element -> !elementsToReconnect.contains(element)).map(contingenciesElements::get).collect(Collectors.toList())
-                    ));
+                        disconnectedElements));
                 }
 
+                // then we compute the one were we are losing a transformer (need to recompute the loadflow)
+                for (Map.Entry<Set<LfBranch>, Collection<PropagatedContingency>> transformerAndContingency : contingenciesTransformerIndexing.getContingenciesIndexedByTransformers().entrySet()) {
+                    flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElements, nonConnectedBuses, transformerAndContingency.getKey());
+                    for (PropagatedContingency contingency : transformerAndContingency.getValue()) {
+                        Collection<ComputedContingencyElement> disconnectedElements = contingency.getBranchIdsToOpen().stream().filter(element -> !elementsToReconnect.contains(element)).map(contingenciesElements::get).collect(Collectors.toList());
+                        contingenciesValue.put(contingency.getContingency().getId(), calculateSensitivityValues(factorGroups, factorsStates, contingenciesStates, flowStates,
+                            disconnectedElements));
+                    }
+                }
                 connectivity.reset();
             }
 
