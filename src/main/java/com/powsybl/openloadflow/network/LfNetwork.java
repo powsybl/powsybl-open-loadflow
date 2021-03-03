@@ -337,10 +337,10 @@ public class LfNetwork {
     }
 
     private void logSize() {
-        long controllerBusCount = busesById.values().stream().filter(LfBus::isVoltageControllerEnabled).count();
-        long controlledBusCount = busesById.values().stream().filter(LfBus::isVoltageControlled).count();
+        long remoteControllerBusCount = busesById.values().stream().filter(b -> b.isVoltageControllerEnabled() && !b.isVoltageControlled()).count();
+        long remoteControlledBusCount = busesById.values().stream().filter(b -> b.isVoltageControlled() && !b.isVoltageControllerEnabled()).count();
         LOGGER.info("Network {} has {} buses (voltage remote control: {} controllers, {} controlled) and {} branches",
-                num, busesById.values().size(), controlledBusCount, controllerBusCount, branches.size());
+                num, busesById.values().size(), remoteControllerBusCount, remoteControlledBusCount, branches.size());
     }
 
     public void logBalance() {
