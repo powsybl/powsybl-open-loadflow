@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.Terminal;
@@ -133,10 +132,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
-    public String getControlledBusId(boolean breakers) {
-        Terminal terminal = generator.getRegulatingTerminal();
-        Bus controlled = breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
-        return controlled.getId();
+    protected Terminal getRegulatingTerminal() {
+        return generator.getRegulatingTerminal();
     }
 
     @Override

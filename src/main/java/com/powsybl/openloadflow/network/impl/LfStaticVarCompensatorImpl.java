@@ -104,10 +104,8 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     }
 
     @Override
-    public String getControlledBusId(boolean breakers) {
-        Terminal terminal = svc.getRegulatingTerminal();
-        Bus controlled = breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
-        return controlled.getId();
+    protected Terminal getRegulatingTerminal() {
+        return svc.getRegulatingTerminal();
     }
 
     @Override

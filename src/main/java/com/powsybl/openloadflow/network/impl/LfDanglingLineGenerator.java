@@ -8,8 +8,12 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.ReactiveLimits;
+import com.powsybl.iidm.network.Terminal;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PerUnit;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
 
@@ -28,7 +32,7 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
         // The controlled bus cannot be reached from the DanglingLine parameters (there is no terminal in DanglingLine.Generation)
         // hence the id of the controlled LfBus needs to be remembered
-        this.controlledLfBusId = controlledLfBusId;
+        this.controlledLfBusId = Objects.requireNonNull(controlledLfBusId);
 
         if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(report)) {
             // local control only
@@ -78,8 +82,13 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
     }
 
     @Override
-    public String getControlledBusId(boolean breakers) {
-        return controlledLfBusId;
+    protected Terminal getRegulatingTerminal() {
+        return null; // No terminal for dangling line generators
+    }
+
+    @Override
+    public LfBus getControlledBus(LfNetwork lfNetwork, boolean breakers) {
+        return lfNetwork.getBusById(controlledLfBusId);
     }
 
     @Override

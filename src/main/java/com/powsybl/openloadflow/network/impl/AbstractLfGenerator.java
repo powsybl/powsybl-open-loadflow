@@ -6,9 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.MinMaxReactiveLimits;
-import com.powsybl.iidm.network.ReactiveCapabilityCurve;
-import com.powsybl.iidm.network.ReactiveLimits;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -154,5 +152,15 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     public void setCalculatedQ(double calculatedQ) {
         this.calculatedQ = calculatedQ * PerUnit.SB;
     }
+
+    @Override
+    public LfBus getControlledBus(LfNetwork lfNetwork, boolean breakers) {
+        Terminal regulatingTerminal = getRegulatingTerminal();
+        Bus controlled = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
+        String controlledBusId = controlled != null ? controlled.getId() : null;
+        return controlledBusId != null ? lfNetwork.getBusById(controlledBusId) : null;
+    }
+
+    protected abstract Terminal getRegulatingTerminal();
 
 }

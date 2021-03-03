@@ -82,10 +82,8 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     }
 
     @Override
-    public String getControlledBusId(boolean breakers) {
-        Terminal terminal = station.getTerminal();
-        Bus controlled = breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
-        return controlled.getId();
+    protected Terminal getRegulatingTerminal() {
+        return station.getTerminal();
     }
 
     @Override
