@@ -68,7 +68,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 // check target voltage
                 checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
 
-                if (lfGenerator.hasVoltageControl()) {
+                if (lfGenerator.hasVoltageControl() && controllerBus.isVoltageControllerEnabled()) {
                     controlledBus = generatorControlledBus;
                     controllerTargetV = lfGenerator.getTargetV(); // in per-unit system
                 }
