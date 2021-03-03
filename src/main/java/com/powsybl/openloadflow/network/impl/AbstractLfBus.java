@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.*;
@@ -108,7 +109,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public void setVoltageControl(VoltageControl voltageControl) {
+        Objects.requireNonNull(voltageControl);
         this.voltageControl = Optional.of(voltageControl);
+        if (hasVoltageControllerCapability()) {
+            this.voltageControllerEnabled = true;
+        } else if (!isVoltageControlled()) {
+            throw new PowsyblException("Setting inconsistent voltage control to bus " + getId());
+        }
     }
 
     @Override
@@ -187,12 +194,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected void add(LfGenerator generator) {
         generators.add(generator);
         generator.setBus(this);
-        if (generator.hasVoltageControl()) {
-            this.voltageControllerEnabled = true;
-        } else {
-            if (!Double.isNaN(generator.getTargetQ())) {
-                generationTargetQ += generator.getTargetQ() * PerUnit.SB;
-            }
+        if (!generator.hasVoltageControl() && !Double.isNaN(generator.getTargetQ())) {
+            generationTargetQ += generator.getTargetQ() * PerUnit.SB;
         }
     }
 
