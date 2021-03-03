@@ -60,15 +60,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             double controllerTargetV = Double.NaN;
 
             for (LfGenerator lfGenerator : controllerBus.getGenerators()) {
-                LfBus generatorControlledBus = lfNetwork.getBusById(lfGenerator.getControlledBusId(breakers));
-
-                // check that remote control bus is the same for all generators of current controller bus
-                checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus);
-
-                // check target voltage
-                checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
-
                 if (lfGenerator.hasVoltageControl() && controllerBus.isVoltageControllerEnabled()) {
+                    LfBus generatorControlledBus = lfNetwork.getBusById(lfGenerator.getControlledBusId(breakers));
+
+                    // check that remote control bus is the same for the generators of current controller bus which have voltage control on
+                    checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus);
+
+                    // check that target voltage is the same for the generators of current controller bus which have voltage control on
+                    checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
+
                     controlledBus = generatorControlledBus;
                     controllerTargetV = lfGenerator.getTargetV(); // in per-unit system
                 }
