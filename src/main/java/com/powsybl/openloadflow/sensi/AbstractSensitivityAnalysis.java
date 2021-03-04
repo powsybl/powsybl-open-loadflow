@@ -225,7 +225,6 @@ public abstract class AbstractSensitivityAnalysis {
             super(factor, lfNetwork, equationSystem, clazz);
             injectionLfBus = AbstractSensitivityAnalysis.getInjectionLfBus(network, lfNetwork, (BranchFlowPerInjectionIncrease) factor);
             if (injectionLfBus == null) {
-                warnFactor(factor, "Injection '" + factor.getVariable().getId() + "' not found");
                 setStatus(Status.SKIP);
             }
         }
@@ -254,7 +253,6 @@ public abstract class AbstractSensitivityAnalysis {
             super(factor, lfNetwork, equationSystem, clazz);
             phaseTapChangerLfBranch = getPhaseTapChangerLfBranch(lfNetwork, (BranchFlowPerPSTAngle) factor);
             if (phaseTapChangerLfBranch == null) {
-                warnFactor(factor, "Phase shifter '" + factor.getVariable().getId() + "' not found in the network");
                 setStatus(Status.SKIP);
             }
         }
@@ -291,7 +289,6 @@ public abstract class AbstractSensitivityAnalysis {
             }
 
             if (injectionBuses.isEmpty()) {
-                warnFactor(factor, "No generator of glsk '" + factor.getVariable().getId() + "' can be found in the network");
                 setStatus(Status.SKIP);
             } else if (!skippedInjection.isEmpty()) {
                 LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), factor.getVariable().getId());
@@ -548,8 +545,10 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    protected static void warnFactor(SensitivityFactor factor, String error) {
-        LOGGER.warn("Sensitivity factor <{}, {}> will not be computed. Reason: {}", factor.getFunction().getId(), factor.getVariable().getId(), error);
+    protected <T extends EquationTerm> void warnSkippedFactors(Collection<LfSensitivityFactor<T>> lfFactors) {
+        List<LfSensitivityFactor> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.SKIP)).collect(Collectors.toList());
+        Set<String> skippedVariables = skippedFactors.stream().map(factor -> factor.getFactor().getVariable().getId()).collect(Collectors.toSet());
+        LOGGER.warn("Skipping all factors with variables: '{}', as they cannot be found in the network", String.join(", ", skippedVariables));
     }
 
     private void checkInjectionIncrease(InjectionIncrease injection, Network network) {
