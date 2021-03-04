@@ -167,9 +167,14 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     protected void setTargetV(double targetV) {
         double newTargetV = targetV;
         // check that targetV has a plausible value (wrong nominal voltage issue)
-        if (targetV < PlausibleValues.MIN_TARGET_VOLTAGE_PU || targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
-            LOGGER.warn("Generator '{}' has an inconsistent target voltage: {} pu", getId(), targetV);
-            newTargetV = (targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) ? PlausibleValues.MAX_TARGET_VOLTAGE_PU : PlausibleValues.MIN_TARGET_VOLTAGE_PU;
+        if (targetV < PlausibleValues.MIN_TARGET_VOLTAGE_PU) {
+            newTargetV = PlausibleValues.MIN_TARGET_VOLTAGE_PU;
+            LOGGER.warn("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is rescaled to {}",
+                getId(), targetV, PlausibleValues.MIN_TARGET_VOLTAGE_PU);
+        } else if (targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
+            newTargetV = PlausibleValues.MAX_TARGET_VOLTAGE_PU;
+            LOGGER.warn("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is rescaled to {}",
+                getId(), targetV, PlausibleValues.MAX_TARGET_VOLTAGE_PU);
         }
         this.targetV = newTargetV;
     }
