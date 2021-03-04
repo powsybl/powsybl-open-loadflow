@@ -62,8 +62,6 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
             Optional<VoltageControl> vc = controllerBus.getVoltageControl();
             if (vc.isPresent() && controllerBus.isVoltageControllerEnabled()) {
                 updateControlledBus(vc.get(), equationSystem, variableSet);
-            } else {
-                equationSystem.createEquation(controllerBus.getNum(), EquationType.BUS_V).setActive(true);
             }
         } else { // switch PV/PQ
             Equation qEq = equationSystem.createEquation(controllerBus.getNum(), EquationType.BUS_Q);
@@ -72,8 +70,6 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
             Optional<VoltageControl> vc = controllerBus.getVoltageControl();
             if (vc.isPresent() && controllerBus.hasVoltageControllerCapability()) {
                 updateControlledBus(vc.get(), equationSystem, variableSet);
-            } else {
-                equationSystem.createEquation(controllerBus.getNum(), EquationType.BUS_V).setActive(false);
             }
         }
     }
