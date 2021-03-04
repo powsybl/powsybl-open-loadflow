@@ -8,8 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Objects;
@@ -21,8 +19,6 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class AcEquationSystemUpdater implements LfNetworkListener {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(AcEquationSystemUpdater.class);
 
     private final EquationSystem equationSystem;
 
