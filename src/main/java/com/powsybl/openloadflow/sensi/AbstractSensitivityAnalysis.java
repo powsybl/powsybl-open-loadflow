@@ -108,7 +108,7 @@ public abstract class AbstractSensitivityAnalysis {
         enum Status {
             VALID,
             SKIP,
-            NULL
+            ZERO
         }
         // Wrap factors in specific class to have instant access to their branch, and their equation term
         private final SensitivityFactor factor;
@@ -139,7 +139,7 @@ public abstract class AbstractSensitivityAnalysis {
                 throw new UnsupportedOperationException("Only factors of type BranchFlow are supported");
             }
             if (functionLfBranch == null) {
-                status = Status.NULL;
+                status = Status.ZERO;
                 functionLfBranchId = null;
                 equationTerm = null;
             } else {
@@ -530,7 +530,7 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    protected static SensitivityValue createNullValue(LfSensitivityFactor lfFactor) {
+    protected static SensitivityValue createZeroValue(LfSensitivityFactor lfFactor) {
         return new SensitivityValue(lfFactor.getFactor(), 0, Double.NaN, Double.NaN);
     }
 

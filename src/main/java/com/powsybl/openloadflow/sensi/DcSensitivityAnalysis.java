@@ -398,10 +398,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         // we wrap the factor into a class that allows us to have access to their branch and EquationTerm instantly
         List<LfSensitivityFactor<ClosedBranchSide1DcFlowEquationTerm>> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, equationSystem, ClosedBranchSide1DcFlowEquationTerm.class)).collect(Collectors.toList());
-        List<LfSensitivityFactor<ClosedBranchSide1DcFlowEquationTerm>> nullFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.NULL)).collect(Collectors.toList());
+        List<LfSensitivityFactor<ClosedBranchSide1DcFlowEquationTerm>> zeroFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.ZERO)).collect(Collectors.toList());
         lfFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.VALID)).collect(Collectors.toList());
-        List<SensitivityValue> sensitivityValues = new ArrayList<>(lfFactors.size() + nullFactors.size());
-        sensitivityValues.addAll(nullFactors.stream().map(AbstractSensitivityAnalysis::createNullValue).collect(Collectors.toList()));
+        List<SensitivityValue> sensitivityValues = new ArrayList<>(lfFactors.size() + zeroFactors.size());
+        sensitivityValues.addAll(zeroFactors.stream().map(AbstractSensitivityAnalysis::createZeroValue).collect(Collectors.toList()));
         // index factors by variable group to compute a minimal number of states
         List<SensitivityFactorGroup> factorGroups = createFactorGroups(network, lfFactors);
 
@@ -469,8 +469,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             Map<String, List<SensitivityValue>> contingenciesValue = new HashMap<>();
             // compute the contingencies without loss of connectivity
             for (PropagatedContingency contingency : nonLosingConnectivityContingencies) {
-                List<SensitivityValue> contingencyValues = new ArrayList<>(nullFactors.size() + lfFactors.size());
-                contingencyValues.addAll(nullFactors.stream().map(AbstractSensitivityAnalysis::createNullValue).collect(Collectors.toList()));
+                List<SensitivityValue> contingencyValues = new ArrayList<>(zeroFactors.size() + lfFactors.size());
+                contingencyValues.addAll(zeroFactors.stream().map(AbstractSensitivityAnalysis::createZeroValue).collect(Collectors.toList()));
                 contingencyValues.addAll(calculateSensitivityValues(factorGroups, factorsStates, contingenciesStates,
                         flowStates, contingency.getBranchIdsToOpen().stream().map(contingenciesElements::get).collect(Collectors.toList())));
                 contingenciesValue.put(contingency.getContingency().getId(), contingencyValues);
@@ -524,8 +524,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 Set<String> elementsToReconnect = getElementsToReconnect(connectivity, breakingConnectivityCandidates);
 
                 for (PropagatedContingency contingency : contingencyList) {
-                    List<SensitivityValue> contingencyValues = new ArrayList<>(nullFactors.size() + lfFactors.size());
-                    contingencyValues.addAll(nullFactors.stream().map(AbstractSensitivityAnalysis::createNullValue).collect(Collectors.toList()));
+                    List<SensitivityValue> contingencyValues = new ArrayList<>(zeroFactors.size() + lfFactors.size());
+                    contingencyValues.addAll(zeroFactors.stream().map(AbstractSensitivityAnalysis::createZeroValue).collect(Collectors.toList()));
                     contingencyValues.addAll(calculateSensitivityValues(factorGroups, factorsStates, contingenciesStates, flowStates,
                         contingency.getBranchIdsToOpen().stream().filter(element -> !elementsToReconnect.contains(element)).map(contingenciesElements::get).collect(Collectors.toList())
                     ));

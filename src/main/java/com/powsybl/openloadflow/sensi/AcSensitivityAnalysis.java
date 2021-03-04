@@ -145,10 +145,10 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             engine.run();
 
             List<LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm>> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, engine.getEquationSystem(), ClosedBranchSide1ActiveFlowEquationTerm.class)).collect(Collectors.toList());
-            List<LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm>> nullFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.NULL)).collect(Collectors.toList());
+            List<LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm>> zeroFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.ZERO)).collect(Collectors.toList());
             lfFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.VALID)).collect(Collectors.toList());
-            List<SensitivityValue> baseValues = new ArrayList<>(nullFactors.size() + lfFactors.size());
-            baseValues.addAll(nullFactors.stream().map(AbstractSensitivityAnalysis::createNullValue).collect(Collectors.toList()));
+            List<SensitivityValue> baseValues = new ArrayList<>(zeroFactors.size() + lfFactors.size());
+            baseValues.addAll(zeroFactors.stream().map(AbstractSensitivityAnalysis::createZeroValue).collect(Collectors.toList()));
 
             // index factors by variable group to compute a minimal number of states
             List<SensitivityFactorGroup> factorGroups = createFactorGroups(network, lfFactors);
@@ -198,8 +198,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 lfFactors.stream()
                     .filter(lfFactor -> lfContingency.getBranches().contains(lfFactor.getFunctionLfBranch()))
                     .forEach(lfFactor -> lfFactor.setPredefinedResult(0d));
-                List<SensitivityValue> contingencyValues = new ArrayList<>(nullFactors.size() + lfFactors.size());
-                contingencyValues.addAll(nullFactors.stream().map(AbstractSensitivityAnalysis::createNullValue).collect(Collectors.toList()));
+                List<SensitivityValue> contingencyValues = new ArrayList<>(zeroFactors.size() + lfFactors.size());
+                contingencyValues.addAll(zeroFactors.stream().map(AbstractSensitivityAnalysis::createZeroValue).collect(Collectors.toList()));
                 contingencyValues.addAll(getPostContingencySensitivityValues(lfFactors, lfContingency, lfNetwork, engine, factorGroups, lfParameters, lfParametersExt));
                 contingenciesValues.put(lfContingency.getContingency().getId(), contingencyValues);
                 BusState.restoreBusStates(busStates);
@@ -232,8 +232,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
                 computeInjectionFactors(slackParticipationByBusForThisConnectivity, factorGroups);
 
-                List<SensitivityValue> contingencyValues = new ArrayList<>(nullFactors.size() + lfFactors.size());
-                contingencyValues.addAll(nullFactors.stream().map(AbstractSensitivityAnalysis::createNullValue).collect(Collectors.toList()));
+                List<SensitivityValue> contingencyValues = new ArrayList<>(zeroFactors.size() + lfFactors.size());
+                contingencyValues.addAll(zeroFactors.stream().map(AbstractSensitivityAnalysis::createZeroValue).collect(Collectors.toList()));
                 contingencyValues.addAll(getPostContingencySensitivityValues(lfFactors, lfContingency, lfNetwork, engine, factorGroups, lfParameters, lfParametersExt));
                 contingenciesValues.put(lfContingency.getContingency().getId(), contingencyValues);
                 BusState.restoreBusStates(busStates);
