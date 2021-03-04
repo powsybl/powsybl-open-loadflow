@@ -65,7 +65,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfBranch> branches = new ArrayList<>();
 
-    private VoltageControl voltageControl = null;
+    private VoltageControl voltageControl;
 
     protected DiscreteVoltageControl discreteVoltageControl;
 
