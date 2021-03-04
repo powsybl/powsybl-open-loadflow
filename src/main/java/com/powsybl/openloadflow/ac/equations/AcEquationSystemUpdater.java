@@ -11,6 +11,8 @@ import com.powsybl.openloadflow.network.*;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -27,14 +29,18 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
         this.variableSet = Objects.requireNonNull(variableSet);
     }
 
-    private static void updateControlledBus(LfBus controlledBus, EquationSystem equationSystem, VariableSet variableSet) {
+    public static void updateControlledBus(VoltageControl voltageControl, EquationSystem equationSystem, VariableSet variableSet) {
+
+        LfBus controlledBus = voltageControl.getControlledBus();
+        Set<LfBus> controllerBuses = voltageControl.getControllerBuses();
+
         // clean reactive power distribution equations
-        controlledBus.getControllerBuses().forEach(b -> equationSystem.removeEquation(b.getNum(), EquationType.ZERO_Q));
+        controllerBuses.forEach(b -> equationSystem.removeEquation(b.getNum(), EquationType.ZERO_Q));
 
         // controlled bus has a voltage equation only if one of the controller bus has voltage control on
-        List<LfBus> controllerBusesWithVoltageControlOn = controlledBus.getControllerBuses().stream()
-                .filter(LfBus::hasVoltageControl)
-                .collect(Collectors.toList());
+        List<LfBus> controllerBusesWithVoltageControlOn = controllerBuses.stream()
+            .filter(LfBus::isVoltageControllerEnabled)
+            .collect(Collectors.toList());
         equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
 
         // create reactive power equations on controller buses that have voltage control on
@@ -44,28 +50,22 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
     }
 
     @Override
-    public void onVoltageControlChange(LfBus bus, boolean newVoltageControl) {
-        if (newVoltageControl) { // switch PQ/PV
-            Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
+    public void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
+        if (newVoltageControllerEnabled) { // switch PQ/PV
+            Equation qEq = equationSystem.createEquation(controllerBus.getNum(), EquationType.BUS_Q);
             qEq.setActive(false);
 
-            LfBus controlledBus = bus.getControlledBus().orElse(null);
-            if (controlledBus != null) {
-                updateControlledBus(controlledBus, equationSystem, variableSet);
-            } else {
-                Equation vEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
-                vEq.setActive(true);
+            Optional<VoltageControl> vc = controllerBus.getVoltageControl();
+            if (vc.isPresent() && controllerBus.isVoltageControllerEnabled()) {
+                updateControlledBus(vc.get(), equationSystem, variableSet);
             }
         } else { // switch PV/PQ
-            Equation qEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
+            Equation qEq = equationSystem.createEquation(controllerBus.getNum(), EquationType.BUS_Q);
             qEq.setActive(true);
 
-            LfBus controlledBus = bus.getControlledBus().orElse(null);
-            if (controlledBus != null) {
-                updateControlledBus(controlledBus, equationSystem, variableSet);
-            } else {
-                Equation vEq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
-                vEq.setActive(false);
+            Optional<VoltageControl> vc = controllerBus.getVoltageControl();
+            if (vc.isPresent() && controllerBus.hasVoltageControllerCapability()) {
+                updateControlledBus(vc.get(), equationSystem, variableSet);
             }
         }
     }

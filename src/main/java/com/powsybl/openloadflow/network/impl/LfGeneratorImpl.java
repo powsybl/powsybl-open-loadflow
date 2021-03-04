@@ -35,7 +35,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double participationFactor;
 
-    private LfGeneratorImpl(Generator generator, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
+    private LfGeneratorImpl(Generator generator, boolean breakers, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
         super(generator.getTargetP());
         this.generator = generator;
         participating = true;
@@ -69,26 +69,25 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
         if ((generator.getMaxP() - generator.getMinP()) < TARGET_P_EPSILON) {
             LOGGER.trace("Discard generator '{}' from active power control because maxP ({} MW) equals minP ({} MW)",
-                    generator.getId(), generator.getMaxP(), generator.getMinP());
+                generator.getId(), generator.getMaxP(), generator.getMinP());
             report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP++;
             participating = false;
         }
+
+        if (generator.isVoltageRegulatorOn()) {
+            setVoltageControl(generator.getTargetV(), generator.getRegulatingTerminal(), breakers, report);
+        }
     }
 
-    public static LfGeneratorImpl create(Generator generator, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
+    public static LfGeneratorImpl create(Generator generator, boolean breakers, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
         Objects.requireNonNull(generator);
         Objects.requireNonNull(report);
-        return new LfGeneratorImpl(generator, report, plausibleActivePowerLimit);
+        return new LfGeneratorImpl(generator, breakers, report, plausibleActivePowerLimit);
     }
 
     @Override
     public String getId() {
         return generator.getId();
-    }
-
-    @Override
-    public boolean hasVoltageControl() {
-        return generator.isVoltageRegulatorOn();
     }
 
     @Override
