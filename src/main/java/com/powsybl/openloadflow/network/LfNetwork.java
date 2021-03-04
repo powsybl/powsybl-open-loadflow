@@ -337,8 +337,18 @@ public class LfNetwork {
     }
 
     private void logSize() {
-        long remoteControllerBusCount = busesById.values().stream().filter(b -> b.isVoltageControllerEnabled() && !b.isVoltageControlled()).count();
-        long remoteControlledBusCount = busesById.values().stream().filter(b -> b.isVoltageControlled() && !b.isVoltageControllerEnabled()).count();
+        int remoteControlledBusCount = 0;
+        int remoteControllerBusCount = 0;
+        for (LfBus b : busesById.values()) {
+            // To avoid counting the local voltage controls we check that the voltage controller is not also voltage controlled
+            if (b.isVoltageControllerEnabled() && !b.isVoltageControlled()) {
+                remoteControllerBusCount++;
+            }
+            // Similarly, to avoid counting the local voltage controls we check that the voltage controlled is not also voltage controller
+            if (b.isVoltageControlled() && !b.isVoltageControllerEnabled()) {
+                remoteControlledBusCount++;
+            }
+        }
         LOGGER.info("Network {} has {} buses (voltage remote control: {} controllers, {} controlled) and {} branches",
                 num, busesById.values().size(), remoteControllerBusCount, remoteControlledBusCount, branches.size());
     }
