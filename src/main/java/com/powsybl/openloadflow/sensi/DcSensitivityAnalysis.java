@@ -357,7 +357,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         // create dc load flow engine for setting reference
         DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfParametersExt.getSlackBusSelector(), matrixFactory,
             true, lfParametersExt.isDcUseTransformerRatio(), lfParameters.isDistributedSlack(), lfParameters.getBalanceType(), true,
-            lfParametersExt.getPlausibleActivePowerLimit());
+            lfParametersExt.getPlausibleActivePowerLimit(), lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
         DcLoadFlowEngine dcLoadFlowEngine = new DcLoadFlowEngine(lfNetworks, dcLoadFlowParameters);
 
         // create DC equation system for sensitivity analysis
