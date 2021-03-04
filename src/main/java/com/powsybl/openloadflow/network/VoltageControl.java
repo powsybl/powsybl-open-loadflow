@@ -45,6 +45,6 @@ public class VoltageControl {
     }
 
     public boolean isVoltageControlLocal() {
-        return controllers.contains(controlled);
+        return controllers.size() == 1 && controllers.contains(controlled);
     }
 }
