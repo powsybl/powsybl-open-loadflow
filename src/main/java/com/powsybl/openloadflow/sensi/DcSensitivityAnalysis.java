@@ -384,8 +384,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     }
 
     @Override
-    public void checkSensitivities(Network network, LfNetwork lfNetwork, List<SensitivityFactor> factors) {
-        super.checkSensitivities(network, lfNetwork, factors);
+    public void checkSensitivities(Network network, List<SensitivityFactor> factors) {
+        super.checkSensitivities(network, factors);
         for (SensitivityFactor factor : factors) {
             if (!(factor instanceof BranchFlowPerInjectionIncrease)
                 && !(factor instanceof BranchFlowPerLinearGlsk)
