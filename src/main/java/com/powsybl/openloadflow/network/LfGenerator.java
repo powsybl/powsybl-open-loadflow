@@ -21,6 +21,8 @@ public interface LfGenerator {
 
     boolean hasVoltageControl();
 
+    double getTargetV();
+
     OptionalDouble getRemoteControlReactiveKey();
 
     double getTargetQ();
@@ -48,4 +50,6 @@ public interface LfGenerator {
     void setCalculatedQ(double calculatedQ);
 
     void updateState();
+
+    LfBus getControlledBus(LfNetwork lfNetwork);
 }

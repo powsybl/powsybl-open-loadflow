@@ -41,24 +41,26 @@ public final class AcEquationSystem {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
 
-            if (bus.hasVoltageControl()) {
-                // local voltage control
-                if (!(creationParameters.isVoltageRemoteControl() && bus.getControlledBus().isPresent()) && bus.getControllerBuses().isEmpty()) {
-                    equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
-                }
-                equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
-            }
-
-            // in case voltage remote control is activated, set voltage equation on this controlled bus
-            if (creationParameters.isVoltageRemoteControl() && !bus.getControllerBuses().isEmpty()) {
-                createVoltageControlledBusEquations(bus, equationSystem, variableSet);
-            }
+            bus.getVoltageControl().ifPresent(vc -> createVoltageControlEquations(vc, bus, variableSet, equationSystem));
 
             createShuntEquations(variableSet, equationSystem, bus);
 
             if (creationParameters.isTransformerVoltageControl()) {
                 createDiscreteVoltageControlEquation(bus, variableSet, equationSystem);
             }
+        }
+    }
+
+    private static void createVoltageControlEquations(VoltageControl voltageControl, LfBus bus, VariableSet variableSet, EquationSystem equationSystem) {
+        if (voltageControl.isVoltageControlLocal()) {
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+        } else if (bus.isVoltageControlled()) {
+            // remote controlled: set voltage equation on this controlled bus
+            createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet);
+        }
+
+        if (bus.isVoltageControllerEnabled()) {
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
         }
     }
 
@@ -70,19 +72,16 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createVoltageControlledBusEquations(LfBus controlledBus, EquationSystem equationSystem, VariableSet variableSet) {
+    private static void createVoltageControlledBusEquations(VoltageControl voltageControl, EquationSystem equationSystem, VariableSet variableSet) {
+        LfBus controlledBus = voltageControl.getControlledBus();
+
         // create voltage equation at voltage controlled bus
         Equation vEq = equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V)
                 .addTerm(new BusVoltageEquationTerm(controlledBus, variableSet));
 
-        List<LfBus> controllerBuses = controlledBus.getControllerBuses().stream()
-                .filter(LfBus::hasVoltageControl)
+        List<LfBus> controllerBuses = voltageControl.getControllerBuses().stream()
+                .filter(LfBus::isVoltageControllerEnabled)
                 .collect(Collectors.toList());
-        // if controlled bus also control voltage locally, we add it the the controller list to create reactive power
-        // distribution equation for the controlled bus too
-        if (controlledBus.hasVoltageControl()) {
-            controllerBuses.add(controlledBus);
-        }
         if (controllerBuses.isEmpty()) {
             vEq.setActive(false);
         } else {
@@ -130,7 +129,7 @@ public final class AcEquationSystem {
 
         // we choose first controller bus as reference for reactive power
         LfBus firstControllerBus = controllerBuses.get(0);
-        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false, false); // TODO could not be the right parameters
+        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false); // TODO could not be the right parameters
         List<EquationTerm> firstControllerBusReactiveTerms = createReactiveTerms(firstControllerBus, variableSet, creationParameters);
 
         // create a reactive power distribution equation for all the other controller buses
@@ -344,7 +343,7 @@ public final class AcEquationSystem {
         if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
             List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(zeroImpedanceSubGraph).connectedSets();
             for (Set<LfBus> connectedSet : connectedSets) {
-                if (connectedSet.size() > 2 && connectedSet.stream().filter(LfBus::hasVoltageControl).count() > 1) {
+                if (connectedSet.size() > 2 && connectedSet.stream().filter(LfBus::isVoltageControllerEnabled).count() > 1) {
                     String problBuses = connectedSet.stream().map(LfBus::getId).collect(Collectors.joining(", "));
                     throw new PowsyblException(
                         "Zero impedance branches that connect at least two buses with voltage control (buses: " + problBuses + ")");
@@ -363,7 +362,7 @@ public final class AcEquationSystem {
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
-        return create(network, variableSet, new AcEquationSystemCreationParameters(false, false, false));
+        return create(network, variableSet, new AcEquationSystemCreationParameters(false, false));
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {
