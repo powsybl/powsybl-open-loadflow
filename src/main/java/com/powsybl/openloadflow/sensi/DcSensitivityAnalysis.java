@@ -118,6 +118,43 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     }
 
+    static class PhaseTapChangerContingenciesIndexing {
+
+        private Collection<PropagatedContingency> contingenciesWithoutTransformers;
+        private Map<Set<LfBranch>, Collection<PropagatedContingency>> contingenciesIndexedByPhaseTapChangers;
+
+        public PhaseTapChangerContingenciesIndexing(Collection<PropagatedContingency> contingencies, Map<String, ComputedContingencyElement> contingenciesElements) {
+            this(contingencies, contingenciesElements, Collections.emptySet());
+        }
+
+        public PhaseTapChangerContingenciesIndexing(Collection<PropagatedContingency> contingencies, Map<String,
+                ComputedContingencyElement> contingenciesElements, Collection<String> elementIdsToSkip) {
+            contingenciesIndexedByPhaseTapChangers = new HashMap<>();
+            contingenciesWithoutTransformers = new ArrayList<>();
+            for (PropagatedContingency contingency : contingencies) {
+                Set<LfBranch> lostTransformers = contingency.getBranchIdsToOpen().stream()
+                        .filter(element -> !elementIdsToSkip.contains(element))
+                        .map(contingenciesElements::get)
+                        .map(ComputedContingencyElement::getLfBranch)
+                        .filter(LfBranch::hasPhaseControlCapability)
+                        .collect(Collectors.toSet());
+                if (lostTransformers.isEmpty()) {
+                    contingenciesWithoutTransformers.add(contingency);
+                } else {
+                    contingenciesIndexedByPhaseTapChangers.computeIfAbsent(lostTransformers, key -> new ArrayList<>()).add(contingency);
+                }
+            }
+        }
+
+        public Collection<PropagatedContingency> getContingenciesWithoutPhaseTapChangerLoss() {
+            return contingenciesWithoutTransformers;
+        }
+
+        public Map<Set<LfBranch>, Collection<PropagatedContingency>> getContingenciesIndexedByPhaseTapChangers() {
+            return contingenciesIndexedByPhaseTapChangers;
+        }
+    }
+
     public DcSensitivityAnalysis(MatrixFactory matrixFactory) {
         super(matrixFactory);
     }
@@ -340,41 +377,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return elementsToReconnect;
     }
 
-    static class ContingenciesTransformerIndexing {
-        private Collection<PropagatedContingency> contingenciesWithoutTransformers;
-        private Map<Set<LfBranch>, Collection<PropagatedContingency>> contingenciesIndexedByTransformers;
-
-        public ContingenciesTransformerIndexing(Collection<PropagatedContingency> contingencies, Map<String, ComputedContingencyElement> contingenciesElements) {
-            this(contingencies, contingenciesElements, Collections.emptySet());
-        }
-
-        public ContingenciesTransformerIndexing(Collection<PropagatedContingency> contingencies, Map<String, ComputedContingencyElement> contingenciesElements, Collection<String> elementIdsToSkip) {
-            contingenciesIndexedByTransformers = new HashMap<>();
-            contingenciesWithoutTransformers = new ArrayList<>();
-            for (PropagatedContingency contingency : contingencies) {
-                Set<LfBranch> lostTransformers = contingency.getBranchIdsToOpen().stream()
-                    .filter(element -> !elementIdsToSkip.contains(element))
-                    .map(contingenciesElements::get)
-                    .map(ComputedContingencyElement::getLfBranch)
-                    .filter(LfBranch::hasPhaseControlCapability)
-                    .collect(Collectors.toSet());
-                if (lostTransformers.isEmpty()) {
-                    contingenciesWithoutTransformers.add(contingency);
-                } else {
-                    contingenciesIndexedByTransformers.computeIfAbsent(lostTransformers, key -> new ArrayList<>()).add(contingency);
-                }
-            }
-        }
-
-        public Collection<PropagatedContingency> getContingenciesWithoutTransformers() {
-            return contingenciesWithoutTransformers;
-        }
-
-        public Map<Set<LfBranch>, Collection<PropagatedContingency>> getContingenciesIndexedByTransformers() {
-            return contingenciesIndexedByTransformers;
-        }
-    }
-
     public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors,
                                                                                      List<PropagatedContingency> contingencies, LoadFlowParameters lfParameters,
                                                                                      OpenLoadFlowParameters lfParametersExt) {
@@ -469,18 +471,18 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             detectConnectivityLoss(lfNetwork, contingenciesStates, contingencies, contingenciesElements, equationSystem,
                     nonLosingConnectivityContingencies, contingenciesByGroupOfElementsBreakingConnectivity);
-            ContingenciesTransformerIndexing contingenciesTransformerIndexing = new ContingenciesTransformerIndexing(nonLosingConnectivityContingencies, contingenciesElements);
+            PhaseTapChangerContingenciesIndexing phaseTapChangerContingenciesIndexing = new PhaseTapChangerContingenciesIndexing(nonLosingConnectivityContingencies, contingenciesElements);
 
             Map<String, List<SensitivityValue>> contingenciesValue = new HashMap<>();
             // compute the contingencies without loss of connectivity
             // first we compute the one without loss of transformer (because we reuse the same loadflow for all of them)
-            for (PropagatedContingency contingency : contingenciesTransformerIndexing.getContingenciesWithoutTransformers()) {
+            for (PropagatedContingency contingency : phaseTapChangerContingenciesIndexing.getContingenciesWithoutPhaseTapChangerLoss()) {
                 contingenciesValue.put(contingency.getContingency().getId(), calculateSensitivityValues(factorGroups, factorsStates, contingenciesStates,
                     flowStates, contingency.getBranchIdsToOpen().stream().map(contingenciesElements::get).collect(Collectors.toList())));
             }
 
             // then we compute the one were we are losing a transformer (need to recompute the loadflow)
-            for (Map.Entry<Set<LfBranch>, Collection<PropagatedContingency>> transformerAndContingency : contingenciesTransformerIndexing.getContingenciesIndexedByTransformers().entrySet()) {
+            for (Map.Entry<Set<LfBranch>, Collection<PropagatedContingency>> transformerAndContingency : phaseTapChangerContingenciesIndexing.getContingenciesIndexedByPhaseTapChangers().entrySet()) {
                 flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElements, Collections.emptyList(), transformerAndContingency.getKey());
                 for (PropagatedContingency contingency : transformerAndContingency.getValue()) {
                     contingenciesValue.put(contingency.getContingency().getId(), calculateSensitivityValues(factorGroups, factorsStates, contingenciesStates,
@@ -535,20 +537,20 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 }
 
                 Set<String> elementsToReconnect = getElementsToReconnect(connectivity, breakingConnectivityCandidates);
-                contingenciesTransformerIndexing = new ContingenciesTransformerIndexing(contingencyList, contingenciesElements, elementsToReconnect);
+                phaseTapChangerContingenciesIndexing = new PhaseTapChangerContingenciesIndexing(contingencyList, contingenciesElements, elementsToReconnect);
 
                 flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters,
                     participatingElementsForThisConnectivity, nonConnectedBuses, Collections.emptyList());
 
                 // compute contingencies without transformer
-                for (PropagatedContingency contingency : contingenciesTransformerIndexing.getContingenciesWithoutTransformers()) {
+                for (PropagatedContingency contingency : phaseTapChangerContingenciesIndexing.getContingenciesWithoutPhaseTapChangerLoss()) {
                     Collection<ComputedContingencyElement> disconnectedElements = contingency.getBranchIdsToOpen().stream().filter(element -> !elementsToReconnect.contains(element)).map(contingenciesElements::get).collect(Collectors.toList());
                     contingenciesValue.put(contingency.getContingency().getId(), calculateSensitivityValues(factorGroups, factorsStates, contingenciesStates, flowStates,
                         disconnectedElements));
                 }
 
                 // then we compute the one were we are losing a transformer (need to recompute the loadflow)
-                for (Map.Entry<Set<LfBranch>, Collection<PropagatedContingency>> transformerAndContingency : contingenciesTransformerIndexing.getContingenciesIndexedByTransformers().entrySet()) {
+                for (Map.Entry<Set<LfBranch>, Collection<PropagatedContingency>> transformerAndContingency : phaseTapChangerContingenciesIndexing.getContingenciesIndexedByPhaseTapChangers().entrySet()) {
                     flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElements, nonConnectedBuses, transformerAndContingency.getKey());
                     for (PropagatedContingency contingency : transformerAndContingency.getValue()) {
                         Collection<ComputedContingencyElement> disconnectedElements = contingency.getBranchIdsToOpen().stream().filter(element -> !elementsToReconnect.contains(element)).map(contingenciesElements::get).collect(Collectors.toList());

@@ -98,7 +98,7 @@ public class DcLoadFlowEngine {
         this.targetVector = equationSystem.createTargetVector();
 
         if (!removedBuses.isEmpty()) {
-            // set buses injections and transformers to 0
+            // set buses injections to 0
             removedBuses.stream()
                 .map(lfBus -> equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P))
                 .filter(Optional::isPresent)
@@ -108,6 +108,7 @@ public class DcLoadFlowEngine {
         }
 
         if (!removedBranches.isEmpty()) {
+            // set transformer phase shift to 0
             removedBranches.stream()
                 .map(lfBranch -> equationSystem.getEquation(lfBranch.getNum(), EquationType.BRANCH_ALPHA1))
                 .filter(Optional::isPresent)
