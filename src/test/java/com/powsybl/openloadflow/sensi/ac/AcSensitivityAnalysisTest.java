@@ -246,6 +246,31 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testBranchFunctionOutsideMainComponent() {
+        testBranchFunctionOutsideMainComponent(false);
+    }
+
+    @Test
+    void testInjectionOutsideMainComponent() {
+        testInjectionOutsideMainComponent(false);
+    }
+
+    @Test
+    void testPhaseShifterOutsideMainComponent() {
+        testPhaseShifterOutsideMainComponent(false);
+    }
+
+    @Test
+    void testGlskOutsideMainComponent() {
+        testGlskOutsideMainComponent(false);
+    }
+
+    @Test
+    void testGlskPartiallyOutsideMainComponent() {
+        testGlskPartiallyOutsideMainComponent(false);
+    }
+
+    @Test
     void testInjectionNotFound() {
         testInjectionNotFound(false);
     }

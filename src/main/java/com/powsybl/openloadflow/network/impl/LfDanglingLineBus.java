@@ -20,7 +20,7 @@ public class LfDanglingLineBus extends AbstractLfBus {
 
     private final double nominalV;
 
-    public LfDanglingLineBus(LfNetwork network, DanglingLine danglingLine) {
+    public LfDanglingLineBus(LfNetwork network, DanglingLine danglingLine, LfNetworkLoadingReport report) {
         super(network, Networks.getPropertyV(danglingLine), Networks.getPropertyAngle(danglingLine));
         this.danglingLine = Objects.requireNonNull(danglingLine);
         nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
@@ -28,16 +28,7 @@ public class LfDanglingLineBus extends AbstractLfBus {
         loadTargetQ += danglingLine.getQ0();
         DanglingLine.Generation generation = danglingLine.getGeneration();
         if (generation != null) {
-            if (generation.isVoltageRegulationOn()) {
-                this.targetV = generation.getTargetV();
-                this.voltageControl = true;
-                this.voltageControlCapability = true;
-            } else {
-                if (!Double.isNaN(generation.getTargetQ())) {
-                    generationTargetQ += generation.getTargetQ();
-                }
-            }
-            generators.add(new LfDanglingLineGenerator(danglingLine));
+            add(new LfDanglingLineGenerator(danglingLine, getId(), report));
         }
     }
 
