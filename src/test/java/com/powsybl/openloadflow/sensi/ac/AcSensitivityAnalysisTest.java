@@ -282,13 +282,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             .join();
 
         assertEquals(5, result.getSensitivityValues().size());
-        // todo: Remove the *100 from assert. Currently the
-        // todo: loadflow from OLF and Hades provides different results
-        assertEquals(766.4654d, getFunctionReference(result, "l23"), LoadFlowAssert.DELTA_I * 100);
-        assertEquals(132.5631d, getFunctionReference(result, "l14"), LoadFlowAssert.DELTA_I * 100);
-        assertEquals(182.1272d, getFunctionReference(result, "l12"), LoadFlowAssert.DELTA_I * 100);
-        assertEquals(716.5036d, getFunctionReference(result, "l34"), LoadFlowAssert.DELTA_I * 100);
-        assertEquals(847.8542d, getFunctionReference(result, "l13"), LoadFlowAssert.DELTA_I * 100);
+        assertEquals(766.4654d, getFunctionReference(result, "l23"), LoadFlowAssert.DELTA_I);
+        assertEquals(132.5631d, getFunctionReference(result, "l14"), LoadFlowAssert.DELTA_I);
+        assertEquals(182.1272d, getFunctionReference(result, "l12"), LoadFlowAssert.DELTA_I);
+        assertEquals(716.5036d, getFunctionReference(result, "l34"), LoadFlowAssert.DELTA_I);
+        assertEquals(847.8542d, getFunctionReference(result, "l13"), LoadFlowAssert.DELTA_I);
     }
 
     @Test
