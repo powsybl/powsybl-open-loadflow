@@ -441,6 +441,31 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testBranchFunctionOutsideMainComponent() {
+        testBranchFunctionOutsideMainComponent(true);
+    }
+
+    @Test
+    void testInjectionOutsideMainComponent() {
+        testInjectionOutsideMainComponent(true);
+    }
+
+    @Test
+    void testPhaseShifterOutsideMainComponent() {
+        testPhaseShifterOutsideMainComponent(true);
+    }
+
+    @Test
+    void testGlskOutsideMainComponent() {
+        testGlskOutsideMainComponent(true);
+    }
+
+    @Test
+    void testGlskPartiallyOutsideMainComponent() {
+        testGlskPartiallyOutsideMainComponent(true);
+    }
+
+    @Test
     void testInjectionNotFound() {
         testInjectionNotFound(true);
     }

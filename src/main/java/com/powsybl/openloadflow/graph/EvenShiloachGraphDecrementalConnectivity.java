@@ -132,6 +132,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
     @Override
     public int getComponentNumber(V vertex) {
+        checkVertex(vertex);
         lazyComputeConnectivity();
         updateVertexMapCache();
         return vertexToConnectedComponent.get(vertex);
@@ -145,13 +146,11 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
     @Override
     public Set<V> getConnectedComponent(V vertex) {
+        checkVertex(vertex);
         lazyComputeConnectivity();
         updateVertexMapCache();
         int cn = vertexToConnectedComponent.get(vertex);
-        if (cn >= 0) {
-            return cn == 0 ? getMainConnectedComponent() : newConnectedComponents.get(cn - 1);
-        }
-        return Collections.emptySet();
+        return cn == 0 ? getMainConnectedComponent() : newConnectedComponents.get(cn - 1);
     }
 
     private Set<V> getMainConnectedComponent() {
@@ -160,10 +159,8 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
     @Override
     public Set<V> getNonConnectedVertices(V vertex) {
+        checkVertex(vertex);
         lazyComputeConnectivity();
-        if (!vertices.contains(vertex)) {
-            throw new AssertionError("given vertex is not in the graph");
-        }
         List<Set<V>> nonConnectedComponents = new ArrayList<>(newConnectedComponents);
         newConnectedComponents.stream().filter(c -> c.contains(vertex)).findFirst().ifPresent(c -> {
             nonConnectedComponents.remove(c);
@@ -245,6 +242,12 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
                 newConnectedComponent.forEach(v -> vertexToConnectedComponent.put(v, indxCC));
             }
             vertexMapCacheInvalidated = false;
+        }
+    }
+
+    private void checkVertex(V vertex) {
+        if (!graph.containsVertex(vertex)) {
+            throw new AssertionError("given vertex " + vertex + " is not in the graph");
         }
     }
 

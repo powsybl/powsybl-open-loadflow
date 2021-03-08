@@ -78,14 +78,14 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
     @Test
     void testLegCurrentLimits() {
         Network network = ThreeWindingsTransformerNetworkFactory.create();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new NameSlackBusSelector("VL_33_0"));
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt, false);
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
         LfBranch branch1 = lfNetwork.getBranchById("3WT_leg_1");
-        assertEquals(6000.771, branch1.getI1(), 10E-3);
+        assertEquals(660.702, branch1.getI1(), 10E-3);
         assertTrue(Double.isNaN(branch1.getI2()));
         assertTrue(Double.isNaN(branch1.getPermanentLimit1()));
         assertTrue(Double.isNaN(branch1.getPermanentLimit2()));
@@ -126,14 +126,14 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
     void testLegActivePowerLimits() {
         //FIXME: to be completed with new operational limits design.
         Network network = ThreeWindingsTransformerNetworkFactory.create();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new NameSlackBusSelector("VL_33_0"));
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt, false);
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
         LfBranch branch1 = lfNetwork.getBranchById("3WT_leg_1");
-        assertEquals(1049.827, branch1.getP1() * PerUnit.SB, 10E-3);
+        assertEquals(116.251, branch1.getP1() * PerUnit.SB, 10E-3);
         assertTrue(Double.isNaN(branch1.getP2()));
     }
 }

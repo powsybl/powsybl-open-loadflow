@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.MinMaxReactiveLimits;
-import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.iidm.network.ReactiveLimitsKind;
-import com.powsybl.iidm.network.StaticVarCompensator;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.PerUnit;
 
 import java.util.Objects;
@@ -26,7 +23,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     double nominalV;
 
-    private LfStaticVarCompensatorImpl(StaticVarCompensator svc, AbstractLfBus bus) {
+    private LfStaticVarCompensatorImpl(StaticVarCompensator svc, AbstractLfBus bus, boolean breakers, LfNetworkLoadingReport report) {
         super(0);
         this.svc = svc;
         this.nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
@@ -59,21 +56,20 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
                 return getMaxQ();
             }
         };
+
+        if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
+            setVoltageControl(svc.getVoltageSetpoint(), svc.getRegulatingTerminal(), breakers, report);
+        }
     }
 
-    public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, AbstractLfBus bus) {
+    public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, AbstractLfBus bus, boolean breakers, LfNetworkLoadingReport report) {
         Objects.requireNonNull(svc);
-        return new LfStaticVarCompensatorImpl(svc, bus);
+        return new LfStaticVarCompensatorImpl(svc, bus, breakers, report);
     }
 
     @Override
     public String getId() {
         return svc.getId();
-    }
-
-    @Override
-    public boolean hasVoltageControl() {
-        return svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE;
     }
 
     @Override

@@ -79,7 +79,7 @@ public class DcLoadFlowEngine {
     }
 
     public LoadFlowResult.ComponentResult.Status run(EquationSystem equationSystem, JacobianMatrix j,
-                                                     Collection<LfBus> removedBuses, Collection<LfBranch> removedBranches) {
+                                                     Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches) {
 
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
 
@@ -87,7 +87,7 @@ public class DcLoadFlowEngine {
         LfNetwork network = networks.get(0);
 
         Collection<LfBus> remainingBuses = new HashSet<>(network.getBuses());
-        remainingBuses.removeAll(removedBuses);
+        remainingBuses.removeAll(disabledBuses);
 
         if (parameters.isDistributedSlack()) {
             distributeSlack(remainingBuses);
@@ -97,9 +97,9 @@ public class DcLoadFlowEngine {
 
         this.targetVector = equationSystem.createTargetVector();
 
-        if (!removedBuses.isEmpty()) {
-            // set buses injections to 0
-            removedBuses.stream()
+        if (!disabledBuses.isEmpty()) {
+            // set buses injections and transformers to 0
+            disabledBuses.stream()
                 .map(lfBus -> equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
@@ -107,9 +107,9 @@ public class DcLoadFlowEngine {
                 .forEach(column -> targetVector[column] = 0);
         }
 
-        if (!removedBranches.isEmpty()) {
+        if (!disabledBranches.isEmpty()) {
             // set transformer phase shift to 0
-            removedBranches.stream()
+            disabledBranches.stream()
                 .map(lfBranch -> equationSystem.getEquation(lfBranch.getNum(), EquationType.BRANCH_ALPHA1))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
