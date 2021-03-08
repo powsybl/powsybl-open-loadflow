@@ -75,9 +75,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(Double.isNaN(branch.getPermanentLimit2()));
     }
 
-    //@Test
-    // FIXME: @annetill fix this test, the NewtonRaphson reaches max iteration. Is it intentionnal ?
-    // FIXME: I believe this may be the case for other tests in this file
+    @Test
     void testLegCurrentLimits() {
         Network network = ThreeWindingsTransformerNetworkFactory.create();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new NameSlackBusSelector("VL_33_0"));
