@@ -92,6 +92,7 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
 
     @Override
     public int getComponentNumber(V vertex) {
+        checkVertex(vertex);
         updateComponents();
         return components[numGetter.applyAsInt(vertex)];
     }
@@ -104,14 +105,22 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
 
     @Override
     public Set<V> getConnectedComponent(V vertex) {
+        checkVertex(vertex);
         updateComponents();
         return componentSets.get(components[numGetter.applyAsInt(vertex)]);
     }
 
     @Override
     public Set<V> getNonConnectedVertices(V vertex) {
+        checkVertex(vertex);
         updateComponents();
         return componentSets.stream().filter(component -> !component.contains(vertex))
             .flatMap(Collection::stream).collect(Collectors.toSet());
+    }
+
+    private void checkVertex(V vertex) {
+        if (!graph.containsVertex(vertex)) {
+            throw new AssertionError("given vertex " + vertex + " is not in the graph");
+        }
     }
 }

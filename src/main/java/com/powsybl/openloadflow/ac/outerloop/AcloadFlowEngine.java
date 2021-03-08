@@ -78,7 +78,7 @@ public class AcloadFlowEngine implements AutoCloseable {
     private void updatePvBusesReactivePower(NewtonRaphsonResult lastNrResult, LfNetwork network, EquationSystem equationSystem) {
         if (lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
             for (LfBus bus : network.getBuses()) {
-                if (bus.hasVoltageControl()) {
+                if (bus.isVoltageControllerEnabled()) {
                     Equation q = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
                     bus.setCalculatedQ(q.eval());
                 } else {
@@ -127,7 +127,7 @@ public class AcloadFlowEngine implements AutoCloseable {
             LOGGER.info("Start AC loadflow on network {}", network.getNum());
 
             variableSet = new VariableSet();
-            AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(parameters.isVoltageRemoteControl(),
+            AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(
                     parameters.isPhaseControl(), parameters.isTransformerVoltageControlOn(), parameters.isForceA1Var());
             equationSystem = AcEquationSystem.create(network, variableSet, creationParameters);
             j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory());
