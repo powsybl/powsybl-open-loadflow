@@ -81,7 +81,7 @@ public class DcLoadFlowEngine {
         return new DcLoadFlowResult(network, getActivePowerMismatch(network.getBuses()), status);
     }
 
-    public LoadFlowResult.ComponentResult.Status run(EquationSystem equationSystem, JacobianMatrix j, Collection<LfBus> removedBuses) {
+    public LoadFlowResult.ComponentResult.Status run(EquationSystem equationSystem, JacobianMatrix j, Collection<LfBus> disabledBuses) {
 
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
 
@@ -89,7 +89,7 @@ public class DcLoadFlowEngine {
         LfNetwork network = networks.get(0);
 
         Collection<LfBus> remainingBuses = new HashSet<>(network.getBuses());
-        remainingBuses.removeAll(removedBuses);
+        remainingBuses.removeAll(disabledBuses);
 
         if (parameters.isDistributedSlack()) {
             distributeSlack(remainingBuses);
@@ -99,9 +99,9 @@ public class DcLoadFlowEngine {
 
         this.targetVector = equationSystem.createTargetVector();
 
-        if (!removedBuses.isEmpty()) {
+        if (!disabledBuses.isEmpty()) {
             // set buses injections and transformers to 0
-            removedBuses.stream()
+            disabledBuses.stream()
                 .map(lfBus -> equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P))
                 .filter(Optional::isPresent)
                 .map(Optional::get)

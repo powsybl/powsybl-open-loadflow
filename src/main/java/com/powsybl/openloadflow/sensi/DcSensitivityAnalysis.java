@@ -124,7 +124,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     protected DenseMatrix setReferenceActivePowerFlows(DcLoadFlowEngine dcLoadFlowEngine, EquationSystem equationSystem, JacobianMatrix j,
             List<LfSensitivityFactor<ClosedBranchSide1DcFlowEquationTerm>> factors, LoadFlowParameters lfParameters,
-            List<ParticipatingElement> participatingElements, Collection<LfBus> removedBuses) {
+            List<ParticipatingElement> participatingElements, Collection<LfBus> disabledBuses) {
 
         Map<LfBus, BusState> busStates = new HashMap<>();
         if (lfParameters.isDistributedSlack()) {
@@ -133,14 +133,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 .collect(Collectors.toSet()));
         }
 
-        dcLoadFlowEngine.run(equationSystem, j, removedBuses);
+        dcLoadFlowEngine.run(equationSystem, j, disabledBuses);
 
         for (LfSensitivityFactor factor : factors) {
             factor.setFunctionReference(factor.getFunctionLfBranch().getP1());
         }
 
         if (lfParameters.isDistributedSlack()) {
-            BusState.restoreDcBusStates(busStates);
+            BusState.restoreBusActiveStates(busStates);
         }
 
         double[] dx = dcLoadFlowEngine.getTargetVector();
@@ -459,13 +459,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 lfFactors.forEach(factor -> factor.setPredefinedResult(null));
                 cutConnectivity(lfNetwork, connectivity, breakingConnectivityCandidates.stream().map(ComputedContingencyElement::getElement).map(ContingencyElement::getId).collect(Collectors.toSet()));
 
-                Set<LfBus> nonConnectedBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
+                Set<LfBus> disabledBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
                 Set<LfBus> slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
-                slackConnectedComponent.removeAll(nonConnectedBuses);
+                slackConnectedComponent.removeAll(disabledBuses);
                 setPredefinedResults(lfFactors, slackConnectedComponent, connectivity); // check if factors are still in the main component
 
                 // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
-                rescaleGlsk(factorGroups, nonConnectedBuses);
+                rescaleGlsk(factorGroups, disabledBuses);
 
                 // null and unused if slack is not distributed
                 List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
@@ -493,7 +493,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 }
 
                 flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters,
-                    participatingElementsForThisConnectivity, nonConnectedBuses);
+                    participatingElementsForThisConnectivity, disabledBuses);
 
                 Set<String> elementsToReconnect = getElementsToReconnect(connectivity, breakingConnectivityCandidates);
 
