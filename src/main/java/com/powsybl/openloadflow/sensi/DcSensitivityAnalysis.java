@@ -15,13 +15,14 @@ import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
+import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.PropagatedContingency;
@@ -121,67 +122,28 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         super(matrixFactory);
     }
 
-    protected DenseMatrix setReferenceActivePowerFlows(LfNetwork network, EquationSystem equationSystem, JacobianMatrix j, List<LfSensitivityFactor<ClosedBranchSide1DcFlowEquationTerm>> factors,
-                                                       LoadFlowParameters lfParameters, List<ParticipatingElement> participatingElements, GraphDecrementalConnectivity<LfBus> connectivity) {
+    protected DenseMatrix setReferenceActivePowerFlows(DcLoadFlowEngine dcLoadFlowEngine, EquationSystem equationSystem, JacobianMatrix j,
+            List<LfSensitivityFactor<ClosedBranchSide1DcFlowEquationTerm>> factors, LoadFlowParameters lfParameters,
+            List<ParticipatingElement> participatingElements, Collection<LfBus> disabledBuses) {
 
-        double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
         Map<LfBus, BusState> busStates = new HashMap<>();
         if (lfParameters.isDistributedSlack()) {
-            double mismatch;
-            if (connectivity != null) {
-                mismatch = network.getActivePowerMismatchInMainComponent(connectivity);
-            } else {
-                mismatch = network.getActivePowerMismatch();
-            }
             busStates = BusState.createBusStates(participatingElements.stream()
-                    .map(ParticipatingElement::getLfBus)
-                    .collect(Collectors.toSet()));
-            int iteration = 0;
-            ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(lfParameters.getBalanceType(), false);
-            while (!participatingElements.isEmpty()
-                    && Math.abs(mismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
-                mismatch -= step.run(participatingElements, iteration, mismatch);
-
-                iteration++;
-            }
+                .map(ParticipatingElement::getLfBus)
+                .collect(Collectors.toSet()));
         }
 
-        equationSystem.updateEquations(x);
+        dcLoadFlowEngine.run(equationSystem, j, disabledBuses);
 
-        double[] dx = equationSystem.createTargetVector();
-
-        if (connectivity != null) {
-            // set buses injections and transformers to 0 outside the main connected component
-            int mainComponentNumber = connectivity.getComponentNumber(network.getSlackBus());
-            Set<Integer> columnsToSetToZero = network.getBuses().stream()
-                .filter(lfBus -> connectivity.getComponentNumber(lfBus) != mainComponentNumber)
-                .map(lfBus -> equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .map(Equation::getColumn)
-                .collect(Collectors.toSet());
-            for (Integer column : columnsToSetToZero) {
-                dx[column] = 0;
-            }
-        }
-
-        j.solveTransposed(dx);
-
-        equationSystem.updateEquations(dx);
-        equationSystem.updateNetwork(dx);
-
-        // set all calculated voltages to NaN
-        for (LfBus bus : network.getBuses()) {
-            bus.setV(Double.NaN);
-        }
         for (LfSensitivityFactor factor : factors) {
             factor.setFunctionReference(factor.getFunctionLfBranch().getP1());
         }
 
         if (lfParameters.isDistributedSlack()) {
-            BusState.restoreDcBusStates(busStates);
+            BusState.restoreBusActiveStates(busStates);
         }
 
+        double[] dx = dcLoadFlowEngine.getTargetVector();
         return new DenseMatrix(dx.length, 1, dx);
     }
 
@@ -392,9 +354,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         checkSensitivities(network, factors);
         checkLoadFlowParameters(lfParameters);
 
+        // create dc load flow engine for setting reference
+        DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfParametersExt.getSlackBusSelector(), matrixFactory,
+            true, lfParametersExt.isDcUseTransformerRatio(), lfParameters.isDistributedSlack(), lfParameters.getBalanceType(), true,
+            lfParametersExt.getPlausibleActivePowerLimit(), lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
+        DcLoadFlowEngine dcLoadFlowEngine = new DcLoadFlowEngine(lfNetworks, dcLoadFlowParameters);
+
         // create DC equation system for sensitivity analysis
-        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet(),
-                new DcEquationSystemCreationParameters(true, true, true, lfParametersExt.isDcUseTransformerRatio()));
+        DcEquationSystemCreationParameters dcEquationSystemCreationParameters = new DcEquationSystemCreationParameters(dcLoadFlowParameters.isUpdateFlows(), true,
+            dcLoadFlowParameters.isForcePhaseControlOffAndAddAngle1Var(), lfParametersExt.isDcUseTransformerRatio());
+        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet(), dcEquationSystemCreationParameters);
 
         // we wrap the factor into a class that allows us to have access to their branch and EquationTerm instantly
         List<LfSensitivityFactor<ClosedBranchSide1DcFlowEquationTerm>> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, equationSystem, ClosedBranchSide1DcFlowEquationTerm.class)).collect(Collectors.toList());
@@ -413,7 +382,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         List<ParticipatingElement> participatingElements = null;
         Map<String, Double> slackParticipationByBus;
         if (lfParameters.isDistributedSlack()) {
-            participatingElements = getParticipatingElements(lfNetwork, lfParameters, lfParametersExt);
+            participatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters, lfParametersExt);
             slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
                 element -> element.getLfBus().getId(),
                 element -> -element.getFactor(),
@@ -443,7 +412,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         try (JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer)) {
 
             // run DC load on pre-contingency network
-            DenseMatrix flowStates = setReferenceActivePowerFlows(lfNetwork, equationSystem, j, lfFactors, lfParameters, participatingElements, null);
+            DenseMatrix flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElements, Collections.emptyList());
 
             // compute the pre-contingency sensitivity values + the states with +1 -1 to model the contingencies
             DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorGroups); // this is the rhs for the moment
@@ -489,11 +458,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 List<PropagatedContingency> contingencyList = entry.getValue();
                 lfFactors.forEach(factor -> factor.setPredefinedResult(null));
                 cutConnectivity(lfNetwork, connectivity, breakingConnectivityCandidates.stream().map(ComputedContingencyElement::getElement).map(ContingencyElement::getId).collect(Collectors.toSet()));
-                int mainComponent = connectivity.getComponentNumber(lfNetwork.getSlackBus());
-                setPredefinedResults(lfFactors, connectivity, mainComponent); // check if factors are still in the main component
+
+                Set<LfBus> disabledBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
+                Set<LfBus> slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
+                slackConnectedComponent.removeAll(disabledBuses);
+                setPredefinedResults(lfFactors, slackConnectedComponent, connectivity); // check if factors are still in the main component
 
                 // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
-                rescaleGlsk(factorGroups, connectivity, mainComponent);
+                rescaleGlsk(factorGroups, disabledBuses);
 
                 // null and unused if slack is not distributed
                 List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
@@ -503,7 +475,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     Map<String, Double> slackParticipationByBusForThisConnectivity;
 
                     if (lfParameters.isDistributedSlack()) {
-                        participatingElementsForThisConnectivity = getParticipatingElements(lfNetwork, lfParameters, lfParametersExt, element -> connectivity.getComponentNumber(element.getLfBus()) == mainComponent); // will also be used to recompute the loadflow
+                        participatingElementsForThisConnectivity = getParticipatingElements(slackConnectedComponent, lfParameters, lfParametersExt); // will also be used to recompute the loadflow
                         slackParticipationByBusForThisConnectivity = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(
                             element -> element.getLfBus().getId(),
                             element -> -element.getFactor(),
@@ -520,7 +492,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     setBaseCaseSensitivityValues(factorGroups, factorsStates); // use this state to compute the base sensitivity (without +1-1)
                 }
 
-                flowStates = setReferenceActivePowerFlows(lfNetwork, equationSystem, j, lfFactors, lfParameters, participatingElementsForThisConnectivity, connectivity);
+                flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters,
+                    participatingElementsForThisConnectivity, disabledBuses);
 
                 Set<String> elementsToReconnect = getElementsToReconnect(connectivity, breakingConnectivityCandidates);
 

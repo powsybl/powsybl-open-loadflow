@@ -10,10 +10,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.JacobianMatrix;
-import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
-import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -22,10 +19,7 @@ import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -37,6 +31,8 @@ public class DcLoadFlowEngine {
     private final List<LfNetwork> networks;
 
     private final DcLoadFlowParameters parameters;
+
+    private double[] targetVector;
 
     public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory) {
         this.networks = Collections.singletonList(network);
@@ -53,52 +49,88 @@ public class DcLoadFlowEngine {
         this.parameters = Objects.requireNonNull(parameters);
     }
 
-    private void distributeSlack(LfNetwork network) {
-        double mismatch = network.getActivePowerMismatch();
+    private void distributeSlack(Collection<LfBus> buses) {
+        double mismatch = getActivePowerMismatch(buses);
         ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), false);
-        activePowerDistribution.run(network, mismatch);
+        activePowerDistribution.run(buses, mismatch);
+    }
+
+    private static double getActivePowerMismatch(Collection<LfBus> buses) {
+        double mismatch = 0;
+        for (LfBus b : buses) {
+            mismatch += b.getGenerationTargetP() - b.getLoadTargetP();
+        }
+        return -mismatch;
     }
 
     public DcLoadFlowResult run() {
         // only process main (largest) connected component
         LfNetwork network = networks.get(0);
 
-        if (parameters.isDistributedSlack()) {
-            distributeSlack(network);
-        }
-
         DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(parameters.isUpdateFlows(), false, parameters.isForcePhaseControlOffAndAddAngle1Var(), parameters.isUseTransformerRatio());
         EquationSystem equationSystem = DcEquationSystem.create(network, new VariableSet(), creationParameters);
 
+        LoadFlowResult.ComponentResult.Status status = LoadFlowResult.ComponentResult.Status.FAILED;
+        try (JacobianMatrix j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory())) {
+
+            status = run(equationSystem, j, Collections.emptyList());
+        } catch (Exception e) {
+            LOGGER.error("Failed to solve linear system for DC load flow", e);
+        }
+
+        return new DcLoadFlowResult(network, getActivePowerMismatch(network.getBuses()), status);
+    }
+
+    public LoadFlowResult.ComponentResult.Status run(EquationSystem equationSystem, JacobianMatrix j, Collection<LfBus> disabledBuses) {
+
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
+
+        // only process main (largest) connected component
+        LfNetwork network = networks.get(0);
+
+        Collection<LfBus> remainingBuses = new HashSet<>(network.getBuses());
+        remainingBuses.removeAll(disabledBuses);
+
+        if (parameters.isDistributedSlack()) {
+            distributeSlack(remainingBuses);
+        }
 
         equationSystem.updateEquations(x);
 
-        double[] targets = equationSystem.createTargetVector();
+        this.targetVector = equationSystem.createTargetVector();
 
-        try (JacobianMatrix j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory())) {
-            double[] dx = Arrays.copyOf(targets, targets.length);
-
-            LoadFlowResult.ComponentResult.Status status;
-            try {
-                j.solveTransposed(dx);
-                status = LoadFlowResult.ComponentResult.Status.CONVERGED;
-            } catch (Exception e) {
-                status = LoadFlowResult.ComponentResult.Status.FAILED;
-                LOGGER.error("Failed to solve linear system for DC load flow", e);
-            }
-
-            equationSystem.updateEquations(dx);
-            equationSystem.updateNetwork(dx);
-
-            // set all calculated voltages to NaN
-            for (LfBus bus : network.getBuses()) {
-                bus.setV(Double.NaN);
-            }
-
-            LOGGER.info("Dc loadflow complete (status={})", status);
-
-            return new DcLoadFlowResult(network, network.getActivePowerMismatch(), status);
+        if (!disabledBuses.isEmpty()) {
+            // set buses injections and transformers to 0
+            disabledBuses.stream()
+                .map(lfBus -> equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(Equation::getColumn)
+                .forEach(column -> targetVector[column] = 0);
         }
+
+        LoadFlowResult.ComponentResult.Status status;
+        try {
+            j.solveTransposed(targetVector);
+            status = LoadFlowResult.ComponentResult.Status.CONVERGED;
+        } catch (Exception e) {
+            status = LoadFlowResult.ComponentResult.Status.FAILED;
+            LOGGER.error("Failed to solve linear system for DC load flow", e);
+        }
+
+        equationSystem.updateEquations(targetVector);
+        equationSystem.updateNetwork(targetVector);
+
+        // set all calculated voltages to NaN
+        for (LfBus bus : network.getBuses()) {
+            bus.setV(Double.NaN);
+        }
+
+        LOGGER.info("Dc loadflow complete (status={})", status);
+        return status;
+    }
+
+    public double[] getTargetVector() {
+        return targetVector;
     }
 }

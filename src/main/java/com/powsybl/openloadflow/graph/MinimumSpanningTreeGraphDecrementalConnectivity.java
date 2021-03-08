@@ -91,25 +91,19 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements Graph
 
     @Override
     public int getComponentNumber(V vertex) {
-        if (this.mst == null) {
-            this.mst = new KruskalMinimumSpanningTrees().getSpanningTree();
-        }
-        if (this.parentMap == null) {
-            this.parentMap = mst.forest.getParentMap();
-            this.sortedRoots = mst.forest.getSortedRoots();
-        }
+        checkVertex(vertex);
+        lazyCompute();
         return sortedRoots.indexOf(parentMap.get(vertex));
     }
 
     @Override
     public List<Set<V>> getSmallComponents() {
-        if (this.mst == null) {
-            this.mst = new KruskalMinimumSpanningTrees().getSpanningTree();
-        }
-        if (this.parentMap == null) {
-            this.parentMap = mst.forest.getParentMap();
-            this.sortedRoots = mst.forest.getSortedRoots();
-        }
+        List<Set<V>> components = getConnectedComponents();
+        return components.subList(1, components.size());
+    }
+
+    private List<Set<V>> getConnectedComponents() {
+        lazyCompute();
         List<Set<V>> components = new ArrayList<>();
         for (V root : sortedRoots) {
             Set<V> set = parentMap.entrySet().stream()
@@ -117,7 +111,36 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements Graph
                 .map(Map.Entry::getKey).collect(Collectors.toSet());
             components.add(set);
         }
-        return components.subList(1, components.size());
+        return components;
+    }
+
+    @Override
+    public Set<V> getConnectedComponent(V vertex) {
+        checkVertex(vertex);
+        return getConnectedComponents().get(getComponentNumber(vertex));
+    }
+
+    @Override
+    public Set<V> getNonConnectedVertices(V vertex) {
+        checkVertex(vertex);
+        return getConnectedComponents().stream().filter(component -> !component.contains(vertex))
+            .flatMap(Collection::stream).collect(Collectors.toSet());
+    }
+
+    private void lazyCompute() {
+        if (this.mst == null) {
+            this.mst = new KruskalMinimumSpanningTrees().getSpanningTree();
+        }
+        if (this.parentMap == null) {
+            this.parentMap = mst.forest.getParentMap();
+            this.sortedRoots = mst.forest.getSortedRoots();
+        }
+    }
+
+    private void checkVertex(V vertex) {
+        if (!graph.containsVertex(vertex)) {
+            throw new AssertionError("given vertex " + vertex + " is not in the graph");
+        }
     }
 
     class KruskalMinimumSpanningTrees implements SpanningTreeAlgorithm<Object> {

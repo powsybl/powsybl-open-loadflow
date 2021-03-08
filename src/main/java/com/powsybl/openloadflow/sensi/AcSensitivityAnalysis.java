@@ -159,7 +159,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             Map<String, Double> slackParticipationByBus;
             if (lfParameters.isDistributedSlack()) {
-                List<ParticipatingElement> participatingElements = getParticipatingElements(lfNetwork, lfParameters, lfParametersExt);
+                List<ParticipatingElement> participatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters, lfParametersExt);
                 slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
                     element -> element.getLfBus().getId(),
                     element -> -element.getFactor(),
@@ -210,18 +210,21 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             for (LfContingency lfContingency : lfContingencies.stream().filter(lfContingency -> !lfContingency.getBuses().isEmpty()).collect(Collectors.toSet())) {
                 lfFactors.forEach(lfFactor -> lfFactor.setPredefinedResult(null));
 
-                int mainComponent = connectivity.getComponentNumber(lfNetwork.getSlackBus());
                 cutConnectivity(lfNetwork, connectivity, propagatedContingencyMap.get(lfContingency.getContingency()));
-                setPredefinedResults(lfFactors, connectivity, mainComponent); // check if factors are still in the main component
+                Set<LfBus> nonConnectedBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
+                Set<LfBus> slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
+                slackConnectedComponent.removeAll(nonConnectedBuses);
+                setPredefinedResults(lfFactors, slackConnectedComponent, connectivity); // check if factors are still in the main component
 
-                rescaleGlsk(factorGroups, connectivity, mainComponent);
+                rescaleGlsk(factorGroups, nonConnectedBuses);
 
                 // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
                 // buses that contain elements participating to slack distribution
                 Map<String, Double> slackParticipationByBusForThisConnectivity;
 
                 if (lfParameters.isDistributedSlack()) {
-                    List<ParticipatingElement> participatingElementsForThisConnectivity = getParticipatingElements(lfNetwork, lfParameters, lfParametersExt, element -> connectivity.getComponentNumber(element.getLfBus()) == mainComponent); // will also be used to recompute the loadflow
+                    List<ParticipatingElement> participatingElementsForThisConnectivity = getParticipatingElements(
+                        slackConnectedComponent, lfParameters, lfParametersExt); // will also be used to recompute the loadflow
                     slackParticipationByBusForThisConnectivity = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(
                         element -> element.getLfBus().getId(),
                         element -> -element.getFactor(),
