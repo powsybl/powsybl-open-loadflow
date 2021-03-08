@@ -21,7 +21,7 @@ import java.util.TreeSet;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractLfBranch implements LfBranch {
+public abstract class AbstractLfBranch extends AbstractElement implements LfBranch {
 
     public static class LfTemporaryLimit {
 
@@ -60,7 +60,8 @@ public abstract class AbstractLfBranch implements LfBranch {
 
     protected DiscreteVoltageControl discreteVoltageControl;
 
-    protected AbstractLfBranch(LfBus bus1, LfBus bus2, PiModel piModel) {
+    protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
+        super(network);
         this.bus1 = bus1;
         this.bus2 = bus2;
         this.piModel = Objects.requireNonNull(piModel);
@@ -75,16 +76,6 @@ public abstract class AbstractLfBranch implements LfBranch {
             }
         }
         return temporaryLimits;
-    }
-
-    @Override
-    public int getNum() {
-        return num;
-    }
-
-    @Override
-    public void setNum(int num) {
-        this.num = num;
     }
 
     @Override

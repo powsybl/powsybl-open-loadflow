@@ -155,7 +155,7 @@ class AcLoadFlowDanglingLineTest {
         assertTrue(result2.isOk());
 
         assertVoltageEquals(390.440, bus1);
-        assertAngleEquals(0.114259, bus1);
+        assertAngleEquals(0.114371, bus1);
         assertVoltageEquals(390.181, bus2);
         assertAngleEquals(0, bus2);
         assertActivePowerEquals(101.2, dl1.getTerminal());

@@ -41,6 +41,10 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
 
+    protected double calculateDer(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
+        return dq1dph1 * dph1 + dq1dph2 * dph2 + dq1dv1 * dv1 + dq1dv2 * dv2;
+    }
+
     @Override
     public void update(double[] x) {
         Objects.requireNonNull(x);

@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.ac.nr.AcLoadFlowObserver;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.equations.VoltageInitializer;
 import com.powsybl.openloadflow.network.SlackBusSelector;
@@ -30,8 +29,6 @@ public class AcLoadFlowParameters {
 
     private final MatrixFactory matrixFactory;
 
-    private final AcLoadFlowObserver observer;
-
     private final boolean voltageRemoteControl;
 
     private final boolean phaseControl;
@@ -46,17 +43,21 @@ public class AcLoadFlowParameters {
 
     private double plausibleActivePowerLimit;
 
+    private final boolean forceA1Var;
+
+    private final boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
-                                MatrixFactory matrixFactory, AcLoadFlowObserver observer, boolean voltageRemoteControl,
+                                MatrixFactory matrixFactory, boolean voltageRemoteControl,
                                 boolean phaseControl, boolean transformerVoltageControlOn, boolean minImpedance,
-                                boolean twtSplitShuntAdmittance, boolean breakers, double plausibleActivePowerLimit) {
+                                boolean twtSplitShuntAdmittance, boolean breakers, double plausibleActivePowerLimit,
+                                boolean forceA1Var, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
         this.outerLoops = Objects.requireNonNull(outerLoops);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        this.observer = Objects.requireNonNull(observer);
         this.voltageRemoteControl = voltageRemoteControl;
         this.phaseControl = phaseControl;
         this.transformerVoltageControlOn = transformerVoltageControlOn;
@@ -64,6 +65,8 @@ public class AcLoadFlowParameters {
         this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
         this.breakers = breakers;
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
+        this.forceA1Var = forceA1Var;
+        this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -88,10 +91,6 @@ public class AcLoadFlowParameters {
 
     public MatrixFactory getMatrixFactory() {
         return matrixFactory;
-    }
-
-    public AcLoadFlowObserver getObserver() {
-        return observer;
     }
 
     public boolean isVoltageRemoteControl() {
@@ -120,5 +119,13 @@ public class AcLoadFlowParameters {
 
     public double getPlausibleActivePowerLimit() {
         return plausibleActivePowerLimit;
+    }
+
+    public boolean isForceA1Var() {
+        return forceA1Var;
+    }
+
+    public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
+        return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
     }
 }

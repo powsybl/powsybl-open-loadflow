@@ -12,10 +12,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -76,7 +73,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
     public void setActive(boolean active) {
         if (active != this.active) {
             this.active = active;
-            equationSystem.notifyListeners(this, active ? EquationEventType.EQUATION_ACTIVATED : EquationEventType.EQUATION_DEACTIVATED);
+            equationSystem.notifyEquationChange(this, active ? EquationEventType.EQUATION_ACTIVATED : EquationEventType.EQUATION_DEACTIVATED);
         }
     }
 
@@ -93,7 +90,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
         terms.add(term);
         term.setEquation(this);
         equationSystem.addEquationTerm(term);
-        equationSystem.notifyListeners(this, EquationEventType.EQUATION_UPDATED);
+        equationSystem.notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_ADDED);
         return this;
     }
 
@@ -114,22 +111,16 @@ public class Equation implements Evaluable, Comparable<Equation> {
         if (bus.isDiscreteVoltageControlled()) {
             return bus.getDiscreteVoltageControl().getTargetValue();
         }
-        if (bus.getControllerBuses().isEmpty()) {
-            return bus.getTargetV();
-        } else {
-            List<LfBus> controllerBuses = bus.getControllerBuses()
-                    .stream()
-                    .filter(LfBus::hasVoltageControl)
-                    .collect(Collectors.toList());
-            if (bus.hasVoltageControl()) {
-                controllerBuses.add(bus);
+        return getVoltageControlledTargetValue(bus).orElse(Double.NaN);
+    }
+
+    private static Optional<Double> getVoltageControlledTargetValue(LfBus bus) {
+        return bus.getVoltageControl().filter(vc -> bus.isVoltageControlled()).map(vc -> {
+            if (vc.getControllerBuses().stream().noneMatch(LfBus::isVoltageControllerEnabled)) {
+                throw new IllegalStateException("None of the controller buses of bus '" + bus.getId() + "'has voltage control on");
             }
-            if (controllerBuses.isEmpty()) {
-                throw new IllegalStateException("None of the controller buses of bus '" + bus.getId()
-                        + "'has voltage control on");
-            }
-            return controllerBuses.get(0).getTargetV();
-        }
+            return vc.getTargetValue();
+        });
     }
 
     private static double getBranchA(LfBranch branch) {

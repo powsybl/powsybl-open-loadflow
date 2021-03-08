@@ -21,6 +21,8 @@ public interface LfBranch {
 
     void setNum(int num);
 
+    LfNetwork getNetwork();
+
     LfBus getBus1();
 
     LfBus getBus2();
