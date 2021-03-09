@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import net.jafama.FastMath;
 
 import java.util.Objects;
 
@@ -21,6 +22,10 @@ public class OpenBranchSide2IntensityMagnitudeEquationTerm extends AbstractOpenS
 
     private final Variable v1Var;
 
+    private final Variable ph1Var;
+
+    private Variable r1Var;
+
     private double i1;
 
     private double di1dv1;
@@ -29,22 +34,33 @@ public class OpenBranchSide2IntensityMagnitudeEquationTerm extends AbstractOpenS
                                                          boolean deriveA1, boolean deriveR1) {
         super(branch, VariableType.BUS_V, bus1, variableSet, deriveA1, deriveR1);
         v1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_V);
+        ph1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_PHI);
+        if (deriveR1) {
+            r1Var = variableSet.getVariable(bus1.getNum(), VariableType.BRANCH_RHO1);
+        }
     }
 
     @Override
     public void update(double[] x) {
         Objects.requireNonNull(x);
         double v1 = x[v1Var.getRow()];
-        double r1 = branch.getPiModel().getR1();
-        double p1 = r1 * r1 * v1 * v1 * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * sinKsi / shunt);
-        double q1 = -r1 * r1 * v1 * v1 * (b1 + y * y * b2 / shunt - (b2 * b2 + g2 * g2) * y * cosKsi / shunt);
+        double ph1 = x[ph1Var.getRow()];
+        double r1 = r1Var != null && r1Var.isActive() ? x[r1Var.getRow()] : branch.getPiModel().getR1();
+        double w1 = r1 * v1;
+        double cosPh1 = FastMath.cos(ph1);
+        double sinPh1 = FastMath.sin(ph1);
 
-        i1 = Math.hypot(p1, q1) / (Math.sqrt(3.) * v1 / 1000);
+        double gres = g1 + (y * y * g2 + (b2 * b2 + g2 * g2) * y * sinKsi) / shunt;
+        double bres = b1 + (y * y * b2 - (b2 * b2 + g2 * g2) * y * cosKsi) / shunt;
 
-        double tpv1 = r1 * r1 * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * sinKsi / shunt);
-        double tqv1 = r1 * r1 * (b1 + y * y * b2 / shunt - (b2 * b2 + g2 * g2) * y * cosKsi / shunt);
+        double reI1 = r1 * w1 * (gres * cosPh1 - bres * sinPh1) * NORMALIZATION_FACTOR;
+        double imI1 = r1 * w1 * (gres * sinPh1 + bres * cosPh1) * NORMALIZATION_FACTOR;
+        i1 = Math.hypot(reI1, imI1);
 
-        di1dv1 = 1000 / Math.sqrt(3) * Math.hypot(tpv1, tqv1);
+        double dreI1dv1 = r1 * r1 * (gres * cosPh1 - bres * sinPh1) * NORMALIZATION_FACTOR;
+
+        double dimI1dv1 = r1 * r1 * (gres * sinPh1 + bres * cosPh1) * NORMALIZATION_FACTOR;
+        di1dv1 = (reI1 * dreI1dv1 + imI1 * dimI1dv1) / i1;
     }
 
     @Override
