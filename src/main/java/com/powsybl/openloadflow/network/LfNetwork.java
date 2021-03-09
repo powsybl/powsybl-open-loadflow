@@ -369,25 +369,6 @@ public class LfNetwork {
                 num, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
-    public double getActivePowerMismatch() {
-        double mismatch = 0;
-        for (LfBus b : busesById.values()) {
-            mismatch += b.getGenerationTargetP() - b.getLoadTargetP();
-        }
-        return -mismatch;
-    }
-
-    public double getActivePowerMismatchInMainComponent(GraphDecrementalConnectivity<LfBus> connectivity) {
-        double mismatch = 0;
-        int mainComponent = connectivity.getComponentNumber(getSlackBus());
-        for (LfBus b : busesById.values()) {
-            if (connectivity.getComponentNumber(b) == mainComponent) {
-                mismatch += b.getGenerationTargetP() - b.getLoadTargetP();
-            }
-        }
-        return -mismatch;
-    }
-
     private static void fix(LfNetwork network, boolean minImpedance) {
         if (minImpedance) {
             for (LfBranch branch : network.getBranches()) {

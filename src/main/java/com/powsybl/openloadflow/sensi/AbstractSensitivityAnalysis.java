@@ -42,7 +42,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -218,7 +217,7 @@ public abstract class AbstractSensitivityAnalysis {
             throw new NotImplementedException("areVariableAndFunctionDisconnected should have an override");
         }
 
-        public boolean isConnectedToComponent(Integer componentNumber, GraphDecrementalConnectivity<LfBus> connectivity) {
+        public boolean isConnectedToComponent(Set<LfBus> connectedComponent) {
             throw new NotImplementedException("isConnectedToComponent should have an override");
         }
     }
@@ -242,8 +241,8 @@ public abstract class AbstractSensitivityAnalysis {
         }
 
         @Override
-        public boolean isConnectedToComponent(Integer componentNumber, GraphDecrementalConnectivity<LfBus> connectivity) {
-            return connectivity.getComponentNumber(injectionLfBus) == componentNumber;
+        public boolean isConnectedToComponent(Set<LfBus> connectedComponent) {
+            return connectedComponent.contains(injectionLfBus);
         }
 
         public LfBus getInjectionLfBus() {
@@ -270,8 +269,8 @@ public abstract class AbstractSensitivityAnalysis {
         }
 
         @Override
-        public boolean isConnectedToComponent(Integer componentNumber, GraphDecrementalConnectivity<LfBus> connectivity) {
-            return componentNumber == connectivity.getComponentNumber(phaseTapChangerLfBranch.getBus1());
+        public boolean isConnectedToComponent(Set<LfBus> connectedComponent) {
+            return connectedComponent.contains(phaseTapChangerLfBranch.getBus1());
         }
 
     }
@@ -325,13 +324,13 @@ public abstract class AbstractSensitivityAnalysis {
         }
 
         @Override
-        public boolean isConnectedToComponent(Integer componentNumber, GraphDecrementalConnectivity<LfBus> connectivity) {
-            if (connectivity.getComponentNumber(getFunctionLfBranch().getBus1()) != componentNumber
-                || connectivity.getComponentNumber(getFunctionLfBranch().getBus2()) != componentNumber) {
+        public boolean isConnectedToComponent(Set<LfBus> connectedComponent) {
+            if (!connectedComponent.contains(getFunctionLfBranch().getBus1())
+                || !connectedComponent.contains(getFunctionLfBranch().getBus2())) {
                 return false;
             }
             for (LfBus lfBus : injectionBuses.keySet()) {
-                if (connectivity.getComponentNumber(lfBus) == componentNumber) {
+                if (connectedComponent.contains(lfBus)) {
                     return true;
                 }
             }
@@ -495,15 +494,11 @@ public abstract class AbstractSensitivityAnalysis {
         return new ArrayList<>(groupIndexedById.values());
     }
 
-    protected List<ParticipatingElement> getParticipatingElements(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters, Function<ParticipatingElement, Boolean> filter) {
+    protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
         ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(loadFlowParameters.getBalanceType(), openLoadFlowParameters.isLoadPowerFactorConstant());
-        List<ParticipatingElement> participatingElements =  step.getParticipatingElements(lfNetwork).stream().filter(filter::apply).collect(Collectors.toList());
+        List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
         ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
         return participatingElements;
-    }
-
-    protected List<ParticipatingElement> getParticipatingElements(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
-        return getParticipatingElements(lfNetwork, loadFlowParameters, openLoadFlowParameters, element -> true);
     }
 
     protected void computeInjectionFactors(Map<String, Double> participationFactorByBus, List<SensitivityFactorGroup> factorGroups) {
@@ -528,18 +523,19 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    public void cutConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, Collection<String> elementsPotentiallyBreakingConnectivity) {
-        elementsPotentiallyBreakingConnectivity.stream()
+    public void cutConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, Collection<String> breakingConnectivityCandidates) {
+        breakingConnectivityCandidates.stream()
             .map(lfNetwork::getBranchById)
             .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
     }
 
-    protected <T extends EquationTerm> void setPredefinedResults(Collection<LfSensitivityFactor<? extends T>> lfFactors, GraphDecrementalConnectivity<LfBus> connectivity, int mainComponent) {
+    protected <T extends EquationTerm> void setPredefinedResults(Collection<LfSensitivityFactor<? extends T>> lfFactors, Set<LfBus> connectedComponent,
+                                                                 GraphDecrementalConnectivity<LfBus> connectivity) {
         for (LfSensitivityFactor<? extends T> factor : lfFactors) {
             // check if the factor function and variable are in different connected components
             if (factor.areVariableAndFunctionDisconnected(connectivity)) {
                 factor.setPredefinedResult(0d);
-            } else if (!factor.isConnectedToComponent(mainComponent, connectivity)) {
+            } else if (!factor.isConnectedToComponent(connectedComponent)) {
                 factor.setPredefinedResult(Double.NaN); // works for sensitivity and function reference
             }
         }
@@ -549,7 +545,7 @@ public abstract class AbstractSensitivityAnalysis {
         return new SensitivityValue(lfFactor.getFactor(), 0, Double.NaN, Double.NaN);
     }
 
-    protected void rescaleGlsk(List<SensitivityFactorGroup> factorGroups, GraphDecrementalConnectivity<LfBus> connectivity, Integer mainComponentNumber) {
+    protected void rescaleGlsk(List<SensitivityFactorGroup> factorGroups, Set<LfBus> nonConnectedBuses) {
         // compute the corresponding injection (with participation) for each factor
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             if (!(factorGroup instanceof LinearGlskGroup)) {
@@ -557,7 +553,7 @@ public abstract class AbstractSensitivityAnalysis {
             }
             LinearGlskGroup glskGroup = (LinearGlskGroup) factorGroup;
             Map<String, Double> remainingGlskInjections = glskGroup.getGlskMap().entrySet().stream()
-                .filter(entry -> connectivity.getComponentNumber(entry.getKey()) == mainComponentNumber)
+                .filter(entry -> !nonConnectedBuses.contains(entry.getKey()))
                 .collect(Collectors.toMap(entry -> entry.getKey().getId(), Map.Entry::getValue));
             glskGroup.setGlskMapInMainComponent(remainingGlskInjections);
         }
