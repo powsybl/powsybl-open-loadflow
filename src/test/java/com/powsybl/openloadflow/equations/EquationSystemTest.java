@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.ac.equations.BusVoltageEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
+import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import org.apache.commons.lang3.tuple.Pair;
@@ -171,5 +172,30 @@ class EquationSystemTest {
         assertEquals(-7.397518453004565, largestMismatches.get(0).getValue(), 0);
         assertEquals(5.999135514403292, largestMismatches.get(1).getValue(), 0);
         assertEquals(1.9259062775721603, largestMismatches.get(2).getValue(), 0);
+    }
+
+    @Test
+    void intensityMagnitudeTest() {
+        Network network = EurostagTutorialExample1Factory.create();
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        VariableSet variableSet = new VariableSet();
+        EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, variableSet);
+        double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
+        equationSystem.updateEquations(x);
+        LfBranch branch = lfNetwork.getBranchById("NHV1_NHV2_1");
+        EquationTerm i1 = equationSystem.getEquation(branch.getBus1().getNum(), EquationType.BUS_I).orElse(null).getTerms().get(1);
+        EquationTerm i2 = equationSystem.getEquation(branch.getBus2().getNum(), EquationType.BUS_I).orElse(null).getTerms().get(0);
+        Variable v1var = variableSet.getVariable(branch.getBus1().getNum(), VariableType.BUS_V);
+        Variable v2var = variableSet.getVariable(branch.getBus2().getNum(), VariableType.BUS_V);
+        Variable ph1var = variableSet.getVariable(branch.getBus1().getNum(), VariableType.BUS_PHI);
+        Variable ph2var = variableSet.getVariable(branch.getBus2().getNum(), VariableType.BUS_PHI);
+        assertEquals(-24895.468, i1.der(v1var), 10E-3);
+        assertEquals(25056.371, i1.der(v2var), 10E-3);
+        assertEquals(2277.852, i1.der(ph1var), 10E-3);
+        assertEquals(-2277.852, i1.der(ph2var), 10E-3);
+        assertEquals(25056.371, i2.der(v1var), 10E-3);
+        assertEquals(-24895.468, i2.der(v2var), 10E-3);
+        assertEquals(-2277.852, i2.der(ph1var), 10E-3);
+        assertEquals(2277.852, i2.der(ph2var), 10E-3);
     }
 }
