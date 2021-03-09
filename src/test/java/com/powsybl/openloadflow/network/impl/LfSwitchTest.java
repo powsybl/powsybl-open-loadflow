@@ -11,8 +11,14 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1IntensityMagnitudeEquationTerm;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ActiveFlowEquationTerm;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2IntensityMagnitudeEquationTerm;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
+import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,7 +52,7 @@ public class LfSwitchTest {
     }
 
     @Test
-    void loadTest() {
+    void getterTest() {
         assertEquals("B3", lfSwitch.getId());
         assertEquals(false, lfSwitch.hasPhaseControlCapability());
         assertEquals(Double.NaN, lfSwitch.getP1());
@@ -58,15 +64,22 @@ public class LfSwitchTest {
     }
 
     @Test
-    void afterLoadFlowTest() {
-        AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acLoadFlowParameters);
-        engine.run();
+    void setterTest() {
+        lfSwitch.getPiModel().setX(LfNetwork.LOW_IMPEDANCE_THRESHOLD); //FIXME
+
+        EquationTerm p1 = new ClosedBranchSide1ActiveFlowEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), new VariableSet(), false, false);
+        EquationTerm p2 = new ClosedBranchSide2ActiveFlowEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), new VariableSet(), false, false);
+        lfSwitch.setP1(p1);
         assertEquals(Double.NaN, lfSwitch.getP1());
+        lfSwitch.setP2(p2);
         assertEquals(Double.NaN, lfSwitch.getP2());
-        assertEquals(Double.NaN, lfSwitch.getI1());
-        assertEquals(Double.NaN, lfSwitch.getI2());
-        assertEquals(Double.NaN, lfSwitch.getPermanentLimit1());
-        assertEquals(Double.NaN, lfSwitch.getPermanentLimit2());
+
+        EquationTerm i1 = new ClosedBranchSide1IntensityMagnitudeEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), new VariableSet(), false, false);
+        EquationTerm i2 = new ClosedBranchSide2IntensityMagnitudeEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), new VariableSet(), false, false);
+        lfSwitch.setI1(i1);
+        assertEquals(Double.NaN, lfSwitch.getP1());
+        lfSwitch.setI2(i2);
+        assertEquals(Double.NaN, lfSwitch.getP2());
     }
 
 }
