@@ -505,8 +505,8 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    public void cutConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, Collection<String> elementsPotentiallyBreakingConnectivity) {
-        elementsPotentiallyBreakingConnectivity.stream()
+    public void cutConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, Collection<String> breakingConnectivityCandidates) {
+        breakingConnectivityCandidates.stream()
             .map(lfNetwork::getBranchById)
             .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
     }

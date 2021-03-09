@@ -11,10 +11,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.*;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,7 +70,7 @@ public class DcLoadFlowEngine {
         LoadFlowResult.ComponentResult.Status status = LoadFlowResult.ComponentResult.Status.FAILED;
         try (JacobianMatrix j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory())) {
 
-            status = run(equationSystem, j, Collections.emptyList());
+            status = run(equationSystem, j, Collections.emptyList(), Collections.emptyList());
         } catch (Exception e) {
             LOGGER.error("Failed to solve linear system for DC load flow", e);
         }
@@ -81,7 +78,8 @@ public class DcLoadFlowEngine {
         return new DcLoadFlowResult(network, getActivePowerMismatch(network.getBuses()), status);
     }
 
-    public LoadFlowResult.ComponentResult.Status run(EquationSystem equationSystem, JacobianMatrix j, Collection<LfBus> disabledBuses) {
+    public LoadFlowResult.ComponentResult.Status run(EquationSystem equationSystem, JacobianMatrix j,
+                                                     Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches) {
 
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
 
@@ -103,6 +101,16 @@ public class DcLoadFlowEngine {
             // set buses injections and transformers to 0
             disabledBuses.stream()
                 .map(lfBus -> equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(Equation::getColumn)
+                .forEach(column -> targetVector[column] = 0);
+        }
+
+        if (!disabledBranches.isEmpty()) {
+            // set transformer phase shift to 0
+            disabledBranches.stream()
+                .map(lfBranch -> equationSystem.getEquation(lfBranch.getNum(), EquationType.BRANCH_ALPHA1))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .map(Equation::getColumn)
