@@ -46,40 +46,44 @@ public class ClosedBranchSide2IntensityMagnitudeEquationTerm extends AbstractClo
 
     @Override
     public void update(double[] x) {
-        // todo
         Objects.requireNonNull(x);
-        double v1 = x[v1Var.getRow()];
         double v2 = x[v2Var.getRow()];
-        double ph1 = x[ph1Var.getRow()];
+        double v1 = x[v1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
+        double ph1 = x[ph1Var.getRow()];
+        double r1 = r1Var != null && r1Var.isActive() ? x[r1Var.getRow()] : branch.getPiModel().getR1();
+        double w2 = R2 * v2;
+        double w1 = y * r1 * v1;
+        double cosPh2 = FastMath.cos(ph2);
+        double sinPh2 = FastMath.sin(ph2);
+        double cosPh2Ksi = FastMath.cos(ph2 + ksi);
+        double sinPh2Ksi = FastMath.sin(ph2 + ksi);
         double theta = ksi - (a1Var != null && a1Var.isActive() ? x[a1Var.getRow()] : branch.getPiModel().getA1())
-                + A2 - ph1 + ph2;
+            + A2 + ph1;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
-        double r1 = r1Var != null && r1Var.isActive() ? x[r1Var.getRow()] : branch.getPiModel().getR1();
-        double p2 = R2 * v2 * (g2 * R2 * v2 - y * r1 * v1 * sinTheta + y * R2 * v2 * sinKsi);
-        double q2 = R2 * v2 * (-b2 * R2 * v2 - y * r1 * v1 * cosTheta + y * R2 * v2 * cosKsi);
 
-        i2 = Math.hypot(p2, q2) / (Math.sqrt(3.) * v2 / 1000);
+        double reI2 = R2 * (w2 * (g2 * cosPh2 - b2 * sinPh2 + y * sinPh2Ksi) - w1 * sinTheta) * NORMALIZATION_FACTOR;
+        double imI2 = R2 * (w2 * (g2 * sinPh2 + b2 * cosPh2 - y * cosPh2Ksi) + w1 * cosTheta) * NORMALIZATION_FACTOR;
+        i2 = Math.hypot(reI2, imI2);
 
-        double vv2 = R2 * v2;
-        double vv1 = y * r1 * v1;
-        double tv2v2 = g2 * g2 + b2 * b2 + y * y + 2 * g2 * y * sinKsi - 2 * y * b2 * cosKsi;
-        double tv2v1 = -g2 * sinTheta - y * sinKsi * sinTheta + b2 * cosTheta - y * cosKsi * cosTheta;
-        double tsqrt = R2 * R2 * (vv2 * vv2 * tv2v2 + vv1 * vv1 + 2 * vv2 * vv1 * tv2v1);
-        double dtsqrtv2 = R2 * R2 * (2 * R2 * vv2 * tv2v2 + 2 * R2 * vv1 * tv2v1);
-        double dtsqrtv1 = R2 * R2 * (2 * y * r1 * vv1 + 2 * y * r1 * vv2 * tv2v1);
-        double dtv2v1ph2 = g2 * cosTheta + y * sinKsi * cosTheta + b2 * sinTheta - y * cosKsi * sinTheta;
-        double dtsqrtph2 = R2 * R2 * (2 * vv2 * vv1 * dtv2v1ph2);
-        double ti2 = 1000 / (2 * Math.sqrt(3 * tsqrt));
+        double dreI2dv2 = R2 * R2 * (g2 * cosPh2 - b2 * sinPh2 + y * sinPh2Ksi) * NORMALIZATION_FACTOR;
+        double dreI2dv1 = R2 * (-y * r1 * sinTheta) * NORMALIZATION_FACTOR;
+        double dreI2dph2 = R2 * w2 * (-g2 * sinPh2 - b2 * cosPh2 + y * cosPh2Ksi) * NORMALIZATION_FACTOR;
+        double dreI2dph1 = R2 * (-w1 * cosTheta) * NORMALIZATION_FACTOR;
 
-        di2dv2 = ti2 * dtsqrtv2;
-        di2dv1 = ti2 * dtsqrtv1;
-        di2dph2 = ti2 * dtsqrtph2;
-        di2dph1 = -di2dph2;
+        double dimI2dv2 = R2 * R2 * (g2 * sinPh2 + b2 * cosPh2 - y * cosPh2Ksi) * NORMALIZATION_FACTOR;
+        double dimI2dv1 = R2 * (y * r1 * cosTheta) * NORMALIZATION_FACTOR;
+        double dimI2dph2 = R2 * w2 * (g2 * cosPh2 - b2 * sinPh2 + y * sinPh2Ksi) * NORMALIZATION_FACTOR;
+        double dimI2dph1 = R2 * (-w1 * sinTheta) * NORMALIZATION_FACTOR;
+
+        di2dv2 = (reI2 * dreI2dv2 + imI2 * dimI2dv2) / i2;
+        di2dv1 = (reI2 * dreI2dv1 + imI2 * dimI2dv1) / i2;
+        di2dph2 = (reI2 * dreI2dph2 + imI2 * dimI2dph2) / i2;
+        di2dph1 = (reI2 * dreI2dph1 + imI2 * dimI2dph1) / i2;
 
         if (a1Var != null) {
-            di2da1 = di2dph1;
+            di2da1 = -di2dph1;
         }
     }
 
