@@ -520,14 +520,23 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 slackConnectedComponent.removeAll(disabledBuses);
                 setPredefinedResults(lfFactors, slackConnectedComponent, connectivity); // check if factors are still in the main component
 
-                // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
-                rescaleGlsk(factorGroups, disabledBuses);
-
                 // null and unused if slack is not distributed
                 List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
+                boolean rhsChanged = false; // true if there if the disabled buses changes the distribution, or the glsks
+                if (lfParameters.isDistributedSlack()) {
+                    rhsChanged = participatingElements.stream().anyMatch(element -> disabledBuses.contains(element.getLfBus()));
+                }
+                if (hasGlsk) {
+                    // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
+                    rescaleGlsk(factorGroups, disabledBuses);
+                    rhsChanged = rhsChanged || factorGroups.stream().filter(group -> group instanceof LinearGlskGroup)
+                        .map(group -> (LinearGlskGroup) group)
+                        .flatMap(group -> group.getGlskMap().keySet().stream())
+                        .anyMatch(disabledBuses::contains);
+                }
 
                 // we need to recompute the factor states because the connectivity changed
-                if (lfParameters.isDistributedSlack() || hasGlsk) {
+                if (rhsChanged) {
                     Map<String, Double> slackParticipationByBusForThisConnectivity;
 
                     if (lfParameters.isDistributedSlack()) {
