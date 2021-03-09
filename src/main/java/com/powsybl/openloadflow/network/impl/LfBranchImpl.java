@@ -182,14 +182,12 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     @Override
     public double getI1() {
-        return getBus1() != null ? Math.hypot(p1.eval(), q1.eval())
-            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
+        return i1.eval();
     }
 
     @Override
     public double getI2() {
-        return getBus2() != null ? Math.hypot(p2.eval(), q2.eval())
-            / (Math.sqrt(3.) * getBus2().getV() / 1000) : Double.NaN;
+        return i2.eval();
     }
 
     @Override
