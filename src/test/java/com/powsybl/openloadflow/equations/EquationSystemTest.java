@@ -6,10 +6,13 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.BusVoltageEquationTerm;
+import com.powsybl.openloadflow.ac.equations.OpenBranchSide1IntensityMagnitudeEquationTerm;
+import com.powsybl.openloadflow.ac.equations.OpenBranchSide2IntensityMagnitudeEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
@@ -197,5 +200,41 @@ class EquationSystemTest {
         assertEquals(-24895.468, i2.der(v2var), 10E-3);
         assertEquals(-2277.852, i2.der(ph1var), 10E-3);
         assertEquals(2277.852, i2.der(ph2var), 10E-3);
+    }
+
+    @Test
+    void intensityMagnitudeOpenBranchSide2Test() {
+        Network network = EurostagTutorialExample1Factory.create();
+        Line line1 = network.getLine("NHV1_NHV2_1");
+        line1.getTerminal2().disconnect();
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        VariableSet variableSet = new VariableSet();
+        EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, variableSet);
+        double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
+        equationSystem.updateEquations(x);
+        LfBranch branch = lfNetwork.getBranchById("NHV1_NHV2_1");
+        EquationTerm i1 = equationSystem.getEquation(branch.getBus1().getNum(), EquationType.BUS_I).orElse(null).getTerms().stream().filter(OpenBranchSide2IntensityMagnitudeEquationTerm.class::isInstance).findAny().get();
+        Variable v1var = variableSet.getVariable(branch.getBus1().getNum(), VariableType.BUS_V);
+        Variable ph1var = variableSet.getVariable(branch.getBus1().getNum(), VariableType.BUS_PHI);
+        assertEquals(322.837, i1.der(v1var), 10E-3);
+        assertThrows(IllegalStateException.class, () -> i1.der(ph1var));
+    }
+
+    @Test
+    void intensityMagnitudeOpenBranchSide1Test() {
+        Network network = EurostagTutorialExample1Factory.create();
+        Line line1 = network.getLine("NHV1_NHV2_1");
+        line1.getTerminal1().disconnect();
+        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        VariableSet variableSet = new VariableSet();
+        EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, variableSet);
+        double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
+        equationSystem.updateEquations(x);
+        LfBranch branch = lfNetwork.getBranchById("NHV1_NHV2_1");
+        EquationTerm i2 = equationSystem.getEquation(branch.getBus2().getNum(), EquationType.BUS_I).orElse(null).getTerms().stream().filter(OpenBranchSide1IntensityMagnitudeEquationTerm.class::isInstance).findAny().get();
+        Variable v2var = variableSet.getVariable(branch.getBus2().getNum(), VariableType.BUS_V);
+        Variable ph2var = variableSet.getVariable(branch.getBus2().getNum(), VariableType.BUS_PHI);
+        assertEquals(322.837, i2.der(v2var), 10E-3);
+        assertThrows(IllegalStateException.class, () -> i2.der(ph2var));
     }
 }
