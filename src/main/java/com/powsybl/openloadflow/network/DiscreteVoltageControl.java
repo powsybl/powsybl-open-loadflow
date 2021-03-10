@@ -43,7 +43,6 @@ public class DiscreteVoltageControl {
     }
 
     public void setMode(Mode mode) {
-        System.out.println("toto");
         Objects.requireNonNull(mode);
         if (mode != this.mode) {
             Mode oldMode = this.mode;
