@@ -102,6 +102,40 @@ public abstract class AbstractSensitivityAnalysis {
         return new JacobianMatrix(equationSystem, matrixFactory);
     }
 
+    static class CachedBus {
+        LfBus lfBus;
+
+        Equation pEquation;
+
+        CachedBus(LfBus lfBus, Equation pEquation) {
+            this.lfBus = lfBus;
+            this.pEquation = pEquation;
+        }
+
+        public LfBus getLfBus() {
+            return lfBus;
+        }
+
+        public Equation getpEquation() {
+            return pEquation;
+        }
+    }
+
+    static class CachedNetwork {
+        Map<String, CachedBus> cachedBusById;
+
+        CachedNetwork(LfNetwork lfNetwork, EquationSystem equationSystem) {
+            cachedBusById = lfNetwork.getBuses().stream().collect(Collectors.toMap(
+                LfBus::getId,
+                lfBus -> new CachedBus(lfBus, equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).get())
+            ));
+        }
+
+        public CachedBus getBusBuyId(String busId) {
+            return cachedBusById.get(busId);
+        }
+    }
+
     static class LfSensitivityFactor<T extends EquationTerm> {
 
         enum Status {
@@ -378,59 +412,69 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    static class InjectionFactorGroup extends SensitivityFactorGroup {
+    abstract static class AbstractInjectionFactorGroup extends SensitivityFactorGroup {
 
-        Map<String, Double> injectionByBus;
+        Map<CachedBus, Double> injectionByBus;
 
-        InjectionFactorGroup(final String id) {
+        AbstractInjectionFactorGroup(final String id) {
             super(id);
         }
 
-        public void setInjectionByBus(final Map<String, Double> slackParticipationByBus) {
-            slackParticipationByBus.put(getId(), slackParticipationByBus.getOrDefault(getId(), 0d) + 1);
-            injectionByBus = slackParticipationByBus;
-        }
+        public void setInjectionByBus(final Map<CachedBus, Double> participationToSlackByBus) { }
 
         @Override
         void fillRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Matrix rhs) {
-            for (Map.Entry<String, Double> busIdAndInjectionValue : injectionByBus.entrySet()) {
-                LfBus lfBus = lfNetwork.getBusById(busIdAndInjectionValue.getKey());
-                if (lfBus.isSlack()) {
-                    continue;
-                }
-                Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                if (!p.isActive()) {
+            for (Map.Entry<CachedBus, Double> cachedBusAndInjectionValue : injectionByBus.entrySet()) {
+                CachedBus cachedBus = cachedBusAndInjectionValue.getKey();
+                LfBus lfBus = cachedBus.getLfBus();
+                Equation p = cachedBus.getpEquation();
+                Double injectionValue = cachedBusAndInjectionValue.getValue();
+                if (lfBus.isSlack() || !p.isActive()) {
                     continue;
                 }
                 int column = p.getColumn();
-                rhs.set(column, getIndex(), busIdAndInjectionValue.getValue() / PerUnit.SB);
+                rhs.set(column, getIndex(), injectionValue / PerUnit.SB);
             }
         }
     }
 
-    static class LinearGlskGroup extends InjectionFactorGroup {
+    static class SingleInjectionFactorGroup extends AbstractInjectionFactorGroup {
+        private CachedBus cachedBus;
+
+        SingleInjectionFactorGroup(final String id, CachedNetwork cachedNetwork) {
+            super(id);
+            this.cachedBus = cachedNetwork.getBusBuyId(id);
+        }
+
+        public void setInjectionByBus(final Map<CachedBus, Double> slackParticipationByBus) {
+            slackParticipationByBus.put(cachedBus, slackParticipationByBus.getOrDefault(cachedBus, 0d) + 1);
+            injectionByBus = slackParticipationByBus;
+        }
+    }
+
+    static class LinearGlskGroup extends AbstractInjectionFactorGroup {
         // This group makes sense because we are only computing sensitivities in the main connected component
         // otherwise, we wouldn't be able to group different branches within the same group
         private final Map<LfBus, Double> glskMap;
-        private Map<String, Double> glskMapInMainComponent;
+        private Map<CachedBus, Double> glskMapInMainComponent;
 
-        LinearGlskGroup(String id, Map<LfBus, Double> glskMap) {
+        LinearGlskGroup(String id, Map<LfBus, Double> glskMap, CachedNetwork cachedNetwork) {
             super(id);
             this.glskMap = glskMap;
             glskMapInMainComponent = glskMap.entrySet().stream().collect(Collectors.toMap(
-                entry -> entry.getKey().getId(),
+                entry -> cachedNetwork.getBusBuyId(entry.getKey().getId()),
                 Map.Entry::getValue
             ));
         }
 
         @Override
-        public void setInjectionByBus(final Map<String, Double> participationToSlackByBus) {
+        public void setInjectionByBus(final Map<CachedBus, Double> participationToSlackByBus) {
             Double glskWeightSum = glskMapInMainComponent.values().stream().mapToDouble(Math::abs).sum();
             glskMapInMainComponent.forEach((busId, weight) -> participationToSlackByBus.merge(busId, weight / glskWeightSum, Double::sum));
             injectionByBus = participationToSlackByBus;
         }
 
-        public void setGlskMapInMainComponent(final Map<String, Double> glskMapInMainComponent) {
+        public void setGlskMapInMainComponent(final Map<CachedBus, Double> glskMapInMainComponent) {
             this.glskMapInMainComponent = glskMapInMainComponent;
         }
 
@@ -439,7 +483,7 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    protected <T extends EquationTerm> List<SensitivityFactorGroup> createFactorGroups(Network network, List<LfSensitivityFactor<T>> factors) {
+    protected <T extends EquationTerm> List<SensitivityFactorGroup> createFactorGroups(Network network, List<LfSensitivityFactor<T>> factors, CachedNetwork cachedNetwork) {
         Map<String, SensitivityFactorGroup> groupIndexedById = new HashMap<>(factors.size());
         // index factors by variable config
         for (LfSensitivityFactor<?> factor : factors) {
@@ -447,7 +491,7 @@ public abstract class AbstractSensitivityAnalysis {
                 LfBus lfBus = ((LfBranchFlowPerInjectionIncrease) factor).getInjectionLfBus();
                 // skip disconnected injections
                 if (lfBus != null) {
-                    groupIndexedById.computeIfAbsent(lfBus.getId(), id -> new InjectionFactorGroup(lfBus.getId())).addFactor(factor);
+                    groupIndexedById.computeIfAbsent(lfBus.getId(), id -> new SingleInjectionFactorGroup(lfBus.getId(), cachedNetwork)).addFactor(factor);
                 }
             } else if (factor instanceof LfBranchFlowPerPSTAngle) {
                 BranchFlowPerPSTAngle pstAngleFactor = (BranchFlowPerPSTAngle) factor.getFactor();
@@ -461,7 +505,7 @@ public abstract class AbstractSensitivityAnalysis {
                 LfBranchFlowPerLinearGlsk lfFactor = (LfBranchFlowPerLinearGlsk) factor;
                 LinearGlsk glsk = (LinearGlsk) factor.getFactor().getVariable();
                 String glskId = glsk.getId();
-                groupIndexedById.computeIfAbsent(glskId, id -> new LinearGlskGroup(glskId, lfFactor.getInjectionBuses())).addFactor(factor);
+                groupIndexedById.computeIfAbsent(glskId, id -> new LinearGlskGroup(glskId, lfFactor.getInjectionBuses(), cachedNetwork)).addFactor(factor);
             } else {
                 throw new UnsupportedOperationException("Factor type '" + factor.getFactor().getClass().getSimpleName() + "' not yet supported");
             }
@@ -483,11 +527,11 @@ public abstract class AbstractSensitivityAnalysis {
         return participatingElements;
     }
 
-    protected void computeInjectionFactors(Map<String, Double> participationFactorByBus, List<SensitivityFactorGroup> factorGroups) {
+    protected void computeInjectionFactors(Map<CachedBus, Double> participationFactorByBus, List<SensitivityFactorGroup> factorGroups) {
         // compute the corresponding injection (including participation) for each factor
         for (SensitivityFactorGroup factorGroup : factorGroups) {
-            if (factorGroup instanceof InjectionFactorGroup) {
-                InjectionFactorGroup injectionGroup = (InjectionFactorGroup) factorGroup;
+            if (factorGroup instanceof AbstractInjectionFactorGroup) {
+                AbstractInjectionFactorGroup injectionGroup = (AbstractInjectionFactorGroup) factorGroup;
                 injectionGroup.setInjectionByBus(new HashMap<>(participationFactorByBus));
             }
         }
@@ -527,16 +571,16 @@ public abstract class AbstractSensitivityAnalysis {
         return new SensitivityValue(lfFactor.getFactor(), 0, Double.NaN, Double.NaN);
     }
 
-    protected void rescaleGlsk(List<SensitivityFactorGroup> factorGroups, Set<LfBus> nonConnectedBuses) {
+    protected void rescaleGlsk(List<SensitivityFactorGroup> factorGroups, Set<LfBus> nonConnectedBuses, CachedNetwork cachedNetwork) {
         // compute the corresponding injection (with participation) for each factor
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             if (!(factorGroup instanceof LinearGlskGroup)) {
                 continue;
             }
             LinearGlskGroup glskGroup = (LinearGlskGroup) factorGroup;
-            Map<String, Double> remainingGlskInjections = glskGroup.getGlskMap().entrySet().stream()
+            Map<CachedBus, Double> remainingGlskInjections = glskGroup.getGlskMap().entrySet().stream()
                 .filter(entry -> !nonConnectedBuses.contains(entry.getKey()))
-                .collect(Collectors.toMap(entry -> entry.getKey().getId(), Map.Entry::getValue));
+                .collect(Collectors.toMap(entry -> cachedNetwork.getBusBuyId(entry.getKey().getId()), Map.Entry::getValue));
             glskGroup.setGlskMapInMainComponent(remainingGlskInjections);
         }
     }

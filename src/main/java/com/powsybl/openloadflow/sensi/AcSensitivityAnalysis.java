@@ -143,6 +143,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         try (AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters)) {
 
             engine.run();
+            CachedNetwork cachedNetwork = new CachedNetwork(lfNetwork, engine.getEquationSystem());
 
             List<LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm>> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, engine.getEquationSystem(), ClosedBranchSide1ActiveFlowEquationTerm.class)).collect(Collectors.toList());
             List<LfSensitivityFactor<ClosedBranchSide1ActiveFlowEquationTerm>> zeroFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.ZERO)).collect(Collectors.toList());
@@ -152,21 +153,21 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             baseValues.addAll(zeroFactors.stream().map(AbstractSensitivityAnalysis::createZeroValue).collect(Collectors.toList()));
 
             // index factors by variable group to compute a minimal number of states
-            List<SensitivityFactorGroup> factorGroups = createFactorGroups(network, lfFactors);
+            List<SensitivityFactorGroup> factorGroups = createFactorGroups(network, lfFactors, cachedNetwork);
 
             // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
             // buses that contain elements participating to slack distribution
 
-            Map<String, Double> slackParticipationByBus;
+            Map<CachedBus, Double> slackParticipationByBus;
             if (lfParameters.isDistributedSlack()) {
                 List<ParticipatingElement> participatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters, lfParametersExt);
                 slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
-                    element -> element.getLfBus().getId(),
+                    element -> cachedNetwork.getBusBuyId(element.getLfBus().getId()),
                     element -> -element.getFactor(),
                     Double::sum
                 ));
             } else {
-                slackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus().getId(), -1d);
+                slackParticipationByBus = Collections.singletonMap(cachedNetwork.getBusBuyId(lfNetwork.getSlackBus().getId()), -1d);
             }
             computeInjectionFactors(slackParticipationByBus, factorGroups);
 
@@ -216,22 +217,22 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 slackConnectedComponent.removeAll(nonConnectedBuses);
                 setPredefinedResults(lfFactors, slackConnectedComponent, connectivity); // check if factors are still in the main component
 
-                rescaleGlsk(factorGroups, nonConnectedBuses);
+                rescaleGlsk(factorGroups, nonConnectedBuses, cachedNetwork);
 
                 // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
                 // buses that contain elements participating to slack distribution
-                Map<String, Double> slackParticipationByBusForThisConnectivity;
+                Map<CachedBus, Double> slackParticipationByBusForThisConnectivity;
 
                 if (lfParameters.isDistributedSlack()) {
                     List<ParticipatingElement> participatingElementsForThisConnectivity = getParticipatingElements(
                         slackConnectedComponent, lfParameters, lfParametersExt); // will also be used to recompute the loadflow
                     slackParticipationByBusForThisConnectivity = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(
-                        element -> element.getLfBus().getId(),
+                        element -> cachedNetwork.getBusBuyId(element.getLfBus().getId()),
                         element -> -element.getFactor(),
                         Double::sum
                     ));
                 } else {
-                    slackParticipationByBusForThisConnectivity = Collections.singletonMap(lfNetwork.getSlackBus().getId(), -1d);
+                    slackParticipationByBusForThisConnectivity = Collections.singletonMap(cachedNetwork.getBusBuyId(lfNetwork.getSlackBus().getId()), -1d);
                 }
 
                 computeInjectionFactors(slackParticipationByBusForThisConnectivity, factorGroups);
