@@ -446,6 +446,7 @@ public abstract class AbstractSensitivityAnalysis {
             this.cachedBus = cachedNetwork.getBusBuyId(id);
         }
 
+        @Override
         public void setInjectionByBus(final Map<CachedBus, Double> slackParticipationByBus) {
             slackParticipationByBus.put(cachedBus, slackParticipationByBus.getOrDefault(cachedBus, 0d) + 1);
             injectionByBus = slackParticipationByBus;
