@@ -101,7 +101,6 @@ class AcLoadFlowShuntTest {
                 .setConnectableBus("b3")
                 .setSectionCount(0)
                 .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(null)
                 .setTargetV(393)
                 .setTargetDeadband(5.0)
                 .newNonLinearModel()
@@ -141,7 +140,6 @@ class AcLoadFlowShuntTest {
                 .setB1(0)
                 .setB2(0)
                 .add();
-        shunt.setRegulatingTerminal(l2.getTerminal1()); //FIXME
         return network;
     }
 

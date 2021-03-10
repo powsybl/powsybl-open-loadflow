@@ -14,11 +14,13 @@ import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
-import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -39,18 +41,7 @@ public final class AcEquationSystem {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
 
-            if (bus.hasVoltageControl()) {
-                // local voltage control
-                if (!(creationParameters.isVoltageRemoteControl() && bus.getControlledBus().isPresent()) && bus.getControllerBuses().isEmpty()) {
-                    equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
-                }
-                equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
-            }
-
-            // in case voltage remote control is activated, set voltage equation on this controlled bus
-            if (creationParameters.isVoltageRemoteControl() && !bus.getControllerBuses().isEmpty()) {
-                createVoltageControlledBusEquations(bus, equationSystem, variableSet);
-            }
+            bus.getVoltageControl().ifPresent(vc -> createVoltageControlEquations(vc, bus, variableSet, equationSystem));
 
             createShuntEquations(variableSet, equationSystem, bus, creationParameters);
 
@@ -60,30 +51,40 @@ public final class AcEquationSystem {
         }
     }
 
+    private static void createVoltageControlEquations(VoltageControl voltageControl, LfBus bus, VariableSet variableSet, EquationSystem equationSystem) {
+        if (voltageControl.isVoltageControlLocal()) {
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(new BusVoltageEquationTerm(bus, variableSet));
+        } else if (bus.isVoltageControlled()) {
+            // remote controlled: set voltage equation on this controlled bus
+            createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet);
+        }
+
+        if (bus.isVoltageControllerEnabled()) {
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
+        }
+    }
+
     private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus,
                                              AcEquationSystemCreationParameters creationParameters) {
         for (LfShunt shunt : bus.getShunts()) {
             boolean deriveB = creationParameters.isShuntVoltageControl() && bus.getDiscreteVoltageControl() != null
-                && bus.getDiscreteVoltageControl().getControllerBuses().contains(bus);
+                    && bus.getDiscreteVoltageControl().getControllerBuses().contains(bus); // local control only for the moment
             ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, deriveB);
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
             shunt.setQ(q);
         }
     }
 
-    private static void createVoltageControlledBusEquations(LfBus controlledBus, EquationSystem equationSystem, VariableSet variableSet) {
+    private static void createVoltageControlledBusEquations(VoltageControl voltageControl, EquationSystem equationSystem, VariableSet variableSet) {
+        LfBus controlledBus = voltageControl.getControlledBus();
+
         // create voltage equation at voltage controlled bus
         Equation vEq = equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V)
                 .addTerm(new BusVoltageEquationTerm(controlledBus, variableSet));
 
-        List<LfBus> controllerBuses = controlledBus.getControllerBuses().stream()
-                .filter(LfBus::hasVoltageControl)
+        List<LfBus> controllerBuses = voltageControl.getControllerBuses().stream()
+                .filter(LfBus::isVoltageControllerEnabled)
                 .collect(Collectors.toList());
-        // if controlled bus also control voltage locally, we add it the the controller list to create reactive power
-        // distribution equation for the controlled bus too
-        if (controlledBus.hasVoltageControl()) {
-            controllerBuses.add(controlledBus);
-        }
         if (controllerBuses.isEmpty()) {
             vEq.setActive(false);
         } else {
@@ -96,7 +97,7 @@ public final class AcEquationSystem {
         List<EquationTerm> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm q;
-            if (isNonImpedantBranch(branch)) {
+            if (LfNetwork.isZeroImpedanceBranch(branch)) {
                 if (branch.getBus1() == controllerBus) {
                     q = new DummyReactivePowerEquationTerm(branch, variableSet);
                 } else {
@@ -119,6 +120,7 @@ public final class AcEquationSystem {
             terms.add(q);
         }
         for (LfShunt shunt : controllerBus.getShunts()) {
+            //TODO: ask for clarifications
             ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, variableSet, false);
             terms.add(q);
         }
@@ -131,7 +133,7 @@ public final class AcEquationSystem {
 
         // we choose first controller bus as reference for reactive power
         LfBus firstControllerBus = controllerBuses.get(0);
-        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false, false, false); // TODO could not be the right parameters
+        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false, false); // TODO could not be the right parameters
         List<EquationTerm> firstControllerBusReactiveTerms = createReactiveTerms(firstControllerBus, variableSet, creationParameters);
 
         // create a reactive power distribution equation for all the other controller buses
@@ -268,6 +270,7 @@ public final class AcEquationSystem {
         EquationTerm q2 = null;
         boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
                 && branch.getDiscretePhaseControl().getMode() == DiscretePhaseControl.Mode.CONTROLLER;
+        deriveA1 = deriveA1 || (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability());
         boolean deriveR1 = creationParameters.isTransformerVoltageControl() && branch.isVoltageController();
         if (bus1 != null && bus2 != null) {
             p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
@@ -304,49 +307,34 @@ public final class AcEquationSystem {
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
             branch.setQ2(q2);
         }
-    }
 
-    private static boolean isNonImpedantBranch(LfBranch branch) {
-        PiModel piModel = branch.getPiModel();
-        return piModel.getZ() < DcEquationSystem.LOW_IMPEDANCE_THRESHOLD;
+        if (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability()) {
+            equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_ALPHA1)
+                .addTerm(new BranchA1EquationTerm(branch, variableSet));
+        }
     }
 
     private static void createBranchEquations(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters,
                                               EquationSystem equationSystem) {
-        List<LfBranch> nonImpedantBranches = new ArrayList<>();
 
-        for (LfBranch branch : network.getBranches()) {
-            LfBus bus1 = branch.getBus1();
-            LfBus bus2 = branch.getBus2();
-            if (isNonImpedantBranch(branch)) {
-                if (bus1 != null && bus2 != null) {
-                    nonImpedantBranches.add(branch);
-                }
-            } else {
-                createImpedantBranch(branch, bus1, bus2, variableSet, creationParameters, equationSystem);
-            }
-        }
+        // create zero and non zero impedance branch equations
+        network.getBranches().stream()
+            .filter(b -> !LfNetwork.isZeroImpedanceBranch(b))
+            .forEach(b -> createImpedantBranch(b, b.getBus1(), b.getBus2(), variableSet, creationParameters, equationSystem));
 
-        // create non impedant equations only on minimum spanning forest calculated from non impedant subgraph
-        if (!nonImpedantBranches.isEmpty()) {
-            Graph<LfBus, LfBranch> nonImpedantSubGraph = new Pseudograph<>(LfBranch.class);
-            for (LfBranch branch : nonImpedantBranches) {
-                nonImpedantSubGraph.addVertex(branch.getBus1());
-                nonImpedantSubGraph.addVertex(branch.getBus2());
-                nonImpedantSubGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
-            }
-
-            ConnectivityInspector<LfBus, LfBranch> ci = new ConnectivityInspector<>(nonImpedantSubGraph);
-            List<Set<LfBus>> connectedSets = ci.connectedSets();
+        // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph
+        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.createZeroImpedanceSubGraph();
+        if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
+            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(zeroImpedanceSubGraph).connectedSets();
             for (Set<LfBus> connectedSet : connectedSets) {
-                if (connectedSet.size() > 2 && connectedSet.stream().filter(LfBus::hasVoltageControl).count() > 1) {
+                if (connectedSet.size() > 2 && connectedSet.stream().filter(LfBus::isVoltageControllerEnabled).count() > 1) {
                     String problBuses = connectedSet.stream().map(LfBus::getId).collect(Collectors.joining(", "));
                     throw new PowsyblException(
-                        "Non impedant branches that connect at least two buses with voltage control (buses: " + problBuses + ")");
+                        "Zero impedance branches that connect at least two buses with voltage control (buses: " + problBuses + ")");
                 }
             }
 
-            SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(nonImpedantSubGraph).getSpanningTree();
+            SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(zeroImpedanceSubGraph).getSpanningTree();
             for (LfBranch branch : spanningTree.getEdges()) {
                 createNonImpedantBranch(variableSet, equationSystem, branch, branch.getBus1(), branch.getBus2());
             }
@@ -358,7 +346,7 @@ public final class AcEquationSystem {
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
-        return create(network, variableSet, new AcEquationSystemCreationParameters(false, false, false, false));
+        return create(network, variableSet, new AcEquationSystemCreationParameters(false, false, false));
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {
@@ -370,6 +358,8 @@ public final class AcEquationSystem {
 
         createBusEquations(network, variableSet, creationParameters, equationSystem);
         createBranchEquations(network, variableSet, creationParameters, equationSystem);
+
+        network.addListener(new AcEquationSystemUpdater(equationSystem, variableSet));
 
         return equationSystem;
     }

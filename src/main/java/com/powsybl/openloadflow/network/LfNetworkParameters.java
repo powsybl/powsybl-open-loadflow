@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.util.ParameterConstants;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -21,13 +23,24 @@ public class LfNetworkParameters {
 
     private final boolean breakers;
 
+    private final double plausibleActivePowerLimit;
+
+    private final boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+
+    public LfNetworkParameters(SlackBusSelector slackBusSelector) {
+        this(slackBusSelector, false, false, false, false, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false);
+    }
+
     public LfNetworkParameters(SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl,
-                               boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers) {
+                               boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers,
+                               double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds) {
         this.slackBusSelector = slackBusSelector;
         this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
         this.minImpedance = minImpedance;
         this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
         this.breakers = breakers;
+        this.plausibleActivePowerLimit = plausibleActivePowerLimit;
+        this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -48,5 +61,13 @@ public class LfNetworkParameters {
 
     public boolean isBreakers() {
         return breakers;
+    }
+
+    public double getPlausibleActivePowerLimit() {
+        return plausibleActivePowerLimit;
+    }
+
+    public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
+        return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
     }
 }

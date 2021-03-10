@@ -6,12 +6,10 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.MinMaxReactiveLimits;
-import com.powsybl.iidm.network.ReactiveCapabilityCurve;
-import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.network.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -21,11 +19,21 @@ import java.util.OptionalDouble;
  */
 public abstract class AbstractLfGenerator implements LfGenerator {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfGenerator.class);
+
+    private static final double POWER_EPSILON_SI = 1e-4;
+
     protected double targetP;
 
     protected LfBus bus;
 
     protected double calculatedQ = Double.NaN;
+
+    private double targetV = Double.NaN;
+
+    protected boolean hasVoltageControl = false;
+
+    protected String controlledBusId;
 
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
@@ -47,6 +55,16 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public void setTargetP(double targetP) {
         this.targetP = targetP * PerUnit.SB;
+    }
+
+    @Override
+    public double getTargetV() {
+        return targetV;
+    }
+
+    @Override
+    public boolean hasVoltageControl() {
+        return hasVoltageControl;
     }
 
     @Override
@@ -110,4 +128,55 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     public void setCalculatedQ(double calculatedQ) {
         this.calculatedQ = calculatedQ * PerUnit.SB;
     }
+
+    @Override
+    public LfBus getControlledBus(LfNetwork lfNetwork) {
+        return lfNetwork.getBusById(controlledBusId);
+    }
+
+    protected void setVoltageControl(double targetV, Terminal regulatingTerminal, boolean breakers, LfNetworkLoadingReport report) {
+        if (!checkVoltageControlConsistency(report)) {
+            return;
+        }
+        Bus controlledBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
+        if (controlledBus == null) {
+            LOGGER.warn("Regulating terminal of LfGenerator {} is out of voltage: voltage control discarded", getId());
+            return;
+        }
+        this.controlledBusId = controlledBus.getId();
+        setTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV());
+        this.hasVoltageControl = true;
+    }
+
+    protected boolean checkVoltageControlConsistency(LfNetworkLoadingReport report) {
+        boolean consistency = true;
+        double maxRangeQ = getMaxRangeQ();
+        if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
+            LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small", getId(), maxRangeQ);
+            report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
+            consistency = false;
+        }
+        if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
+            LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());
+            report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
+            consistency = false;
+        }
+        return consistency;
+    }
+
+    protected void setTargetV(double targetV) {
+        double newTargetV = targetV;
+        // check that targetV has a plausible value (wrong nominal voltage issue)
+        if (targetV < PlausibleValues.MIN_TARGET_VOLTAGE_PU) {
+            newTargetV = PlausibleValues.MIN_TARGET_VOLTAGE_PU;
+            LOGGER.warn("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is rescaled to {}",
+                getId(), targetV, PlausibleValues.MIN_TARGET_VOLTAGE_PU);
+        } else if (targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
+            newTargetV = PlausibleValues.MAX_TARGET_VOLTAGE_PU;
+            LOGGER.warn("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is rescaled to {}",
+                getId(), targetV, PlausibleValues.MAX_TARGET_VOLTAGE_PU);
+        }
+        this.targetV = newTargetV;
+    }
+
 }

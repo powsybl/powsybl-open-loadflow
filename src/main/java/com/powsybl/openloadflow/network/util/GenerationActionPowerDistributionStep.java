@@ -6,12 +6,13 @@
  */
 package com.powsybl.openloadflow.network.util;
 
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,9 +30,9 @@ public class GenerationActionPowerDistributionStep implements ActivePowerDistrib
     }
 
     @Override
-    public List<ParticipatingElement> getParticipatingElements(LfNetwork network) {
-        return network.getBuses()
-                .stream()
+    public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses) {
+        return buses.stream()
+                .filter(bus -> !(bus.isDisabled() || bus.isFictitious()))
                 .flatMap(bus -> bus.getGenerators().stream())
                 .filter(generator -> generator.isParticipating() && generator.getParticipationFactor() != 0)
                 .map(generator -> new ParticipatingElement(generator, generator.getParticipationFactor()))

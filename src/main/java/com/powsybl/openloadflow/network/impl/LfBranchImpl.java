@@ -10,6 +10,8 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +24,8 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  */
 public class LfBranchImpl extends AbstractLfBranch {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
+
     private final Branch<?> branch;
 
     private Evaluable p1 = NAN;
@@ -32,13 +36,23 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private Evaluable q2 = NAN;
 
-    protected LfBranchImpl(LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
-        super(bus1, bus2, piModel);
+    protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
+        super(network, bus1, bus2, piModel);
         this.branch = branch;
     }
 
-    private static LfBranchImpl createLine(Line line, LfBus bus1, LfBus bus2, double zb) {
+    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
+                                           LfNetworkLoadingReport report) {
+        double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
+        double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
+        double r1 = 1;
+        if (addRatioToLinesWithDifferentNominalVoltageAtBothEnds && nominalV1 != nominalV2) {
+            LOGGER.trace("Line '{}' has a different nominal voltage at both ends ({} and {}): add a ration", line.getId(), nominalV1, nominalV2);
+            report.linesWithDifferentNominalVoltageAtBothEnds++;
+            r1 = 1 / Transformers.getRatioPerUnitBase(line);
+        }
         PiModel piModel = new SimplePiModel()
+                .setR1(r1)
                 .setR(line.getR() / zb)
                 .setX(line.getX() / zb)
                 .setG1(line.getG1() * zb)
@@ -46,10 +60,10 @@ public class LfBranchImpl extends AbstractLfBranch {
                 .setB1(line.getB1() * zb)
                 .setB2(line.getB2() * zb);
 
-        return new LfBranchImpl(bus1, bus2, piModel, line);
+        return new LfBranchImpl(network, bus1, bus2, piModel, line);
     }
 
-    private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfBus bus1, LfBus bus2, double zb, boolean twtSplitShuntAdmittance) {
+    private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean twtSplitShuntAdmittance) {
         PiModel piModel = null;
 
         double baseRatio = Transformers.getRatioPerUnitBase(twt);
@@ -58,54 +72,27 @@ public class LfBranchImpl extends AbstractLfBranch {
         if (ptc != null
                 && ptc.isRegulating()
                 && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
-
+            // we have a phase control, whatever we also have a voltage control or not, we create a pi model array
+            // based on phase taps mixed with voltage current tap
             Integer rtcPosition = Transformers.getCurrentPosition(twt.getRatioTapChanger());
             List<PiModel> models = new ArrayList<>();
             for (int ptcPosition = ptc.getLowTapPosition(); ptcPosition <= ptc.getHighTapPosition(); ptcPosition++) {
-                double r = Transformers.getR(twt, rtcPosition, ptcPosition) / zb;
-                double x = Transformers.getX(twt, rtcPosition, ptcPosition) / zb;
-                double g1 = Transformers.getG1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
-                double g2 = twtSplitShuntAdmittance ? g1 : 0;
-                double b1 = Transformers.getB1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
-                double b2 = twtSplitShuntAdmittance ? b1 : 0;
-                double r1 = Transformers.getRatio(twt, rtcPosition, ptcPosition) / baseRatio;
-                double a1 = Transformers.getAngle(twt, ptcPosition);
-                models.add(new SimplePiModel()
-                        .setR(r)
-                        .setX(x)
-                        .setG1(g1)
-                        .setG2(g2)
-                        .setB1(b1)
-                        .setB2(b2)
-                        .setR1(r1)
-                        .setA1(a1));
+                Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
+                models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
             }
             piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
         }
 
         RatioTapChanger rtc = twt.getRatioTapChanger();
-        if (rtc != null && rtc.isRegulating()) {
+        if (rtc != null && rtc.isRegulating() && rtc.hasLoadTapChangingCapabilities()) {
             if (piModel == null) {
+                // we have a voltage control, we create a pi model array based on voltage taps mixed with phase current
+                // tap
                 Integer ptcPosition = Transformers.getCurrentPosition(twt.getPhaseTapChanger());
                 List<PiModel> models = new ArrayList<>();
                 for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= rtc.getHighTapPosition(); rtcPosition++) {
-                    double r = Transformers.getR(twt, rtcPosition, ptcPosition) / zb;
-                    double x = Transformers.getX(twt, rtcPosition, ptcPosition) / zb;
-                    double g1 = Transformers.getG1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
-                    double g2 = twtSplitShuntAdmittance ? g1 : 0;
-                    double b1 = Transformers.getB1(twt, rtcPosition, ptcPosition, twtSplitShuntAdmittance) * zb;
-                    double b2 = twtSplitShuntAdmittance ? b1 : 0;
-                    double r1 = Transformers.getRatio(twt, rtcPosition, ptcPosition) / baseRatio;
-                    double a1 = Transformers.getAngle(twt, ptcPosition);
-                    models.add(new SimplePiModel()
-                            .setR(r)
-                            .setX(x)
-                            .setG1(g1)
-                            .setG2(g2)
-                            .setB1(b1)
-                            .setB2(b2)
-                            .setR1(r1)
-                            .setA1(a1));
+                    Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
+                    models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
                 }
                 piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
             } else {
@@ -114,29 +101,25 @@ public class LfBranchImpl extends AbstractLfBranch {
         }
 
         if (piModel == null) {
-            piModel = new SimplePiModel()
-                    .setR(Transformers.getR(twt) / zb)
-                    .setX(Transformers.getX(twt) / zb)
-                    .setG1(Transformers.getG1(twt, twtSplitShuntAdmittance) * zb)
-                    .setG2(twtSplitShuntAdmittance ? Transformers.getG1(twt, twtSplitShuntAdmittance) * zb : 0)
-                    .setB1(Transformers.getB1(twt, twtSplitShuntAdmittance) * zb)
-                    .setB2(twtSplitShuntAdmittance ? Transformers.getB1(twt, twtSplitShuntAdmittance) * zb : 0)
-                    .setR1(Transformers.getRatio(twt) / baseRatio)
-                    .setA1(Transformers.getAngle(twt));
+            // we don't have any phase or voltage control, we create a simple pi model (single tap) based on phase current
+            // tap and voltage current tap
+            Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt);
+            piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance);
         }
 
-        return new LfBranchImpl(bus1, bus2, piModel, twt);
+        return new LfBranchImpl(network, bus1, bus2, piModel, twt);
     }
 
-    public static LfBranchImpl create(Branch<?> branch, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance) {
+    public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance,
+                                      boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds, LfNetworkLoadingReport report) {
         Objects.requireNonNull(branch);
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
         double zb = nominalV2 * nominalV2 / PerUnit.SB;
         if (branch instanceof Line) {
-            return createLine((Line) branch, bus1, bus2, zb);
+            return createLine((Line) branch, network, bus1, bus2, zb, addRatioToLinesWithDifferentNominalVoltageAtBothEnds, report);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-            return createTransformer(twt, bus1, bus2, zb, twtSplitShuntAdmittance);
+            return createTransformer(twt, network, bus1, bus2, zb, twtSplitShuntAdmittance);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }
@@ -227,7 +210,8 @@ public class LfBranchImpl extends AbstractLfBranch {
             RatioTapChanger rtc = twt.getRatioTapChanger();
             double baseRatio = Transformers.getRatioPerUnitBase(twt);
             double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
-            updateTapPosition(rtc, rho);
+            double ptcRho = twt.getPhaseTapChanger() != null ? twt.getPhaseTapChanger().getCurrentStep().getRho() : 1;
+            updateTapPosition(rtc, ptcRho, rho);
             checkTargetDeadband(rtc);
         }
     }

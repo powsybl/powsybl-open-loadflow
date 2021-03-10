@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac.nr;
 
-import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
@@ -19,7 +18,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class NewtonRaphson implements AutoCloseable, EquationSystemListener {
+public class NewtonRaphson {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NewtonRaphson.class);
 
@@ -27,55 +26,30 @@ public class NewtonRaphson implements AutoCloseable, EquationSystemListener {
 
     private final MatrixFactory matrixFactory;
 
-    private final AcLoadFlowObserver observer;
-
     private final EquationSystem equationSystem;
 
     private final NewtonRaphsonStoppingCriteria stoppingCriteria;
 
     private int iteration = 0;
 
-    private JacobianMatrix j;
+    private final JacobianMatrix j;
 
-    public NewtonRaphson(LfNetwork network, MatrixFactory matrixFactory, AcLoadFlowObserver observer,
-                         EquationSystem equationSystem, NewtonRaphsonStoppingCriteria stoppingCriteria) {
+    public NewtonRaphson(LfNetwork network, MatrixFactory matrixFactory, EquationSystem equationSystem, JacobianMatrix j,
+                         NewtonRaphsonStoppingCriteria stoppingCriteria) {
         this.network = Objects.requireNonNull(network);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        this.observer = Objects.requireNonNull(observer);
         this.equationSystem = Objects.requireNonNull(equationSystem);
+        this.j = Objects.requireNonNull(j);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
-        equationSystem.addListener(this);
     }
 
     private NewtonRaphsonStatus runIteration(double[] fx, double[] targets, double[] x) {
-        observer.beginIteration(iteration);
+        LOGGER.debug("Start iteration {}", iteration);
 
         try {
-            // build jacobian
-            observer.beforeJacobianBuild(iteration);
-
-            if (j == null) {
-                j = JacobianMatrix.create(equationSystem, matrixFactory);
-            } else {
-                j.update();
-            }
-
-            observer.afterJacobianBuild(j.getMatrix(), equationSystem, iteration);
-
             // solve f(x) = j * dx
-
-            observer.beforeLuDecomposition(iteration);
-
-            LUDecomposition lu = j.decomposeLU();
-
-            observer.afterLuDecomposition(iteration);
-
             try {
-                observer.beforeLuSolve(iteration);
-
-                lu.solveTransposed(fx);
-
-                observer.afterLuSolve(iteration);
+                j.solveTransposed(fx);
             } catch (Exception e) {
                 LOGGER.error(e.toString(), e);
                 return NewtonRaphsonStatus.SOLVER_FAILED;
@@ -85,23 +59,22 @@ public class NewtonRaphson implements AutoCloseable, EquationSystemListener {
             Vectors.minus(x, fx);
 
             // evaluate equation terms with new x
-            updateEquations(x);
+            equationSystem.updateEquations(x);
 
             // recalculate f(x) with new x
-            observer.beforeEquationVectorCreation(iteration);
-
             equationSystem.updateEquationVector(fx);
-
-            observer.afterEquationVectorCreation(fx, equationSystem, iteration);
 
             Vectors.minus(fx, targets);
 
-            // test stopping criteria and log norm(fx)
-            observer.beforeStoppingCriteriaEvaluation(fx, equationSystem, iteration);
+            if (LOGGER.isTraceEnabled()) {
+                equationSystem.findLargestMismatches(fx, 5)
+                        .forEach(e -> LOGGER.trace("Mismatch for {}: {}", e.getKey(), e.getValue()));
+            }
 
+            // test stopping criteria and log norm(fx)
             NewtonRaphsonStoppingCriteria.TestResult testResult = stoppingCriteria.test(fx);
 
-            observer.afterStoppingCriteriaEvaluation(testResult.getNorm(), iteration);
+            LOGGER.debug("|f(x)|={}", testResult.getNorm());
 
             if (testResult.isStop()) {
                 return NewtonRaphsonStatus.CONVERGED;
@@ -109,7 +82,6 @@ public class NewtonRaphson implements AutoCloseable, EquationSystemListener {
 
             return null;
         } finally {
-            observer.endIteration(iteration);
             iteration++;
         }
     }
@@ -130,29 +102,17 @@ public class NewtonRaphson implements AutoCloseable, EquationSystemListener {
         VoltageInitializer voltageInitializer = iteration == 0 ? parameters.getVoltageInitializer()
                                                                : new PreviousValueVoltageInitializer();
 
-        observer.beforeVoltageInitializerPreparation(voltageInitializer.getClass());
-
         voltageInitializer.prepare(network, matrixFactory);
-
-        observer.afterVoltageInitializerPreparation();
-
-        observer.beforeStateVectorCreation(iteration);
 
         double[] x = equationSystem.createStateVector(voltageInitializer);
 
-        observer.afterStateVectorCreation(x, iteration);
-
-        updateEquations(x);
+        equationSystem.updateEquations(x);
 
         // initialize target vector
         double[] targets = equationSystem.createTargetVector();
 
         // initialize mismatch vector (difference between equation values and targets)
-        observer.beforeEquationVectorCreation(iteration);
-
         double[] fx = equationSystem.createEquationVector();
-
-        observer.afterEquationVectorCreation(fx, equationSystem, iteration);
 
         Vectors.minus(fx, targets);
 
@@ -174,41 +134,9 @@ public class NewtonRaphson implements AutoCloseable, EquationSystemListener {
 
         // update network state variable
         if (status == NewtonRaphsonStatus.CONVERGED) {
-            observer.beforeNetworkUpdate();
-
             equationSystem.updateNetwork(x);
-
-            observer.afterNetworkUpdate(network);
         }
 
         return new NewtonRaphsonResult(status, iteration, slackBusActivePowerMismatch);
-    }
-
-    private void updateEquations(double[]x) {
-        observer.beforeEquationsUpdate(iteration);
-
-        equationSystem.updateEquations(x);
-
-        observer.afterEquationsUpdate(equationSystem, iteration);
-    }
-
-    @Override
-    public void close() {
-        equationSystem.removeListener(this);
-        if (j != null) {
-            j.cleanLU();
-        }
-    }
-
-    @Override
-    public void equationListChanged(Equation equation, EquationEventType eventType) {
-        switch (eventType) {
-            case EQUATION_CREATED:
-            case EQUATION_REMOVED:
-            case EQUATION_ACTIVATED:
-            case EQUATION_DEACTIVATED:
-                j = null;
-                break;
-        }
     }
 }

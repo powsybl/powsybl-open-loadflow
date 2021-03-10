@@ -11,12 +11,9 @@ import com.powsybl.commons.config.ModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.ac.nr.AcLoadFlowObserver;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 import com.powsybl.openloadflow.network.SlackBusSelectorParametersReader;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.ServiceLoader;
 
@@ -40,11 +37,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         REPLACE_BY_MIN_IMPEDANCE_LINE
     }
 
-    private final List<AcLoadFlowObserver> additionalObservers = new ArrayList<>();
-
     private boolean loadPowerFactorConstant = LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE;
 
     private boolean dcUseTransformerRatio = DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE;
+
+    private double plausibleActivePowerLimit = PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
+
+    private boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds = ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -87,10 +86,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public List<AcLoadFlowObserver> getAdditionalObservers() {
-        return additionalObservers;
-    }
-
     public boolean isLoadPowerFactorConstant() {
         return loadPowerFactorConstant;
     }
@@ -106,6 +101,27 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setDcUseTransformerRatio(boolean dcUseTransformerRatio) {
         this.dcUseTransformerRatio = dcUseTransformerRatio;
+        return this;
+    }
+
+    public double getPlausibleActivePowerLimit() {
+        return plausibleActivePowerLimit;
+    }
+
+    public OpenLoadFlowParameters setPlausibleActivePowerLimit(double plausibleActivePowerLimit) {
+        if (plausibleActivePowerLimit <= 0) {
+            throw new IllegalArgumentException("Invalid plausible active power limit: " + plausibleActivePowerLimit);
+        }
+        this.plausibleActivePowerLimit = plausibleActivePowerLimit;
+        return this;
+    }
+
+    public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
+        return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+    }
+
+    public OpenLoadFlowParameters setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds) {
+        this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
         return this;
     }
 
@@ -130,6 +146,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                         )
                         .setLoadPowerFactorConstant(config.getBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE))
                         .setDcUseTransformerRatio(config.getBooleanProperty(DC_USE_TRANSFORMER_RATIO_PARAM_NAME, DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE))
+                        .setPlausibleActivePowerLimit(config.getDoubleProperty(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE))
+                        .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(config.getBooleanProperty(ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME, ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE))
                 );
             return parameters;
         }

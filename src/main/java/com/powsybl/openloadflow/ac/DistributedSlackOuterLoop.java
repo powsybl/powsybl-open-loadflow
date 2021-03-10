@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
@@ -24,6 +23,11 @@ import java.util.Objects;
 public class DistributedSlackOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOuterLoop.class);
+
+    /**
+     * Slack bus maximum active power mismatch: 10^-2 in p.u => 1 Mw
+     */
+    private static final double SLACK_BUS_P_MAX_MISMATCH = Math.pow(10, -2);
 
     private final ActivePowerDistribution activePowerDistribution;
 
@@ -42,7 +46,7 @@ public class DistributedSlackOuterLoop implements OuterLoop {
     @Override
     public OuterLoopStatus check(OuterLoopContext context) {
         double slackBusActivePowerMismatch = context.getLastNewtonRaphsonResult().getSlackBusActivePowerMismatch();
-        if (Math.abs(slackBusActivePowerMismatch) > DefaultNewtonRaphsonStoppingCriteria.CONV_EPS_PER_EQ) {
+        if (Math.abs(slackBusActivePowerMismatch) > SLACK_BUS_P_MAX_MISMATCH) {
 
             ActivePowerDistribution.Result result = activePowerDistribution.run(context.getNetwork(), slackBusActivePowerMismatch);
 

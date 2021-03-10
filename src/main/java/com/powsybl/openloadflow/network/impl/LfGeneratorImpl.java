@@ -11,7 +11,6 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.openloadflow.network.PerUnit;
-import com.powsybl.openloadflow.network.PlausibleValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +35,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double participationFactor;
 
-    private LfGeneratorImpl(Generator generator, LfNetworkLoadingReport report) {
+    private LfGeneratorImpl(Generator generator, boolean breakers, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
         super(generator.getTargetP());
         this.generator = generator;
         participating = true;
@@ -44,7 +43,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         // get participation factor from extension
         ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
-            participating = activePowerControl.isParticipate() && activePowerControl.getDroop() != 0;
+            participating = activePowerControl.isParticipate();
             if (activePowerControl.getDroop() != 0) {
                 droop = activePowerControl.getDroop();
             }
@@ -62,34 +61,33 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP++;
             participating = false;
         }
-        if (generator.getMaxP() > PlausibleValues.ACTIVE_POWER_LIMIT) {
+        if (generator.getMaxP() > plausibleActivePowerLimit) {
             LOGGER.trace("Discard generator '{}' from active power control because maxP ({}) > {}} MW",
-                    generator.getId(), generator.getMaxP(), PlausibleValues.ACTIVE_POWER_LIMIT);
+                    generator.getId(), generator.getMaxP(), plausibleActivePowerLimit);
             report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
             participating = false;
         }
         if ((generator.getMaxP() - generator.getMinP()) < TARGET_P_EPSILON) {
             LOGGER.trace("Discard generator '{}' from active power control because maxP ({} MW) equals minP ({} MW)",
-                    generator.getId(), generator.getMaxP(), generator.getMinP());
+                generator.getId(), generator.getMaxP(), generator.getMinP());
             report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP++;
             participating = false;
         }
+
+        if (generator.isVoltageRegulatorOn()) {
+            setVoltageControl(generator.getTargetV(), generator.getRegulatingTerminal(), breakers, report);
+        }
     }
 
-    public static LfGeneratorImpl create(Generator generator, LfNetworkLoadingReport report) {
+    public static LfGeneratorImpl create(Generator generator, boolean breakers, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
         Objects.requireNonNull(generator);
         Objects.requireNonNull(report);
-        return new LfGeneratorImpl(generator, report);
+        return new LfGeneratorImpl(generator, breakers, report, plausibleActivePowerLimit);
     }
 
     @Override
     public String getId() {
         return generator.getId();
-    }
-
-    @Override
-    public boolean hasVoltageControl() {
-        return generator.isVoltageRegulatorOn();
     }
 
     @Override

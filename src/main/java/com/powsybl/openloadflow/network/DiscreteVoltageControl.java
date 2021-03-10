@@ -33,7 +33,7 @@ public class DiscreteVoltageControl {
     private final double targetValue;
 
     public DiscreteVoltageControl(LfBus controlled, DiscreteVoltageControl.Mode mode, double targetValue) {
-        this.controlled = controlled;
+        this.controlled = Objects.requireNonNull(controlled);
         this.targetValue = targetValue;
         this.mode = Objects.requireNonNull(mode);
     }
@@ -43,7 +43,15 @@ public class DiscreteVoltageControl {
     }
 
     public void setMode(Mode mode) {
-        this.mode = Objects.requireNonNull(mode);
+        System.out.println("toto");
+        Objects.requireNonNull(mode);
+        if (mode != this.mode) {
+            Mode oldMode = this.mode;
+            this.mode = mode;
+            for (LfNetworkListener listener : controlled.getNetwork().getListeners()) {
+                listener.onVoltageControlModeChange(this, oldMode, mode);
+            }
+        }
     }
 
     public double getTargetValue() {

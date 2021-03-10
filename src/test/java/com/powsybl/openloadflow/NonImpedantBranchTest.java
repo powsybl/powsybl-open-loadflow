@@ -75,7 +75,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertVoltageEquals(1, b1);
         assertVoltageEquals(0.856, b2);
         assertVoltageEquals(0.856, b3);
-        assertAngleEquals(13.444857, b1);
+        assertAngleEquals(13.520904, b1);
         assertAngleEquals(0, b2);
         assertAngleEquals(0, b3);
 

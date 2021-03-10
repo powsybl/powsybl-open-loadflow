@@ -6,11 +6,6 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertLoadFlowResultsEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
@@ -27,6 +22,10 @@ import com.powsybl.openloadflow.util.LoadFlowResultBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertLoadFlowResultsEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -128,8 +127,8 @@ class DistributedSlackOnLoadTest {
 
         assertPowerFactor(network1);
         LoadFlowResult loadFlowResultExpected1 = new LoadFlowResultBuilder(true)
-                .addMetrics("5", "CONVERGED")
-                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "VLHV1_0", -3.06844963660069E-5)
+                .addMetrics("4", "CONVERGED")
+                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 4, "VLHV1_0", 0.026900149770181514)
                 .build();
         assertLoadFlowResultsEquals(loadFlowResultExpected1, loadFlowResult1);
 
@@ -148,8 +147,8 @@ class DistributedSlackOnLoadTest {
 
         // then
         assertPowerFactor(network2);
-        LoadFlowResult loadFlowResultExpected2 = new LoadFlowResultBuilder(true).addMetrics("5", "CONVERGED")
-                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "VLHV1_0", 1.340823176931849E-5)
+        LoadFlowResult loadFlowResultExpected2 = new LoadFlowResultBuilder(true).addMetrics("4", "CONVERGED")
+                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 4, "VLHV1_0", 0.026900149770181514)
                 .build();
         assertLoadFlowResultsEquals(loadFlowResultExpected2, loadFlowResult2);
     }

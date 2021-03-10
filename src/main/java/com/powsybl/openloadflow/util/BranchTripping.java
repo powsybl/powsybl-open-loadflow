@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.sa;
+package com.powsybl.openloadflow.util;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.ComputationManager;
@@ -16,16 +16,16 @@ import java.util.*;
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class LfBranchTripping extends AbstractTrippingTask {
+public class BranchTripping extends AbstractTrippingTask {
 
     private final String branchId;
     private final String voltageLevelId;
 
-    public LfBranchTripping(String branchId) {
+    public BranchTripping(String branchId) {
         this(branchId, null);
     }
 
-    public LfBranchTripping(String branchId, String voltageLevelId) {
+    public BranchTripping(String branchId, String voltageLevelId) {
         this.branchId = Objects.requireNonNull(branchId);
         this.voltageLevelId = voltageLevelId;
     }
@@ -55,33 +55,51 @@ public class LfBranchTripping extends AbstractTrippingTask {
         terminalsToDisconnect.addAll(traversedTerminals);
     }
 
+    /**
+     * Recursive method to calculate the switches to open and the traversed terminals from a terminal
+     * @param terminal starting terminal
+     * @param switchesToOpen set of switches which would be opened by the contingency propagation from terminal
+     * @param traversedTerminals set of terminals traversed by the contingency propagation
+     */
     private void traverseFromTerminal(Terminal terminal, Set<Switch> switchesToOpen, Set<Terminal> traversedTerminals) {
+        Objects.requireNonNull(terminal);
+        Objects.requireNonNull(switchesToOpen);
+        Objects.requireNonNull(traversedTerminals);
 
         if (traversedTerminals.contains(terminal)) {
             return;
         }
-        traversedTerminals.add(terminal);
 
         if (terminal.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
-
-            int initNode = terminal.getNodeBreakerView().getNode();
-            VoltageLevel.NodeBreakerView nodeBreakerView = terminal.getVoltageLevel().getNodeBreakerView();
-
-            LfNodeBreakerTraverser traverser = new LfNodeBreakerTraverser(switchesToOpen, initNode, nodeBreakerView);
-            nodeBreakerView.traverse(initNode, traverser);
+            traversedTerminals.add(terminal);
+            List<Terminal> nextTerminals = traverseNodeBreakerVoltageLevelsFromTerminal(terminal, switchesToOpen, traversedTerminals);
 
             // Recursive call to continue the traverser in affected neighbouring voltage levels
-            List<Terminal> nextTerminals = new ArrayList<>();
-            traverser.getTraversedTerminals().forEach(t -> {
-                nextTerminals.addAll(t.getConnectable().getTerminals()); // the already traversed terminal are also added for the sake of simplicity
-                traversedTerminals.add(t);
-            });
             nextTerminals.forEach(t -> traverseFromTerminal(t, switchesToOpen, traversedTerminals));
-
         } else {
-            // TODO: Traverser yet to implement for bus breaker view
-            throw new UnsupportedOperationException("Traverser yet to implement for bus breaker view");
+            // In bus breaker view we have no idea what kind of switch it was in the initial node/breaker topology
+            // so to keep things simple we do not propagate the fault
+            if (terminal.isConnected()) {
+                traversedTerminals.add(terminal);
+            }
         }
+    }
+
+    private List<Terminal> traverseNodeBreakerVoltageLevelsFromTerminal(Terminal terminal, Set<Switch> switchesToOpen,
+                                                                        Set<Terminal> traversedTerminals) {
+        int initNode = terminal.getNodeBreakerView().getNode();
+        VoltageLevel.NodeBreakerView nodeBreakerView = terminal.getVoltageLevel().getNodeBreakerView();
+
+        NodeBreakerTraverser traverser = new NodeBreakerTraverser(switchesToOpen, initNode, nodeBreakerView);
+        nodeBreakerView.traverse(initNode, traverser);
+
+        List<Terminal> nextTerminals = new ArrayList<>();
+        traverser.getTraversedTerminals().forEach(t -> {
+            nextTerminals.addAll(t.getConnectable().getTerminals()); // the already traversed terminal are also added for the sake of simplicity
+            traversedTerminals.add(t);
+        });
+
+        return nextTerminals;
     }
 
 }

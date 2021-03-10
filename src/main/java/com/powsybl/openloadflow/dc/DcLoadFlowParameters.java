@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.dc;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.util.ParameterConstants;
 
 import java.util.Objects;
 
@@ -23,20 +24,36 @@ public class DcLoadFlowParameters {
 
     private final boolean updateFlows;
 
-    boolean useTransformerRatio;
+    private final boolean useTransformerRatio;
 
-    private boolean distributedSlack;
+    private final boolean distributedSlack;
 
-    private LoadFlowParameters.BalanceType balanceType;
+    private final LoadFlowParameters.BalanceType balanceType;
+
+    private final boolean forcePhaseControlOffAndAddAngle1Var;
+
+    private final double plausibleActivePowerLimit;
+
+    private final boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+
+    public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory) {
+        this(slackBusSelector, matrixFactory, false, true, false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, false,
+                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false);
+    }
 
     public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory, boolean updateFlows,
-                                boolean useTransformerRatio, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType) {
+                                boolean useTransformerRatio, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
+                                boolean forcePhaseControlOffAndAddAngle1Var, double plausibleActivePowerLimit,
+                                boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.updateFlows = updateFlows;
         this.useTransformerRatio = useTransformerRatio;
         this.distributedSlack = distributedSlack;
         this.balanceType = balanceType;
+        this.forcePhaseControlOffAndAddAngle1Var = forcePhaseControlOffAndAddAngle1Var;
+        this.plausibleActivePowerLimit = plausibleActivePowerLimit;
+        this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -61,5 +78,17 @@ public class DcLoadFlowParameters {
 
     public boolean isUseTransformerRatio() {
         return useTransformerRatio;
+    }
+
+    public boolean isForcePhaseControlOffAndAddAngle1Var() {
+        return forcePhaseControlOffAndAddAngle1Var;
+    }
+
+    public double getPlausibleActivePowerLimit() {
+        return plausibleActivePowerLimit;
+    }
+
+    public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
+        return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
     }
 }

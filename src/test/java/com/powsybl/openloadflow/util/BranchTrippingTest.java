@@ -4,16 +4,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.sa;
+package com.powsybl.openloadflow.util;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.tasks.AbstractTrippingTask;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.SwitchKind;
-import com.powsybl.iidm.network.Terminal;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FictitiousSwitchFactory;
+import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -21,8 +19,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
@@ -31,25 +28,25 @@ class BranchTrippingTest {
 
     @Test
     void testLineTripping() {
-        Network network = OpenSecurityAnalysisTest.createNetwork();
+        Network network = NodeBreakerNetworkFactory.create();
 
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
-        new LfBranchTripping("L1").traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        new BranchTripping("L1").traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "C");
-        checkTerminals(terminalsToDisconnect, "BBS1", "L1");
+        checkTerminalIds(terminalsToDisconnect, "BBS1", "L1");
 
         switchesToOpen.clear();
         terminalsToDisconnect.clear();
-        new LfBranchTripping("L2").traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        new BranchTripping("L2").traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen);
-        checkTerminals(terminalsToDisconnect, "L2");
+        checkTerminalIds(terminalsToDisconnect, "L2");
     }
 
     @Test
     void testUnknownLineTripping() {
-        Network network = OpenSecurityAnalysisTest.createNetwork();
-        AbstractTrippingTask trippingTaskUnknownBranch = new LfBranchTripping("L9");
+        Network network = NodeBreakerNetworkFactory.create();
+        AbstractTrippingTask trippingTaskUnknownBranch = new BranchTripping("L9");
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         Exception unknownBranch = assertThrows(PowsyblException.class,
@@ -59,8 +56,8 @@ class BranchTrippingTest {
 
     @Test
     void testUnconnectedVoltageLevel() {
-        Network network = OpenSecurityAnalysisTest.createNetwork();
-        AbstractTrippingTask trippingTaskUnconnectedVl = new LfBranchTripping("L1", "VL3");
+        Network network = NodeBreakerNetworkFactory.create();
+        AbstractTrippingTask trippingTaskUnconnectedVl = new BranchTripping("L1", "VL3");
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         Exception unknownVl = assertThrows(PowsyblException.class,
@@ -70,34 +67,21 @@ class BranchTrippingTest {
 
     @Test
     void testVoltageLevelFilter() {
-        Network network = OpenSecurityAnalysisTest.createNetwork();
+        Network network = NodeBreakerNetworkFactory.create();
 
-        AbstractTrippingTask trippingTaskVl1 = new LfBranchTripping("L1", "VL1");
+        AbstractTrippingTask trippingTaskVl1 = new BranchTripping("L1", "VL1");
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         trippingTaskVl1.traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "C");
-        checkTerminals(terminalsToDisconnect, "BBS1", "L1");
+        checkTerminalIds(terminalsToDisconnect, "BBS1", "L1");
 
-        AbstractTrippingTask trippingTaskVl2 = new LfBranchTripping("L1", "VL2");
+        AbstractTrippingTask trippingTaskVl2 = new BranchTripping("L1", "VL2");
         switchesToOpen.clear();
         terminalsToDisconnect.clear();
         trippingTaskVl2.traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen);
-        checkTerminals(terminalsToDisconnect, "L1");
-    }
-
-    @Test
-    void testEurostagNetwork() {
-        Network network = EurostagTutorialExample1Factory.create();
-
-        Set<Switch> switchesToOpen = new HashSet<>();
-        Set<Terminal> terminalsToDisconnect = new HashSet<>();
-
-        LfBranchTripping trippingTask = new LfBranchTripping("NHV1_NHV2_1");
-        Exception e = assertThrows(UnsupportedOperationException.class,
-            () -> trippingTask.traverse(network, null, switchesToOpen, terminalsToDisconnect));
-        assertEquals("Traverser yet to implement for bus breaker view", e.getMessage());
+        checkTerminalIds(terminalsToDisconnect, "L1");
     }
 
     @Test
@@ -106,9 +90,9 @@ class BranchTrippingTest {
 
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
-        new LfBranchTripping("CJ").traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        new BranchTripping("CJ").traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen);
-        checkTerminals(terminalsToDisconnect, "D", "CI", "CJ");
+        checkTerminalIds(terminalsToDisconnect, "D", "CI", "CJ");
     }
 
     @Test
@@ -120,12 +104,12 @@ class BranchTrippingTest {
         network.getSwitch("AZ").setOpen(false);
 
         // First without opening disconnector
-        LfBranchTripping lbt1 = new LfBranchTripping("CJ");
+        BranchTripping lbt1 = new BranchTripping("CJ");
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         lbt1.traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BL", "BJ");
-        checkTerminals(terminalsToDisconnect, "D", "CI", "P", "CJ");
+        checkTerminalIds(terminalsToDisconnect, "D", "CI", "P", "CJ");
 
         // Then with the opened disconnector
         network.getSwitch("AH").setOpen(true);
@@ -133,7 +117,7 @@ class BranchTrippingTest {
         terminalsToDisconnect.clear();
         lbt1.traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BL");
-        checkTerminals(terminalsToDisconnect, "D", "CI", "P", "CJ");
+        checkTerminalIds(terminalsToDisconnect, "D", "CI", "P", "CJ");
     }
 
     @Test
@@ -145,9 +129,9 @@ class BranchTrippingTest {
 
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
-        new LfBranchTripping("CJ").traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        new BranchTripping("CJ").traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen);
-        checkTerminals(terminalsToDisconnect, "CJ");
+        checkTerminalIds(terminalsToDisconnect, "CJ");
     }
 
     @Test
@@ -181,12 +165,12 @@ class BranchTrippingTest {
             .setNode2(18)
             .add();
 
-        LfBranchTripping lbt1 = new LfBranchTripping("CJ");
+        BranchTripping lbt1 = new BranchTripping("CJ");
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         lbt1.traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BJ", "BL", "BV", "BX");
-        checkTerminals(terminalsToDisconnect, "D", "CI", "P", "O", "CJ");
+        checkTerminalIds(terminalsToDisconnect, "D", "CI", "P", "O", "CJ");
 
         // Adding an internal connection and open the ZW switch
         network.getSwitch("ZY").setOpen(true);
@@ -198,7 +182,7 @@ class BranchTrippingTest {
         terminalsToDisconnect.clear();
         lbt1.traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BJ", "BL", "BV", "BX");
-        checkTerminals(terminalsToDisconnect, "D", "CI", "P", "O", "CJ");
+        checkTerminalIds(terminalsToDisconnect, "D", "CI", "P", "O", "CJ");
     }
 
     @Test
@@ -217,9 +201,9 @@ class BranchTrippingTest {
 
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
-        new LfBranchTripping("CJ").traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        new BranchTripping("CJ").traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BL");
-        checkTerminals(terminalsToDisconnect, "D", "CI", "CJ");
+        checkTerminalIds(terminalsToDisconnect, "D", "CI", "CJ");
     }
 
     @Test
@@ -241,27 +225,56 @@ class BranchTrippingTest {
             .setNode2(4)
             .add();
 
-        LfBranchTripping lbt1 = new LfBranchTripping("CJ");
+        BranchTripping lbt1 = new BranchTripping("CJ");
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         lbt1.traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "ZY");
-        checkTerminals(terminalsToDisconnect, "D", "CI", "CJ");
+        checkTerminalIds(terminalsToDisconnect, "D", "CI", "CJ");
 
         network.getSwitch("ZY").setOpen(true);
         switchesToOpen.clear();
         terminalsToDisconnect.clear();
         lbt1.traverse(network, null, switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen);
-        checkTerminals(terminalsToDisconnect, "D", "CI", "CJ");
+        checkTerminalIds(terminalsToDisconnect, "D", "CI", "CJ");
+    }
+
+    @Test
+    void testEurostagNetwork() {
+        Network network = EurostagTutorialExample1Factory.create();
+
+        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Terminal> terminalsToDisconnect = new HashSet<>();
+
+        BranchTripping trippingTask = new BranchTripping("NHV1_NHV2_1");
+        trippingTask.traverse(network, null, switchesToOpen, terminalsToDisconnect);
+
+        assertTrue(switchesToOpen.isEmpty());
+        assertEquals(2, terminalsToDisconnect.size());
+        checkTerminalStrings(terminalsToDisconnect, "BusTerminal[NHV1]", "BusTerminal[NHV2]");
+
+        Line line = network.getLine("NHV1_NHV2_1");
+        line.getTerminal1().disconnect();
+
+        terminalsToDisconnect.clear();
+        trippingTask.traverse(network, null, switchesToOpen, terminalsToDisconnect);
+
+        assertTrue(switchesToOpen.isEmpty());
+        assertEquals(1, terminalsToDisconnect.size());
+        checkTerminalStrings(terminalsToDisconnect, "BusTerminal[NHV2]");
     }
 
     private static void checkSwitches(Set<Switch> switches, String... sId) {
         assertEquals(new HashSet<>(Arrays.asList(sId)), switches.stream().map(Switch::getId).collect(Collectors.toSet()));
     }
 
-    private static void checkTerminals(Set<Terminal> terminals, String... tId) {
+    private static void checkTerminalIds(Set<Terminal> terminals, String... tId) {
         assertEquals(new HashSet<>(Arrays.asList(tId)), terminals.stream().map(t -> t.getConnectable().getId()).collect(Collectors.toSet()));
+    }
+
+    private static void checkTerminalStrings(Set<Terminal> terminals, String... strings) {
+        assertEquals(new HashSet<>(Arrays.asList(strings)), terminals.stream().map(Object::toString).collect(Collectors.toSet()));
     }
 
 }

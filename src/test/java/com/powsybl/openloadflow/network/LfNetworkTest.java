@@ -10,6 +10,7 @@ import com.powsybl.commons.AbstractConverterTest;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
+import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import org.junit.jupiter.api.AfterEach;
@@ -93,5 +94,14 @@ class LfNetworkTest extends AbstractConverterTest {
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertNull(lfNetwork.getBranchById("AAA"));
         assertNotNull(lfNetwork.getBranchById("NHV1_NHV2_1"));
+    }
+
+    @Test
+    void testDanglingLine() {
+        Network network = DanglingLineNetworkFactory.create();
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        assertFalse(lfNetwork.getBusById("DL_BUS").isDisabled());
     }
 }
