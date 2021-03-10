@@ -437,12 +437,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         if (shunt.isVoltageRegulatorOn()) {
             LfBus controllerBus = getLfBus(shunt.getTerminal(), lfNetwork, breakers);
             if (controllerBus == null) {
-                LOGGER.warn("Voltage controlled bus {} is out of voltage: no voltage control created", controllerBus.getId());
+                LOGGER.warn("Voltage controller shunt {} is out of voltage: no voltage control created", shunt.getId());
                 return;
             }
             LfBus controlledBus = getLfBus(shunt.getRegulatingTerminal(), lfNetwork, breakers);
             if (controlledBus == null) {
-                LOGGER.warn("Regulating terminal of voltage controlled bus {} is out of voltage: no voltage control created", controllerBus.getId());
+                LOGGER.warn("Regulating terminal of voltage controller shunt {} is out of voltage: no voltage control created", shunt.getId());
                 return;
             } else {
                 if (controlledBus.isVoltageControlled()) {
