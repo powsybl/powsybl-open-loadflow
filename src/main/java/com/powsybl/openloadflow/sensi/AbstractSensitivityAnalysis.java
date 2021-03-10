@@ -414,17 +414,19 @@ public abstract class AbstractSensitivityAnalysis {
 
     abstract static class AbstractInjectionFactorGroup extends SensitivityFactorGroup {
 
-        Map<CachedBus, Double> injectionByBus;
+        Map<CachedBus, Double> participationByBus;
 
         AbstractInjectionFactorGroup(final String id) {
             super(id);
         }
 
-        public void setInjectionByBus(final Map<CachedBus, Double> participationToSlackByBus) { }
+        public void setParticipationByBus(final Map<CachedBus, Double> participationToSlackByBus) {
+            this.participationByBus = participationToSlackByBus;
+        }
 
         @Override
         void fillRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Matrix rhs) {
-            for (Map.Entry<CachedBus, Double> cachedBusAndInjectionValue : injectionByBus.entrySet()) {
+            for (Map.Entry<CachedBus, Double> cachedBusAndInjectionValue : participationByBus.entrySet()) {
                 CachedBus cachedBus = cachedBusAndInjectionValue.getKey();
                 LfBus lfBus = cachedBus.getLfBus();
                 Equation p = cachedBus.getpEquation();
@@ -447,9 +449,11 @@ public abstract class AbstractSensitivityAnalysis {
         }
 
         @Override
-        public void setInjectionByBus(final Map<CachedBus, Double> slackParticipationByBus) {
-            slackParticipationByBus.put(cachedBus, slackParticipationByBus.getOrDefault(cachedBus, 0d) + 1);
-            injectionByBus = slackParticipationByBus;
+        void fillRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Matrix rhs) {
+            super.fillRhs(lfNetwork, equationSystem, rhs);
+            if (!cachedBus.getLfBus().isSlack() && cachedBus.getpEquation().isActive()) {
+                rhs.add(cachedBus.getpEquation().getColumn(), getIndex(), 1d / PerUnit.SB);
+            }
         }
     }
 
@@ -469,10 +473,15 @@ public abstract class AbstractSensitivityAnalysis {
         }
 
         @Override
-        public void setInjectionByBus(final Map<CachedBus, Double> participationToSlackByBus) {
+        void fillRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Matrix rhs) {
+            super.fillRhs(lfNetwork, equationSystem, rhs);
             Double glskWeightSum = glskMapInMainComponent.values().stream().mapToDouble(Math::abs).sum();
-            glskMapInMainComponent.forEach((busId, weight) -> participationToSlackByBus.merge(busId, weight / glskWeightSum, Double::sum));
-            injectionByBus = participationToSlackByBus;
+            glskMapInMainComponent.forEach((bus, weight) -> {
+                if (bus.getLfBus().isSlack() || !bus.getpEquation().isActive()) {
+                    return;
+                }
+                rhs.add(bus.getpEquation().getColumn(), getIndex(), weight / glskWeightSum / PerUnit.SB);
+            });
         }
 
         public void setGlskMapInMainComponent(final Map<CachedBus, Double> glskMapInMainComponent) {
@@ -533,7 +542,7 @@ public abstract class AbstractSensitivityAnalysis {
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             if (factorGroup instanceof AbstractInjectionFactorGroup) {
                 AbstractInjectionFactorGroup injectionGroup = (AbstractInjectionFactorGroup) factorGroup;
-                injectionGroup.setInjectionByBus(new HashMap<>(participationFactorByBus));
+                injectionGroup.setParticipationByBus(participationFactorByBus);
             }
         }
     }
