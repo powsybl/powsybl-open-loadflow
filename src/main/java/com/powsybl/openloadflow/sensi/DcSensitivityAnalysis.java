@@ -169,6 +169,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 .map(ParticipatingElement::getLfBus)
                 .collect(Collectors.toSet()));
         }
+        // the a1 value will be set to 0 for disabledBranches, so we need to restore them at the end
+        Map<LfBranch, Double> a1s = disabledBranches.stream().filter(branch -> branch.getPiModel().getA1() != 0).collect(Collectors.toMap(
+            branch -> branch,
+            branch -> branch.getPiModel().getA1()
+        ));
 
         dcLoadFlowEngine.run(equationSystem, j, disabledBuses, disabledBranches);
 
@@ -179,6 +184,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         if (lfParameters.isDistributedSlack()) {
             BusState.restoreBusActiveStates(busStates);
         }
+        a1s.forEach((branch, a1) -> branch.getPiModel().setA1(a1));
 
         double[] dx = dcLoadFlowEngine.getTargetVector();
         return new DenseMatrix(dx.length, 1, dx);
