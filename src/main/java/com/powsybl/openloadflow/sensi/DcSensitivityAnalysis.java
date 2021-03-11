@@ -170,7 +170,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 .collect(Collectors.toSet()));
         }
         // the a1 value will be set to 0 for disabledBranches, so we need to restore them at the end
-        Map<LfBranch, Double> a1s = disabledBranches.stream().filter(branch -> branch.getPiModel().getA1() != 0).collect(Collectors.toMap(
+        Map<LfBranch, Double> a1s = disabledBranches.stream().collect(Collectors.toMap(
             branch -> branch,
             branch -> branch.getPiModel().getA1()
         ));
