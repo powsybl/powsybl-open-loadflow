@@ -12,9 +12,9 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1IntensityMagnitudeEquationTerm;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1CurrentMagnitudeEquationTerm;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ActiveFlowEquationTerm;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2IntensityMagnitudeEquationTerm;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2CurrentMagnitudeEquationTerm;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.EquationTerm;
@@ -74,8 +74,8 @@ class LfSwitchTest {
         lfSwitch.setP2(p2);
         assertEquals(Double.NaN, lfSwitch.getP2());
 
-        EquationTerm i1 = new ClosedBranchSide1IntensityMagnitudeEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), new VariableSet(), false, false);
-        EquationTerm i2 = new ClosedBranchSide2IntensityMagnitudeEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), new VariableSet(), false, false);
+        EquationTerm i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), new VariableSet(), false, false);
+        EquationTerm i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), new VariableSet(), false, false);
         lfSwitch.setI1(i1);
         assertEquals(Double.NaN, lfSwitch.getP1());
         lfSwitch.setI2(i2);

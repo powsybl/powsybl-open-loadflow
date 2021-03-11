@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.AbstractClosedBranchAcFlowEquationTerm;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1IntensityMagnitudeEquationTerm;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1CurrentMagnitudeEquationTerm;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.*;
@@ -81,7 +81,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         if (factor.getFunction() instanceof BranchFlow) {
             return ClosedBranchSide1ActiveFlowEquationTerm.class;
         } else if (factor.getFunction() instanceof BranchIntensity) {
-            return ClosedBranchSide1IntensityMagnitudeEquationTerm.class;
+            return ClosedBranchSide1CurrentMagnitudeEquationTerm.class;
         } else {
             throw new NotImplementedException("Unknown function type: " + factor.getFunction().getClass().getSimpleName());
         }

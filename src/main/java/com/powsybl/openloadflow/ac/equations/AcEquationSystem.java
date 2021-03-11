@@ -275,16 +275,16 @@ public final class AcEquationSystem {
             q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
             p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
             q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
-            i1 = new ClosedBranchSide1IntensityMagnitudeEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
-            i2 = new ClosedBranchSide2IntensityMagnitudeEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+            i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+            i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
         } else if (bus1 != null) {
             p1 = new OpenBranchSide2ActiveFlowEquationTerm(branch, bus1, variableSet, deriveA1, deriveR1);
             q1 = new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus1, variableSet, deriveA1, deriveR1);
-            i1 = new OpenBranchSide2IntensityMagnitudeEquationTerm(branch, bus1, variableSet, deriveA1, deriveR1);
+            i1 = new OpenBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, variableSet, deriveA1, deriveR1);
         } else if (bus2 != null) {
             p2 = new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, variableSet, deriveA1, deriveR1);
             q2 = new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, variableSet, deriveA1, deriveR1);
-            i2 = new OpenBranchSide1IntensityMagnitudeEquationTerm(branch, bus2, variableSet, deriveA1, deriveR1);
+            i2 = new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, variableSet, deriveA1, deriveR1);
         }
 
         if (p1 != null) {

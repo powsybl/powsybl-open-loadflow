@@ -20,7 +20,7 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
-public class ClosedBranchSide2IntensityMagnitudeEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
+public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
     private double i2;
 
@@ -34,8 +34,8 @@ public class ClosedBranchSide2IntensityMagnitudeEquationTerm extends AbstractClo
 
     private double di2da1;
 
-    public ClosedBranchSide2IntensityMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
-                                                           boolean deriveA1, boolean deriveR1) {
+    public ClosedBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
+                                                         boolean deriveA1, boolean deriveR1) {
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
 

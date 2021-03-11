@@ -20,7 +20,7 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
-public class OpenBranchSide1IntensityMagnitudeEquationTerm extends AbstractOpenSide1BranchAcFlowEquationTerm {
+public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSide1BranchAcFlowEquationTerm {
 
     private final Variable v2Var;
 
@@ -30,8 +30,8 @@ public class OpenBranchSide1IntensityMagnitudeEquationTerm extends AbstractOpenS
 
     private double di2dv2;
 
-    public OpenBranchSide1IntensityMagnitudeEquationTerm(LfBranch branch, LfBus bus2, VariableSet variableSet,
-                                                         boolean deriveA1, boolean deriveR1) {
+    public OpenBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus2, VariableSet variableSet,
+                                                       boolean deriveA1, boolean deriveR1) {
         super(branch, VariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
         v2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_V);
         ph2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_PHI);
