@@ -24,6 +24,7 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
+import com.powsybl.openloadflow.util.BranchState;
 import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.SensitivityFactor;
@@ -170,10 +171,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 .collect(Collectors.toSet()));
         }
         // the a1 value will be set to 0 for disabledBranches, so we need to restore them at the end
-        Map<LfBranch, Double> a1s = disabledBranches.stream().collect(Collectors.toMap(
-            branch -> branch,
-            branch -> branch.getPiModel().getA1()
-        ));
+        Map<LfBranch, BranchState> branchStates = BranchState.createBranchStates(disabledBranches);
 
         dcLoadFlowEngine.run(equationSystem, j, disabledBuses, disabledBranches);
 
@@ -184,7 +182,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         if (lfParameters.isDistributedSlack()) {
             BusState.restoreBusActiveStates(busStates);
         }
-        a1s.forEach((branch, a1) -> branch.getPiModel().setA1(a1));
+        BranchState.restoreBranchActiveStates(branchStates);
 
         double[] dx = dcLoadFlowEngine.getTargetVector();
         return new DenseMatrix(dx.length, 1, dx);
