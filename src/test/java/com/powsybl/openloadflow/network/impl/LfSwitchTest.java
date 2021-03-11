@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class LfSwitchTest {
+class LfSwitchTest {
 
     Network network;
 
