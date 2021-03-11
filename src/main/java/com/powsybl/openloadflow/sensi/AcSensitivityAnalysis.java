@@ -87,7 +87,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
     }
 
-    protected void setReferenceActivePowerFlows(List<LfSensitivityFactor<? extends AbstractClosedBranchAcFlowEquationTerm>> factors) {
+    protected void setFunctionReferences(List<LfSensitivityFactor<? extends AbstractClosedBranchAcFlowEquationTerm>> factors) {
         for (LfSensitivityFactor<?> factor : factors) {
             double functionReference;
             if (factor.getFactor().getFunction() instanceof BranchFlow) {
@@ -129,7 +129,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             // solve system
             DenseMatrix factorsStates = initFactorsRhs(lfNetwork, engine.getEquationSystem(), factorGroups); // this is the rhs for the moment
             j.solveTransposed(factorsStates);
-            setReferenceActivePowerFlows(lfFactors);
+            setFunctionReferences(lfFactors);
 
             // calculate sensitivity values
             sensitivityValues = calculateSensitivityValues(factorGroups, factorsStates);
@@ -201,7 +201,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 j.solveTransposed(factorsStates);
 
                 // calculate sensitivity values
-                setReferenceActivePowerFlows(lfFactors);
+                setFunctionReferences(lfFactors);
                 baseValues.addAll(calculateSensitivityValues(factorGroups, factorsStates));
             }
 

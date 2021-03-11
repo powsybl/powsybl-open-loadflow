@@ -63,19 +63,19 @@ public class ClosedBranchSide2IntensityMagnitudeEquationTerm extends AbstractClo
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
 
-        double reI2 = R2 * (w2 * (g2 * cosPh2 - b2 * sinPh2 + y * sinPh2Ksi) - w1 * sinTheta) * NORMALIZATION_FACTOR;
-        double imI2 = R2 * (w2 * (g2 * sinPh2 + b2 * cosPh2 - y * cosPh2Ksi) + w1 * cosTheta) * NORMALIZATION_FACTOR;
+        double reI2 = R2 * (w2 * (g2 * cosPh2 - b2 * sinPh2 + y * sinPh2Ksi) - w1 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
+        double imI2 = R2 * (w2 * (g2 * sinPh2 + b2 * cosPh2 - y * cosPh2Ksi) + w1 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
         i2 = Math.hypot(reI2, imI2);
 
-        double dreI2dv2 = R2 * R2 * (g2 * cosPh2 - b2 * sinPh2 + y * sinPh2Ksi) * NORMALIZATION_FACTOR;
-        double dreI2dv1 = R2 * (-y * r1 * sinTheta) * NORMALIZATION_FACTOR;
-        double dreI2dph2 = R2 * w2 * (-g2 * sinPh2 - b2 * cosPh2 + y * cosPh2Ksi) * NORMALIZATION_FACTOR;
-        double dreI2dph1 = R2 * (-w1 * cosTheta) * NORMALIZATION_FACTOR;
+        double dreI2dv2 = R2 * R2 * (g2 * cosPh2 - b2 * sinPh2 + y * sinPh2Ksi) * CURRENT_NORMALIZATION_FACTOR;
+        double dreI2dv1 = R2 * (-y * r1 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
+        double dreI2dph2 = R2 * w2 * (-g2 * sinPh2 - b2 * cosPh2 + y * cosPh2Ksi) * CURRENT_NORMALIZATION_FACTOR;
+        double dreI2dph1 = R2 * (-w1 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
 
-        double dimI2dv2 = R2 * R2 * (g2 * sinPh2 + b2 * cosPh2 - y * cosPh2Ksi) * NORMALIZATION_FACTOR;
-        double dimI2dv1 = R2 * (y * r1 * cosTheta) * NORMALIZATION_FACTOR;
-        double dimI2dph2 = R2 * w2 * (g2 * cosPh2 - b2 * sinPh2 + y * sinPh2Ksi) * NORMALIZATION_FACTOR;
-        double dimI2dph1 = R2 * (-w1 * sinTheta) * NORMALIZATION_FACTOR;
+        double dimI2dv2 = R2 * R2 * (g2 * sinPh2 + b2 * cosPh2 - y * cosPh2Ksi) * CURRENT_NORMALIZATION_FACTOR;
+        double dimI2dv1 = R2 * (y * r1 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
+        double dimI2dph2 = R2 * w2 * (g2 * cosPh2 - b2 * sinPh2 + y * sinPh2Ksi) * CURRENT_NORMALIZATION_FACTOR;
+        double dimI2dph1 = R2 * (-w1 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
 
         di2dv2 = (reI2 * dreI2dv2 + imI2 * dimI2dv2) / i2;
         di2dv1 = (reI2 * dreI2dv1 + imI2 * dimI2dv1) / i2;
