@@ -182,7 +182,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         if (lfParameters.isDistributedSlack()) {
             BusState.restoreBusActiveStates(busStates);
         }
-        BranchState.restoreBranchActiveStates(branchStates);
+        BranchState.restoreBranchStates(branchStates);
 
         double[] dx = dcLoadFlowEngine.getTargetVector();
         return new DenseMatrix(dx.length, 1, dx);

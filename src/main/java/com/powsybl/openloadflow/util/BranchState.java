@@ -17,7 +17,7 @@ public class BranchState {
         r1 = piModel.getR1();
     }
 
-    public void restoreBranchActiveState(LfBranch branch) {
+    public void restoreBranchState(LfBranch branch) {
         PiModel piModel = branch.getPiModel();
         piModel.setA1(a1);
         piModel.setR1(r1);
@@ -36,7 +36,7 @@ public class BranchState {
      * Set the branch states based on the given map of states
      * @param branchStates the map containing the branches states, indexed by branches
      */
-    public static void restoreBranchActiveStates(Map<LfBranch, BranchState> branchStates) {
-        branchStates.forEach((b, state) -> state.restoreBranchActiveState(b));
+    public static void restoreBranchStates(Map<LfBranch, BranchState> branchStates) {
+        branchStates.forEach((b, state) -> state.restoreBranchState(b));
     }
 }
