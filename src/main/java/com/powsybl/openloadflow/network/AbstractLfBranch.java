@@ -23,14 +23,22 @@ import java.util.TreeSet;
  */
 public abstract class AbstractLfBranch extends AbstractElement implements LfBranch {
 
-    public static class LfTemporaryLimit {
+    public static final class LfLimit {
 
         private final int acceptableDuration;
         private final double value;
 
-        public LfTemporaryLimit(int acceptableDuration, double value) {
+        private LfLimit(int acceptableDuration, double value) {
             this.acceptableDuration = acceptableDuration;
             this.value = value;
+        }
+
+        private static LfLimit createTemporaryLimit(int acceptableDuration, double valuePerUnit) {
+            return new LfLimit(acceptableDuration, valuePerUnit);
+        }
+
+        private static LfLimit createPermanentLimit(double valuePerUnit) {
+            return new LfLimit(Integer.MAX_VALUE, valuePerUnit);
         }
 
         public int getAcceptableDuration() {
@@ -45,9 +53,9 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBranch.class);
 
-    private static final Comparator<LfTemporaryLimit> TEMPORARY_LIMITS_COMPARATOR =
-        Comparator.comparingInt(LfTemporaryLimit::getAcceptableDuration)
-            .thenComparing(Comparator.comparingDouble(LfTemporaryLimit::getValue).reversed());
+    private static final Comparator<LfLimit> TEMPORARY_LIMITS_COMPARATOR =
+        Comparator.comparingInt(LfLimit::getAcceptableDuration)
+            .thenComparing(Comparator.comparingDouble(LfLimit::getValue).reversed());
 
     private int num = -1;
 
@@ -68,17 +76,17 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.piModel = Objects.requireNonNull(piModel);
     }
 
-    protected static SortedSet<LfTemporaryLimit> createSortedTemporaryLimitsSet(CurrentLimits currentLimits, LfBus bus) {
-        SortedSet<LfTemporaryLimit> temporaryLimits = new TreeSet<>(TEMPORARY_LIMITS_COMPARATOR);
+    protected static SortedSet<LfLimit> createSortedLimitsSet(CurrentLimits currentLimits, LfBus bus) {
+        SortedSet<LfLimit> sortedLimits = new TreeSet<>(TEMPORARY_LIMITS_COMPARATOR);
         if (currentLimits != null) {
             double toPerUnit = bus.getNominalV() / PerUnit.SB;
             for (CurrentLimits.TemporaryLimit temporaryLimit : currentLimits.getTemporaryLimits()) {
                 double valuePerUnit = temporaryLimit.getValue() != Double.MAX_VALUE ? temporaryLimit.getValue() * toPerUnit : Double.MAX_VALUE;
-                temporaryLimits.add(new LfTemporaryLimit(temporaryLimit.getAcceptableDuration(), valuePerUnit));
+                sortedLimits.add(LfLimit.createTemporaryLimit(temporaryLimit.getAcceptableDuration(), valuePerUnit));
             }
-            temporaryLimits.add(new LfTemporaryLimit(Integer.MAX_VALUE, currentLimits.getPermanentLimit() * toPerUnit));
+            sortedLimits.add(LfLimit.createPermanentLimit(currentLimits.getPermanentLimit() * toPerUnit));
         }
-        return temporaryLimits;
+        return sortedLimits;
     }
 
     @Override

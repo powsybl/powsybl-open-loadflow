@@ -80,12 +80,12 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public SortedSet<LfTemporaryLimit> getTemporaryLimits1() {
+    public SortedSet<LfLimit> getLimits1() {
         return Collections.emptySortedSet();
     }
 
     @Override
-    public SortedSet<LfTemporaryLimit> getTemporaryLimits2() {
+    public SortedSet<LfLimit> getLimits2() {
         return Collections.emptySortedSet();
     }
 

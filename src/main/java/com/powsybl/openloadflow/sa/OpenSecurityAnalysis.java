@@ -160,14 +160,14 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
     private void detectBranchViolations(LfBranch branch, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
         // detect violation limits on a branch
         if (branch.getBus1() != null) {
-            branch.getTemporaryLimits1().stream()
+            branch.getLimits1().stream()
                 .filter(temporaryLimit1 -> branch.getI1() > temporaryLimit1.getValue())
                 .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
                 .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1))
                 .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
         }
         if (branch.getBus2() != null) {
-            branch.getTemporaryLimits2().stream()
+            branch.getLimits2().stream()
                 .filter(temporaryLimit2 -> branch.getI2() > temporaryLimit2.getValue())
                 .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
                 .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2))
@@ -175,14 +175,14 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         }
     }
 
-    private static LimitViolation createLimitViolation1(LfBranch branch, AbstractLfBranch.LfTemporaryLimit temporaryLimit1) {
+    private static LimitViolation createLimitViolation1(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit1) {
         double scale1 = PerUnit.SB / branch.getBus1().getNominalV();
         return new LimitViolation(branch.getId(), LimitViolationType.CURRENT, null,
             temporaryLimit1.getAcceptableDuration(), temporaryLimit1.getValue() * scale1,
             (float) 1., branch.getI1() * scale1, Branch.Side.ONE);
     }
 
-    private static LimitViolation createLimitViolation2(LfBranch branch, AbstractLfBranch.LfTemporaryLimit temporaryLimit2) {
+    private static LimitViolation createLimitViolation2(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit2) {
         double scale2 = PerUnit.SB / branch.getBus2().getNominalV();
         return new LimitViolation(branch.getId(), LimitViolationType.CURRENT, null,
             temporaryLimit2.getAcceptableDuration(), temporaryLimit2.getValue() * scale2,

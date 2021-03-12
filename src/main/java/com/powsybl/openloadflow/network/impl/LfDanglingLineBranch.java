@@ -100,12 +100,12 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
-    public SortedSet<LfTemporaryLimit> getTemporaryLimits1() {
-        return createSortedTemporaryLimitsSet(danglingLine.getCurrentLimits(), getBus1());
+    public SortedSet<LfLimit> getLimits1() {
+        return createSortedLimitsSet(danglingLine.getCurrentLimits(), getBus1());
     }
 
     @Override
-    public SortedSet<LfTemporaryLimit> getTemporaryLimits2() {
+    public SortedSet<LfLimit> getLimits2() {
         return Collections.emptySortedSet();
     }
 

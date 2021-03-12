@@ -45,9 +45,9 @@ public interface LfBranch {
 
     double getI2();
 
-    SortedSet<AbstractLfBranch.LfTemporaryLimit> getTemporaryLimits1();
+    SortedSet<AbstractLfBranch.LfLimit> getLimits1();
 
-    SortedSet<AbstractLfBranch.LfTemporaryLimit> getTemporaryLimits2();
+    SortedSet<AbstractLfBranch.LfLimit> getLimits2();
 
     boolean hasPhaseControlCapability();
 
