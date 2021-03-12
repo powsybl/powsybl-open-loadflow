@@ -49,10 +49,35 @@ class OpenSecurityAnalysisTest {
     void setUp() {
         network = NodeBreakerNetworkFactory.create();
 
-        network.getLine("L1").newCurrentLimits1().setPermanentLimit(940.0).beginTemporaryLimit().setName("60").setAcceptableDuration(60).setValue(1000).endTemporaryLimit().add();
+        network.getLine("L1").newCurrentLimits1()
+                .setPermanentLimit(940.0)
+                .beginTemporaryLimit()
+                .setName("60")
+                .setAcceptableDuration(60)
+                .setValue(1000)
+                .endTemporaryLimit()
+                .add();
         network.getLine("L1").newCurrentLimits2().setPermanentLimit(940.0).add();
-        network.getLine("L2").newCurrentLimits1().setPermanentLimit(940.0).beginTemporaryLimit().setName("60").setAcceptableDuration(60).setValue(950).endTemporaryLimit().add();
-        network.getLine("L2").newCurrentLimits2().setPermanentLimit(940.0).beginTemporaryLimit().setName("600").setAcceptableDuration(600).setValue(945).endTemporaryLimit().beginTemporaryLimit().setName("60").setAcceptableDuration(60).setValue(970).endTemporaryLimit().add();
+        network.getLine("L2").newCurrentLimits1()
+                .setPermanentLimit(940.0)
+                .beginTemporaryLimit()
+                .setName("60")
+                .setAcceptableDuration(60)
+                .setValue(950)
+                .endTemporaryLimit()
+                .add();
+        network.getLine("L2").newCurrentLimits2().setPermanentLimit(940.0)
+                .beginTemporaryLimit()
+                .setName("600")
+                .setAcceptableDuration(600)
+                .setValue(945)
+                .endTemporaryLimit()
+                .beginTemporaryLimit()
+                .setName("60")
+                .setAcceptableDuration(60)
+                .setValue(970)
+                .endTemporaryLimit()
+                .add();
     }
 
     @Test
@@ -79,6 +104,30 @@ class OpenSecurityAnalysisTest {
         assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
         assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+    }
+
+    @Test
+    void testCurrentLimitViolations2() {
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelector(new MostMeshedSlackBusSelector());
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+        ContingenciesProvider contingenciesProvider = network -> Stream.of("L2")
+                .map(id -> new Contingency(id, new BranchContingency(id)))
+                .collect(Collectors.toList());
+        network.getLine("L1").getCurrentLimits1().setPermanentLimit(200);
+        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(),
+            () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, null, 0);
+
+        SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
+        assertTrue(result.getPreContingencyResult().isComputationOk());
+        assertEquals(1, result.getPreContingencyResult().getLimitViolations().size());
+        assertEquals(1, result.getPostContingencyResults().size());
+        assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
+        assertEquals(1, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
     }
 
     @Test

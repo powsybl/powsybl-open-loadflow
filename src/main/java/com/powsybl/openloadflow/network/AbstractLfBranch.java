@@ -51,8 +51,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBranch.class);
 
-    private int num = -1;
-
     private final LfBus bus1;
 
     private final LfBus bus2;
