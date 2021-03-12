@@ -11,6 +11,7 @@ import com.powsybl.commons.io.table.TableFormatterConfig;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
@@ -23,15 +24,14 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.network.NameSlackBusSelector;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
-import com.powsybl.security.LimitViolationFilter;
-import com.powsybl.security.Security;
-import com.powsybl.security.SecurityAnalysisParameters;
-import com.powsybl.security.SecurityAnalysisResult;
+import com.powsybl.security.*;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.StringWriter;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -105,6 +105,17 @@ class OpenSecurityAnalysisTest {
         assertEquals(2, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
         assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+
+        List<LimitViolation> limitViolations = result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations();
+        Optional<LimitViolation> limitViolationL21 = limitViolations.stream().filter(limitViolation -> limitViolation.getSubjectId().equals("L2") && limitViolation.getSide() == Branch.Side.ONE).findFirst();
+        assertTrue(limitViolationL21.isPresent());
+        assertEquals(60, limitViolationL21.get().getAcceptableDuration());
+        assertEquals(950, limitViolationL21.get().getLimit());
+        Optional<LimitViolation> limitViolationL22 = limitViolations.stream().filter(limitViolation -> limitViolation.getSubjectId().equals("L2") && limitViolation.getSide() == Branch.Side.TWO).findFirst();
+        assertTrue(limitViolationL22.isPresent());
+        assertEquals(60, limitViolationL22.get().getAcceptableDuration());
+        assertEquals(970, limitViolationL22.get().getLimit());
+
         assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
         assertEquals(3, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
 
