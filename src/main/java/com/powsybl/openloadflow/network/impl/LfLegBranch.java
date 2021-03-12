@@ -151,13 +151,13 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
-    public SortedSet<LfLimit> getLimits1() {
-        return createSortedLimitsSet(leg.getCurrentLimits(), getBus1());
+    public List<LfLimit> getLimits1() {
+        return createSortedLimitsList(leg.getCurrentLimits(), getBus1());
     }
 
     @Override
-    public SortedSet<LfLimit> getLimits2() {
-        return Collections.emptySortedSet();
+    public List<LfLimit> getLimits2() {
+        return Collections.emptyList();
     }
 
     @Override

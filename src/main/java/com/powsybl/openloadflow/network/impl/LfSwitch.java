@@ -14,8 +14,8 @@ import com.powsybl.openloadflow.network.SimplePiModel;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
-import java.util.SortedSet;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -80,13 +80,13 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public SortedSet<LfLimit> getLimits1() {
-        return Collections.emptySortedSet();
+    public List<LfLimit> getLimits1() {
+        return Collections.emptyList();
     }
 
     @Override
-    public SortedSet<LfLimit> getLimits2() {
-        return Collections.emptySortedSet();
+    public List<LfLimit> getLimits2() {
+        return Collections.emptyList();
     }
 
     @Override

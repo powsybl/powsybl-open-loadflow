@@ -13,10 +13,7 @@ import com.powsybl.openloadflow.network.impl.Transformers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Comparator;
-import java.util.Objects;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -76,7 +73,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.piModel = Objects.requireNonNull(piModel);
     }
 
-    protected static SortedSet<LfLimit> createSortedLimitsSet(CurrentLimits currentLimits, LfBus bus) {
+    protected static List<LfLimit> createSortedLimitsList(CurrentLimits currentLimits, LfBus bus) {
         SortedSet<LfLimit> sortedLimits = new TreeSet<>(TEMPORARY_LIMITS_COMPARATOR);
         if (currentLimits != null) {
             double toPerUnit = bus.getNominalV() / PerUnit.SB;
@@ -86,7 +83,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             }
             sortedLimits.add(LfLimit.createPermanentLimit(currentLimits.getPermanentLimit() * toPerUnit));
         }
-        return sortedLimits;
+        return new ArrayList<>(sortedLimits);
     }
 
     @Override

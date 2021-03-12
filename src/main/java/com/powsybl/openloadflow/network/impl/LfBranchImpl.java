@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.SortedSet;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -180,13 +179,13 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public SortedSet<LfLimit> getLimits1() {
-        return createSortedLimitsSet(branch.getCurrentLimits1(), getBus1());
+    public List<LfLimit> getLimits1() {
+        return createSortedLimitsList(branch.getCurrentLimits1(), getBus1());
     }
 
     @Override
-    public SortedSet<LfLimit> getLimits2() {
-        return createSortedLimitsSet(branch.getCurrentLimits2(), getBus2());
+    public List<LfLimit> getLimits2() {
+        return createSortedLimitsList(branch.getCurrentLimits2(), getBus2());
     }
 
     @Override

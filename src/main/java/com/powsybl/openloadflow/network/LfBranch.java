@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.util.Evaluable;
 
-import java.util.SortedSet;
+import java.util.List;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -45,9 +45,9 @@ public interface LfBranch {
 
     double getI2();
 
-    SortedSet<AbstractLfBranch.LfLimit> getLimits1();
+    List<AbstractLfBranch.LfLimit> getLimits1();
 
-    SortedSet<AbstractLfBranch.LfLimit> getLimits2();
+    List<AbstractLfBranch.LfLimit> getLimits2();
 
     boolean hasPhaseControlCapability();
 

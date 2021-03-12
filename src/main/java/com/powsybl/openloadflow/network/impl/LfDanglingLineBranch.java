@@ -11,8 +11,8 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
-import java.util.SortedSet;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -100,13 +100,13 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
-    public SortedSet<LfLimit> getLimits1() {
-        return createSortedLimitsSet(danglingLine.getCurrentLimits(), getBus1());
+    public List<LfLimit> getLimits1() {
+        return createSortedLimitsList(danglingLine.getCurrentLimits(), getBus1());
     }
 
     @Override
-    public SortedSet<LfLimit> getLimits2() {
-        return Collections.emptySortedSet();
+    public List<LfLimit> getLimits2() {
+        return Collections.emptyList();
     }
 
     @Override
