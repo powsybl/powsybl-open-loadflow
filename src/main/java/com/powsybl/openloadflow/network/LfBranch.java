@@ -45,10 +45,6 @@ public interface LfBranch {
 
     double getI2();
 
-    double getPermanentLimit1();
-
-    double getPermanentLimit2();
-
     SortedSet<AbstractLfBranch.LfTemporaryLimit> getTemporaryLimits1();
 
     SortedSet<AbstractLfBranch.LfTemporaryLimit> getTemporaryLimits2();

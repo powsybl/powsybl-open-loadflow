@@ -80,16 +80,6 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public double getPermanentLimit1() {
-        return Double.NaN;
-    }
-
-    @Override
-    public double getPermanentLimit2() {
-        return Double.NaN;
-    }
-
-    @Override
     public SortedSet<LfTemporaryLimit> getTemporaryLimits1() {
         return Collections.emptySortedSet();
     }

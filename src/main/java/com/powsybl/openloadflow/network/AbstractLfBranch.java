@@ -46,7 +46,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBranch.class);
 
     private static final Comparator<LfTemporaryLimit> TEMPORARY_LIMITS_COMPARATOR =
-        Comparator.comparingDouble(LfTemporaryLimit::getValue).reversed();
+        Comparator.comparingInt(LfTemporaryLimit::getAcceptableDuration)
+            .thenComparing(Comparator.comparingDouble(LfTemporaryLimit::getValue).reversed());
 
     private int num = -1;
 
@@ -70,10 +71,12 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     protected static SortedSet<LfTemporaryLimit> createSortedTemporaryLimitsSet(CurrentLimits currentLimits, LfBus bus) {
         SortedSet<LfTemporaryLimit> temporaryLimits = new TreeSet<>(TEMPORARY_LIMITS_COMPARATOR);
         if (currentLimits != null) {
+            double toPerUnit = bus.getNominalV() / PerUnit.SB;
             for (CurrentLimits.TemporaryLimit temporaryLimit : currentLimits.getTemporaryLimits()) {
-                double valuePerUnit = temporaryLimit.getValue() != Double.MAX_VALUE ? temporaryLimit.getValue() * bus.getNominalV() / PerUnit.SB : Double.MAX_VALUE;
+                double valuePerUnit = temporaryLimit.getValue() != Double.MAX_VALUE ? temporaryLimit.getValue() * toPerUnit : Double.MAX_VALUE;
                 temporaryLimits.add(new LfTemporaryLimit(temporaryLimit.getAcceptableDuration(), valuePerUnit));
             }
+            temporaryLimits.add(new LfTemporaryLimit(Integer.MAX_VALUE, currentLimits.getPermanentLimit() * toPerUnit));
         }
         return temporaryLimits;
     }

@@ -151,16 +151,6 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
-    public double getPermanentLimit1() {
-        return leg.getCurrentLimits() != null ? leg.getCurrentLimits().getPermanentLimit() * getBus1().getNominalV() / PerUnit.SB : Double.NaN;
-    }
-
-    @Override
-    public double getPermanentLimit2() {
-        return Double.NaN;
-    }
-
-    @Override
     public SortedSet<LfTemporaryLimit> getTemporaryLimits1() {
         return createSortedTemporaryLimitsSet(leg.getCurrentLimits(), getBus1());
     }

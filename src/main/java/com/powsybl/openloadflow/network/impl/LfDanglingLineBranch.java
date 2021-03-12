@@ -100,16 +100,6 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
-    public double getPermanentLimit1() {
-        return danglingLine.getCurrentLimits() != null ? danglingLine.getCurrentLimits().getPermanentLimit() * getBus1().getNominalV() / PerUnit.SB : Double.NaN;
-    }
-
-    @Override
-    public double getPermanentLimit2() {
-        return Double.NaN;
-    }
-
-    @Override
     public SortedSet<LfTemporaryLimit> getTemporaryLimits1() {
         return createSortedTemporaryLimitsSet(danglingLine.getCurrentLimits(), getBus1());
     }
