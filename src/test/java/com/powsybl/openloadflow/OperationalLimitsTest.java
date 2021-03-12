@@ -52,23 +52,23 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
         LfBranch branch1 = lfNetwork.getBranchById("NHV1_NHV2_1");
-        assertTrue(branch1.getI1() < branch1.getPermanentLimit1());
+        assertTrue(branch1.getI1() < getLimitValueFromAcceptableDuration(branch1, Integer.MAX_VALUE, Branch.Side.ONE));
         LfBranch branch2 = lfNetwork.getBranchById("NHV1_NHV2_2");
-        assertTrue(branch2.getI2() < branch2.getPermanentLimit2());
+        assertTrue(branch2.getI2() < getLimitValueFromAcceptableDuration(branch2, Integer.MAX_VALUE, Branch.Side.TWO));
         LfBranch branch3 = lfNetwork.getBranchById("NGEN_NHV1");
-        assertTrue(Double.isNaN(branch3.getPermanentLimit1()));
+        assertEquals(Double.NaN, getLimitValueFromAcceptableDuration(branch3, Integer.MAX_VALUE, Branch.Side.ONE));
         assertEquals(3654.18, branch3.getI1(), DELTA_CURRENT);
         LfBranch branch4 = lfNetwork.getBranchById("NHV2_NLOAD");
-        assertTrue(Double.isNaN(branch4.getPermanentLimit2()));
+        assertEquals(Double.NaN, getLimitValueFromAcceptableDuration(branch4, Integer.MAX_VALUE, Branch.Side.TWO));
         assertEquals(3711.395, branch4.getI2(), DELTA_CURRENT);
-        assertEquals(4560.0, getTemporaryLimitValueFromAcceptableDuration(branch2, 1200, Branch.Side.ONE), DELTA_CURRENT);
-        assertEquals(Double.MAX_VALUE, getTemporaryLimitValueFromAcceptableDuration(branch2, 60, Branch.Side.ONE), DELTA_CURRENT);
-        assertEquals(Double.MAX_VALUE, getTemporaryLimitValueFromAcceptableDuration(branch1, 0, Branch.Side.TWO), DELTA_CURRENT);
-        assertEquals(4560, getTemporaryLimitValueFromAcceptableDuration(branch1, 600, Branch.Side.TWO), DELTA_CURRENT);
-        assertEquals(5700, getTemporaryLimitValueFromAcceptableDuration(branch1, 60, Branch.Side.TWO), DELTA_CURRENT);
+        assertEquals(4560.0, getLimitValueFromAcceptableDuration(branch2, 1200, Branch.Side.ONE), DELTA_CURRENT);
+        assertEquals(Double.MAX_VALUE, getLimitValueFromAcceptableDuration(branch2, 60, Branch.Side.ONE), DELTA_CURRENT);
+        assertEquals(Double.MAX_VALUE, getLimitValueFromAcceptableDuration(branch1, 0, Branch.Side.TWO), DELTA_CURRENT);
+        assertEquals(4560, getLimitValueFromAcceptableDuration(branch1, 600, Branch.Side.TWO), DELTA_CURRENT);
+        assertEquals(5700, getLimitValueFromAcceptableDuration(branch1, 60, Branch.Side.TWO), DELTA_CURRENT);
     }
 
-    private double getTemporaryLimitValueFromAcceptableDuration(LfBranch branch, int acceptableDuration, Branch.Side side) {
+    private double getLimitValueFromAcceptableDuration(LfBranch branch, int acceptableDuration, Branch.Side side) {
         return (side == Branch.Side.ONE ? branch.getLimits1() : branch.getLimits2()).stream()
             .filter(l -> l.getAcceptableDuration() == acceptableDuration)
             .map(AbstractLfBranch.LfLimit::getValue)
@@ -86,11 +86,11 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         engine.run();
         LfBranch branch = lfNetwork.getBranchById("DL");
         assertEquals(361.588, branch.getI1(), DELTA_CURRENT);
-        assertEquals(100.0, branch.getPermanentLimit1(), DELTA_CURRENT);
+        assertEquals(100, getLimitValueFromAcceptableDuration(branch, Integer.MAX_VALUE, Branch.Side.ONE), DELTA_CURRENT);
         assertTrue(Double.isNaN(branch.getI2()));
-        assertTrue(Double.isNaN(branch.getPermanentLimit2()));
-        assertEquals(120, getTemporaryLimitValueFromAcceptableDuration(branch, 1200, Branch.Side.ONE), DELTA_CURRENT);
-        assertEquals(140, getTemporaryLimitValueFromAcceptableDuration(branch, 600, Branch.Side.ONE), DELTA_CURRENT);
+        assertEquals(Double.NaN, getLimitValueFromAcceptableDuration(branch, Integer.MAX_VALUE, Branch.Side.TWO), DELTA_CURRENT);
+        assertEquals(120, getLimitValueFromAcceptableDuration(branch, 1200, Branch.Side.ONE), DELTA_CURRENT);
+        assertEquals(140, getLimitValueFromAcceptableDuration(branch, 600, Branch.Side.ONE), DELTA_CURRENT);
         assertTrue(branch.getLimits2().isEmpty());
     }
 
@@ -106,8 +106,8 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         LfBranch branch1 = lfNetwork.getBranchById("3WT_leg_1");
         assertEquals(660.702, branch1.getI1(), DELTA_CURRENT);
         assertTrue(Double.isNaN(branch1.getI2()));
-        assertTrue(Double.isNaN(branch1.getPermanentLimit1()));
-        assertTrue(Double.isNaN(branch1.getPermanentLimit2()));
+        assertEquals(Double.NaN, getLimitValueFromAcceptableDuration(branch1, Integer.MAX_VALUE, Branch.Side.ONE), DELTA_CURRENT);
+        assertEquals(Double.NaN, getLimitValueFromAcceptableDuration(branch1, Integer.MAX_VALUE, Branch.Side.TWO), DELTA_CURRENT);
         assertTrue(branch1.getLimits1().isEmpty());
         assertTrue(branch1.getLimits2().isEmpty());
     }

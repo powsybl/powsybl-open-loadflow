@@ -76,7 +76,7 @@ class OpenSecurityAnalysisTest {
         assertEquals(0, result.getPreContingencyResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
-        assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
         assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
     }
@@ -104,7 +104,7 @@ class OpenSecurityAnalysisTest {
         assertEquals(0, result.getPreContingencyResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
-        assertEquals(5, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
         assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
         assertEquals(3, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
 
@@ -133,7 +133,7 @@ class OpenSecurityAnalysisTest {
 
         SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
         assertTrue(result.getPreContingencyResult().isComputationOk());
-        assertEquals(2, result.getPreContingencyResult().getLimitViolations().size());
+        assertEquals(1, result.getPreContingencyResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
 
