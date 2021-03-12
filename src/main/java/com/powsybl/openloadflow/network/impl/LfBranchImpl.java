@@ -180,12 +180,12 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     @Override
     public List<LfLimit> getLimits1() {
-        return createSortedLimitsList(branch.getCurrentLimits1(), getBus1());
+        return getLimits1(branch.getCurrentLimits1());
     }
 
     @Override
     public List<LfLimit> getLimits2() {
-        return createSortedLimitsList(branch.getCurrentLimits2(), getBus2());
+        return getLimits2(branch.getCurrentLimits2());
     }
 
     @Override

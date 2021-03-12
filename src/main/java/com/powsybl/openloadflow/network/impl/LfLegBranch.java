@@ -152,7 +152,7 @@ public class LfLegBranch extends AbstractLfBranch {
 
     @Override
     public List<LfLimit> getLimits1() {
-        return createSortedLimitsList(leg.getCurrentLimits(), getBus1());
+        return getLimits1(leg.getCurrentLimits());
     }
 
     @Override

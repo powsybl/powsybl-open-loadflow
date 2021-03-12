@@ -101,7 +101,7 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
 
     @Override
     public List<LfLimit> getLimits1() {
-        return createSortedLimitsList(danglingLine.getCurrentLimits(), getBus1());
+        return getLimits1(danglingLine.getCurrentLimits());
     }
 
     @Override

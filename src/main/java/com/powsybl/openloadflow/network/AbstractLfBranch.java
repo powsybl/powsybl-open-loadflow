@@ -51,15 +51,15 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBranch.class);
 
-    private static final Comparator<LfLimit> TEMPORARY_LIMITS_COMPARATOR =
-        Comparator.comparingInt(LfLimit::getAcceptableDuration)
-            .thenComparing(Comparator.comparingDouble(LfLimit::getValue).reversed());
-
     private int num = -1;
 
     private final LfBus bus1;
 
     private final LfBus bus2;
+
+    private List<LfLimit> limits1;
+
+    private List<LfLimit> limits2;
 
     private final PiModel piModel;
 
@@ -95,6 +95,20 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public LfBus getBus2() {
         return bus2;
+    }
+
+    protected List<LfLimit> getLimits1(CurrentLimits currentLimits) {
+        if (limits1 == null) {
+            limits1 = createSortedLimitsList(currentLimits, bus1);
+        }
+        return limits1;
+    }
+
+    protected List<LfLimit> getLimits2(CurrentLimits currentLimits) {
+        if (limits2 == null) {
+            limits2 = createSortedLimitsList(currentLimits, bus2);
+        }
+        return limits2;
     }
 
     @Override
