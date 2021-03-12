@@ -47,8 +47,6 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OpenSecurityAnalysis.class);
 
-    private static final Comparator<LimitViolation> VIOLATION_COMPARATOR = Comparator.nullsFirst(Comparator.comparingDouble(LimitViolation::getLimit));
-
     private final Network network;
 
     private final LimitViolationDetector detector;
@@ -298,8 +296,9 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                 postContingencyLimitViolations);
         }
 
-        preContingencyLimitViolations.forEach((subjectSideId, limitViolation) -> {
-            if (VIOLATION_COMPARATOR.compare(limitViolation, postContingencyLimitViolations.get(subjectSideId)) >= 0) {
+        preContingencyLimitViolations.forEach((subjectSideId, preContingencyViolation) -> {
+            LimitViolation postContingencyViolation = postContingencyLimitViolations.get(subjectSideId);
+            if (postContingencyViolation != null && postContingencyViolation.getAcceptableDuration() >= preContingencyViolation.getAcceptableDuration()) {
                 postContingencyLimitViolations.remove(subjectSideId);
             }
         });
