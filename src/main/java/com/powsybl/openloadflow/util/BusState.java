@@ -39,21 +39,21 @@ public class BusState {
     }
 
     public void restoreBusState(LfBus bus) {
-        restoreDcBusState(bus);
+        restoreBusActiveState(bus);
         bus.setV(v);
         bus.setLoadTargetQ(loadTargetQ);
         bus.setGenerationTargetQ(generationTargetQ);
+        bus.setDisabled(disabled);
         bus.setVoltageControllerEnabled(isVoltageControllerEnabled);
         bus.setVoltageControlSwitchOffCount(0);
     }
 
-    public void restoreDcBusState(LfBus bus) {
+    public void restoreBusActiveState(LfBus bus) {
         bus.setAngle(angle);
         bus.setLoadTargetP(loadTargetP);
         bus.getGenerators().forEach(g -> {
             g.setTargetP(generatorsTargetP.get(g.getId()));
         });
-        bus.setDisabled(disabled);
     }
 
     /**
@@ -77,8 +77,8 @@ public class BusState {
      * Set the bus states based on the given map of states
      * @param busStates the map containing the bus states, indexed by buses
      */
-    public static void restoreDcBusStates(Map<LfBus, BusState> busStates) {
-        busStates.forEach((b, state) -> state.restoreDcBusState(b));
+    public static void restoreBusActiveStates(Map<LfBus, BusState> busStates) {
+        busStates.forEach((b, state) -> state.restoreBusActiveState(b));
     }
 }
 

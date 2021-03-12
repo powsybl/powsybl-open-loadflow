@@ -81,21 +81,21 @@ public abstract class AbstractSensitivityAnalysisTest {
         return result.stream().filter(value -> value.getFactor().getVariable().getId().equals(variableId) && value.getFactor().getFunction().getId().equals(functionId))
             .findFirst()
             .map(SensitivityValue::getValue)
-            .orElse(Double.NaN);
+            .orElseThrow();
     }
 
     protected static double getContingencyValue(SensitivityAnalysisResult result, String contingencyId, String variableId, String functionId) {
         return result.getSensitivityValuesContingencies().get(contingencyId).stream().filter(value -> value.getFactor().getVariable().getId().equals(variableId) && value.getFactor().getFunction().getId().equals(functionId))
                      .findFirst()
                      .map(SensitivityValue::getValue)
-                     .orElse(Double.NaN);
+                     .orElseThrow();
     }
 
     protected static double getContingencyValue(List<SensitivityValue> result, String variableId, String functionId) {
         return result.stream().filter(value -> value.getFactor().getVariable().getId().equals(variableId) && value.getFactor().getFunction().getId().equals(functionId))
                      .findFirst()
                      .map(SensitivityValue::getValue)
-                     .orElse(Double.NaN);
+                     .orElseThrow();
     }
 
     protected static double getFunctionReference(SensitivityAnalysisResult result, String functionId) {
@@ -110,7 +110,7 @@ public abstract class AbstractSensitivityAnalysisTest {
         return result.stream().filter(value -> value.getFactor().getFunction().getId().equals(functionId))
             .findFirst()
             .map(SensitivityValue::getFunctionReference)
-            .orElse(Double.NaN);
+            .orElseThrow();
     }
 
     protected void runAcLf(Network network) {
