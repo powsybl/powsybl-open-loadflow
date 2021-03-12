@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.CurrentLimits;
+import com.powsybl.iidm.network.LoadingLimits;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.openloadflow.network.impl.Transformers;
@@ -74,16 +75,16 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     protected static List<LfLimit> createSortedLimitsList(CurrentLimits currentLimits, LfBus bus) {
-        SortedSet<LfLimit> sortedLimits = new TreeSet<>(TEMPORARY_LIMITS_COMPARATOR);
+        LinkedList<LfLimit> sortedLimits = new LinkedList<>();
         if (currentLimits != null) {
             double toPerUnit = bus.getNominalV() / PerUnit.SB;
-            for (CurrentLimits.TemporaryLimit temporaryLimit : currentLimits.getTemporaryLimits()) {
+            for (LoadingLimits.TemporaryLimit temporaryLimit : currentLimits.getTemporaryLimits()) {
                 double valuePerUnit = temporaryLimit.getValue() != Double.MAX_VALUE ? temporaryLimit.getValue() * toPerUnit : Double.MAX_VALUE;
-                sortedLimits.add(LfLimit.createTemporaryLimit(temporaryLimit.getAcceptableDuration(), valuePerUnit));
+                sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getAcceptableDuration(), valuePerUnit));
             }
-            sortedLimits.add(LfLimit.createPermanentLimit(currentLimits.getPermanentLimit() * toPerUnit));
+            sortedLimits.addLast(LfLimit.createPermanentLimit(currentLimits.getPermanentLimit() * toPerUnit));
         }
-        return new ArrayList<>(sortedLimits);
+        return sortedLimits;
     }
 
     @Override
