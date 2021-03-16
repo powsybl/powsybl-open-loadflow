@@ -27,8 +27,10 @@ import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
+import com.powsybl.openloadflow.util.currentBranchesManager.SpecificBranchesManager;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
+import com.powsybl.sensitivity.factors.BranchIntensityPerPSTAngle;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.functions.BranchIntensity;
 import org.apache.commons.lang3.NotImplementedException;
@@ -158,8 +160,18 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         Map<Contingency, Collection<String>> propagatedContingencyMap = contingencies.stream().collect(
             Collectors.toMap(PropagatedContingency::getContingency, contingency -> new HashSet<>(contingency.getBranchIdsToOpen()))
         );
+
+        Collection<LfBranch> branchesWithMeasuredCurrent = factors.stream()
+            .filter(BranchIntensityPerPSTAngle.class::isInstance)
+            .map(BranchIntensityPerPSTAngle.class::cast)
+            .map(BranchIntensityPerPSTAngle::getFunction)
+            .map(BranchIntensity::getBranchId)
+            .map(lfNetwork::getBranchById)
+            .collect(Collectors.toSet());
         // create AC engine
-        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters, lfParametersExt, true, true);
+        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters,
+            lfParametersExt, true, true,
+            new SpecificBranchesManager(branchesWithMeasuredCurrent));
         try (AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters)) {
 
             engine.run();

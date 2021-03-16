@@ -22,6 +22,7 @@ import com.powsybl.openloadflow.ac.DistributedSlackOuterLoop;
 import com.powsybl.openloadflow.ac.PhaseControlOuterLoop;
 import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.ac.TransformerVoltageControlOuterLoop;
+import com.powsybl.openloadflow.util.currentBranchesManager.AllBranchesManager;
 import com.powsybl.openloadflow.ac.nr.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
@@ -43,6 +44,7 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.Markers;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
+import com.powsybl.openloadflow.util.currentBranchesManager.CurrentBranchesManager;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,11 +122,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
                                                           OpenLoadFlowParameters parametersExt, boolean breakers) {
-        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false);
+        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false, new AllBranchesManager());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
-                                                   OpenLoadFlowParameters parametersExt, boolean breakers, boolean forceA1Var) {
+                                                          OpenLoadFlowParameters parametersExt, boolean breakers, boolean forceA1Var,
+                                                          CurrentBranchesManager currentBranchesManager) {
 
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
@@ -173,7 +176,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                         breakers,
                                         parametersExt.getPlausibleActivePowerLimit(),
                                         forceA1Var,
-                                        parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
+                                        parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
+                                        currentBranchesManager);
     }
 
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
