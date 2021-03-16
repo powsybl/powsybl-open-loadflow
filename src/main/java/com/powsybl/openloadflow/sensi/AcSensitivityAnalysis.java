@@ -27,7 +27,7 @@ import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
-import com.powsybl.openloadflow.util.currentBranchesManager.SpecificBranchesManager;
+import com.powsybl.openloadflow.util.branchesCurrentManager.SpecificBranchesCurrentManager;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchIntensityPerPSTAngle;
@@ -171,7 +171,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         // create AC engine
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters,
             lfParametersExt, true, true,
-            new SpecificBranchesManager(branchesWithMeasuredCurrent));
+            new SpecificBranchesCurrentManager(branchesWithMeasuredCurrent));
         try (AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters)) {
 
             engine.run();

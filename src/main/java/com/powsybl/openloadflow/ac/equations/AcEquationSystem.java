@@ -269,7 +269,7 @@ public final class AcEquationSystem {
         boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
                 && branch.getDiscretePhaseControl().getMode() == DiscretePhaseControl.Mode.CONTROLLER;
         deriveA1 = deriveA1 || (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability());
-        boolean createCurrent = creationParameters.getCurrentBranchesManager().shouldCreate(branch);
+        boolean createCurrent = creationParameters.getBranchesCurrentManager().shouldCreate(branch);
         boolean deriveR1 = creationParameters.isTransformerVoltageControl() && branch.isVoltageController();
         if (bus1 != null && bus2 != null) {
             p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);

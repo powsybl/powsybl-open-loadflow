@@ -4,13 +4,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.util.currentBranchesManager;
+package com.powsybl.openloadflow.util.branchesCurrentManager;
 
 import com.powsybl.openloadflow.network.LfBranch;
 
 /**
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
-public interface CurrentBranchesManager {
+public interface BranchesCurrentManager {
     boolean shouldCreate(LfBranch lfBranch);
 }

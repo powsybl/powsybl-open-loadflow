@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.util.currentBranchesManager.CurrentBranchesManager;
+import com.powsybl.openloadflow.util.branchesCurrentManager.BranchesCurrentManager;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.equations.VoltageInitializer;
 import com.powsybl.openloadflow.network.SlackBusSelector;
@@ -48,7 +48,7 @@ public class AcLoadFlowParameters {
 
     private final boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
 
-    private final CurrentBranchesManager currentBranchesManager;
+    private final BranchesCurrentManager branchesCurrentManager;
 
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
@@ -56,7 +56,7 @@ public class AcLoadFlowParameters {
                                 boolean phaseControl, boolean transformerVoltageControlOn, boolean minImpedance,
                                 boolean twtSplitShuntAdmittance, boolean breakers, double plausibleActivePowerLimit,
                                 boolean forceA1Var, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
-                                CurrentBranchesManager currentBranchesManager) {
+                                BranchesCurrentManager branchesCurrentManager) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -71,7 +71,7 @@ public class AcLoadFlowParameters {
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
         this.forceA1Var = forceA1Var;
         this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
-        this.currentBranchesManager = currentBranchesManager;
+        this.branchesCurrentManager = branchesCurrentManager;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -134,8 +134,8 @@ public class AcLoadFlowParameters {
         return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
     }
 
-    public CurrentBranchesManager getCurrentBranchesManager() {
-        return currentBranchesManager;
+    public BranchesCurrentManager getBranchesCurrentManager() {
+        return branchesCurrentManager;
     }
 
 }
