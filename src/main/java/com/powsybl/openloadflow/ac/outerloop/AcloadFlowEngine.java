@@ -187,9 +187,12 @@ public class AcloadFlowEngine implements AutoCloseable {
         return createNetworks(network, parameters)
                 .stream()
                 .map(n -> {
-                    try (AcloadFlowEngine engine = new AcloadFlowEngine(n, parameters)) {
-                        return engine.run();
+                    if (n.isValid()) {
+                        try (AcloadFlowEngine engine = new AcloadFlowEngine(n, parameters)) {
+                            return engine.run();
+                        }
                     }
+                    return new AcLoadFlowResult(n, 0, 0, NewtonRaphsonStatus.NO_CALCULATION, 0d);
                 })
                 .collect(Collectors.toList());
     }
