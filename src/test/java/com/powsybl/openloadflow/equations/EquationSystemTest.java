@@ -184,7 +184,7 @@ class EquationSystemTest {
         VariableSet variableSet = new VariableSet();
         EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, variableSet);
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
-        equationSystem.updateEquations(x);
+        equationSystem.updateEquations(x, EquationSystem.EquationUpdateType.AFTER_NR);
         LfBranch branch = lfNetwork.getBranchById("NHV1_NHV2_1");
         EquationTerm i1 = equationSystem.getEquation(branch.getBus1().getNum(), EquationType.BUS_I).orElse(null).getTerms().get(1);
         EquationTerm i2 = equationSystem.getEquation(branch.getBus2().getNum(), EquationType.BUS_I).orElse(null).getTerms().get(0);
@@ -211,7 +211,7 @@ class EquationSystemTest {
         VariableSet variableSet = new VariableSet();
         EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, variableSet);
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
-        equationSystem.updateEquations(x);
+        equationSystem.updateEquations(x, EquationSystem.EquationUpdateType.AFTER_NR);
         LfBranch branch = lfNetwork.getBranchById("NHV1_NHV2_1");
         EquationTerm i1 = equationSystem.getEquation(branch.getBus1().getNum(), EquationType.BUS_I).orElse(null).getTerms().stream().filter(OpenBranchSide2CurrentMagnitudeEquationTerm.class::isInstance).findAny().get();
         Variable v1var = variableSet.getVariable(branch.getBus1().getNum(), VariableType.BUS_V);
@@ -229,7 +229,7 @@ class EquationSystemTest {
         VariableSet variableSet = new VariableSet();
         EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, variableSet);
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
-        equationSystem.updateEquations(x);
+        equationSystem.updateEquations(x, EquationSystem.EquationUpdateType.AFTER_NR);
         LfBranch branch = lfNetwork.getBranchById("NHV1_NHV2_1");
         EquationTerm i2 = equationSystem.getEquation(branch.getBus2().getNum(), EquationType.BUS_I).orElse(null).getTerms().stream().filter(OpenBranchSide1CurrentMagnitudeEquationTerm.class::isInstance).findAny().get();
         Variable v2var = variableSet.getVariable(branch.getBus2().getNum(), VariableType.BUS_V);

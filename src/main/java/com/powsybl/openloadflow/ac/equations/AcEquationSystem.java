@@ -317,15 +317,13 @@ public final class AcEquationSystem {
 
         if (i1 != null) {
             Equation i =  equationSystem.createEquation(bus1.getNum(), EquationType.BUS_I).addTerm(i1);
-            i.setActive(false); // equation is set to inactive so it does not appear in jacobian
-            i1.setActive(true); // equation term is set to active so it is updated
+            i.setUpdateType(EquationSystem.EquationUpdateType.AFTER_NR); // only update those equations after the newton raphson
             branch.setI1(i1);
         }
 
         if (i2 != null) {
             Equation i =  equationSystem.createEquation(bus2.getNum(), EquationType.BUS_I).addTerm(i2);
-            i.setActive(false); // equation is set to inactive so it does not appear in jacobian
-            i2.setActive(true); // equation term is set to active so it is updated
+            i.setUpdateType(EquationSystem.EquationUpdateType.AFTER_NR); // only update those equations after the newton raphson
             branch.setI2(i2);
         }
     }
