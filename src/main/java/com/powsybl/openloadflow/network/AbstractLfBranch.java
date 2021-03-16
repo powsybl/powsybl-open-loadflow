@@ -23,7 +23,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     public static final class LfLimit {
 
-        private final int acceptableDuration;
+        private int acceptableDuration;
         private final double value;
 
         private LfLimit(int acceptableDuration, double value) {
@@ -47,6 +47,9 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             return value;
         }
 
+        public void setAcceptableDuration(int acceptableDuration) {
+            this.acceptableDuration = acceptableDuration;
+        }
     }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBranch.class);
@@ -77,10 +80,19 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         if (currentLimits != null) {
             double toPerUnit = bus.getNominalV() / PerUnit.SB;
             for (LoadingLimits.TemporaryLimit temporaryLimit : currentLimits.getTemporaryLimits()) {
-                double valuePerUnit = temporaryLimit.getValue() != Double.MAX_VALUE ? temporaryLimit.getValue() * toPerUnit : Double.MAX_VALUE;
-                sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getAcceptableDuration(), valuePerUnit));
+                if (temporaryLimit.getValue() != Double.MAX_VALUE || temporaryLimit.getAcceptableDuration() != 0) { // not useful
+                    double valuePerUnit = temporaryLimit.getValue() * toPerUnit;
+                    sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getAcceptableDuration(), valuePerUnit));
+                }
             }
             sortedLimits.addLast(LfLimit.createPermanentLimit(currentLimits.getPermanentLimit() * toPerUnit));
+        }
+        if (sortedLimits.size() > 1) {
+            for (int i = sortedLimits.size() - 1; i > 0; i--) {
+                // From the permanent limit to the most serious temporary limit.
+                sortedLimits.get(i).setAcceptableDuration(sortedLimits.get(i - 1).getAcceptableDuration());
+            }
+            sortedLimits.getFirst().setAcceptableDuration(0);
         }
         return sortedLimits;
     }

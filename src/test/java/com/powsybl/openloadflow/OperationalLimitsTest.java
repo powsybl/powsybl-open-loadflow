@@ -61,11 +61,12 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         LfBranch branch4 = lfNetwork.getBranchById("NHV2_NLOAD");
         assertEquals(Double.NaN, getLimitValueFromAcceptableDuration(branch4, Integer.MAX_VALUE, Branch.Side.TWO));
         assertEquals(3711.395, branch4.getI2(), DELTA_CURRENT);
-        assertEquals(4560.0, getLimitValueFromAcceptableDuration(branch2, 1200, Branch.Side.ONE), DELTA_CURRENT);
-        assertEquals(Double.MAX_VALUE, getLimitValueFromAcceptableDuration(branch2, 60, Branch.Side.ONE), DELTA_CURRENT);
-        assertEquals(Double.MAX_VALUE, getLimitValueFromAcceptableDuration(branch1, 0, Branch.Side.TWO), DELTA_CURRENT);
-        assertEquals(4560, getLimitValueFromAcceptableDuration(branch1, 600, Branch.Side.TWO), DELTA_CURRENT);
-        assertEquals(5700, getLimitValueFromAcceptableDuration(branch1, 60, Branch.Side.TWO), DELTA_CURRENT);
+        assertEquals(4180.0, getLimitValueFromAcceptableDuration(branch2, 1200, Branch.Side.ONE), DELTA_CURRENT);
+        assertEquals(4560.0, getLimitValueFromAcceptableDuration(branch2, 60, Branch.Side.ONE), DELTA_CURRENT);
+        assertEquals(5700.0, getLimitValueFromAcceptableDuration(branch1, 0, Branch.Side.TWO), DELTA_CURRENT);
+        assertEquals(4180.0, getLimitValueFromAcceptableDuration(branch1, 600, Branch.Side.TWO), DELTA_CURRENT);
+        assertEquals(4560.0, getLimitValueFromAcceptableDuration(branch1, 60, Branch.Side.TWO), DELTA_CURRENT);
+        assertEquals(5700.0, getLimitValueFromAcceptableDuration(branch1, 0, Branch.Side.TWO), DELTA_CURRENT);
     }
 
     private double getLimitValueFromAcceptableDuration(LfBranch branch, int acceptableDuration, Branch.Side side) {
@@ -86,11 +87,11 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         engine.run();
         LfBranch branch = lfNetwork.getBranchById("DL");
         assertEquals(361.588, branch.getI1(), DELTA_CURRENT);
-        assertEquals(100, getLimitValueFromAcceptableDuration(branch, Integer.MAX_VALUE, Branch.Side.ONE), DELTA_CURRENT);
         assertTrue(Double.isNaN(branch.getI2()));
         assertEquals(Double.NaN, getLimitValueFromAcceptableDuration(branch, Integer.MAX_VALUE, Branch.Side.TWO), DELTA_CURRENT);
-        assertEquals(120, getLimitValueFromAcceptableDuration(branch, 1200, Branch.Side.ONE), DELTA_CURRENT);
-        assertEquals(140, getLimitValueFromAcceptableDuration(branch, 600, Branch.Side.ONE), DELTA_CURRENT);
+        assertEquals(100, getLimitValueFromAcceptableDuration(branch, 1200, Branch.Side.ONE), DELTA_CURRENT);
+        assertEquals(120, getLimitValueFromAcceptableDuration(branch, 600, Branch.Side.ONE), DELTA_CURRENT);
+        assertEquals(140, getLimitValueFromAcceptableDuration(branch, 0, Branch.Side.ONE), DELTA_CURRENT);
         assertTrue(branch.getLimits2().isEmpty());
     }
 

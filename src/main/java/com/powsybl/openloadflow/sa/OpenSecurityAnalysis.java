@@ -298,7 +298,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         preContingencyLimitViolations.forEach((subjectSideId, preContingencyViolation) -> {
             LimitViolation postContingencyViolation = postContingencyLimitViolations.get(subjectSideId);
-            if (postContingencyViolation != null && postContingencyViolation.getAcceptableDuration() >= preContingencyViolation.getAcceptableDuration()) {
+            if (postContingencyViolation != null && postContingencyViolation.getLimit() <= preContingencyViolation.getLimit()) {
                 postContingencyLimitViolations.remove(subjectSideId);
             }
         });

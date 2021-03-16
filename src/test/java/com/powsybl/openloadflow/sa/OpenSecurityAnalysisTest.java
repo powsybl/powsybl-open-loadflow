@@ -158,11 +158,11 @@ class OpenSecurityAnalysisTest {
         List<LimitViolation> limitViolations = result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations();
         Optional<LimitViolation> limitViolationL21 = limitViolations.stream().filter(limitViolation -> limitViolation.getSubjectId().equals("L2") && limitViolation.getSide() == Branch.Side.ONE).findFirst();
         assertTrue(limitViolationL21.isPresent());
-        assertEquals(60, limitViolationL21.get().getAcceptableDuration());
+        assertEquals(0, limitViolationL21.get().getAcceptableDuration());
         assertEquals(950, limitViolationL21.get().getLimit());
         Optional<LimitViolation> limitViolationL22 = limitViolations.stream().filter(limitViolation -> limitViolation.getSubjectId().equals("L2") && limitViolation.getSide() == Branch.Side.TWO).findFirst();
         assertTrue(limitViolationL22.isPresent());
-        assertEquals(60, limitViolationL22.get().getAcceptableDuration());
+        assertEquals(0, limitViolationL22.get().getAcceptableDuration());
         assertEquals(970, limitViolationL22.get().getLimit());
 
         assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
