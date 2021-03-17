@@ -267,4 +267,13 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertVoltageEquals(389.953, bus2);
         assertVoltageEquals(147.578, loadBus);
     }
+
+    @Test
+    void noGeneratorTest() {
+        network.getGenerator("GEN").getTerminal().disconnect();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isOk());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+    }
 }
