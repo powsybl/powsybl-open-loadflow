@@ -36,6 +36,10 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private Evaluable q2 = NAN;
 
+    private Evaluable i1 = NAN;
+
+    private Evaluable i2 = NAN;
+
     protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
         super(network, bus1, bus2, piModel);
         this.branch = branch;
@@ -167,15 +171,23 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
+    public void setI1(Evaluable i1) {
+        this.i1 = Objects.requireNonNull(i1);
+    }
+
+    @Override
+    public void setI2(Evaluable i2) {
+        this.i2 = Objects.requireNonNull(i2);
+    }
+
+    @Override
     public double getI1() {
-        return getBus1() != null ? Math.hypot(p1.eval(), q1.eval())
-            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
+        return i1.eval();
     }
 
     @Override
     public double getI2() {
-        return getBus2() != null ? Math.hypot(p2.eval(), q2.eval())
-            / (Math.sqrt(3.) * getBus2().getV() / 1000) : Double.NaN;
+        return i2.eval();
     }
 
     @Override

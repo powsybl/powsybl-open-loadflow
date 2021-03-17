@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.network.SlackBusSelector;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -47,12 +48,15 @@ public class AcLoadFlowParameters {
 
     private final boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
 
+    private final Set<String> branchesWithCurrent;
+
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
                                 MatrixFactory matrixFactory, boolean voltageRemoteControl,
                                 boolean phaseControl, boolean transformerVoltageControlOn, boolean minImpedance,
                                 boolean twtSplitShuntAdmittance, boolean breakers, double plausibleActivePowerLimit,
-                                boolean forceA1Var, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds) {
+                                boolean forceA1Var, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
+                                Set<String> branchesWithCurrent) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -67,6 +71,7 @@ public class AcLoadFlowParameters {
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
         this.forceA1Var = forceA1Var;
         this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+        this.branchesWithCurrent = branchesWithCurrent;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -128,4 +133,9 @@ public class AcLoadFlowParameters {
     public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
         return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
     }
+
+    public Set<String> getBranchesWithCurrent() {
+        return branchesWithCurrent;
+    }
+
 }

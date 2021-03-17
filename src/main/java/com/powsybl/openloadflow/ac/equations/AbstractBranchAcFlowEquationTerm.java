@@ -19,6 +19,8 @@ import java.util.Objects;
  */
 abstract class AbstractBranchAcFlowEquationTerm extends AbstractNamedEquationTerm {
 
+    public static final double CURRENT_NORMALIZATION_FACTOR = 1000d / Math.sqrt(3d);
+
     protected final LfBranch branch;
 
     protected final double b1;

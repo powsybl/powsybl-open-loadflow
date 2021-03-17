@@ -32,7 +32,9 @@ import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
+import com.powsybl.sensitivity.factors.functions.BranchIntensity;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
+import com.powsybl.sensitivity.factors.BranchIntensityPerPSTAngle;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
 import org.apache.commons.lang3.NotImplementedException;
@@ -92,8 +94,8 @@ public abstract class AbstractSensitivityAnalysis {
         return lfNetwork.getBusById(bus.getId());
     }
 
-    protected static LfBranch getPhaseTapChangerLfBranch(LfNetwork lfNetwork, BranchFlowPerPSTAngle pstFactor) {
-        return lfNetwork.getBranchById(pstFactor.getVariable().getPhaseTapChangerHolderId());
+    protected static LfBranch getPhaseTapChangerLfBranch(LfNetwork lfNetwork, PhaseTapChangerAngle pstVariable) {
+        return lfNetwork.getBranchById(pstVariable.getPhaseTapChangerHolderId());
     }
 
     protected JacobianMatrix createJacobianMatrix(EquationSystem equationSystem, VoltageInitializer voltageInitializer) {
@@ -132,6 +134,8 @@ public abstract class AbstractSensitivityAnalysis {
                 functionLfBranch = lfNetwork.getBranchById(((BranchFlowPerInjectionIncrease) factor).getFunction().getBranchId());
             } else if (factor instanceof BranchFlowPerPSTAngle) {
                 functionLfBranch = lfNetwork.getBranchById(((BranchFlowPerPSTAngle) factor).getFunction().getBranchId());
+            } else if (factor instanceof BranchIntensityPerPSTAngle) {
+                functionLfBranch = lfNetwork.getBranchById(((BranchIntensityPerPSTAngle) factor).getFunction().getBranchId());
             } else if (factor instanceof BranchFlowPerLinearGlsk) {
                 functionLfBranch = lfNetwork.getBranchById(((BranchFlowPerLinearGlsk) factor).getFunction().getBranchId());
             } else {
@@ -152,6 +156,8 @@ public abstract class AbstractSensitivityAnalysis {
                 return new LfBranchFlowPerInjectionIncrease<>(factor, network, lfNetwork, equationSystem, clazz);
             } else if (factor instanceof BranchFlowPerPSTAngle) {
                 return new LfBranchFlowPerPSTAngle<>(factor, lfNetwork, equationSystem, clazz);
+            } else if (factor instanceof BranchIntensityPerPSTAngle) {
+                return new LfBranchIntensityPerPSTAngle<>(factor, lfNetwork, equationSystem, clazz);
             }  else if (factor instanceof BranchFlowPerLinearGlsk) {
                 return new LfBranchFlowPerLinearGlsk<>(factor, network, lfNetwork, equationSystem, clazz);
             } else {
@@ -244,13 +250,13 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    static class LfBranchFlowPerPSTAngle<T extends EquationTerm> extends LfSensitivityFactor<T> {
+    private static class LfBranchPerPSTAngle<T extends EquationTerm> extends LfSensitivityFactor<T> {
 
         private final LfBranch phaseTapChangerLfBranch;
 
-        LfBranchFlowPerPSTAngle(SensitivityFactor factor, LfNetwork lfNetwork, EquationSystem equationSystem, Class<T> clazz) {
+        LfBranchPerPSTAngle(SensitivityFactor factor, LfNetwork lfNetwork, EquationSystem equationSystem, Class<T> clazz) {
             super(factor, lfNetwork, equationSystem, clazz);
-            phaseTapChangerLfBranch = getPhaseTapChangerLfBranch(lfNetwork, (BranchFlowPerPSTAngle) factor);
+            phaseTapChangerLfBranch = getPhaseTapChangerLfBranch(lfNetwork, (PhaseTapChangerAngle) factor.getVariable());
             if (phaseTapChangerLfBranch == null) {
                 setStatus(Status.SKIP);
             }
@@ -267,6 +273,18 @@ public abstract class AbstractSensitivityAnalysis {
             return connectedComponent.contains(phaseTapChangerLfBranch.getBus1());
         }
 
+    }
+
+    static class LfBranchFlowPerPSTAngle<T extends EquationTerm> extends LfBranchPerPSTAngle<T> {
+        LfBranchFlowPerPSTAngle(SensitivityFactor factor, LfNetwork lfNetwork, EquationSystem equationSystem, Class<T> clazz) {
+            super(factor, lfNetwork, equationSystem, clazz);
+        }
+    }
+
+    static class LfBranchIntensityPerPSTAngle<T extends EquationTerm> extends LfBranchPerPSTAngle<T> {
+        LfBranchIntensityPerPSTAngle(SensitivityFactor factor, LfNetwork lfNetwork, EquationSystem equationSystem, Class<T> clazz) {
+            super(factor, lfNetwork, equationSystem, clazz);
+        }
     }
 
     static class LfBranchFlowPerLinearGlsk<T extends EquationTerm> extends LfSensitivityFactor<T> {
@@ -439,7 +457,7 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    protected <T extends EquationTerm> List<SensitivityFactorGroup> createFactorGroups(Network network, List<LfSensitivityFactor<T>> factors) {
+    protected <T extends EquationTerm> List<SensitivityFactorGroup> createFactorGroups(Network network, List<LfSensitivityFactor<? extends T>> factors) {
         Map<String, SensitivityFactorGroup> groupIndexedById = new HashMap<>(factors.size());
         // index factors by variable config
         for (LfSensitivityFactor<?> factor : factors) {
@@ -449,9 +467,9 @@ public abstract class AbstractSensitivityAnalysis {
                 if (lfBus != null) {
                     groupIndexedById.computeIfAbsent(lfBus.getId(), id -> new InjectionFactorGroup(lfBus.getId())).addFactor(factor);
                 }
-            } else if (factor instanceof LfBranchFlowPerPSTAngle) {
-                BranchFlowPerPSTAngle pstAngleFactor = (BranchFlowPerPSTAngle) factor.getFactor();
-                String phaseTapChangerHolderId = pstAngleFactor.getVariable().getPhaseTapChangerHolderId();
+            } else if (factor instanceof LfBranchPerPSTAngle) {
+                PhaseTapChangerAngle pstAngleVariable = (PhaseTapChangerAngle) factor.getFactor().getVariable();
+                String phaseTapChangerHolderId = pstAngleVariable.getPhaseTapChangerHolderId();
                 TwoWindingsTransformer twt = network.getTwoWindingsTransformer(phaseTapChangerHolderId);
                 if (twt == null) {
                     throw new PowsyblException("Phase shifter '" + phaseTapChangerHolderId + "' not found");
@@ -511,9 +529,9 @@ public abstract class AbstractSensitivityAnalysis {
             .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
     }
 
-    protected <T extends EquationTerm> void setPredefinedResults(Collection<LfSensitivityFactor<T>> lfFactors, Set<LfBus> connectedComponent,
+    protected <T extends EquationTerm> void setPredefinedResults(Collection<LfSensitivityFactor<? extends T>> lfFactors, Set<LfBus> connectedComponent,
                                                                  GraphDecrementalConnectivity<LfBus> connectivity) {
-        for (LfSensitivityFactor<T> factor : lfFactors) {
+        for (LfSensitivityFactor<? extends T> factor : lfFactors) {
             // check if the factor function and variable are in different connected components
             if (factor.areVariableAndFunctionDisconnected(connectivity)) {
                 factor.setPredefinedResult(0d);
@@ -541,7 +559,7 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    protected <T extends EquationTerm> void warnSkippedFactors(Collection<LfSensitivityFactor<T>> lfFactors) {
+    protected <T extends EquationTerm> void warnSkippedFactors(Collection<LfSensitivityFactor<? extends T>> lfFactors) {
         List<LfSensitivityFactor> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.SKIP)).collect(Collectors.toList());
         Set<String> skippedVariables = skippedFactors.stream().map(factor -> factor.getFactor().getVariable().getId()).collect(Collectors.toSet());
         LOGGER.warn("Skipping all factors with variables: '{}', as they cannot be found in the network", String.join(", ", skippedVariables));
@@ -581,9 +599,18 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
+    private void checkBranchIntensity(BranchIntensity branchIntensity, Network network) {
+        Branch branch = network.getBranch(branchIntensity.getBranchId());
+        if (branch == null) {
+            throw new PowsyblException("Branch '" + branchIntensity.getBranchId() + "' not found");
+        }
+    }
+
     private void checkFunction(SensitivityFunction function, Network network) {
         if (function instanceof BranchFlow) {
             checkBranchFlow((BranchFlow) function, network);
+        } else if (function instanceof BranchIntensity) {
+            checkBranchIntensity((BranchIntensity) function, network);
         } else {
             throw new PowsyblException("Function of type " + function.getClass().getSimpleName() + " is not recognized.");
         }

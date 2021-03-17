@@ -19,7 +19,7 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenBranchAcFlowEquationTerm {
+public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1BranchAcFlowEquationTerm {
 
     private final Variable v2Var;
 

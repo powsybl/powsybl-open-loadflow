@@ -11,6 +11,7 @@ package com.powsybl.openloadflow.equations;
  */
 public enum EquationType {
     BUS_P("p", SubjectType.BUS),
+    BUS_I("b_i", SubjectType.BUS),
     BUS_Q("q", SubjectType.BUS),
     BUS_V("v", SubjectType.BUS),
     BUS_PHI("\u03C6", SubjectType.BUS),

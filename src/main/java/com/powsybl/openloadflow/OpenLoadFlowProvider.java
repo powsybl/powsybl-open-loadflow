@@ -47,10 +47,7 @@ import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -120,11 +117,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
                                                           OpenLoadFlowParameters parametersExt, boolean breakers) {
-        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false);
+        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false, null);
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
-                                                   OpenLoadFlowParameters parametersExt, boolean breakers, boolean forceA1Var) {
+                                                          OpenLoadFlowParameters parametersExt, boolean breakers, boolean forceA1Var,
+                                                          Set<String> branchesWithCurrent) {
 
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
@@ -173,7 +171,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                         breakers,
                                         parametersExt.getPlausibleActivePowerLimit(),
                                         forceA1Var,
-                                        parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
+                                        parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
+                                        branchesWithCurrent);
     }
 
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {

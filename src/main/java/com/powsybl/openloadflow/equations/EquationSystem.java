@@ -66,7 +66,8 @@ public class EquationSystem {
 
             Set<Variable> variablesToFind = new HashSet<>();
             for (Equation equation : equations.values()) {
-                if (equation.isActive()) {
+                if (equation.isActive() && EquationUpdateType.DEFAULT == equation.getUpdateType()) {
+                    // do not use equations that would be updated only after NR
                     NavigableMap<Variable, List<EquationTerm>> equationTermsByVariable = null;
                     // check we have at least one equation term active
                     boolean atLeastOneTermIsValid = false;
@@ -145,6 +146,11 @@ public class EquationSystem {
     private final EquationCache equationCache = new EquationCache();
 
     private final List<EquationSystemListener> listeners = new ArrayList<>();
+
+    public enum EquationUpdateType {
+        DEFAULT,
+        AFTER_NR
+    }
 
     public EquationSystem(LfNetwork network) {
         this(network, false);
@@ -286,9 +292,16 @@ public class EquationSystem {
     }
 
     public void updateEquations(double[] x) {
+        updateEquations(x, EquationUpdateType.DEFAULT);
+    }
+
+    public void updateEquations(double[] x, EquationUpdateType updateType) {
         Objects.requireNonNull(x);
+        Objects.requireNonNull(updateType);
         for (Equation equation : equations.values()) {
-            equation.update(x);
+            if (updateType == equation.getUpdateType()) {
+                equation.update(x);
+            }
         }
         listeners.forEach(listener -> listener.onStateUpdate(x));
     }
