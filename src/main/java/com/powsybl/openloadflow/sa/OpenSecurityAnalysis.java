@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Branch;
@@ -116,7 +117,13 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters);
 
         // run simulation on largest network
+        if (lfNetworks.isEmpty()) {
+            throw new PowsyblException("Empty network list");
+        }
         LfNetwork largestNetwork = lfNetworks.get(0);
+        if (!largestNetwork.isValid()) {
+            throw new PowsyblException("Largest network is invalid");
+        }
         SecurityAnalysisResult result = runSimulations(largestNetwork, propagatedContingencies, acParameters, lfParameters, lfParametersExt);
 
         stopwatch.stop();
