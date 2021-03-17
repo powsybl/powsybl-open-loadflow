@@ -66,7 +66,7 @@ public class EquationSystem {
 
             Set<Variable> variablesToFind = new HashSet<>();
             for (Equation equation : equations.values()) {
-                if (equation.isActive() && EquationUpdateType.DEFAULT.equals(equation.getUpdateType())) {
+                if (equation.isActive() && EquationUpdateType.DEFAULT == equation.getUpdateType()) {
                     // do not use equations that would be updated only after NR
                     NavigableMap<Variable, List<EquationTerm>> equationTermsByVariable = null;
                     // check we have at least one equation term active
@@ -299,7 +299,7 @@ public class EquationSystem {
         Objects.requireNonNull(x);
         Objects.requireNonNull(updateType);
         for (Equation equation : equations.values()) {
-            if (updateType.equals(equation.getUpdateType())) {
+            if (updateType == equation.getUpdateType()) {
                 equation.update(x);
             }
         }

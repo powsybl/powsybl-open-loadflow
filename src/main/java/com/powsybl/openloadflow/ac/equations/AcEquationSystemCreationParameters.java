@@ -6,8 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.util.branchesCurrentManager.AllBranchesCurrentManager;
-import com.powsybl.openloadflow.util.branchesCurrentManager.BranchesCurrentManager;
+import java.util.Set;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -20,21 +19,21 @@ public class AcEquationSystemCreationParameters {
 
     private final boolean forceA1Var;
 
-    private final BranchesCurrentManager branchesCurrentManager;
+    private final Set<String> branchesWithCurrent;
 
     public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl) {
         this(phaseControl, transformerVoltageControl, false);
     }
 
     public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var) {
-        this(phaseControl, transformerVoltageControl, forceA1Var, new AllBranchesCurrentManager());
+        this(phaseControl, transformerVoltageControl, forceA1Var, null);
     }
 
-    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var, BranchesCurrentManager branchesCurrentManager) {
+    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var, Set<String> branchesWithCurrent) {
         this.phaseControl = phaseControl;
         this.transformerVoltageControl = transformerVoltageControl;
         this.forceA1Var = forceA1Var;
-        this.branchesCurrentManager = branchesCurrentManager;
+        this.branchesWithCurrent = branchesWithCurrent;
     }
 
     public boolean isPhaseControl() {
@@ -49,7 +48,7 @@ public class AcEquationSystemCreationParameters {
         return forceA1Var;
     }
 
-    public BranchesCurrentManager getBranchesCurrentManager() {
-        return branchesCurrentManager;
+    public Set<String> getBranchesWithCurrent() {
+        return branchesWithCurrent;
     }
 }
