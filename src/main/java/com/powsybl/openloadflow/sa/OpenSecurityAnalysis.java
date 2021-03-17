@@ -300,9 +300,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         preContingencyLimitViolations.forEach((subjectSideId, preContingencyViolation) -> {
             LimitViolation postContingencyViolation = postContingencyLimitViolations.get(subjectSideId);
-            if (postContingencyViolation != null && ((postContingencyViolation.getLimit() < preContingencyViolation.getLimit()) ||
-                    (postContingencyViolation.getLimit() == preContingencyViolation.getLimit() &&
-                            postContingencyViolation.getValue() <= preContingencyViolation.getValue() * POST_CONTINGENCY_INCREASING_FACTOR))) {
+            if (violationWeakenedOrEquivalent(preContingencyViolation, postContingencyViolation)) {
                 postContingencyLimitViolations.remove(subjectSideId);
             }
         });
@@ -314,6 +312,25 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
                 stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
         return new PostContingencyResult(lfContingency.getContingency(), postContingencyComputationOk, new ArrayList<>(postContingencyLimitViolations.values()));
+    }
+
+    /**
+     * Compares two limit violations
+     * @param violation1 first limit violation
+     * @param violation2 second limit violation
+     * @return true if violation2 is weaker than or equivalent to violation1, otherwise false
+     */
+    private static boolean violationWeakenedOrEquivalent(LimitViolation violation1, LimitViolation violation2) {
+        if (violation2 != null) {
+            if (violation2.getLimit() < violation1.getLimit()) {
+                return true; // the limit violated is smaller hence the violation is weaker
+            }
+            if (violation2.getLimit() == violation1.getLimit()) {
+                // the limit violated is the same: we consider the violations equivalent if the new value is close to previous one
+                return violation2.getValue() <= violation1.getValue() * POST_CONTINGENCY_INCREASING_FACTOR;
+            }
+        }
+        return false;
     }
 
     List<LfContingency> createContingencies(List<PropagatedContingency> propagatedContingencies, LfNetwork network) {
