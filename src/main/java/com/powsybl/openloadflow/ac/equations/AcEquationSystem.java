@@ -262,8 +262,12 @@ public final class AcEquationSystem {
                                              EquationSystem equationSystem) {
         EquationTerm p1 = null;
         EquationTerm q1 = null;
+        EquationTerm reI1 = null;
+        EquationTerm imI1 = null;
         EquationTerm p2 = null;
         EquationTerm q2 = null;
+        EquationTerm reI2 = null;
+        EquationTerm imI2 = null;
         EquationTerm i1 = null;
         EquationTerm i2 = null;
         boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
@@ -276,6 +280,14 @@ public final class AcEquationSystem {
             q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
             p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
             q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+            if (!bus1.isVoltageControlled() && bus1.getTargetP() == 0 && bus1.getTargetQ() == 0) {
+                reI1 = new ClosedBranchSide1CurrentRealEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+                imI1 = new ClosedBranchSide1CurrentImgEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+            }
+            if (!bus2.isVoltageControlled() && bus2.getTargetP() == 0 && bus2.getTargetQ() == 0) {
+                reI2 = new ClosedBranchSide2CurrentRealEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+                imI2 = new ClosedBranchSide2CurrentImgEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+            }
             if (createCurrent) {
                 i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
                 i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
@@ -294,26 +306,50 @@ public final class AcEquationSystem {
             }
         }
 
+        if (reI1 != null) {
+            equationSystem.createEquation(bus1.getNum(), EquationType.BUS_RE_I_ZERO).addTerm(reI1);
+        }
         if (p1 != null) {
-            equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
+            Equation p = equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P).addTerm(p1);
+            if (reI1 != null) {
+                p.setActive(false);
+            }
             branch.setP1(p1);
             if (creationParameters.isPhaseControl()) {
                 createBranchActivePowerTargetEquation(branch, DiscretePhaseControl.ControlledSide.ONE, equationSystem, p1);
             }
         }
+        if (imI1 != null) {
+            equationSystem.createEquation(bus1.getNum(), EquationType.BUS_IMG_I_ZERO).addTerm(imI1);
+        }
         if (q1 != null) {
-            equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q).addTerm(q1);
+            Equation q = equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q).addTerm(q1);
+            if (imI1 != null) {
+                q.setActive(false);
+            }
             branch.setQ1(q1);
         }
+        if (reI2 != null) {
+            equationSystem.createEquation(bus2.getNum(), EquationType.BUS_RE_I_ZERO).addTerm(reI2);
+        }
         if (p2 != null) {
-            equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
+            Equation p = equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P).addTerm(p2);
+            if (reI2 != null) {
+                p.setActive(false);
+            }
             branch.setP2(p2);
             if (creationParameters.isPhaseControl()) {
                 createBranchActivePowerTargetEquation(branch, DiscretePhaseControl.ControlledSide.TWO, equationSystem, p2);
             }
         }
+        if (imI2 != null) {
+            equationSystem.createEquation(bus2.getNum(), EquationType.BUS_IMG_I_ZERO).addTerm(imI2);
+        }
         if (q2 != null) {
-            equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
+            Equation q = equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q).addTerm(q2);
+            if (imI2 != null) {
+                q.setActive(false);
+            }
             branch.setQ2(q2);
         }
 

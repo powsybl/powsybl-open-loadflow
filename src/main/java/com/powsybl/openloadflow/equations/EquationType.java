@@ -10,6 +10,8 @@ package com.powsybl.openloadflow.equations;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public enum EquationType {
+    BUS_RE_I_ZERO("re_i_zero", SubjectType.BUS),
+    BUS_IMG_I_ZERO("img_i_zero", SubjectType.BUS),
     BUS_P("p", SubjectType.BUS),
     BUS_I("b_i", SubjectType.BUS),
     BUS_Q("q", SubjectType.BUS),

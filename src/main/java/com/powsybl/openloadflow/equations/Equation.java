@@ -217,6 +217,11 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 targets[column] = getRho1DistributionTarget(network, num, getData());
                 break;
 
+            case BUS_RE_I_ZERO:
+            case BUS_IMG_I_ZERO:
+                targets[column] = 0;
+                break;
+
             default:
                 throw new IllegalStateException("Unknown state variable type: "  + type);
         }
