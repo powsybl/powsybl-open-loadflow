@@ -94,13 +94,6 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    void networkWithoutGeneratorTest() {
-        g.remove();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
-        assertTrue(lfNetworks.isEmpty());
-    }
-
-    @Test
     void networkWithDanglingLineTest() {
         network = DanglingLineNetworkFactory.create();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());

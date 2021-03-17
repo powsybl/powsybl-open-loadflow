@@ -59,6 +59,8 @@ public class LfNetwork {
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
+    private boolean valid = true;
+
     public LfNetwork(int num, SlackBusSelector slackBusSelector) {
         this.num = num;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
@@ -474,5 +476,13 @@ public class LfNetwork {
 
     public List<LfNetworkListener> getListeners() {
         return listeners;
+    }
+
+    public boolean isValid() {
+        return valid;
+    }
+
+    public void setValid(boolean valid) {
+        this.valid = valid;
     }
 }
