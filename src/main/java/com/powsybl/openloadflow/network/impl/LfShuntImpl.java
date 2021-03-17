@@ -7,10 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.ShuntCompensator;
-import com.powsybl.openloadflow.network.AbstractElement;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfShunt;
-import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
@@ -34,6 +31,11 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
         double zb = nominalV * nominalV / PerUnit.SB;
         b = shuntCompensator.getB() * zb;
+    }
+
+    @Override
+    public ElementType getType() {
+        return ElementType.SHUNT_COMPENSATOR;
     }
 
     @Override

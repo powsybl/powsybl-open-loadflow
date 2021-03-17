@@ -78,6 +78,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public ElementType getType() {
+        return ElementType.BUS;
+    }
+
+    @Override
     public boolean isSlack() {
         return slack;
     }
