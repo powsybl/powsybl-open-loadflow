@@ -13,11 +13,13 @@ import com.powsybl.commons.config.ModuleConfig;
  * @author Thomas Adam <tadam at silicom.fr>
  */
 @AutoService(SlackBusSelectorParametersReader.class)
-public class FirstSlackBusSelectorParametersReaderImpl implements SlackBusSelectorParametersReader {
+public class FirstSlackBusSelectorParametersReader implements SlackBusSelectorParametersReader {
+
+    public static final String NAME = "First";
 
     @Override
     public String getName() {
-        return "First";
+        return NAME;
     }
 
     @Override

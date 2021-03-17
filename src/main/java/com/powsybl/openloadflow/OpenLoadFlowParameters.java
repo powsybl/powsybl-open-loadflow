@@ -153,7 +153,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         }
 
         private SlackBusSelector getSlackBusSelector(ModuleConfig config) {
-            String type = config.getStringProperty("slackBusSelectorType");
+            String type = config.getStringProperty("slackBusSelectorType", SLACK_BUS_SELECTOR_DEFAULT_TYPE);
             SlackBusSelector slackBusSelector = null;
             for (SlackBusSelectorParametersReader reader : ServiceLoader.load(SlackBusSelectorParametersReader.class)) {
                 if (type.equals(reader.getName())) {
