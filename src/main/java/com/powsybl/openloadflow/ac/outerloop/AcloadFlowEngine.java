@@ -192,7 +192,7 @@ public class AcloadFlowEngine implements AutoCloseable {
                             return engine.run();
                         }
                     }
-                    return new AcLoadFlowResult(n, 0, 0, NewtonRaphsonStatus.NO_CALCULATION, 0d);
+                    return new AcLoadFlowResult(n, 0, 0, NewtonRaphsonStatus.NO_CALCULATION, Double.NaN);
                 })
                 .collect(Collectors.toList());
     }
