@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.google.auto.service.AutoService;
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
@@ -82,16 +83,28 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return lfParametersExt;
     }
 
-    @Override
     public CompletableFuture<SensitivityAnalysisResult> run(Network network, String workingStateId,
                                                             SensitivityFactorsProvider sensitivityFactorsProvider,
                                                             List<Contingency> contingencies,
                                                             SensitivityAnalysisParameters sensitivityAnalysisParameters,
                                                             ComputationManager computationManager) {
+        return run(network, workingStateId, sensitivityFactorsProvider, contingencies, sensitivityAnalysisParameters, computationManager, Reporter.NO_OP);
+    }
+
+    @Override
+    public CompletableFuture<SensitivityAnalysisResult> run(Network network, String workingStateId,
+                                                            SensitivityFactorsProvider sensitivityFactorsProvider,
+                                                            List<Contingency> contingencies,
+                                                            SensitivityAnalysisParameters sensitivityAnalysisParameters,
+                                                            ComputationManager computationManager,
+                                                            Reporter reporter) {
+
+        Reporter sensiReporter = reporter.createSubReporter("sensitivityAnalysis",
+            "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
         return CompletableFuture.supplyAsync(() -> {
             SensitivityFactorReader factorReader = new SensitivityFactorReaderAdapter(network, sensitivityFactorsProvider, contingencies);
             SensitivityValueWriterAdapter valueWriter = new SensitivityValueWriterAdapter();
-            run(network, workingStateId, contingencies, sensitivityAnalysisParameters, factorReader, valueWriter);
+            run(network, workingStateId, contingencies, sensitivityAnalysisParameters, factorReader, valueWriter, sensiReporter);
             boolean ok = true;
             Map<String, String> metrics = new HashMap<>();
             String logs = "";
@@ -100,7 +113,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     }
 
     public void run(Network network, String workingStateId, List<Contingency> contingencies, SensitivityAnalysisParameters sensitivityAnalysisParameters,
-                    SensitivityFactorReader factorReader, SensitivityValueWriter valueWriter) {
+                    SensitivityFactorReader factorReader, SensitivityValueWriter valueWriter, Reporter reporter) {
         network.getVariantManager().setWorkingVariant(workingStateId);
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, new HashSet<>());
@@ -109,9 +122,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
 
         if (lfParameters.isDc()) {
-            dcSensitivityAnalysis.analyse(network, propagatedContingencies, lfParameters, lfParametersExt, factorReader, valueWriter);
+            dcSensitivityAnalysis.analyse(network, propagatedContingencies, lfParameters, lfParametersExt, factorReader, valueWriter, reporter);
         } else {
-            acSensitivityAnalysis.analyse(network, propagatedContingencies, lfParameters, lfParametersExt, factorReader, valueWriter);
+            acSensitivityAnalysis.analyse(network, propagatedContingencies, lfParameters, lfParametersExt, factorReader, valueWriter, reporter);
         }
     }
 }

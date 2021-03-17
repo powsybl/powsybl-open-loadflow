@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -46,7 +47,7 @@ class LfSwitchTest {
         network = NodeBreakerNetworkFactory.create();
         acLoadFlowParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), new LoadFlowParameters(),
                 new OpenLoadFlowParameters(), true);
-        List<LfNetwork> lfNetworks = AcloadFlowEngine.createNetworks(network, acLoadFlowParameters);
+        List<LfNetwork> lfNetworks = AcloadFlowEngine.createNetworks(network, acLoadFlowParameters, Reporter.NO_OP);
         assertEquals(1, lfNetworks.size());
         lfNetwork = lfNetworks.get(0);
         lfSwitch = (LfSwitch) lfNetwork.getBranchById("B3");

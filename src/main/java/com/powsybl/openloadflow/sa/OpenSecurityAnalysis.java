@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Branch;
@@ -22,7 +23,9 @@ import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
-import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
@@ -140,7 +143,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
             network.getSwitchStream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                     .forEach(sw -> sw.setRetained(false));
             allSwitchesToOpen.forEach(sw -> sw.setRetained(true));
-            lfNetworks = AcloadFlowEngine.createNetworks(network, acParameters);
+            lfNetworks = AcloadFlowEngine.createNetworks(network, acParameters, Reporter.NO_OP);
         } finally {
             network.getVariantManager().removeVariant(tmpVariantId);
         }
@@ -229,7 +232,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         // run pre-contingency simulation
         try (AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters)) {
-            AcLoadFlowResult preContingencyLoadFlowResult = engine.run();
+            AcLoadFlowResult preContingencyLoadFlowResult = engine.run(Reporter.NO_OP);
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations = new HashMap<>();
 
@@ -295,7 +298,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         // restart LF on post contingency equation system
         engine.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
-        AcLoadFlowResult postContingencyLoadFlowResult = engine.run();
+        AcLoadFlowResult postContingencyLoadFlowResult = engine.run(Reporter.NO_OP);
         boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
         Map<Pair<String, Branch.Side>, LimitViolation> postContingencyLimitViolations = new HashMap<>();
         if (postContingencyComputationOk) {

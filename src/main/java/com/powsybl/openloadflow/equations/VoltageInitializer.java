@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -15,7 +16,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public interface VoltageInitializer {
 
-    void prepare(LfNetwork network, MatrixFactory matrixFactory);
+    void prepare(LfNetwork network, MatrixFactory matrixFactory, Reporter reporter);
 
     double getMagnitude(LfBus bus);
 
