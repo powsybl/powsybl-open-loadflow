@@ -127,7 +127,7 @@ class OpenSecurityAnalysisTest {
         assertEquals(1, result.getPreContingencyResult().getLimitViolations().size());
         assertEquals(1, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
-        assertEquals(1, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
     }
 
     @Test

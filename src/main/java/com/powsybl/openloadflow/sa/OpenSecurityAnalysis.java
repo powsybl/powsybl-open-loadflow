@@ -59,6 +59,8 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
     private final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider;
 
+    private static final double POST_CONTINGENCY_INCREASING_FACTOR = 1.1;
+
     public OpenSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
                                 MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
         this.network = Objects.requireNonNull(network);
@@ -298,7 +300,9 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         preContingencyLimitViolations.forEach((subjectSideId, preContingencyViolation) -> {
             LimitViolation postContingencyViolation = postContingencyLimitViolations.get(subjectSideId);
-            if (postContingencyViolation != null && postContingencyViolation.getLimit() <= preContingencyViolation.getLimit()) {
+            if (postContingencyViolation != null && ((postContingencyViolation.getLimit() < preContingencyViolation.getLimit()) ||
+                    (postContingencyViolation.getLimit() == preContingencyViolation.getLimit() &&
+                            postContingencyViolation.getValue() <= preContingencyViolation.getValue() * POST_CONTINGENCY_INCREASING_FACTOR))) {
                 postContingencyLimitViolations.remove(subjectSideId);
             }
         });
