@@ -162,32 +162,32 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
     private void detectBranchViolations(LfBranch branch, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
         // detect violation limits on a branch
         if (branch.getBus1() != null) {
-            branch.getLimits1().stream()
-                .filter(temporaryLimit1 -> branch.getI1() > temporaryLimit1.getValue())
-                .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
-                .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1))
+            branch.getViolationRanges1().stream()
+                .filter(violationRange -> branch.getI1() > violationRange.getMinValue()) // only check min value as ranges are sorted and taking first
+                .findFirst()
+                .map(violationRange -> createLimitViolation1(branch, violationRange))
                 .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
         }
         if (branch.getBus2() != null) {
-            branch.getLimits2().stream()
-                .filter(temporaryLimit2 -> branch.getI2() > temporaryLimit2.getValue())
-                .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
+            branch.getViolationRanges2().stream()
+                .filter(violationRange -> branch.getI2() > violationRange.getMinValue()) // only check min value as ranges are sorted
+                .findFirst()
                 .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2))
                 .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
         }
     }
 
-    private static LimitViolation createLimitViolation1(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit1) {
+    private static LimitViolation createLimitViolation1(LfBranch branch, AbstractLfBranch.LfViolationRange violationRange) {
         double scale1 = PerUnit.SB / branch.getBus1().getNominalV();
         return new LimitViolation(branch.getId(), LimitViolationType.CURRENT, null,
-            temporaryLimit1.getAcceptableDuration(), temporaryLimit1.getValue() * scale1,
+            violationRange.getAcceptableDuration(), violationRange.getMinValue() * scale1,
             (float) 1., branch.getI1() * scale1, Branch.Side.ONE);
     }
 
-    private static LimitViolation createLimitViolation2(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit2) {
+    private static LimitViolation createLimitViolation2(LfBranch branch, AbstractLfBranch.LfViolationRange violationRange) {
         double scale2 = PerUnit.SB / branch.getBus2().getNominalV();
         return new LimitViolation(branch.getId(), LimitViolationType.CURRENT, null,
-            temporaryLimit2.getAcceptableDuration(), temporaryLimit2.getValue() * scale2,
+            violationRange.getAcceptableDuration(), violationRange.getMinValue() * scale2,
             (float) 1., branch.getI2() * scale2, Branch.Side.TWO);
     }
 

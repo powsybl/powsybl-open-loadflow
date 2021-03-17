@@ -21,34 +21,28 @@ import java.util.*;
  */
 public abstract class AbstractLfBranch extends AbstractElement implements LfBranch {
 
-    public static final class LfLimit {
+    public static final class LfViolationRange {
 
         private int acceptableDuration;
-        private final double value;
+        private final double valueMin;
+        private final double valueMax;
 
-        private LfLimit(int acceptableDuration, double value) {
+        private LfViolationRange(int acceptableDuration, double valueMin, double valueMax) {
             this.acceptableDuration = acceptableDuration;
-            this.value = value;
-        }
-
-        private static LfLimit createTemporaryLimit(int acceptableDuration, double valuePerUnit) {
-            return new LfLimit(acceptableDuration, valuePerUnit);
-        }
-
-        private static LfLimit createPermanentLimit(double valuePerUnit) {
-            return new LfLimit(Integer.MAX_VALUE, valuePerUnit);
+            this.valueMin = valueMin;
+            this.valueMax = valueMax;
         }
 
         public int getAcceptableDuration() {
             return acceptableDuration;
         }
 
-        public double getValue() {
-            return value;
+        public double getMinValue() {
+            return valueMin;
         }
 
-        public void setAcceptableDuration(int acceptableDuration) {
-            this.acceptableDuration = acceptableDuration;
+        public double getMaxValue() {
+            return valueMax;
         }
     }
 
@@ -58,9 +52,9 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private final LfBus bus2;
 
-    private List<LfLimit> limits1;
+    private List<LfViolationRange> violationRanges1;
 
-    private List<LfLimit> limits2;
+    private List<LfViolationRange> violationRanges2;
 
     private final PiModel piModel;
 
@@ -75,26 +69,21 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.piModel = Objects.requireNonNull(piModel);
     }
 
-    protected static List<LfLimit> createSortedLimitsList(CurrentLimits currentLimits, LfBus bus) {
-        LinkedList<LfLimit> sortedLimits = new LinkedList<>();
+    protected static List<LfViolationRange> createSortedViolationRanges(CurrentLimits currentLimits, LfBus bus) {
+        LinkedList<LfViolationRange> sortedViolationRanges = new LinkedList<>();
         if (currentLimits != null) {
             double toPerUnit = bus.getNominalV() / PerUnit.SB;
+            double previousLimit = currentLimits.getPermanentLimit() * toPerUnit; // Permanent admissible range: 0 to permanent limit
             for (LoadingLimits.TemporaryLimit temporaryLimit : currentLimits.getTemporaryLimits()) {
-                if (temporaryLimit.getValue() != Double.MAX_VALUE || temporaryLimit.getAcceptableDuration() != 0) { // not useful
-                    double valuePerUnit = temporaryLimit.getValue() * toPerUnit;
-                    sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getAcceptableDuration(), valuePerUnit));
-                }
+                LfViolationRange violationRange = new LfViolationRange(temporaryLimit.getAcceptableDuration(), previousLimit, temporaryLimit.getValue() * toPerUnit);
+                sortedViolationRanges.addFirst(violationRange);
+                previousLimit = violationRange.getMaxValue();
             }
-            sortedLimits.addLast(LfLimit.createPermanentLimit(currentLimits.getPermanentLimit() * toPerUnit));
-        }
-        if (sortedLimits.size() > 1) {
-            for (int i = sortedLimits.size() - 1; i > 0; i--) {
-                // From the permanent limit to the most serious temporary limit.
-                sortedLimits.get(i).setAcceptableDuration(sortedLimits.get(i - 1).getAcceptableDuration());
+            if (previousLimit < Double.MAX_VALUE) {
+                sortedViolationRanges.addFirst(new LfViolationRange(0, previousLimit, Double.POSITIVE_INFINITY));
             }
-            sortedLimits.getFirst().setAcceptableDuration(0);
         }
-        return sortedLimits;
+        return sortedViolationRanges;
     }
 
     @Override
@@ -107,18 +96,18 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         return bus2;
     }
 
-    protected List<LfLimit> getLimits1(CurrentLimits currentLimits) {
-        if (limits1 == null) {
-            limits1 = createSortedLimitsList(currentLimits, bus1);
+    protected List<LfViolationRange> getViolationRanges1(CurrentLimits currentLimits) {
+        if (violationRanges1 == null) {
+            violationRanges1 = createSortedViolationRanges(currentLimits, bus1);
         }
-        return limits1;
+        return violationRanges1;
     }
 
-    protected List<LfLimit> getLimits2(CurrentLimits currentLimits) {
-        if (limits2 == null) {
-            limits2 = createSortedLimitsList(currentLimits, bus2);
+    protected List<LfViolationRange> getViolationRanges2(CurrentLimits currentLimits) {
+        if (violationRanges2 == null) {
+            violationRanges2 = createSortedViolationRanges(currentLimits, bus2);
         }
-        return limits2;
+        return violationRanges2;
     }
 
     @Override
