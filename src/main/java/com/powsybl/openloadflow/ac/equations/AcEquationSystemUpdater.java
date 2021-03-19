@@ -93,9 +93,9 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
             t.setActive(false);
 
             for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
-                // de-activate r1 variable
-                Variable r1 = variableSet.getVariable(controllerBranch.getNum(), VariableType.BRANCH_RHO1);
-                r1.setActive(false);
+                // activate constant r1 equation
+                equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
+                        .setActive(true);
 
                 // clean transformer distribution equations
                 equationSystem.removeEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1);

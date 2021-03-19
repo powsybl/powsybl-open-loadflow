@@ -245,6 +245,13 @@ public final class AcEquationSystem {
             if (bus.getDiscreteVoltageControl().getControllers().size() > 1) {
                 createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
             }
+
+            for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
+                // also create an inactive equation to have r1 variable constant
+                equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
+                        .addTerm(EquationTerm.createVariableTerm(controllerBranch, VariableType.BRANCH_RHO1, variableSet))
+                        .setActive(false);
+            }
         }
     }
 

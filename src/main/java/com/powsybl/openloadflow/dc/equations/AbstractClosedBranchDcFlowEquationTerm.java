@@ -63,13 +63,13 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
     }
 
     private double getA1(DenseMatrix x, int column) {
-        return a1Var != null && a1Var.isActive() ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
+        return a1Var != null ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
     }
 
     protected abstract double calculate(double ph1, double ph2, double a1);
 
     protected double getA1(double[] stateVector) {
-        return a1Var != null && a1Var.isActive() ? stateVector[a1Var.getRow()] : branch.getPiModel().getA1();
+        return a1Var != null ? stateVector[a1Var.getRow()] : branch.getPiModel().getA1();
     }
 
     @Override

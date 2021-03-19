@@ -73,11 +73,11 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     }
 
     protected double getA1(DenseMatrix x, int column) {
-        return a1Var != null && a1Var.isActive() ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
+        return a1Var != null ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
     }
 
     protected double getR1(DenseMatrix x, int column) {
-        return r1Var != null && r1Var.isActive() ? x.get(r1Var.getRow(), column) : branch.getPiModel().getR1();
+        return r1Var != null ? x.get(r1Var.getRow(), column) : branch.getPiModel().getR1();
     }
 
     @Override
