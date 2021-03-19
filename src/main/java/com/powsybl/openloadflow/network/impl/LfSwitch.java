@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.openloadflow.network.AbstractLfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.SimplePiModel;
 import com.powsybl.openloadflow.util.Evaluable;
 
@@ -21,8 +22,8 @@ public class LfSwitch extends AbstractLfBranch {
 
     private final Switch aSwitch;
 
-    public LfSwitch(LfBus bus1, LfBus bus2, Switch aSwitch) {
-        super(bus1, bus2, new SimplePiModel());
+    public LfSwitch(LfNetwork network, LfBus bus1, LfBus bus2, Switch aSwitch) {
+        super(network, bus1, bus2, new SimplePiModel());
         this.aSwitch = Objects.requireNonNull(aSwitch);
     }
 
@@ -63,6 +64,16 @@ public class LfSwitch extends AbstractLfBranch {
 
     @Override
     public void setQ2(Evaluable q2) {
+        // nothing to do
+    }
+
+    @Override
+    public void setI1(Evaluable i1) {
+        // nothing to do
+    }
+
+    @Override
+    public void setI2(Evaluable i2) {
         // nothing to do
     }
 

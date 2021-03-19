@@ -6,10 +6,6 @@
  */
 package com.powsybl.openloadflow.util;
 
-import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 
@@ -28,7 +24,7 @@ public class BusState {
     private final double loadTargetQ;
     private final Map<String, Double> generatorsTargetP;
     private final boolean disabled;
-    private final boolean hasVoltageControl;
+    private final boolean isVoltageControllerEnabled;
     private final double generationTargetQ;
 
     public BusState(LfBus b) {
@@ -38,30 +34,26 @@ public class BusState {
         this.loadTargetQ = b.getLoadTargetQ();
         this.generatorsTargetP = b.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
         this.disabled = b.isDisabled();
-        this.hasVoltageControl = b.hasVoltageControl();
+        this.isVoltageControllerEnabled = b.isVoltageControllerEnabled();
         this.generationTargetQ = b.getGenerationTargetQ();
     }
 
-    public void restoreBusState(LfBus bus, EquationSystem equationSystem, VariableSet variableSet) {
-        restoreDcBusState(bus);
+    public void restoreBusState(LfBus bus) {
+        restoreBusActiveState(bus);
         bus.setV(v);
         bus.setLoadTargetQ(loadTargetQ);
-        if (hasVoltageControl && !bus.hasVoltageControl()) { // b is now PQ bus.
-            ReactiveLimitsOuterLoop.switchPqPv(bus, equationSystem, variableSet);
-        }
-        if (!hasVoltageControl && bus.hasVoltageControl()) { // b is now PV bus.
-            ReactiveLimitsOuterLoop.switchPvPq(bus, equationSystem, variableSet, generationTargetQ);
-        }
+        bus.setGenerationTargetQ(generationTargetQ);
+        bus.setDisabled(disabled);
+        bus.setVoltageControllerEnabled(isVoltageControllerEnabled);
         bus.setVoltageControlSwitchOffCount(0);
     }
 
-    public void restoreDcBusState(LfBus bus) {
+    public void restoreBusActiveState(LfBus bus) {
         bus.setAngle(angle);
         bus.setLoadTargetP(loadTargetP);
         bus.getGenerators().forEach(g -> {
             g.setTargetP(generatorsTargetP.get(g.getId()));
         });
-        bus.setDisabled(disabled);
     }
 
     /**
@@ -76,28 +68,17 @@ public class BusState {
     /**
      * Set the bus states based on the given map of states
      * @param busStates the map containing the bus states, indexed by buses
-     * @param engine AcLoadFlowEngine to operate the PqPv switching if the bus has lost its voltage control
      */
-    public static void restoreBusStates(Map<LfBus, BusState> busStates, AcloadFlowEngine engine) {
-        restoreBusStates(busStates, engine.getEquationSystem(), engine.getVariableSet());
-    }
-
-    /**
-     * Set the bus states based on the given map of states
-     * @param busStates the map containing the bus states, indexed by buses
-     * @param equationSystem to operate the PqPv switching if the bus has lost its voltage control
-     * @param variableSet to operate the PqPv switching if the bus has lost its voltage control
-     */
-    public static void restoreBusStates(Map<LfBus, BusState> busStates, EquationSystem equationSystem, VariableSet variableSet) {
-        busStates.forEach((b, state) -> state.restoreBusState(b, equationSystem, variableSet));
+    public static void restoreBusStates(Map<LfBus, BusState> busStates) {
+        busStates.forEach((b, state) -> state.restoreBusState(b));
     }
 
     /**
      * Set the bus states based on the given map of states
      * @param busStates the map containing the bus states, indexed by buses
      */
-    public static void restoreDcBusStates(Map<LfBus, BusState> busStates) {
-        busStates.forEach((b, state) -> state.restoreDcBusState(b));
+    public static void restoreBusActiveStates(Map<LfBus, BusState> busStates) {
+        busStates.forEach((b, state) -> state.restoreBusActiveState(b));
     }
 }
 

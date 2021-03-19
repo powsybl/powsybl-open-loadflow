@@ -11,13 +11,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface LfShunt {
-
-    String getId();
-
-    int getNum();
-
-    void setNum(int num);
+public interface LfShunt extends LfElement {
 
     double getB();
 

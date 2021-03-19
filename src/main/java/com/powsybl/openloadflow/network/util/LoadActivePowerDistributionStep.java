@@ -7,11 +7,11 @@
 package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,9 +38,8 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
     }
 
     @Override
-    public List<ParticipatingElement> getParticipatingElements(LfNetwork network) {
-        return network.getBuses()
-                .stream()
+    public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses) {
+        return buses.stream()
                 .filter(bus -> bus.getPositiveLoadCount() > 0 && getVariableLoadTargetP(bus) > 0 && !(bus.isFictitious() || bus.isDisabled()))
                 .map(bus -> new ParticipatingElement(bus, getVariableLoadTargetP(bus)))
                 .collect(Collectors.toList());

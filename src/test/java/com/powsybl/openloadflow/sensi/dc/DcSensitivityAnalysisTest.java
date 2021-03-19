@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sensi.dc;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -21,12 +22,15 @@ import com.powsybl.sensitivity.SensitivityFactorsProvider;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
+import com.powsybl.sensitivity.factors.BranchIntensityPerPSTAngle;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
@@ -438,6 +442,48 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
         assertEquals(-6.3d, getValue(result, "PS1", "L1"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testIntensityCrash() {
+        Network network = FourBusNetworkFactory.createWithTransfoCompensed();
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream()
+            .map(AbstractSensitivityAnalysisTest::createBranchIntensity)
+            .map(branchIntensity -> new BranchIntensityPerPSTAngle(branchIntensity, new PhaseTapChangerAngle("l23", "l23", "l23"))).collect(Collectors.toList());
+        CompletableFuture<SensitivityAnalysisResult> result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault());
+
+        CompletionException e = assertThrows(CompletionException.class, () -> result.join());
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Only sensitivity factors of type BranchFlowPerInjectionIncrease, BranchFlowPerLinearGlsk and BranchFlowPerPSTAngle are yet supported in DC", e.getCause().getMessage());
+    }
+
+    @Test
+    void testBranchFunctionOutsideMainComponent() {
+        testBranchFunctionOutsideMainComponent(true);
+    }
+
+    @Test
+    void testInjectionOutsideMainComponent() {
+        testInjectionOutsideMainComponent(true);
+    }
+
+    @Test
+    void testPhaseShifterOutsideMainComponent() {
+        testPhaseShifterOutsideMainComponent(true);
+    }
+
+    @Test
+    void testGlskOutsideMainComponent() {
+        testGlskOutsideMainComponent(true);
+    }
+
+    @Test
+    void testGlskPartiallyOutsideMainComponent() {
+        testGlskPartiallyOutsideMainComponent(true);
     }
 
     @Test

@@ -81,7 +81,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
                 .endPoint()
                 .add();
         LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
-        assertFalse(lfNetwork.getBus(0).hasVoltageControl());
+        assertFalse(lfNetwork.getBus(0).isVoltageControllerEnabled());
     }
 
     @Test
@@ -90,14 +90,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         g.setTargetP(0);
         g.setMinP(1);
         LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
-        assertFalse(lfNetwork.getBus(0).hasVoltageControl());
-    }
-
-    @Test
-    void networkWithoutGeneratorTest() {
-        g.remove();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
-        assertTrue(lfNetworks.isEmpty());
+        assertFalse(lfNetwork.getBus(0).isVoltageControllerEnabled());
     }
 
     @Test

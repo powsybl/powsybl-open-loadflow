@@ -12,13 +12,7 @@ import java.util.Optional;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface LfBus {
-
-    String getId();
-
-    int getNum();
-
-    void setNum(int num);
+public interface LfBus extends LfElement {
 
     String getVoltageLevelId();
 
@@ -28,9 +22,11 @@ public interface LfBus {
 
     void setSlack(boolean slack);
 
-    boolean hasVoltageControlCapability();
+    boolean hasVoltageControllerCapability();
 
-    boolean hasVoltageControl();
+    boolean isVoltageControllerEnabled();
+
+    boolean isVoltageControlled();
 
     /**
      * Get the number of time, voltage control status has be set from true to false.
@@ -41,11 +37,11 @@ public interface LfBus {
 
     void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount);
 
-    void setVoltageControl(boolean voltageControl);
+    void setVoltageControllerEnabled(boolean voltageControl);
 
-    Optional<LfBus> getControlledBus();
+    Optional<VoltageControl> getVoltageControl();
 
-    List<LfBus> getControllerBuses();
+    void setVoltageControl(VoltageControl voltageControl);
 
     double getTargetP();
 
@@ -70,8 +66,6 @@ public interface LfBus {
     double getGenerationTargetQ();
 
     void setGenerationTargetQ(double generationTargetQ);
-
-    double getTargetV();
 
     double getMinQ();
 

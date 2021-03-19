@@ -253,4 +253,27 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertNull(vlhv1.getExtension(SlackTerminal.class));
         assertNull(vlhv2.getExtension(SlackTerminal.class));
     }
+
+    @Test
+    void lineWithDifferentNominalVoltageTest() {
+        parametersExt.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(true);
+        network.getVoltageLevel("VLHV2").setNominalV(420);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+
+        assertVoltageEquals(24.5, genBus);
+        assertVoltageEquals(402.143, bus1);
+        assertVoltageEquals(389.953, bus2);
+        assertVoltageEquals(147.578, loadBus);
+    }
+
+    @Test
+    void noGeneratorTest() {
+        network.getGenerator("GEN").getTerminal().disconnect();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isOk());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+    }
 }

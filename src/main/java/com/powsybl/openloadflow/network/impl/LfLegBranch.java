@@ -32,13 +32,15 @@ public class LfLegBranch extends AbstractLfBranch {
 
     private Evaluable q = NAN;
 
-    protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
-        super(bus1, bus0, piModel);
+    private Evaluable i = NAN;
+
+    protected LfLegBranch(LfNetwork network, LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
+        super(network, bus1, bus0, piModel);
         this.twt = twt;
         this.leg = leg;
     }
 
-    public static LfLegBranch create(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg,
+    public static LfLegBranch create(LfNetwork network, LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg,
                                      boolean twtSplitShuntAdmittance) {
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(twt);
@@ -88,7 +90,7 @@ public class LfLegBranch extends AbstractLfBranch {
             piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance);
         }
 
-        return new LfLegBranch(bus1, bus0, piModel, twt, leg);
+        return new LfLegBranch(network, bus1, bus0, piModel, twt, leg);
     }
 
     private int getLegNum() {
@@ -142,9 +144,18 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
+    public void setI1(Evaluable i1) {
+        this.i = Objects.requireNonNull(i1);
+    }
+
+    @Override
+    public void setI2(Evaluable i2) {
+        // nothing to do
+    }
+
+    @Override
     public double getI1() {
-        return getBus1() != null ? Math.hypot(p.eval(), q.eval())
-            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
+        return i.eval();
     }
 
     @Override
