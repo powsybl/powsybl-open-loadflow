@@ -72,17 +72,15 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
 
     @Override
     public void onPhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode) {
-        if (newMode == DiscretePhaseControl.Mode.OFF) {
-            // de-activate a1 variable
-            Variable a1 = variableSet.getVariable(phaseControl.getController().getNum(), VariableType.BRANCH_ALPHA1);
-            a1.setActive(false);
+        boolean on = newMode != DiscretePhaseControl.Mode.OFF;
 
-            // de-activate phase control equation
-            Equation t = equationSystem.createEquation(phaseControl.getControlled().getNum(), EquationType.BRANCH_P);
-            t.setActive(false);
-        } else {
-            throw new UnsupportedOperationException("TODO");
-        }
+        // activate/de-activate phase control equation
+        equationSystem.createEquation(phaseControl.getControlled().getNum(), EquationType.BRANCH_P)
+                .setActive(on);
+
+        // de-activate/activate constant phase equation
+        equationSystem.createEquation(phaseControl.getController().getNum(), EquationType.BRANCH_ALPHA1)
+                .setActive(!on);
     }
 
     @Override
