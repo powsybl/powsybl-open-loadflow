@@ -6,7 +6,10 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationType;
+import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.List;
@@ -89,8 +92,8 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
             LfBus bus = voltageControl.getControlled();
 
             // de-activate transformer voltage control equation
-            Equation t = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
-            t.setActive(false);
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V)
+                    .setActive(false);
 
             for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
                 // activate constant r1 equation
