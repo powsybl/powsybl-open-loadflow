@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
-import com.powsybl.openloadflow.ac.equations.DummyActivePowerEquationTerm;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -35,7 +34,7 @@ public final class DcEquationSystem {
     private static void createBuses(LfNetwork network, VariableSet variableSet, EquationSystem equationSystem) {
         for (LfBus bus : network.getBuses()) {
             if (bus.isSlack()) {
-                equationSystem.createEquation(bus.getNum(), EquationType.BUS_PHI).addTerm(new BusPhaseEquationTerm(bus, variableSet));
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_PHI).addTerm(EquationTerm.createVariableTerm(bus, VariableType.BUS_PHI, variableSet));
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
         }
@@ -49,15 +48,15 @@ public final class DcEquationSystem {
             // create voltage angle coupling equation
             // alpha = phi1 - phi2
             equationSystem.createEquation(branch.getNum(), EquationType.ZERO_PHI)
-                    .addTerm(new BusPhaseEquationTerm(bus1, variableSet))
-                    .addTerm(EquationTerm.multiply(new BusPhaseEquationTerm(bus2, variableSet), -1));
+                    .addTerm(EquationTerm.createVariableTerm(bus1, VariableType.BUS_PHI, variableSet))
+                    .addTerm(EquationTerm.multiply(EquationTerm.createVariableTerm(bus2, VariableType.BUS_PHI, variableSet), -1));
 
             // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
             // to ensure we have the same number of equation and variables
             equationSystem.createEquation(bus1.getNum(), EquationType.BUS_P)
-                    .addTerm(new DummyActivePowerEquationTerm(branch, variableSet));
+                    .addTerm(EquationTerm.createVariableTerm(branch, VariableType.DUMMY_P, variableSet));
             equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P)
-                    .addTerm(EquationTerm.multiply(new DummyActivePowerEquationTerm(branch, variableSet), -1));
+                    .addTerm(EquationTerm.multiply(EquationTerm.createVariableTerm(branch, VariableType.DUMMY_P, variableSet), -1));
         } else {
             throw new IllegalStateException("Cannot happen because only there is one slack bus per model");
         }
@@ -76,7 +75,7 @@ public final class DcEquationSystem {
                 if (creationParameters.isForcePhaseControlOffAndAddAngle1Var()) {
                     // use for sensitiviy analysis only: with this equation term, we force the a1 variable to be constant.
                     equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_ALPHA1)
-                            .addTerm(new BranchA1EquationTerm(branch, variableSet));
+                            .addTerm(EquationTerm.createVariableTerm(branch, VariableType.BRANCH_ALPHA1, variableSet));
                 } else {
                     //TODO
                 }

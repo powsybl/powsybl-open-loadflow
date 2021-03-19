@@ -11,15 +11,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface LfBranch {
-
-    String getId();
-
-    int getNum();
-
-    void setNum(int num);
-
-    LfNetwork getNetwork();
+public interface LfBranch extends LfElement {
 
     LfBus getBus1();
 

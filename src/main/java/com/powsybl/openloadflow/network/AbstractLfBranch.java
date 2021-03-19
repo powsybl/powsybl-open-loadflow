@@ -39,6 +39,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
+    public ElementType getType() {
+        return ElementType.BRANCH;
+    }
+
+    @Override
     public LfBus getBus1() {
         return bus1;
     }
