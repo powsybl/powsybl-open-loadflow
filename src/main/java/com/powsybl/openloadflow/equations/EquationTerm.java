@@ -165,7 +165,7 @@ public interface EquationTerm extends Evaluable {
         }
     }
 
-    static VariableEquationTerm createVariable(LfElement element, VariableType variableType, VariableSet variableSet) {
+    static VariableEquationTerm createVariableTerm(LfElement element, VariableType variableType, VariableSet variableSet) {
         Objects.requireNonNull(element);
         Objects.requireNonNull(variableType);
         Objects.requireNonNull(variableSet);
