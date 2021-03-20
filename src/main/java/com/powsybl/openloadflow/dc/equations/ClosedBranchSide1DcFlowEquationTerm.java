@@ -38,7 +38,7 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    protected double calculate(double ph1, double ph2, double a1) {
+    protected double calculateSensi(double ph1, double ph2, double a1) {
         double deltaPhase =  ph2 - ph1 + A2 - a1;
         return -power * deltaPhase;
     }
@@ -49,7 +49,7 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
         double a1 = getA1(x);
-        p1 = calculate(ph1, ph2, a1);
+        p1 = calculateSensi(ph1, ph2, a1);
         if (a1Var != null && a1Var.isActive()) {
             rhs = -power * A2;
         } else {
