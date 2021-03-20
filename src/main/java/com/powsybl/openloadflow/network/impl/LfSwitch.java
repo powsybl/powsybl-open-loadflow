@@ -12,7 +12,6 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.SimplePiModel;
 import com.powsybl.openloadflow.util.Evaluable;
-import com.powsybl.openloadflow.util.EvaluableConstants;
 
 import java.util.Objects;
 

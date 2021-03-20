@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
-import com.powsybl.openloadflow.util.EvaluableConstants;
 
 import java.util.Objects;
 

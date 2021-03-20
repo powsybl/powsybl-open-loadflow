@@ -54,6 +54,11 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     }
 
     @Override
+    public Evaluable getQ() {
+        return q;
+    }
+
+    @Override
     public void updateState() {
         shuntCompensator.getTerminal().setQ(q.eval() * PerUnit.SB);
     }

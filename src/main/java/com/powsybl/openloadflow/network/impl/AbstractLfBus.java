@@ -10,11 +10,14 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.Evaluable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ToDoubleFunction;
+
+import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -70,6 +73,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected DiscreteVoltageControl discreteVoltageControl;
 
     protected boolean disabled = false;
+
+    protected Evaluable p = NAN;
+
+    protected Evaluable q = NAN;
 
     protected AbstractLfBus(LfNetwork network, double v, double angle) {
         super(network);
@@ -436,5 +443,25 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void setDisabled(boolean disabled) {
         this.disabled = disabled;
+    }
+
+    @Override
+    public void setP(Evaluable p) {
+        this.p = Objects.requireNonNull(p);
+    }
+
+    @Override
+    public Evaluable getP() {
+        return p;
+    }
+
+    @Override
+    public void setQ(Evaluable q) {
+        this.q = Objects.requireNonNull(q);
+    }
+
+    @Override
+    public Evaluable getQ() {
+        return q;
     }
 }
