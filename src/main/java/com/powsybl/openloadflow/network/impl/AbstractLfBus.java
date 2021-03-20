@@ -196,11 +196,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         // If the converter station is at side 2 and is rectifier, p should be positive.
         // If the converter station is at side 2 and is inverter, p should be negative.
         boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(lccCs);
-        double p = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
+        double pCs = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
                 (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor() / 100); // A LCC station has active losses.
-        double q = Math.abs(p * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
-        loadTargetP += p;
-        loadTargetQ += q;
+        double qCs = Math.abs(pCs * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
+        loadTargetP += pCs;
+        loadTargetQ += qCs;
     }
 
     protected void add(LfGenerator generator) {
@@ -411,12 +411,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         for (LccConverterStation lccCs : lccCss) {
             boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(lccCs);
             HvdcLine line = lccCs.getHvdcLine();
-            double p = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
+            double pCs = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
                     (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor() / 100); // A LCC station has active losses.
-            double q = Math.abs(p * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
+            double qCs = Math.abs(pCs * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
             lccCs.getTerminal()
-                    .setP(p)
-                    .setQ(q);
+                    .setP(pCs)
+                    .setQ(qCs);
         }
     }
 

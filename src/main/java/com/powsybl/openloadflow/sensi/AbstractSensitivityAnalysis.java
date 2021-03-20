@@ -460,7 +460,7 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    protected <T extends EquationTerm> List<SensitivityFactorGroup> createFactorGroups(Network network, List<LfSensitivityFactor> factors) {
+    protected List<SensitivityFactorGroup> createFactorGroups(Network network, List<LfSensitivityFactor> factors) {
         Map<String, SensitivityFactorGroup> groupIndexedById = new HashMap<>(factors.size());
         // index factors by variable config
         for (LfSensitivityFactor factor : factors) {
@@ -532,8 +532,8 @@ public abstract class AbstractSensitivityAnalysis {
             .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
     }
 
-    protected <T extends EquationTerm> void setPredefinedResults(Collection<LfSensitivityFactor> lfFactors, Set<LfBus> connectedComponent,
-                                                                 GraphDecrementalConnectivity<LfBus> connectivity) {
+    protected void setPredefinedResults(Collection<LfSensitivityFactor> lfFactors, Set<LfBus> connectedComponent,
+                                        GraphDecrementalConnectivity<LfBus> connectivity) {
         for (LfSensitivityFactor factor : lfFactors) {
             // check if the factor function and variable are in different connected components
             if (factor.areVariableAndFunctionDisconnected(connectivity)) {
@@ -562,7 +562,7 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    protected <T extends EquationTerm> void warnSkippedFactors(Collection<LfSensitivityFactor> lfFactors) {
+    protected void warnSkippedFactors(Collection<LfSensitivityFactor> lfFactors) {
         List<LfSensitivityFactor> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.SKIP)).collect(Collectors.toList());
         Set<String> skippedVariables = skippedFactors.stream().map(factor -> factor.getFactor().getVariable().getId()).collect(Collectors.toSet());
         LOGGER.warn("Skipping all factors with variables: '{}', as they cannot be found in the network", String.join(", ", skippedVariables));
