@@ -181,7 +181,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         dcLoadFlowEngine.run(equationSystem, j, disabledBuses, disabledBranches);
 
         for (LfSensitivityFactor factor : factors) {
-            factor.setFunctionReference(factor.getFunctionLfBranch().getP1());
+            factor.setFunctionReference(factor.getFunctionLfBranch().getP1().eval());
         }
 
         if (lfParameters.isDistributedSlack()) {

@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.EvaluableConstants;
 
 import java.util.Objects;
 
@@ -64,8 +65,8 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
-    public double getP1() {
-        return p.eval();
+    public Evaluable getP1() {
+        return p;
     }
 
     @Override
@@ -74,8 +75,8 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
-    public double getP2() {
-        return Double.NaN;
+    public Evaluable getP2() {
+        return NAN;
     }
 
     @Override
@@ -84,13 +85,8 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
-    public void setI1(Evaluable i1) {
-        this.i = Objects.requireNonNull(i1);
-    }
-
-    @Override
-    public void setI2(Evaluable i2) {
-        // nothing to do
+    public Evaluable getQ1() {
+        return q;
     }
 
     @Override
@@ -99,13 +95,28 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
-    public double getI1() {
-        return i.eval();
+    public Evaluable getQ2() {
+        return NAN;
     }
 
     @Override
-    public double getI2() {
-        return Double.NaN;
+    public void setI1(Evaluable i1) {
+        this.i = Objects.requireNonNull(i1);
+    }
+
+    @Override
+    public Evaluable getI1() {
+        return i;
+    }
+
+    @Override
+    public void setI2(Evaluable i2) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getI2() {
+        return NAN;
     }
 
     @Override

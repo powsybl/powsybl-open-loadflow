@@ -119,8 +119,8 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
-    public double getP1() {
-        return p.eval();
+    public Evaluable getP1() {
+        return p;
     }
 
     @Override
@@ -129,8 +129,8 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
-    public double getP2() {
-        return Double.NaN;
+    public Evaluable getP2() {
+        return NAN;
     }
 
     @Override
@@ -139,8 +139,18 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
+    public Evaluable getQ1() {
+        return NAN;
+    }
+
+    @Override
     public void setQ2(Evaluable q2) {
         // nothing to do
+    }
+
+    @Override
+    public Evaluable getQ2() {
+        return null;
     }
 
     @Override
@@ -149,18 +159,18 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
+    public Evaluable getI1() {
+        return i;
+    }
+
+    @Override
     public void setI2(Evaluable i2) {
         // nothing to do
     }
 
     @Override
-    public double getI1() {
-        return i.eval();
-    }
-
-    @Override
-    public double getI2() {
-        return Double.NaN;
+    public Evaluable getI2() {
+        return NAN;
     }
 
     @Override

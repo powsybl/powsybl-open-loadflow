@@ -146,8 +146,8 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public double getP1() {
-        return p1.eval();
+    public Evaluable getP1() {
+        return p1;
     }
 
     @Override
@@ -156,8 +156,8 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public double getP2() {
-        return p2.eval();
+    public Evaluable getP2() {
+        return p2;
     }
 
     @Override
@@ -166,8 +166,18 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
+    public Evaluable getQ1() {
+        return q1;
+    }
+
+    @Override
     public void setQ2(Evaluable q2) {
         this.q2 = Objects.requireNonNull(q2);
+    }
+
+    @Override
+    public Evaluable getQ2() {
+        return q2;
     }
 
     @Override
@@ -176,18 +186,18 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
+    public Evaluable getI1() {
+        return i1;
+    }
+
+    @Override
     public void setI2(Evaluable i2) {
         this.i2 = Objects.requireNonNull(i2);
     }
 
     @Override
-    public double getI1() {
-        return i1.eval();
-    }
-
-    @Override
-    public double getI2() {
-        return i2.eval();
+    public Evaluable getI2() {
+        return i2;
     }
 
     @Override

@@ -92,9 +92,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         for (LfSensitivityFactor<?> factor : factors) {
             double functionReference;
             if (factor.getFactor().getFunction() instanceof BranchFlow) {
-                functionReference = factor.getFunctionLfBranch().getP1();
+                functionReference = factor.getFunctionLfBranch().getP1().eval();
             } else if (factor.getFactor().getFunction() instanceof BranchIntensity) {
-                functionReference = factor.getFunctionLfBranch().getI1();
+                functionReference = factor.getFunctionLfBranch().getI1().eval();
             } else {
                 throw new PowsyblException("Function reference cannot be computed for function: " + factor.getFactor().getFunction().getClass().getSimpleName());
             }
