@@ -58,8 +58,8 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
         double sinPh2 = FastMath.sin(ph2);
         double cosPh2Ksi = FastMath.cos(ph2 + ksi);
         double sinPh2Ksi = FastMath.sin(ph2 + ksi);
-        double theta = ksi - (a1Var != null && a1Var.isActive() ? x[a1Var.getRow()] : branch.getPiModel().getA1())
-            + A2 + ph1;
+        double theta = ksi + (a1Var != null && a1Var.isActive() ? x[a1Var.getRow()] : branch.getPiModel().getA1())
+                - A2 + ph1;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
 
