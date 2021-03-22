@@ -179,13 +179,13 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public List<LfViolationRange> getViolationRanges1() {
-        return getViolationRanges1(branch.getCurrentLimits1());
+    public List<LfLimit> getLimits1() {
+        return getLimits1(branch.getCurrentLimits1());
     }
 
     @Override
-    public List<LfViolationRange> getViolationRanges2() {
-        return getViolationRanges2(branch.getCurrentLimits2());
+    public List<LfLimit> getLimits2() {
+        return getLimits2(branch.getCurrentLimits2());
     }
 
     @Override

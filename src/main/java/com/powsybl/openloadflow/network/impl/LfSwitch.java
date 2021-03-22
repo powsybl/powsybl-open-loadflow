@@ -80,12 +80,12 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public List<LfViolationRange> getViolationRanges1() {
+    public List<LfLimit> getLimits1() {
         return Collections.emptyList();
     }
 
     @Override
-    public List<LfViolationRange> getViolationRanges2() {
+    public List<LfLimit> getLimits2() {
         return Collections.emptyList();
     }
 

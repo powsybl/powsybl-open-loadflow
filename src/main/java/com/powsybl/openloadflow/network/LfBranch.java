@@ -45,9 +45,9 @@ public interface LfBranch {
 
     double getI2();
 
-    List<AbstractLfBranch.LfViolationRange> getViolationRanges1();
+    List<AbstractLfBranch.LfLimit> getLimits1();
 
-    List<AbstractLfBranch.LfViolationRange> getViolationRanges2();
+    List<AbstractLfBranch.LfLimit> getLimits2();
 
     boolean hasPhaseControlCapability();
 

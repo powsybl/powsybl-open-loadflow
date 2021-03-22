@@ -151,12 +151,12 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
-    public List<LfViolationRange> getViolationRanges1() {
-        return getViolationRanges1(leg.getCurrentLimits());
+    public List<LfLimit> getLimits1() {
+        return getLimits1(leg.getCurrentLimits());
     }
 
     @Override
-    public List<LfViolationRange> getViolationRanges2() {
+    public List<LfLimit> getLimits2() {
         return Collections.emptyList();
     }
 
