@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.Network;
@@ -15,6 +16,7 @@ import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.dc.equations.AbstractClosedBranchDcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
@@ -29,6 +31,9 @@ import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
+import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
+import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
+import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -56,7 +61,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         public ComputedContingencyElement(final ContingencyElement element, LfNetwork lfNetwork, EquationSystem equationSystem) {
             this.element = element;
             lfBranch = lfNetwork.getBranchById(element.getId());
-            branchEquation = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
+            branchEquation = equationSystem.getEquationTerm(ElementType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
         }
 
         public int getContingencyIndex() {
@@ -161,7 +166,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     }
 
     protected DenseMatrix setReferenceActivePowerFlows(DcLoadFlowEngine dcLoadFlowEngine, EquationSystem equationSystem, JacobianMatrix j,
-            List<LfSensitivityFactor<ClosedBranchSide1DcFlowEquationTerm>> factors, LoadFlowParameters lfParameters,
+            List<LfSensitivityFactor<? extends AbstractClosedBranchDcFlowEquationTerm>> factors, LoadFlowParameters lfParameters,
             List<ParticipatingElement> participatingElements, Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches) {
 
         Map<LfBus, BusState> busStates = new HashMap<>();
@@ -287,7 +292,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             double sum = 0d;
             for (ComputedContingencyElement element2 : contingencyElements) {
                 LfBranch branch = lfNetwork.getBranchById(element2.getElement().getId());
-                ClosedBranchSide1DcFlowEquationTerm p = equationSystem.getEquationTerm(SubjectType.BRANCH, branch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
+                ClosedBranchSide1DcFlowEquationTerm p = equationSystem.getEquationTerm(ElementType.BRANCH, branch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
                 double value = Math.abs(p.calculate(contingenciesStates, element.getContingencyIndex()));
                 if (value > CONNECTIVITY_LOSS_THRESHOLD) {
                     responsibleElements.add(element2);
@@ -381,6 +386,18 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return elementsToReconnect;
     }
 
+    @Override
+    public void checkSensitivities(Network network, List<SensitivityFactor> factors) {
+        super.checkSensitivities(network, factors);
+        for (SensitivityFactor factor : factors) {
+            if (!(factor instanceof BranchFlowPerInjectionIncrease)
+                && !(factor instanceof BranchFlowPerLinearGlsk)
+                && !(factor instanceof BranchFlowPerPSTAngle)) {
+                throw new PowsyblException("Only sensitivity factors of type BranchFlowPerInjectionIncrease, BranchFlowPerLinearGlsk and BranchFlowPerPSTAngle are yet supported in DC");
+            }
+        }
+    }
+
     public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors,
                                                                                      List<PropagatedContingency> contingencies, LoadFlowParameters lfParameters,
                                                                                      OpenLoadFlowParameters lfParametersExt) {
@@ -407,8 +424,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet(), dcEquationSystemCreationParameters);
 
         // we wrap the factor into a class that allows us to have access to their branch and EquationTerm instantly
-        List<LfSensitivityFactor<ClosedBranchSide1DcFlowEquationTerm>> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, equationSystem, ClosedBranchSide1DcFlowEquationTerm.class)).collect(Collectors.toList());
-        List<LfSensitivityFactor<ClosedBranchSide1DcFlowEquationTerm>> zeroFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.ZERO)).collect(Collectors.toList());
+        List<LfSensitivityFactor<? extends AbstractClosedBranchDcFlowEquationTerm>> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, equationSystem, ClosedBranchSide1DcFlowEquationTerm.class)).collect(Collectors.toList());
+        List<LfSensitivityFactor<? extends AbstractClosedBranchDcFlowEquationTerm>> zeroFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.ZERO)).collect(Collectors.toList());
         warnSkippedFactors(lfFactors);
         lfFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.VALID)).collect(Collectors.toList());
         List<SensitivityValue> sensitivityValues = new ArrayList<>(lfFactors.size() + zeroFactors.size());

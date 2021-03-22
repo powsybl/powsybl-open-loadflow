@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.dc.equations;
 import com.google.common.collect.ImmutableList;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
@@ -72,12 +73,12 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
     }
 
     @Override
-    public SubjectType getSubjectType() {
-        return SubjectType.BRANCH;
+    public ElementType getElementType() {
+        return ElementType.BRANCH;
     }
 
     @Override
-    public int getSubjectNum() {
+    public int getElementNum() {
         return branch.getNum();
     }
 

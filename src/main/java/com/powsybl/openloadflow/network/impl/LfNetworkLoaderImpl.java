@@ -492,7 +492,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
         if (report.voltageControllerCount == 0) {
             LOGGER.error("Discard network {} because there is no equipment to control voltage", lfNetwork.getNum());
-            return null;
+            lfNetwork.setValid(false);
         }
 
         return lfNetwork;
@@ -537,7 +537,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             List<LfNetwork> lfNetworks = busesByCc.entrySet().stream()
                     .filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
                     .map(e -> create(num, e.getValue(), switchesByCc.get(e.getKey()), parameters))
-                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
             stopwatch.stop();

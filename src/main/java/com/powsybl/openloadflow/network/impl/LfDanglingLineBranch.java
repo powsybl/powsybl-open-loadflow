@@ -27,6 +27,8 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
 
     private Evaluable q = NAN;
 
+    private Evaluable i = NAN;
+
     protected LfDanglingLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, DanglingLine danglingLine) {
         super(network, bus1, bus2, piModel);
         this.danglingLine = danglingLine;
@@ -84,14 +86,23 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     }
 
     @Override
+    public void setI1(Evaluable i1) {
+        this.i = Objects.requireNonNull(i1);
+    }
+
+    @Override
+    public void setI2(Evaluable i2) {
+        // nothing to do
+    }
+
+    @Override
     public void setQ2(Evaluable q2) {
         // nothing to do
     }
 
     @Override
     public double getI1() {
-        return getBus1() != null ? Math.hypot(p.eval(), q.eval())
-            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
+        return i.eval();
     }
 
     @Override

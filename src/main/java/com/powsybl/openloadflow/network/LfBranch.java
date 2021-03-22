@@ -13,15 +13,7 @@ import java.util.List;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface LfBranch {
-
-    String getId();
-
-    int getNum();
-
-    void setNum(int num);
-
-    LfNetwork getNetwork();
+public interface LfBranch extends LfElement {
 
     LfBus getBus1();
 
@@ -40,6 +32,10 @@ public interface LfBranch {
     void setQ2(Evaluable q2);
 
     PiModel getPiModel();
+
+    void setI1(Evaluable i1);
+
+    void setI2(Evaluable i2);
 
     double getI1();
 

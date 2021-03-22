@@ -30,13 +30,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.StringWriter;
+import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -233,6 +235,24 @@ class OpenSecurityAnalysisTest {
         saParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         SecurityAnalysisResult result2 = securityAnalysis.runSync(saParameters, contingenciesProvider);
         assertTrue(result2.getPreContingencyResult().isComputationOk());
+    }
+
+    @Test
+    void testNoGenerator() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getGenerator("GEN").getTerminal().disconnect();
+
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        saParameters.setLoadFlowParameters(new LoadFlowParameters());
+
+        ContingenciesProvider contingenciesProvider = n -> Collections.emptyList();
+
+        CompletableFuture<SecurityAnalysisResult> result = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new)
+                .create(network, new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, 0)
+                .run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider);
+
+        CompletionException exception = assertThrows(CompletionException.class, result::join);
+        assertEquals("Largest network is invalid", exception.getCause().getMessage());
     }
 
     @Test

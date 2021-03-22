@@ -4,12 +4,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.equations;
+package com.powsybl.openloadflow.network;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public enum SubjectType {
+public enum ElementType {
     BUS,
     BRANCH,
     SHUNT_COMPENSATOR,
