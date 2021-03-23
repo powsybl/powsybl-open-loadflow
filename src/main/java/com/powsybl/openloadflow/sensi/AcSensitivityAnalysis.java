@@ -129,8 +129,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     /**
      * https://people.montefiore.uliege.be/vct/elec0029/lf.pdf / Equation 32 is transposed
      */
-    public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors, List<PropagatedContingency> contingencies, LoadFlowParameters lfParameters,
-                                          OpenLoadFlowParameters lfParametersExt) {
+    public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors, List<PropagatedContingency> contingencies,
+                                                                                     LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(factors);
         Objects.requireNonNull(lfParameters);

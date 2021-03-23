@@ -108,7 +108,7 @@ public abstract class AbstractSensitivityAnalysis {
             SKIP,
             ZERO
         }
-        // Wrap factors in specific class to have instant access to their branch, and their equation term
+        // Wrap factors in specific class to have instant access to their branch and their equation term
         private final SensitivityFactor factor;
 
         private final LfBranch functionLfBranch;
@@ -121,7 +121,7 @@ public abstract class AbstractSensitivityAnalysis {
 
         private Double functionReference = 0d;
 
-        private Double baseCaseSensitivityValue = Double.NaN; // the sensitivity value without any +1-1 (needs to be recomputed if the stack distribution changes)
+        private Double baseCaseSensitivityValue = Double.NaN; // the sensitivity value on pre contingency network, that needs to be recomputed if the stack distribution change
 
         private Status status = Status.VALID;
 
@@ -407,21 +407,21 @@ public abstract class AbstractSensitivityAnalysis {
             super(id);
         }
 
-        public void setParticipationByBus(final Map<LfBus, Double> participationToSlackByBus) {
-            this.participationByBus = participationToSlackByBus;
+        public void setParticipationByBus(final Map<LfBus, Double> participationByBus) {
+            this.participationByBus = participationByBus;
         }
 
         @Override
         void fillRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Matrix rhs) {
-            for (Map.Entry<LfBus, Double> lfBusAndInjectionValue : participationByBus.entrySet()) {
-                LfBus lfBus = lfBusAndInjectionValue.getKey();
+            for (Map.Entry<LfBus, Double> lfBusAndParticipationFactor : participationByBus.entrySet()) {
+                LfBus lfBus = lfBusAndParticipationFactor.getKey();
                 Equation p = (Equation) lfBus.getP();
-                Double injectionValue = lfBusAndInjectionValue.getValue();
+                Double participationFactor = lfBusAndParticipationFactor.getValue();
                 if (lfBus.isSlack() || !p.isActive()) {
                     continue;
                 }
                 int column = p.getColumn();
-                rhs.set(column, getIndex(), injectionValue / PerUnit.SB);
+                rhs.set(column, getIndex(), participationFactor / PerUnit.SB);
             }
         }
     }
