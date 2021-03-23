@@ -50,7 +50,7 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
         double ph2 = x[ph2Var.getRow()];
         double a1 = getA1(x);
         p1 = calculateSensi(ph1, ph2, a1);
-        if (a1Var != null && a1Var.isActive()) {
+        if (a1Var != null) {
             rhs = -power * A2;
         } else {
             rhs = -power * (A2 - a1);

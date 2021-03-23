@@ -79,11 +79,9 @@ public class EquationSystem {
                                 equationTermsByVariable = sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>());
                             }
                             for (Variable variable : equationTerm.getVariables()) {
-                                if (variable.isActive()) {
-                                    equationTermsByVariable.computeIfAbsent(variable, k -> new ArrayList<>())
-                                            .add(equationTerm);
-                                    variablesToFind.add(variable);
-                                }
+                                equationTermsByVariable.computeIfAbsent(variable, k -> new ArrayList<>())
+                                        .add(equationTerm);
+                                variablesToFind.add(variable);
                             }
                         }
                     }
