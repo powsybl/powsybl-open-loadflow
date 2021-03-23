@@ -201,6 +201,10 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 targets[column] = network.getBranch(num).getPiModel().getA1();
                 break;
 
+            case BRANCH_RHO1:
+                targets[column] = network.getBranch(num).getPiModel().getR1();
+                break;
+
             case ZERO_Q:
                 targets[column] = getReactivePowerDistributionTarget(network, num, getData());
                 break;

@@ -40,7 +40,7 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     @Override
-    protected double calculateDer(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
+    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
         return di1dph1 * dph1 + di1dph2 * dph2 + di1dv1 * dv1 + di1dv2 * dv2;
     }
 
@@ -51,30 +51,33 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
         double v2 = x[v2Var.getRow()];
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
-        double r1 = r1Var != null && r1Var.isActive() ? x[r1Var.getRow()] : branch.getPiModel().getR1();
+        double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
         double w1 = r1 * v1;
         double w2 = y * R2 * v2;
         double cosPh1 = FastMath.cos(ph1);
         double sinPh1 = FastMath.sin(ph1);
         double cosPh1Ksi = FastMath.cos(ph1 + ksi);
         double sinPh1Ksi = FastMath.sin(ph1 + ksi);
-        double theta = ksi - (a1Var != null && a1Var.isActive() ? x[a1Var.getRow()] : branch.getPiModel().getA1())
-            + A2 + ph2;
+        double theta = ksi - (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1())
+                + A2 + ph2;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
 
-        double reI1 = r1 * (w1 * (g1 * cosPh1 - b1 * sinPh1 + y * sinPh1Ksi) - w2 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
-        double imI1 = r1 * (w1 * (g1 * sinPh1 + b1 * cosPh1 - y * cosPh1Ksi) + w2 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
+        double interReI1 = g1 * cosPh1 - b1 * sinPh1 + y * sinPh1Ksi;
+        double interImI1 = g1 * sinPh1 + b1 * cosPh1 - y * cosPh1Ksi;
+
+        double reI1 = r1 * (w1 * interReI1 - w2 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
+        double imI1 = r1 * (w1 * interImI1 + w2 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
         i1 = Math.hypot(reI1, imI1);
 
-        double dreI1dv1 = r1 * r1 * (g1 * cosPh1 - b1 * sinPh1 + y * sinPh1Ksi) * CURRENT_NORMALIZATION_FACTOR;
+        double dreI1dv1 = r1 * r1 * interReI1 * CURRENT_NORMALIZATION_FACTOR;
         double dreI1dv2 = r1 * (-y * R2 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
         double dreI1dph1 = r1 * w1 * (-g1 * sinPh1 - b1 * cosPh1 + y * cosPh1Ksi) * CURRENT_NORMALIZATION_FACTOR;
         double dreI1dph2 = r1 * (-w2 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
 
-        double dimI1dv1 = r1 * r1 * (g1 * sinPh1 + b1 * cosPh1 - y * cosPh1Ksi) * CURRENT_NORMALIZATION_FACTOR;
+        double dimI1dv1 = r1 * r1 * interImI1 * CURRENT_NORMALIZATION_FACTOR;
         double dimI1dv2 = r1 * (y * R2 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
-        double dimI1dph1 = r1 * w1 * (g1 * cosPh1 - b1 * sinPh1 + y * sinPh1Ksi) * CURRENT_NORMALIZATION_FACTOR;
+        double dimI1dph1 = r1 * w1 * interReI1 * CURRENT_NORMALIZATION_FACTOR;
         double dimI1dph2 = r1 * (-w2 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
 
         di1dv1 = (reI1 * dreI1dv1 + imI1 * dimI1dv1) / i1;

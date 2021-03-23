@@ -169,16 +169,16 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
     private void detectBranchViolations(LfBranch branch, List<LimitViolation> violations) {
         // detect violation limits on a branch
         double scale = 1;
-        if (branch.getBus1() != null && branch.getI1() > branch.getPermanentLimit1()) {
+        if (branch.getBus1() != null && branch.getI1().eval() > branch.getPermanentLimit1()) {
             scale = PerUnit.SB / branch.getBus1().getNominalV();
             LimitViolation limitViolation1 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
-                    2147483647, branch.getPermanentLimit1() * scale, (float) 1., branch.getI1() * scale, Branch.Side.ONE);
+                    2147483647, branch.getPermanentLimit1() * scale, (float) 1., branch.getI1().eval() * scale, Branch.Side.ONE);
             violations.add(limitViolation1);
         }
-        if (branch.getBus2() != null && branch.getI2() > branch.getPermanentLimit2()) {
+        if (branch.getBus2() != null && branch.getI2().eval() > branch.getPermanentLimit2()) {
             scale = PerUnit.SB / branch.getBus2().getNominalV();
             LimitViolation limitViolation2 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
-                    2147483647, branch.getPermanentLimit2() * scale, (float) 1., branch.getI2() * scale, Branch.Side.TWO);
+                    2147483647, branch.getPermanentLimit2() * scale, (float) 1., branch.getI2().eval() * scale, Branch.Side.TWO);
             violations.add(limitViolation2);
         }
         //TODO: temporary limit violation detection

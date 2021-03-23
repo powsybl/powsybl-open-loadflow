@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -92,6 +93,11 @@ public interface EquationTerm extends Evaluable {
         @Override
         public double rhs() {
             return scalar * term.rhs();
+        }
+
+        @Override
+        public double calculateSensi(DenseMatrix x, int column) {
+            return scalar * term.calculateSensi(x, column);
         }
 
         @Override
@@ -226,6 +232,8 @@ public interface EquationTerm extends Evaluable {
      * @return value of part of the partial derivative that has to be moved to right hand side
      */
     double rhs();
+
+    double calculateSensi(DenseMatrix x, int column);
 
     void write(Writer writer) throws IOException;
 }

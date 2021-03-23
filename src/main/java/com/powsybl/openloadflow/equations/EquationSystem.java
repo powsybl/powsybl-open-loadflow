@@ -85,13 +85,11 @@ public class EquationSystem {
                     for (EquationTerm equationTerm : equation.getTerms()) {
                         if (equationTerm.isActive()) {
                             for (Variable variable : equationTerm.getVariables()) {
-                                if (variable.isActive()) {
-                                    sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>())
-                                            .computeIfAbsent(variable, k -> new ArrayList<>())
-                                            .add(equationTerm);
-                                    sortedVariablesToFind.computeIfAbsent(variable, k -> new TreeSet<>())
-                                            .add(equation);
-                                }
+                                sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>())
+                                        .computeIfAbsent(variable, k -> new ArrayList<>())
+                                        .add(equationTerm);
+                                sortedVariablesToFind.computeIfAbsent(variable, k -> new TreeSet<>())
+                                        .add(equation);
                             }
                         }
                     }
