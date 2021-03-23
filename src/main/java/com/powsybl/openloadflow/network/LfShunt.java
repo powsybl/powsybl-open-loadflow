@@ -17,5 +17,7 @@ public interface LfShunt extends LfElement {
 
     void setQ(Evaluable q);
 
+    Evaluable getQ();
+
     void updateState();
 }
