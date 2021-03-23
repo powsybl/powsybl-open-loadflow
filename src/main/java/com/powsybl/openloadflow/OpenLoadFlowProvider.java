@@ -50,6 +50,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.network.LfNetwork.LOW_IMPEDANCE_THRESHOLD;
 
@@ -157,6 +158,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
         if (parameters.isTransformerVoltageControlOn()) {
             outerLoops.add(new TransformerVoltageControlOuterLoop());
+        }
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Outer loops: {}", outerLoops.stream().map(OuterLoop::getType).collect(Collectors.toList()));
         }
 
         return new AcLoadFlowParameters(slackBusSelector,

@@ -59,22 +59,25 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
         double cosPh1Ksi = FastMath.cos(ph1 + ksi);
         double sinPh1Ksi = FastMath.sin(ph1 + ksi);
         double theta = ksi - (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1())
-            + A2 + ph2;
+                + A2 + ph2;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
 
-        double reI1 = r1 * (w1 * (g1 * cosPh1 - b1 * sinPh1 + y * sinPh1Ksi) - w2 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
-        double imI1 = r1 * (w1 * (g1 * sinPh1 + b1 * cosPh1 - y * cosPh1Ksi) + w2 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
+        double interReI1 = g1 * cosPh1 - b1 * sinPh1 + y * sinPh1Ksi;
+        double interImI1 = g1 * sinPh1 + b1 * cosPh1 - y * cosPh1Ksi;
+
+        double reI1 = r1 * (w1 * interReI1 - w2 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
+        double imI1 = r1 * (w1 * interImI1 + w2 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
         i1 = Math.hypot(reI1, imI1);
 
-        double dreI1dv1 = r1 * r1 * (g1 * cosPh1 - b1 * sinPh1 + y * sinPh1Ksi) * CURRENT_NORMALIZATION_FACTOR;
+        double dreI1dv1 = r1 * r1 * interReI1 * CURRENT_NORMALIZATION_FACTOR;
         double dreI1dv2 = r1 * (-y * R2 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
         double dreI1dph1 = r1 * w1 * (-g1 * sinPh1 - b1 * cosPh1 + y * cosPh1Ksi) * CURRENT_NORMALIZATION_FACTOR;
         double dreI1dph2 = r1 * (-w2 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
 
-        double dimI1dv1 = r1 * r1 * (g1 * sinPh1 + b1 * cosPh1 - y * cosPh1Ksi) * CURRENT_NORMALIZATION_FACTOR;
+        double dimI1dv1 = r1 * r1 * interImI1 * CURRENT_NORMALIZATION_FACTOR;
         double dimI1dv2 = r1 * (y * R2 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
-        double dimI1dph1 = r1 * w1 * (g1 * cosPh1 - b1 * sinPh1 + y * sinPh1Ksi) * CURRENT_NORMALIZATION_FACTOR;
+        double dimI1dph1 = r1 * w1 * interReI1 * CURRENT_NORMALIZATION_FACTOR;
         double dimI1dph2 = r1 * (-w2 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
 
         di1dv1 = (reI1 * dreI1dv1 + imI1 * dimI1dv1) / i1;
