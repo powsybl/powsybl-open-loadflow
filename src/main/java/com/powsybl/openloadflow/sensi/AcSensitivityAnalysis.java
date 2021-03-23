@@ -14,9 +14,6 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ac.equations.AbstractClosedBranchAcFlowEquationTerm;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1CurrentMagnitudeEquationTerm;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.*;
@@ -32,7 +29,6 @@ import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchIntensityPerPSTAngle;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.functions.BranchIntensity;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -52,7 +48,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         List<SensitivityValue> sensitivityValues = new ArrayList<>(factorGroups.size());
 
         for (SensitivityFactorGroup factorGroup : factorGroups) {
-            for (LfSensitivityFactor<? extends AbstractClosedBranchAcFlowEquationTerm> factor : factorGroup.getFactors()) {
+            for (LfSensitivityFactor factor : factorGroup.getFactors()) {
                 if (factor.getPredefinedResult() != null) {
                     sensitivityValues.add(new SensitivityValue(factor.getFactor(), factor.getPredefinedResult(), factor.getPredefinedResult(), Double.NaN));
                     continue;
@@ -61,7 +57,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 if (!factor.getEquationTerm().isActive()) {
                     throw new PowsyblException("Found an inactive equation for a factor that has no predefined result");
                 }
-                double sensi = factor.getEquationTerm().calculateDer(factorsState, factorGroup.getIndex());
+                double sensi = factor.getEquationTerm().calculateSensi(factorsState, factorGroup.getIndex());
                 if (factor.getFunctionLfBranch().getId().equals(factorGroup.getId())) {
                     // add nabla_p eta, fr specific cases
                     // the only case currently: if we are computing the sensitivity of a phasetap change on itself
@@ -78,23 +74,13 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return sensitivityValues;
     }
 
-    private Class<? extends AbstractClosedBranchAcFlowEquationTerm> getEquationTermClass(SensitivityFactor factor) {
-        if (factor.getFunction() instanceof BranchFlow) {
-            return ClosedBranchSide1ActiveFlowEquationTerm.class;
-        } else if (factor.getFunction() instanceof BranchIntensity) {
-            return ClosedBranchSide1CurrentMagnitudeEquationTerm.class;
-        } else {
-            throw new NotImplementedException("Unknown function type: " + factor.getFunction().getClass().getSimpleName());
-        }
-    }
-
-    protected void setFunctionReferences(List<LfSensitivityFactor<? extends AbstractClosedBranchAcFlowEquationTerm>> factors) {
-        for (LfSensitivityFactor<?> factor : factors) {
+    protected void setFunctionReferences(List<LfSensitivityFactor> factors) {
+        for (LfSensitivityFactor factor : factors) {
             double functionReference;
             if (factor.getFactor().getFunction() instanceof BranchFlow) {
-                functionReference = factor.getFunctionLfBranch().getP1();
+                functionReference = factor.getFunctionLfBranch().getP1().eval();
             } else if (factor.getFactor().getFunction() instanceof BranchIntensity) {
-                functionReference = factor.getFunctionLfBranch().getI1();
+                functionReference = factor.getFunctionLfBranch().getI1().eval();
             } else {
                 throw new PowsyblException("Function reference cannot be computed for function: " + factor.getFactor().getFunction().getClass().getSimpleName());
             }
@@ -102,7 +88,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
     }
 
-    private List<SensitivityValue> getPostContingencySensitivityValues(List<LfSensitivityFactor<? extends AbstractClosedBranchAcFlowEquationTerm>> lfFactors,
+    private List<SensitivityValue> getPostContingencySensitivityValues(List<LfSensitivityFactor> lfFactors,
                                                                LfContingency lfContingency, LfNetwork lfNetwork,
                                                                AcloadFlowEngine engine, List<SensitivityFactorGroup> factorGroups,
                                                                LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt
@@ -174,8 +160,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             engine.run();
 
-            List<LfSensitivityFactor<? extends AbstractClosedBranchAcFlowEquationTerm>> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, engine.getEquationSystem(), getEquationTermClass(factor))).collect(Collectors.toList());
-            List<LfSensitivityFactor<? extends AbstractClosedBranchAcFlowEquationTerm>> zeroFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.ZERO)).collect(Collectors.toList());
+            List<LfSensitivityFactor> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork)).collect(Collectors.toList());
+            List<LfSensitivityFactor> zeroFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.ZERO)).collect(Collectors.toList());
             warnSkippedFactors(lfFactors);
             lfFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.VALID)).collect(Collectors.toList());
             List<SensitivityValue> baseValues = new ArrayList<>(zeroFactors.size() + lfFactors.size());

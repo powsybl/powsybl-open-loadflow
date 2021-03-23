@@ -19,13 +19,17 @@ public interface LfBranch extends LfElement {
 
     void setP1(Evaluable p1);
 
-    double getP1();
+    Evaluable getP1();
 
     void setP2(Evaluable p2);
 
-    double getP2();
+    Evaluable getP2();
+
+    Evaluable getQ1();
 
     void setQ1(Evaluable q1);
+
+    Evaluable getQ2();
 
     void setQ2(Evaluable q2);
 
@@ -35,9 +39,9 @@ public interface LfBranch extends LfElement {
 
     void setI2(Evaluable i2);
 
-    double getI1();
+    Evaluable getI1();
 
-    double getI2();
+    Evaluable getI2();
 
     double getPermanentLimit1();
 

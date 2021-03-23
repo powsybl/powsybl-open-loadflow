@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.util.Evaluable;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -112,4 +114,12 @@ public interface LfBus extends LfElement {
     boolean isDisabled();
 
     void setDisabled(boolean disabled);
+
+    void setP(Evaluable p);
+
+    Evaluable getP();
+
+    void setQ(Evaluable q);
+
+    Evaluable getQ();
 }

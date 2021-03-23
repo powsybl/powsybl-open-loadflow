@@ -48,15 +48,15 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
         LfBranch branch1 = lfNetwork.getBranchById("NHV1_NHV2_1");
-        assertTrue(branch1.getI1() < branch1.getPermanentLimit1());
+        assertTrue(branch1.getI1().eval() < branch1.getPermanentLimit1());
         LfBranch branch2 = lfNetwork.getBranchById("NHV1_NHV2_2");
-        assertTrue(branch2.getI2() < branch2.getPermanentLimit2());
+        assertTrue(branch2.getI2().eval() < branch2.getPermanentLimit2());
         LfBranch branch3 = lfNetwork.getBranchById("NGEN_NHV1");
         assertTrue(Double.isNaN(branch3.getPermanentLimit1()));
-        assertEquals(3654.18, branch3.getI1(), 10E-3);
+        assertEquals(3654.18, branch3.getI1().eval(), 10E-3);
         LfBranch branch4 = lfNetwork.getBranchById("NHV2_NLOAD");
         assertTrue(Double.isNaN(branch4.getPermanentLimit2()));
-        assertEquals(3711.395, branch4.getI2(), 10E-3);
+        assertEquals(3711.395, branch4.getI2().eval(), 10E-3);
     }
 
     @Test
@@ -69,9 +69,9 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
         LfBranch branch = lfNetwork.getBranchById("DL");
-        assertEquals(361.588, branch.getI1(), 10E-3);
+        assertEquals(361.588, branch.getI1().eval(), 10E-3);
         assertEquals(100.0, branch.getPermanentLimit1(), 10E-3);
-        assertTrue(Double.isNaN(branch.getI2()));
+        assertTrue(Double.isNaN(branch.getI2().eval()));
         assertTrue(Double.isNaN(branch.getPermanentLimit2()));
     }
 
@@ -85,8 +85,8 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
         LfBranch branch1 = lfNetwork.getBranchById("3WT_leg_1");
-        assertEquals(660.702, branch1.getI1(), 10E-3);
-        assertTrue(Double.isNaN(branch1.getI2()));
+        assertEquals(660.702, branch1.getI1().eval(), 10E-3);
+        assertTrue(Double.isNaN(branch1.getI2().eval()));
         assertTrue(Double.isNaN(branch1.getPermanentLimit1()));
         assertTrue(Double.isNaN(branch1.getPermanentLimit2()));
     }
@@ -102,9 +102,9 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
         LfBranch branch1 = lfNetwork.getBranchById("NHV1_NHV2_1");
-        assertEquals(302.444, branch1.getP1() * PerUnit.SB, 10E-3);
+        assertEquals(302.444, branch1.getP1().eval() * PerUnit.SB, 10E-3);
         LfBranch branch2 = lfNetwork.getBranchById("NHV1_NHV2_2");
-        assertEquals(-300.434, branch2.getP2() * PerUnit.SB, 10E-3);
+        assertEquals(-300.434, branch2.getP2().eval() * PerUnit.SB, 10E-3);
     }
 
     @Test
@@ -118,8 +118,8 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
         LfBranch branch = lfNetwork.getBranchById("DL");
-        assertEquals(54.815, branch.getP1() * PerUnit.SB, 10E-3);
-        assertTrue(Double.isNaN(branch.getP2()));
+        assertEquals(54.815, branch.getP1().eval() * PerUnit.SB, 10E-3);
+        assertTrue(Double.isNaN(branch.getP2().eval()));
     }
 
     @Test
@@ -133,7 +133,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
         LfBranch branch1 = lfNetwork.getBranchById("3WT_leg_1");
-        assertEquals(116.251, branch1.getP1() * PerUnit.SB, 10E-3);
-        assertTrue(Double.isNaN(branch1.getP2()));
+        assertEquals(116.251, branch1.getP1().eval() * PerUnit.SB, 10E-3);
+        assertTrue(Double.isNaN(branch1.getP2().eval()));
     }
 }
