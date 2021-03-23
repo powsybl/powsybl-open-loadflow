@@ -565,7 +565,9 @@ public abstract class AbstractSensitivityAnalysis {
     protected void warnSkippedFactors(Collection<LfSensitivityFactor> lfFactors) {
         List<LfSensitivityFactor> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.SKIP)).collect(Collectors.toList());
         Set<String> skippedVariables = skippedFactors.stream().map(factor -> factor.getFactor().getVariable().getId()).collect(Collectors.toSet());
-        LOGGER.warn("Skipping all factors with variables: '{}', as they cannot be found in the network", String.join(", ", skippedVariables));
+        if (!skippedVariables.isEmpty()) {
+            LOGGER.warn("Skipping all factors with variables: '{}', as they cannot be found in the network", String.join(", ", skippedVariables));
+        }
     }
 
     private void checkInjectionIncrease(InjectionIncrease injection, Network network) {
