@@ -423,7 +423,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet(), dcEquationSystemCreationParameters);
 
         // we wrap the factor into a class that allows us to have access to their branch and EquationTerm instantly
-        List<LfSensitivityFactor> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork)).collect(Collectors.toList());
+        List<LfSensitivityFactor> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, equationSystem)).collect(Collectors.toList());
         List<LfSensitivityFactor> zeroFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.ZERO).collect(Collectors.toList());
         warnSkippedFactors(lfFactors);
         lfFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.VALID)).collect(Collectors.toList());

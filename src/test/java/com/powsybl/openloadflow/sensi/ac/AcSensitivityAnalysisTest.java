@@ -6,8 +6,10 @@
  */
 package com.powsybl.openloadflow.sensi.ac;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Branch;
+import com.powsybl.iidm.network.IdBasedBusRef;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -21,17 +23,23 @@ import com.powsybl.sensitivity.SensitivityFactorsProvider;
 import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
 import com.powsybl.sensitivity.factors.BranchIntensityPerPSTAngle;
+import com.powsybl.sensitivity.factors.BusVoltagePerTargetV;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
+import com.powsybl.sensitivity.factors.functions.BusVoltage;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
+import com.powsybl.sensitivity.factors.variables.TargetV;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -287,6 +295,98 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(182.1272d, getFunctionReference(result, "l12"), LoadFlowAssert.DELTA_I);
         assertEquals(716.5036d, getFunctionReference(result, "l34"), LoadFlowAssert.DELTA_I);
         assertEquals(847.8542d, getFunctionReference(result, "l13"), LoadFlowAssert.DELTA_I);
+    }
+
+    @Test
+    void testBusVoltagePerTargetV() {
+        Network network = FourBusNetworkFactory.create();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream().map(bus -> new BusVoltagePerTargetV(
+            new BusVoltage(bus.getId(), bus.getId(), new IdBasedBusRef(bus.getId())), new TargetV("g2", "g2", "g2")
+        )).collect(Collectors.toList());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault()).join();
+
+        assertEquals(4, result.getSensitivityValues().size());
+        assertEquals(0d, getValue(result, "g2", "b1"), LoadFlowAssert.DELTA_V); // no impact on a pv
+        assertEquals(1d, getValue(result, "g2", "b2"), LoadFlowAssert.DELTA_V); // 1 on itself
+        assertEquals(0.3423d, getValue(result, "g2", "b3"), LoadFlowAssert.DELTA_V); // value obtained by running two loadflow with a very small difference on targetV for bus2
+        assertEquals(0d, getValue(result, "g2", "b4"), LoadFlowAssert.DELTA_V);
+    }
+
+    @Test
+    void testBusVoltagePerTargetVFunctionRef() {
+        Network network = FourBusNetworkFactory.create();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream().map(bus -> new BusVoltagePerTargetV(
+            new BusVoltage(bus.getId(), bus.getId(), new IdBasedBusRef(bus.getId())), new TargetV("g2", "g2", "g2")
+        )).collect(Collectors.toList());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault()).join();
+
+        runLf(network, sensiParameters.getLoadFlowParameters());
+        assertEquals(4, result.getSensitivityValues().size());
+        Function<String, Double> getV = busId -> network.getBusView().getBus(busId).getV();
+        assertEquals(getV.apply("b1_vl_0"), getFunctionReference(result, "b1"), LoadFlowAssert.DELTA_V); // no impact on a pv
+        assertEquals(getV.apply("b2_vl_0"), getFunctionReference(result, "b2"), LoadFlowAssert.DELTA_V); // 1 on itself
+        assertEquals(getV.apply("b3_vl_0"), getFunctionReference(result, "b3"), LoadFlowAssert.DELTA_V); // value obtained by running two loadflow with a very small difference on targetV for bus2
+        assertEquals(getV.apply("b4_vl_0"), getFunctionReference(result, "b4"), LoadFlowAssert.DELTA_V);
+    }
+
+    @Test
+    void testTargetVOnPqNode() {
+        // asking a target v on a load should crash
+        Network network = FourBusNetworkFactory.create();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        SensitivityFactorsProvider factorsProvider = n -> Collections.singletonList(new BusVoltagePerTargetV(
+            new BusVoltage("id", "name", new IdBasedBusRef("b4")), new TargetV("targetId", "targetVName", "d3")
+        ));
+        CompletableFuture<SensitivityAnalysisResult> result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault());
+
+        CompletionException e = assertThrows(CompletionException.class, () -> result.join());
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Regulating terminal for 'd3' not found", e.getCause().getMessage());
+    }
+
+    @Test
+    void testTargetVOnAbsentTerminal() {
+        Network network = FourBusNetworkFactory.create();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        SensitivityFactorsProvider factorsProvider = n -> Collections.singletonList(new BusVoltagePerTargetV(
+            new BusVoltage("id", "name",  new IdBasedBusRef("b4")), new TargetV("targetId", "targetVName", "a")
+        ));
+        CompletableFuture<SensitivityAnalysisResult> result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault());
+
+        CompletionException e = assertThrows(CompletionException.class, () -> result.join());
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Regulating terminal for 'a' not found", e.getCause().getMessage());
+    }
+
+    @Test
+    void testBusVoltageOnAbsentBus() {
+        Network network = FourBusNetworkFactory.create();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        SensitivityFactorsProvider factorsProvider = n -> Collections.singletonList(new BusVoltagePerTargetV(
+            new BusVoltage("id", "name",  new IdBasedBusRef("a")), new TargetV("targetId", "targetVName", "g2")
+        ));
+        CompletableFuture<SensitivityAnalysisResult> result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault());
+
+        CompletionException e = assertThrows(CompletionException.class, () -> result.join());
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Bus for BusVoltage 'id' not found", e.getCause().getMessage());
     }
 
     @Test

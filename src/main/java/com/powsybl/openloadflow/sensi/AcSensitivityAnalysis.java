@@ -29,6 +29,7 @@ import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchIntensityPerPSTAngle;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.functions.BranchIntensity;
+import com.powsybl.sensitivity.factors.functions.BusVoltage;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -58,7 +59,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     throw new PowsyblException("Found an inactive equation for a factor that has no predefined result");
                 }
                 double sensi = factor.getEquationTerm().calculateSensi(factorsState, factorGroup.getIndex());
-                if (factor.getFunctionLfBranch().getId().equals(factorGroup.getId())) {
+                if (factor.getFunctionLfBranch() != null && factor.getFunctionLfBranch().getId().equals(factorGroup.getId())) {
                     // add nabla_p eta, fr specific cases
                     // the only case currently: if we are computing the sensitivity of a phasetap change on itself
                     Variable phi1Var = factor.getEquationTerm().getVariables()
@@ -81,6 +82,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 functionReference = factor.getFunctionLfBranch().getP1().eval();
             } else if (factor.getFactor().getFunction() instanceof BranchIntensity) {
                 functionReference = factor.getFunctionLfBranch().getI1().eval();
+            } else if (factor.getFactor().getFunction() instanceof BusVoltage) {
+                functionReference = factor.getFunctionLfBus().getV() / PerUnit.SB;
             } else {
                 throw new PowsyblException("Function reference cannot be computed for function: " + factor.getFactor().getFunction().getClass().getSimpleName());
             }
@@ -160,7 +163,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             engine.run();
 
-            List<LfSensitivityFactor> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork)).collect(Collectors.toList());
+            List<LfSensitivityFactor> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, engine.getEquationSystem())).collect(Collectors.toList());
             List<LfSensitivityFactor> zeroFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.ZERO)).collect(Collectors.toList());
             warnSkippedFactors(lfFactors);
             lfFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.VALID)).collect(Collectors.toList());

@@ -166,6 +166,11 @@ public interface EquationTerm extends Evaluable {
         }
 
         @Override
+        public double calculateSensi(DenseMatrix x, int column) {
+            return x.get(variables.get(0).getRow(), column);
+        }
+
+        @Override
         public void write(Writer writer) throws IOException {
             variables.get(0).write(writer);
         }

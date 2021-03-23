@@ -17,10 +17,7 @@ import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -47,6 +44,13 @@ public final class AcEquationSystem {
 
             if (creationParameters.isTransformerVoltageControl()) {
                 createDiscreteVoltageControlEquation(bus, variableSet, equationSystem);
+            }
+            Equation v = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
+            if (v.getTerms().isEmpty()) {
+                v.setActive(false);
+                EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet);
+                v.addTerm(vTerm);
+                v.setUpdateType(EquationSystem.EquationUpdateType.NEVER);
             }
         }
     }
@@ -194,8 +198,10 @@ public final class AcEquationSystem {
 
     private static void createNonImpedantBranch(VariableSet variableSet, EquationSystem equationSystem,
                                                 LfBranch branch, LfBus bus1, LfBus bus2) {
-        boolean hasV1 = equationSystem.hasEquation(bus1.getNum(), EquationType.BUS_V);
-        boolean hasV2 = equationSystem.hasEquation(bus2.getNum(), EquationType.BUS_V);
+        Optional<Equation> v1 = equationSystem.getEquation(bus1.getNum(), EquationType.BUS_V);
+        Optional<Equation> v2 = equationSystem.getEquation(bus2.getNum(), EquationType.BUS_V);
+        boolean hasV1 = v1.isPresent() && v1.get().isActive(); // may be inactive is the equation has been created for sensitivity
+        boolean hasV2 = v2.isPresent() && v2.get().isActive(); // may be inactive is the equation has been created for sensitivity
         if (!(hasV1 && hasV2)) {
             // create voltage magnitude coupling equation
             // 0 = v1 - v2 * rho
