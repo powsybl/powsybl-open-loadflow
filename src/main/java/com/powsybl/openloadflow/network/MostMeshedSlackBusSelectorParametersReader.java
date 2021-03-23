@@ -13,16 +13,17 @@ import com.powsybl.commons.config.ModuleConfig;
  * @author Thomas Adam <tadam at silicom.fr>
  */
 @AutoService(SlackBusSelectorParametersReader.class)
-public class NameSlackBusSelectorParametersReaderImpl implements SlackBusSelectorParametersReader {
+public class MostMeshedSlackBusSelectorParametersReader implements SlackBusSelectorParametersReader {
+
+    public static final String NAME = "MostMeshed";
 
     @Override
     public String getName() {
-        return "Name";
+        return NAME;
     }
 
     @Override
     public SlackBusSelector read(ModuleConfig moduleConfig) {
-        String busId = moduleConfig.getStringProperty("nameSlackBusSelectorBusId");
-        return new NameSlackBusSelector(busId);
+        return new MostMeshedSlackBusSelector();
     }
 }

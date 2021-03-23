@@ -15,6 +15,8 @@ import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
 
+import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -43,8 +45,8 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public double getP1() {
-        return Double.NaN;
+    public Evaluable getP1() {
+        return NAN;
     }
 
     @Override
@@ -53,8 +55,8 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public double getP2() {
-        return Double.NaN;
+    public Evaluable getP2() {
+        return NAN;
     }
 
     @Override
@@ -63,18 +65,38 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
+    public Evaluable getQ1() {
+        return NAN;
+    }
+
+    @Override
     public void setQ2(Evaluable q2) {
         // nothing to do
     }
 
     @Override
-    public double getI1() {
-        return Double.NaN;
+    public Evaluable getQ2() {
+        return NAN;
     }
 
     @Override
-    public double getI2() {
-        return Double.NaN;
+    public void setI1(Evaluable i1) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getI1() {
+        return NAN;
+    }
+
+    @Override
+    public void setI2(Evaluable i2) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getI2() {
+        return NAN;
     }
 
     @Override

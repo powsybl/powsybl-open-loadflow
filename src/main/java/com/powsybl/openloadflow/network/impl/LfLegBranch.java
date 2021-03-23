@@ -11,26 +11,19 @@ import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfLegBranch extends AbstractLfBranch {
+public class LfLegBranch extends AbstractFictitiousLfBranch {
 
     private final ThreeWindingsTransformer twt;
 
     private final ThreeWindingsTransformer.Leg leg;
-
-    private Evaluable p = NAN;
-
-    private Evaluable q = NAN;
 
     protected LfLegBranch(LfNetwork network, LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
         super(network, bus1, bus0, piModel);
@@ -109,47 +102,6 @@ public class LfLegBranch extends AbstractLfBranch {
     @Override
     public boolean hasPhaseControlCapability() {
         return leg.getPhaseTapChanger() != null;
-    }
-
-    @Override
-    public void setP1(Evaluable p1) {
-        this.p = Objects.requireNonNull(p1);
-    }
-
-    @Override
-    public double getP1() {
-        return p.eval();
-    }
-
-    @Override
-    public void setP2(Evaluable p2) {
-        // nothing to do
-    }
-
-    @Override
-    public double getP2() {
-        return Double.NaN;
-    }
-
-    @Override
-    public void setQ1(Evaluable q1) {
-        this.q = Objects.requireNonNull(q1);
-    }
-
-    @Override
-    public void setQ2(Evaluable q2) {
-        // nothing to do
-    }
-
-    @Override
-    public double getI1() {
-        return getBus1() != null ? Math.hypot(p.eval(), q.eval())
-            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
-    }
-
-    @Override
-    public double getI2() {
-        return Double.NaN;
     }
 
     @Override

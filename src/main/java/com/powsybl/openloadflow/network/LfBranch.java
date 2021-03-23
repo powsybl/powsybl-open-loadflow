@@ -11,15 +11,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface LfBranch {
-
-    String getId();
-
-    int getNum();
-
-    void setNum(int num);
-
-    LfNetwork getNetwork();
+public interface LfBranch extends LfElement {
 
     LfBus getBus1();
 
@@ -27,21 +19,29 @@ public interface LfBranch {
 
     void setP1(Evaluable p1);
 
-    double getP1();
+    Evaluable getP1();
 
     void setP2(Evaluable p2);
 
-    double getP2();
+    Evaluable getP2();
+
+    Evaluable getQ1();
 
     void setQ1(Evaluable q1);
+
+    Evaluable getQ2();
 
     void setQ2(Evaluable q2);
 
     PiModel getPiModel();
 
-    double getI1();
+    void setI1(Evaluable i1);
 
-    double getI2();
+    void setI2(Evaluable i2);
+
+    Evaluable getI1();
+
+    Evaluable getI2();
 
     double getPermanentLimit1();
 

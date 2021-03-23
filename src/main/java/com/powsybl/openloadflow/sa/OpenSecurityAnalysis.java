@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Branch;
@@ -116,7 +117,13 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters);
 
         // run simulation on largest network
+        if (lfNetworks.isEmpty()) {
+            throw new PowsyblException("Empty network list");
+        }
         LfNetwork largestNetwork = lfNetworks.get(0);
+        if (!largestNetwork.isValid()) {
+            throw new PowsyblException("Largest network is invalid");
+        }
         SecurityAnalysisResult result = runSimulations(largestNetwork, propagatedContingencies, acParameters, lfParameters, lfParametersExt);
 
         stopwatch.stop();
@@ -162,16 +169,16 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
     private void detectBranchViolations(LfBranch branch, List<LimitViolation> violations) {
         // detect violation limits on a branch
         double scale = 1;
-        if (branch.getBus1() != null && branch.getI1() > branch.getPermanentLimit1()) {
+        if (branch.getBus1() != null && branch.getI1().eval() > branch.getPermanentLimit1()) {
             scale = PerUnit.SB / branch.getBus1().getNominalV();
             LimitViolation limitViolation1 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
-                    2147483647, branch.getPermanentLimit1() * scale, (float) 1., branch.getI1() * scale, Branch.Side.ONE);
+                    2147483647, branch.getPermanentLimit1() * scale, (float) 1., branch.getI1().eval() * scale, Branch.Side.ONE);
             violations.add(limitViolation1);
         }
-        if (branch.getBus2() != null && branch.getI2() > branch.getPermanentLimit2()) {
+        if (branch.getBus2() != null && branch.getI2().eval() > branch.getPermanentLimit2()) {
             scale = PerUnit.SB / branch.getBus2().getNominalV();
             LimitViolation limitViolation2 = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, (String) null,
-                    2147483647, branch.getPermanentLimit2() * scale, (float) 1., branch.getI2() * scale, Branch.Side.TWO);
+                    2147483647, branch.getPermanentLimit2() * scale, (float) 1., branch.getI2().eval() * scale, Branch.Side.TWO);
             violations.add(limitViolation2);
         }
         //TODO: temporary limit violation detection

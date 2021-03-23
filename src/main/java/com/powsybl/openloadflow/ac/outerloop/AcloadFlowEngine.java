@@ -128,7 +128,7 @@ public class AcloadFlowEngine implements AutoCloseable {
 
             variableSet = new VariableSet();
             AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(
-                    parameters.isPhaseControl(), parameters.isTransformerVoltageControlOn(), parameters.isForceA1Var());
+                    parameters.isPhaseControl(), parameters.isTransformerVoltageControlOn(), parameters.isForceA1Var(), parameters.getBranchesWithCurrent());
             equationSystem = AcEquationSystem.create(network, variableSet, creationParameters);
             j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory());
         } else {
@@ -187,9 +187,12 @@ public class AcloadFlowEngine implements AutoCloseable {
         return createNetworks(network, parameters)
                 .stream()
                 .map(n -> {
-                    try (AcloadFlowEngine engine = new AcloadFlowEngine(n, parameters)) {
-                        return engine.run();
+                    if (n.isValid()) {
+                        try (AcloadFlowEngine engine = new AcloadFlowEngine(n, parameters)) {
+                            return engine.run();
+                        }
                     }
+                    return new AcLoadFlowResult(n, 0, 0, NewtonRaphsonStatus.NO_CALCULATION, Double.NaN);
                 })
                 .collect(Collectors.toList());
     }

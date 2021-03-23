@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.dc.equations;
 import com.google.common.collect.ImmutableList;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
@@ -53,31 +54,32 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
         variables = variablesBuilder.build();
     }
 
-    public double calculate(DenseMatrix x, int column) {
+    @Override
+    public double calculateSensi(DenseMatrix x, int column) {
         Objects.requireNonNull(x);
         double ph1 = x.get(ph1Var.getRow(), column);
         double ph2 = x.get(ph2Var.getRow(), column);
         double a1 = getA1(x, column);
-        return calculate(ph1, ph2, a1);
+        return calculateSensi(ph1, ph2, a1);
     }
 
     private double getA1(DenseMatrix x, int column) {
         return a1Var != null && a1Var.isActive() ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
     }
 
-    protected abstract double calculate(double ph1, double ph2, double a1);
+    protected abstract double calculateSensi(double ph1, double ph2, double a1);
 
     protected double getA1(double[] stateVector) {
         return a1Var != null && a1Var.isActive() ? stateVector[a1Var.getRow()] : branch.getPiModel().getA1();
     }
 
     @Override
-    public SubjectType getSubjectType() {
-        return SubjectType.BRANCH;
+    public ElementType getElementType() {
+        return ElementType.BRANCH;
     }
 
     @Override
-    public int getSubjectNum() {
+    public int getElementNum() {
         return branch.getNum();
     }
 

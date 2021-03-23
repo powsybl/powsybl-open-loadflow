@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
 
@@ -41,12 +42,12 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
     }
 
     @Override
-    public SubjectType getSubjectType() {
-        return SubjectType.SHUNT_COMPENSATOR;
+    public ElementType getElementType() {
+        return ElementType.SHUNT_COMPENSATOR;
     }
 
     @Override
-    public int getSubjectNum() {
+    public int getElementNum() {
         return shunt.getNum();
     }
 

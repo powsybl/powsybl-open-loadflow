@@ -19,6 +19,7 @@ import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
+import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
@@ -929,5 +930,35 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         CompletableFuture<SensitivityAnalysisResult> result2 = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider2, contingencies, sensiParameters, LocalComputationManager.getDefault());
         e = assertThrows(CompletionException.class, result2::join);
         assertEquals("Factors specific to one contingency not yet supported", e.getCause().getMessage());
+    }
+
+    @Test
+    void testFunctionReferenceWhenLosingATransformerThenLosingAConnectivityBreakingContingency() {
+        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBusWithTransformer();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        SensitivityFactorsProvider factorsProvider = n -> {
+            List<SensitivityFactor> factors = new LinkedList<>();
+            factors.add(new BranchFlowPerInjectionIncrease(new BranchFlow("l56", "l56", "l56"),
+                new InjectionIncrease("g2", "g2", "g2")));
+            return factors;
+        };
+        Contingency transformerContingency = new Contingency("l67", new BranchContingency("l67")); // losing a transformer
+        Contingency connectivityLosingContingency = new Contingency("l48", new BranchContingency("l48")); // losing connectivty
+
+        SensitivityAnalysisResult resultBoth = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, List.of(transformerContingency, connectivityLosingContingency),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+
+        SensitivityAnalysisResult resultLosingConnectivityAlone = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, List.of(connectivityLosingContingency),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+
+        SensitivityAnalysisResult resultLosingTransformerAlone = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, List.of(transformerContingency),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+
+        assertEquals(getContingencyFunctionReference(resultLosingConnectivityAlone, "l56", "l48"), getContingencyFunctionReference(resultBoth, "l56", "l48"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(getContingencyFunctionReference(resultLosingTransformerAlone, "l56", "l67"), getContingencyFunctionReference(resultBoth, "l56", "l67"), LoadFlowAssert.DELTA_POWER);
     }
 }

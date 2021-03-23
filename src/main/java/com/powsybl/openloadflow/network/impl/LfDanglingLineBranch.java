@@ -8,22 +8,15 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
-
-import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfDanglingLineBranch extends AbstractLfBranch {
+public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
 
     private final DanglingLine danglingLine;
-
-    private Evaluable p = NAN;
-
-    private Evaluable q = NAN;
 
     protected LfDanglingLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, DanglingLine danglingLine) {
         super(network, bus1, bus2, piModel);
@@ -54,47 +47,6 @@ public class LfDanglingLineBranch extends AbstractLfBranch {
     @Override
     public boolean hasPhaseControlCapability() {
         return false;
-    }
-
-    @Override
-    public void setP1(Evaluable p1) {
-        this.p = Objects.requireNonNull(p1);
-    }
-
-    @Override
-    public double getP1() {
-        return p.eval();
-    }
-
-    @Override
-    public void setP2(Evaluable p2) {
-        // nothing to do
-    }
-
-    @Override
-    public double getP2() {
-        return Double.NaN;
-    }
-
-    @Override
-    public void setQ1(Evaluable q1) {
-        this.q = Objects.requireNonNull(q1);
-    }
-
-    @Override
-    public void setQ2(Evaluable q2) {
-        // nothing to do
-    }
-
-    @Override
-    public double getI1() {
-        return getBus1() != null ? Math.hypot(p.eval(), q.eval())
-            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
-    }
-
-    @Override
-    public double getI2() {
-        return Double.NaN;
     }
 
     @Override
