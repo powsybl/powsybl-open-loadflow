@@ -80,7 +80,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         if (currentLimits != null) {
             double toPerUnit = bus.getNominalV() / PerUnit.SB;
             for (LoadingLimits.TemporaryLimit temporaryLimit : currentLimits.getTemporaryLimits()) {
-                if (temporaryLimit.getValue() != Double.MAX_VALUE || temporaryLimit.getAcceptableDuration() != 0) { // not useful
+                if (temporaryLimit.getValue() != Double.MAX_VALUE || temporaryLimit.getAcceptableDuration() != 0) {
+                    // it is not useful to add an infinite temporary limit as we are going to check if the current
+                    // magnitude is higher or equal to that limit.
+                    // it is not useful to add a limit with acceptable duration equal to zero as the only value plausible
+                    // for this limit is infinity.
                     double valuePerUnit = temporaryLimit.getValue() * toPerUnit;
                     sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getAcceptableDuration(), valuePerUnit));
                 }
@@ -88,6 +92,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             sortedLimits.addLast(LfLimit.createPermanentLimit(currentLimits.getPermanentLimit() * toPerUnit));
         }
         if (sortedLimits.size() > 1) {
+            // we only make that fix if there is more than a permanent limit attached to the branch.
             for (int i = sortedLimits.size() - 1; i > 0; i--) {
                 // From the permanent limit to the most serious temporary limit.
                 sortedLimits.get(i).setAcceptableDuration(sortedLimits.get(i - 1).getAcceptableDuration());
