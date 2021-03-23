@@ -228,7 +228,7 @@ public final class AcEquationSystem {
     }
 
     private static void createBranchActivePowerTargetEquation(LfBranch branch, DiscretePhaseControl.ControlledSide controlledSide,
-                                                              EquationSystem equationSystem, EquationTerm p) {
+                                                              EquationSystem equationSystem, VariableSet variableSet, EquationTerm p) {
         if (branch.isPhaseControlled(controlledSide)) {
             DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl();
             if (phaseControl.getMode() == DiscretePhaseControl.Mode.CONTROLLER) {
@@ -236,6 +236,13 @@ public final class AcEquationSystem {
                     throw new PowsyblException("Phase control in A is not yet supported");
                 }
                 equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_P).addTerm(p);
+
+                // we also create an equation that will be used later to maintain A1 variable constant
+                // this equation is now inactive
+                LfBranch controller = phaseControl.getController();
+                equationSystem.createEquation(controller.getNum(), EquationType.BRANCH_ALPHA1)
+                        .addTerm(EquationTerm.createVariableTerm(controller, VariableType.BRANCH_ALPHA1, variableSet))
+                        .setActive(false);
             }
         }
     }
@@ -245,6 +252,14 @@ public final class AcEquationSystem {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet));
             if (bus.getDiscreteVoltageControl().getControllers().size() > 1) {
                 createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
+            }
+
+            for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
+                // we also create an equation that will be used later to maintain R1 variable constant
+                // this equation is now inactive
+                equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
+                        .addTerm(EquationTerm.createVariableTerm(controllerBranch, VariableType.BRANCH_RHO1, variableSet))
+                        .setActive(false);
             }
         }
     }
@@ -309,7 +324,7 @@ public final class AcEquationSystem {
             sp1.addTerm(p1);
             branch.setP1(p1);
             if (creationParameters.isPhaseControl()) {
-                createBranchActivePowerTargetEquation(branch, DiscretePhaseControl.ControlledSide.ONE, equationSystem, p1);
+                createBranchActivePowerTargetEquation(branch, DiscretePhaseControl.ControlledSide.ONE, equationSystem, variableSet, p1);
             }
         }
         if (q1 != null) {
@@ -328,7 +343,7 @@ public final class AcEquationSystem {
             sp2.addTerm(p2);
             branch.setP2(p2);
             if (creationParameters.isPhaseControl()) {
-                createBranchActivePowerTargetEquation(branch, DiscretePhaseControl.ControlledSide.TWO, equationSystem, p2);
+                createBranchActivePowerTargetEquation(branch, DiscretePhaseControl.ControlledSide.TWO, equationSystem, variableSet, p2);
             }
         }
         if (q2 != null) {
