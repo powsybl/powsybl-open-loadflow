@@ -53,7 +53,7 @@
         <junit-jupiter.version>5.5.2</junit-jupiter.version>
         <guava.version>27.0.1-jre</guava.version>
         <logback.version>1.2.3</logback.version>
-        <mockito.version>1.10.19</mockito.version>
+        <mockito.version>3.8.0</mockito.version>
         <slf4j.version>1.7.22</slf4j.version>
         <slf4jtoys.version>1.6.2</slf4jtoys.version>
 
@@ -194,7 +194,7 @@
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
+            <artifactId>mockito-core</artifactId>
             <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
