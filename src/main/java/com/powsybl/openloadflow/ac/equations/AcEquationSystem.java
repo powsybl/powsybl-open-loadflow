@@ -237,7 +237,8 @@ public final class AcEquationSystem {
                 }
                 equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_P).addTerm(p);
 
-                // also create an inactive equation to have a1 variable constant
+                // we also create an equation that will be used later to maintain A1 variable constant
+                // this equation is now inactive
                 LfBranch controller = phaseControl.getController();
                 equationSystem.createEquation(controller.getNum(), EquationType.BRANCH_ALPHA1)
                         .addTerm(EquationTerm.createVariableTerm(controller, VariableType.BRANCH_ALPHA1, variableSet))
@@ -254,7 +255,8 @@ public final class AcEquationSystem {
             }
 
             for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
-                // also create an inactive equation to have r1 variable constant
+                // we also create an equation that will be used later to maintain R1 variable constant
+                // this equation is now inactive
                 equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
                         .addTerm(EquationTerm.createVariableTerm(controllerBranch, VariableType.BRANCH_RHO1, variableSet))
                         .setActive(false);

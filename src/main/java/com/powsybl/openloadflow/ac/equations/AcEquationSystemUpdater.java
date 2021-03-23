@@ -81,7 +81,7 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
         equationSystem.createEquation(phaseControl.getControlled().getNum(), EquationType.BRANCH_P)
                 .setActive(on);
 
-        // de-activate/activate constant phase equation
+        // de-activate/activate constant A1 equation
         equationSystem.createEquation(phaseControl.getController().getNum(), EquationType.BRANCH_ALPHA1)
                 .setActive(!on);
     }
@@ -96,7 +96,7 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
                     .setActive(false);
 
             for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
-                // activate constant r1 equation
+                // activate constant R1 equation
                 equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
                         .setActive(true);
 
