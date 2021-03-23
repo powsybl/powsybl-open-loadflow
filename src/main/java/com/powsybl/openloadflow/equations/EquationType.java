@@ -20,6 +20,7 @@ public enum EquationType {
     BRANCH_P("t", ElementType.BRANCH),
     BRANCH_I("i", ElementType.BRANCH),
     BRANCH_ALPHA1("\u03B1" + "1", ElementType.BRANCH),
+    BRANCH_RHO1("\u03C1" + "1", ElementType.BRANCH),
     ZERO_Q("z_q", ElementType.BUS),
     ZERO_V("z_v", ElementType.BRANCH),
     ZERO_PHI("z_\u03C6", ElementType.BRANCH),
