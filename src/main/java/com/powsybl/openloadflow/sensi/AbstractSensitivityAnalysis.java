@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -51,8 +52,11 @@ public abstract class AbstractSensitivityAnalysis {
 
     protected final MatrixFactory matrixFactory;
 
-    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory) {
+    protected final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider;
+
+    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
+        this.connectivityProvider = Objects.requireNonNull(connectivityProvider);
     }
 
     protected static Injection<?> getInjection(Network network, String injectionId) {
