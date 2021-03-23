@@ -40,7 +40,7 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     @Override
-    protected double calculateDer(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
+    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
         return di1dph1 * dph1 + di1dph2 * dph2 + di1dv1 * dv1 + di1dv2 * dv2;
     }
 
