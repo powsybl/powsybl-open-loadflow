@@ -201,13 +201,13 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public double getPermanentLimit1() {
-        return branch.getCurrentLimits1() != null ? branch.getCurrentLimits1().getPermanentLimit() * getBus1().getNominalV() / PerUnit.SB : Double.NaN;
+    public List<LfLimit> getLimits1() {
+        return getLimits1(branch.getCurrentLimits1());
     }
 
     @Override
-    public double getPermanentLimit2() {
-        return branch.getCurrentLimits2() != null ? branch.getCurrentLimits2().getPermanentLimit() * getBus2().getNominalV() / PerUnit.SB : Double.NaN;
+    public List<LfLimit> getLimits2() {
+        return getLimits2(branch.getCurrentLimits2());
     }
 
     @Override
