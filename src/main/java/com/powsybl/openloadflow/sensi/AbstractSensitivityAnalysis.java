@@ -63,14 +63,29 @@ public abstract class AbstractSensitivityAnalysis {
         if (staticVarCompensator != null) {
             return staticVarCompensator.getRegulatingTerminal();
         }
-        // todo: tap changer
+        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer(equipmentId);
+        if (t2wt != null) {
+            RatioTapChanger rtc = t2wt.getRatioTapChanger();
+            return rtc != null ? rtc.getRegulationTerminal() : null;
+        }
+        ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(equipmentId);
+        Terminal regulatingTerminal = null;
+        if (t3wt != null) {
+            for (ThreeWindingsTransformer.Leg leg : t3wt.getLegs()) {
+                RatioTapChanger rtc = leg.getRatioTapChanger();
+                if (rtc != null && rtc.isRegulating()) {
+                    regulatingTerminal = rtc.getRegulationTerminal();
+                }
+            }
+            return regulatingTerminal;
+        }
         ShuntCompensator shuntCompensator = network.getShuntCompensator(equipmentId);
         if (shuntCompensator != null) {
             return shuntCompensator.getRegulatingTerminal();
         }
         VscConverterStation vsc = network.getVscConverterStation(equipmentId);
         if (vsc != null) {
-            // return vsc.getRegulatingTerminal(); ???
+            return vsc.getTerminal(); // local regulation only
         }
         return null;
     }
