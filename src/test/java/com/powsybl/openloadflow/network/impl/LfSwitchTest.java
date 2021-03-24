@@ -23,10 +23,10 @@ import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -55,13 +55,13 @@ class LfSwitchTest {
     @Test
     void getterTest() {
         assertEquals("B3", lfSwitch.getId());
-        assertFalse(lfSwitch.hasPhaseControlCapability());
+        assertEquals(false, lfSwitch.hasPhaseControlCapability());
         assertEquals(Double.NaN, lfSwitch.getP1().eval());
         assertEquals(Double.NaN, lfSwitch.getP2().eval());
         assertEquals(Double.NaN, lfSwitch.getI1().eval());
         assertEquals(Double.NaN, lfSwitch.getI2().eval());
-        assertEquals(Double.NaN, lfSwitch.getPermanentLimit1());
-        assertEquals(Double.NaN, lfSwitch.getPermanentLimit2());
+        assertEquals(Collections.emptyList(), lfSwitch.getLimits1());
+        assertEquals(Collections.emptyList(), lfSwitch.getLimits2());
     }
 
     @Test

@@ -27,12 +27,15 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
 
     private final VariableSet variableSet;
 
-    public AcEquationSystemUpdater(EquationSystem equationSystem, VariableSet variableSet) {
+    private final AcEquationSystemCreationParameters creationParameters;
+
+    public AcEquationSystemUpdater(EquationSystem equationSystem, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.variableSet = Objects.requireNonNull(variableSet);
+        this.creationParameters = Objects.requireNonNull(creationParameters);
     }
 
-    public static void updateControlledBus(VoltageControl voltageControl, EquationSystem equationSystem, VariableSet variableSet) {
+    private void updateControlledBus(VoltageControl voltageControl, EquationSystem equationSystem, VariableSet variableSet) {
 
         LfBus controlledBus = voltageControl.getControlledBus();
         Set<LfBus> controllerBuses = voltageControl.getControllerBuses();
@@ -48,7 +51,7 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
 
         // create reactive power equations on controller buses that have voltage control on
         if (!controllerBusesWithVoltageControlOn.isEmpty()) {
-            AcEquationSystem.createReactivePowerDistributionEquations(equationSystem, variableSet, controllerBusesWithVoltageControlOn);
+            AcEquationSystem.createReactivePowerDistributionEquations(equationSystem, variableSet, creationParameters, controllerBusesWithVoltageControlOn);
         }
     }
 

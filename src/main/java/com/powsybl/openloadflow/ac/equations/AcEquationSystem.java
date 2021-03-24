@@ -38,7 +38,7 @@ public final class AcEquationSystem {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
 
-            bus.getVoltageControl().ifPresent(vc -> createVoltageControlEquations(vc, bus, variableSet, equationSystem));
+            bus.getVoltageControl().ifPresent(vc -> createVoltageControlEquations(vc, bus, variableSet, equationSystem, creationParameters));
 
             createShuntEquations(variableSet, equationSystem, bus);
 
@@ -55,12 +55,13 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createVoltageControlEquations(VoltageControl voltageControl, LfBus bus, VariableSet variableSet, EquationSystem equationSystem) {
+    private static void createVoltageControlEquations(VoltageControl voltageControl, LfBus bus, VariableSet variableSet,
+                                                      EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
         if (voltageControl.isVoltageControlLocal()) {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet));
         } else if (bus.isVoltageControlled()) {
             // remote controlled: set voltage equation on this controlled bus
-            createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet);
+            createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet, creationParameters);
         }
 
         if (bus.isVoltageControllerEnabled()) {
@@ -76,7 +77,8 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createVoltageControlledBusEquations(VoltageControl voltageControl, EquationSystem equationSystem, VariableSet variableSet) {
+    private static void createVoltageControlledBusEquations(VoltageControl voltageControl, EquationSystem equationSystem, VariableSet variableSet,
+                                                            AcEquationSystemCreationParameters creationParameters) {
         LfBus controlledBus = voltageControl.getControlledBus();
 
         // create voltage equation at voltage controlled bus
@@ -90,7 +92,7 @@ public final class AcEquationSystem {
             vEq.setActive(false);
         } else {
             // create reactive power distribution equations at voltage controller buses (except one)
-            createReactivePowerDistributionEquations(equationSystem, variableSet, controllerBuses);
+            createReactivePowerDistributionEquations(equationSystem, variableSet, creationParameters, controllerBuses);
         }
     }
 
@@ -128,12 +130,12 @@ public final class AcEquationSystem {
     }
 
     public static void createReactivePowerDistributionEquations(EquationSystem equationSystem, VariableSet variableSet,
+                                                                AcEquationSystemCreationParameters creationParameters,
                                                                 List<LfBus> controllerBuses) {
         double[] qKeys = createReactiveKeys(controllerBuses);
 
         // we choose first controller bus as reference for reactive power
         LfBus firstControllerBus = controllerBuses.get(0);
-        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(false, false); // TODO could not be the right parameters
         List<EquationTerm> firstControllerBusReactiveTerms = createReactiveTerms(firstControllerBus, variableSet, creationParameters);
 
         // create a reactive power distribution equation for all the other controller buses
@@ -424,7 +426,7 @@ public final class AcEquationSystem {
         createBusEquations(network, variableSet, creationParameters, equationSystem);
         createBranchEquations(network, variableSet, creationParameters, equationSystem);
 
-        network.addListener(new AcEquationSystemUpdater(equationSystem, variableSet));
+        network.addListener(new AcEquationSystemUpdater(equationSystem, variableSet, creationParameters));
 
         return equationSystem;
     }
