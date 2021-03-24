@@ -94,16 +94,6 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             network.getVariantManager().setWorkingVariant(workingStateId);
 
             List<SensitivityFactor> factors = sensitivityFactorsProvider.getCommonFactors(network);
-            // FIXME additional factors are not yet supported
-            if (!sensitivityFactorsProvider.getAdditionalFactors(network).isEmpty()) {
-                throw new UnsupportedOperationException("Factors specific to base case not yet supported");
-            }
-            for (Contingency contingency : contingencies) {
-                if (!sensitivityFactorsProvider.getAdditionalFactors(network, contingency.getId()).isEmpty()) {
-                    throw new UnsupportedOperationException("Factors specific to one contingency not yet supported");
-                }
-            }
-
             List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, new HashSet<>());
 
             LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
@@ -114,9 +104,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
             Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> sensitivityValues;
             if (lfParameters.isDc()) {
-                sensitivityValues = dcSensitivityAnalysis.analyse(network, factors, propagatedContingencies, lfParameters, lfParametersExt);
+                sensitivityValues = dcSensitivityAnalysis.analyse(network, sensitivityFactorsProvider, propagatedContingencies, lfParameters, lfParametersExt);
             } else {
-                sensitivityValues = acSensitivityAnalysis.analyse(network, factors, propagatedContingencies, lfParameters, lfParametersExt);
+                sensitivityValues = acSensitivityAnalysis.analyse(network, sensitivityFactorsProvider, propagatedContingencies, lfParameters, lfParametersExt);
             }
 
             boolean ok = true;

@@ -583,6 +583,21 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
+    protected List<SensitivityFactorGroup> getAdditionalFactorGroups(List<LfSensitivityFactor> additionalLfFactors,
+                                                                   Collection<SensitivityValue> zeroValuesToAdd,
+                                                                   Network network,
+                                                                   Set<LfBus> disabledBuses) {
+        List<LfSensitivityFactor> additionalZeroFactors = additionalLfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.ZERO)).collect(Collectors.toList());
+        warnSkippedFactors(additionalLfFactors);
+        List<LfSensitivityFactor> filteredAdditionalLfFactors = additionalLfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.VALID)).collect(Collectors.toList());
+        zeroValuesToAdd.addAll(additionalZeroFactors.stream().map(AbstractSensitivityAnalysis::createZeroValue).collect(Collectors.toList()));
+        List<SensitivityFactorGroup> factorGroups = createFactorGroups(network, filteredAdditionalLfFactors);
+        if (disabledBuses != null) {
+            rescaleGlsk(factorGroups, disabledBuses);
+        }
+        return factorGroups;
+    }
+
     protected void warnSkippedFactors(Collection<LfSensitivityFactor> lfFactors) {
         List<LfSensitivityFactor> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.SKIP)).collect(Collectors.toList());
         Set<String> skippedVariables = skippedFactors.stream().map(factor -> factor.getFactor().getVariable().getId()).collect(Collectors.toSet());
