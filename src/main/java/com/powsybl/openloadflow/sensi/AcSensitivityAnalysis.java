@@ -32,6 +32,7 @@ import com.powsybl.sensitivity.factors.functions.BranchIntensity;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -40,8 +41,8 @@ import java.util.stream.Collectors;
  */
 public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
-    public AcSensitivityAnalysis(MatrixFactory matrixFactory) {
-        super(matrixFactory);
+    public AcSensitivityAnalysis(MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
+        super(matrixFactory, connectivityProvider);
     }
 
     private List<SensitivityValue> calculateSensitivityValues(List<SensitivityFactorGroup> factorGroups, DenseMatrix factorsState) {
@@ -201,7 +202,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 baseValues.addAll(calculateSensitivityValues(factorGroups, factorsStates));
             }
 
-            GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.createDecrementalConnectivity();
+            GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.createDecrementalConnectivity(connectivityProvider);
 
             List<LfContingency> lfContingencies = LfContingency.createContingencies(contingencies, lfNetwork, connectivity, false);
 
