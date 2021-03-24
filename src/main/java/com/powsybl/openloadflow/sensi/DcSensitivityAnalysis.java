@@ -445,7 +445,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             return connectivityAnalysisResults;
         }
 
-        GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.createDecrementalConnectivity();
+        GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.createDecrementalConnectivity(connectivityProvider);
         for (Map.Entry<Set<ComputedContingencyElement>, List<PropagatedContingency>> groupOfElementPotentiallyBreakingConnectivity : contingenciesByGroupOfElementsBreakingConnectivity.entrySet()) {
             Set<ComputedContingencyElement> breakingConnectivityCandidates = groupOfElementPotentiallyBreakingConnectivity.getKey();
             List<PropagatedContingency> contingencyList = groupOfElementPotentiallyBreakingConnectivity.getValue();
