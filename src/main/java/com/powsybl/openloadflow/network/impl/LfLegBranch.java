@@ -12,9 +12,7 @@ import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -105,13 +103,13 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
-    public double getPermanentLimit1() {
-        return leg.getCurrentLimits() != null ? leg.getCurrentLimits().getPermanentLimit() * getBus1().getNominalV() / PerUnit.SB : Double.NaN;
+    public List<LfLimit> getLimits1() {
+        return getLimits1(leg.getCurrentLimits());
     }
 
     @Override
-    public double getPermanentLimit2() {
-        return Double.NaN;
+    public List<LfLimit> getLimits2() {
+        return Collections.emptyList();
     }
 
     @Override
