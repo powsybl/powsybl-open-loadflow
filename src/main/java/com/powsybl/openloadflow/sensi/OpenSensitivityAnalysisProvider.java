@@ -14,6 +14,9 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.*;
 import com.powsybl.tools.PowsyblCoreVersion;
@@ -26,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -46,8 +50,12 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     }
 
     public OpenSensitivityAnalysisProvider(MatrixFactory matrixFactory) {
-        dcSensitivityAnalysis = new DcSensitivityAnalysis(matrixFactory);
-        acSensitivityAnalysis = new AcSensitivityAnalysis(matrixFactory);
+        this(matrixFactory, EvenShiloachGraphDecrementalConnectivity::new);
+    }
+
+    public OpenSensitivityAnalysisProvider(MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
+        dcSensitivityAnalysis = new DcSensitivityAnalysis(matrixFactory, connectivityProvider);
+        acSensitivityAnalysis = new AcSensitivityAnalysis(matrixFactory, connectivityProvider);
     }
 
     @Override

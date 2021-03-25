@@ -38,12 +38,19 @@ public class Equation implements Evaluable, Comparable<Equation> {
      */
     private boolean active = true;
 
+    private EquationSystem.EquationUpdateType updateType;
+
     private final List<EquationTerm> terms = new ArrayList<>();
 
     Equation(int num, EquationType type, EquationSystem equationSystem) {
+        this(num, type, equationSystem, EquationSystem.EquationUpdateType.DEFAULT);
+    }
+
+    Equation(int num, EquationType type, EquationSystem equationSystem, EquationSystem.EquationUpdateType updateType) {
         this.num = num;
         this.type = Objects.requireNonNull(type);
         this.equationSystem = Objects.requireNonNull(equationSystem);
+        this.updateType = updateType;
     }
 
     public int getNum() {
@@ -75,6 +82,14 @@ public class Equation implements Evaluable, Comparable<Equation> {
             this.active = active;
             equationSystem.notifyEquationChange(this, active ? EquationEventType.EQUATION_ACTIVATED : EquationEventType.EQUATION_DEACTIVATED);
         }
+    }
+
+    public EquationSystem.EquationUpdateType getUpdateType() {
+        return updateType;
+    }
+
+    public void setUpdateType(EquationSystem.EquationUpdateType updateType) {
+        this.updateType = updateType;
     }
 
     public void setData(Object data) {
@@ -174,6 +189,10 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 targets[column] = 0;
                 break;
 
+            case BUS_B:
+                targets[column] = network.getBus(num).getB();
+                break;
+
             case BRANCH_P:
                 targets[column] = getBranchTarget(network.getBranch(num), DiscretePhaseControl.Unit.MW);
                 break;
@@ -184,6 +203,10 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
             case BRANCH_ALPHA1:
                 targets[column] = network.getBranch(num).getPiModel().getA1();
+                break;
+
+            case BRANCH_RHO1:
+                targets[column] = network.getBranch(num).getPiModel().getR1();
                 break;
 
             case ZERO_Q:
@@ -286,11 +309,14 @@ public class Equation implements Evaluable, Comparable<Equation> {
             case BUS_Q:
             case BUS_V:
             case BUS_PHI:
+            case BUS_B:
                 LfBus bus = equationSystem.getNetwork().getBus(num);
                 builder.append(", busId=").append(bus.getId());
                 break;
             case BRANCH_P:
             case BRANCH_I:
+            case BRANCH_RHO1:
+            case BRANCH_ALPHA1:
                 LfBranch branch = equationSystem.getNetwork().getBranch(num);
                 builder.append(", branchId=").append(branch.getId());
                 break;

@@ -11,7 +11,6 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
 import net.jafama.FastMath;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
@@ -58,6 +57,8 @@ public class LfNetwork {
     private int shuntCount = 0;
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
+
+    private boolean valid = true;
 
     public LfNetwork(int num, SlackBusSelector slackBusSelector) {
         this.num = num;
@@ -453,10 +454,6 @@ public class LfNetwork {
         return piModel.getZ() < LOW_IMPEDANCE_THRESHOLD;
     }
 
-    public GraphDecrementalConnectivity<LfBus> createDecrementalConnectivity() {
-        return createDecrementalConnectivity(() -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
-    }
-
     public GraphDecrementalConnectivity<LfBus> createDecrementalConnectivity(Supplier<GraphDecrementalConnectivity<LfBus>> connectivitySupplier) {
         GraphDecrementalConnectivity<LfBus> connectivity = connectivitySupplier.get();
         getBuses().forEach(connectivity::addVertex);
@@ -474,5 +471,13 @@ public class LfNetwork {
 
     public List<LfNetworkListener> getListeners() {
         return listeners;
+    }
+
+    public boolean isValid() {
+        return valid;
+    }
+
+    public void setValid(boolean valid) {
+        this.valid = valid;
     }
 }

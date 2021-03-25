@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.math.matrix.DenseMatrix;
+
 import java.util.Objects;
 
 /**
@@ -39,5 +41,10 @@ public abstract class AbstractEquationTerm implements EquationTerm {
     @Override
     public boolean isActive() {
         return active;
+    }
+
+    @Override
+    public double calculateSensi(DenseMatrix x, int column) {
+        throw new UnsupportedOperationException("Not implemented");
     }
 }

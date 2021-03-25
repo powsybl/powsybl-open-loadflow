@@ -199,9 +199,9 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         MutableInt remainingPvBusCount = new MutableInt();
         for (LfBus bus : context.getNetwork().getBuses()) {
-            if (bus.isVoltageControllerEnabled()) {
+            if (bus.isVoltageControllerEnabled() && !bus.isDisabled()) {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
-            } else if (bus.hasVoltageControllerCapability()) {
+            } else if (bus.hasVoltageControllerCapability() && !bus.isDisabled()) {
                 checkPqBus(bus, pqToPvBuses);
             }
         }

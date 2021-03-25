@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.google.common.collect.ImmutableList;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
 
@@ -51,12 +52,12 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
     }
 
     @Override
-    public SubjectType getSubjectType() {
-        return SubjectType.SHUNT_COMPENSATOR;
+    public ElementType getElementType() {
+        return ElementType.SHUNT_COMPENSATOR;
     }
 
     @Override
-    public int getSubjectNum() {
+    public int getElementNum() {
         return shunt.getNum();
     }
 
@@ -69,7 +70,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
     public void update(double[] x) {
         Objects.requireNonNull(x);
         double v = x[vVar.getRow()];
-        b = bVar != null && bVar.isActive() ? x[bVar.getRow()] : shunt.getB();
+        b = bVar != null ? x[bVar.getRow()] : shunt.getB();
         q = -b * v * v;
         dqdv = -2 * b * v;
         dqdb = -v * v;

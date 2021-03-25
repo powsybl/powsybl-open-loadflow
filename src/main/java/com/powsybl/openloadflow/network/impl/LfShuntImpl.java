@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.ShuntCompensator;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.iidm.network.ShuntCompensatorLinearModel;
 import com.powsybl.iidm.network.ShuntCompensatorModel;
 import com.powsybl.iidm.network.ShuntCompensatorNonLinearModel;
@@ -92,6 +93,11 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     }
 
     @Override
+    public ElementType getType() {
+        return ElementType.SHUNT_COMPENSATOR;
+    }
+
+    @Override
     public String getId() {
         return shuntCompensator.getId();
     }
@@ -112,6 +118,11 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     @Override
     public void setQ(Evaluable q) {
         this.q = Objects.requireNonNull(q);
+    }
+
+    @Override
+    public Evaluable getQ() {
+        return q;
     }
 
     private void roundBToClosestSection() {

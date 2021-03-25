@@ -41,7 +41,7 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
 
-    protected double calculateDer(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
+    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
         return dp2dph1 * dph1 + dp2dph2 * dph2 + dp2dv1 * dv1 + dp2dv2 * dv2;
     }
 
@@ -52,11 +52,11 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         double v2 = x[v2Var.getRow()];
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
-        double theta = ksi + (a1Var != null && a1Var.isActive() ? x[a1Var.getRow()] : branch.getPiModel().getA1())
+        double theta = ksi + (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1())
                 - A2 + ph1 - ph2;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
-        double r1 = r1Var != null && r1Var.isActive() ? x[r1Var.getRow()] : branch.getPiModel().getR1();
+        double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
         p2 = R2 * v2 * (g2 * R2 * v2 - y * r1 * v1 * sinTheta + y * R2 * v2 * sinKsi);
         dp2dv1 = -y * r1 * R2 * v2 * sinTheta;
         dp2dv2 = R2 * (2 * g2 * R2 * v2 - y * r1 * v1 * sinTheta + 2 * y * R2 * v2 * sinKsi);

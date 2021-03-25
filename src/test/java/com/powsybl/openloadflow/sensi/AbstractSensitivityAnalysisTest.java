@@ -23,6 +23,7 @@ import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
+import com.powsybl.sensitivity.factors.functions.BranchIntensity;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
@@ -73,6 +74,10 @@ public abstract class AbstractSensitivityAnalysisTest {
         return new BranchFlow(branch.getId(), branch.getNameOrId(), branch.getId());
     }
 
+    protected static BranchIntensity createBranchIntensity(Branch branch) {
+        return new BranchIntensity(branch.getId(), branch.getNameOrId(), branch.getId());
+    }
+
     protected static double getValue(SensitivityAnalysisResult result, String variableId, String functionId) {
         return getValue(result.getSensitivityValues(), variableId, functionId);
     }
@@ -81,21 +86,21 @@ public abstract class AbstractSensitivityAnalysisTest {
         return result.stream().filter(value -> value.getFactor().getVariable().getId().equals(variableId) && value.getFactor().getFunction().getId().equals(functionId))
             .findFirst()
             .map(SensitivityValue::getValue)
-            .orElse(Double.NaN);
+            .orElseThrow();
     }
 
     protected static double getContingencyValue(SensitivityAnalysisResult result, String contingencyId, String variableId, String functionId) {
         return result.getSensitivityValuesContingencies().get(contingencyId).stream().filter(value -> value.getFactor().getVariable().getId().equals(variableId) && value.getFactor().getFunction().getId().equals(functionId))
                      .findFirst()
                      .map(SensitivityValue::getValue)
-                     .orElse(Double.NaN);
+                     .orElseThrow();
     }
 
     protected static double getContingencyValue(List<SensitivityValue> result, String variableId, String functionId) {
         return result.stream().filter(value -> value.getFactor().getVariable().getId().equals(variableId) && value.getFactor().getFunction().getId().equals(functionId))
                      .findFirst()
                      .map(SensitivityValue::getValue)
-                     .orElse(Double.NaN);
+                     .orElseThrow();
     }
 
     protected static double getFunctionReference(SensitivityAnalysisResult result, String functionId) {
@@ -110,7 +115,7 @@ public abstract class AbstractSensitivityAnalysisTest {
         return result.stream().filter(value -> value.getFactor().getFunction().getId().equals(functionId))
             .findFirst()
             .map(SensitivityValue::getFunctionReference)
-            .orElse(Double.NaN);
+            .orElseThrow();
     }
 
     protected void runAcLf(Network network) {
