@@ -107,15 +107,15 @@ public class ConflictingVoltageControlManager {
         return pairs;
     }
 
-    public Map<VoltageLevelIndex, Collection<Pair<LfBus, LfBus>>> getAnomalies() {
-        Map<VoltageLevelIndex, Collection<Pair<LfBus, LfBus>>> anomaliesByVoltageLevel = new HashMap<>();
+    public Map<VoltageLevelIndex, Collection<Pair<LfBus, LfBus>>> getConflicts() {
+        Map<VoltageLevelIndex, Collection<Pair<LfBus, LfBus>>> conflictsByVoltageLevel = new HashMap<>();
         Map<VoltageLevelIndex, Set<LfBus>> busesByVoltageLevel = indexByVoltageLevel(pvBuses);
 
         for (Map.Entry<VoltageLevelIndex, Set<LfBus>> entry : busesByVoltageLevel.entrySet()) {
             VoltageLevelIndex index = entry.getKey();
             Set<LfBus> buses = entry.getValue();
-            Collection<Pair<LfBus, LfBus>> anomalies = new ArrayList<>();
-            anomaliesByVoltageLevel.put(index, anomalies);
+            Collection<Pair<LfBus, LfBus>> conflicts = new ArrayList<>();
+            conflictsByVoltageLevel.put(index, conflicts);
 
             if (buses.size() < 2) {
                 continue;
@@ -127,28 +127,28 @@ public class ConflictingVoltageControlManager {
                 LfBus bus1 = candidatePair.getKey();
                 LfBus bus2 = candidatePair.getValue();
                 double pathWeight = algorithm.getPathWeight(bus1, bus2);
-                double anomalyThreshold = bus1.getV() * bus1.getNominalV() * (bus1.getV() * bus1.getNominalV() - bus2.getV() * bus2.getNominalV()) / index.getQmax();
-                if (pathWeight < anomalyThreshold) {
-                    anomalies.add(candidatePair);
+                double conflictThreshold = bus1.getV() * bus1.getNominalV() * (bus1.getV() * bus1.getNominalV() - bus2.getV() * bus2.getNominalV()) / index.getQmax();
+                if (pathWeight < conflictThreshold) {
+                    conflicts.add(candidatePair);
                 }
             }
 
         }
-        return anomaliesByVoltageLevel;
+        return conflictsByVoltageLevel;
     }
 
     public static void fixConflicts(LfNetwork network, List<LfBus> lfBuses) {
         ConflictingVoltageControlManager manager = new ConflictingVoltageControlManager(network, lfBuses);
-        Map<VoltageLevelIndex, Collection<Pair<LfBus, LfBus>>> anomaliesByVoltageLevel = manager.getAnomalies();
+        Map<VoltageLevelIndex, Collection<Pair<LfBus, LfBus>>> conflictsByVoltageLevel = manager.getConflicts();
         Set<LfBus> busesToSwitch = new HashSet<>();
-        for (Map.Entry<VoltageLevelIndex, Collection<Pair<LfBus, LfBus>>> entry : anomaliesByVoltageLevel.entrySet()) {
-            Collection<Pair<LfBus, LfBus>> anomalies = entry.getValue();
+        for (Map.Entry<VoltageLevelIndex, Collection<Pair<LfBus, LfBus>>> entry : conflictsByVoltageLevel.entrySet()) {
+            Collection<Pair<LfBus, LfBus>> conflicts = entry.getValue();
 
-            for (Pair<LfBus, LfBus> anomaly : anomalies) {
-                LfBus bus1 = anomaly.getKey();
-                LfBus bus2 = anomaly.getValue();
+            for (Pair<LfBus, LfBus> conflict : conflicts) {
+                LfBus bus1 = conflict.getKey();
+                LfBus bus2 = conflict.getValue();
 
-                //One of the buses has already been switched because it was part of another anomaly
+                // One of the buses has already been switched because it was part of another conflict
                 if (busesToSwitch.contains(bus1) || busesToSwitch.contains(bus2)) {
                     continue;
                 }
