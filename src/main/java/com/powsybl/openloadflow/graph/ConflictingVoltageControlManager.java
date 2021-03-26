@@ -1,6 +1,5 @@
 package com.powsybl.openloadflow.graph;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import net.jafama.FastMath;
@@ -159,7 +158,7 @@ public class ConflictingVoltageControlManager {
 
         for (LfBus bus : busesToSwitch) {
             if (bus.isVoltageControlled()) {
-                throw new PowsyblException("We have to deactivate a voltage controlled bus."); // todo: ?
+                continue; // this means we have a conflict between two generators, we do not want to deactivate them
             }
             DiscreteVoltageControl discreteVoltageControl = bus.getDiscreteVoltageControl();
             bus.setDiscreteVoltageControl(null);
