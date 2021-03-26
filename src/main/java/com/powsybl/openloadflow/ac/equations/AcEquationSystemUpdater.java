@@ -115,11 +115,16 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
                         .setActive(false);
 
                 for (LfBus controllerBus : bus.getDiscreteVoltageControl().getControllerBuses()) {
-                    // activate constant B equation
-                    equationSystem.createEquation(controllerBus.getNum(), EquationType.BUS_B)
-                            .setActive(true);
+                    for (LfShunt shunt : controllerBus.getShunts()) {
+                        if (shunt.hasVoltageControl()) {
+                            // activate constant B equation
+                            equationSystem.createEquation(shunt.getNum(), EquationType.SHUNT_B)
+                                    .setActive(true);
+                            shunt.setVoltageControl(false);
 
-                    // TODO: clean shunt distribution equations in case of remote control.
+                        }
+                        // TODO: clean shunt distribution equations in case of remote control.
+                    }
                 }
             } else {
                 throw new UnsupportedOperationException("Not supported mode");

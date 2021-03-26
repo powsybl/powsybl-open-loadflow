@@ -17,7 +17,7 @@ public enum EquationType {
     BUS_Q("q", ElementType.BUS),
     BUS_V("v", ElementType.BUS),
     BUS_PHI("\u03C6", ElementType.BUS),
-    BUS_B("b", ElementType.BUS),
+    SHUNT_B("b", ElementType.SHUNT_COMPENSATOR),
     BRANCH_P("t", ElementType.BRANCH),
     BRANCH_I("i", ElementType.BRANCH),
     BRANCH_ALPHA1("\u03B1" + "1", ElementType.BRANCH),

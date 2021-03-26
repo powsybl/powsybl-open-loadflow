@@ -23,6 +23,8 @@ public interface LfShunt extends LfElement {
 
     boolean hasVoltageControl();
 
+    void setVoltageControl(boolean hasVoltageControl);
+
     double getMinB();
 
     double getMaxB();

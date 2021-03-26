@@ -99,10 +99,6 @@ public interface LfBus extends LfElement {
 
     List<LfShunt> getShunts();
 
-    double getB();
-
-    void setB(double b);
-
     List<LfBranch> getBranches();
 
     void addBranch(LfBranch branch);

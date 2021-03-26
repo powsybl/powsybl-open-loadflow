@@ -189,8 +189,8 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 targets[column] = 0;
                 break;
 
-            case BUS_B:
-                targets[column] = network.getBus(num).getB();
+            case SHUNT_B:
+                targets[column] = network.getShunt(num).getB();
                 break;
 
             case BRANCH_P:
@@ -309,7 +309,6 @@ public class Equation implements Evaluable, Comparable<Equation> {
             case BUS_Q:
             case BUS_V:
             case BUS_PHI:
-            case BUS_B:
                 LfBus bus = equationSystem.getNetwork().getBus(num);
                 builder.append(", busId=").append(bus.getId());
                 break;
@@ -323,6 +322,10 @@ public class Equation implements Evaluable, Comparable<Equation> {
             case ZERO_Q:
                 LfBus controllerBus = equationSystem.getNetwork().getBus(num);
                 builder.append(", controllerBusId=").append(controllerBus.getId());
+                break;
+            case SHUNT_B:
+                LfShunt shunt = equationSystem.getNetwork().getShunt(num);
+                builder.append(", shuntId=").append(shunt.getId());
                 break;
             case ZERO_V:
             case ZERO_PHI:

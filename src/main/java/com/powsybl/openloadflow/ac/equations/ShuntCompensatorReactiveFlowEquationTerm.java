@@ -44,7 +44,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
         ImmutableList.Builder<Variable> variablesBuilder = ImmutableList.<Variable>builder()
                 .add(vVar);
         if (deriveB) {
-            bVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_B);
+            bVar = variableSet.getVariable(shunt.getNum(), VariableType.SHUNT_B);
             variablesBuilder.add(bVar);
         }
         variables = variablesBuilder.build();

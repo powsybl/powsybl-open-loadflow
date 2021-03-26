@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.network.ElementType;
 public enum VariableType {
     BUS_V("v", ElementType.BUS),
     BUS_PHI("\u03C6", ElementType.BUS),
-    BUS_B("b", ElementType.BUS),
+    SHUNT_B("b", ElementType.SHUNT_COMPENSATOR),
     BRANCH_ALPHA1("\u03B1" + "1", ElementType.BRANCH),
     BRANCH_RHO1("\u03C1" + "1", ElementType.BRANCH),
     DUMMY_P("dummy_p", ElementType.BRANCH),

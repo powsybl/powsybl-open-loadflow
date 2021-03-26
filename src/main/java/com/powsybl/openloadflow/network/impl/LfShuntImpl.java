@@ -39,6 +39,8 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     private Evaluable q = NAN;
 
+    private boolean hasVoltageControl = false;
+
     class Section {
 
         private double b;
@@ -68,6 +70,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         this.shuntCompensator = Objects.requireNonNull(shuntCompensator);
         double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
         double zb = nominalV * nominalV / PerUnit.SB;
+        hasVoltageControl = shuntCompensator.isVoltageRegulatorOn();
 
         sections.add(new Section(0, 0)); // position 0 means disconnected.
         position = shuntCompensator.getSectionCount();
@@ -112,7 +115,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         double previousB = this.b;
         this.b = b;
         roundBToClosestSection();
-        LOGGER.trace("Round B shift of shunt '{}': {} -> {}", shuntCompensator.getId(), previousB, this.b);
+        LOGGER.info("Round B shift of shunt '{}': {} -> {}", shuntCompensator.getId(), previousB, this.b);
     }
 
     @Override
@@ -144,7 +147,12 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     @Override
     public boolean hasVoltageControl() {
-        return shuntCompensator.isVoltageRegulatorOn();
+        return hasVoltageControl;
+    }
+
+    @Override
+    public void setVoltageControl(boolean hasVoltageControl) {
+        this.hasVoltageControl = hasVoltageControl;
     }
 
     @Override

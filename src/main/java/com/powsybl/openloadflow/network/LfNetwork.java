@@ -56,6 +56,10 @@ public class LfNetwork {
 
     private int shuntCount = 0;
 
+    private final Map<String, LfShunt> shuntsById = new LinkedHashMap<>();
+
+    private List<LfShunt> shuntsByIndex;
+
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
     private boolean valid = true;
@@ -79,10 +83,17 @@ public class LfNetwork {
             slackBus.setSlack(true);
             LOGGER.info("Selected slack bus: {}", slackBus.getId());
         }
+        if (shuntsByIndex == null) {
+            shuntsByIndex = new ArrayList<>(shuntsById.values());
+            for (int i = 0; i < shuntsByIndex.size(); i++) {
+                shuntsByIndex.get(i).setNum(i);
+            }
+        }
     }
 
     private void invalidateCache() {
         busesByIndex = null;
+        shuntsByIndex = null;
         slackBus = null;
     }
 
@@ -119,6 +130,7 @@ public class LfNetwork {
         busesById.put(bus.getId(), bus);
         for (LfShunt shunt : bus.getShunts()) {
             shunt.setNum(shuntCount++);
+            shuntsById.put(shunt.getId(), shunt);
         }
         invalidateCache();
     }
@@ -141,6 +153,11 @@ public class LfNetwork {
     public LfBus getSlackBus() {
         updateCache();
         return slackBus;
+    }
+
+    public LfShunt getShunt(int num) {
+        updateCache();
+        return shuntsByIndex.get(num);
     }
 
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,

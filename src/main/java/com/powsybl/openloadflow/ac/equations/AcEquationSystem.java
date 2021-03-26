@@ -69,7 +69,7 @@ public final class AcEquationSystem {
                                              AcEquationSystemCreationParameters creationParameters) {
         for (LfShunt shunt : bus.getShunts()) {
             boolean deriveB = creationParameters.isShuntVoltageControl() && bus.getDiscreteVoltageControl() != null
-                    && bus.getDiscreteVoltageControl().getControllerBuses().contains(bus); // local control only for the moment
+                    && bus.getDiscreteVoltageControl().getControllerBuses().contains(bus) && shunt.hasVoltageControl(); // local control only for the moment
             ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, deriveB);
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
             shunt.setQ(q);
@@ -270,9 +270,13 @@ public final class AcEquationSystem {
             for (LfBus controllerBus : bus.getDiscreteVoltageControl().getControllerBuses()) {
                 // we also create an equation that will be used later to maintain B variable constant
                 // this equation is now inactive
-                equationSystem.createEquation(controllerBus.getNum(), EquationType.BUS_B)
-                        .addTerm(EquationTerm.createVariableTerm(controllerBus, VariableType.BUS_B, variableSet))
-                        .setActive(false);
+                for (LfShunt shunt : controllerBus.getShunts()) {
+                    if (shunt.hasVoltageControl()) {
+                        equationSystem.createEquation(shunt.getNum(), EquationType.SHUNT_B)
+                                .addTerm(EquationTerm.createVariableTerm(shunt, VariableType.SHUNT_B, variableSet))
+                                .setActive(false);
+                    }
+                }
             }
         }
     }
