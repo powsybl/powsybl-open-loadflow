@@ -225,8 +225,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         add(LfVscConverterStationImpl.create(vscCs, breakers, report));
     }
 
-    void addShuntCompensator(ShuntCompensator sc) {
-        shunts.add(new LfShuntImpl(sc, network));
+    void addShuntCompensator(ShuntCompensator sc, LfNetworkParameters parameters) {
+        shunts.add(new LfShuntImpl(sc, network, parameters));
     }
 
     @Override

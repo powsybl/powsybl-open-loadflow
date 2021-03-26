@@ -46,7 +46,7 @@ public final class AcEquationSystem {
             createShuntEquations(variableSet, equationSystem, bus, creationParameters);
 
             if (creationParameters.isTransformerVoltageControl() || creationParameters.isShuntVoltageControl()) {
-                createDiscreteVoltageControlEquation(bus, variableSet, equationSystem);
+                createDiscreteVoltageControlEquation(bus, variableSet, equationSystem, creationParameters);
             }
         }
     }
@@ -67,12 +67,34 @@ public final class AcEquationSystem {
 
     private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus,
                                              AcEquationSystemCreationParameters creationParameters) {
-        for (LfShunt shunt : bus.getShunts()) {
-            boolean deriveB = creationParameters.isShuntVoltageControl() && bus.getDiscreteVoltageControl() != null
-                    && bus.getDiscreteVoltageControl().getControllerBuses().contains(bus) && shunt.hasVoltageControl(); // local control only for the moment
-            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, deriveB);
+        List<LfShunt> controllerShunts = bus.getShunts().stream()
+                .filter(LfShunt::hasVoltageControl)
+                .collect(Collectors.toList());
+        if (controllerShunts.isEmpty()) {
+            for (LfShunt shunt : bus.getShunts()) {
+                ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, false);
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
+                shunt.setQ(q);
+            }
+        } else if (creationParameters.isShuntVoltageControl() && bus.getDiscreteVoltageControl() != null
+                && bus.getDiscreteVoltageControl().getControllerBuses().contains(bus)) {
+            // at least one shunt is controlling voltage
+            // B variable is only activated on the first controller shunt
+            // on the other controller shunts, B is set to zero
+            // local control only
+            LfShunt firstControllerShunt = controllerShunts.get(0);
+            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(firstControllerShunt, bus, variableSet, true);
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
-            shunt.setQ(q);
+            firstControllerShunt.setQ(q);
+            for (int i = 1; i < bus.getShunts().size(); i++) {
+                LfShunt shunt = bus.getShunts().get(i);
+                if (shunt.hasVoltageControl()) {
+                    shunt.setB(0);
+                }
+                q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, false);
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
+                shunt.setQ(q);
+            }
         }
     }
 
@@ -253,7 +275,8 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createDiscreteVoltageControlEquation(LfBus bus,  VariableSet variableSet, EquationSystem equationSystem) {
+    private static void createDiscreteVoltageControlEquation(LfBus bus,  VariableSet variableSet, EquationSystem equationSystem,
+                                                             AcEquationSystemCreationParameters creationParameters) {
         if (bus.isDiscreteVoltageControlled()) {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet));
             if (bus.getDiscreteVoltageControl().getControllerBranches().size() > 1) {
@@ -270,13 +293,12 @@ public final class AcEquationSystem {
             for (LfBus controllerBus : bus.getDiscreteVoltageControl().getControllerBuses()) {
                 // we also create an equation that will be used later to maintain B variable constant
                 // this equation is now inactive
-                for (LfShunt shunt : controllerBus.getShunts()) {
-                    if (shunt.hasVoltageControl()) {
-                        equationSystem.createEquation(shunt.getNum(), EquationType.SHUNT_B)
-                                .addTerm(EquationTerm.createVariableTerm(shunt, VariableType.SHUNT_B, variableSet))
-                                .setActive(false);
-                    }
-                }
+                List<LfShunt> controllerShunts = controllerBus.getShunts().stream()
+                        .filter(LfShunt::hasVoltageControl)
+                        .collect(Collectors.toList());
+                equationSystem.createEquation(controllerShunts.get(0).getNum(), EquationType.SHUNT_B)
+                        .addTerm(EquationTerm.createVariableTerm(controllerShunts.get(0), VariableType.SHUNT_B, variableSet))
+                        .setActive(false);
             }
         }
     }

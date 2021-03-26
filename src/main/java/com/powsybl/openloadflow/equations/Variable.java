@@ -6,11 +6,16 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfShunt;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -61,7 +66,7 @@ public class Variable implements Comparable<Variable> {
                 break;
 
             case SHUNT_B:
-                x[row] = network.getShunt(num).getB();
+                x[row] = getControllerShuntsSumB(network);
                 break;
 
             case BRANCH_ALPHA1:
@@ -95,7 +100,7 @@ public class Variable implements Comparable<Variable> {
                 break;
 
             case SHUNT_B:
-                network.getShunt(num).setB(x[row]);
+                setControllerShuntsSumB(network, x[row]);
                 break;
 
             case BRANCH_ALPHA1:
@@ -114,6 +119,31 @@ public class Variable implements Comparable<Variable> {
             default:
                 throw new IllegalStateException("Unknown variable type "  + type);
         }
+    }
+
+    private double getControllerShuntsSumB(LfNetwork network) {
+        LfBus bus = network.getShunt(num).getLfBus();
+        return bus.getShunts().stream()
+                .filter(LfShunt::hasVoltageControl)
+                .mapToDouble(LfShunt::getB)
+                .sum();
+    }
+
+    private void setControllerShuntsSumB(LfNetwork network, double bToDispatch) {
+        dispatchB(network.getShunt(num).getLfBus().getShunts(), bToDispatch);
+    }
+
+    private double dispatchB(List<LfShunt> shunts, double bToDispatch) {
+        List<LfShunt> shuntsThatControlVoltage = shunts.stream()
+                .filter(LfShunt::hasVoltageControl)
+                .sorted(Comparator.comparing(LfShunt::getAmplitudeB))
+                .collect(Collectors.toList());
+        double residueB = bToDispatch;
+        for (LfShunt shunt : shuntsThatControlVoltage) {
+            shunt.setB(residueB / shuntsThatControlVoltage.size());
+            residueB += residueB - shunt.getB();
+        }
+        return residueB;
     }
 
     @Override

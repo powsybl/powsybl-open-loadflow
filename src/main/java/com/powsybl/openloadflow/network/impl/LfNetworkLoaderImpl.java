@@ -168,7 +168,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
             @Override
             public void visitShuntCompensator(ShuntCompensator sc) {
-                lfBus.addShuntCompensator(sc);
+                lfBus.addShuntCompensator(sc, parameters);
                 loadingContext.shuntSet.add(sc);
             }
 
@@ -466,7 +466,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static LfBus getLfBus(Terminal terminal, LfNetwork lfNetwork, boolean breakers) {
+    public static LfBus getLfBus(Terminal terminal, LfNetwork lfNetwork, boolean breakers) {
         Bus bus = getBus(terminal, breakers);
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }

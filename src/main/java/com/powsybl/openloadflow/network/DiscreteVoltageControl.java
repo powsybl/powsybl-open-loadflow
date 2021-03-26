@@ -72,7 +72,9 @@ public class DiscreteVoltageControl {
 
     public void addControllerBus(LfBus controllerBus) {
         Objects.requireNonNull(controllerBus);
-        controllerBuses.add(controllerBus);
+        if (!controllerBuses.contains(controllerBus)) {
+            controllerBuses.add(controllerBus);
+        }
     }
 
     public LfBus getControlled() {

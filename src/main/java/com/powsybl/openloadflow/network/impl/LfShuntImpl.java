@@ -39,7 +39,9 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     private Evaluable q = NAN;
 
-    private boolean hasVoltageControl = false;
+    private boolean hasVoltageControl;
+
+    private boolean shuntVoltageControl;
 
     class Section {
 
@@ -65,12 +67,13 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     private int position = 0;
 
-    public LfShuntImpl(ShuntCompensator shuntCompensator, LfNetwork network) {
+    public LfShuntImpl(ShuntCompensator shuntCompensator, LfNetwork network, LfNetworkParameters parameters) {
         super(network);
         this.shuntCompensator = Objects.requireNonNull(shuntCompensator);
         double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
         double zb = nominalV * nominalV / PerUnit.SB;
         hasVoltageControl = shuntCompensator.isVoltageRegulatorOn();
+        shuntVoltageControl = parameters.isShuntVoltageControl();
 
         sections.add(new Section(0, 0)); // position 0 means disconnected.
         position = shuntCompensator.getSectionCount();
@@ -147,7 +150,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     @Override
     public boolean hasVoltageControl() {
-        return hasVoltageControl;
+        return hasVoltageControl && shuntVoltageControl;
     }
 
     @Override
@@ -168,6 +171,11 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     @Override
     public double getAmplitudeB() {
         return Math.abs(getMaxB() - getMinB());
+    }
+
+    @Override
+    public LfBus getLfBus() {
+        return LfNetworkLoaderImpl.getLfBus(shuntCompensator.getTerminal(), network, false); //FIXME breakers
     }
 
     @Override

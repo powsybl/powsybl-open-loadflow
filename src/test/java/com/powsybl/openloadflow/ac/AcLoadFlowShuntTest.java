@@ -234,10 +234,10 @@ class AcLoadFlowShuntTest {
 
         parameters.setSimulShunt(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        // assertTrue(result.isOk());
-        // assertVoltageEquals(393.308, bus3);
-        // assertEquals(1, shunt.getSectionCount());
-        // assertEquals(1, shunt2.getSectionCount());
+        assertTrue(result.isOk());
+        assertVoltageEquals(393.308, bus3);
+        assertEquals(1, shunt.getSectionCount());
+        assertEquals(1, shunt2.getSectionCount());
     }
 
     @Test
@@ -268,11 +268,10 @@ class AcLoadFlowShuntTest {
 
         parameters.setSimulShunt(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        //FIXME
-        // assertTrue(result.isOk());
-        // assertVoltageEquals(391.640, bus3);
-        // assertEquals(1, shunt.getSectionCount());
-        // assertEquals(2, shunt2.getSectionCount());
+        assertTrue(result.isOk());
+        assertVoltageEquals(391.640, bus3);
+        assertEquals(1, shunt.getSectionCount());
+        assertEquals(2, shunt2.getSectionCount());
     }
 
     @Test

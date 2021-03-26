@@ -31,5 +31,7 @@ public interface LfShunt extends LfElement {
 
     double getAmplitudeB();
 
+    LfBus getLfBus();
+
     void updateState();
 }
