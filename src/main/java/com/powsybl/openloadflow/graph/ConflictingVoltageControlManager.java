@@ -7,11 +7,15 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.jgrapht.graph.DefaultUndirectedWeightedGraph;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class ConflictingVoltageControlManager {
+
+    protected static final Logger LOGGER = LoggerFactory.getLogger(ConflictingVoltageControlManager.class);
 
     static class VoltageLevelIndex {
         private double minV;
@@ -129,6 +133,8 @@ public class ConflictingVoltageControlManager {
                 double conflictThreshold = bus1.getV() * bus1.getNominalV() * (bus1.getV() * bus1.getNominalV() - bus2.getV() * bus2.getNominalV()) / index.getQmax();
                 if (pathWeight < conflictThreshold) {
                     conflicts.add(candidatePair);
+                    LOGGER.debug("Conflict found between buses: {} and {}. Impedance is {} and voltage difference is {}",
+                        candidatePair.getLeft().getId(), candidatePair.getRight().getId(), pathWeight, conflictThreshold);
                 }
             }
 
@@ -158,11 +164,14 @@ public class ConflictingVoltageControlManager {
 
         for (LfBus bus : busesToSwitch) {
             if (bus.isVoltageControlled()) {
+                LOGGER.debug("Voltage control of bus {} has a conflict but cannot be disabled because it comes from a generator.", bus.getId());
                 continue; // this means we have a conflict between two generators, we do not want to deactivate them
             }
             DiscreteVoltageControl discreteVoltageControl = bus.getDiscreteVoltageControl();
             bus.setDiscreteVoltageControl(null);
             discreteVoltageControl.getControllers().forEach(branch -> branch.setDiscreteVoltageControl(null));
+            List<String> controllersIds = discreteVoltageControl.getControllers().stream().map(LfElement::getId).collect(Collectors.toList());
+            LOGGER.warn("The voltage control on branches {} is disabled because of conflict on bus {}", String.join(",", controllersIds), bus.getId());
         }
     }
 }
