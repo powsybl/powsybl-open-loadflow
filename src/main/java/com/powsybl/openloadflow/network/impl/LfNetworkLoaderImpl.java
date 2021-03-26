@@ -10,6 +10,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.graph.ConflictingVoltageControlManager;
 import com.powsybl.openloadflow.network.*;
 import net.jafama.FastMath;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -302,6 +303,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
+    private static void fixConflictingVoltageControls(LfNetwork lfNetwork, List<LfBus> lfBuses) {
+        ConflictingVoltageControlManager.fixConflicts(lfNetwork, lfBuses);
+    }
+
     private static void fixDiscreteVoltageControls(LfNetwork lfNetwork, boolean minImpedance) {
         // If min impedance is set, there is no zero-impedance branch
         if (!minImpedance) {
@@ -453,6 +458,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
         // Fixing discrete voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
         fixDiscreteVoltageControls(lfNetwork, parameters.isMinImpedance());
+
+        fixConflictingVoltageControls(lfNetwork, lfBuses);
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
