@@ -8,6 +8,8 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.util.List;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -43,9 +45,9 @@ public interface LfBranch extends LfElement {
 
     Evaluable getI2();
 
-    double getPermanentLimit1();
+    List<AbstractLfBranch.LfLimit> getLimits1();
 
-    double getPermanentLimit2();
+    List<AbstractLfBranch.LfLimit> getLimits2();
 
     boolean hasPhaseControlCapability();
 
