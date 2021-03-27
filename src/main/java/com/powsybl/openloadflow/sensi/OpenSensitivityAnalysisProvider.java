@@ -20,14 +20,10 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.*;
 import com.powsybl.tools.PowsyblCoreVersion;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
@@ -91,38 +87,51 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                                                             SensitivityAnalysisParameters sensitivityAnalysisParameters,
                                                             ComputationManager computationManager) {
         return CompletableFuture.supplyAsync(() -> {
-            network.getVariantManager().setWorkingVariant(workingStateId);
-
-            List<SensitivityFactor> factors = sensitivityFactorsProvider.getCommonFactors(network);
-            // FIXME additional factors are not yet supported
-            if (!sensitivityFactorsProvider.getAdditionalFactors(network).isEmpty()) {
-                throw new UnsupportedOperationException("Factors specific to base case not yet supported");
-            }
-            for (Contingency contingency : contingencies) {
-                if (!sensitivityFactorsProvider.getAdditionalFactors(network, contingency.getId()).isEmpty()) {
-                    throw new UnsupportedOperationException("Factors specific to one contingency not yet supported");
+            List<SensitivityValue> sensitivityValues = new ArrayList<>();
+            Map<String, List<SensitivityValue>> sensitivityValuesByContingency = new HashMap<>();
+            run(network, workingStateId, sensitivityFactorsProvider, contingencies, sensitivityAnalysisParameters, (sensitivityFactor, contingencyId, value, functionReference) -> {
+                if (contingencyId == null) {
+                    sensitivityValues.add(new SensitivityValue(sensitivityFactor, value, functionReference, Double.NaN));
+                } else {
+                    sensitivityValuesByContingency.computeIfAbsent(contingencyId, k -> new ArrayList<>())
+                            .add(new SensitivityValue(sensitivityFactor, value, functionReference, Double.NaN));
                 }
-            }
-
-            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, new HashSet<>());
-
-            LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
-            OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
-
-            LOGGER.info("Running {} sensitivity analysis with {} factors and {} contingencies", lfParameters.isDc() ? "DC" : "AC",
-                    factors.size(), contingencies.size());
-
-            Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> sensitivityValues;
-            if (lfParameters.isDc()) {
-                sensitivityValues = dcSensitivityAnalysis.analyse(network, factors, propagatedContingencies, lfParameters, lfParametersExt);
-            } else {
-                sensitivityValues = acSensitivityAnalysis.analyse(network, factors, propagatedContingencies, lfParameters, lfParametersExt);
-            }
-
+            });
             boolean ok = true;
             Map<String, String> metrics = new HashMap<>();
             String logs = "";
-            return new SensitivityAnalysisResult(ok, metrics, logs, sensitivityValues.getLeft(), sensitivityValues.getRight());
+            return new SensitivityAnalysisResult(ok, metrics, logs, sensitivityValues, sensitivityValuesByContingency);
         });
+    }
+
+    public void run(Network network, String workingStateId, SensitivityFactorsProvider sensitivityFactorsProvider,
+                    List<Contingency> contingencies, SensitivityAnalysisParameters sensitivityAnalysisParameters,
+                    SensitivityValueHandler handler) {
+        network.getVariantManager().setWorkingVariant(workingStateId);
+
+        List<SensitivityFactor> factors = sensitivityFactorsProvider.getCommonFactors(network);
+        // FIXME additional factors are not yet supported
+        if (!sensitivityFactorsProvider.getAdditionalFactors(network).isEmpty()) {
+            throw new UnsupportedOperationException("Factors specific to base case not yet supported");
+        }
+        for (Contingency contingency : contingencies) {
+            if (!sensitivityFactorsProvider.getAdditionalFactors(network, contingency.getId()).isEmpty()) {
+                throw new UnsupportedOperationException("Factors specific to one contingency not yet supported");
+            }
+        }
+
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, new HashSet<>());
+
+        LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
+        OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
+
+        LOGGER.info("Running {} sensitivity analysis with {} factors and {} contingencies", lfParameters.isDc() ? "DC" : "AC",
+                factors.size(), contingencies.size());
+
+        if (lfParameters.isDc()) {
+            dcSensitivityAnalysis.analyse(network, factors, propagatedContingencies, lfParameters, lfParametersExt, handler);
+        } else {
+            acSensitivityAnalysis.analyse(network, factors, propagatedContingencies, lfParameters, lfParametersExt, handler);
+        }
     }
 }
