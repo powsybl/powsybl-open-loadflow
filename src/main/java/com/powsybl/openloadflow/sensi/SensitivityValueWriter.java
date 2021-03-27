@@ -11,7 +11,7 @@ import com.powsybl.sensitivity.SensitivityFactor;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface SensitivityValueHandler {
+public interface SensitivityValueWriter {
 
-    void onValue(SensitivityFactor sensitivityFactor, String contingencyId, double value, double functionReference);
+    void write(SensitivityFactor sensitivityFactor, String contingencyId, double value, double functionReference);
 }

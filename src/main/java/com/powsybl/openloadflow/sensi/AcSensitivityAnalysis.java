@@ -47,11 +47,11 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     }
 
     private void calculateSensitivityValues(List<SensitivityFactorGroup> factorGroups, DenseMatrix factorsState,
-                                            String contingencyId, SensitivityValueHandler handler) {
+                                            String contingencyId, SensitivityValueWriter writer) {
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             for (LfSensitivityFactor factor : factorGroup.getFactors()) {
                 if (factor.getPredefinedResult() != null) {
-                    handler.onValue(factor.getFactor(), contingencyId, factor.getPredefinedResult(), factor.getPredefinedResult());
+                    writer.write(factor.getFactor(), contingencyId, factor.getPredefinedResult(), factor.getPredefinedResult());
                     continue;
                 }
 
@@ -69,7 +69,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                         .orElseThrow(() -> new PowsyblException("No alpha_1 variable on the function branch"));
                     sensi += Math.toRadians(factor.getEquationTerm().der(phi1Var));
                 }
-                handler.onValue(factor.getFactor(), contingencyId, sensi * PerUnit.SB, factor.getFunctionReference() * PerUnit.SB);
+                writer.write(factor.getFactor(), contingencyId, sensi * PerUnit.SB, factor.getFunctionReference() * PerUnit.SB);
             }
         }
     }
@@ -88,10 +88,10 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
     }
 
-    private void getPostContingencySensitivityValues(List<LfSensitivityFactor> lfFactors, LfContingency lfContingency,
-                                                     LfNetwork lfNetwork, AcloadFlowEngine engine, List<SensitivityFactorGroup> factorGroups,
-                                                     LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
-                                                     String contingencyId, SensitivityValueHandler handler) {
+    private void calculatePostContingencySensitivityValues(List<LfSensitivityFactor> lfFactors, LfContingency lfContingency,
+                                                           LfNetwork lfNetwork, AcloadFlowEngine engine, List<SensitivityFactorGroup> factorGroups,
+                                                           LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
+                                                           String contingencyId, SensitivityValueWriter writer) {
         for (LfBus bus : lfContingency.getBuses()) {
             bus.setDisabled(true);
         }
@@ -117,7 +117,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             setFunctionReferences(lfFactors);
 
             // calculate sensitivity values
-            calculateSensitivityValues(factorGroups, factorsStates, contingencyId, handler);
+            calculateSensitivityValues(factorGroups, factorsStates, contingencyId, writer);
         }
 
         LfContingency.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
@@ -127,7 +127,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
      * https://people.montefiore.uliege.be/vct/elec0029/lf.pdf / Equation 32 is transposed
      */
     public void analyse(Network network, List<SensitivityFactor> factors, List<PropagatedContingency> contingencies,
-                        LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityValueHandler handler) {
+                        LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityValueWriter writer) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(factors);
         Objects.requireNonNull(lfParameters);
@@ -161,7 +161,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             List<LfSensitivityFactor> zeroFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.ZERO)).collect(Collectors.toList());
             warnSkippedFactors(lfFactors);
             lfFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.VALID)).collect(Collectors.toList());
-            zeroFactors.forEach(lfFactor -> handler.onValue(lfFactor.getFactor(), null, 0, Double.NaN));
+            zeroFactors.forEach(lfFactor -> writer.write(lfFactor.getFactor(), null, 0, Double.NaN));
 
             // index factors by variable group to compute a minimal number of states
             List<SensitivityFactorGroup> factorGroups = createFactorGroups(network, lfFactors);
@@ -194,7 +194,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
                 // calculate sensitivity values
                 setFunctionReferences(lfFactors);
-                calculateSensitivityValues(factorGroups, factorsStates, null, handler);
+                calculateSensitivityValues(factorGroups, factorsStates, null, writer);
             }
 
             GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.createDecrementalConnectivity(connectivityProvider);
@@ -209,9 +209,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 lfFactors.stream()
                     .filter(lfFactor -> lfContingency.getBranches().contains(lfFactor.getFunctionLfBranch()))
                     .forEach(lfFactor -> lfFactor.setPredefinedResult(0d));
-                zeroFactors.forEach(lfFactor -> handler.onValue(lfFactor.getFactor(), lfContingency.getContingency().getId(), 0, Double.NaN));
-                getPostContingencySensitivityValues(lfFactors, lfContingency, lfNetwork, engine, factorGroups, lfParameters,
-                        lfParametersExt, lfContingency.getContingency().getId(), handler);
+                zeroFactors.forEach(lfFactor -> writer.write(lfFactor.getFactor(), lfContingency.getContingency().getId(), 0, Double.NaN));
+                calculatePostContingencySensitivityValues(lfFactors, lfContingency, lfNetwork, engine, factorGroups, lfParameters,
+                        lfParametersExt, lfContingency.getContingency().getId(), writer);
                 BusState.restoreBusStates(busStates);
             }
 
@@ -245,9 +245,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
                 computeInjectionFactors(slackParticipationByBusForThisConnectivity, factorGroups);
 
-                zeroFactors.forEach(lfFactor -> handler.onValue(lfFactor.getFactor(), lfContingency.getContingency().getId(), 0, Double.NaN));
-                getPostContingencySensitivityValues(lfFactors, lfContingency, lfNetwork, engine, factorGroups, lfParameters, lfParametersExt,
-                        lfContingency.getContingency().getId(), handler);
+                zeroFactors.forEach(lfFactor -> writer.write(lfFactor.getFactor(), lfContingency.getContingency().getId(), 0, Double.NaN));
+                calculatePostContingencySensitivityValues(lfFactors, lfContingency, lfNetwork, engine, factorGroups, lfParameters, lfParametersExt,
+                        lfContingency.getContingency().getId(), writer);
                 BusState.restoreBusStates(busStates);
 
                 connectivity.reset();

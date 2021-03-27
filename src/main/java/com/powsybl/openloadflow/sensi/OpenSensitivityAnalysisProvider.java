@@ -106,7 +106,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
     public void run(Network network, String workingStateId, SensitivityFactorsProvider sensitivityFactorsProvider,
                     List<Contingency> contingencies, SensitivityAnalysisParameters sensitivityAnalysisParameters,
-                    SensitivityValueHandler handler) {
+                    SensitivityValueWriter writer) {
         network.getVariantManager().setWorkingVariant(workingStateId);
 
         List<SensitivityFactor> factors = sensitivityFactorsProvider.getCommonFactors(network);
@@ -129,9 +129,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 factors.size(), contingencies.size());
 
         if (lfParameters.isDc()) {
-            dcSensitivityAnalysis.analyse(network, factors, propagatedContingencies, lfParameters, lfParametersExt, handler);
+            dcSensitivityAnalysis.analyse(network, factors, propagatedContingencies, lfParameters, lfParametersExt, writer);
         } else {
-            acSensitivityAnalysis.analyse(network, factors, propagatedContingencies, lfParameters, lfParametersExt, handler);
+            acSensitivityAnalysis.analyse(network, factors, propagatedContingencies, lfParameters, lfParametersExt, writer);
         }
     }
 }
