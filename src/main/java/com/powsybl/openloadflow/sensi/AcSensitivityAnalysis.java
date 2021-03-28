@@ -28,8 +28,6 @@ import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.SensitivityFactor;
-import com.powsybl.sensitivity.factors.BranchIntensityPerPSTAngle;
-import com.powsybl.sensitivity.factors.functions.BranchIntensity;
 
 import java.util.*;
 import java.util.function.Supplier;
@@ -135,12 +133,13 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             Collectors.toMap(PropagatedContingency::getContingency, contingency -> new HashSet<>(contingency.getBranchIdsToOpen()))
         );
 
-        Set<String> branchesWithMeasuredCurrent = factors.stream()
-            .filter(BranchIntensityPerPSTAngle.class::isInstance)
-            .map(BranchIntensityPerPSTAngle.class::cast)
-            .map(BranchIntensityPerPSTAngle::getFunction)
-            .map(BranchIntensity::getBranchId)
-            .collect(Collectors.toSet());
+        List<LfSensitivityFactor> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork)).collect(Collectors.toList());
+
+        Set<String> branchesWithMeasuredCurrent = lfFactors.stream()
+                .filter(LfBranchIntensityPerPSTAngle.class::isInstance)
+                .map(LfSensitivityFactor::getFunctionId)
+                .collect(Collectors.toSet());
+
         // create AC engine
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters,
             lfParametersExt, true, true,
@@ -149,7 +148,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             engine.run();
 
-            List<LfSensitivityFactor> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork)).collect(Collectors.toList());
             List<LfSensitivityFactor> zeroFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.ZERO)).collect(Collectors.toList());
             warnSkippedFactors(lfFactors);
             lfFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.VALID)).collect(Collectors.toList());

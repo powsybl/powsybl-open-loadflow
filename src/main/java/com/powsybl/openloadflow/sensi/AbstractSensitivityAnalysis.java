@@ -120,7 +120,7 @@ public abstract class AbstractSensitivityAnalysis {
 
         private final String variableId;
 
-        private final EquationTerm equationTerm;
+        private final Supplier<EquationTerm> equationTermSupplier;
 
         private Double predefinedResult = null;
 
@@ -138,28 +138,28 @@ public abstract class AbstractSensitivityAnalysis {
                 functionId = branchFlow.getBranchId();
                 variableId = injectionIncrease.getInjectionId();
                 functionLfBranch = lfNetwork.getBranchById(branchFlow.getBranchId());
-                equationTerm = functionLfBranch != null ? (EquationTerm) functionLfBranch.getP1() : null;
+                equationTermSupplier = functionLfBranch != null ? () -> (EquationTerm) functionLfBranch.getP1() : null;
             } else if (factor instanceof BranchFlowPerPSTAngle) {
                 BranchFlow branchFlow = ((BranchFlowPerPSTAngle) factor).getFunction();
                 PhaseTapChangerAngle phaseTapChangerAngle = ((BranchFlowPerPSTAngle) factor).getVariable();
                 functionId = branchFlow.getBranchId();
                 variableId = phaseTapChangerAngle.getPhaseTapChangerHolderId();
                 functionLfBranch = lfNetwork.getBranchById(branchFlow.getBranchId());
-                equationTerm = functionLfBranch != null ? (EquationTerm) functionLfBranch.getP1() : null;
+                equationTermSupplier = functionLfBranch != null ? () -> (EquationTerm) functionLfBranch.getP1() : null;
             } else if (factor instanceof BranchIntensityPerPSTAngle) {
                 BranchIntensity branchIntensity = ((BranchIntensityPerPSTAngle) factor).getFunction();
                 PhaseTapChangerAngle phaseTapChangerAngle = ((BranchIntensityPerPSTAngle) factor).getVariable();
                 functionId = branchIntensity.getBranchId();
                 variableId = phaseTapChangerAngle.getPhaseTapChangerHolderId();
                 functionLfBranch = lfNetwork.getBranchById(branchIntensity.getBranchId());
-                equationTerm = functionLfBranch != null ? (EquationTerm) functionLfBranch.getI1() : null;
+                equationTermSupplier = functionLfBranch != null ? () -> (EquationTerm) functionLfBranch.getI1() : null;
             } else if (factor instanceof BranchFlowPerLinearGlsk) {
                 BranchFlow branchFlow = ((BranchFlowPerLinearGlsk) factor).getFunction();
                 LinearGlsk linearGlsk = ((BranchFlowPerLinearGlsk) factor).getVariable();
                 functionId = branchFlow.getBranchId();
                 variableId = linearGlsk.getId();
                 functionLfBranch = lfNetwork.getBranchById(branchFlow.getBranchId());
-                equationTerm = functionLfBranch != null ? (EquationTerm) functionLfBranch.getP1() : null;
+                equationTermSupplier = functionLfBranch != null ? () -> (EquationTerm) functionLfBranch.getP1() : null;
             } else {
                 throw new UnsupportedOperationException("Only factors of type BranchFlow are supported");
             }
@@ -199,7 +199,7 @@ public abstract class AbstractSensitivityAnalysis {
         }
 
         public EquationTerm getEquationTerm() {
-            return equationTerm;
+            return equationTermSupplier.get();
         }
 
         public Double getPredefinedResult() {
