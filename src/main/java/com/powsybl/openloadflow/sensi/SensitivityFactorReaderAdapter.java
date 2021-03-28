@@ -48,17 +48,17 @@ public class SensitivityFactorReaderAdapter implements SensitivityFactorReader {
         if (factor instanceof BranchFlowPerInjectionIncrease) {
             BranchFlow branchFlow = ((BranchFlowPerInjectionIncrease) factor).getFunction();
             InjectionIncrease injectionIncrease = ((BranchFlowPerInjectionIncrease) factor).getVariable();
-            handler.onSimpleFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER, branchFlow.getBranchId(),
+            handler.onSimpleFactor(factor, SensitivityFunctionType.BRANCH_ACTIVE_POWER, branchFlow.getBranchId(),
                     SensitivityVariableType.INJECTION_ACTIVE_POWER, injectionIncrease.getInjectionId());
         } else if (factor instanceof BranchFlowPerPSTAngle) {
             BranchFlow branchFlow = ((BranchFlowPerPSTAngle) factor).getFunction();
             PhaseTapChangerAngle phaseTapChangerAngle = ((BranchFlowPerPSTAngle) factor).getVariable();
-            handler.onSimpleFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER, branchFlow.getBranchId(),
+            handler.onSimpleFactor(factor, SensitivityFunctionType.BRANCH_ACTIVE_POWER, branchFlow.getBranchId(),
                     SensitivityVariableType.TRANSFORMER_PHASE, phaseTapChangerAngle.getPhaseTapChangerHolderId());
         } else if (factor instanceof BranchIntensityPerPSTAngle) {
             BranchIntensity branchIntensity = ((BranchIntensityPerPSTAngle) factor).getFunction();
             PhaseTapChangerAngle phaseTapChangerAngle = ((BranchIntensityPerPSTAngle) factor).getVariable();
-            handler.onSimpleFactor(SensitivityFunctionType.BRANCH_CURRENT, branchIntensity.getBranchId(),
+            handler.onSimpleFactor(factor, SensitivityFunctionType.BRANCH_CURRENT, branchIntensity.getBranchId(),
                     SensitivityVariableType.TRANSFORMER_PHASE, phaseTapChangerAngle.getPhaseTapChangerHolderId());
         } else if (factor instanceof BranchFlowPerLinearGlsk) {
             BranchFlow branchFlow = ((BranchFlowPerLinearGlsk) factor).getFunction();
@@ -66,7 +66,7 @@ public class SensitivityFactorReaderAdapter implements SensitivityFactorReader {
             List<WeightedSensitivityVariable> weightedVariables = linearGlsk.getGLSKs().entrySet().stream()
                     .map(e -> new WeightedSensitivityVariable(e.getKey(), e.getValue()))
                     .collect(Collectors.toList());
-            handler.onMultipleVariablesFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER, branchFlow.getBranchId(),
+            handler.onMultipleVariablesFactor(factor, SensitivityFunctionType.BRANCH_ACTIVE_POWER, branchFlow.getBranchId(),
                     SensitivityVariableType.INJECTION_ACTIVE_POWER, weightedVariables);
         } else {
             throw new UnsupportedOperationException("Only factors of type BranchFlow are supported");

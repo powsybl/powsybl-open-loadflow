@@ -6,12 +6,10 @@
  */
 package com.powsybl.openloadflow.sensi;
 
-import com.powsybl.sensitivity.SensitivityFactor;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public interface SensitivityValueWriter {
 
-    void write(SensitivityFactor sensitivityFactor, String contingencyId, double value, double functionReference);
+    void write(Object factorContext, String contingencyId, double value, double functionReference);
 }

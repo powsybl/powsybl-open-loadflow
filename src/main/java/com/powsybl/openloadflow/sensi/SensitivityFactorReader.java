@@ -15,9 +15,9 @@ public interface SensitivityFactorReader {
 
     interface Handler {
 
-        void onSimpleFactor(SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId);
+        void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId);
 
-        void onMultipleVariablesFactor(SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, List<WeightedSensitivityVariable> variables);
+        void onMultipleVariablesFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, List<WeightedSensitivityVariable> variables);
     }
 
     void read(Handler handler);
