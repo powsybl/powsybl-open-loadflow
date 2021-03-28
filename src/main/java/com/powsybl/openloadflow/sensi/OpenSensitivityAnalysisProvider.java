@@ -23,7 +23,10 @@ import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
@@ -87,20 +90,12 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                                                             SensitivityAnalysisParameters sensitivityAnalysisParameters,
                                                             ComputationManager computationManager) {
         return CompletableFuture.supplyAsync(() -> {
-            List<SensitivityValue> sensitivityValues = new ArrayList<>();
-            Map<String, List<SensitivityValue>> sensitivityValuesByContingency = new HashMap<>();
-            run(network, workingStateId, sensitivityFactorsProvider, contingencies, sensitivityAnalysisParameters, (sensitivityFactor, contingencyId, value, functionReference) -> {
-                if (contingencyId == null) {
-                    sensitivityValues.add(new SensitivityValue(sensitivityFactor, value, functionReference, Double.NaN));
-                } else {
-                    sensitivityValuesByContingency.computeIfAbsent(contingencyId, k -> new ArrayList<>())
-                            .add(new SensitivityValue(sensitivityFactor, value, functionReference, Double.NaN));
-                }
-            });
+            SensitivityValueWriterAdapter writer = new SensitivityValueWriterAdapter();
+            run(network, workingStateId, sensitivityFactorsProvider, contingencies, sensitivityAnalysisParameters, writer);
             boolean ok = true;
             Map<String, String> metrics = new HashMap<>();
             String logs = "";
-            return new SensitivityAnalysisResult(ok, metrics, logs, sensitivityValues, sensitivityValuesByContingency);
+            return new SensitivityAnalysisResult(ok, metrics, logs, writer.getSensitivityValues(), writer.getSensitivityValuesByContingency());
         });
     }
 
