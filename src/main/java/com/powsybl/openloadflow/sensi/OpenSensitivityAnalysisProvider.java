@@ -99,9 +99,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         });
     }
 
-    public void run(Network network, String workingStateId, List<Contingency> contingencies,
-                    SensitivityAnalysisParameters sensitivityAnalysisParameters, SensitivityFactorReader factorReader,
-                    SensitivityValueWriter valueWriter) {
+    public void run(Network network, String workingStateId, List<Contingency> contingencies, SensitivityAnalysisParameters sensitivityAnalysisParameters,
+                    SensitivityFactorReader factorReader, SensitivityValueWriter valueWriter) {
         network.getVariantManager().setWorkingVariant(workingStateId);
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, new HashSet<>());
@@ -110,9 +109,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
 
         if (lfParameters.isDc()) {
-            dcSensitivityAnalysis.analyse(network, factorReader, propagatedContingencies, lfParameters, lfParametersExt, valueWriter);
+            dcSensitivityAnalysis.analyse(network, propagatedContingencies, lfParameters, lfParametersExt, factorReader, valueWriter);
         } else {
-            acSensitivityAnalysis.analyse(network, factorReader, propagatedContingencies, lfParameters, lfParametersExt, valueWriter);
+            acSensitivityAnalysis.analyse(network, propagatedContingencies, lfParameters, lfParametersExt, factorReader, valueWriter);
         }
     }
 }

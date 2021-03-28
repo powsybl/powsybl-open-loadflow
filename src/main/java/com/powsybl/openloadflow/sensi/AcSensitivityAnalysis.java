@@ -115,13 +115,13 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     /**
      * https://people.montefiore.uliege.be/vct/elec0029/lf.pdf / Equation 32 is transposed
      */
-    public void analyse(Network network, SensitivityFactorReader factorReader, List<PropagatedContingency> contingencies,
-                        LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityValueWriter valueWriter) {
+    public void analyse(Network network, List<PropagatedContingency> contingencies, LoadFlowParameters lfParameters,
+                        OpenLoadFlowParameters lfParametersExt, SensitivityFactorReader factorReader, SensitivityValueWriter valueWriter) {
         Objects.requireNonNull(network);
-        Objects.requireNonNull(factorReader);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(lfParameters);
         Objects.requireNonNull(lfParametersExt);
+        Objects.requireNonNull(factorReader);
         Objects.requireNonNull(valueWriter);
 
         // create LF network (we only manage main connected component)
