@@ -461,18 +461,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
         return connectivityAnalysisResults;
     }
-//
-//    @Override
-//    public void checkSensitivities(Network network, List<SensitivityFactor> factors) {
-//        super.checkSensitivities(network, factors);
-//        for (SensitivityFactor factor : factors) {
-//            if (!(factor instanceof BranchFlowPerInjectionIncrease)
-//                && !(factor instanceof BranchFlowPerLinearGlsk)
-//                && !(factor instanceof BranchFlowPerPSTAngle)) {
-//                throw new PowsyblException("Only sensitivity factors of type BranchFlowPerInjectionIncrease, BranchFlowPerLinearGlsk and BranchFlowPerPSTAngle are yet supported in DC");
-//            }
-//        }
-//    }
 
     public void analyse(Network network, SensitivityFactorReader factorReader, List<PropagatedContingency> contingencies,
                         LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityValueWriter valueWriter) {
