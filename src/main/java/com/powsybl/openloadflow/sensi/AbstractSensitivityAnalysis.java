@@ -74,9 +74,9 @@ public abstract class AbstractSensitivityAnalysis {
 
         private Double predefinedResult = null;
 
-        private Double functionReference = 0d;
+        private double functionReference = 0d;
 
-        private Double baseCaseSensitivityValue = Double.NaN; // the sensitivity value on pre contingency network, that needs to be recomputed if the stack distribution change
+        private double baseCaseSensitivityValue = Double.NaN; // the sensitivity value on pre contingency network, that needs to be recomputed if the stack distribution change
 
         private Status status = Status.VALID;
 
@@ -118,19 +118,19 @@ public abstract class AbstractSensitivityAnalysis {
             this.predefinedResult = predefinedResult;
         }
 
-        public Double getFunctionReference() {
+        public double getFunctionReference() {
             return functionReference;
         }
 
-        public void setFunctionReference(Double functionReference) {
+        public void setFunctionReference(double functionReference) {
             this.functionReference = functionReference;
         }
 
-        public Double getBaseSensitivityValue() {
+        public double getBaseSensitivityValue() {
             return baseCaseSensitivityValue;
         }
 
-        public void setBaseCaseSensitivityValue(Double baseCaseSensitivityValue) {
+        public void setBaseCaseSensitivityValue(double baseCaseSensitivityValue) {
             this.baseCaseSensitivityValue = baseCaseSensitivityValue;
         }
 
