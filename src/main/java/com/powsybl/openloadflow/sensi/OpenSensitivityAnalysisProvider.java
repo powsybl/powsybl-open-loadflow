@@ -91,7 +91,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return CompletableFuture.supplyAsync(() -> {
             SensitivityFactorReader factorReader = new SensitivityFactorReaderAdapter(network, sensitivityFactorsProvider, contingencies);
             SensitivityValueWriterAdapter valueWriter = new SensitivityValueWriterAdapter();
-            run(network, workingStateId, factorReader, contingencies, sensitivityAnalysisParameters, valueWriter);
+            run(network, workingStateId, contingencies, sensitivityAnalysisParameters, factorReader, valueWriter);
             boolean ok = true;
             Map<String, String> metrics = new HashMap<>();
             String logs = "";
@@ -99,8 +99,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         });
     }
 
-    public void run(Network network, String workingStateId, SensitivityFactorReader factorReader, List<Contingency> contingencies,
-                    SensitivityAnalysisParameters sensitivityAnalysisParameters, SensitivityValueWriter valueWriter) {
+    public void run(Network network, String workingStateId, List<Contingency> contingencies,
+                    SensitivityAnalysisParameters sensitivityAnalysisParameters, SensitivityFactorReader factorReader,
+                    SensitivityValueWriter valueWriter) {
         network.getVariantManager().setWorkingVariant(workingStateId);
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, new HashSet<>());

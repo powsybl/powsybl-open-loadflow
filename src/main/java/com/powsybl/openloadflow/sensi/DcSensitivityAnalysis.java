@@ -479,8 +479,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         List<LfSensitivityFactor> lfFactors = readAndCheckFactors(network, factorReader, lfNetwork);
 
-        LOGGER.info("Running DC sensitivity analysis with {} factors and {} contingencies",  lfFactors.size(), contingencies.size());
-
         lfFactors.stream()
                 .filter(lfFactor -> !(lfFactor instanceof LfBranchFlowPerInjectionIncrease)
                         && !(lfFactor instanceof LfBranchFlowPerLinearGlsk)
@@ -489,6 +487,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 .ifPresent(ignored -> {
                     throw new PowsyblException("Only sensitivity factors of type LfBranchFlowPerInjectionIncrease, LfBranchFlowPerLinearGlsk and LfBranchFlowPerPSTAngle are yet supported in DC");
                 });
+
+        LOGGER.info("Running DC sensitivity analysis with {} factors and {} contingencies",  lfFactors.size(), contingencies.size());
 
         // create DC load flow engine for setting the function reference
         DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfParametersExt.getSlackBusSelector(), matrixFactory,
