@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityFactorsProvider;
@@ -32,15 +33,28 @@ public class SensitivityFactorReaderAdapter implements SensitivityFactorReader {
 
     private final SensitivityFactorsProvider sensitivityFactorsProvider;
 
-    public SensitivityFactorReaderAdapter(Network network, SensitivityFactorsProvider sensitivityFactorsProvider) {
+    private final List<Contingency> contingencies;
+
+    public SensitivityFactorReaderAdapter(Network network, SensitivityFactorsProvider sensitivityFactorsProvider,
+                                          List<Contingency> contingencies) {
         this.network = Objects.requireNonNull(network);
         this.sensitivityFactorsProvider = Objects.requireNonNull(sensitivityFactorsProvider);
+        this.contingencies = Objects.requireNonNull(contingencies);
     }
 
     @Override
     public void read(Handler handler) {
         for (SensitivityFactor factor : sensitivityFactorsProvider.getCommonFactors(network)) {
             read(handler, factor);
+        }
+        // FIXME additional factors are not yet supported
+        if (!sensitivityFactorsProvider.getAdditionalFactors(network).isEmpty()) {
+            throw new UnsupportedOperationException("Factors specific to base case not yet supported");
+        }
+        for (Contingency contingency : contingencies) {
+            if (!sensitivityFactorsProvider.getAdditionalFactors(network, contingency.getId()).isEmpty()) {
+                throw new UnsupportedOperationException("Factors specific to one contingency not yet supported");
+            }
         }
     }
 
@@ -67,7 +81,7 @@ public class SensitivityFactorReaderAdapter implements SensitivityFactorReader {
                     .map(e -> new WeightedSensitivityVariable(e.getKey(), e.getValue()))
                     .collect(Collectors.toList());
             handler.onMultipleVariablesFactor(factor, SensitivityFunctionType.BRANCH_ACTIVE_POWER, branchFlow.getBranchId(),
-                    SensitivityVariableType.INJECTION_ACTIVE_POWER, weightedVariables);
+                    SensitivityVariableType.INJECTION_ACTIVE_POWER, linearGlsk.getId(), weightedVariables);
         } else {
             throw new UnsupportedOperationException("Only factors of type BranchFlow are supported");
         }

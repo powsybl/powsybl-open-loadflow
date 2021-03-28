@@ -18,10 +18,11 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PropagatedContingency;
-import com.powsybl.sensitivity.*;
+import com.powsybl.sensitivity.SensitivityAnalysisParameters;
+import com.powsybl.sensitivity.SensitivityAnalysisProvider;
+import com.powsybl.sensitivity.SensitivityAnalysisResult;
+import com.powsybl.sensitivity.SensitivityFactorsProvider;
 import com.powsybl.tools.PowsyblCoreVersion;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,8 +36,6 @@ import java.util.function.Supplier;
  */
 @AutoService(SensitivityAnalysisProvider.class)
 public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvider {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(OpenSensitivityAnalysisProvider.class);
 
     private static final String NAME = "OpenSensitivityAnalysis";
 
@@ -90,43 +89,29 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                                                             SensitivityAnalysisParameters sensitivityAnalysisParameters,
                                                             ComputationManager computationManager) {
         return CompletableFuture.supplyAsync(() -> {
-            SensitivityValueWriterAdapter writer = new SensitivityValueWriterAdapter();
-            run(network, workingStateId, sensitivityFactorsProvider, contingencies, sensitivityAnalysisParameters, writer);
+            SensitivityFactorReader factorReader = new SensitivityFactorReaderAdapter(network, sensitivityFactorsProvider, contingencies);
+            SensitivityValueWriterAdapter valueWriter = new SensitivityValueWriterAdapter();
+            run(network, workingStateId, factorReader, contingencies, sensitivityAnalysisParameters, valueWriter);
             boolean ok = true;
             Map<String, String> metrics = new HashMap<>();
             String logs = "";
-            return new SensitivityAnalysisResult(ok, metrics, logs, writer.getSensitivityValues(), writer.getSensitivityValuesByContingency());
+            return new SensitivityAnalysisResult(ok, metrics, logs, valueWriter.getSensitivityValues(), valueWriter.getSensitivityValuesByContingency());
         });
     }
 
-    public void run(Network network, String workingStateId, SensitivityFactorsProvider sensitivityFactorsProvider,
-                    List<Contingency> contingencies, SensitivityAnalysisParameters sensitivityAnalysisParameters,
-                    SensitivityValueWriter writer) {
+    public void run(Network network, String workingStateId, SensitivityFactorReader factorReader, List<Contingency> contingencies,
+                    SensitivityAnalysisParameters sensitivityAnalysisParameters, SensitivityValueWriter valueWriter) {
         network.getVariantManager().setWorkingVariant(workingStateId);
-
-        List<SensitivityFactor> factors = sensitivityFactorsProvider.getCommonFactors(network);
-        // FIXME additional factors are not yet supported
-        if (!sensitivityFactorsProvider.getAdditionalFactors(network).isEmpty()) {
-            throw new UnsupportedOperationException("Factors specific to base case not yet supported");
-        }
-        for (Contingency contingency : contingencies) {
-            if (!sensitivityFactorsProvider.getAdditionalFactors(network, contingency.getId()).isEmpty()) {
-                throw new UnsupportedOperationException("Factors specific to one contingency not yet supported");
-            }
-        }
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, new HashSet<>());
 
         LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
 
-        LOGGER.info("Running {} sensitivity analysis with {} factors and {} contingencies", lfParameters.isDc() ? "DC" : "AC",
-                factors.size(), contingencies.size());
-
         if (lfParameters.isDc()) {
-            dcSensitivityAnalysis.analyse(network, factors, propagatedContingencies, lfParameters, lfParametersExt, writer);
+            dcSensitivityAnalysis.analyse(network, factorReader, propagatedContingencies, lfParameters, lfParametersExt, valueWriter);
         } else {
-            acSensitivityAnalysis.analyse(network, factors, propagatedContingencies, lfParameters, lfParametersExt, writer);
+            acSensitivityAnalysis.analyse(network, factorReader, propagatedContingencies, lfParameters, lfParametersExt, valueWriter);
         }
     }
 }
