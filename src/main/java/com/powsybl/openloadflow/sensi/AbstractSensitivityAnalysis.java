@@ -410,8 +410,8 @@ public abstract class AbstractSensitivityAnalysis {
 
         LfBusVoltagePerTargetV(SensitivityFactor factor, Network network, LfNetwork lfNetwork, EquationSystem equationSystem) {
             super(factor, network, lfNetwork, equationSystem);
-            String targetVTerminalId = ((TargetV) factor.getVariable()).getEquipmentId();
-            Terminal regulatingTerminal = getEquipmentRegulatingTerminal(network, targetVTerminalId);
+            String targetVEquipmentId = ((TargetV) factor.getVariable()).getEquipmentId();
+            Terminal regulatingTerminal = getEquipmentRegulatingTerminal(network, targetVEquipmentId);
             if (regulatingTerminal == null) {
                 setStatus(Status.SKIP);
                 targetVBus = null;
