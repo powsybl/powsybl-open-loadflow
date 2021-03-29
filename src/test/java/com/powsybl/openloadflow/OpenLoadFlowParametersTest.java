@@ -79,7 +79,7 @@ class OpenLoadFlowParametersTest {
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         assertTrue(olfParameters.getSlackBusSelector() instanceof FirstSlackBusSelector);
 
-        assertTrue(olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
+        assertFalse(olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
         assertTrue(olfParameters.hasVoltageRemoteControl());
         assertEquals(LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
     }
