@@ -23,7 +23,6 @@ import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityFunction;
-import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.SensitivityVariable;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
@@ -563,10 +562,6 @@ public abstract class AbstractSensitivityAnalysis {
                 factor.setPredefinedResult(Double.NaN); // works for sensitivity and function reference
             }
         }
-    }
-
-    protected static SensitivityValue createZeroValue(LfSensitivityFactor lfFactor) {
-        return new SensitivityValue(lfFactor.getFactor(), 0, Double.NaN, Double.NaN);
     }
 
     protected void rescaleGlsk(List<SensitivityFactorGroup> factorGroups, Set<LfBus> nonConnectedBuses) {
