@@ -15,6 +15,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
+import com.powsybl.openloadflow.network.T3wtFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.sensi.SensitivityFactorReader;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
@@ -27,6 +28,7 @@ import com.powsybl.sensitivity.factors.BranchIntensityPerPSTAngle;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
@@ -350,6 +352,23 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         assertEquals(0d, factorWriter.getSensitivityValue(cs2vl1), LoadFlowAssert.DELTA_V);
         assertEquals(1d, factorWriter.getSensitivityValue(cs2vl2), LoadFlowAssert.DELTA_V);
+    }
+
+    @Test
+    void testBusVoltagePerTarget3wt() {
+        Network network = T3wtFactory.createWithRatioChanger();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        Pair<String, String> t3wtvl1 = Pair.of("3wt", "vl1_0");
+        Pair<String, String> t3wtvl2 = Pair.of("3wt", "vl2_0");
+        Pair<String, String> t3wtvl3 = Pair.of("3wt", "vl3_0");
+        SensitivityFactorReader factorReader = createBusVoltageReader(List.of(t3wtvl1, t3wtvl2, t3wtvl3));
+        BusVoltageWriter factorWriter = createBusVoltageWriter();
+        NotImplementedException e = assertThrows(NotImplementedException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
+            sensiParameters, factorReader, factorWriter));
+
+        assertEquals("[3wt] Bus voltage on three windings transformer is not managed yet", e.getMessage());
     }
 
     @Test
