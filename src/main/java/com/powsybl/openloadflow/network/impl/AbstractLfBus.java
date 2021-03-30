@@ -80,7 +80,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected AbstractLfBus(LfNetwork network, double v, double angle) {
         super(network);
-        this.v = () -> v; // this will be replaced by an equation term once the equationSystem is created
+        this.v = () -> v / getNominalV(); // this will be replaced by an equation term once the equationSystem is created
         this.angle = angle;
     }
 

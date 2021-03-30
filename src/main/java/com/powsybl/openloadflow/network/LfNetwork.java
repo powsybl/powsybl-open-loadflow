@@ -197,7 +197,7 @@ public class LfNetwork {
                 }
             }
         });
-        Double v = bus.getV().eval() / bus.getNominalV();
+        Double v = bus.getV().eval();
         if (!Double.isNaN(v)) {
             jsonGenerator.writeNumberField("v", v);
         }
