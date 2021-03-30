@@ -99,7 +99,7 @@ public abstract class AbstractSensitivityAnalysis {
         private LfBranch lfBranch;
         private String lfBranchId;
 
-        public AbstractLfBranchFunction(LfBranch branch) {
+        AbstractLfBranchFunction(LfBranch branch) {
             this.lfBranch = branch;
             this.lfBranchId = branch.getId();
         }
@@ -138,7 +138,7 @@ public abstract class AbstractSensitivityAnalysis {
     abstract static class AbstractLfBusFunction {
         private LfBus lfBus;
 
-        public AbstractLfBusFunction(LfBus bus) {
+        AbstractLfBusFunction(LfBus bus) {
             this.lfBus = bus;
         }
 
@@ -783,6 +783,7 @@ public abstract class AbstractSensitivityAnalysis {
                     if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
                         checkRegulatingTerminal(network, variableId);
                         Terminal regulatingTerminal = getEquipmentRegulatingTerminal(network, variableId);
+                        assert regulatingTerminal != null; // this cannot fail because it is checked in checkRegulatingTerminal
                         LfBus targetVBus = lfNetwork.getBusById(regulatingTerminal.getBusView().getBus().getId());
                         lfFactors.add(new LfBusVoltagePerTargetV(factorContext, variableId, function, targetVBus));
                     }
