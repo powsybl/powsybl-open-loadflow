@@ -24,26 +24,34 @@ import java.util.Set;
  */
 public class PropagatedContingency {
 
-    final Contingency contingency;
+    private final Contingency contingency;
 
-    final Set<String> branchIdsToOpen = new HashSet<>();
+    private final int index;
+
+    private final Set<String> branchIdsToOpen = new HashSet<>();
 
     public Contingency getContingency() {
         return contingency;
+    }
+
+    public int getIndex() {
+        return index;
     }
 
     public Set<String> getBranchIdsToOpen() {
         return branchIdsToOpen;
     }
 
-    public PropagatedContingency(Contingency contingency) {
+    public PropagatedContingency(Contingency contingency, int index) {
         this.contingency = contingency;
+        this.index = index;
     }
 
     public static List<PropagatedContingency> create(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
-        for (Contingency contingency : contingencies) {
-            PropagatedContingency propagatedContingency = new PropagatedContingency(contingency);
+        for (int index = 0; index < contingencies.size(); index++) {
+            Contingency contingency = contingencies.get(index);
+            PropagatedContingency propagatedContingency = new PropagatedContingency(contingency, index);
             propagatedContingencies.add(propagatedContingency);
 
             Set<Switch> switchesToOpen = new HashSet<>();
