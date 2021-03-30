@@ -93,6 +93,7 @@ public class TargetVector extends AbstractLfNetworkListener implements EquationS
         for (Equation equation : sortedEquationsToSolve.keySet()) {
             equation.initTarget(network, array);
         }
+        status = Status.VALID;
         return array;
     }
 
