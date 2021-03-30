@@ -21,7 +21,7 @@ public final class ParameterConstants {
     public static final SlackBusSelector SLACK_BUS_SELECTOR_DEFAULT_VALUE = new MostMeshedSlackBusSelector();
 
     public static final String THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME = "throwsExceptionInCaseOfSlackDistributionFailure";
-    public static final boolean THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE = true;
+    public static final boolean THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE = false;
 
     public static final String VOLTAGE_REMOTE_CONTROL_PARAM_NAME = "voltageRemoteControl";
     public static final boolean VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE = true;
