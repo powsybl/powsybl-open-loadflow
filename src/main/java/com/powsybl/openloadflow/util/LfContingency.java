@@ -35,14 +35,17 @@ public class LfContingency {
 
     private final Contingency contingency;
 
+    private final int index;
+
     private final Set<LfBus> buses;
 
     private final Set<LfBranch> branches;
 
     private double activePowerLoss;
 
-    public LfContingency(Contingency contingency, Set<LfBus> buses, Set<LfBranch> branches) {
+    public LfContingency(Contingency contingency, int index, Set<LfBus> buses, Set<LfBranch> branches) {
         this.contingency = Objects.requireNonNull(contingency);
+        this.index = index;
         this.buses = Objects.requireNonNull(buses);
         this.branches = Objects.requireNonNull(branches);
         double lose = 0;
@@ -54,6 +57,10 @@ public class LfContingency {
 
     public Contingency getContingency() {
         return contingency;
+    }
+
+    public int getIndex() {
+        return index;
     }
 
     public Set<LfBus> getBuses() {
@@ -117,7 +124,7 @@ public class LfContingency {
             // reset connectivity to discard triggered branches
             connectivity.reset();
 
-            contingencies.add(new LfContingency(propagatedContingency.getContingency(), buses, branches));
+            contingencies.add(new LfContingency(propagatedContingency.getContingency(), propagatedContingency.getIndex(), buses, branches));
         }
 
         return contingencies;

@@ -32,7 +32,7 @@ public class SensitivityValueWriterAdapter implements SensitivityValueWriter {
     }
 
     @Override
-    public void write(Object factorContext, String contingencyId, double value, double functionReference) {
+    public void write(Object factorContext, String contingencyId, int contingencyIndex, double value, double functionReference) {
         SensitivityFactor sensitivityFactor = (SensitivityFactor) factorContext;
         if (contingencyId == null) {
             sensitivityValues.add(new SensitivityValue(sensitivityFactor, value, functionReference, Double.NaN));

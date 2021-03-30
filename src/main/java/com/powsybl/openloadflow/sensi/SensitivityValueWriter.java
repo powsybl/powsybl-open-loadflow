@@ -11,5 +11,5 @@ package com.powsybl.openloadflow.sensi;
  */
 public interface SensitivityValueWriter {
 
-    void write(Object factorContext, String contingencyId, double value, double functionReference);
+    void write(Object factorContext, String contingencyId, int contingencyIndex, double value, double functionReference);
 }
