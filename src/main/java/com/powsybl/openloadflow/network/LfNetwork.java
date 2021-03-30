@@ -11,7 +11,6 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
 import net.jafama.FastMath;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
@@ -454,10 +453,6 @@ public class LfNetwork {
     public static boolean isZeroImpedanceBranch(LfBranch branch) {
         PiModel piModel = branch.getPiModel();
         return piModel.getZ() < LOW_IMPEDANCE_THRESHOLD;
-    }
-
-    public GraphDecrementalConnectivity<LfBus> createDecrementalConnectivity() {
-        return createDecrementalConnectivity(() -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
     }
 
     public GraphDecrementalConnectivity<LfBus> createDecrementalConnectivity(Supplier<GraphDecrementalConnectivity<LfBus>> connectivitySupplier) {
