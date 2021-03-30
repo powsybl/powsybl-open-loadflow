@@ -64,7 +64,7 @@ public class TargetVector extends AbstractLfNetworkListener implements EquationS
 
     @Override
     public void onGenerationReactivePowerTargetChange(LfBus bus, double oldGenerationTargetQ, double newGenerationTargetQ) {
-        status = Status.VALUES_INVALID;
+        invalidateValues();
     }
 
     @Override
