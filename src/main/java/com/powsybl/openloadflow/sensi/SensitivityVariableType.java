@@ -9,7 +9,8 @@ package com.powsybl.openloadflow.sensi;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface SensitivityValueWriter {
-
-    void write(Object factorContext, String contingencyId, int contingencyIndex, double value, double functionReference);
+public enum SensitivityVariableType {
+    INJECTION_ACTIVE_POWER, // MW
+    TRANSFORMER_PHASE, // A
+    BUS_TARGET_VOLTAGE // Kv
 }
