@@ -316,6 +316,26 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testBusVoltagePerTargetVTwt() {
+        Network network = FourBusNetworkFactory.createWithTransfoRatioChanger();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        Pair<String, String> g2b1 = Pair.of("l23", "b1_vl_0");
+        Pair<String, String> g2b2 = Pair.of("l23", "b2_vl_0");
+        Pair<String, String> g2b3 = Pair.of("l23", "b3_vl_0");
+        Pair<String, String> g2b4 = Pair.of("l23", "b4_vl_0");
+        SensitivityFactorReader factorReader = createBusVoltageReader(List.of(g2b1, g2b2, g2b3, g2b4));
+        BusVoltageWriter factorWriter = createBusVoltageWriter();
+        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
+            sensiParameters, factorReader, factorWriter);
+
+        assertEquals(0d, factorWriter.getSensitivityValue(g2b1), LoadFlowAssert.DELTA_V); // no impact on a pv
+        assertEquals(1d, factorWriter.getSensitivityValue(g2b2), LoadFlowAssert.DELTA_V); // 1 on itself
+        assertEquals(0.3087d, factorWriter.getSensitivityValue(g2b3), LoadFlowAssert.DELTA_V); // value obtained by running two loadflow with a very small difference on targetV for bus2
+        assertEquals(0d, factorWriter.getSensitivityValue(g2b4), LoadFlowAssert.DELTA_V);
+    }
+
+    @Test
     void testBusVoltagePerTargetVFunctionRef() {
         Network network = FourBusNetworkFactory.create();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
@@ -362,6 +382,19 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         PowsyblException e = assertThrows(PowsyblException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
             sensiParameters, factorReader, factorWriter));
         assertEquals("Regulating terminal for 'a' not found", e.getMessage());
+    }
+
+    @Test
+    void testTargetVOnNotRegulatingTwt() {
+        Network network = FourBusNetworkFactory.createWithTransfoCompensed();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        SensitivityFactorReader factorReader = createBusVoltageReader(List.of(Pair.of("l23", "b4_vl_0")));
+        BusVoltageWriter factorWriter = createBusVoltageWriter();
+        PowsyblException e = assertThrows(PowsyblException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
+            sensiParameters, factorReader, factorWriter));
+        assertEquals("Regulating terminal for 'l23' not found", e.getMessage());
     }
 
     @Test

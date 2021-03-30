@@ -91,6 +91,25 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+    public static Network createWithTransfoRatioChanger() {
+        Network network = createWithTransfoCompensed();
+        TwoWindingsTransformer twt = network.getTwoWindingsTransformer("l23");
+        twt.newRatioTapChanger()
+            .setRegulationTerminal(twt.getTerminal1())
+            .setLoadTapChangingCapabilities(false)
+            .setTapPosition(0)
+            .beginStep()
+            .setR(0)
+            .setX(0)
+            .setG(0)
+            .setB(0)
+            .setRho(0.9)
+            .endStep()
+            .add();
+        return network;
+    }
+
+
     public static Network createWithTwoGeneratorsAtBus2() {
         Network network = create();
         Bus b2 = network.getBusBreakerView().getBus("b2");
