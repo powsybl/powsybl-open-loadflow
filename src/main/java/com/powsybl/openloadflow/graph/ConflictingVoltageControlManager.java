@@ -49,8 +49,6 @@ public class ConflictingVoltageControlManager {
     }
 
     LfNetwork lfNetwork;
-    private Graph<LfBus, LfBranch> graph = new DefaultUndirectedWeightedGraph<>(LfBranch.class);
-    private DijkstraShortestPath<LfBus, LfBranch> algorithm;
     private final Collection<VoltageLevelIndex> voltageLevelIndices = createVoltageLevels();
     private final Set<LfBus> pvBuses;
 
@@ -60,17 +58,6 @@ public class ConflictingVoltageControlManager {
      * @param lfBuses needed, because calling lfNetwork.getBuses() would trigger updateCache and crash in slackBus selection for non-principal components
      */
     public ConflictingVoltageControlManager(LfNetwork lfNetwork, List<LfBus> lfBuses) {
-        lfBuses.forEach(bus -> graph.addVertex(bus));
-        // todo: How to remove transformers (2wt and 3wt) ???
-        lfNetwork.getBranches().stream()
-            .filter(branch -> branch.getBus1() != null && branch.getBus2() != null)
-            .filter(branch -> !branch.isVoltageController()) // twt ?
-            .filter(branch -> !(branch instanceof LfLegBranch)) // T3wt are LegBranches ?
-            .forEach(branch -> {
-                graph.addEdge(branch.getBus1(), branch.getBus2(), branch);
-                graph.setEdgeWeight(branch.getBus1(), branch.getBus2(), FastMath.abs(branch.getPiModel().getX()));
-            });
-        this.algorithm = new DijkstraShortestPath<>(graph);
         this.lfNetwork = lfNetwork;
         this.pvBuses = getPvBuses(lfBuses);
     }
@@ -88,6 +75,29 @@ public class ConflictingVoltageControlManager {
         return lfBuses.stream()
             .filter(bus -> bus.isDiscreteVoltageControlled() || bus.isVoltageControlled())
             .collect(Collectors.toSet());
+    }
+
+    private static Graph<LfBus, LfBranch> createGraph(Collection<LfBus> buses) {
+        Graph<LfBus, LfBranch> graph = new DefaultUndirectedWeightedGraph<>(LfBranch.class);
+
+        // first, add all buses
+        for (LfBus bus : buses) {
+            graph.addVertex(bus);
+        }
+        // then, add all branches
+        for (LfBus bus : buses) {
+            bus.getBranches().stream()
+                .filter(branch -> branch.getBus1() != null && branch.getBus2() != null)
+                .filter(branch -> buses.contains(branch.getBus1()) && buses.contains(branch.getBus2()))
+                .filter(branch -> !branch.isVoltageController()) // twt ?
+                .filter(branch -> !(branch instanceof LfLegBranch)) // T3wt are LegBranches ?
+                .forEach(branch -> {
+                    graph.addEdge(branch.getBus1(), branch.getBus2(), branch);
+                    graph.setEdgeWeight(branch.getBus1(), branch.getBus2(), FastMath.abs(branch.getPiModel().getX()));
+                });
+        }
+
+        return graph;
     }
 
     /***
@@ -117,7 +127,10 @@ public class ConflictingVoltageControlManager {
         for (Map.Entry<VoltageLevelIndex, Set<LfBus>> entry : busesByVoltageLevel.entrySet()) {
             VoltageLevelIndex index = entry.getKey();
             Set<LfBus> buses = entry.getValue();
+            Graph<LfBus, LfBranch> voltageLevelGraph = createGraph(buses);
+            DijkstraShortestPath<LfBus, LfBranch> algorithm = new DijkstraShortestPath<>(voltageLevelGraph);
             Collection<Pair<LfBus, LfBus>> conflicts = new ArrayList<>();
+
             conflictsByVoltageLevel.put(index, conflicts);
 
             if (buses.size() < 2) {
@@ -125,11 +138,11 @@ public class ConflictingVoltageControlManager {
             }
             Collection<Pair<LfBus, LfBus>> candidatesPvPairs = getCandidatePairs(List.copyOf(buses));
 
-            // todo: it may be better to compute the paths ourselves (to stop at transformer, or stop if weight > threshold)
             for (Pair<LfBus, LfBus> candidatePair : candidatesPvPairs) {
                 LfBus bus1 = candidatePair.getKey();
                 LfBus bus2 = candidatePair.getValue();
-                double pathWeight = algorithm.getPathWeight(bus1, bus2);
+                double pathWeight = algorithm.getPathWeight(bus1, bus2); // todo: it may be better to compute the paths ourselves (to stop at transformer, or stop if weight > threshold)
+
                 double conflictThreshold = bus1.getV() * bus1.getNominalV() * (bus1.getV() * bus1.getNominalV() - bus2.getV() * bus2.getNominalV()) / index.getQmax();
                 if (pathWeight < conflictThreshold) {
                     conflicts.add(candidatePair);
