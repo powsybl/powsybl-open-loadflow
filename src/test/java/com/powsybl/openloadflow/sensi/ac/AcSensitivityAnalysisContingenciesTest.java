@@ -376,7 +376,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
             sensiParameters, LocalComputationManager.getDefault()).join();
         List<SensitivityValue> contingencyResult = result.getSensitivityValuesContingencies().get("l45");
         assertEquals(10, result.getSensitivityValues().size());
-        assertEquals(0d, getValue(contingencyResult, "g2", "b1"), LoadFlowAssert.DELTA_V); // 0 on the slack
+        assertEquals(0.916d, getValue(contingencyResult, "g2", "b1"), LoadFlowAssert.DELTA_V); // 0 on the slack
         assertEquals(1d, getValue(contingencyResult, "g2", "b2"), LoadFlowAssert.DELTA_V); // 1 on itself
         assertEquals(0.8133d, getValue(contingencyResult, "g2", "b3"), LoadFlowAssert.DELTA_V);
         assertEquals(0.512d, getValue(contingencyResult, "g2", "b4"), LoadFlowAssert.DELTA_V);

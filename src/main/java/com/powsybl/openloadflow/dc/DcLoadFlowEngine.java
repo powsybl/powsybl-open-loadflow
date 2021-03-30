@@ -18,6 +18,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -132,7 +134,7 @@ public class DcLoadFlowEngine {
 
         // set all calculated voltages to NaN
         for (LfBus bus : network.getBuses()) {
-            bus.setV(Double.NaN);
+            bus.setV(NAN);
         }
 
         LOGGER.info("Dc loadflow complete (status={})", status);

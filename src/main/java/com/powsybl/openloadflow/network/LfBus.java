@@ -73,9 +73,9 @@ public interface LfBus extends LfElement {
 
     double getMaxQ();
 
-    double getV();
+    Evaluable getV();
 
-    void setV(double v);
+    void setV(Evaluable v);
 
     double getAngle();
 

@@ -83,7 +83,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             } else if (factor.getFactor().getFunction() instanceof BranchIntensity) {
                 functionReference = factor.getFunctionLfBranch().getI1().eval();
             } else if (factor.getFactor().getFunction() instanceof BusVoltage) {
-                functionReference = factor.getFunctionLfBus().getV() / PerUnit.SB;
+                functionReference = factor.getFunctionLfBus().getV().eval() / PerUnit.SB;
             } else {
                 throw new PowsyblException("Function reference cannot be computed for function: " + factor.getFactor().getFunction().getClass().getSimpleName());
             }

@@ -188,9 +188,7 @@ public abstract class AbstractSensitivityAnalysis {
                 functionLfBranch = null;
                 Bus bus = ((BusVoltagePerTargetV) factor).getFunction().getBusRef().resolve(network).orElseThrow();
                 functionLfBus = lfNetwork.getBusById(bus.getId());
-                equationTerm = equationSystem.getEquationTerm(ElementType.BUS, functionLfBus.getNum(), EquationTerm.VariableEquationTerm.class);
-                // todo: how to make sure that the equation is the V equation term and not another variable ?
-                // todo: How to replace with functionLfBus.getV(); ?
+                equationTerm = functionLfBus != null ? (EquationTerm) functionLfBus.getV() : null;
             } else {
                 throw new UnsupportedOperationException("Only factors of type BranchFlow are supported");
             }
