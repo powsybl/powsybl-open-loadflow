@@ -27,9 +27,7 @@ import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityValue;
 import com.powsybl.sensitivity.factors.BranchIntensityPerPSTAngle;
-import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.functions.BranchIntensity;
-import com.powsybl.sensitivity.factors.functions.BusVoltage;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -55,19 +53,19 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     continue;
                 }
 
-                if (!factor.getEquationTerm().isActive()) {
+                if (!factor.getFunction().getEquationTerm().isActive()) {
                     throw new PowsyblException("Found an inactive equation for a factor that has no predefined result");
                 }
-                double sensi = factor.getEquationTerm().calculateSensi(factorsState, factorGroup.getIndex());
-                if (factor.getFunctionLfBranch() != null && factor.getFunctionLfBranch().getId().equals(factorGroup.getId())) {
+                double sensi = factor.getFunction().getEquationTerm().calculateSensi(factorsState, factorGroup.getIndex());
+                if (factor.getFunction() instanceof AbstractLfBranchFunction && ((AbstractLfBranchFunction) factor.getFunction()).getLfBranchId().equals(factorGroup.getId())) {
                     // add nabla_p eta, fr specific cases
                     // the only case currently: if we are computing the sensitivity of a phasetap change on itself
-                    Variable phi1Var = factor.getEquationTerm().getVariables()
+                    Variable phi1Var = factor.getFunction().getEquationTerm().getVariables()
                         .stream()
-                        .filter(var -> var.getNum() == factor.getFunctionLfBranch().getNum() && var.getType().equals(VariableType.BRANCH_ALPHA1))
+                        .filter(var -> var.getNum() == ((AbstractLfBranchFunction) factor.getFunction()).getLfBranch().getNum() && var.getType().equals(VariableType.BRANCH_ALPHA1))
                         .findAny()
                         .orElseThrow(() -> new PowsyblException("No alpha_1 variable on the function branch"));
-                    sensi += Math.toRadians(factor.getEquationTerm().der(phi1Var));
+                    sensi += Math.toRadians(factor.getFunction().getEquationTerm().der(phi1Var));
                 }
                 sensitivityValues.add(new SensitivityValue(factor.getFactor(), sensi * PerUnit.SB, factor.getFunctionReference() * PerUnit.SB, Double.NaN));
             }
@@ -77,17 +75,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     protected void setFunctionReferences(List<LfSensitivityFactor> factors) {
         for (LfSensitivityFactor factor : factors) {
-            double functionReference;
-            if (factor.getFactor().getFunction() instanceof BranchFlow) {
-                functionReference = factor.getFunctionLfBranch().getP1().eval();
-            } else if (factor.getFactor().getFunction() instanceof BranchIntensity) {
-                functionReference = factor.getFunctionLfBranch().getI1().eval();
-            } else if (factor.getFactor().getFunction() instanceof BusVoltage) {
-                functionReference = factor.getFunctionLfBus().getV().eval() / PerUnit.SB;
-            } else {
-                throw new PowsyblException("Function reference cannot be computed for function: " + factor.getFactor().getFunction().getClass().getSimpleName());
-            }
-            factor.setFunctionReference(functionReference);
+            factor.setFunctionReference(factor.getFunction().getEquationTerm().eval());
         }
     }
 
@@ -163,7 +151,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             engine.run();
 
-            List<LfSensitivityFactor> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, engine.getEquationSystem())).collect(Collectors.toList());
+            List<LfSensitivityFactor> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork)).collect(Collectors.toList());
             List<LfSensitivityFactor> zeroFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.ZERO)).collect(Collectors.toList());
             warnSkippedFactors(lfFactors);
             lfFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.VALID)).collect(Collectors.toList());
@@ -216,7 +204,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             for (LfContingency lfContingency : lfContingencies.stream().filter(lfContingency -> lfContingency.getBuses().isEmpty()).collect(Collectors.toSet())) {
                 lfFactors.forEach(lfFactor -> lfFactor.setPredefinedResult(null));
                 lfFactors.stream()
-                    .filter(lfFactor -> lfContingency.getBranches().contains(lfFactor.getFunctionLfBranch()))
+                    .filter(lfFactor -> lfFactor.getFunction() instanceof AbstractLfBranchFunction)
+                    .filter(lfFactor ->  lfContingency.getBranches().contains(((AbstractLfBranchFunction) lfFactor.getFunction()).getLfBranch()))
                     .forEach(lfFactor -> lfFactor.setPredefinedResult(0d));
                 List<SensitivityValue> contingencyValues = new ArrayList<>(zeroFactors.size() + lfFactors.size());
                 contingencyValues.addAll(zeroFactors.stream().map(AbstractSensitivityAnalysis::createZeroValue).collect(Collectors.toList()));

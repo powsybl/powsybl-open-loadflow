@@ -180,7 +180,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         dcLoadFlowEngine.run(equationSystem, j, disabledBuses, disabledBranches);
 
         for (LfSensitivityFactor factor : factors) {
-            factor.setFunctionReference(factor.getFunctionLfBranch().getP1().eval());
+            factor.setFunctionReference(factor.getFunction().getEquationTerm().eval());
         }
 
         if (lfParameters.isDistributedSlack()) {
@@ -196,7 +196,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                                                           Collection<ComputedContingencyElement> contingencyElements) {
         double sensiValue;
         double flowValue;
-        EquationTerm p1 = factor.getEquationTerm();
+        EquationTerm p1 = factor.getFunction().getEquationTerm();
+        String functionBranchId = ((AbstractLfBranchFunction) factor.getFunction()).getLfBranchId();
         if (factor.getPredefinedResult() != null) {
             sensiValue = factor.getPredefinedResult();
             flowValue = factor.getPredefinedResult();
@@ -204,7 +205,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             sensiValue = factor.getBaseSensitivityValue();
             flowValue = factor.getFunctionReference();
             for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                if (contingencyElement.getElement().getId().equals(factor.getFunctionLfBranchId())
+                if (contingencyElement.getElement().getId().equals(functionBranchId)
                         || contingencyElement.getElement().getId().equals(factor.getFactor().getVariable().getId())) {
                     // the sensitivity on a removed branch is 0, the sensitivity if the variable was a removed branch is 0
                     sensiValue = 0d;
@@ -222,7 +223,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     protected void setBaseCaseSensitivityValues(List<SensitivityFactorGroup> factorGroups, DenseMatrix factorsState) {
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             for (LfSensitivityFactor factor : factorGroup.getFactors()) {
-                factor.setBaseCaseSensitivityValue(factor.getEquationTerm().calculateSensi(factorsState, factorGroup.getIndex()));
+                factor.setBaseCaseSensitivityValue(factor.getFunction().getEquationTerm().calculateSensi(factorsState, factorGroup.getIndex()));
             }
         }
     }
@@ -423,7 +424,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet(), dcEquationSystemCreationParameters);
 
         // we wrap the factor into a class that allows us to have access to their branch and EquationTerm instantly
-        List<LfSensitivityFactor> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, equationSystem)).collect(Collectors.toList());
+        List<LfSensitivityFactor> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork)).collect(Collectors.toList());
         List<LfSensitivityFactor> zeroFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.ZERO).collect(Collectors.toList());
         warnSkippedFactors(lfFactors);
         lfFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.VALID)).collect(Collectors.toList());
