@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.sensi.SensitivityFactorReader;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
@@ -333,6 +334,22 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(1d, factorWriter.getSensitivityValue(g2b2), LoadFlowAssert.DELTA_V); // 1 on itself
         assertEquals(0.3087d, factorWriter.getSensitivityValue(g2b3), LoadFlowAssert.DELTA_V); // value obtained by running two loadflow with a very small difference on targetV for bus2
         assertEquals(0d, factorWriter.getSensitivityValue(g2b4), LoadFlowAssert.DELTA_V);
+    }
+
+    @Test
+    void testBusVoltagePerTargetVVsc() {
+        Network network = HvdcNetworkFactory.createVsc();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        Pair<String, String> cs2vl1 = Pair.of("cs2", "vl1_0");
+        Pair<String, String> cs2vl2 = Pair.of("cs2", "vl2_0");
+        SensitivityFactorReader factorReader = createBusVoltageReader(List.of(cs2vl1, cs2vl2));
+        BusVoltageWriter factorWriter = createBusVoltageWriter();
+        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
+            sensiParameters, factorReader, factorWriter);
+
+        assertEquals(0d, factorWriter.getSensitivityValue(cs2vl1), LoadFlowAssert.DELTA_V);
+        assertEquals(1d, factorWriter.getSensitivityValue(cs2vl2), LoadFlowAssert.DELTA_V);
     }
 
     @Test
