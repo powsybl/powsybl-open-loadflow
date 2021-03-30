@@ -137,8 +137,10 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         LOGGER.info("Running AC sensitivity analysis with {} factors and {} contingencies",  lfFactors.size(), contingencies.size());
 
         Set<String> branchesWithMeasuredCurrent = lfFactors.stream()
-                .filter(LfBranchIntensityPerPSTAngle.class::isInstance)
-                .map(LfSensitivityFactor::getFunctionId)
+                .map(LfSensitivityFactor::getFunction)
+                .filter(LfBranchIntensity.class::isInstance)
+                .map(LfBranchIntensity.class::cast)
+                .map(LfBranchIntensity::getLfBranchId)
                 .collect(Collectors.toSet());
 
         // create AC engine

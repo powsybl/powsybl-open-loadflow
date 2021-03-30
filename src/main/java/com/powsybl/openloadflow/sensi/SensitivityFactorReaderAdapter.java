@@ -6,19 +6,19 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityFactorsProvider;
-import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
-import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
-import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
-import com.powsybl.sensitivity.factors.BranchIntensityPerPSTAngle;
+import com.powsybl.sensitivity.factors.*;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.functions.BranchIntensity;
+import com.powsybl.sensitivity.factors.functions.BusVoltage;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
+import com.powsybl.sensitivity.factors.variables.TargetV;
 
 import java.util.List;
 import java.util.Objects;
@@ -82,6 +82,12 @@ public class SensitivityFactorReaderAdapter implements SensitivityFactorReader {
                     .collect(Collectors.toList());
             handler.onMultipleVariablesFactor(factor, SensitivityFunctionType.BRANCH_ACTIVE_POWER, branchFlow.getBranchId(),
                     SensitivityVariableType.INJECTION_ACTIVE_POWER, linearGlsk.getId(), weightedVariables);
+        } else if (factor instanceof BusVoltagePerTargetV) {
+            BusVoltage busVoltage = ((BusVoltagePerTargetV) factor).getFunction();
+            TargetV targetV = ((BusVoltagePerTargetV) factor).getVariable();
+            String busVoltageId = busVoltage.getBusRef().resolve(network).orElseThrow(() -> new PowsyblException("Bus for BusVoltage '" + busVoltage.getId() + "' not found")).getId();
+            handler.onSimpleFactor(factor, SensitivityFunctionType.BUS_VOLTAGE, busVoltageId,
+                SensitivityVariableType.BUS_TARGET_VOLTAGE, targetV.getEquipmentId());
         } else {
             throw new UnsupportedOperationException("Only factors of type BranchFlow are supported");
         }
