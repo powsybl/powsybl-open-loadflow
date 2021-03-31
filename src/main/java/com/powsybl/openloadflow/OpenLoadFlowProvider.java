@@ -103,7 +103,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     public static OpenLoadFlowParameters getParametersExt(LoadFlowParameters parameters) {
         OpenLoadFlowParameters parametersExt = parameters.getExtension(OpenLoadFlowParameters.class);
         if (parametersExt == null) {
-            parametersExt = new OpenLoadFlowParameters();
+            parametersExt = OpenLoadFlowParameters.load();
         }
         return parametersExt;
     }
