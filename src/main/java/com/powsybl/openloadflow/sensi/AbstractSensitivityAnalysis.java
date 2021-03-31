@@ -260,11 +260,11 @@ public abstract class AbstractSensitivityAnalysis {
     }
 
     static class MultiVariablesLfSensitivityFactor extends AbstractLfSensitivityFactor {
-        private final Map<? extends LfElement, Double> weightedVariableElements;
+        private final Map<LfElement, Double> weightedVariableElements;
 
         MultiVariablesLfSensitivityFactor(Object context, String variableId,
                                           LfElement functionElement, SensitivityFunctionType functionType,
-                                          Map<? extends LfElement, Double> weightedVariableElements, SensitivityVariableType variableType) {
+                                          Map<LfElement, Double> weightedVariableElements, SensitivityVariableType variableType) {
             super(context, variableId, functionElement, functionType, variableType);
             this.weightedVariableElements = weightedVariableElements;
             if (weightedVariableElements.isEmpty()) {
@@ -272,11 +272,11 @@ public abstract class AbstractSensitivityAnalysis {
             }
         }
 
-        public Map<? extends LfElement, Double> getWeightedVariableElements() {
+        public Map<LfElement, Double> getWeightedVariableElements() {
             return weightedVariableElements;
         }
 
-        public Collection<? extends LfElement> getVariableElements() {
+        public Collection<LfElement> getVariableElements() {
             return weightedVariableElements.keySet();
         }
 
@@ -381,22 +381,24 @@ public abstract class AbstractSensitivityAnalysis {
                     }
                     rhs.set(v.getColumn(), getIndex(), 1d / PerUnit.SB);
                     break;
+                default:
+                    throw new NotImplementedException("Variable type " + variableType + " is not implemented");
             }
         }
     }
 
     static class MultiVariablesFactorGroup extends AbstractSensitivityFactorGroup {
 
-        Map<? extends LfElement, Double> variableElements;
-        Map<? extends LfElement, Double> mainComponentWeights;
+        Map<LfElement, Double> variableElements;
+        Map<LfElement, Double> mainComponentWeights;
 
-        MultiVariablesFactorGroup(Map<? extends LfElement, Double> variableElements, SensitivityVariableType variableType) {
+        MultiVariablesFactorGroup(Map<LfElement, Double> variableElements, SensitivityVariableType variableType) {
             super(variableType);
             this.variableElements = variableElements;
             this.mainComponentWeights = variableElements;
         }
 
-        public Map<? extends LfElement, Double> getVariableElements() {
+        public Map<LfElement, Double> getVariableElements() {
             return variableElements;
         }
 
@@ -410,7 +412,7 @@ public abstract class AbstractSensitivityAnalysis {
                         Double injection = lfBusAndParticipationFactor.getValue();
                         addBusInjection(rhs, lfBus, injection);
                     }
-                    for (Map.Entry<? extends LfElement, Double> variableElementAndWeight : mainComponentWeights.entrySet()) {
+                    for (Map.Entry<LfElement, Double> variableElementAndWeight : mainComponentWeights.entrySet()) {
                         LfElement variableElement = variableElementAndWeight.getKey();
                         Double weight = variableElementAndWeight.getValue();
                         addBusInjection(rhs, (LfBus) variableElement, weight / weightSum);
@@ -657,7 +659,7 @@ public abstract class AbstractSensitivityAnalysis {
                         && variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
                     checkBranch(network, functionId);
                     LfBranch functionElement = lfNetwork.getBranchById(functionId);
-                    Map<LfBus, Double> injectionLfBuses = new HashMap<>();
+                    Map<LfElement, Double> injectionLfBuses = new HashMap<>();
                     List<String> skippedInjection = new ArrayList<>(variables.size());
                     for (WeightedSensitivityVariable variable : variables) {
                         Bus injectionBus = getInjectionBus(network, variable.getId());

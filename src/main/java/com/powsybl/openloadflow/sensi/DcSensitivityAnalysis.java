@@ -481,9 +481,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         List<AbstractLfSensitivityFactor> lfFactors = readAndCheckFactors(network, factorReader, lfNetwork);
 
         lfFactors.stream()
-                .filter(lfFactor -> !(lfFactor.getFunctionType() == SensitivityFunctionType.BRANCH_ACTIVE_POWER)
-                    || (!(lfFactor.getVariableType() == SensitivityVariableType.INJECTION_ACTIVE_POWER)
-                    && !(lfFactor.getVariableType() == SensitivityVariableType.TRANSFORMER_PHASE)))
+                .filter(lfFactor -> lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER
+                    || (lfFactor.getVariableType() != SensitivityVariableType.INJECTION_ACTIVE_POWER
+                    && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE))
                 .findFirst()
                 .ifPresent(ignored -> {
                     throw new PowsyblException("Only variables of type TRANSFORMER_PHASE or INJECTION_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER are yet supported in DC");
@@ -510,7 +510,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         // index factors by variable group to compute the minimal number of states
         List<AbstractSensitivityFactorGroup> factorGroups = createFactorGroups(lfFactors);
 
-        boolean hasMultiVariables = factorGroups.stream().anyMatch(group -> group instanceof MultiVariablesFactorGroup);
+        boolean hasMultiVariables = factorGroups.stream().anyMatch(MultiVariablesFactorGroup.class::isInstance);
 
         // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
         // buses that contain elements participating to slack distribution)
