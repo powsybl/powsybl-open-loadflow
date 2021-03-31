@@ -120,13 +120,9 @@ public interface EquationTerm extends Evaluable {
 
         private double value;
 
-        VariableEquationTerm(int elementNum, VariableType variableType, VariableSet variableSet) {
+        VariableEquationTerm(int elementNum, VariableType variableType, VariableSet variableSet, double initialValue) {
             this.elementNum = elementNum;
             this.variables = Collections.singletonList(variableSet.getVariable(elementNum, variableType));
-        }
-
-        VariableEquationTerm(int elementNum, VariableType variableType, VariableSet variableSet, double initialValue) {
-            this(elementNum, variableType, variableSet);
             value = initialValue;
         }
 
@@ -182,14 +178,7 @@ public interface EquationTerm extends Evaluable {
     }
 
     static VariableEquationTerm createVariableTerm(LfElement element, VariableType variableType, VariableSet variableSet) {
-        Objects.requireNonNull(element);
-        Objects.requireNonNull(variableType);
-        Objects.requireNonNull(variableSet);
-        if (element.getType() != variableType.getElementType()) {
-            throw new IllegalArgumentException("Wrong variable element type: " + variableType.getElementType()
-                    + ", expected: " + element.getType());
-        }
-        return new VariableEquationTerm(element.getNum(), variableType, variableSet);
+        return createVariableTerm(element, variableType, variableSet, 0d);
     }
 
     static VariableEquationTerm createVariableTerm(LfElement element, VariableType variableType, VariableSet variableSet, double initialValue) {
