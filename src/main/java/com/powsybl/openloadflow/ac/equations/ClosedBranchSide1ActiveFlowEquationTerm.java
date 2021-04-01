@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import net.jafama.FastMath;
 
 import java.util.Objects;
 
@@ -21,6 +22,10 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
+
+    private double cosC;
+
+    private double sinC;
 
     private double p1;
 
@@ -39,6 +44,11 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
     public ClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
                                                    boolean deriveA1, boolean deriveR1) {
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+        if (a1Var == null) {
+            double c = ksi - branch.getPiModel().getA1() + A2;
+            cosC = FastMath.cos(c);
+            sinC = FastMath.sin(c);
+        }
     }
 
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
@@ -50,9 +60,13 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         Objects.requireNonNull(x);
         double v1 = x[v1Var.getRow()];
         double v2 = x[v2Var.getRow()];
-        double c = ksi - (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1()) + A2;
-        double sinTheta = context.sinPh1MinusPh2PlusC(ph2Var.getRow(), ph1Var.getRow(), c);
-        double cosTheta = context.cosPh1MinusPh2PlusC(ph2Var.getRow(), ph1Var.getRow(), c);
+        if (a1Var != null) {
+            double c = ksi - x[a1Var.getRow()] + A2;
+            cosC = FastMath.cos(c);
+            sinC = FastMath.sin(c);
+        }
+        double sinTheta = context.sinPh1MinusPh2PlusC(ph2Var.getRow(), ph1Var.getRow(), cosC, sinC);
+        double cosTheta = context.cosPh1MinusPh2PlusC(ph2Var.getRow(), ph1Var.getRow(), cosC, sinC);
         double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
         p1 = r1 * v1 * (g1 * r1 * v1 + y * r1 * v1 * sinKsi - y * R2 * v2 * sinTheta);
         dp1dv1 = r1 * (2 * g1 * r1 * v1 + 2 * y * r1 * v1 * sinKsi - y * R2 * v2 * sinTheta);

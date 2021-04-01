@@ -31,9 +31,11 @@ public class StateVectorContext {
         Arrays.fill(sinX, Double.NaN);
         DoubleWrapper wrapper = new DoubleWrapper();
         for (Variable variable : variables) {
-            int row = variable.getRow();
-            sinX[row] = FastMath.sinAndCos(x[row], wrapper);
-            cosX[row] = wrapper.value;
+            if (variable.getType() == VariableType.BUS_PHI) {
+                int row = variable.getRow();
+                sinX[row] = FastMath.sinAndCos(x[row], wrapper);
+                cosX[row] = wrapper.value;
+            }
         }
     }
 
@@ -48,48 +50,40 @@ public class StateVectorContext {
     /**
      * cos(ph1 - ph2 + c)
      */
-    public double cosPh1MinusPh2PlusC(int row1, int row2, double c) {
+    public double cosPh1MinusPh2PlusC(int row1, int row2, double cosC, double sinC) {
         double cos1 = cosX[row1];
         double sin1 = sinX[row1];
         double cos2 = cosX[row2];
         double sin2 = -sinX[row2];
-        double cosC = FastMath.cos(c);
-        double sinC = FastMath.sin(c);
         return cos1 * cos2 * cosC - cos1 * sin2 * sinC - sin1 * cos2 * sinC - sin1 * sin2 * cosC;
     }
 
     /**
      * sin(ph1 - ph2 + c)
      */
-    public double sinPh1MinusPh2PlusC(int row1, int row2, double c) {
+    public double sinPh1MinusPh2PlusC(int row1, int row2, double cosC, double sinC) {
         double cos1 = cosX[row1];
         double sin1 = sinX[row1];
         double cos2 = cosX[row2];
         double sin2 = -sinX[row2];
-        double cosC = FastMath.cos(c);
-        double sinC = FastMath.sin(c);
         return sin1 * cos2 * cosC + cos1 * sin2 * cosC + cos1 * cos2 * sinC - sin1 * sin2 * sinC;
     }
 
     /**
      * cos(ph + c)
      */
-    public double cosPhPlusC(int row, double c) {
+    public double cosPhPlusC(int row, double cosC, double sinC) {
         double cos = cosX[row];
         double sin = sinX[row];
-        double cosC = FastMath.cos(c);
-        double sinC = FastMath.sin(c);
         return cos * cosC - sin * sinC;
     }
 
     /**
      * sin(ph + c)
      */
-    public double sinPhPlusC(int row, double c) {
+    public double sinPhPlusC(int row, double cosC, double sinC) {
         double cos = cosX[row];
         double sin = sinX[row];
-        double cosC = FastMath.cos(c);
-        double sinC = FastMath.sin(c);
         return sin * cosC + sinC * cos;
     }
 }

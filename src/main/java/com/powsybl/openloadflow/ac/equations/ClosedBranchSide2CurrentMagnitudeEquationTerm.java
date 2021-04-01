@@ -23,6 +23,10 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
  */
 public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
+    private double cosC;
+
+    private double sinC;
+
     private double i2;
 
     private double di2dv1;
@@ -38,6 +42,11 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
     public ClosedBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
                                                          boolean deriveA1, boolean deriveR1) {
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+        if (a1Var == null) {
+            double c = ksi + branch.getPiModel().getA1() - A2;
+            cosC = FastMath.cos(c);
+            sinC = FastMath.sin(c);
+        }
     }
 
     @Override
@@ -55,11 +64,15 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
         double w1 = y * r1 * v1;
         double cosPh2 = context.cos(ph2Var.getRow());
         double sinPh2 = context.sin(ph2Var.getRow());
-        double cosPh2Ksi = context.cosPhPlusC(ph2Var.getRow(), ksi);
-        double sinPh2Ksi = context.sinPhPlusC(ph2Var.getRow(), ksi);
-        double c = ksi + (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1()) - A2;
-        double sinTheta = context.sinPhPlusC(ph1Var.getRow(), c);
-        double cosTheta = context.cosPhPlusC(ph1Var.getRow(), c);
+        double cosPh2Ksi = context.cosPhPlusC(ph2Var.getRow(), cosKsi, sinKsi);
+        double sinPh2Ksi = context.sinPhPlusC(ph2Var.getRow(), cosKsi, sinKsi);
+        if (a1Var != null) {
+            double c = ksi + x[a1Var.getRow()] - A2;
+            cosC = FastMath.cos(c);
+            sinC = FastMath.sin(c);
+        }
+        double sinTheta = context.sinPhPlusC(ph1Var.getRow(), cosC, sinC);
+        double cosTheta = context.cosPhPlusC(ph1Var.getRow(), cosC, sinC);
 
         double interReI2 = g2 * cosPh2 - b2 * sinPh2 + y * sinPh2Ksi;
         double interImI2 = g2 * sinPh2 + b2 * cosPh2 - y * cosPh2Ksi;
