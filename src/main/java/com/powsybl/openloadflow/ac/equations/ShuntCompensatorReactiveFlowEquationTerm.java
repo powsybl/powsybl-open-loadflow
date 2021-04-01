@@ -57,7 +57,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
     }
 
     @Override
-    public void update(double[] x) {
+    public void update(double[] x, StateVectorContext context) {
         Objects.requireNonNull(x);
         double v = x[vVar.getRow()];
         q = -b * v * v;

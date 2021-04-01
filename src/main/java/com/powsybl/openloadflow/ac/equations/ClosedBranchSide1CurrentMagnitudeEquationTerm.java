@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.equations.StateVectorContext;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -45,23 +46,20 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     @Override
-    public void update(double[] x) {
+    public void update(double[] x, StateVectorContext context) {
         Objects.requireNonNull(x);
         double v1 = x[v1Var.getRow()];
         double v2 = x[v2Var.getRow()];
-        double ph1 = x[ph1Var.getRow()];
-        double ph2 = x[ph2Var.getRow()];
         double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
         double w1 = r1 * v1;
         double w2 = y * R2 * v2;
-        double cosPh1 = FastMath.cos(ph1);
-        double sinPh1 = FastMath.sin(ph1);
-        double cosPh1Ksi = FastMath.cos(ph1 + ksi);
-        double sinPh1Ksi = FastMath.sin(ph1 + ksi);
-        double theta = ksi - (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1())
-                + A2 + ph2;
-        double sinTheta = FastMath.sin(theta);
-        double cosTheta = FastMath.cos(theta);
+        double cosPh1 = context.cos(ph1Var.getRow());
+        double sinPh1 = context.sin(ph1Var.getRow());
+        double cosPh1Ksi = context.cosPhPlusC(ph1Var.getRow(), ksi);
+        double sinPh1Ksi = context.sinPhPlusC(ph1Var.getRow(), ksi);
+        double c = ksi - (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1()) + A2;
+        double sinTheta = context.sinPhPlusC(ph2Var.getRow(), c);
+        double cosTheta = context.cosPhPlusC(ph2Var.getRow(), c);
 
         double interReI1 = g1 * cosPh1 - b1 * sinPh1 + y * sinPh1Ksi;
         double interImI1 = g1 * sinPh1 + b1 * cosPh1 - y * cosPh1Ksi;

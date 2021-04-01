@@ -71,8 +71,8 @@ public interface EquationTerm extends Evaluable {
         }
 
         @Override
-        public void update(double[] x) {
-            term.update(x);
+        public void update(double[] x, StateVectorContext context) {
+            term.update(x, context);
         }
 
         @Override
@@ -141,7 +141,7 @@ public interface EquationTerm extends Evaluable {
         }
 
         @Override
-        public void update(double[] x) {
+        public void update(double[] x, StateVectorContext context) {
             value = x[variables.get(0).getRow()];
         }
 
@@ -204,7 +204,7 @@ public interface EquationTerm extends Evaluable {
      * Update equation term using {@code x} variable values.
      * @param x variables values vector
      */
-    void update(double[] x);
+    void update(double[] x, StateVectorContext context);
 
     /**
      * Evaluate equation term.

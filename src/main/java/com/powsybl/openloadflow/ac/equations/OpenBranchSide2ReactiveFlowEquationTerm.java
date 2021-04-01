@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.equations.StateVectorContext;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.equations.VariableType;
@@ -32,7 +33,7 @@ public class OpenBranchSide2ReactiveFlowEquationTerm extends AbstractOpenSide2Br
     }
 
     @Override
-    public void update(double[] x) {
+    public void update(double[] x, StateVectorContext context) {
         Objects.requireNonNull(x);
         double v1 = x[v1Var.getRow()];
         double r1 = branch.getPiModel().getR1();

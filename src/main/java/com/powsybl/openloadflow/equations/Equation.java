@@ -232,10 +232,10 @@ public class Equation implements Evaluable, Comparable<Equation> {
         }
     }
 
-    public void update(double[] x) {
+    public void update(double[] x, StateVectorContext context) {
         for (EquationTerm term : terms) {
             if (term.isActive()) {
-                term.update(x);
+                term.update(x, context);
             }
         }
     }

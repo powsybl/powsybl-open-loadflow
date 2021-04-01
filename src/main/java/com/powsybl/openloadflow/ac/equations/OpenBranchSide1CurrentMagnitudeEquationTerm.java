@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.equations.StateVectorContext;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.equations.VariableType;
@@ -38,13 +39,12 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     @Override
-    public void update(double[] x) {
+    public void update(double[] x, StateVectorContext context) {
         Objects.requireNonNull(x);
         double v2 = x[v2Var.getRow()];
-        double ph2 = x[ph2Var.getRow()];
         double w2 = R2 * v2;
-        double cosPh2 = FastMath.cos(ph2);
-        double sinPh2 = FastMath.sin(ph2);
+        double cosPh2 = context.cos(ph2Var.getRow());
+        double sinPh2 = context.sin(ph2Var.getRow());
 
         double gres = g2 + (y * y * g1 + (b1 * b1 + g1 * g1) * y * sinKsi) / shunt;
         double bres = b2 + (y * y * b1 - (b1 * b1 + g1 * g1) * y * cosKsi) / shunt;

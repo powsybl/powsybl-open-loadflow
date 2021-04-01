@@ -7,12 +7,16 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
+import com.powsybl.openloadflow.equations.StateVectorContext;
+import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.equations.VariableType;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -34,10 +38,14 @@ class PerUnitTest {
         double zb = 380 * 380 * PerUnit.SB;
 
         VariableSet variableSet = new VariableSet();
-        variableSet.getVariable(0, VariableType.BUS_V).setRow(0);
-        variableSet.getVariable(0, VariableType.BUS_PHI).setRow(1);
-        variableSet.getVariable(1, VariableType.BUS_V).setRow(2);
-        variableSet.getVariable(1, VariableType.BUS_PHI).setRow(3);
+        Variable v0 = variableSet.getVariable(0, VariableType.BUS_V);
+        Variable v1 = variableSet.getVariable(0, VariableType.BUS_PHI);
+        Variable v2 = variableSet.getVariable(1, VariableType.BUS_V);
+        Variable v3 = variableSet.getVariable(1, VariableType.BUS_PHI);
+        v0.setRow(0);
+        v1.setRow(1);
+        v2.setRow(2);
+        v3.setRow(3);
 
         LfBranch branch = Mockito.mock(LfBranch.class, new RuntimeExceptionAnswer());
         PiModel piModel = Mockito.mock(PiModel.class, new RuntimeExceptionAnswer());
@@ -63,7 +71,7 @@ class PerUnitTest {
         x[1] = 0.045;
         x[2] = 404 / vb;
         x[3] = 0.0297;
-        p1.update(x);
-        assertEquals(856.4176570806668, p1.eval() / PerUnit.SB, 0d);
+        p1.update(x, new StateVectorContext(List.of(v0, v1, v2, v3), x));
+        assertEquals(856.4176570806666, p1.eval() / PerUnit.SB, 0d);
     }
 }

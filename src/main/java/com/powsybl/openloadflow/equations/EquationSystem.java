@@ -304,9 +304,10 @@ public class EquationSystem {
     public void updateEquations(double[] x, EquationUpdateType updateType) {
         Objects.requireNonNull(x);
         Objects.requireNonNull(updateType);
+        StateVectorContext context = new StateVectorContext(getSortedVariablesToFind(), x);
         for (Equation equation : equations.values()) {
             if (updateType == equation.getUpdateType()) {
-                equation.update(x);
+                equation.update(x, context);
             }
         }
         listeners.forEach(listener -> listener.onStateUpdate(x));

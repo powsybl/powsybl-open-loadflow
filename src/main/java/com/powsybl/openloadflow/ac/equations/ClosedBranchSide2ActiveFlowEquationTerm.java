@@ -6,11 +6,11 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.equations.StateVectorContext;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import net.jafama.FastMath;
 
 import java.util.Objects;
 
@@ -46,16 +46,13 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     @Override
-    public void update(double[] x) {
+    public void update(double[] x, StateVectorContext context) {
         Objects.requireNonNull(x);
         double v1 = x[v1Var.getRow()];
         double v2 = x[v2Var.getRow()];
-        double ph1 = x[ph1Var.getRow()];
-        double ph2 = x[ph2Var.getRow()];
-        double theta = ksi + (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1())
-                - A2 + ph1 - ph2;
-        double sinTheta = FastMath.sin(theta);
-        double cosTheta = FastMath.cos(theta);
+        double c = ksi + (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1()) - A2;
+        double sinTheta = context.sinPh1MinusPh2PlusC(ph1Var.getRow(), ph2Var.getRow(), c);
+        double cosTheta = context.cosPh1MinusPh2PlusC(ph1Var.getRow(), ph2Var.getRow(), c);
         double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
         p2 = R2 * v2 * (g2 * R2 * v2 - y * r1 * v1 * sinTheta + y * R2 * v2 * sinKsi);
         dp2dv1 = -y * r1 * R2 * v2 * sinTheta;
