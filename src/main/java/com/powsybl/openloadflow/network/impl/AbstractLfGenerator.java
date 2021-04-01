@@ -54,7 +54,14 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     @Override
     public void setTargetP(double targetP) {
-        this.targetP = targetP * PerUnit.SB;
+        double newTargetP = targetP * PerUnit.SB;
+        if (newTargetP != this.targetP) {
+            double oldTargetP = this.targetP;
+            this.targetP = newTargetP;
+            for (LfNetworkListener listener : bus.getNetwork().getListeners()) {
+                listener.onGenerationActivePowerTargetChange(this, oldTargetP, newTargetP);
+            }
+        }
     }
 
     @Override

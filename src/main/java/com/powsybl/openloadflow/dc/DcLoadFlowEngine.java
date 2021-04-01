@@ -95,7 +95,7 @@ public class DcLoadFlowEngine {
 
         equationSystem.updateEquations(x);
 
-        this.targetVector = equationSystem.createTargetVector();
+        this.targetVector = TargetVector.createArray(network, equationSystem);
 
         if (!disabledBuses.isEmpty()) {
             // set buses injections and transformers to 0
