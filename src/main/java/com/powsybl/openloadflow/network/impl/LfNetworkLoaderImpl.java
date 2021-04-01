@@ -183,7 +183,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             @Override
             public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
                 lfBus.addStaticVarCompensator(staticVarCompensator, parameters.isBreakers(), report);
-                if (staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
+                if (staticVarCompensator.getRegulationMode() == RegulationMode.VOLTAGE) {
                     report.voltageControllerCount++;
                 }
             }

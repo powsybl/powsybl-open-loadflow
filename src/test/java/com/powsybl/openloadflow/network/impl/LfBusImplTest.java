@@ -59,12 +59,12 @@ class LfBusImplTest {
                 .setId("svc1")
                 .setConnectableBus("b1")
                 .setBus("b1")
-                .setRegulationMode(StaticVarCompensator.RegulationMode.OFF)
+                .setRegulationMode(RegulationMode.OFF)
                 .setBmin(-0.006)
                 .setBmax(0.006)
                 .add();
         svc1.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .newExtension(VoltagePerReactivePowerControlAdder.class)
                 .withSlope(0.01)
                 .add();
@@ -72,12 +72,12 @@ class LfBusImplTest {
                 .setId("svc2")
                 .setConnectableBus("b1")
                 .setBus("b1")
-                .setRegulationMode(StaticVarCompensator.RegulationMode.OFF)
+                .setRegulationMode(RegulationMode.OFF)
                 .setBmin(-0.001)
                 .setBmax(0.001)
                 .add();
         svc2.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .newExtension(VoltagePerReactivePowerControlAdder.class)
                 .withSlope(0.015)
                 .add();
@@ -85,12 +85,12 @@ class LfBusImplTest {
                 .setId("svc3")
                 .setConnectableBus("b1")
                 .setBus("b1")
-                .setRegulationMode(StaticVarCompensator.RegulationMode.OFF)
+                .setRegulationMode(RegulationMode.OFF)
                 .setBmin(-0.00075)
                 .setBmax(0.00075)
                 .add();
         svc3.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .newExtension(VoltagePerReactivePowerControlAdder.class)
                 .withSlope(0.02)
                 .add();

@@ -37,7 +37,7 @@ class AcLoadFlowDanglingLineTest {
     private LoadFlowParameters parameters;
 
     private OpenLoadFlowParameters parametersExt;
-
+    
     @BeforeEach
     void setUp() {
         network = DanglingLineFactory.create();
@@ -69,7 +69,7 @@ class AcLoadFlowDanglingLineTest {
     @Test
     void testWithVoltageRegulationOn() {
         g1.setTargetQ(0);
-        g1.setVoltageRegulatorOn(false);
+        g1.setRegulationMode(RegulationMode.OFF);
         dl1.getGeneration().setVoltageRegulationOn(true);
         dl1.getGeneration().setMinP(0);
         dl1.getGeneration().setMaxP(10);

@@ -47,7 +47,7 @@
         <jafama.version>2.3.1</jafama.version>
         <junit-jupiter.version>5.5.2</junit-jupiter.version>
         <slf4jtoys.version>1.6.2</slf4jtoys.version>
-
+        
         <powsybl-core.version>4.3.0-alpha-1</powsybl-core.version>
     </properties>
 

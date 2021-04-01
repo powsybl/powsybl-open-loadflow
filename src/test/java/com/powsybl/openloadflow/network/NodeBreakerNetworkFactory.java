@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.iidm.network.RegulationMode;
 
 public class NodeBreakerNetworkFactory extends AbstractLoadFlowNetworkFactory {
     /**
@@ -92,7 +93,7 @@ public class NodeBreakerNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setNode(4)
                 .setMinP(-9999.99)
                 .setMaxP(9999.99)
-                .setVoltageRegulatorOn(true)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setTargetV(398)
                 .setTargetP(603.77)
                 .setTargetQ(301.0)

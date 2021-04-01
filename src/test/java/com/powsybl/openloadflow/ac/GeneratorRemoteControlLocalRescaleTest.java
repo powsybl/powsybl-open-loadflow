@@ -69,7 +69,7 @@ class GeneratorRemoteControlLocalRescaleTest {
                 .setMaxP(200)
                 .setTargetP(100)
                 .setTargetV(413.4)
-                .setVoltageRegulatorOn(true)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulatingTerminal(l2.getTerminal())
                 .add();
         s.newTwoWindingsTransformer()

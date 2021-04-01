@@ -101,7 +101,7 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setMaxP(200)
                 .setTargetP(100)
                 .setTargetV(17)
-                .setVoltageRegulatorOn(true)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .add();
         g1.newMinMaxReactiveLimits()
                 .setMinQ(-179)
@@ -117,7 +117,7 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setMaxP(200)
                 .setTargetP(100)
                 .setTargetV(21)
-                .setVoltageRegulatorOn(true)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .add();
         g2.newMinMaxReactiveLimits()
                 .setMinQ(-1000)
@@ -133,7 +133,7 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setMaxP(200)
                 .setTargetP(100)
                 .setTargetV(20)
-                .setVoltageRegulatorOn(true)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .add();
         g3.newMinMaxReactiveLimits()
                 .setMinQ(-1000)

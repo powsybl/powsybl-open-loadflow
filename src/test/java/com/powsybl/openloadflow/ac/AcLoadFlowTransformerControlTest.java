@@ -283,7 +283,7 @@ class AcLoadFlowTransformerControlTest {
                 .setMaxP(35.0)
                 .setTargetP(2)
                 .setTargetV(34.0)
-                .setVoltageRegulatorOn(true)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .add();
 
         parameters.setTransformerVoltageControlOn(true);
