@@ -92,13 +92,48 @@ public abstract class AbstractSensitivityAnalysis {
         return new JacobianMatrix(equationSystem, matrixFactory);
     }
 
-    abstract static class AbstractLfSensitivityFactor {
+    interface LfSensitivityFactor {
 
         enum Status {
             VALID,
             SKIP,
             ZERO
         }
+
+        Object getContext();
+
+        String getVariableId();
+
+        SensitivityVariableType getVariableType();
+
+        LfElement getFunctionElement();
+
+        SensitivityFunctionType getFunctionType();
+
+        EquationTerm getEquationTerm();
+
+        Double getPredefinedResult();
+
+        void setPredefinedResult(Double predefinedResult);
+
+        double getFunctionReference();
+
+        void setFunctionReference(double functionReference);
+
+        double getBaseSensitivityValue();
+
+        void setBaseCaseSensitivityValue(double baseCaseSensitivityValue);
+
+        Status getStatus();
+
+        void setStatus(Status status);
+
+        boolean areVariableAndFunctionDisconnected(GraphDecrementalConnectivity<LfBus> connectivity);
+
+        boolean isConnectedToComponent(Set<LfBus> connectedComponent);
+    }
+
+    abstract static class AbstractLfSensitivityFactor implements LfSensitivityFactor {
 
         // Wrap factors in specific class to have instant access to their branch and their equation term
         private final Object context;
@@ -132,26 +167,32 @@ public abstract class AbstractSensitivityAnalysis {
             }
         }
 
+        @Override
         public Object getContext() {
             return context;
         }
 
+        @Override
         public String getVariableId() {
             return variableId;
         }
 
+        @Override
         public SensitivityVariableType getVariableType() {
             return variableType;
         }
 
+        @Override
         public LfElement getFunctionElement() {
             return functionElement;
         }
 
+        @Override
         public SensitivityFunctionType getFunctionType() {
             return functionType;
         }
 
+        @Override
         public EquationTerm getEquationTerm() {
             switch (functionType) {
                 case BRANCH_ACTIVE_POWER:
@@ -165,34 +206,42 @@ public abstract class AbstractSensitivityAnalysis {
             }
         }
 
+        @Override
         public Double getPredefinedResult() {
             return predefinedResult;
         }
 
+        @Override
         public void setPredefinedResult(Double predefinedResult) {
             this.predefinedResult = predefinedResult;
         }
 
+        @Override
         public double getFunctionReference() {
             return functionReference;
         }
 
+        @Override
         public void setFunctionReference(double functionReference) {
             this.functionReference = functionReference;
         }
 
+        @Override
         public double getBaseSensitivityValue() {
             return baseCaseSensitivityValue;
         }
 
+        @Override
         public void setBaseCaseSensitivityValue(double baseCaseSensitivityValue) {
             this.baseCaseSensitivityValue = baseCaseSensitivityValue;
         }
 
+        @Override
         public Status getStatus() {
             return status;
         }
 
+        @Override
         public void setStatus(Status status) {
             this.status = status;
         }
@@ -222,10 +271,12 @@ public abstract class AbstractSensitivityAnalysis {
             throw new PowsyblException("Cannot compute connectivity for variable element of class: " + element.getClass().getSimpleName());
         }
 
+        @Override
         public boolean areVariableAndFunctionDisconnected(GraphDecrementalConnectivity<LfBus> connectivity) {
             throw new NotImplementedException("areVariableAndFunctionDisconnected should have an override");
         }
 
+        @Override
         public boolean isConnectedToComponent(Set<LfBus> connectedComponent) {
             throw new NotImplementedException("isConnectedToComponent should have an override");
         }
@@ -304,9 +355,21 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    abstract static class AbstractSensitivityFactorGroup {
+    interface SensitivityFactorGroup {
+        List<AbstractSensitivityAnalysis.LfSensitivityFactor> getFactors();
 
-        private final List<AbstractLfSensitivityFactor> factors = new ArrayList<>();
+        int getIndex();
+
+        void setIndex(int index);
+
+        void addFactor(AbstractSensitivityAnalysis.LfSensitivityFactor factor);
+
+        void fillRhs(EquationSystem equationSystem, Matrix rhs, Map<LfBus, Double> participationByBus);
+    }
+
+    abstract static class AbstractSensitivityFactorGroup implements SensitivityFactorGroup {
+
+        private final List<LfSensitivityFactor> factors = new ArrayList<>();
 
         SensitivityVariableType variableType;
 
@@ -316,19 +379,23 @@ public abstract class AbstractSensitivityAnalysis {
             this.variableType = variableType;
         }
 
-        List<AbstractLfSensitivityFactor> getFactors() {
+        @Override
+        public List<LfSensitivityFactor> getFactors() {
             return factors;
         }
 
-        int getIndex() {
+        @Override
+        public int getIndex() {
             return index;
         }
 
-        void setIndex(int index) {
+        @Override
+        public void setIndex(int index) {
             this.index = index;
         }
 
-        void addFactor(AbstractLfSensitivityFactor factor) {
+        @Override
+        public void addFactor(LfSensitivityFactor factor) {
             factors.add(factor);
         }
 
@@ -341,7 +408,8 @@ public abstract class AbstractSensitivityAnalysis {
             rhs.add(column, getIndex(), injection / PerUnit.SB);
         }
 
-        void fillRhs(EquationSystem equationSystem, Matrix rhs, Map<LfBus, Double> participationByBus) {
+        @Override
+        public void fillRhs(EquationSystem equationSystem, Matrix rhs, Map<LfBus, Double> participationByBus) {
             throw new NotImplementedException("fillRhs should have an override");
         }
     }
@@ -356,7 +424,7 @@ public abstract class AbstractSensitivityAnalysis {
         }
 
         @Override
-        void fillRhs(EquationSystem equationSystem, Matrix rhs, Map<LfBus, Double> participationByBus) {
+        public void fillRhs(EquationSystem equationSystem, Matrix rhs, Map<LfBus, Double> participationByBus) {
             switch (variableType) {
                 case TRANSFORMER_PHASE:
                     LfBranch lfBranch = (LfBranch) variableElement;
@@ -403,7 +471,7 @@ public abstract class AbstractSensitivityAnalysis {
         }
 
         @Override
-        void fillRhs(EquationSystem equationSystem, Matrix rhs, Map<LfBus, Double> participationByBus) {
+        public void fillRhs(EquationSystem equationSystem, Matrix rhs, Map<LfBus, Double> participationByBus) {
             Double weightSum = mainComponentWeights.values().stream().mapToDouble(Math::abs).sum();
             switch (variableType) {
                 case INJECTION_ACTIVE_POWER:
@@ -428,11 +496,11 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    protected List<AbstractSensitivityFactorGroup> createFactorGroups(List<AbstractLfSensitivityFactor> factors) {
-        Map<Pair<SensitivityVariableType, String>, AbstractSensitivityFactorGroup> groupIndexedById = new HashMap<>(factors.size());
+    protected List<SensitivityFactorGroup> createFactorGroups(List<LfSensitivityFactor> factors) {
+        Map<Pair<SensitivityVariableType, String>, SensitivityFactorGroup> groupIndexedById = new HashMap<>(factors.size());
         // index factors by variable config
-        for (AbstractLfSensitivityFactor factor : factors) {
-            if (factor.getStatus() == AbstractLfSensitivityFactor.Status.SKIP) {
+        for (LfSensitivityFactor factor : factors) {
+            if (factor.getStatus() == LfSensitivityFactor.Status.SKIP) {
                 continue;
             }
             Pair<SensitivityVariableType, String> id = Pair.of(factor.getVariableType(), factor.getVariableId());
@@ -445,7 +513,7 @@ public abstract class AbstractSensitivityAnalysis {
 
         // assign an index to each factor group
         int index = 0;
-        for (AbstractSensitivityFactorGroup factorGroup : groupIndexedById.values()) {
+        for (SensitivityFactorGroup factorGroup : groupIndexedById.values()) {
             factorGroup.setIndex(index++);
         }
 
@@ -459,15 +527,15 @@ public abstract class AbstractSensitivityAnalysis {
         return participatingElements;
     }
 
-    protected DenseMatrix initFactorsRhs(EquationSystem equationSystem, List<AbstractSensitivityFactorGroup> factorsGroups, Map<LfBus, Double> participationByBus) {
+    protected DenseMatrix initFactorsRhs(EquationSystem equationSystem, List<SensitivityFactorGroup> factorsGroups, Map<LfBus, Double> participationByBus) {
         DenseMatrix rhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), factorsGroups.size());
         fillRhsSensitivityVariable(equationSystem, factorsGroups, rhs, participationByBus);
         return rhs;
     }
 
-    protected void fillRhsSensitivityVariable(EquationSystem equationSystem, List<AbstractSensitivityFactorGroup> factorGroups, Matrix rhs,
+    protected void fillRhsSensitivityVariable(EquationSystem equationSystem, List<SensitivityFactorGroup> factorGroups, Matrix rhs,
                                               Map<LfBus, Double> participationByBus) {
-        for (AbstractSensitivityFactorGroup factorGroup : factorGroups) {
+        for (SensitivityFactorGroup factorGroup : factorGroups) {
             factorGroup.fillRhs(equationSystem, rhs, participationByBus);
         }
     }
@@ -478,9 +546,9 @@ public abstract class AbstractSensitivityAnalysis {
             .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
     }
 
-    protected void setPredefinedResults(Collection<AbstractLfSensitivityFactor> lfFactors, Set<LfBus> connectedComponent,
+    protected void setPredefinedResults(Collection<LfSensitivityFactor> lfFactors, Set<LfBus> connectedComponent,
                                         GraphDecrementalConnectivity<LfBus> connectivity) {
-        for (AbstractLfSensitivityFactor factor : lfFactors) {
+        for (LfSensitivityFactor factor : lfFactors) {
             // check if the factor function and variable are in different connected components
             if (factor.areVariableAndFunctionDisconnected(connectivity)) {
                 factor.setPredefinedResult(0d);
@@ -490,9 +558,9 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    protected void rescaleGlsk(List<AbstractSensitivityFactorGroup> factorGroups, Set<LfBus> nonConnectedBuses) {
+    protected void rescaleGlsk(List<SensitivityFactorGroup> factorGroups, Set<LfBus> nonConnectedBuses) {
         // compute the corresponding injection (with participation) for each factor
-        for (AbstractSensitivityFactorGroup factorGroup : factorGroups) {
+        for (SensitivityFactorGroup factorGroup : factorGroups) {
             if (!(factorGroup instanceof MultiVariablesFactorGroup)) {
                 continue;
             }
@@ -501,9 +569,9 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    protected void warnSkippedFactors(Collection<AbstractLfSensitivityFactor> lfFactors) {
-        List<AbstractLfSensitivityFactor> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(AbstractLfSensitivityFactor.Status.SKIP)).collect(Collectors.toList());
-        Set<String> skippedVariables = skippedFactors.stream().map(AbstractLfSensitivityFactor::getVariableId).collect(Collectors.toSet());
+    protected void warnSkippedFactors(Collection<LfSensitivityFactor> lfFactors) {
+        List<LfSensitivityFactor> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.SKIP)).collect(Collectors.toList());
+        Set<String> skippedVariables = skippedFactors.stream().map(LfSensitivityFactor::getVariableId).collect(Collectors.toSet());
         if (!skippedVariables.isEmpty()) {
             if (LOGGER.isWarnEnabled()) {
                 LOGGER.warn("Skipping all factors with variables: '{}', as they cannot be found in the network",
@@ -604,8 +672,8 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    public List<AbstractLfSensitivityFactor> readAndCheckFactors(Network network, SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
-        final List<AbstractLfSensitivityFactor> lfFactors = new ArrayList<>();
+    public List<LfSensitivityFactor> readAndCheckFactors(Network network, SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
+        final List<LfSensitivityFactor> lfFactors = new ArrayList<>();
 
         factorReader.read(new SensitivityFactorReader.Handler() {
             @Override
