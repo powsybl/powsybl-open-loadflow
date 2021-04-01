@@ -44,6 +44,7 @@ import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.Markers;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.tools.PowsyblCoreVersion;
+import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -229,7 +230,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 // to be consistent with low impedance criteria used in DcEquationSystem and AcEquationSystem
                 double nominalV = line.getTerminal1().getVoltageLevel().getNominalV();
                 double zb = nominalV * nominalV / PerUnit.SB;
-                double z = Math.hypot(line.getR(), line.getX());
+                double z = FastMath.hypot(line.getR(), line.getX());
                 return z / zb <= LOW_IMPEDANCE_THRESHOLD;
             }).complete();
         }
