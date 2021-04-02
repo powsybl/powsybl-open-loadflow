@@ -329,13 +329,10 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Pair<String, String> g2b4 = Pair.of("l23", "b4_vl_0");
         SensitivityFactorReader factorReader = createBusVoltageReader(List.of(g2b1, g2b2, g2b3, g2b4));
         BusVoltageWriter factorWriter = createBusVoltageWriter();
-        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
-            sensiParameters, factorReader, factorWriter);
+        NotImplementedException e = assertThrows(NotImplementedException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
+            sensiParameters, factorReader, factorWriter));
 
-        assertEquals(0d, factorWriter.getSensitivityValue(g2b1), LoadFlowAssert.DELTA_V); // no impact on a pv
-        assertEquals(1d, factorWriter.getSensitivityValue(g2b2), LoadFlowAssert.DELTA_V); // 1 on itself
-        assertEquals(0.3087d, factorWriter.getSensitivityValue(g2b3), LoadFlowAssert.DELTA_V); // value obtained by running two loadflow with a very small difference on targetV for bus2
-        assertEquals(0d, factorWriter.getSensitivityValue(g2b4), LoadFlowAssert.DELTA_V);
+        assertEquals("[l23] Bus voltage on two windings transformer is not managed yet", e.getMessage());
     }
 
     @Test

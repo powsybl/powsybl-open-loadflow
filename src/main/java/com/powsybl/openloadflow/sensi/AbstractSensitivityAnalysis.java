@@ -59,6 +59,9 @@ public abstract class AbstractSensitivityAnalysis {
         TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer(equipmentId);
         if (t2wt != null) {
             RatioTapChanger rtc = t2wt.getRatioTapChanger();
+            if (rtc != null) {
+                throw new NotImplementedException(String.format("[%s] Bus voltage on two windings transformer is not managed yet", equipmentId));
+            }
             return rtc != null ? rtc.getRegulationTerminal() : null;
         }
         ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(equipmentId);
