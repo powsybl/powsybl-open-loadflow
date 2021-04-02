@@ -62,7 +62,7 @@ public abstract class AbstractSensitivityAnalysis {
             if (rtc != null) {
                 throw new NotImplementedException(String.format("[%s] Bus voltage on two windings transformer is not managed yet", equipmentId));
             }
-            return rtc != null ? rtc.getRegulationTerminal() : null;
+            return null;
         }
         ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(equipmentId);
         Terminal regulatingTerminal = null;
@@ -76,7 +76,7 @@ public abstract class AbstractSensitivityAnalysis {
             if (regulatingTerminal != null) {
                 throw new NotImplementedException(String.format("[%s] Bus voltage on three windings transformer is not managed yet", equipmentId));
             }
-            return regulatingTerminal;
+            return null;
         }
         ShuntCompensator shuntCompensator = network.getShuntCompensator(equipmentId);
         if (shuntCompensator != null) {
