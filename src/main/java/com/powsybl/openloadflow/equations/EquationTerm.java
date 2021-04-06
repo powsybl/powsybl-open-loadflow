@@ -178,7 +178,7 @@ public interface EquationTerm extends Evaluable {
     }
 
     static VariableEquationTerm createVariableTerm(LfElement element, VariableType variableType, VariableSet variableSet) {
-        return createVariableTerm(element, variableType, variableSet, 0d);
+        return createVariableTerm(element, variableType, variableSet, Double.NaN);
     }
 
     static VariableEquationTerm createVariableTerm(LfElement element, VariableType variableType, VariableSet variableSet, double initialValue) {
