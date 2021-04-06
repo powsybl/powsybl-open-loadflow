@@ -37,7 +37,7 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testEsgTutoReport() throws IOException {
+    void testEsgTuto() throws IOException {
         Network network = EurostagTutorialExample1Factory.create();
         ReporterModel reporter = new ReporterModel("testEsgTutoReport", "Test ESG tutorial report");
         runAcLf(network, reporter);
