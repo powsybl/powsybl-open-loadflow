@@ -199,8 +199,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(),
                                                 parameters.isWriteSlackBus(),
                                                 parameters.isPhaseShifterRegulationOn(),
-                                                parameters.isTransformerVoltageControlOn(),
-                                                reporter);
+                                                parameters.isTransformerVoltageControlOn());
             }
 
             LoadFlowResult.ComponentResult.Status status;
@@ -272,8 +271,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             result.getNetwork().updateState(false,
                                             parameters.isWriteSlackBus(),
                                             parameters.isPhaseShifterRegulationOn(),
-                                            parameters.isTransformerVoltageControlOn(),
-                                            reporter);
+                                            parameters.isTransformerVoltageControlOn());
         }
 
         LoadFlowResult.ComponentResult componentResult = new LoadFlowResultImpl.ComponentResultImpl(

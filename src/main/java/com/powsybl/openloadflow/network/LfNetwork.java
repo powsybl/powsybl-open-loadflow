@@ -145,7 +145,7 @@ public class LfNetwork {
     }
 
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
-                            boolean transformerVoltageControlOn, Reporter reporter) {
+                            boolean transformerVoltageControlOn) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         for (LfBus bus : busesById.values()) {
@@ -162,9 +162,7 @@ public class LfNetwork {
         }
 
         stopwatch.stop();
-        long elapsedTime = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-        LOGGER.debug(PERFORMANCE_MARKER, "IIDM network updated in {} ms", elapsedTime);
-        reporter.report("stateUpdate", "IIDM network updated in ${elapsedTime} ms", "elapsedTime", elapsedTime);
+        LOGGER.debug(PERFORMANCE_MARKER, "IIDM network updated in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     public void writeJson(Path file) {
@@ -446,10 +444,11 @@ public class LfNetwork {
             List<LfNetwork> lfNetworks = importer.load(network, parameters, reporter).orElse(null);
             if (lfNetworks != null) {
                 for (LfNetwork lfNetwork : lfNetworks) {
+                    Reporter reporterNetwork = reporter.createSubReporter("postLoading", "Post loading process on network ${numNetwork}", "numNetwork", lfNetwork.getNum());
                     fix(lfNetwork, parameters.isMinImpedance());
                     validate(lfNetwork, parameters.isMinImpedance());
-                    lfNetwork.reportSize(reporter);
-                    lfNetwork.reportBalance(reporter);
+                    lfNetwork.reportSize(reporterNetwork);
+                    lfNetwork.reportBalance(reporterNetwork);
                 }
                 return lfNetworks;
             }

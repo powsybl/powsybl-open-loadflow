@@ -1,0 +1,19 @@
++ Test ESG tutorial report
+  + Load flow on network sim1
+    + Create network 0
+    + Post loading process on network 0
+       Network 0 has 4 buses (voltage remote control: 0 controllers, 0 controlled) and 4 branches
+       Network 0 balance: active generation=607.0 Mw, active load=600.0 Mw, reactive generation=0.0 MVar, reactive load=200.0 MVar
+    + Outer loop Distributed slack on generation
+       Iteration 0: slack bus active power (-1.4404045651219555 MW) distributed in 1 iterations
+       Iteration 1: already balanced
+    + Outer loop Reactive limits
+    + Outer loop Distributed slack on generation
+       Iteration 1: already balanced
+    + Outer loop Reactive limits
+  + Sensitivity analysis on network sim1
+    + Create network 0
+    + Post loading process on network 0
+       Network 0 has 4 buses (voltage remote control: 0 controllers, 0 controlled) and 4 branches
+       Network 0 balance: active generation=607.0 Mw, active load=600.0 Mw, reactive generation=0.0 MVar, reactive load=200.0 MVar
+    + Outer loop Reactive limits

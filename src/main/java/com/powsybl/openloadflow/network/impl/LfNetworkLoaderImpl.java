@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
@@ -456,10 +457,20 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         fixDiscreteVoltageControls(lfNetwork, parameters.isMinImpedance());
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
+            reporter.report(Report.builder()
+                .withKey("generatorsVcDiscarded1")
+                .withDefaultMessage("${nbGenImpacted} generators have been discarded from voltage control because not started")
+                .withValue("nbGenImpacted", report.generatorsDiscardedFromVoltageControlBecauseNotStarted)
+                .build());
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
                     lfNetwork.getNum(), report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall > 0) {
+            reporter.report(Report.builder()
+                .withKey("generatorsVcDiscarded2")
+                .withDefaultMessage("${nbGenImpacted} generators have been discarded from voltage control because of a too small max reactive range")
+                .withValue("nbGenImpacted", report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall)
+                .build());
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because of a too small max reactive range",
                     lfNetwork.getNum(), report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
         }
@@ -537,7 +548,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             MutableInt num = new MutableInt(0);
             List<LfNetwork> lfNetworks = busesByCc.entrySet().stream()
                     .filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
-                    .map(e -> create(num, e.getValue(), switchesByCc.get(e.getKey()), parameters, reporter))
+                    .map(e -> create(num, e.getValue(), switchesByCc.get(e.getKey()), parameters,
+                        reporter.createSubReporter("createLfNetwork", "Create network ${networkNum}", "networkNum", num.getValue())))
                     .collect(Collectors.toList());
 
             stopwatch.stop();

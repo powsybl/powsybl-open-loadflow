@@ -99,13 +99,15 @@ public class AcloadFlowEngine implements AutoCloseable {
     private void runOuterLoop(OuterLoop outerLoop, LfNetwork network, EquationSystem equationSystem, VariableSet variableSet,
                               NewtonRaphson newtonRaphson, NewtonRaphsonParameters nrParameters, RunningContext runningContext,
                               Reporter reporter) {
+        Reporter olReporter = reporter.createSubReporter("OuterLoop", "Outer loop ${outerLoopType}", "outerLoopType", outerLoop.getType());
+
         // for each outer loop re-run Newton-Raphson until stabilization
         OuterLoopStatus outerLoopStatus;
         do {
             MutableInt outerLoopIteration = runningContext.outerLoopIterationByType.computeIfAbsent(outerLoop.getType(), k -> new MutableInt());
 
             // check outer loop status
-            outerLoopStatus = outerLoop.check(new OuterLoopContext(outerLoopIteration.getValue(), network, runningContext.lastNrResult));
+            outerLoopStatus = outerLoop.check(new OuterLoopContext(outerLoopIteration.getValue(), network, runningContext.lastNrResult), olReporter);
 
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
                 LOGGER.debug("Start outer loop iteration {} (name='{}')", outerLoopIteration, outerLoop.getType());
