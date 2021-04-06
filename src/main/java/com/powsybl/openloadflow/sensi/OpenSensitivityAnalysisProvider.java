@@ -83,6 +83,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return lfParametersExt;
     }
 
+    @Override
     public CompletableFuture<SensitivityAnalysisResult> run(Network network, String workingStateId,
                                                             SensitivityFactorsProvider sensitivityFactorsProvider,
                                                             List<Contingency> contingencies,
