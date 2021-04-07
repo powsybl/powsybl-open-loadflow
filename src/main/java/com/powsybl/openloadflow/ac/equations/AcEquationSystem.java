@@ -215,9 +215,10 @@ public final class AcEquationSystem {
             PiModel piModel = branch.getPiModel();
             double rho = PiModel.R2 / piModel.getR1();
             EquationTerm vTerm = EquationTerm.createVariableTerm(bus1, VariableType.BUS_V, variableSet, bus1.getV().eval());
+            EquationTerm bus2vTerm = EquationTerm.createVariableTerm(bus2, VariableType.BUS_V, variableSet, bus2.getV().eval());
             equationSystem.createEquation(branch.getNum(), EquationType.ZERO_V)
                     .addTerm(vTerm)
-                    .addTerm(EquationTerm.multiply(EquationTerm.createVariableTerm(bus2, VariableType.BUS_V, variableSet), -1 * rho));
+                    .addTerm(EquationTerm.multiply(bus2vTerm, -1 * rho));
             bus1.setV(vTerm);
             // add a dummy reactive power variable to both sides of the non impedant branch and with an opposite sign
             // to ensure we have the same number of equation and variables
