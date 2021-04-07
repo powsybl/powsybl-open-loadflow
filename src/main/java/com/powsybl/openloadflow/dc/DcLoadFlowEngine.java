@@ -33,9 +33,9 @@ public class DcLoadFlowEngine {
 
     private double[] targetVector;
 
-    public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory) {
+    public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory, boolean setVToNan) {
         this.networks = Collections.singletonList(network);
-        parameters = new DcLoadFlowParameters(new FirstSlackBusSelector(), matrixFactory);
+        parameters = new DcLoadFlowParameters(new FirstSlackBusSelector(), matrixFactory, setVToNan);
     }
 
     public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters) {
@@ -133,8 +133,10 @@ public class DcLoadFlowEngine {
         equationSystem.updateNetwork(targetVector);
 
         // set all calculated voltages to NaN
-        for (LfBus bus : network.getBuses()) {
-            bus.setV(NAN);
+        if (parameters.isSetVToNan()) {
+            for (LfBus bus : network.getBuses()) {
+                bus.setV(NAN);
+            }
         }
 
         LOGGER.info("Dc loadflow complete (status={})", status);

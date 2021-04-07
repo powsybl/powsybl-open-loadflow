@@ -255,7 +255,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                      parameters.getBalanceType(),
                                                                      forcePhaseControlOffAndAddAngle1Var,
                                                                      parametersExt.getPlausibleActivePowerLimit(),
-                                                                     parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
+                                                                     parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
+                                                                     true);
 
         DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters)
                 .run();
