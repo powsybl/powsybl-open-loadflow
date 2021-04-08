@@ -7,8 +7,6 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.contingency.ContingencyElement;
-import com.powsybl.contingency.ContingencyElementType;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
@@ -60,7 +58,7 @@ public abstract class AbstractSensitivityAnalysis {
         if (t2wt != null) {
             RatioTapChanger rtc = t2wt.getRatioTapChanger();
             if (rtc != null) {
-                throw new NotImplementedException(String.format("[%s] Bus voltage on two windings transformer is not managed yet", equipmentId));
+                throw new NotImplementedException(String.format("[%s] Bus target voltage on two windings transformer is not managed yet", equipmentId));
             }
             return null;
         }
@@ -74,7 +72,7 @@ public abstract class AbstractSensitivityAnalysis {
                 }
             }
             if (regulatingTerminal != null) {
-                throw new NotImplementedException(String.format("[%s] Bus voltage on three windings transformer is not managed yet", equipmentId));
+                throw new NotImplementedException(String.format("[%s] Bus target voltage on three windings transformer is not managed yet", equipmentId));
             }
             return null;
         }
@@ -583,17 +581,19 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+    public void checkContingencies(Network network, LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
         for (PropagatedContingency contingency : contingencies) {
-            for (ContingencyElement contingencyElement : contingency.getContingency().getElements()) {
-                if (!contingencyElement.getType().equals(ContingencyElementType.BRANCH)) {
-                    throw new UnsupportedOperationException("Only contingencies on a branch are yet supported");
-                }
-                LfBranch lfBranch = lfNetwork.getBranchById(contingencyElement.getId());
+            for (String branchId : contingency.getBranchIdsToOpen()) {
+                LfBranch lfBranch = lfNetwork.getBranchById(branchId);
                 if (lfBranch == null) {
-                    throw new PowsyblException("The contingency on the branch " + contingencyElement.getId() + " not found in the network");
+                    throw new PowsyblException("The contingency on the branch " + branchId + " not found in the network");
                 }
-
+            }
+            for (String hvdcId : contingency.getHvdcIdsToOpen()) {
+                HvdcLine hvdcLine = network.getHvdcLine(hvdcId);
+                if (hvdcLine == null) {
+                    throw new PowsyblException("The DC line '" + hvdcId + "' does not exist in the network");
+                }
             }
             Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
             for (String branchId : contingency.getBranchIdsToOpen()) {
@@ -607,7 +607,7 @@ public abstract class AbstractSensitivityAnalysis {
                 }
             }
             contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
-            if (contingency.getBranchIdsToOpen().isEmpty()) {
+            if (contingency.getBranchIdsToOpen().isEmpty() && contingency.getHvdcIdsToOpen().isEmpty()) {
                 LOGGER.warn("Contingency {} has no impact", contingency.getContingency().getId());
             }
         }

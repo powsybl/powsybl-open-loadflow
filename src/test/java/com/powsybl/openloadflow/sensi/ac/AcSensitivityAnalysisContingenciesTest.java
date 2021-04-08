@@ -9,11 +9,13 @@ package com.powsybl.openloadflow.sensi.ac;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.HvdcLineContingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.sensi.SensitivityFactorReader;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
@@ -25,13 +27,15 @@ import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -412,4 +416,21 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(1d, factorWriter.getFunctionRef(sensis.get(9), "l45"), LoadFlowAssert.DELTA_V);
     }
 
+    @Test
+    void testContingencyOnHvdc() {
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        SensitivityFactorsProvider factorsProvider = n -> {
+            return createFactorMatrix(List.of("g1", "g2").stream().map(network::getGenerator).collect(Collectors.toList()),
+                List.of("l12", "l13", "l23").stream().map(network::getBranch).collect(Collectors.toList()));
+        };
+
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies,
+            sensiParameters, LocalComputationManager.getDefault())
+            .join());
+        assertTrue(e.getCause() instanceof NotImplementedException);
+        assertEquals("Contingencies on a DC line are not yet supported in AC mode.", e.getCause().getMessage());
+    }
 }

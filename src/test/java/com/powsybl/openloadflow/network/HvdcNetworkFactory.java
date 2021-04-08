@@ -303,4 +303,185 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         return network;
     }
+
+    /**
+     * <pre>
+     * b1 ----------+
+     * |            |
+     * b2 -------- b3 - cs3
+     *              hvdc34
+     * b5 -------- b4 - cs4
+     * |            |
+     * b6 ----------+
+     * </pre>
+     *
+     * @return network
+     */
+    public static Network createTwoCcLinkedByAHvdc() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        Bus b5 = createBus(network, "b5");
+        Bus b6 = createBus(network, "b6");
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b3, "l13", 0.1f);
+        createLine(network, b2, b3, "l23", 0.1f);
+
+        HvdcConverterStation cs3 = createLcc(b3, "cs3");
+        HvdcConverterStation cs4 = createLcc(b4, "cs4");
+        createHvdcLine(network, "hvdc34", cs3, cs4, 400, 0.1, 2);
+
+        createLine(network, b4, b5, "l45", 0.1f);
+        createLine(network, b4, b6, "l46", 0.1f);
+        createLine(network, b5, b6, "l56", 0.1f);
+        return network;
+    }
+
+    /**
+     * <pre>
+     * b1 ----------+
+     * |            |
+     * b2 -------- b3 - cs3
+     *              hvdc34
+     * b5 -------- b4 - cs4
+     * |            |
+     * b6 ----------+
+     * </pre>
+     *
+     * @return network
+     */
+    public static Network createTwoCcLinkedByAHvdcVsc() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        Bus b5 = createBus(network, "b5");
+        Bus b6 = createBus(network, "b6");
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b3, "l13", 0.1f);
+        createLine(network, b2, b3, "l23", 0.1f);
+
+        HvdcConverterStation cs3 = createVsc(b3, "cs3", 1d, 0d);
+        HvdcConverterStation cs4 = createVsc(b4, "cs4", 1d, 0d);
+        createHvdcLine(network, "hvdc34", cs3, cs4, 400, 0.1, 2);
+
+        createLine(network, b4, b5, "l45", 0.1f);
+        createLine(network, b4, b6, "l46", 0.1f);
+        createLine(network, b5, b6, "l56", 0.1f);
+        return network;
+    }
+
+    /**
+     * <pre>
+     * b1 -----------
+     * |            |
+     * b2 ---twt-- b3 - cs3
+     *              hvdc34
+     * b5 -------- b4 - cs4
+     * |            |
+     * b6 ----------+
+     * </pre>
+     *
+     * @return network
+     */
+    public static Network createTwoCcLinkedByAHvdcWithATransformer() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "test_s", "b2");
+        Bus b3 = createBus(network, "test_s", "b3");
+        Bus b4 = createBus(network, "b4");
+        Bus b5 = createBus(network, "b5");
+        Bus b6 = createBus(network, "b6");
+        createLine(network, b1, b2, "l12", 0.1f);
+        createLine(network, b1, b3, "l13", 0.1f);
+        TwoWindingsTransformer twt = createTransformer(network, "test_s", b2, b3, "l23", 0.1f, 1d);
+        twt.newPhaseTapChanger().setTapPosition(0)
+            .beginStep()
+            .setR(0)
+            .setX(0.1f)
+            .setG(0)
+            .setB(0)
+            .setRho(1)
+            .setAlpha(1)
+            .endStep()
+            .add();
+        HvdcConverterStation cs3 = createLcc(b3, "cs3");
+        HvdcConverterStation cs4 = createLcc(b4, "cs4");
+        createHvdcLine(network, "hvdc34", cs3, cs4, 400, 0.1, 2);
+
+        createLine(network, b4, b5, "l45", 0.1f);
+        createLine(network, b4, b6, "l46", 0.1f);
+        createLine(network, b5, b6, "l56", 0.1f);
+        return network;
+    }
+
+    public static Network createTwoCcLinkedByAHvdcVscWithGenerators() {
+        Network network = createTwoCcLinkedByAHvdcVsc();
+        Bus b1 = network.getBusBreakerView().getBus("b1");
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        Bus b6 = network.getBusBreakerView().getBus("b6");
+        createGenerator(b1, "g1", 1);
+        createGenerator(b2, "g2", 1);
+        createLoad(b2, "d2", 4);
+        createGenerator(b6, "g6", 1);
+        return network;
+    }
+
+    public static Network createTwoCcLinkedByAHvdcWithGenerators() {
+        Network network = createTwoCcLinkedByAHvdc();
+        Bus b1 = network.getBusBreakerView().getBus("b1");
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        Bus b6 = network.getBusBreakerView().getBus("b6");
+        createGenerator(b1, "g1", 1);
+        createGenerator(b2, "g2", 1);
+        createLoad(b2, "d2", 4);
+        createGenerator(b6, "g6", 1);
+        return network;
+    }
+
+    /**
+     * <pre>
+     * b1 ----------+
+     * |            |
+     * b2 -------- b3 - cs3
+     * |           hvdc34
+     * b5 -------- b4 - cs4
+     * |            |
+     * b6 ----------+
+     * </pre>
+     *
+     * @return network
+     */
+    public static Network createNetworkWithGenerators() {
+        Network network = createTwoCcLinkedByAHvdcWithGenerators();
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        Bus b5 = network.getBusBreakerView().getBus("b5");
+        createLine(network, b2, b5, "l25", 0.1f);
+        createGenerator(b5, "g5", 1);
+        return network;
+    }
+
+    public static Network createNetworkWithTransformer() {
+        Network network = createTwoCcLinkedByAHvdcWithATransformer();
+        Bus b1 = network.getBusBreakerView().getBus("b1");
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        Bus b6 = network.getBusBreakerView().getBus("b6");
+        createGenerator(b1, "g1", 1);
+        createGenerator(b2, "g2", 1);
+        createLoad(b2, "d2", 4);
+        createGenerator(b6, "g6", 1);
+        return network;
+    }
+
+    public static Network createLinkedNetworkWithTransformer() {
+        Network network = createNetworkWithTransformer();
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        Bus b5 = network.getBusBreakerView().getBus("b5");
+        createLine(network, b2, b5, "l25", 0.1f);
+        createGenerator(b5, "g5", 1);
+        return network;
+    }
 }
