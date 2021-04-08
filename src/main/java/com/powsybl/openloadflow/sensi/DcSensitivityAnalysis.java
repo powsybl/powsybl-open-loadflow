@@ -465,8 +465,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return connectivityAnalysisResults;
     }
 
-    private void processStation(LfNetwork lfNetwork, HvdcConverterStation<?> station,
-                                Collection<Pair<LfBus, LccConverterStation>> lccs, Collection<Pair<LfBus, LfVscConverterStationImpl>> vscs) {
+    private void processConverterStation(LfNetwork lfNetwork, HvdcConverterStation<?> station,
+                                         Collection<Pair<LfBus, LccConverterStation>> lccs, Collection<Pair<LfBus, LfVscConverterStationImpl>> vscs) {
         AbstractLfBus bus = (AbstractLfBus) lfNetwork.getBusById(station.getTerminal().getBusView().getBus().getId());
         if (bus == null) {
             return;
@@ -481,13 +481,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
     }
 
-    private Map<LfBus, BusState> applyHvdcContingency(Network network, LfNetwork lfNetwork, PropagatedContingency contingency) {
+    private Map<LfBus, BusState> applyDcLineContingency(Network network, LfNetwork lfNetwork, PropagatedContingency contingency) {
         Collection<Pair<LfBus, LccConverterStation>> lccs = new HashSet<>();
         Collection<Pair<LfBus, LfVscConverterStationImpl>> vscs = new HashSet<>();
         for (String hvdcId : contingency.getHvdcIdsToOpen()) {
             HvdcLine hvdcLine = network.getHvdcLine(hvdcId);
-            processStation(lfNetwork, hvdcLine.getConverterStation1(), lccs, vscs);
-            processStation(lfNetwork, hvdcLine.getConverterStation2(), lccs, vscs);
+            processConverterStation(lfNetwork, hvdcLine.getConverterStation1(), lccs, vscs);
+            processConverterStation(lfNetwork, hvdcLine.getConverterStation2(), lccs, vscs);
         }
         Collection<LfBus> busesToSave = new HashSet<>();
         busesToSave.addAll(lccs.stream().map(Pair::getKey).collect(Collectors.toSet()));
@@ -499,7 +499,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             LccConverterStation lcc = busAndlcc.getValue();
             HvdcLine line = lcc.getHvdcLine();
             bus.setLoadTargetP(bus.getLoadTargetP() - AbstractLfBus.getLccConverterStationLoadTargetP(lcc, line) / PerUnit.SB);
-            bus.setLoadTargetQ(bus.getLoadTargetQ() - AbstractLfBus.getLccConverterStationLoadTargetQ(lcc, line) / PerUnit.SB);
         }
 
         for (Pair<LfBus, LfVscConverterStationImpl> busAndVsc : vscs) {
@@ -511,20 +510,46 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     }
 
-    public DenseMatrix calculateHdvcStates(LfNetwork lfNetwork, JacobianMatrix j, EquationSystem equationSystem,
+    public DenseMatrix calculateStates(LfNetwork lfNetwork, JacobianMatrix j, EquationSystem equationSystem,
                                        List<SensitivityFactorGroup> factorGroups, LoadFlowParameters lfParameters,
                                        OpenLoadFlowParameters lfParametersExt) {
 
-        List<ParticipatingElement> participatingElementsWithoutHvdc = getParticipatingElements(lfNetwork.getBuses(), lfParameters, lfParametersExt);
-        Map<LfBus, Double> slackParticipationByBusWithoutHvdc = participatingElementsWithoutHvdc.stream().collect(Collectors.toMap(
+        List<ParticipatingElement> participatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters, lfParametersExt);
+        Map<LfBus, Double> slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
             ParticipatingElement::getLfBus,
             element -> -element.getFactor(),
             Double::sum
         ));
-        DenseMatrix statesWithoutHvdc = initFactorsRhs(equationSystem, factorGroups, slackParticipationByBusWithoutHvdc);
-        j.solveTransposed(statesWithoutHvdc);
-        setBaseCaseSensitivityValues(factorGroups, statesWithoutHvdc);
-        return statesWithoutHvdc;
+        DenseMatrix states = initFactorsRhs(equationSystem, factorGroups, slackParticipationByBus);
+        j.solveTransposed(states);
+        setBaseCaseSensitivityValues(factorGroups, states);
+        return states;
+    }
+
+    public void calculateContingencySensitivityValues(PropagatedContingency contingency, List<SensitivityFactorGroup> factorGroups, DenseMatrix factorStates, DenseMatrix contingenciesStates,
+                                                      DenseMatrix flowStates, Collection<ComputedContingencyElement> contingencyElements, SensitivityValueWriter valueWriter, Network network,
+                                                      LfNetwork lfNetwork, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, JacobianMatrix j, EquationSystem equationSystem,
+                                                      DcLoadFlowEngine dcLoadFlowEngine, List<LfSensitivityFactor> factors, List<ParticipatingElement> participatingElements,
+                                                      Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches) {
+        if (contingency.getHvdcIdsToOpen().isEmpty()) {
+            calculateSensitivityValues(factorGroups, factorStates, contingenciesStates, flowStates, contingencyElements,
+                    contingency.getContingency().getId(), contingency.getIndex(), valueWriter);
+        } else { // if we have a contingency including the loss of a DC line
+            Map<LfBus, BusState> busStates = applyDcLineContingency(network, lfNetwork, contingency);
+            boolean shouldChangeRhs = lfParameters.isDistributedSlack()
+                    && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+            DenseMatrix statesWithoutDcLine = factorStates;
+            if (shouldChangeRhs) {
+                statesWithoutDcLine = calculateStates(lfNetwork, j, equationSystem, factorGroups, lfParameters, lfParametersExt);
+            }
+            DenseMatrix flowStatesWithoutDcLine = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, factors, lfParameters, participatingElements, disabledBuses, disabledBranches);
+            calculateSensitivityValues(factorGroups, statesWithoutDcLine, contingenciesStates, flowStatesWithoutDcLine, contingencyElements,
+                    contingency.getContingency().getId(), contingency.getIndex(), valueWriter);
+            BusState.restoreBusStates(busStates);
+            if (shouldChangeRhs) {
+                setBaseCaseSensitivityValues(factorGroups, factorStates);
+            }
+        }
     }
 
     public void analyse(Network network, List<PropagatedContingency> contingencies, LoadFlowParameters lfParameters,
@@ -643,25 +668,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             for (PropagatedContingency contingency : phaseTapChangerContingenciesIndexing.getContingenciesWithoutPhaseTapChangerLoss()) {
                 zeroFactors.forEach(lfFactor -> valueWriter.write(lfFactor.getContext(), contingency.getContingency().getId(), contingency.getIndex(), 0, Double.NaN));
                 List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream().map(contingencyElementByBranch::get).collect(Collectors.toList());
-                if (contingency.getHvdcIdsToOpen().isEmpty()) {
-                    calculateSensitivityValues(factorGroups, factorsStates, contingenciesStates, flowStates, contingencyElements,
-                        contingency.getContingency().getId(), contingency.getIndex(), valueWriter);
-                } else {
-                    Map<LfBus, BusState> busStates = applyHvdcContingency(network, lfNetwork, contingency);
-                    boolean shouldChangeRhs = lfParameters.isDistributedSlack()
-                        && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
-                    DenseMatrix statesWithoutHvdc = factorsStates;
-                    if (shouldChangeRhs) {
-                        statesWithoutHvdc = calculateHdvcStates(lfNetwork, j, equationSystem, factorGroups, lfParameters, lfParametersExt);
-                    }
-                    DenseMatrix flowStatesWithoutHvdc = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElements, Collections.emptyList(), Collections.emptyList());
-                    calculateSensitivityValues(factorGroups, statesWithoutHvdc, contingenciesStates, flowStatesWithoutHvdc, contingencyElements,
-                        contingency.getContingency().getId(), contingency.getIndex(), valueWriter);
-                    BusState.restoreBusStates(busStates);
-                    if (shouldChangeRhs) {
-                        setBaseCaseSensitivityValues(factorGroups, factorsStates);
-                    }
-                }
+                calculateContingencySensitivityValues(contingency, factorGroups, factorsStates, contingenciesStates, flowStates, contingencyElements, valueWriter,
+                        network, lfNetwork, lfParameters, lfParametersExt, j, equationSystem, dcLoadFlowEngine, lfFactors, participatingElements,
+                        Collections.emptyList(), Collections.emptyList());
             }
 
             // then we compute the ones involving the loss of a phase tap changer (because we need to recompute the load flows)
@@ -672,25 +681,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 for (PropagatedContingency contingency : propagatedContingencies) {
                     zeroFactors.forEach(lfFactor -> valueWriter.write(lfFactor.getContext(), contingency.getContingency().getId(), contingency.getIndex(), 0, Double.NaN));
                     List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream().map(contingencyElementByBranch::get).collect(Collectors.toList());
-                    if (contingency.getHvdcIdsToOpen().isEmpty()) {
-                        calculateSensitivityValues(factorGroups, factorsStates, contingenciesStates, flowStates,
-                            contingencyElements, contingency.getContingency().getId(), contingency.getIndex(), valueWriter);
-                    } else {
-                        Map<LfBus, BusState> busStates = applyHvdcContingency(network, lfNetwork, contingency);
-                        boolean shouldChangeRhs = lfParameters.isDistributedSlack()
-                            && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
-                        DenseMatrix statesWithoutHvdc = factorsStates;
-                        if (shouldChangeRhs) {
-                            statesWithoutHvdc = calculateHdvcStates(lfNetwork, j, equationSystem, factorGroups, lfParameters, lfParametersExt);
-                        }
-                        DenseMatrix flowStatesWithoutHvdc = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElements, Collections.emptyList(), removedPhaseTapChangers);
-                        calculateSensitivityValues(factorGroups, statesWithoutHvdc, contingenciesStates, flowStatesWithoutHvdc, contingencyElements,
-                            contingency.getContingency().getId(), contingency.getIndex(), valueWriter);
-                        BusState.restoreBusStates(busStates);
-                        if (shouldChangeRhs) {
-                            setBaseCaseSensitivityValues(factorGroups, factorsStates);
-                        }
-                    }
+                    calculateContingencySensitivityValues(contingency, factorGroups, factorsStates, contingenciesStates, flowStates, contingencyElements, valueWriter,
+                            network, lfNetwork, lfParameters, lfParametersExt, j, equationSystem, dcLoadFlowEngine, lfFactors, participatingElements,
+                            Collections.emptyList(), removedPhaseTapChangers);
                 }
             }
 
@@ -749,25 +742,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 for (PropagatedContingency contingency : phaseTapChangerContingenciesIndexing.getContingenciesWithoutPhaseTapChangerLoss()) {
                     Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream().filter(element -> !elementsToReconnect.contains(element)).map(contingencyElementByBranch::get).collect(Collectors.toList());
                     zeroFactors.forEach(lfFactor -> valueWriter.write(lfFactor.getContext(), contingency.getContingency().getId(), contingency.getIndex(), 0, Double.NaN));
-                    if (contingency.getHvdcIdsToOpen().isEmpty()) {
-                        calculateSensitivityValues(factorGroups, factorStateForThisConnectivity, contingenciesStates, flowStates, contingencyElements,
-                            contingency.getContingency().getId(), contingency.getIndex(), valueWriter);
-                    } else {
-                        Map<LfBus, BusState> busStates = applyHvdcContingency(network, lfNetwork, contingency);
-                        boolean shouldChangeRhs = lfParameters.isDistributedSlack()
-                            && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
-                        DenseMatrix statesWithoutHvdc = factorStateForThisConnectivity;
-                        if (shouldChangeRhs) {
-                            statesWithoutHvdc = calculateHdvcStates(lfNetwork, j, equationSystem, factorGroups, lfParameters, lfParametersExt);
-                        }
-                        DenseMatrix flowStatesWithoutHvdc = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElementsForThisConnectivity, disabledBuses, Collections.emptyList());
-                        calculateSensitivityValues(factorGroups, statesWithoutHvdc, contingenciesStates, flowStatesWithoutHvdc, contingencyElements,
-                            contingency.getContingency().getId(), contingency.getIndex(), valueWriter);
-                        BusState.restoreBusStates(busStates);
-                        if (shouldChangeRhs) {
-                            setBaseCaseSensitivityValues(factorGroups, factorsStates);
-                        }
-                    }
+                    calculateContingencySensitivityValues(contingency, factorGroups, factorStateForThisConnectivity, contingenciesStates, flowStates, contingencyElements, valueWriter,
+                            network, lfNetwork, lfParameters, lfParametersExt, j, equationSystem, dcLoadFlowEngine, lfFactors, participatingElementsForThisConnectivity,
+                            disabledBuses, Collections.emptyList());
                 }
 
                 // then we compute the ones involving the loss of a phase tap changer (because we need to recompute the load flows)
@@ -778,25 +755,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     for (PropagatedContingency contingency : propagatedContingencies) {
                         Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream().filter(element -> !elementsToReconnect.contains(element)).map(contingencyElementByBranch::get).collect(Collectors.toList());
                         zeroFactors.forEach(lfFactor -> valueWriter.write(lfFactor.getContext(), contingency.getContingency().getId(), contingency.getIndex(), 0, Double.NaN));
-                        if (contingency.getHvdcIdsToOpen().isEmpty()) {
-                            calculateSensitivityValues(factorGroups, factorStateForThisConnectivity, contingenciesStates, flowStates, contingencyElements,
-                                contingency.getContingency().getId(), contingency.getIndex(), valueWriter);
-                        } else {
-                            Map<LfBus, BusState> busStates = applyHvdcContingency(network, lfNetwork, contingency);
-                            boolean shouldChangeRhs = lfParameters.isDistributedSlack()
-                                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
-                            DenseMatrix statesWithoutHvdc = factorStateForThisConnectivity;
-                            if (shouldChangeRhs) {
-                                statesWithoutHvdc = calculateHdvcStates(lfNetwork, j, equationSystem, factorGroups, lfParameters, lfParametersExt);
-                            }
-                            DenseMatrix flowStatesWithoutHvdc = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElementsForThisConnectivity, disabledBuses, disabledPhaseTapChangers);
-                            calculateSensitivityValues(factorGroups, statesWithoutHvdc, contingenciesStates, flowStatesWithoutHvdc, contingencyElements,
-                                contingency.getContingency().getId(), contingency.getIndex(), valueWriter);
-                            BusState.restoreBusStates(busStates);
-                            if (shouldChangeRhs) {
-                                setBaseCaseSensitivityValues(factorGroups, factorsStates);
-                            }
-                        }
+                        calculateContingencySensitivityValues(contingency, factorGroups, factorStateForThisConnectivity, contingenciesStates, flowStates, contingencyElements, valueWriter,
+                                network, lfNetwork, lfParameters, lfParametersExt, j, equationSystem, dcLoadFlowEngine, lfFactors, participatingElementsForThisConnectivity,
+                                disabledBuses, disabledPhaseTapChangers);
                     }
                 }
 
