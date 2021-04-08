@@ -431,6 +431,6 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
             sensiParameters, LocalComputationManager.getDefault())
             .join());
         assertTrue(e.getCause() instanceof NotImplementedException);
-        assertEquals("Contingencies on HVDC are not yet supported in AC mode.", e.getCause().getMessage());
+        assertEquals("Contingencies on a DC line are not yet supported in AC mode.", e.getCause().getMessage());
     }
 }

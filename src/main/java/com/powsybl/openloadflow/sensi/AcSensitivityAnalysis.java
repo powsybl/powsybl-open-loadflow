@@ -124,7 +124,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         for (PropagatedContingency contingency : contingencies) {
             if (!contingency.getHvdcIdsToOpen().isEmpty()) {
-                throw new NotImplementedException("Contingencies on HVDC are not yet supported in AC mode.");
+                throw new NotImplementedException("Contingencies on a DC line are not yet supported in AC mode.");
             }
         }
     }

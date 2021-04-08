@@ -331,7 +331,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         NotImplementedException e = assertThrows(NotImplementedException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
             sensiParameters, factorReader, factorWriter));
 
-        assertEquals("[l23] Bus voltage on two windings transformer is not managed yet", e.getMessage());
+        assertEquals("[l23] Bus target voltage on two windings transformer is not managed yet", e.getMessage());
     }
 
     @Test
@@ -364,7 +364,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         NotImplementedException e = assertThrows(NotImplementedException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
             sensiParameters, factorReader, factorWriter));
 
-        assertEquals("[3wt] Bus voltage on three windings transformer is not managed yet", e.getMessage());
+        assertEquals("[3wt] Bus target voltage on three windings transformer is not managed yet", e.getMessage());
     }
 
     @Test

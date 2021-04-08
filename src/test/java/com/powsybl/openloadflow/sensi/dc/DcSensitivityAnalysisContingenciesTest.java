@@ -1206,6 +1206,6 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
             sensiParameters, LocalComputationManager.getDefault())
             .join());
         assertTrue(e.getCause() instanceof PowsyblException);
-        assertEquals("The HVDC line 'wrong' does not exist in the network", e.getCause().getMessage());
+        assertEquals("The DC line 'wrong' does not exist in the network", e.getCause().getMessage());
     }
 }

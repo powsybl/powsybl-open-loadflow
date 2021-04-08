@@ -25,7 +25,6 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.AbstractLfBus;
-import com.powsybl.openloadflow.network.impl.HvdcConverterStations;
 import com.powsybl.openloadflow.network.impl.LfVscConverterStationImpl;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BranchState;
@@ -499,17 +498,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             LfBus bus = busAndlcc.getKey();
             LccConverterStation lcc = busAndlcc.getValue();
             HvdcLine line = lcc.getHvdcLine();
-            // The active power setpoint is always positive.
-            // If the converter station is at side 1 and is rectifier, p should be positive.
-            // If the converter station is at side 1 and is inverter, p should be negative.
-            // If the converter station is at side 2 and is rectifier, p should be positive.
-            // If the converter station is at side 2 and is inverter, p should be negative.
-            boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(lcc);
-            double pCs = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
-                (1 + (isConverterStationRectifier ? 1 : -1) * lcc.getLossFactor() / 100); // A LCC station has active losses.
-            double qCs = Math.abs(pCs * Math.tan(Math.acos(lcc.getPowerFactor()))); // A LCC station always consumes reactive power.
-            bus.setLoadTargetP(bus.getLoadTargetP() - pCs / PerUnit.SB);
-            bus.setLoadTargetQ(bus.getLoadTargetQ() - qCs / PerUnit.SB);
+            bus.setLoadTargetP(bus.getLoadTargetP() - AbstractLfBus.getLccConverterStationLoadTargetP(lcc, line) / PerUnit.SB);
+            bus.setLoadTargetQ(bus.getLoadTargetQ() - AbstractLfBus.getLccConverterStationLoadTargetQ(lcc, line) / PerUnit.SB);
         }
 
         for (Pair<LfBus, LfVscConverterStationImpl> busAndVsc : vscs) {

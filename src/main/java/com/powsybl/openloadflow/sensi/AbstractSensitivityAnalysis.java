@@ -58,7 +58,7 @@ public abstract class AbstractSensitivityAnalysis {
         if (t2wt != null) {
             RatioTapChanger rtc = t2wt.getRatioTapChanger();
             if (rtc != null) {
-                throw new NotImplementedException(String.format("[%s] Bus voltage on two windings transformer is not managed yet", equipmentId));
+                throw new NotImplementedException(String.format("[%s] Bus target voltage on two windings transformer is not managed yet", equipmentId));
             }
             return null;
         }
@@ -72,7 +72,7 @@ public abstract class AbstractSensitivityAnalysis {
                 }
             }
             if (regulatingTerminal != null) {
-                throw new NotImplementedException(String.format("[%s] Bus voltage on three windings transformer is not managed yet", equipmentId));
+                throw new NotImplementedException(String.format("[%s] Bus target voltage on three windings transformer is not managed yet", equipmentId));
             }
             return null;
         }
@@ -592,7 +592,7 @@ public abstract class AbstractSensitivityAnalysis {
             for (String hvdcId : contingency.getHvdcIdsToOpen()) {
                 HvdcLine hvdcLine = network.getHvdcLine(hvdcId);
                 if (hvdcLine == null) {
-                    throw new PowsyblException("The HVDC line '" + hvdcId + "' does not exist in the network");
+                    throw new PowsyblException("The DC line '" + hvdcId + "' does not exist in the network");
                 }
             }
             Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
