@@ -458,7 +458,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             reporter.report(Report.builder()
-                .withKey("generatorsVcDiscarded1")
+                .withKey("notStartedGenerators")
                 .withDefaultMessage("${nbGenImpacted} generators have been discarded from voltage control because not started")
                 .withValue("nbGenImpacted", report.generatorsDiscardedFromVoltageControlBecauseNotStarted)
                 .build());
@@ -467,7 +467,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall > 0) {
             reporter.report(Report.builder()
-                .withKey("generatorsVcDiscarded2")
+                .withKey("smallReactiveRangeGenerators")
                 .withDefaultMessage("${nbGenImpacted} generators have been discarded from voltage control because of a too small max reactive range")
                 .withValue("nbGenImpacted", report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall)
                 .build());

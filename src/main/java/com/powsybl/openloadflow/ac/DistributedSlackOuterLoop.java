@@ -55,7 +55,7 @@ public class DistributedSlackOuterLoop implements OuterLoop {
 
             if (Math.abs(result.getRemainingMismatch()) > ActivePowerDistribution.P_RESIDUE_EPS) {
                 reporter.report(Report.builder()
-                    .withKey("mismatchDistributionFailed")
+                    .withKey("mismatchDistributionFailure")
                     .withDefaultMessage("Iteration ${iteration}: failed to distribute slack bus active power mismatch, ${mismatch} MW remains")
                     .withValue("iteration", context.getIteration())
                     .withTypedValue("mismatch", result.getRemainingMismatch() * PerUnit.SB, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)

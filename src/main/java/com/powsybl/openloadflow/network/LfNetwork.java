@@ -379,14 +379,14 @@ public class LfNetwork {
 
         reporter.report(Report.builder()
             .withKey("networkBalance")
-            .withDefaultMessage("Network ${numNetwork} balance: active generation=${activeGeneration} Mw, active load=${activeLoad} Mw, reactive generation=${reactiveGeneration} MVar, reactive load=${reactiveLoad} MVar")
+            .withDefaultMessage("Network ${numNetwork} balance: active generation=${activeGeneration} MW, active load=${activeLoad} MW, reactive generation=${reactiveGeneration} MVar, reactive load=${reactiveLoad} MVar")
             .withValue("numNetwork", num)
             .withValue("activeGeneration", activeGeneration)
             .withValue("activeLoad", activeLoad)
             .withValue("reactiveGeneration", reactiveGeneration)
             .withValue("reactiveLoad", reactiveLoad)
             .build());
-        LOGGER.info("Network {} balance: active generation={} Mw, active load={} Mw, reactive generation={} MVar, reactive load={} MVar",
+        LOGGER.info("Network {} balance: active generation={} MW, active load={} MW, reactive generation={} MVar, reactive load={} MVar",
             num, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 

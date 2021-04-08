@@ -131,7 +131,7 @@ public class DcLoadFlowEngine {
         } catch (Exception e) {
             status = LoadFlowResult.ComponentResult.Status.FAILED;
             reporter.report(Report.builder()
-                .withKey("failedLoadFlow")
+                .withKey("loadFlowFailure")
                 .withDefaultMessage("Failed to solve linear system for DC load flow: ${errorMessage}")
                 .withValue("errorMessage", e.getMessage())
                 .withSeverity(OpenLoadFlowReportConstants.ERROR_SEVERITY)
@@ -151,12 +151,12 @@ public class DcLoadFlowEngine {
         }
 
         reporter.report(Report.builder()
-            .withKey("loadFlowComplete")
-            .withDefaultMessage("Dc loadflow complete (status=${lfStatus})")
+            .withKey("loadFlowCompleted")
+            .withDefaultMessage("DC load flow completed (status=${lfStatus})")
             .withValue("lfStatus", status.toString())
             .withSeverity(OpenLoadFlowReportConstants.INFO_SEVERITY)
             .build());
-        LOGGER.info("Dc loadflow complete (status={})", status);
+        LOGGER.info("DC load flow completed (status={})", status);
         return status;
     }
 
