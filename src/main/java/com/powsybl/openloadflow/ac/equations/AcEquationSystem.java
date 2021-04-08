@@ -17,10 +17,7 @@ import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -48,13 +45,23 @@ public final class AcEquationSystem {
             if (creationParameters.isTransformerVoltageControl()) {
                 createDiscreteVoltageControlEquation(bus, variableSet, equationSystem);
             }
+            Equation v = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
+            if (v.getTerms().isEmpty()) {
+                v.setActive(false);
+                EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
+                v.addTerm(vTerm);
+                bus.setV(vTerm);
+                v.setUpdateType(EquationSystem.EquationUpdateType.AFTER_NR);
+            }
         }
     }
 
     private static void createVoltageControlEquations(VoltageControl voltageControl, LfBus bus, VariableSet variableSet,
                                                       EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
         if (voltageControl.isVoltageControlLocal()) {
-            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet));
+            EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
+            bus.setV(vTerm);
         } else if (bus.isVoltageControlled()) {
             // remote controlled: set voltage equation on this controlled bus
             createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet, creationParameters);
@@ -78,8 +85,10 @@ public final class AcEquationSystem {
         LfBus controlledBus = voltageControl.getControlledBus();
 
         // create voltage equation at voltage controlled bus
+        EquationTerm vTerm = EquationTerm.createVariableTerm(controlledBus, VariableType.BUS_V, variableSet, controlledBus.getV().eval());
         Equation vEq = equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V)
-                .addTerm(EquationTerm.createVariableTerm(controlledBus, VariableType.BUS_V, variableSet));
+                .addTerm(vTerm);
+        controlledBus.setV(vTerm);
 
         List<LfBus> controllerBuses = voltageControl.getControllerBuses().stream()
                 .filter(LfBus::isVoltageControllerEnabled)
@@ -196,17 +205,21 @@ public final class AcEquationSystem {
 
     private static void createNonImpedantBranch(VariableSet variableSet, EquationSystem equationSystem,
                                                 LfBranch branch, LfBus bus1, LfBus bus2) {
-        boolean hasV1 = equationSystem.hasEquation(bus1.getNum(), EquationType.BUS_V);
-        boolean hasV2 = equationSystem.hasEquation(bus2.getNum(), EquationType.BUS_V);
+        Optional<Equation> v1 = equationSystem.getEquation(bus1.getNum(), EquationType.BUS_V);
+        Optional<Equation> v2 = equationSystem.getEquation(bus2.getNum(), EquationType.BUS_V);
+        boolean hasV1 = v1.isPresent() && v1.get().isActive(); // may be inactive is the equation has been created for sensitivity
+        boolean hasV2 = v2.isPresent() && v2.get().isActive(); // may be inactive is the equation has been created for sensitivity
         if (!(hasV1 && hasV2)) {
             // create voltage magnitude coupling equation
             // 0 = v1 - v2 * rho
             PiModel piModel = branch.getPiModel();
             double rho = PiModel.R2 / piModel.getR1();
+            EquationTerm vTerm = EquationTerm.createVariableTerm(bus1, VariableType.BUS_V, variableSet, bus1.getV().eval());
+            EquationTerm bus2vTerm = EquationTerm.createVariableTerm(bus2, VariableType.BUS_V, variableSet, bus2.getV().eval());
             equationSystem.createEquation(branch.getNum(), EquationType.ZERO_V)
-                    .addTerm(EquationTerm.createVariableTerm(bus1, VariableType.BUS_V, variableSet))
-                    .addTerm(EquationTerm.multiply(EquationTerm.createVariableTerm(bus2, VariableType.BUS_V, variableSet), -1 * rho));
-
+                    .addTerm(vTerm)
+                    .addTerm(EquationTerm.multiply(bus2vTerm, -1 * rho));
+            bus1.setV(vTerm);
             // add a dummy reactive power variable to both sides of the non impedant branch and with an opposite sign
             // to ensure we have the same number of equation and variables
             Equation sq1 = equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q);
@@ -251,7 +264,9 @@ public final class AcEquationSystem {
 
     private static void createDiscreteVoltageControlEquation(LfBus bus,  VariableSet variableSet, EquationSystem equationSystem) {
         if (bus.isDiscreteVoltageControlled()) {
-            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet));
+            EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
+            bus.setV(vTerm);
             if (bus.getDiscreteVoltageControl().getControllers().size() > 1) {
                 createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
             }
