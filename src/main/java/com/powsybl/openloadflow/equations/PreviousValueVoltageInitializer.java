@@ -24,7 +24,7 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
 
     @Override
     public double getMagnitude(LfBus bus) {
-        double v = bus.getV();
+        double v = bus.getV().eval();
         if (Double.isNaN(v)) {
             throw new PowsyblException("Voltage magnitude is undefined for bus '" + bus.getId() + "'");
         }

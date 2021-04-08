@@ -22,7 +22,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
 
     @Override
     public void prepare(LfNetwork network, MatrixFactory matrixFactory, Reporter reporter) {
-        if (new DcLoadFlowEngine(network, matrixFactory).run(reporter).getStatus() != LoadFlowResult.ComponentResult.Status.CONVERGED) {
+        if (new DcLoadFlowEngine(network, matrixFactory, false).run(reporter).getStatus() != LoadFlowResult.ComponentResult.Status.CONVERGED) {
             throw new PowsyblException("DC loadflow failed, impossible to initialize voltage angle from DC values");
         }
     }

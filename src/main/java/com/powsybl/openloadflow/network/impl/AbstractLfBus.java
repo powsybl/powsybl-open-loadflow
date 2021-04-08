@@ -30,7 +30,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean slack = false;
 
-    protected double v;
+    protected Evaluable v;
 
     protected double angle;
 
@@ -80,7 +80,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected AbstractLfBus(LfNetwork network, double v, double angle) {
         super(network);
-        this.v = v;
+        this.v = () -> v / getNominalV(); // this will be replaced by an equation term once the equationSystem is created
         this.angle = angle;
     }
 
@@ -297,13 +297,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public double getV() {
-        return v / getNominalV();
+    public Evaluable getV() {
+        return v;
     }
 
     @Override
-    public void setV(double v) {
-        this.v = v * getNominalV();
+    public void setV(Evaluable v) {
+        this.v = v;
     }
 
     @Override

@@ -178,7 +178,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         dcLoadFlowEngine.run(equationSystem, j, disabledBuses, disabledBranches, reporter);
 
         for (LfSensitivityFactor factor : factors) {
-            factor.setFunctionReference(factor.getFunctionLfBranch().getP1().eval());
+            factor.setFunctionReference(factor.getEquationTerm().eval());
         }
 
         if (lfParameters.isDistributedSlack()) {
@@ -196,6 +196,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         double sensiValue;
         double flowValue;
         EquationTerm p1 = factor.getEquationTerm();
+        String functionBranchId = factor.getFunctionElement().getId();
         if (factor.getPredefinedResult() != null) {
             sensiValue = factor.getPredefinedResult();
             flowValue = factor.getPredefinedResult();
@@ -203,7 +204,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             sensiValue = factor.getBaseSensitivityValue();
             flowValue = factor.getFunctionReference();
             for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                if (contingencyElement.getElement().getId().equals(factor.getFunctionId())
+                if (contingencyElement.getElement().getId().equals(functionBranchId)
                         || contingencyElement.getElement().getId().equals(factor.getVariableId())) {
                     // the sensitivity on a removed branch is 0, the sensitivity if the variable was a removed branch is 0
                     sensiValue = 0d;
@@ -484,12 +485,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         List<LfSensitivityFactor> lfFactors = readAndCheckFactors(network, factorReader, lfNetwork);
 
         lfFactors.stream()
-                .filter(lfFactor -> !(lfFactor instanceof LfBranchFlowPerInjectionIncrease)
-                        && !(lfFactor instanceof LfBranchFlowPerLinearGlsk)
-                        && !(lfFactor instanceof LfBranchFlowPerPSTAngle))
+                .filter(lfFactor -> lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER
+                    || (lfFactor.getVariableType() != SensitivityVariableType.INJECTION_ACTIVE_POWER
+                    && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE))
                 .findFirst()
                 .ifPresent(ignored -> {
-                    throw new PowsyblException("Only sensitivity factors of type LfBranchFlowPerInjectionIncrease, LfBranchFlowPerLinearGlsk and LfBranchFlowPerPSTAngle are yet supported in DC");
+                    throw new PowsyblException("Only variables of type TRANSFORMER_PHASE or INJECTION_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER are yet supported in DC");
                 });
 
         LOGGER.info("Running DC sensitivity analysis with {} factors and {} contingencies",  lfFactors.size(), contingencies.size());
@@ -497,7 +498,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         // create DC load flow engine for setting the function reference
         DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfParametersExt.getSlackBusSelector(), matrixFactory,
             true, lfParametersExt.isDcUseTransformerRatio(), lfParameters.isDistributedSlack(), lfParameters.getBalanceType(), true,
-            lfParametersExt.getPlausibleActivePowerLimit(), lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
+            lfParametersExt.getPlausibleActivePowerLimit(), lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(), true);
         DcLoadFlowEngine dcLoadFlowEngine = new DcLoadFlowEngine(lfNetworks, dcLoadFlowParameters);
 
         // create DC equation system for sensitivity analysis
@@ -513,7 +514,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         // index factors by variable group to compute the minimal number of states
         List<SensitivityFactorGroup> factorGroups = createFactorGroups(lfFactors);
 
-        boolean hasGlsk = factorGroups.stream().anyMatch(group -> group instanceof LinearGlskGroup);
+        boolean hasMultiVariables = factorGroups.stream().anyMatch(MultiVariablesFactorGroup.class::isInstance);
 
         // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
         // buses that contain elements participating to slack distribution)
@@ -529,7 +530,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         } else {
             slackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
         }
-        computeInjectionFactors(slackParticipationByBus, factorGroups);
 
         // prepare management of contingencies
         Map<String, ComputedContingencyElement> contingencyElementByBranch =
@@ -553,7 +553,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             DenseMatrix flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElements, Collections.emptyList(), Collections.emptyList(), reporter);
 
             // compute the pre-contingency sensitivity values + the states with +1 -1 to model the contingencies
-            DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorGroups); // this is the rhs for the moment
+            DenseMatrix factorsStates = initFactorsRhs(equationSystem, factorGroups, slackParticipationByBus); // this is the rhs for the moment
             DenseMatrix contingenciesStates = initContingencyRhs(lfNetwork, equationSystem, contingencyElementByBranch.values()); // rhs with +1 -1 on contingency elements
             j.solveTransposed(factorsStates); // states for the sensitivity factors
             j.solveTransposed(contingenciesStates); // states for the +1 -1 of contingencies
@@ -615,12 +615,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 if (lfParameters.isDistributedSlack()) {
                     rhsChanged = participatingElements.stream().anyMatch(element -> disabledBuses.contains(element.getLfBus()));
                 }
-                if (hasGlsk) {
+                if (hasMultiVariables) {
                     // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
                     rescaleGlsk(factorGroups, disabledBuses);
-                    rhsChanged = rhsChanged || factorGroups.stream().filter(LinearGlskGroup.class::isInstance)
-                        .map(LinearGlskGroup.class::cast)
-                        .flatMap(group -> group.getGlskMap().keySet().stream())
+                    rhsChanged = rhsChanged || factorGroups.stream().filter(MultiVariablesFactorGroup.class::isInstance)
+                        .map(MultiVariablesFactorGroup.class::cast)
+                        .flatMap(group -> group.getVariableElements().keySet().stream())
                         .anyMatch(disabledBuses::contains);
                 }
 
@@ -639,9 +639,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                         slackParticipationByBusForThisConnectivity = Collections.singletonMap(lfNetwork.getBusById(lfNetwork.getSlackBus().getId()), -1d);
                     }
 
-                    computeInjectionFactors(slackParticipationByBusForThisConnectivity, factorGroups); // write the right injections in the factor groups
                     factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
-                    fillRhsSensitivityVariable(lfNetwork, equationSystem, factorGroups, factorsStates);
+                    fillRhsSensitivityVariable(equationSystem, factorGroups, factorsStates, slackParticipationByBusForThisConnectivity);
                     j.solveTransposed(factorsStates); // get the states for the new connectivity
                     setBaseCaseSensitivityValues(factorGroups, factorsStates); // use this state to compute the base sensitivity (without +1-1)
                 }

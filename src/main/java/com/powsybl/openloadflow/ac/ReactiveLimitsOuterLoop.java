@@ -148,9 +148,9 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
                 if (LOGGER.isTraceEnabled()) {
                     if (pqToPvBus.limitDirection == ReactiveLimitDirection.MAX) {
-                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=maxQ and v={} > targetV={}", controllerBus.getId(), controllerBus.getV(), getBusTargetV(controllerBus));
+                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=maxQ and v={} > targetV={}", controllerBus.getId(), controllerBus.getV().eval(), getBusTargetV(controllerBus));
                     } else {
-                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=minQ and v={} < targetV={}", controllerBus.getId(), controllerBus.getV(), getBusTargetV(controllerBus));
+                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=minQ and v={} < targetV={}", controllerBus.getId(), controllerBus.getV().eval(), getBusTargetV(controllerBus));
                     }
                 }
             }
@@ -196,10 +196,10 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         double minQ = controllerCapableBus.getMinQ();
         double maxQ = controllerCapableBus.getMaxQ();
         double q = controllerCapableBus.getGenerationTargetQ();
-        if (Math.abs(q - maxQ) < Q_EPS && controllerCapableBus.getV() > getBusTargetV(controllerCapableBus)) { // bus produce too much reactive power
+        if (Math.abs(q - maxQ) < Q_EPS && controllerCapableBus.getV().eval() > getBusTargetV(controllerCapableBus)) { // bus produce too much reactive power
             pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MAX));
         }
-        if (Math.abs(q - minQ) < Q_EPS && controllerCapableBus.getV() < getBusTargetV(controllerCapableBus)) { // bus absorb too much reactive power
+        if (Math.abs(q - minQ) < Q_EPS && controllerCapableBus.getV().eval() < getBusTargetV(controllerCapableBus)) { // bus absorb too much reactive power
             pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MIN));
         }
     }

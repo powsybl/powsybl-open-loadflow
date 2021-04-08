@@ -21,6 +21,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -34,9 +36,9 @@ public class DcLoadFlowEngine {
 
     private double[] targetVector;
 
-    public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory) {
+    public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory, boolean setVToNan) {
         this.networks = Collections.singletonList(network);
-        this.parameters = new DcLoadFlowParameters(new FirstSlackBusSelector(), matrixFactory);
+        parameters = new DcLoadFlowParameters(new FirstSlackBusSelector(), matrixFactory, setVToNan);
     }
 
     public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters, Reporter reporter) {
@@ -142,8 +144,10 @@ public class DcLoadFlowEngine {
         equationSystem.updateNetwork(targetVector);
 
         // set all calculated voltages to NaN
-        for (LfBus bus : network.getBuses()) {
-            bus.setV(Double.NaN);
+        if (parameters.isSetVToNan()) {
+            for (LfBus bus : network.getBuses()) {
+                bus.setV(NAN);
+            }
         }
 
         reporter.report(Report.builder()
