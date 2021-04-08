@@ -115,5 +115,41 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .setB(0)
                 .add();
     }
+
+    protected static LccConverterStation createLcc(Bus b, String id) {
+        return b.getVoltageLevel().newLccConverterStation()
+            .setId(id)
+            .setConnectableBus(b.getId())
+            .setBus(b.getId())
+            .setPowerFactor(0.8f)
+            .setLossFactor(1.1f)
+            .add();
+    }
+
+    protected static VscConverterStation createVsc(Bus b, String id, double voltageSetpoint, double reactivePowerSetpoint) {
+        return b.getVoltageLevel().newVscConverterStation()
+            .setId(id)
+            .setConnectableBus(b.getId())
+            .setBus(b.getId())
+            .setVoltageRegulatorOn(true)
+            .setVoltageSetpoint(voltageSetpoint)
+            .setReactivePowerSetpoint(reactivePowerSetpoint)
+            .setLossFactor(1.1f)
+            .add();
+    }
+
+    protected static HvdcLine createHvdcLine(Network network, String id, HvdcConverterStation station1, HvdcConverterStation station2,
+                                             double nominalV, double r, double activePowerSetpoint) {
+        return network.newHvdcLine()
+            .setId(id)
+            .setConverterStationId1(station1.getId())
+            .setConverterStationId2(station2.getId())
+            .setNominalV(nominalV)
+            .setR(r)
+            .setActivePowerSetpoint(activePowerSetpoint)
+            .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
+            .setMaxP(activePowerSetpoint)
+            .add();
+    }
 }
 
