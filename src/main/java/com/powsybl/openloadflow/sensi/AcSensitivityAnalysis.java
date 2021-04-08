@@ -25,6 +25,7 @@ import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
+import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
 import java.util.function.Supplier;
@@ -119,6 +120,17 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         LfContingency.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
     }
 
+    @Override
+    public void checkContingencies(Network network, LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+        super.checkContingencies(network, lfNetwork, contingencies);
+
+        for (PropagatedContingency contingency : contingencies) {
+            if (!contingency.getHvdcIdsToOpen().isEmpty()) {
+                throw new NotImplementedException("Contingencies on a DC line are not yet supported in AC mode.");
+            }
+        }
+    }
+
     /**
      * https://people.montefiore.uliege.be/vct/elec0029/lf.pdf / Equation 32 is transposed
      */
@@ -136,7 +148,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(lfParametersExt.getSlackBusSelector(), false, true, lfParameters.isTwtSplitShuntAdmittance(), false, lfParametersExt.getPlausibleActivePowerLimit(), false);
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
-        checkContingencies(lfNetwork, contingencies);
+        checkContingencies(network, lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
         Map<Contingency, Collection<String>> propagatedContingencyMap = contingencies.stream().collect(
             Collectors.toMap(PropagatedContingency::getContingency, contingency -> new HashSet<>(contingency.getBranchIdsToOpen()))

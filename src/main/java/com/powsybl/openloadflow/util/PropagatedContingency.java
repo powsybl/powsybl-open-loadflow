@@ -8,10 +8,7 @@ package com.powsybl.openloadflow.util;
 
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.Terminal;
+import com.powsybl.iidm.network.*;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -30,6 +27,8 @@ public class PropagatedContingency {
 
     private final Set<String> branchIdsToOpen = new HashSet<>();
 
+    private final Set<String> hvdcIdsToOpen = new HashSet<>();
+
     public Contingency getContingency() {
         return contingency;
     }
@@ -40,6 +39,10 @@ public class PropagatedContingency {
 
     public Set<String> getBranchIdsToOpen() {
         return branchIdsToOpen;
+    }
+
+    public Set<String> getHvdcIdsToOpen() {
+        return hvdcIdsToOpen;
     }
 
     public PropagatedContingency(Contingency contingency, int index) {
@@ -60,13 +63,16 @@ public class PropagatedContingency {
                 switch (element.getType()) {
                     case BRANCH:
                         propagatedContingency.getBranchIdsToOpen().add(element.getId());
+                        new BranchTripping(element.getId(), null)
+                            .traverse(network, null, switchesToOpen, terminalsToDisconnect);
+                        break;
+                    case HVDC_LINE:
+                        propagatedContingency.getHvdcIdsToOpen().add(element.getId());
                         break;
                     default:
                         //TODO: support all kinds of contingencies
                         throw new UnsupportedOperationException("TODO");
                 }
-                new BranchTripping(element.getId(), null)
-                    .traverse(network, null, switchesToOpen, terminalsToDisconnect);
             }
 
             for (Switch sw : switchesToOpen) {
