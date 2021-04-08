@@ -114,6 +114,11 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     }
 
     public void run(Network network, String workingStateId, List<Contingency> contingencies, SensitivityAnalysisParameters sensitivityAnalysisParameters,
+                    SensitivityFactorReader factorReader, SensitivityValueWriter valueWriter) {
+        run(network, workingStateId, contingencies, sensitivityAnalysisParameters, factorReader, valueWriter, Reporter.NO_OP);
+    }
+
+    public void run(Network network, String workingStateId, List<Contingency> contingencies, SensitivityAnalysisParameters sensitivityAnalysisParameters,
                     SensitivityFactorReader factorReader, SensitivityValueWriter valueWriter, Reporter reporter) {
         network.getVariantManager().setWorkingVariant(workingStateId);
 
