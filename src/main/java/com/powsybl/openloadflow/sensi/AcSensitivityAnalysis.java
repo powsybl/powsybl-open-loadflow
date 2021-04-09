@@ -145,7 +145,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         Objects.requireNonNull(valueWriter);
 
         // create LF network (we only manage main connected component)
-        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(lfParametersExt.getSlackBusSelector(), false, true, lfParameters.isTwtSplitShuntAdmittance(), false, lfParametersExt.getPlausibleActivePowerLimit(), false);
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(lfParametersExt.getSlackBusSelector(), lfParametersExt.hasVoltageRemoteControl(),
+                lfParametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE, lfParameters.isTwtSplitShuntAdmittance(),
+                false, lfParametersExt.getPlausibleActivePowerLimit(), false);
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(network, lfNetwork, contingencies);
@@ -165,7 +167,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         // create AC engine
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters,
-            lfParametersExt, true, true,
+            lfParametersExt, false, true,
             branchesWithMeasuredCurrent);
         try (AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters)) {
 
