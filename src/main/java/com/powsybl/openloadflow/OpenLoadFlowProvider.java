@@ -8,6 +8,7 @@ package com.powsybl.openloadflow;
 
 import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
@@ -179,9 +180,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                         branchesWithCurrent);
     }
 
-    private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+    private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
         AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt, false);
-        List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, acParameters);
+        List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, acParameters, reporter);
 
         Networks.resetState(network);
 
@@ -237,7 +238,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
-    private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+    private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
         LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
@@ -258,8 +259,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                      parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                                                      true);
 
-        DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters)
-                .run();
+        DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters, reporter)
+                .run(reporter);
 
         Networks.resetState(network);
 
@@ -289,6 +290,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     @Override
     public CompletableFuture<LoadFlowResult> run(Network network, ComputationManager computationManager, String workingVariantId, LoadFlowParameters parameters) {
+        return run(network, computationManager, workingVariantId, parameters, Reporter.NO_OP);
+    }
+
+    @Override
+    public CompletableFuture<LoadFlowResult> run(Network network, ComputationManager computationManager, String workingVariantId, LoadFlowParameters parameters, Reporter reporter) {
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(parameters);
 
@@ -296,13 +302,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         OpenLoadFlowParameters parametersExt = getParametersExt(parameters);
 
+        Reporter lfReporter = reporter.createSubReporter("loadFlow", "Load flow on network ${networkId}",
+            "networkId", network.getId());
+
         return CompletableFuture.supplyAsync(() -> {
+
             network.getVariantManager().setWorkingVariant(workingVariantId);
 
             Stopwatch stopwatch = Stopwatch.createStarted();
 
-            LoadFlowResult result = parameters.isDc() ? runDc(network, parameters, parametersExt)
-                                                      : runAc(network, parameters, parametersExt);
+            LoadFlowResult result = parameters.isDc() ? runDc(network, parameters, parametersExt, lfReporter)
+                                                      : runAc(network, parameters, parametersExt, lfReporter);
 
             stopwatch.stop();
             LOGGER.info(Markers.PERFORMANCE_MARKER, "Load flow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
