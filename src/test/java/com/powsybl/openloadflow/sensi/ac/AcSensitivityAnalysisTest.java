@@ -8,15 +8,13 @@ package com.powsybl.openloadflow.sensi.ac;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.IdBasedBusRef;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.VariantManagerConstants;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.T3wtFactory;
+import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
@@ -299,6 +297,29 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testBusVoltagePerTargetVRemoteControl() {
+        Network network = VoltageControlNetworkFactory.createWithGeneratorRemoteControl();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        TargetVoltage targetVoltage = new TargetVoltage("g1", "g1", "g1");
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
+                .map(bus -> new BusVoltage(bus.getId(), bus.getId(), new IdBasedBusRef(bus.getId())))
+                .map(busVoltage -> new BusVoltagePerTargetV(busVoltage, targetVoltage))
+                .collect(Collectors.toList());
+
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+
+        assertEquals(4, result.getSensitivityValues().size());
+        assertEquals(1.0141d, getValue(result, "g1", "b1"), LoadFlowAssert.DELTA_V);
+        assertEquals(1d,  getValue(result, "g1", "b2"), LoadFlowAssert.DELTA_V);
+        assertEquals(1.0504d,  getValue(result, "g1", "b3"), LoadFlowAssert.DELTA_V);
+        assertEquals(1.d,  getValue(result, "g1", "b4"), LoadFlowAssert.DELTA_V);
+    }
+
+    @Test
     void testBusVoltagePerTargetV() {
         Network network = FourBusNetworkFactory.create();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
@@ -311,8 +332,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .collect(Collectors.toList());
 
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
-            sensiParameters, LocalComputationManager.getDefault())
-            .join();
+                sensiParameters, LocalComputationManager.getDefault())
+                .join();
 
         assertEquals(4, result.getSensitivityValues().size());
         assertEquals(0d, getValue(result, "g2", "b1"), LoadFlowAssert.DELTA_V); // no impact on a pv
