@@ -6,8 +6,11 @@
  */
 package com.powsybl.openloadflow.dc;
 
+import com.powsybl.commons.reporter.Report;
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.*;
@@ -38,8 +41,9 @@ public class DcLoadFlowEngine {
         parameters = new DcLoadFlowParameters(new FirstSlackBusSelector(), matrixFactory, setVToNan);
     }
 
-    public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters) {
-        this.networks = LfNetwork.load(network, new LfNetworkParameters(parameters.getSlackBusSelector(), false, false, false, false, parameters.getPlausibleActivePowerLimit(), false));
+    public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters, Reporter reporter) {
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(parameters.getSlackBusSelector(), false, false, false, false, parameters.getPlausibleActivePowerLimit(), false);
+        this.networks = LfNetwork.load(network, lfNetworkParameters, reporter);
         this.parameters = Objects.requireNonNull(parameters);
     }
 
@@ -62,7 +66,7 @@ public class DcLoadFlowEngine {
         return -mismatch;
     }
 
-    public DcLoadFlowResult run() {
+    public DcLoadFlowResult run(Reporter reporter) {
         // only process main (largest) connected component
         LfNetwork network = networks.get(0);
 
@@ -72,7 +76,7 @@ public class DcLoadFlowEngine {
         LoadFlowResult.ComponentResult.Status status = LoadFlowResult.ComponentResult.Status.FAILED;
         try (JacobianMatrix j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory())) {
 
-            status = run(equationSystem, j, Collections.emptyList(), Collections.emptyList());
+            status = run(equationSystem, j, Collections.emptyList(), Collections.emptyList(), reporter);
         } catch (Exception e) {
             LOGGER.error("Failed to solve linear system for DC load flow", e);
         }
@@ -81,7 +85,8 @@ public class DcLoadFlowEngine {
     }
 
     public LoadFlowResult.ComponentResult.Status run(EquationSystem equationSystem, JacobianMatrix j,
-                                                     Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches) {
+                                                     Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
+                                                     Reporter reporter) {
 
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
 
@@ -125,6 +130,12 @@ public class DcLoadFlowEngine {
             status = LoadFlowResult.ComponentResult.Status.CONVERGED;
         } catch (Exception e) {
             status = LoadFlowResult.ComponentResult.Status.FAILED;
+            reporter.report(Report.builder()
+                .withKey("loadFlowFailure")
+                .withDefaultMessage("Failed to solve linear system for DC load flow: ${errorMessage}")
+                .withValue("errorMessage", e.getMessage())
+                .withSeverity(OpenLoadFlowReportConstants.ERROR_SEVERITY)
+                .build());
             LOGGER.error("Failed to solve linear system for DC load flow", e);
         }
 
@@ -139,7 +150,13 @@ public class DcLoadFlowEngine {
             }
         }
 
-        LOGGER.info("Dc loadflow complete (status={})", status);
+        reporter.report(Report.builder()
+            .withKey("loadFlowCompleted")
+            .withDefaultMessage("DC load flow completed (status=${lfStatus})")
+            .withValue("lfStatus", status.toString())
+            .withSeverity(OpenLoadFlowReportConstants.INFO_SEVERITY)
+            .build());
+        LOGGER.info("DC load flow completed (status={})", status);
         return status;
     }
 
