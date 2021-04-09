@@ -17,7 +17,8 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
+import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +26,8 @@ import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -113,21 +115,10 @@ class DistributedSlackOnGenerationTest {
     void zeroParticipatingGeneratorsTest() {
         g1.getExtension(ActivePowerControl.class).setDroop(2);
         g2.getExtension(ActivePowerControl.class).setDroop(-3);
-        g3.getExtension(ActivePowerControl.class).setParticipate(false);
-        g4.getExtension(ActivePowerControl.class).setParticipate(false);
+        g3.getExtension(ActivePowerControl.class).setDroop(0);
+        g4.getExtension(ActivePowerControl.class).setDroop(0);
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
                 "No more generator participating to slack distribution");
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    void zeroDroopAndParticipatingTest() {
-        g1.getExtension(ActivePowerControl.class).setDroop(0);
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
-        LfBus lfB1 = lfNetwork.getBusById("b1_vl_0");
-        LfGenerator lfG1 = lfB1.getGenerators().stream().filter(g -> g.getId().equals("g1")).findFirst().orElseThrow(AssertionError::new);
-        assertTrue(lfG1.isParticipating());
-        assertEquals(50, lfG1.getParticipationFactor());
     }
 
     @Test
