@@ -57,7 +57,7 @@
         <slf4j.version>1.7.22</slf4j.version>
         <slf4jtoys.version>1.6.2</slf4jtoys.version>
 
-        <powsyblcore.version>4.1.0-RC1</powsyblcore.version>
+        <powsyblcore.version>4.1.0-SNAPSHOT</powsyblcore.version>
     </properties>
 
     <build>
