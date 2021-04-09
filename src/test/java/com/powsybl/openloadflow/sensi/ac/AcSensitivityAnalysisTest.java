@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sensi.ac;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Branch;
+import com.powsybl.iidm.network.IdBasedBusRef;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -17,7 +18,6 @@ import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.T3wtFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
-import com.powsybl.openloadflow.sensi.SensitivityFactorReader;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityAnalysisResult;
@@ -25,17 +25,19 @@ import com.powsybl.sensitivity.SensitivityFactorsProvider;
 import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
 import com.powsybl.sensitivity.factors.BranchIntensityPerPSTAngle;
+import com.powsybl.sensitivity.factors.BusVoltagePerTargetV;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
+import com.powsybl.sensitivity.factors.functions.BusVoltage;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
+import com.powsybl.sensitivity.factors.variables.TargetVoltage;
 import org.apache.commons.lang3.NotImplementedException;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -302,19 +304,21 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        Pair<String, String> g2b1 = Pair.of("g2", "b1_vl_0");
-        Pair<String, String> g2b2 = Pair.of("g2", "b2_vl_0");
-        Pair<String, String> g2b3 = Pair.of("g2", "b3_vl_0");
-        Pair<String, String> g2b4 = Pair.of("g2", "b4_vl_0");
-        SensitivityFactorReader factorReader = createBusVoltageReader(List.of(g2b1, g2b2, g2b3, g2b4));
-        BusVoltageWriter factorWriter = createBusVoltageWriter();
-        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
-            sensiParameters, factorReader, factorWriter);
+        TargetVoltage targetVoltage = new TargetVoltage("g2", "g2", "g2");
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
+                .map(bus -> new BusVoltage(bus.getId(), bus.getId(), new IdBasedBusRef(bus.getId())))
+                .map(busVoltage -> new BusVoltagePerTargetV(busVoltage, targetVoltage))
+                .collect(Collectors.toList());
 
-        assertEquals(0d, factorWriter.getSensitivityValue(g2b1), LoadFlowAssert.DELTA_V); // no impact on a pv
-        assertEquals(1d, factorWriter.getSensitivityValue(g2b2), LoadFlowAssert.DELTA_V); // 1 on itself
-        assertEquals(0.3423d, factorWriter.getSensitivityValue(g2b3), LoadFlowAssert.DELTA_V); // value obtained by running two loadflow with a very small difference on targetV for bus2
-        assertEquals(0d, factorWriter.getSensitivityValue(g2b4), LoadFlowAssert.DELTA_V);
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+
+        assertEquals(4, result.getSensitivityValues().size());
+        assertEquals(0d, getValue(result, "g2", "b1"), LoadFlowAssert.DELTA_V); // no impact on a pv
+        assertEquals(1d,  getValue(result, "g2", "b2"), LoadFlowAssert.DELTA_V); // 1 on itself
+        assertEquals(0.3423d,  getValue(result, "g2", "b3"), LoadFlowAssert.DELTA_V); // value obtained by running two loadflow with a very small difference on targetV for bus2
+        assertEquals(0d,  getValue(result, "g2", "b4"), LoadFlowAssert.DELTA_V);
     }
 
     @Test
@@ -322,16 +326,19 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Network network = FourBusNetworkFactory.createWithTransfoRatioChanger();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-        Pair<String, String> g2b1 = Pair.of("l23", "b1_vl_0");
-        Pair<String, String> g2b2 = Pair.of("l23", "b2_vl_0");
-        Pair<String, String> g2b3 = Pair.of("l23", "b3_vl_0");
-        Pair<String, String> g2b4 = Pair.of("l23", "b4_vl_0");
-        SensitivityFactorReader factorReader = createBusVoltageReader(List.of(g2b1, g2b2, g2b3, g2b4));
-        BusVoltageWriter factorWriter = createBusVoltageWriter();
-        NotImplementedException e = assertThrows(NotImplementedException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
-            sensiParameters, factorReader, factorWriter));
 
-        assertEquals("[l23] Bus target voltage on two windings transformer is not managed yet", e.getMessage());
+        TargetVoltage targetVoltage = new TargetVoltage("l23", "l23", "l23");
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
+            .map(bus -> new BusVoltage(bus.getId(), bus.getId(), new IdBasedBusRef(bus.getId())))
+            .map(busVoltage -> new BusVoltagePerTargetV(busVoltage, targetVoltage))
+            .collect(Collectors.toList());
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join());
+
+        assertTrue(e.getCause() instanceof NotImplementedException);
+
+        assertEquals("[l23] Bus target voltage on two windings transformer is not managed yet", e.getCause().getMessage());
     }
 
     @Test
@@ -339,15 +346,17 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Network network = HvdcNetworkFactory.createVsc();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-        Pair<String, String> cs2vl1 = Pair.of("cs2", "vl1_0");
-        Pair<String, String> cs2vl2 = Pair.of("cs2", "vl2_0");
-        SensitivityFactorReader factorReader = createBusVoltageReader(List.of(cs2vl1, cs2vl2));
-        BusVoltageWriter factorWriter = createBusVoltageWriter();
-        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
-            sensiParameters, factorReader, factorWriter);
+        TargetVoltage targetVoltage = new TargetVoltage("cs2", "cs2", "cs2");
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
+            .map(bus -> new BusVoltage(bus.getId(), bus.getId(), new IdBasedBusRef(bus.getId())))
+            .map(busVoltage -> new BusVoltagePerTargetV(busVoltage, targetVoltage))
+            .collect(Collectors.toList());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
 
-        assertEquals(0d, factorWriter.getSensitivityValue(cs2vl1), LoadFlowAssert.DELTA_V);
-        assertEquals(1d, factorWriter.getSensitivityValue(cs2vl2), LoadFlowAssert.DELTA_V);
+        assertEquals(0d, getValue(result, "cs2", "b1"), LoadFlowAssert.DELTA_V);
+        assertEquals(1d, getValue(result, "cs2", "b2"), LoadFlowAssert.DELTA_V);
     }
 
     @Test
@@ -356,15 +365,18 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        Pair<String, String> t3wtvl1 = Pair.of("3wt", "vl1_0");
-        Pair<String, String> t3wtvl2 = Pair.of("3wt", "vl2_0");
-        Pair<String, String> t3wtvl3 = Pair.of("3wt", "vl3_0");
-        SensitivityFactorReader factorReader = createBusVoltageReader(List.of(t3wtvl1, t3wtvl2, t3wtvl3));
-        BusVoltageWriter factorWriter = createBusVoltageWriter();
-        NotImplementedException e = assertThrows(NotImplementedException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
-            sensiParameters, factorReader, factorWriter));
+        TargetVoltage targetVoltage = new TargetVoltage("3wt", "3wt", "3wt");
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
+            .map(bus -> new BusVoltage(bus.getId(), bus.getId(), new IdBasedBusRef(bus.getId())))
+            .map(busVoltage -> new BusVoltagePerTargetV(busVoltage, targetVoltage))
+            .collect(Collectors.toList());
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join());
 
-        assertEquals("[3wt] Bus target voltage on three windings transformer is not managed yet", e.getMessage());
+        assertTrue(e.getCause() instanceof NotImplementedException);
+
+        assertEquals("[3wt] Bus target voltage on three windings transformer is not managed yet", e.getCause().getMessage());
     }
 
     @Test
@@ -373,20 +385,21 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        Pair<String, String> g2b1 = Pair.of("g2", "b1_vl_0");
-        Pair<String, String> g2b2 = Pair.of("g2", "b2_vl_0");
-        Pair<String, String> g2b3 = Pair.of("g2", "b3_vl_0");
-        Pair<String, String> g2b4 = Pair.of("g2", "b4_vl_0");
-        SensitivityFactorReader factorReader = createBusVoltageReader(List.of(g2b1, g2b2, g2b3, g2b4));
-        BusVoltageWriter factorWriter = createBusVoltageWriter();
-        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
-            sensiParameters, factorReader, factorWriter);
+        TargetVoltage targetVoltage = new TargetVoltage("g2", "g2", "g2");
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
+            .map(bus -> new BusVoltage(bus.getId(), bus.getId(), new IdBasedBusRef(bus.getId())))
+            .map(busVoltage -> new BusVoltagePerTargetV(busVoltage, targetVoltage))
+            .collect(Collectors.toList());
+
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
         runLf(network, sensiParameters.getLoadFlowParameters());
         Function<String, Double> getV = busId -> network.getBusView().getBus(busId).getV();
-        assertEquals(getV.apply("b1_vl_0"), factorWriter.getFunctionRef(g2b1), LoadFlowAssert.DELTA_V);
-        assertEquals(getV.apply("b2_vl_0"), factorWriter.getFunctionRef(g2b2), LoadFlowAssert.DELTA_V);
-        assertEquals(getV.apply("b3_vl_0"), factorWriter.getFunctionRef(g2b3), LoadFlowAssert.DELTA_V);
-        assertEquals(getV.apply("b4_vl_0"), factorWriter.getFunctionRef(g2b4), LoadFlowAssert.DELTA_V);
+        assertEquals(getV.apply("b1_vl_0"), getFunctionReference(result, "b1"), LoadFlowAssert.DELTA_V);
+        assertEquals(getV.apply("b2_vl_0"), getFunctionReference(result, "b2"), LoadFlowAssert.DELTA_V);
+        assertEquals(getV.apply("b3_vl_0"), getFunctionReference(result, "b3"), LoadFlowAssert.DELTA_V);
+        assertEquals(getV.apply("b4_vl_0"), getFunctionReference(result, "b4"), LoadFlowAssert.DELTA_V);
     }
 
     @Test
@@ -396,11 +409,18 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        SensitivityFactorReader factorReader = createBusVoltageReader(List.of(Pair.of("d3", "b4_vl_0")));
-        BusVoltageWriter factorWriter = createBusVoltageWriter();
-        PowsyblException e = assertThrows(PowsyblException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
-            sensiParameters, factorReader, factorWriter));
-        assertEquals("Regulating terminal for 'd3' not found", e.getMessage());
+        TargetVoltage targetVoltage = new TargetVoltage("d3", "d3", "d3");
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
+            .map(bus -> new BusVoltage(bus.getId(), bus.getId(), new IdBasedBusRef(bus.getId())))
+            .map(busVoltage -> new BusVoltagePerTargetV(busVoltage, targetVoltage))
+            .collect(Collectors.toList());
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join());
+
+        assertTrue(e.getCause() instanceof PowsyblException);
+
+        assertEquals("Regulating terminal for 'd3' not found", e.getCause().getMessage());
     }
 
     @Test
@@ -409,11 +429,18 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        SensitivityFactorReader factorReader = createBusVoltageReader(List.of(Pair.of("a", "b4_vl_0")));
-        BusVoltageWriter factorWriter = createBusVoltageWriter();
-        PowsyblException e = assertThrows(PowsyblException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
-            sensiParameters, factorReader, factorWriter));
-        assertEquals("Regulating terminal for 'a' not found", e.getMessage());
+        TargetVoltage targetVoltage = new TargetVoltage("a", "a", "a");
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
+            .map(bus -> new BusVoltage(bus.getId(), bus.getId(), new IdBasedBusRef(bus.getId())))
+            .map(busVoltage -> new BusVoltagePerTargetV(busVoltage, targetVoltage))
+            .collect(Collectors.toList());
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join());
+
+        assertTrue(e.getCause() instanceof PowsyblException);
+
+        assertEquals("Regulating terminal for 'a' not found", e.getCause().getMessage());
     }
 
     @Test
@@ -422,11 +449,18 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        SensitivityFactorReader factorReader = createBusVoltageReader(List.of(Pair.of("l23", "b4_vl_0")));
-        BusVoltageWriter factorWriter = createBusVoltageWriter();
-        PowsyblException e = assertThrows(PowsyblException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
-            sensiParameters, factorReader, factorWriter));
-        assertEquals("Regulating terminal for 'l23' not found", e.getMessage());
+        TargetVoltage targetVoltage = new TargetVoltage("l23", "l23", "l23");
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
+            .map(bus -> new BusVoltage(bus.getId(), bus.getId(), new IdBasedBusRef(bus.getId())))
+            .map(busVoltage -> new BusVoltagePerTargetV(busVoltage, targetVoltage))
+            .collect(Collectors.toList());
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join());
+
+        assertTrue(e.getCause() instanceof PowsyblException);
+
+        assertEquals("Regulating terminal for 'l23' not found", e.getCause().getMessage());
     }
 
     @Test
@@ -435,11 +469,16 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        SensitivityFactorReader factorReader = createBusVoltageReader(List.of(Pair.of("g2", "id")));
-        BusVoltageWriter factorWriter = createBusVoltageWriter();
-        PowsyblException e = assertThrows(PowsyblException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
-            sensiParameters, factorReader, factorWriter));
-        assertEquals("Bus 'id' not found", e.getMessage());
+        TargetVoltage targetVoltage = new TargetVoltage("g2", "g2", "g2");
+        BusVoltage busVoltage = new BusVoltage("id", "id", new IdBasedBusRef("id"));
+        SensitivityFactorsProvider factorsProvider = n -> Collections.singletonList(new BusVoltagePerTargetV(busVoltage, targetVoltage));
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join());
+
+        assertTrue(e.getCause() instanceof PowsyblException);
+
+        assertEquals("The bus ref for 'id' cannot be resolved.", e.getCause().getMessage());
     }
 
     @Test
