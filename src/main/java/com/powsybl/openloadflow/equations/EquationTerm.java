@@ -120,9 +120,10 @@ public interface EquationTerm extends Evaluable {
 
         private double value;
 
-        VariableEquationTerm(int elementNum, VariableType variableType, VariableSet variableSet) {
+        VariableEquationTerm(int elementNum, VariableType variableType, VariableSet variableSet, double initialValue) {
             this.elementNum = elementNum;
             this.variables = Collections.singletonList(variableSet.getVariable(elementNum, variableType));
+            value = initialValue;
         }
 
         @Override
@@ -166,20 +167,29 @@ public interface EquationTerm extends Evaluable {
         }
 
         @Override
+        public double calculateSensi(DenseMatrix x, int column) {
+            return x.get(variables.get(0).getRow(), column);
+        }
+
+        @Override
         public void write(Writer writer) throws IOException {
             variables.get(0).write(writer);
         }
     }
 
     static VariableEquationTerm createVariableTerm(LfElement element, VariableType variableType, VariableSet variableSet) {
+        return createVariableTerm(element, variableType, variableSet, Double.NaN);
+    }
+
+    static VariableEquationTerm createVariableTerm(LfElement element, VariableType variableType, VariableSet variableSet, double initialValue) {
         Objects.requireNonNull(element);
         Objects.requireNonNull(variableType);
         Objects.requireNonNull(variableSet);
         if (element.getType() != variableType.getElementType()) {
             throw new IllegalArgumentException("Wrong variable element type: " + variableType.getElementType()
-                    + ", expected: " + element.getType());
+                + ", expected: " + element.getType());
         }
-        return new VariableEquationTerm(element.getNum(), variableType, variableSet);
+        return new VariableEquationTerm(element.getNum(), variableType, variableSet, initialValue);
     }
 
     Equation getEquation();

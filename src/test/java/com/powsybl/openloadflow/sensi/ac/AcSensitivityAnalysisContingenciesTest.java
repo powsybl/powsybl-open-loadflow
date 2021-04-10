@@ -9,12 +9,15 @@ package com.powsybl.openloadflow.sensi.ac;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.HvdcLineContingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
+import com.powsybl.openloadflow.sensi.SensitivityFactorReader;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityAnalysisResult;
@@ -24,15 +27,15 @@ import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
+import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -357,5 +360,77 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(Double.NaN, getContingencyValue(result, "l34", "glsk", "l45"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, getContingencyValue(result, "l34", "glsk", "l46"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, getContingencyValue(result, "l34", "glsk", "l56"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testBusVoltagePerTargetV() {
+        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        List<Pair<String, String>> sensis = new ArrayList<>(10);
+        for (int i = 1; i <= 10; i++) {
+            sensis.add(Pair.of("g2", "b" + i + "_vl_0"));
+        }
+        SensitivityFactorReader factorReader = createBusVoltageReader(sensis);
+        BusVoltageWriter factorWriter = createBusVoltageWriter();
+        List<Contingency> contingencies = Collections.singletonList(new Contingency("l45", new BranchContingency("l45")));
+        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, contingencies,
+            sensiParameters, factorReader, factorWriter);
+        assertEquals(0.916d, factorWriter.getSensitivityValue(sensis.get(0), "l45"), LoadFlowAssert.DELTA_V); // 0 on the slack
+        assertEquals(1d, factorWriter.getSensitivityValue(sensis.get(1), "l45"), LoadFlowAssert.DELTA_V); // 1 on itself
+        assertEquals(0.8133d, factorWriter.getSensitivityValue(sensis.get(2), "l45"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.512d, factorWriter.getSensitivityValue(sensis.get(3), "l45"), LoadFlowAssert.DELTA_V);
+        assertEquals(0d, factorWriter.getSensitivityValue(sensis.get(4), "l45"), LoadFlowAssert.DELTA_V); // disconnected
+        assertEquals(0d, factorWriter.getSensitivityValue(sensis.get(5), "l45"), LoadFlowAssert.DELTA_V); // disconnected
+        assertEquals(0d, factorWriter.getSensitivityValue(sensis.get(6), "l45"), LoadFlowAssert.DELTA_V); // disconnected
+        assertEquals(0.209d, factorWriter.getSensitivityValue(sensis.get(7), "l45"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.1062d, factorWriter.getSensitivityValue(sensis.get(8), "l45"), LoadFlowAssert.DELTA_V);
+        assertEquals(0d, factorWriter.getSensitivityValue(sensis.get(9), "l45"), LoadFlowAssert.DELTA_V); // no impact on a pv
+    }
+
+    @Test
+    void testBusVoltagePerTargetVFunctionRef() {
+        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        List<Pair<String, String>> sensis = new ArrayList<>(10);
+        for (int i = 1; i <= 10; i++) {
+            sensis.add(Pair.of("g2", "b" + i + "_vl_0"));
+        }
+        SensitivityFactorReader factorReader = createBusVoltageReader(sensis);
+        BusVoltageWriter factorWriter = createBusVoltageWriter();
+        List<Contingency> contingencies = Collections.singletonList(new Contingency("l45", new BranchContingency("l45")));
+        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, contingencies,
+            sensiParameters, factorReader, factorWriter);
+
+        assertEquals(0.993d, factorWriter.getFunctionRef(sensis.get(0), "l45"), LoadFlowAssert.DELTA_V);
+        assertEquals(1d, factorWriter.getFunctionRef(sensis.get(1), "l45"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.992d, factorWriter.getFunctionRef(sensis.get(2), "l45"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.988d, factorWriter.getFunctionRef(sensis.get(3), "l45"), LoadFlowAssert.DELTA_V);
+        assertEquals(0d, factorWriter.getFunctionRef(sensis.get(4), "l45"), LoadFlowAssert.DELTA_V); // disconnected
+        assertEquals(0d, factorWriter.getFunctionRef(sensis.get(5), "l45"), LoadFlowAssert.DELTA_V); // disconnected
+        assertEquals(0d, factorWriter.getFunctionRef(sensis.get(6), "l45"), LoadFlowAssert.DELTA_V); // disconnected
+        assertEquals(0.987d, factorWriter.getFunctionRef(sensis.get(7), "l45"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.989d, factorWriter.getFunctionRef(sensis.get(8), "l45"), LoadFlowAssert.DELTA_V);
+        assertEquals(1d, factorWriter.getFunctionRef(sensis.get(9), "l45"), LoadFlowAssert.DELTA_V);
+    }
+
+    @Test
+    void testContingencyOnHvdc() {
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        SensitivityFactorsProvider factorsProvider = n -> {
+            return createFactorMatrix(List.of("g1", "g2").stream().map(network::getGenerator).collect(Collectors.toList()),
+                List.of("l12", "l13", "l23").stream().map(network::getBranch).collect(Collectors.toList()));
+        };
+
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies,
+            sensiParameters, LocalComputationManager.getDefault())
+            .join());
+        assertTrue(e.getCause() instanceof NotImplementedException);
+        assertEquals("Contingencies on a DC line are not yet supported in AC mode.", e.getCause().getMessage());
     }
 }

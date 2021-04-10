@@ -36,15 +36,17 @@ public class DcLoadFlowParameters {
 
     private final boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
 
-    public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory) {
+    private final boolean setVToNan;
+
+    public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory, boolean setVToNan) {
         this(slackBusSelector, matrixFactory, false, true, false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, false,
-                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false);
+                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false, setVToNan);
     }
 
     public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory, boolean updateFlows,
                                 boolean useTransformerRatio, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
                                 boolean forcePhaseControlOffAndAddAngle1Var, double plausibleActivePowerLimit,
-                                boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds) {
+                                boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds, boolean setVToNan) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.updateFlows = updateFlows;
@@ -54,6 +56,7 @@ public class DcLoadFlowParameters {
         this.forcePhaseControlOffAndAddAngle1Var = forcePhaseControlOffAndAddAngle1Var;
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
         this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+        this.setVToNan = setVToNan;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -90,5 +93,9 @@ public class DcLoadFlowParameters {
 
     public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
         return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+    }
+
+    public boolean isSetVToNan() {
+        return setVToNan;
     }
 }

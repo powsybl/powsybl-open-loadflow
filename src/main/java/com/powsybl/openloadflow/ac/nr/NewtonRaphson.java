@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.nr;
 
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
@@ -98,14 +99,14 @@ public class NewtonRaphson {
                 - slackBus.getTargetP(); // slack bus can also have real injection connected
     }
 
-    public NewtonRaphsonResult run(NewtonRaphsonParameters parameters) {
+    public NewtonRaphsonResult run(NewtonRaphsonParameters parameters, Reporter reporter) {
         Objects.requireNonNull(parameters);
 
         // initialize state vector
         VoltageInitializer voltageInitializer = iteration == 0 ? parameters.getVoltageInitializer()
                                                                : new PreviousValueVoltageInitializer();
 
-        voltageInitializer.prepare(network, matrixFactory);
+        voltageInitializer.prepare(network, matrixFactory, reporter);
 
         double[] x = equationSystem.createStateVector(voltageInitializer);
 
