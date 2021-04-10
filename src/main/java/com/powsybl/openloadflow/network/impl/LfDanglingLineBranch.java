@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.openloadflow.network.*;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -50,13 +52,13 @@ public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
-    public double getPermanentLimit1() {
-        return danglingLine.getCurrentLimits() != null ? danglingLine.getCurrentLimits().getPermanentLimit() * getBus1().getNominalV() / PerUnit.SB : Double.NaN;
+    public List<LfLimit> getLimits1() {
+        return getLimits1(danglingLine.getCurrentLimits());
     }
 
     @Override
-    public double getPermanentLimit2() {
-        return Double.NaN;
+    public List<LfLimit> getLimits2() {
+        return Collections.emptyList();
     }
 
     @Override

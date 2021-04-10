@@ -6,6 +6,9 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.reporter.Report;
+import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
@@ -68,7 +71,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         }
     }
 
-    private boolean switchPvPq(List<PvToPqBus> pvToPqBuses, int remainingPvBusCount) {
+    private boolean switchPvPq(List<PvToPqBus> pvToPqBuses, int remainingPvBusCount, Reporter reporter) {
         boolean done = false;
 
         int modifiedRemainingPvBusCount = remainingPvBusCount;
@@ -105,6 +108,13 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             }
         }
 
+        reporter.report(Report.builder()
+            .withKey("switchPvPq")
+            .withDefaultMessage("${pvToPqBuses} buses switched PV -> PQ ({remainingPvBuses} bus remains PV}")
+            .withValue("pvToPqBuses", pvToPqBuses.size())
+            .withValue("remainingPvBuses", modifiedRemainingPvBusCount)
+            .withSeverity(OpenLoadFlowReportConstants.INFO_SEVERITY)
+            .build());
         LOGGER.info("{} buses switched PV -> PQ ({} bus remains PV}", pvToPqBuses.size(), modifiedRemainingPvBusCount);
 
         return done;
@@ -122,7 +132,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         }
     }
 
-    private boolean switchPqPv(List<PqToPvBus> pqToPvBuses) {
+    private boolean switchPqPv(List<PqToPvBus> pqToPvBuses, Reporter reporter) {
         int pqPvSwitchCount = 0;
 
         for (PqToPvBus pqToPvBus : pqToPvBuses) {
@@ -138,14 +148,21 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
                 if (LOGGER.isTraceEnabled()) {
                     if (pqToPvBus.limitDirection == ReactiveLimitDirection.MAX) {
-                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=maxQ and v={} > targetV={}", controllerBus.getId(), controllerBus.getV(), getBusTargetV(controllerBus));
+                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=maxQ and v={} > targetV={}", controllerBus.getId(), controllerBus.getV().eval(), getBusTargetV(controllerBus));
                     } else {
-                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=minQ and v={} < targetV={}", controllerBus.getId(), controllerBus.getV(), getBusTargetV(controllerBus));
+                        LOGGER.trace("Switch bus '{}' PQ -> PV, q=minQ and v={} < targetV={}", controllerBus.getId(), controllerBus.getV().eval(), getBusTargetV(controllerBus));
                     }
                 }
             }
         }
 
+        reporter.report(Report.builder()
+            .withKey("switchPqPv")
+            .withDefaultMessage("${pqToPvBuses} buses switched PQ -> PV ({blockedPqBuses} buses blocked PQ because have reach max number of switch)")
+            .withValue("pqToPvBuses", pqPvSwitchCount)
+            .withValue("blockedPqBuses", pqToPvBuses.size() - pqPvSwitchCount)
+            .withSeverity(OpenLoadFlowReportConstants.INFO_SEVERITY)
+            .build());
         LOGGER.info("{} buses switched PQ -> PV ({} buses blocked PQ because have reach max number of switch)",
                 pqPvSwitchCount, pqToPvBuses.size() - pqPvSwitchCount);
 
@@ -179,10 +196,10 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         double minQ = controllerCapableBus.getMinQ();
         double maxQ = controllerCapableBus.getMaxQ();
         double q = controllerCapableBus.getGenerationTargetQ();
-        if (Math.abs(q - maxQ) < Q_EPS && controllerCapableBus.getV() > getBusTargetV(controllerCapableBus)) { // bus produce too much reactive power
+        if (Math.abs(q - maxQ) < Q_EPS && controllerCapableBus.getV().eval() > getBusTargetV(controllerCapableBus)) { // bus produce too much reactive power
             pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MAX));
         }
-        if (Math.abs(q - minQ) < Q_EPS && controllerCapableBus.getV() < getBusTargetV(controllerCapableBus)) { // bus absorb too much reactive power
+        if (Math.abs(q - minQ) < Q_EPS && controllerCapableBus.getV().eval() < getBusTargetV(controllerCapableBus)) { // bus absorb too much reactive power
             pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MIN));
         }
     }
@@ -192,24 +209,24 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context) {
+    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         List<PvToPqBus> pvToPqBuses = new ArrayList<>();
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         MutableInt remainingPvBusCount = new MutableInt();
         for (LfBus bus : context.getNetwork().getBuses()) {
-            if (bus.isVoltageControllerEnabled()) {
+            if (bus.isVoltageControllerEnabled() && !bus.isDisabled()) {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
-            } else if (bus.hasVoltageControllerCapability()) {
+            } else if (bus.hasVoltageControllerCapability() && !bus.isDisabled()) {
                 checkPqBus(bus, pqToPvBuses);
             }
         }
 
-        if (!pvToPqBuses.isEmpty() && switchPvPq(pvToPqBuses, remainingPvBusCount.intValue())) {
+        if (!pvToPqBuses.isEmpty() && switchPvPq(pvToPqBuses, remainingPvBusCount.intValue(), reporter)) {
             status = OuterLoopStatus.UNSTABLE;
         }
-        if (!pqToPvBuses.isEmpty() && switchPqPv(pqToPvBuses)) {
+        if (!pqToPvBuses.isEmpty() && switchPqPv(pqToPvBuses, reporter)) {
             status = OuterLoopStatus.UNSTABLE;
         }
 

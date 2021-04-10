@@ -8,10 +8,7 @@ package com.powsybl.openloadflow.util;
 
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.Terminal;
+import com.powsybl.iidm.network.*;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -24,26 +21,40 @@ import java.util.Set;
  */
 public class PropagatedContingency {
 
-    final Contingency contingency;
+    private final Contingency contingency;
 
-    final Set<String> branchIdsToOpen = new HashSet<>();
+    private final int index;
+
+    private final Set<String> branchIdsToOpen = new HashSet<>();
+
+    private final Set<String> hvdcIdsToOpen = new HashSet<>();
 
     public Contingency getContingency() {
         return contingency;
+    }
+
+    public int getIndex() {
+        return index;
     }
 
     public Set<String> getBranchIdsToOpen() {
         return branchIdsToOpen;
     }
 
-    public PropagatedContingency(Contingency contingency) {
+    public Set<String> getHvdcIdsToOpen() {
+        return hvdcIdsToOpen;
+    }
+
+    public PropagatedContingency(Contingency contingency, int index) {
         this.contingency = contingency;
+        this.index = index;
     }
 
     public static List<PropagatedContingency> create(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
-        for (Contingency contingency : contingencies) {
-            PropagatedContingency propagatedContingency = new PropagatedContingency(contingency);
+        for (int index = 0; index < contingencies.size(); index++) {
+            Contingency contingency = contingencies.get(index);
+            PropagatedContingency propagatedContingency = new PropagatedContingency(contingency, index);
             propagatedContingencies.add(propagatedContingency);
 
             Set<Switch> switchesToOpen = new HashSet<>();
@@ -52,13 +63,16 @@ public class PropagatedContingency {
                 switch (element.getType()) {
                     case BRANCH:
                         propagatedContingency.getBranchIdsToOpen().add(element.getId());
+                        new BranchTripping(element.getId(), null)
+                            .traverse(network, null, switchesToOpen, terminalsToDisconnect);
+                        break;
+                    case HVDC_LINE:
+                        propagatedContingency.getHvdcIdsToOpen().add(element.getId());
                         break;
                     default:
                         //TODO: support all kinds of contingencies
                         throw new UnsupportedOperationException("TODO");
                 }
-                new BranchTripping(element.getId(), null)
-                    .traverse(network, null, switchesToOpen, terminalsToDisconnect);
             }
 
             for (Switch sw : switchesToOpen) {

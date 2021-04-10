@@ -6,24 +6,61 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.CurrentLimits;
+import com.powsybl.iidm.network.LoadingLimits;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.openloadflow.network.impl.Transformers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public abstract class AbstractLfBranch extends AbstractElement implements LfBranch {
 
+    public static final class LfLimit {
+
+        private int acceptableDuration;
+        private final double value;
+
+        private LfLimit(int acceptableDuration, double value) {
+            this.acceptableDuration = acceptableDuration;
+            this.value = value;
+        }
+
+        private static LfLimit createTemporaryLimit(int acceptableDuration, double valuePerUnit) {
+            return new LfLimit(acceptableDuration, valuePerUnit);
+        }
+
+        private static LfLimit createPermanentLimit(double valuePerUnit) {
+            return new LfLimit(Integer.MAX_VALUE, valuePerUnit);
+        }
+
+        public int getAcceptableDuration() {
+            return acceptableDuration;
+        }
+
+        public double getValue() {
+            return value;
+        }
+
+        public void setAcceptableDuration(int acceptableDuration) {
+            this.acceptableDuration = acceptableDuration;
+        }
+    }
+
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBranch.class);
 
     private final LfBus bus1;
 
     private final LfBus bus2;
+
+    private List<LfLimit> limits1;
+
+    private List<LfLimit> limits2;
 
     private final PiModel piModel;
 
@@ -36,6 +73,32 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.bus1 = bus1;
         this.bus2 = bus2;
         this.piModel = Objects.requireNonNull(piModel);
+    }
+
+    protected static List<LfLimit> createSortedLimitsList(CurrentLimits currentLimits, LfBus bus) {
+        LinkedList<LfLimit> sortedLimits = new LinkedList<>();
+        if (currentLimits != null) {
+            double toPerUnit = bus.getNominalV() / PerUnit.SB;
+            for (LoadingLimits.TemporaryLimit temporaryLimit : currentLimits.getTemporaryLimits()) {
+                if (temporaryLimit.getAcceptableDuration() != 0) {
+                    // it is not useful to add a limit with acceptable duration equal to zero as the only value plausible
+                    // for this limit is infinity.
+                    // https://javadoc.io/doc/com.powsybl/powsybl-core/latest/com/powsybl/iidm/network/CurrentLimits.html
+                    double valuePerUnit = temporaryLimit.getValue() * toPerUnit;
+                    sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getAcceptableDuration(), valuePerUnit));
+                }
+            }
+            sortedLimits.addLast(LfLimit.createPermanentLimit(currentLimits.getPermanentLimit() * toPerUnit));
+        }
+        if (sortedLimits.size() > 1) {
+            // we only make that fix if there is more than a permanent limit attached to the branch.
+            for (int i = sortedLimits.size() - 1; i > 0; i--) {
+                // From the permanent limit to the most serious temporary limit.
+                sortedLimits.get(i).setAcceptableDuration(sortedLimits.get(i - 1).getAcceptableDuration());
+            }
+            sortedLimits.getFirst().setAcceptableDuration(0);
+        }
+        return sortedLimits;
     }
 
     @Override
@@ -51,6 +114,20 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public LfBus getBus2() {
         return bus2;
+    }
+
+    protected List<LfLimit> getLimits1(CurrentLimits currentLimits) {
+        if (limits1 == null) {
+            limits1 = createSortedLimitsList(currentLimits, bus1);
+        }
+        return limits1;
+    }
+
+    protected List<LfLimit> getLimits2(CurrentLimits currentLimits) {
+        if (limits2 == null) {
+            limits2 = createSortedLimitsList(currentLimits, bus2);
+        }
+        return limits2;
     }
 
     @Override
@@ -105,7 +182,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     protected void checkTargetDeadband(RatioTapChanger rtc) {
         if (rtc.getTargetDeadband() != 0) {
             double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-            double v = discreteVoltageControl.getControlled().getV();
+            double v = discreteVoltageControl.getControlled().getV().eval();
             double distance = Math.abs(v - discreteVoltageControl.getTargetValue()); // in per unit system
             if (distance > rtc.getTargetDeadband() / 2) {
                 LOGGER.warn("The voltage on bus {} ({} kV) is out of the target value ({} kV) +/- deadband/2 ({} kV)",

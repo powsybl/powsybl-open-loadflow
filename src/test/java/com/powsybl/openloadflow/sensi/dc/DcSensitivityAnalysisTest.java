@@ -458,7 +458,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         CompletionException e = assertThrows(CompletionException.class, () -> result.join());
         assertTrue(e.getCause() instanceof PowsyblException);
-        assertEquals("Only sensitivity factors of type BranchFlowPerInjectionIncrease, BranchFlowPerLinearGlsk and BranchFlowPerPSTAngle are yet supported in DC", e.getCause().getMessage());
+        assertEquals("Only variables of type TRANSFORMER_PHASE or INJECTION_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER are yet supported in DC", e.getCause().getMessage());
     }
 
     @Test

@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
@@ -28,7 +29,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context) {
+    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         if (context.getIteration() == 0) {
             // at first outer loop iteration:
             // branches with active power control are switched off and taps are rounded

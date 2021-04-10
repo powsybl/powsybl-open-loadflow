@@ -13,6 +13,8 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.SimplePiModel;
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
@@ -100,13 +102,13 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public double getPermanentLimit1() {
-        return Double.NaN;
+    public List<LfLimit> getLimits1() {
+        return Collections.emptyList();
     }
 
     @Override
-    public double getPermanentLimit2() {
-        return Double.NaN;
+    public List<LfLimit> getLimits2() {
+        return Collections.emptyList();
     }
 
     @Override

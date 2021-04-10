@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.nr;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
@@ -20,8 +21,8 @@ import com.powsybl.openloadflow.network.LfNetwork;
 public class DcValueVoltageInitializer implements VoltageInitializer {
 
     @Override
-    public void prepare(LfNetwork network, MatrixFactory matrixFactory) {
-        if (new DcLoadFlowEngine(network, matrixFactory).run().getStatus() != LoadFlowResult.ComponentResult.Status.CONVERGED) {
+    public void prepare(LfNetwork network, MatrixFactory matrixFactory, Reporter reporter) {
+        if (new DcLoadFlowEngine(network, matrixFactory, false).run(reporter).getStatus() != LoadFlowResult.ComponentResult.Status.CONVERGED) {
             throw new PowsyblException("DC loadflow failed, impossible to initialize voltage angle from DC values");
         }
     }

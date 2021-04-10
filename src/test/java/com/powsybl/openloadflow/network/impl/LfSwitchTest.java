@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -23,10 +24,10 @@ import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -46,7 +47,7 @@ class LfSwitchTest {
         network = NodeBreakerNetworkFactory.create();
         acLoadFlowParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), new LoadFlowParameters(),
                 new OpenLoadFlowParameters(), true);
-        List<LfNetwork> lfNetworks = AcloadFlowEngine.createNetworks(network, acLoadFlowParameters);
+        List<LfNetwork> lfNetworks = AcloadFlowEngine.createNetworks(network, acLoadFlowParameters, Reporter.NO_OP);
         assertEquals(1, lfNetworks.size());
         lfNetwork = lfNetworks.get(0);
         lfSwitch = (LfSwitch) lfNetwork.getBranchById("B3");
@@ -55,13 +56,13 @@ class LfSwitchTest {
     @Test
     void getterTest() {
         assertEquals("B3", lfSwitch.getId());
-        assertFalse(lfSwitch.hasPhaseControlCapability());
+        assertEquals(false, lfSwitch.hasPhaseControlCapability());
         assertEquals(Double.NaN, lfSwitch.getP1().eval());
         assertEquals(Double.NaN, lfSwitch.getP2().eval());
         assertEquals(Double.NaN, lfSwitch.getI1().eval());
         assertEquals(Double.NaN, lfSwitch.getI2().eval());
-        assertEquals(Double.NaN, lfSwitch.getPermanentLimit1());
-        assertEquals(Double.NaN, lfSwitch.getPermanentLimit2());
+        assertEquals(Collections.emptyList(), lfSwitch.getLimits1());
+        assertEquals(Collections.emptyList(), lfSwitch.getLimits2());
     }
 
     @Test

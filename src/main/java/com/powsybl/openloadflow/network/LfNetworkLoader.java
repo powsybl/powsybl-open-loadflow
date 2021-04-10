@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.commons.reporter.Reporter;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -14,5 +16,5 @@ import java.util.Optional;
  */
 public interface LfNetworkLoader {
 
-    Optional<List<LfNetwork>> load(Object network, LfNetworkParameters parameters);
+    Optional<List<LfNetwork>> load(Object network, LfNetworkParameters parameters, Reporter reporter);
 }

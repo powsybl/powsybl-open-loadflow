@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
 public class BusState {
-    private final double v;
     private final double angle;
     private final double loadTargetP;
     private final double loadTargetQ;
@@ -28,7 +27,6 @@ public class BusState {
     private final double generationTargetQ;
 
     public BusState(LfBus b) {
-        this.v = b.getV();
         this.angle = b.getAngle();
         this.loadTargetP = b.getLoadTargetP();
         this.loadTargetQ = b.getLoadTargetQ();
@@ -40,7 +38,6 @@ public class BusState {
 
     public void restoreBusState(LfBus bus) {
         restoreBusActiveState(bus);
-        bus.setV(v);
         bus.setLoadTargetQ(loadTargetQ);
         bus.setGenerationTargetQ(generationTargetQ);
         bus.setDisabled(disabled);

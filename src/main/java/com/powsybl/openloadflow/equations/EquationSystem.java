@@ -163,7 +163,8 @@ public class EquationSystem {
 
     public enum EquationUpdateType {
         DEFAULT,
-        AFTER_NR
+        AFTER_NR,
+        NEVER
     }
 
     public EquationSystem(LfNetwork network) {

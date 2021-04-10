@@ -30,7 +30,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean slack = false;
 
-    protected double v;
+    protected Evaluable v;
 
     protected double angle;
 
@@ -80,7 +80,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected AbstractLfBus(LfNetwork network, double v, double angle) {
         super(network);
-        this.v = v;
+        this.v = () -> v / getNominalV(); // this will be replaced by an equation term once the equationSystem is created
         this.angle = angle;
     }
 
@@ -190,17 +190,29 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     void addLccConverterStation(LccConverterStation lccCs) {
         lccCss.add(lccCs);
         HvdcLine line = lccCs.getHvdcLine();
+        loadTargetP += getLccConverterStationLoadTargetP(lccCs, line);
+        loadTargetQ += getLccConverterStationLoadTargetQ(lccCs, line);
+    }
+
+    public static double getLccConverterStationLoadTargetP(LccConverterStation lccCs, HvdcLine line) {
         // The active power setpoint is always positive.
         // If the converter station is at side 1 and is rectifier, p should be positive.
         // If the converter station is at side 1 and is inverter, p should be negative.
         // If the converter station is at side 2 and is rectifier, p should be positive.
         // If the converter station is at side 2 and is inverter, p should be negative.
         boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(lccCs);
-        double pCs = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
+        return (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
                 (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor() / 100); // A LCC station has active losses.
-        double qCs = Math.abs(pCs * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
-        loadTargetP += pCs;
-        loadTargetQ += qCs;
+    }
+
+    public static double getLccConverterStationLoadTargetQ(LccConverterStation lccCs, HvdcLine line) {
+        // The active power setpoint is always positive.
+        // If the converter station is at side 1 and is rectifier, p should be positive.
+        // If the converter station is at side 1 and is inverter, p should be negative.
+        // If the converter station is at side 2 and is rectifier, p should be positive.
+        // If the converter station is at side 2 and is inverter, p should be negative.
+        double pCs = getLccConverterStationLoadTargetP(lccCs, line);
+        return Math.abs(pCs * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
     }
 
     protected void add(LfGenerator generator) {
@@ -297,13 +309,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public double getV() {
-        return v / getNominalV();
+    public Evaluable getV() {
+        return v;
     }
 
     @Override
-    public void setV(double v) {
-        this.v = v * getNominalV();
+    public void setV(Evaluable v) {
+        this.v = v;
     }
 
     @Override
