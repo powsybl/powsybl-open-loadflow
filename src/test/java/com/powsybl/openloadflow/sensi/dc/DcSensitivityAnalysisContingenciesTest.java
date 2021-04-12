@@ -6,13 +6,16 @@
  */
 package com.powsybl.openloadflow.sensi.dc;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.HvdcLineContingency;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
@@ -504,6 +507,232 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
+    void testContingencyOnHvdcLcc() {
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        SensitivityFactorsProvider factorsProvider = n -> {
+            return createFactorMatrix(List.of("g1", "g2").stream().map(network::getGenerator).collect(Collectors.toList()),
+                List.of("l12", "l13", "l23").stream().map(network::getBranch).collect(Collectors.toList()));
+        };
+
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies,
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+
+        assertEquals(1, result.getSensitivityValuesContingencies().size());
+        List<SensitivityValue> contingencyResult = result.getSensitivityValuesContingencies().get("hvdc34");
+        assertEquals(6, contingencyResult.size());
+        assertEquals(1d / 3d, getValue(contingencyResult, "g1", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 6d, getValue(contingencyResult, "g1", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 6d, getValue(contingencyResult, "g1", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getValue(contingencyResult, "g2", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 6d, getValue(contingencyResult, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 6d, getValue(contingencyResult, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(2d, getFunctionReference(contingencyResult, "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d, getFunctionReference(contingencyResult, "l23"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testContingencyOnHvdcVsc() {
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        SensitivityFactorsProvider factorsProvider = n -> {
+            return createFactorMatrix(List.of("g1", "g2").stream().map(network::getGenerator).collect(Collectors.toList()),
+                List.of("l12", "l13", "l23").stream().map(network::getBranch).collect(Collectors.toList()));
+        };
+
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies,
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+
+        assertEquals(1, result.getSensitivityValuesContingencies().size());
+        List<SensitivityValue> contingencyResult = result.getSensitivityValuesContingencies().get("hvdc34");
+        assertEquals(6, contingencyResult.size());
+        assertEquals(1d / 3d, getValue(contingencyResult, "g1", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 6d, getValue(contingencyResult, "g1", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 6d, getValue(contingencyResult, "g1", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getValue(contingencyResult, "g2", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 6d, getValue(contingencyResult, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 6d, getValue(contingencyResult, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(2d, getFunctionReference(contingencyResult, "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d, getFunctionReference(contingencyResult, "l23"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testContingencyOnHvdcVscDistributedOnLoad() {
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        SensitivityFactorsProvider factorsProvider = n -> {
+            return createFactorMatrix(List.of("g1", "g2").stream().map(network::getGenerator).collect(Collectors.toList()),
+                List.of("l12", "l13", "l23").stream().map(network::getBranch).collect(Collectors.toList()));
+        };
+
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies,
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+
+        assertEquals(1, result.getSensitivityValuesContingencies().size());
+        List<SensitivityValue> contingencyResult = result.getSensitivityValuesContingencies().get("hvdc34");
+        assertEquals(6, contingencyResult.size());
+        assertEquals(2d / 3d, getValue(contingencyResult, "g1", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 3d, getValue(contingencyResult, "g1", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getValue(contingencyResult, "g1", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g2", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(2d / 3d, getFunctionReference(contingencyResult, "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 3d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getFunctionReference(contingencyResult, "l23"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testContingencyOnHvdcLccWithoutLosingConnectivity() {
+        Network network = HvdcNetworkFactory.createNetworkWithGenerators();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        SensitivityFactorsProvider factorsProvider = n -> {
+            return createFactorMatrix(List.of("g1").stream().map(network::getGenerator).collect(Collectors.toList()),
+                List.of("l12", "l13", "l23", "l25", "l45", "l46", "l56").stream().map(network::getBranch).collect(Collectors.toList()));
+        };
+
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies,
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+
+        assertEquals(1, result.getSensitivityValuesContingencies().size());
+        List<SensitivityValue> contingencyResult = result.getSensitivityValuesContingencies().get("hvdc34");
+        assertEquals(7, contingencyResult.size());
+        assertEquals(0.5d, getValue(contingencyResult, "g1", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, getValue(contingencyResult, "g1", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.25d, getValue(contingencyResult, "g1", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.5d, getValue(contingencyResult, "g1", "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 12d, getValue(contingencyResult, "g1", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 12d, getValue(contingencyResult, "g1", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 6d, getValue(contingencyResult, "g1", "l56"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(2d / 3d, getFunctionReference(contingencyResult, "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 3d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getFunctionReference(contingencyResult, "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2d, getFunctionReference(contingencyResult, "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 3d, getFunctionReference(contingencyResult, "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 3d, getFunctionReference(contingencyResult, "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-2d / 3d, getFunctionReference(contingencyResult, "l56"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testContingencyOnHvdcLccAndLosingConnectivity() {
+        Network network = HvdcNetworkFactory.createNetworkWithGenerators();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        SensitivityFactorsProvider factorsProvider = n -> {
+            return createFactorMatrix(List.of("g1").stream().map(network::getGenerator).collect(Collectors.toList()),
+                List.of("l12", "l13", "l23", "l25", "l45", "l46", "l56").stream().map(network::getBranch).collect(Collectors.toList()));
+        };
+
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34"), new BranchContingency("l25")));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies,
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+
+        assertEquals(1, result.getSensitivityValuesContingencies().size());
+        List<SensitivityValue> contingencyResult = result.getSensitivityValuesContingencies().get("hvdc34");
+        assertEquals(7, contingencyResult.size());
+        assertEquals(1d / 3d, getValue(contingencyResult, "g1", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 6d, getValue(contingencyResult, "g1", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 6d, getValue(contingencyResult, "g1", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g1", "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g1", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g1", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g1", "l56"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(2d, getFunctionReference(contingencyResult, "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d, getFunctionReference(contingencyResult, "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getFunctionReference(contingencyResult, "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getFunctionReference(contingencyResult, "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getFunctionReference(contingencyResult, "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getFunctionReference(contingencyResult, "l56"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testContingencyOnHvdcLccAndTransformerWithoutLosingConnectivity() {
+        Network network = HvdcNetworkFactory.createNetworkWithTransformer();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        SensitivityFactorsProvider factorsProvider = n -> {
+            return createFactorMatrix(List.of("g1", "g2").stream().map(network::getGenerator).collect(Collectors.toList()),
+                List.of("l12", "l13", "l23").stream().map(network::getBranch).collect(Collectors.toList()));
+        };
+
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34"), new BranchContingency("l23")));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies,
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+
+        assertEquals(1, result.getSensitivityValuesContingencies().size());
+        List<SensitivityValue> contingencyResult = result.getSensitivityValuesContingencies().get("hvdc34");
+        assertEquals(6, contingencyResult.size());
+        assertEquals(0.5d, getValue(contingencyResult, "g1", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g1", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g1", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.5d, getValue(contingencyResult, "g2", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(3d, getFunctionReference(contingencyResult, "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getFunctionReference(contingencyResult, "l23"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testContingencyOnHvdcLccAndTransformerAndLosingConnectivity() {
+        Network network = HvdcNetworkFactory.createLinkedNetworkWithTransformer();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        SensitivityFactorsProvider factorsProvider = n -> {
+            return createFactorMatrix(List.of("g1").stream().map(network::getGenerator).collect(Collectors.toList()),
+                List.of("l12", "l13", "l23", "l25", "l45", "l46", "l56").stream().map(network::getBranch).collect(Collectors.toList()));
+        };
+
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34"), new BranchContingency("l23"), new BranchContingency("l25")));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies,
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+
+        assertEquals(1, result.getSensitivityValuesContingencies().size());
+        List<SensitivityValue> contingencyResult = result.getSensitivityValuesContingencies().get("hvdc34");
+        assertEquals(7, contingencyResult.size());
+        assertEquals(0.5d, getValue(contingencyResult, "g1", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g1", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g1", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g1", "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g1", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g1", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g1", "l56"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(3d, getFunctionReference(contingencyResult, "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getFunctionReference(contingencyResult, "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getFunctionReference(contingencyResult, "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getFunctionReference(contingencyResult, "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getFunctionReference(contingencyResult, "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getFunctionReference(contingencyResult, "l56"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testContingencyMultipleLinesBreaksOneContingency() {
         Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedByTwoLines();
         runDcLf(network);
@@ -810,6 +1039,42 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
+    void testChangingCompensationThenNot() {
+        // Multiple contingencies: one that lose connectivity and change the slack distribution, and others that lose connectivity without changing distribution
+        // This allows us to check that changing the compensation has no side effect on the next contingencies
+        // The contingency changing distribution must be done before at least one of the other.
+
+        Network network = ConnectedComponentNetworkFactory.createHighlyConnectedNetwork();
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b6_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        String branchId = "l36";
+        String injectionId = "g3";
+        Branch branch = network.getBranch(branchId);
+        List<SensitivityFactor> factors = List.of(new BranchFlowPerInjectionIncrease(
+            createBranchFlow(branch),
+            new InjectionIncrease(injectionId, injectionId, injectionId)
+        ));
+
+        SensitivityFactorsProvider factorsProvider = net -> factors;
+
+        Contingency contingency78 = new Contingency("l78", new BranchContingency("l78"));
+        Contingency contingency12 = new Contingency("l12", new BranchContingency("l12")); // change distribution
+        Contingency contingency35and56and57 = new Contingency("l35+l56+l57", new BranchContingency("l35"),  new BranchContingency("l56"),  new BranchContingency("l57"));
+
+        Function<List<Contingency>, SensitivityAnalysisResult> resultProvider = contingencies -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies, sensiParameters, LocalComputationManager.getDefault()).join();
+
+        SensitivityAnalysisResult result78 = resultProvider.apply(List.of(contingency78));
+        SensitivityAnalysisResult result12 = resultProvider.apply(List.of(contingency12));
+        SensitivityAnalysisResult result35and56and57 = resultProvider.apply(List.of(contingency35and56and57));
+        SensitivityAnalysisResult globalResult = resultProvider.apply(List.of(contingency12, contingency78, contingency35and56and57));
+
+        assertEquals(getContingencyValue(result78, "l78", injectionId, branchId), getContingencyValue(globalResult, "l78", injectionId, branchId), LoadFlowAssert.DELTA_POWER);
+        assertEquals(getContingencyValue(result12, "l12", injectionId, branchId), getContingencyValue(globalResult, "l12", injectionId, branchId), LoadFlowAssert.DELTA_POWER);
+        assertEquals(getContingencyValue(result35and56and57, "l35+l56+l57", injectionId, branchId), getContingencyValue(globalResult, "l35+l56+l57", injectionId, branchId), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testFunctionReferenceWhenLosingATransformer() {
         Network network = ConnectedComponentNetworkFactory.createTwoCcWithATransformerLinkedByASingleLine();
 
@@ -960,5 +1225,23 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         assertEquals(getContingencyFunctionReference(resultLosingConnectivityAlone, "l56", "l48"), getContingencyFunctionReference(resultBoth, "l56", "l48"), LoadFlowAssert.DELTA_POWER);
         assertEquals(getContingencyFunctionReference(resultLosingTransformerAlone, "l56", "l67"), getContingencyFunctionReference(resultBoth, "l56", "l67"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testContingencyOnAWrongHvdc() {
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        SensitivityFactorsProvider factorsProvider = n -> {
+            return createFactorMatrix(List.of("g1", "g2").stream().map(network::getGenerator).collect(Collectors.toList()),
+                List.of("l12", "l13", "l23").stream().map(network::getBranch).collect(Collectors.toList()));
+        };
+
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("wrong")));
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies,
+            sensiParameters, LocalComputationManager.getDefault())
+            .join());
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("The DC line 'wrong' does not exist in the network", e.getCause().getMessage());
     }
 }

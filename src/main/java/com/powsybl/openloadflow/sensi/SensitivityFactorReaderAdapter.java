@@ -6,19 +6,21 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.TopologyLevel;
 import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityFactorsProvider;
-import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
-import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
-import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
-import com.powsybl.sensitivity.factors.BranchIntensityPerPSTAngle;
+import com.powsybl.sensitivity.factors.*;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.functions.BranchIntensity;
+import com.powsybl.sensitivity.factors.functions.BusVoltage;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
+import com.powsybl.sensitivity.factors.variables.TargetVoltage;
 
 import java.util.List;
 import java.util.Objects;
@@ -74,6 +76,12 @@ public class SensitivityFactorReaderAdapter implements SensitivityFactorReader {
             PhaseTapChangerAngle phaseTapChangerAngle = ((BranchIntensityPerPSTAngle) factor).getVariable();
             handler.onSimpleFactor(factor, SensitivityFunctionType.BRANCH_CURRENT, branchIntensity.getBranchId(),
                     SensitivityVariableType.TRANSFORMER_PHASE, phaseTapChangerAngle.getPhaseTapChangerHolderId());
+        } else if (factor instanceof BusVoltagePerTargetV) {
+            BusVoltage busVoltage = ((BusVoltagePerTargetV) factor).getFunction();
+            TargetVoltage targetVoltage = ((BusVoltagePerTargetV) factor).getVariable();
+            Bus bus = busVoltage.getBusRef().resolve(network, TopologyLevel.BUS_BRANCH).orElseThrow(() -> new PowsyblException("The bus ref for '" + busVoltage.getId() + "' cannot be resolved."));
+            handler.onSimpleFactor(factor, SensitivityFunctionType.BUS_VOLTAGE, bus.getId(),
+                SensitivityVariableType.BUS_TARGET_VOLTAGE, targetVoltage.getEquipmentId());
         } else if (factor instanceof BranchFlowPerLinearGlsk) {
             BranchFlow branchFlow = ((BranchFlowPerLinearGlsk) factor).getFunction();
             LinearGlsk linearGlsk = ((BranchFlowPerLinearGlsk) factor).getVariable();

@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
@@ -23,7 +24,7 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context) {
+    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         if (context.getIteration() == 0) {

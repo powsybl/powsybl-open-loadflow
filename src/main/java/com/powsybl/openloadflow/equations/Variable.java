@@ -92,7 +92,7 @@ public class Variable implements Comparable<Variable> {
         Objects.requireNonNull(x);
         switch (type) {
             case BUS_V:
-                network.getBus(num).setV(x[row]);
+                // Equation must have been updated
                 break;
 
             case BUS_PHI:
