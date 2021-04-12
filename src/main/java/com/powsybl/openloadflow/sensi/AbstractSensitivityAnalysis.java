@@ -448,7 +448,7 @@ public abstract class AbstractSensitivityAnalysis {
                     if (!v.isActive()) {
                         return;
                     }
-                    rhs.set(v.getColumn(), getIndex(), 1d / PerUnit.SB);
+                    rhs.set(v.getColumn(), getIndex(), 1d / ((LfBus) variableElement).getNominalV() / PerUnit.SB);
                     break;
                 default:
                     throw new NotImplementedException("Variable type " + variableType + " is not implemented");
