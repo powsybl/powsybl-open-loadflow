@@ -67,6 +67,10 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                         .orElseThrow(() -> new PowsyblException("No alpha_1 variable on the function branch"));
                     sensi += Math.toRadians(factor.getEquationTerm().der(phi1Var));
                 }
+
+                if (SensitivityFunctionType.BUS_VOLTAGE.equals(factor.getFunctionType())) {
+                    sensi *= ((LfBus) factor.getFunctionElement()).getNominalV();
+                }
                 valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, sensi * PerUnit.SB, factor.getFunctionReference() * PerUnit.SB);
             }
         }

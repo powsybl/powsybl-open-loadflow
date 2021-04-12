@@ -313,10 +313,10 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             .join();
 
         assertEquals(4, result.getSensitivityValues().size());
-        assertEquals(1.0141d, getValue(result, "g1", "b1"), LoadFlowAssert.DELTA_V);
-        assertEquals(1d,  getValue(result, "g1", "b2"), LoadFlowAssert.DELTA_V);
-        assertEquals(1.0504d,  getValue(result, "g1", "b3"), LoadFlowAssert.DELTA_V);
-        assertEquals(1.d,  getValue(result, "g1", "b4"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.04997d, getValue(result, "g1", "b1"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.0507d,  getValue(result, "g1", "b2"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.0525d,  getValue(result, "g1", "b3"), LoadFlowAssert.DELTA_V);
+        assertEquals(1d,  getValue(result, "g1", "b4"), LoadFlowAssert.DELTA_V);
     }
 
     @Test
