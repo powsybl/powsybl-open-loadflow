@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityAnalysisResult;
+import com.powsybl.sensitivity.SensitivityFactor;
 import com.powsybl.sensitivity.SensitivityFactorsProvider;
 import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
@@ -421,6 +423,44 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(getV.apply("b2_vl_0"), getFunctionReference(result, "b2"), LoadFlowAssert.DELTA_V);
         assertEquals(getV.apply("b3_vl_0"), getFunctionReference(result, "b3"), LoadFlowAssert.DELTA_V);
         assertEquals(getV.apply("b4_vl_0"), getFunctionReference(result, "b4"), LoadFlowAssert.DELTA_V);
+    }
+
+    @Test
+    void testAdditionnalFactors() {
+        Network network = FourBusNetworkFactory.createWithTransfoCompensed();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        runLf(network, sensiParameters.getLoadFlowParameters());
+        SensitivityFactorsProvider factorsProvider = new SensitivityFactorsProvider() {
+            @Override
+            public List<SensitivityFactor> getCommonFactors(Network network) {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public List<SensitivityFactor> getAdditionalFactors(Network network) {
+                return network.getBranchStream()
+                    .map(AcSensitivityAnalysisTest::createBranchFlow)
+                    .map(branchFlow -> new BranchFlowPerPSTAngle(branchFlow, new PhaseTapChangerAngle("l23", "l23", "l23"))).collect(Collectors.toList());
+            }
+        };
+
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+
+        assertEquals(5, result.getSensitivityValues().size());
+
+        assertEquals(0.2296d, getFunctionReference(result, "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.3154d, getFunctionReference(result, "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.2296d, getFunctionReference(result, "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.4549d, getFunctionReference(result, "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.3154d, getFunctionReference(result, "l23"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testInjectionNotFoundAdditionalFactor() {
+        testInjectionNotFoundAdditionalFactor(false);
     }
 
     @Test

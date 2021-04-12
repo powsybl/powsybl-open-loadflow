@@ -13,11 +13,29 @@ import java.util.List;
  */
 public interface SensitivityFactorReader {
 
+    interface ContingencyContext { }
+
+    class AllContingencyContext implements ContingencyContext { }
+
+    class NoneContingencyContext implements ContingencyContext { }
+
+    class SpecificContingencyContext implements ContingencyContext {
+        private final String contingencyId;
+
+        SpecificContingencyContext(String contingencyId) {
+            this.contingencyId = contingencyId;
+        }
+
+        String getContingencyId() {
+            return contingencyId;
+        }
+    }
+
     interface Handler {
 
-        void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId);
+        void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, ContingencyContext contingencyContext);
 
-        void onMultipleVariablesFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables);
+        void onMultipleVariablesFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables, ContingencyContext contingencyContext);
     }
 
     void read(Handler handler);
