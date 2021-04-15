@@ -21,10 +21,6 @@ public interface LfShunt extends LfElement {
 
     Evaluable getQ();
 
-    boolean hasVoltageControl();
-
-    void setVoltageControl(boolean hasVoltageControl);
-
     double getMinB();
 
     double getMaxB();

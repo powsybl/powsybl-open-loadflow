@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ToDoubleFunction;
-import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -60,6 +59,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected final List<LfGenerator> generators = new ArrayList<>();
 
     protected final List<LfShunt> shunts = new ArrayList<>();
+
+    protected final List<LfShunt> controllerShunts = new ArrayList<>();
 
     protected final List<Load> loads = new ArrayList<>();
 
@@ -238,8 +239,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         add(LfVscConverterStationImpl.create(vscCs, breakers, report));
     }
 
-    void addShuntCompensator(ShuntCompensator sc, LfNetworkParameters parameters) {
-        shunts.add(new LfShuntImpl(sc, network, parameters));
+    void addShuntCompensator(ShuntCompensator sc, boolean isShuntVoltageControl) {
+        LfShuntImpl shunt = new LfShuntImpl(sc, network);
+        shunts.add(shunt);
+        if (isShuntVoltageControl && sc.isVoltageRegulatorOn()) {
+            controllerShunts.add(shunt);
+        }
     }
 
     @Override
@@ -346,9 +351,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public List<LfShunt> getControllerShunts() {
-        return shunts.stream()
-            .filter(LfShunt::hasVoltageControl)
-            .collect(Collectors.toList());
+        return controllerShunts;
+    }
+
+    @Override
+    public void disableShuntControllers() {
+        controllerShunts.clear();
     }
 
     @Override

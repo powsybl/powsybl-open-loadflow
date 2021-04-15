@@ -170,7 +170,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
             @Override
             public void visitShuntCompensator(ShuntCompensator sc) {
-                lfBus.addShuntCompensator(sc, parameters);
+                lfBus.addShuntCompensator(sc, parameters.isShuntVoltageControl());
                 loadingContext.shuntSet.add(sc);
             }
 
