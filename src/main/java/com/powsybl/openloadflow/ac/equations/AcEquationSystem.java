@@ -43,7 +43,7 @@ public final class AcEquationSystem {
             createShuntEquations(variableSet, equationSystem, bus, creationParameters);
 
             if (creationParameters.isTransformerVoltageControl() || creationParameters.isShuntVoltageControl()) {
-                createDiscreteVoltageControlEquation(bus, variableSet, equationSystem, creationParameters);
+                createDiscreteVoltageControlEquation(bus, variableSet, equationSystem);
             }
             Equation v = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
             if (v.getTerms().isEmpty()) {
@@ -288,8 +288,7 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createDiscreteVoltageControlEquation(LfBus bus,  VariableSet variableSet, EquationSystem equationSystem,
-                                                             AcEquationSystemCreationParameters creationParameters) {
+    private static void createDiscreteVoltageControlEquation(LfBus bus, VariableSet variableSet, EquationSystem equationSystem) {
         if (bus.isDiscreteVoltageControlled()) {
             EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
