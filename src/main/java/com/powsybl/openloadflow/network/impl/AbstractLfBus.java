@@ -64,6 +64,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private VoltageControl voltageControl;
 
+    private ReactivePowerControl reactivePowerControl;
+
     protected DiscreteVoltageControl discreteVoltageControl;
 
     protected boolean disabled = false;
@@ -126,6 +128,17 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public Optional<ReactivePowerControl> getReactivePowerControl() {
+        return Optional.ofNullable(reactivePowerControl);
+    }
+
+    @Override
+    public void setReactivePowerControl(ReactivePowerControl pReactivePowerControl) {
+        Objects.requireNonNull(pReactivePowerControl);
+        this.reactivePowerControl = pReactivePowerControl;
+    }
+
+    @Override
     public boolean isVoltageControlled() {
         return voltageControl != null && voltageControl.getControlledBus() == this;
     }
@@ -146,6 +159,21 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 listener.onVoltageControlChange(this, voltageControlEnabled);
             }
         }
+    }
+
+    @Override
+    public boolean hasReactivePowerControllerCapability() {
+        return reactivePowerControl != null && reactivePowerControl.getControllerBuses().contains(this);
+    }
+
+    @Override
+    public boolean isReactivePowerControllerEnabled() {
+        return true;
+    }
+
+    @Override
+    public boolean isReactivePowerControlled() {
+        return reactivePowerControl != null && reactivePowerControl.getControlledBus() == this;
     }
 
     @Override

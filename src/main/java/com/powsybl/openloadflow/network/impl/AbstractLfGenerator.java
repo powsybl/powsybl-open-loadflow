@@ -33,6 +33,8 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     protected boolean hasVoltageControl = false;
 
+    protected boolean hasReactivePowerControl = false;
+
     protected String controlledBusId;
 
     protected AbstractLfGenerator(double targetP) {
@@ -72,6 +74,11 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public boolean hasVoltageControl() {
         return hasVoltageControl;
+    }
+
+    @Override
+    public boolean hasReactivePowerControl() {
+        return hasReactivePowerControl;
     }
 
     @Override
@@ -184,6 +191,12 @@ public abstract class AbstractLfGenerator implements LfGenerator {
                 getId(), targetV, PlausibleValues.MAX_TARGET_VOLTAGE_PU);
         }
         this.targetV = newTargetV;
+    }
+
+    protected void setReactivePowerControl(double targetQ, Terminal regulatingTerminal, boolean breakers) {
+        Bus controlledBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
+        this.controlledBusId = controlledBus.getId();
+        this.hasReactivePowerControl = true;
     }
 
 }

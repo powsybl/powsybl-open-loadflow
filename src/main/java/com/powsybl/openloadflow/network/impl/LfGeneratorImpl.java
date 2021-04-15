@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
+import com.powsybl.iidm.network.RegulationMode;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.openloadflow.network.PerUnit;
@@ -73,8 +74,13 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             participating = false;
         }
 
-        if (generator.isVoltageRegulatorOn()) {
+        if (generator.getRegulationMode() == RegulationMode.VOLTAGE) {
             setVoltageControl(generator.getTargetV(), generator.getRegulatingTerminal(), breakers, report);
+        }
+
+        if(generator.getRegulationMode() == RegulationMode.REACTIVE_POWER)
+        {
+            setReactivePowerControl(generator.getTargetQ(), generator.getRegulatingTerminal(), breakers);
         }
     }
 

@@ -38,8 +38,9 @@ public final class AcEquationSystem {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_PHI).addTerm(EquationTerm.createVariableTerm(bus, VariableType.BUS_PHI, variableSet));
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
-
+            
             bus.getVoltageControl().ifPresent(vc -> createVoltageControlEquations(vc, bus, variableSet, equationSystem, creationParameters));
+            bus.getReactivePowerControl().ifPresent(reaC -> createReactivePowerControlEquation(reaC, bus, variableSet, equationSystem, creationParameters));
 
             createShuntEquations(variableSet, equationSystem, bus);
 
@@ -71,6 +72,18 @@ public final class AcEquationSystem {
         if (bus.isVoltageControllerEnabled()) {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
         }
+    }
+
+    private static void createReactivePowerControlEquation(ReactivePowerControl reactivePowerControl, LfBus bus, VariableSet variableSet,
+                                                      EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
+
+        System.out.println("createReactivePowerControlEquation for bus " + bus.getId());
+        if (reactivePowerControl.isReactivePowerControlLocal()) {
+            System.out.println("Reactive power control is local");
+        } else if (bus.isReactivePowerControlled()) {
+            System.out.println("Reactive power control is distant");
+        }
+
     }
 
     private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus) {

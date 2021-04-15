@@ -17,6 +17,8 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -350,5 +352,23 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(-10, g3.getTerminal());
         assertReactivePowerEquals(-88.407, g4.getTerminal());
         assertReactivePowerEquals(-88.407, g4bis.getTerminal());
+    }
+
+    @Test
+    void qremoteregulationtest() {
+
+        Network sNetwork = FourBusNetworkFactory.createBaseNetwork();
+        Generator g4 = sNetwork.getGenerator("g4");
+        Line l34 = sNetwork.getLine("l34");
+        g4.setRegulationMode(RegulationMode.REACTIVE_POWER);
+        g4.setRegulatingTerminal(l34.getTerminal(Branch.Side.ONE));
+        g4.setTargetQ(0);
+
+        LoadFlowResult result = loadFlowRunner.run(sNetwork, parameters);
+
+        Terminal t = l34.getTerminal(Branch.Side.ONE);
+
+        assertReactivePowerEquals(10, l34.getTerminal(Branch.Side.ONE));
+
     }
 }

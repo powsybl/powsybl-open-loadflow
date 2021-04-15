@@ -92,6 +92,41 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
+    private static void createReactivePowerControls(LfNetwork lfNetwork, List<LfBus> lfBuses) {
+
+        for (LfBus controllerBus : lfBuses) {
+
+            List<LfGenerator> reactivePowerControlGenerator = controllerBus.getGenerators().stream().filter(LfGenerator::hasReactivePowerControl).collect(Collectors.toList());
+            if (!reactivePowerControlGenerator.isEmpty())
+            {
+                System.out.println("Got generator " + reactivePowerControlGenerator.get(0).getId() + " for reactive power control");
+                LfGenerator lfGenerator0 = reactivePowerControlGenerator.get(0);
+                LfBus controlledBus = lfGenerator0.getControlledBus(lfNetwork);
+                System.out.println("Controlling bug " + controlledBus.getId());
+                double controllerTargetQ = lfGenerator0.getTargetQ();
+                LfBus finalControlledBus = controlledBus;
+
+                reactivePowerControlGenerator.stream().skip(1).forEach(lfGenerator -> {
+                    LfBus generatorControlledBus = lfGenerator.getControlledBus(lfNetwork);
+
+                    // check that remote control bus is the same for the generators of current controller bus which have voltage control on
+                    checkUniqueControlledBus(finalControlledBus, generatorControlledBus, controllerBus);
+
+                    //BRI To check
+                    // check that target voltage is the same for the generators of current controller bus which have voltage control on
+                    //checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
+                });
+
+                ReactivePowerControl reaPowerControl = controlledBus.getReactivePowerControl().orElse(new ReactivePowerControl(controlledBus, controllerTargetQ));
+                reaPowerControl.addControllerBus(controllerBus);
+                controlledBus.setReactivePowerControl(reaPowerControl);
+
+                //BRI To check
+                //checkUniqueTargetVControlledBus(controllerTargetV, controllerBus, voltageControl); // check even if voltage control just created, for simplicity sake
+            }
+        }
+    }
+
     private static void checkUniqueTargetVControlledBus(double controllerTargetV, LfBus controllerBus, VoltageControl vc) {
         // check if target voltage is consistent with other already existing controller buses
         double voltageControlTargetV = vc.getTargetValue();
@@ -156,7 +191,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             @Override
             public void visitGenerator(Generator generator) {
                 lfBus.addGenerator(generator, parameters.isBreakers(), report, parameters.getPlausibleActivePowerLimit());
-                if (generator.isVoltageRegulatorOn()) {
+                if (generator.getRegulationMode() == RegulationMode.VOLTAGE) {
                     report.voltageControllerCount++;
                 }
             }
@@ -455,6 +490,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report);
         createBranches(lfBuses, lfNetwork, loadingContext, report, parameters);
         createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl());
+        createReactivePowerControls(lfNetwork, lfBuses);
 
         if (parameters.isTransformerVoltageControl()) {
             // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)
