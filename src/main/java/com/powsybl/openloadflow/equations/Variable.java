@@ -15,7 +15,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -121,13 +120,12 @@ public class Variable implements Comparable<Variable> {
         }
     }
 
-    private Stream<LfShunt> getControllerShuntsStream(LfNetwork network) {
-        return network.getShunt(num).getLfBus().getShunts().stream()
-            .filter(LfShunt::hasVoltageControl);
+    private List<LfShunt> getControllerShuntsStream(LfNetwork network) {
+        return network.getShunt(num).getLfBus().getControllerShunts();
     }
 
     private double getControllerShuntsSumB(LfNetwork network) {
-        return getControllerShuntsStream(network)
+        return getControllerShuntsStream(network).stream()
                 .mapToDouble(LfShunt::getB)
                 .sum();
     }
@@ -136,8 +134,8 @@ public class Variable implements Comparable<Variable> {
         dispatchB(getControllerShuntsStream(network), bToDispatch);
     }
 
-    private double dispatchB(Stream<LfShunt> controllersShunt, double bToDispatch) {
-        List<LfShunt> shuntsThatControlVoltage = controllersShunt
+    private double dispatchB(List<LfShunt> controllersShunt, double bToDispatch) {
+        List<LfShunt> shuntsThatControlVoltage = controllersShunt.stream()
                 .sorted(Comparator.comparing(LfShunt::getAmplitudeB))
                 .collect(Collectors.toList());
         double residueB = bToDispatch;

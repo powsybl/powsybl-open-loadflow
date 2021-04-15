@@ -74,9 +74,7 @@ public final class AcEquationSystem {
 
     private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus,
                                              AcEquationSystemCreationParameters creationParameters) {
-        List<LfShunt> controllerShunts = bus.getShunts().stream()
-                .filter(LfShunt::hasVoltageControl)
-                .collect(Collectors.toList());
+        List<LfShunt> controllerShunts = bus.getControllerShunts();
         if (controllerShunts.isEmpty()) {
             for (LfShunt shunt : bus.getShunts()) {
                 ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, false);
@@ -305,9 +303,7 @@ public final class AcEquationSystem {
             for (LfBus controllerBus : bus.getDiscreteVoltageControl().getControllerBuses()) {
                 // we also create an equation that will be used later to maintain B variable constant
                 // this equation is now inactive
-                List<LfShunt> controllerShunts = controllerBus.getShunts().stream()
-                        .filter(LfShunt::hasVoltageControl)
-                        .collect(Collectors.toList());
+                List<LfShunt> controllerShunts = controllerBus.getControllerShunts();
                 equationSystem.createEquation(controllerShunts.get(0).getNum(), EquationType.SHUNT_B)
                         .addTerm(EquationTerm.createVariableTerm(controllerShunts.get(0), VariableType.SHUNT_B, variableSet))
                         .setActive(false);

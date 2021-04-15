@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ToDoubleFunction;
+import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -341,6 +342,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public List<LfShunt> getShunts() {
         return shunts;
+    }
+
+    @Override
+    public List<LfShunt> getControllerShunts() {
+        return shunts.stream()
+            .filter(LfShunt::hasVoltageControl)
+            .collect(Collectors.toList());
     }
 
     @Override

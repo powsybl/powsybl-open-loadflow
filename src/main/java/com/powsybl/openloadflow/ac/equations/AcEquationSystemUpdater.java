@@ -115,9 +115,7 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
                         .setActive(false);
 
                 for (LfBus controllerBus : bus.getDiscreteVoltageControl().getControllerBuses()) {
-                    List<LfShunt> controllerShunts = controllerBus.getShunts().stream()
-                            .filter(LfShunt::hasVoltageControl)
-                            .collect(Collectors.toList());
+                    List<LfShunt> controllerShunts = controllerBus.getControllerShunts();
                     LfShunt firstControllerShunt = controllerShunts.get(0);
                     // activate constant B equation
                     equationSystem.createEquation(firstControllerShunt.getNum(), EquationType.SHUNT_B)
