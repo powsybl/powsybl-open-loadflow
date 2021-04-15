@@ -28,6 +28,7 @@ import com.powsybl.sensitivity.factors.functions.BranchIntensity;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -296,5 +297,49 @@ public abstract class AbstractSensitivityAnalysisTest {
         };
         SensitivityAnalysisResult resultInjection = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProviderInjection, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
         assertEquals(resultInjection.getSensitivityValues().iterator().next().getValue(), result.getSensitivityValues().iterator().next().getValue(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    protected SensitivityFactorReader createHvdcReader(List<Pair<String, String>> variableAndFunction) {
+        return new SensitivityFactorReader() {
+            @Override
+            public void read(Handler handler) {
+                for (Pair<String, String> variableFunction : variableAndFunction) {
+                    handler.onMultipleVariablesFactor(variableFunction, SensitivityFunctionType.BRANCH_ACTIVE_POWER, variableFunction.getValue(),
+                        SensitivityVariableType.HVDC_INJECTION, variableFunction.getKey(), Collections.emptyList());
+                }
+            }
+        };
+    }
+
+    protected static class HvdcWriter implements SensitivityValueWriter {
+        final Map<Pair<String, String>, Pair<Double, Double>> sensitivityValues = new HashMap<>();
+
+        final Map<String, Map<Pair<String, String>, Pair<Double, Double>>> sensitivityValuesByContingency = new HashMap<>();
+
+        @Override
+        public void write(Object factorContext, String contingencyId, int contingencyIndex, double value, double functionReference) {
+            Map<Pair<String, String>, Pair<Double, Double>> mapToWrite = contingencyId != null ? sensitivityValuesByContingency.computeIfAbsent(contingencyId, key -> new HashMap<>()) : sensitivityValues;
+            mapToWrite.put((Pair<String, String>) factorContext, Pair.of(functionReference, value));
+        }
+
+        public Double getSensitivityValue(Pair<String, String> factor) {
+            return sensitivityValues.get(factor).getValue();
+        }
+
+        public Double getFunctionRef(Pair<String, String> factor) {
+            return sensitivityValues.get(factor).getKey();
+        }
+
+        public Double getSensitivityValue(Pair<String, String> factor, String contingencyId) {
+            return sensitivityValuesByContingency.get(contingencyId).get(factor).getValue();
+        }
+
+        public Double getFunctionRef(Pair<String, String> factor, String contingencyId) {
+            return sensitivityValuesByContingency.get(contingencyId).get(factor).getKey();
+        }
+
+        public static HvdcWriter create() {
+            return new HvdcWriter();
+        }
     }
 }

@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.HvdcConverterStations;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.PropagatedContingency;
@@ -487,6 +488,20 @@ public abstract class AbstractSensitivityAnalysis {
                         addBusInjection(rhs, (LfBus) variableElement, weight / weightSum);
                     }
                     break;
+                case HVDC_INJECTION:
+                    assert mainComponentWeights.size() <= 2;
+                    Double balanceDiff = mainComponentWeights.values().stream().mapToDouble(x -> x).sum();
+                    for (Map.Entry<LfBus, Double> lfBusAndParticipationFactor : participationByBus.entrySet()) {
+                        LfBus lfBus = lfBusAndParticipationFactor.getKey();
+                        Double injection = lfBusAndParticipationFactor.getValue() * balanceDiff; // adapt the sign of the compensation depending on the injection
+                        addBusInjection(rhs, lfBus, injection);
+                    }
+                    // add the injections on the side of the hvdc
+                    for (Map.Entry<LfElement, Double> variableElementAndWeight : mainComponentWeights.entrySet()) {
+                        LfElement variableElement = variableElementAndWeight.getKey();
+                        Double weight = variableElementAndWeight.getValue();
+                        addBusInjection(rhs, (LfBus) variableElement, weight);
+                    }
             }
         }
 
@@ -726,31 +741,54 @@ public abstract class AbstractSensitivityAnalysis {
             @Override
             public void onMultipleVariablesFactor(Object factorContext, SensitivityFunctionType functionType, String functionId,
                                                   SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables) {
-                if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
-                        && variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
+                if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER) {
                     checkBranch(network, functionId);
                     LfBranch functionElement = lfNetwork.getBranchById(functionId);
-                    Map<LfElement, Double> injectionLfBuses = new HashMap<>();
-                    List<String> skippedInjection = new ArrayList<>(variables.size());
-                    for (WeightedSensitivityVariable variable : variables) {
-                        Bus injectionBus = getInjectionBus(network, variable.getId());
-                        LfBus injectionLfBus = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
-                        if (injectionLfBus == null) {
-                            skippedInjection.add(variable.getId());
-                            continue;
+                    if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
+                        Map<LfElement, Double> injectionLfBuses = new HashMap<>();
+                        List<String> skippedInjection = new ArrayList<>(variables.size());
+                        for (WeightedSensitivityVariable variable : variables) {
+                            Bus injectionBus = getInjectionBus(network, variable.getId());
+                            LfBus injectionLfBus = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
+                            if (injectionLfBus == null) {
+                                skippedInjection.add(variable.getId());
+                                continue;
+                            }
+                            injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
                         }
-                        injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
-                    }
-                    if (!skippedInjection.isEmpty()) {
-                        if (LOGGER.isWarnEnabled()) {
-                            LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
+                        if (!skippedInjection.isEmpty()) {
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
+                            }
                         }
+                        lfFactors.add(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
+                            functionElement, functionType,
+                            injectionLfBuses, variableType));
+                    } else if (variableType == SensitivityVariableType.HVDC_INJECTION) {
+                        // corresponds to an augmentation of 1 on the active power setpoint
+                        Map<LfElement, Double> buses = new HashMap<>();
+                        HvdcLine hvdcLine = network.getHvdcLine(variableId);
+                        if (hvdcLine == null) {
+                            throw new PowsyblException("HVDC line " + variableId + " cannot be found in the network.");
+                        }
+                        LfBus busSide1 = lfNetwork.getBusById(hvdcLine.getConverterStation1().getTerminal().getBusView().getBus().getId());
+                        LfBus busSide2 = lfNetwork.getBusById(hvdcLine.getConverterStation2().getTerminal().getBusView().getBus().getId());
+
+                        if (busSide1 != null) {
+                            buses.put(busSide1, (hvdcLine.getConverterStation1() instanceof VscConverterStation ? -1 : 1) * HvdcConverterStations.getActiveSetpointMultiplier(hvdcLine.getConverterStation1()));
+                        }
+                        if (busSide2 != null) {
+                            buses.put(busSide2, (hvdcLine.getConverterStation2() instanceof VscConverterStation ? -1 : 1) * HvdcConverterStations.getActiveSetpointMultiplier(hvdcLine.getConverterStation2()));
+                        }
+
+                        lfFactors.add(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
+                            functionElement, functionType,
+                            buses, variableType));
+                    } else {
+                        throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
                     }
-                    lfFactors.add(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
-                        functionElement, functionType,
-                        injectionLfBuses, variableType));
                 } else {
-                    throw new PowsyblException("Function type " + functionType + " and variable type " + variableType + " not supported");
+                    throw new PowsyblException("Function type " + functionType + " not supported");
                 }
             }
         });

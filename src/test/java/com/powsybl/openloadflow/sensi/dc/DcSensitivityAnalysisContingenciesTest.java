@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
+import com.powsybl.openloadflow.sensi.SensitivityFactorReader;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
@@ -26,6 +27,7 @@ import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
@@ -881,6 +883,87 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(Double.NaN, getContingencyValue(result, "l34", "glsk", "l45"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, getContingencyValue(result, "l34", "glsk", "l46"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, getContingencyValue(result, "l34", "glsk", "l56"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testHvdcSensiRescale() {
+        double sensiChange = 10e-4;
+        // test injection increase on loads
+        Network network = HvdcNetworkFactory.createNetworkWithGenerators();
+        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+
+        List<Pair<String, String>> variableAndFunction = List.of(
+            Pair.of("hvdc34", "l12"),
+            Pair.of("hvdc34", "l13"),
+            Pair.of("hvdc34", "l23"),
+            Pair.of("hvdc34", "l25"),
+            Pair.of("hvdc34", "l45"),
+            Pair.of("hvdc34", "l46"),
+            Pair.of("hvdc34", "l56")
+        );
+
+        Network network1 = HvdcNetworkFactory.createNetworkWithGenerators();
+        network1.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
+        network1.getLine("l25").getTerminal1().disconnect();
+        network1.getLine("l25").getTerminal2().disconnect();
+        runLf(network1, sensiParameters.getLoadFlowParameters());
+        Network network2 = HvdcNetworkFactory.createNetworkWithGenerators();
+        network2.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + sensiChange);
+        network2.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
+        network2.getLine("l25").getTerminal1().disconnect();
+        network2.getLine("l25").getTerminal2().disconnect();
+        runLf(network2, sensiParameters.getLoadFlowParameters());
+        Map<String, Double> loadFlowDiff = network.getLineStream().map(line -> line.getId())
+            .collect(Collectors.toMap(
+                lineId -> lineId,
+                line -> (network1.getLine(line).getTerminal1().getP() - network2.getLine(line).getTerminal1().getP()) / sensiChange
+            ));
+
+        HvdcWriter hvdcWriter = HvdcWriter.create();
+        SensitivityFactorReader reader = createHvdcReader(variableAndFunction);
+        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.singletonList(new Contingency("l25", new BranchContingency("l25"))),
+            sensiParameters, reader, hvdcWriter);
+
+        assertEquals(loadFlowDiff.get("l12"), hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l12"), "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l13"), hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l13"), "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l23"), hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l23"), "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l25"), "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l45"), hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l45"), "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l46"), hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l46"), "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l56"), hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l56"), "l25"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testNullValue() {
+        double sensiChange = 10e-4;
+        // test injection increase on loads
+        Network network = HvdcNetworkFactory.createNetworkWithGenerators();
+        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+
+        List<Pair<String, String>> variableAndFunction = List.of(
+            Pair.of("hvdc34", "l12"),
+            Pair.of("hvdc34", "l13"),
+            Pair.of("hvdc34", "l23"),
+            Pair.of("hvdc34", "l25"),
+            Pair.of("hvdc34", "l45"),
+            Pair.of("hvdc34", "l46"),
+            Pair.of("hvdc34", "l56")
+        );
+
+        HvdcWriter hvdcWriter = HvdcWriter.create();
+        SensitivityFactorReader reader = createHvdcReader(variableAndFunction);
+        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.singletonList(new Contingency("hvdc34", new HvdcLineContingency("hvdc34"))),
+            sensiParameters, reader, hvdcWriter);
+
+        assertEquals(0d, hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l12"), "hvdc34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l13"), "hvdc34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l23"), "hvdc34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l25"), "hvdc34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l45"), "hvdc34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l46"), "hvdc34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l56"), "hvdc34"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test

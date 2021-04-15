@@ -6,8 +6,11 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.HvdcConverterStation;
 import com.powsybl.iidm.network.HvdcLine;
+import com.powsybl.iidm.network.LccConverterStation;
+import com.powsybl.iidm.network.VscConverterStation;
 
 import java.util.Objects;
 
@@ -24,5 +27,18 @@ public final class HvdcConverterStations {
         HvdcLine line = station.getHvdcLine();
         return (line.getConverterStation1() == station && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
                 || (line.getConverterStation2() == station && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER);
+    }
+
+    public static double getActiveSetpointMultiplier(HvdcConverterStation station) {
+        boolean isConverterStationRectifier = isRectifier(station);
+        double sign;
+        if (station instanceof LccConverterStation) {
+            sign = isConverterStationRectifier ? 1 : -1;
+        } else if (station instanceof VscConverterStation) {
+            sign = isConverterStationRectifier ? -1 : 1;
+        } else {
+            throw new PowsyblException("Unknown HVDC converter station type: " + station.getClass().getSimpleName());
+        }
+        return sign * (1 + (isConverterStationRectifier ? 1 : -1) * station.getLossFactor() / 100);
     }
 }
