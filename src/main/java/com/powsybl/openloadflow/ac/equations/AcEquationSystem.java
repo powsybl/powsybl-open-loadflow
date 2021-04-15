@@ -90,18 +90,16 @@ public final class AcEquationSystem {
             // on the other controller shunts, B is set to zero
             // local control only
             LfShunt firstControllerShunt = controllerShunts.get(0);
-            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(firstControllerShunt, bus, variableSet, true);
-            equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
-            firstControllerShunt.setQ(q);
-            for (int i = 1; i < bus.getShunts().size(); i++) {
-                LfShunt shunt = bus.getShunts().get(i);
-                if (shunt.hasVoltageControl()) {
-                    shunt.setB(0);
-                }
-                q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, false);
+            ShuntCompensatorReactiveFlowEquationTerm q0 = new ShuntCompensatorReactiveFlowEquationTerm(firstControllerShunt, bus, variableSet, true);
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q0);
+            firstControllerShunt.setQ(q0);
+
+            controllerShunts.stream().skip(1).forEach(lfShunt -> lfShunt.setB(0));
+            bus.getShunts().stream().filter(shunt -> shunt != firstControllerShunt).forEach(shunt -> {
+                ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, false);
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
                 shunt.setQ(q);
-            }
+            });
         }
     }
 
