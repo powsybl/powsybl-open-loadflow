@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfShunt;
 
@@ -16,6 +15,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -121,27 +121,30 @@ public class Variable implements Comparable<Variable> {
         }
     }
 
+    private Stream<LfShunt> getControllerShuntsStream(LfNetwork network) {
+        return network.getShunt(num).getLfBus().getShunts().stream()
+            .filter(LfShunt::hasVoltageControl);
+    }
+
     private double getControllerShuntsSumB(LfNetwork network) {
-        LfBus bus = network.getShunt(num).getLfBus();
-        return bus.getShunts().stream()
-                .filter(LfShunt::hasVoltageControl)
+        return getControllerShuntsStream(network)
                 .mapToDouble(LfShunt::getB)
                 .sum();
     }
 
     private void setControllerShuntsSumB(LfNetwork network, double bToDispatch) {
-        dispatchB(network.getShunt(num).getLfBus().getShunts(), bToDispatch);
+        dispatchB(getControllerShuntsStream(network), bToDispatch);
     }
 
-    private double dispatchB(List<LfShunt> shunts, double bToDispatch) {
-        List<LfShunt> shuntsThatControlVoltage = shunts.stream()
-                .filter(LfShunt::hasVoltageControl)
+    private double dispatchB(Stream<LfShunt> controllersShunt, double bToDispatch) {
+        List<LfShunt> shuntsThatControlVoltage = controllersShunt
                 .sorted(Comparator.comparing(LfShunt::getAmplitudeB))
                 .collect(Collectors.toList());
         double residueB = bToDispatch;
+        int remainingShunts = shuntsThatControlVoltage.size();
         for (LfShunt shunt : shuntsThatControlVoltage) {
-            shunt.setB(residueB / shuntsThatControlVoltage.size());
-            residueB += residueB - shunt.getB();
+            shunt.setB(residueB / remainingShunts--);
+            residueB -= shunt.getB();
         }
         return residueB;
     }
