@@ -368,7 +368,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         Terminal t = l34.getTerminal(Branch.Side.ONE);
 
-        assertReactivePowerEquals(10, l34.getTerminal(Branch.Side.ONE));
+        assertReactivePowerEquals(0, l34.getTerminal(Branch.Side.ONE));
 
     }
 }
