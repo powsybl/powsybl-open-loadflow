@@ -74,6 +74,7 @@ public final class AcEquationSystem {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
         }
     }
+
     private static void createReactivePowerControlBusEquation(LfBus bus, EquationSystem equationSystem) {
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
     }
@@ -83,8 +84,8 @@ public final class AcEquationSystem {
 
         //Reactive power control on a branch is always distant
         LfBus controller = reactivePowerControl.getControllerBus();
-        if( controller != null )
-        {
+        if (controller != null) {
+
             Equation eqQDist = equationSystem.createEquation(controller.getNum(), EquationType.BRANCH_Q);
 
             boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
@@ -456,8 +457,7 @@ public final class AcEquationSystem {
             }
         }
 
-        for(LfBranch branch : network.getBranches())
-        {
+        for (LfBranch branch : network.getBranches()) {
             branch.getReactivePowerControl().ifPresent(reaC -> createReactivePowerControlBranchEquation(reaC, branch, variableSet, equationSystem, creationParameters));
         }
     }

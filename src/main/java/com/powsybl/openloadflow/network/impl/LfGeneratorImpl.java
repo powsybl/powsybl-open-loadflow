@@ -78,8 +78,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             setVoltageControl(generator.getTargetV(), generator.getRegulatingTerminal(), breakers, report);
         }
 
-        if(generator.getRegulationMode() == RegulationMode.REACTIVE_POWER)
-        {
+        if (generator.getRegulationMode() == RegulationMode.REACTIVE_POWER) {
             setReactivePowerControl(generator.getRegulatingTerminal());
         }
     }

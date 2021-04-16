@@ -97,8 +97,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         for (LfBus controllerBus : lfBuses) {
 
             List<LfGenerator> reactivePowerControlGenerator = controllerBus.getGenerators().stream().filter(LfGenerator::hasReactivePowerControl).collect(Collectors.toList());
-            if (!reactivePowerControlGenerator.isEmpty())
-            {
+            if (!reactivePowerControlGenerator.isEmpty()) {
                 LfGenerator lfGenerator0 = reactivePowerControlGenerator.get(0);
                 LfBranch controlledBranch = lfGenerator0.getControlledBranch(lfNetwork);
                 Branch.Side controlledBranchSide = lfGenerator0.getControlledBranchSide(lfNetwork);
