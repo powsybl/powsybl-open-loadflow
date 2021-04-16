@@ -214,7 +214,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
                 // calculate sensitivity values
                 setFunctionReferences(lfFactors);
-                calculateSensitivityValues(factorHolder.getFactorsForContingency(null), factorGroups, factorsStates, null, -1, valueWriter);
+                calculateSensitivityValues(factorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, null, -1, valueWriter);
             }
 
             GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.createDecrementalConnectivity(connectivityProvider);

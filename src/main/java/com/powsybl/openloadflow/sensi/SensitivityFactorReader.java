@@ -13,21 +13,27 @@ import java.util.List;
  */
 public interface SensitivityFactorReader {
 
-    interface ContingencyContext { }
+    enum ContingencyContextType {
+        ALL,
+        NONE,
+        SPECIFIC,
+    }
 
-    class AllContingencyContext implements ContingencyContext { }
-
-    class NoneContingencyContext implements ContingencyContext { }
-
-    class SpecificContingencyContext implements ContingencyContext {
+    class ContingencyContext {
         private final String contingencyId;
+        private final ContingencyContextType contextType;
 
-        SpecificContingencyContext(String contingencyId) {
+        ContingencyContext(ContingencyContextType contingencyContextType, String contingencyId) {
+            this.contextType = contingencyContextType;
             this.contingencyId = contingencyId;
         }
 
         String getContingencyId() {
             return contingencyId;
+        }
+
+        ContingencyContextType getContextType() {
+            return contextType;
         }
     }
 

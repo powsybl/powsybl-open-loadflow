@@ -653,7 +653,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             // sensitivity values for pre-contingency network
             setBaseCaseSensitivityValues(factorGroups, factorsStates);
-            calculateSensitivityValues(factorHolder.getFactorsForContingency(null), factorGroups, factorsStates, contingenciesStates, flowStates, Collections.emptyList(), null, -1, valueWriter);
+            calculateSensitivityValues(factorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, contingenciesStates, flowStates, Collections.emptyList(), null, -1, valueWriter);
 
             // connectivity analysis by contingency
             // we have to compute sensitivities and reference functions in a different way depending on either or not the contingency breaks connectivity

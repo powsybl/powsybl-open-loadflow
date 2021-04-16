@@ -689,22 +689,26 @@ public abstract class AbstractSensitivityAnalysis {
         }
 
         public List<LfSensitivityFactor> getFactorsForContingency(String contingencyId) {
-            List<LfSensitivityFactor> additionalFactors = contingencyId == null
-                ? additionalFactorsNoContingency
-                : additionalFactorsPerContingency.getOrDefault(contingencyId, Collections.emptyList());
+            return Stream.concat(commonFactors.stream(), additionalFactorsPerContingency.getOrDefault(contingencyId, Collections.emptyList()).stream())
+                .collect(Collectors.toList());
+        }
 
-            return Stream.concat(commonFactors.stream(), additionalFactors.stream())
+        public List<LfSensitivityFactor> getFactorsForBaseNetwork() {
+            return Stream.concat(commonFactors.stream(), additionalFactorsNoContingency.stream())
                 .collect(Collectors.toList());
         }
 
         public void addFactor(LfSensitivityFactor factor, SensitivityFactorReader.ContingencyContext contingencyContext) {
-            if (contingencyContext instanceof SensitivityFactorReader.AllContingencyContext) {
-                commonFactors.add(factor);
-            } else if (contingencyContext instanceof SensitivityFactorReader.NoneContingencyContext) {
-                additionalFactorsNoContingency.add(factor);
-            } else if (contingencyContext instanceof SensitivityFactorReader.SpecificContingencyContext) {
-                String contingencyId = ((SensitivityFactorReader.SpecificContingencyContext) contingencyContext).getContingencyId();
-                additionalFactorsPerContingency.computeIfAbsent(contingencyId, k -> new ArrayList<>()).add(factor);
+            switch (contingencyContext.getContextType()) {
+                case ALL:
+                    commonFactors.add(factor);
+                    break;
+                case NONE:
+                    additionalFactorsNoContingency.add(factor);
+                    break;
+                case SPECIFIC:
+                    additionalFactorsPerContingency.computeIfAbsent(contingencyContext.getContingencyId(), k -> new ArrayList<>()).add(factor);
+                    break;
             }
         }
     }
