@@ -563,6 +563,11 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testHvdcInjectionNotFound() {
+        testHvdcInjectionNotFound(true);
+    }
+
+    @Test
     void testBalanceTypeNotSupported() {
         // test injection increase on loads
         Network network = FourBusNetworkFactory.create();

@@ -622,6 +622,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testHvdcInjectionNotFound() {
+        testHvdcInjectionNotFound(false);
+    }
+
+    @Test
     void testBranchFunctionOutsideMainComponent() {
         testBranchFunctionOutsideMainComponent(false);
     }

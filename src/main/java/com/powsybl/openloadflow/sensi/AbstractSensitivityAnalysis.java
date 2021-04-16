@@ -769,7 +769,7 @@ public abstract class AbstractSensitivityAnalysis {
                         Map<LfElement, Double> buses = new HashMap<>();
                         HvdcLine hvdcLine = network.getHvdcLine(variableId);
                         if (hvdcLine == null) {
-                            throw new PowsyblException("HVDC line " + variableId + " cannot be found in the network.");
+                            throw new PowsyblException("HVDC line '" + variableId + "' cannot be found in the network.");
                         }
                         LfBus busSide1 = lfNetwork.getBusById(hvdcLine.getConverterStation1().getTerminal().getBusView().getBus().getId());
                         LfBus busSide2 = lfNetwork.getBusById(hvdcLine.getConverterStation2().getTerminal().getBusView().getBus().getId());

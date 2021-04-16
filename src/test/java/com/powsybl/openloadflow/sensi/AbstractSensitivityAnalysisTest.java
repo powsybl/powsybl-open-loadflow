@@ -196,6 +196,20 @@ public abstract class AbstractSensitivityAnalysisTest {
         assertEquals("Injection 'a' not found", e.getCause().getMessage());
     }
 
+    protected void testHvdcInjectionNotFound(boolean dc) {
+        SensitivityAnalysisParameters sensiParameters = createParameters(dc, "b1_vl_0", true);
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
+        List<Pair<String, String>> variableAndFunction = List.of(
+            Pair.of("nop", "l12")
+        );
+        HvdcWriter hvdcWriter = HvdcWriter.create();
+        SensitivityFactorReader reader = createHvdcReader(variableAndFunction);
+
+        PowsyblException e = assertThrows(PowsyblException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
+            sensiParameters, reader, hvdcWriter));
+        assertEquals("HVDC line 'nop' cannot be found in the network.", e.getMessage());
+    }
+
     protected void testBranchNotFound(boolean dc) {
         Network network = EurostagTutorialExample1Factory.create();
         runAcLf(network);
