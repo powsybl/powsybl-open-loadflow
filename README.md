@@ -51,25 +51,6 @@ PowSyBl Open Load Flow has also an implementation of the sensitivity analysis AP
 Almost all of the code is written in Java. It only relies on native code for the [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html)
 sparse linear solver. Linux, Windows and MacOS are supported.
 
-## Native builds
-
-A native build (no need to Java runtime) can be download here:
-- [Linux](https://github.com/powsybl/powsybl-open-loadflow/releases/download/v0.9.0/olf-linux-0.9.0.zip)
-- [MacOS](https://github.com/powsybl/powsybl-open-loadflow/releases/download/v0.9.0/olf-darwin-0.9.0.zip)
-- [Windows](https://github.com/powsybl/powsybl-open-loadflow/releases/download/v0.9.0/olf-windows-0.9.0.zip)
-
-To run Open Load Flow on file ieee14cdf.txt :
-```bash
-$ olf loadflow --case-file ieee14cdf.txt
-Loading network 'ieee14cdf.txt'
-loadflow results:
-+--------+------------------------------------------------------+
-| Result | Metrics                                              |
-+--------+------------------------------------------------------+
-| true   | {network_0_iterations=3, network_0_status=CONVERGED} |
-+--------+------------------------------------------------------+
-```
-
 ## Getting started
 
 Running a load flow with PowSyBl Open Load Flow is easy. First let's start loading a IEEE 14 bus network. We first add a few Maven 
@@ -80,17 +61,17 @@ capabilities:
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-iidm-impl</artifactId>
-    <version>4.0.1</version>
+    <version>4.1.0</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-ieee-cdf-converter</artifactId>
-    <version>4.0.1</version>
+    <version>4.1.0</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-config-classic</artifactId>
-    <version>4.0.1</version>
+    <version>4.1.0</version>
 </dependency>
 <dependency>
     <groupId>org.slf4j</groupId>
@@ -109,7 +90,7 @@ After adding a last Maven dependency on Open Load Flow implementation:
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>0.9.0</version>
+    <version>0.10.1</version>
 </dependency>
 ```
 

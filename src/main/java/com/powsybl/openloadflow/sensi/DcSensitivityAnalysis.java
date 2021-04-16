@@ -732,8 +732,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                         slackParticipationByBusForThisConnectivity = Collections.singletonMap(lfNetwork.getBusById(lfNetwork.getSlackBus().getId()), -1d);
                     }
 
-                    factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
-                    fillRhsSensitivityVariable(equationSystem, factorGroups, factorStateForThisConnectivity, slackParticipationByBusForThisConnectivity);
+                    factorStateForThisConnectivity = initFactorsRhs(equationSystem, factorGroups, slackParticipationByBusForThisConnectivity);
                     j.solveTransposed(factorStateForThisConnectivity); // get the states for the new connectivity
                     setBaseCaseSensitivityValues(factorGroups, factorStateForThisConnectivity); // use this state to compute the base sensitivity (without +1-1)
                 }
