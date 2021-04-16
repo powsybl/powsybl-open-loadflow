@@ -83,17 +83,19 @@ public class TargetVector extends AbstractLfNetworkListener implements EquationS
     }
 
     public double[] toArray() {
-        if (status == Status.VALID) {
-            return array;
+        switch (status) {
+            case VECTOR_INVALID:
+                createArray();
+                break;
+
+            case VALUES_INVALID:
+                updateArray();
+                break;
+
+            default:
+                // nothing to do
+                break;
         }
-        NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
-        if (status == Status.VECTOR_INVALID) {
-            array = new double[sortedEquationsToSolve.size()];
-        }
-        for (Equation equation : sortedEquationsToSolve.keySet()) {
-            equation.initTarget(network, array);
-        }
-        status = Status.VALID;
         return array;
     }
 
@@ -104,5 +106,18 @@ public class TargetVector extends AbstractLfNetworkListener implements EquationS
             equation.initTarget(network, array);
         }
         return array;
+    }
+
+    private void createArray() {
+        array = createArray(network, equationSystem);
+        status = Status.VALID;
+    }
+
+    private void updateArray() {
+        NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
+        for (Equation equation : sortedEquationsToSolve.keySet()) {
+            equation.initTarget(network, array);
+        }
+        status = Status.VALID;
     }
 }
