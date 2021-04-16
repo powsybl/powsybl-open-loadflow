@@ -103,8 +103,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 Branch.Side controlledBranchSide = lfGenerator0.getControlledBranchSide(lfNetwork);
                 double controllerTargetQ = lfGenerator0.getTargetQ();
 
-                ReactivePowerControl reaPowerControl = controlledBranch.getReactivePowerControl().orElse(
-                        new ReactivePowerControl(controlledBranch, controlledBranchSide, controllerBus, controllerTargetQ));
+                RemoteReactivePowerControl reaPowerControl = controlledBranch.getReactivePowerControl().orElse(
+                        new RemoteReactivePowerControl(controlledBranch, controlledBranchSide, controllerBus, controllerTargetQ));
 
                 controllerBus.setReactivePowerControl(reaPowerControl);
                 controlledBranch.setReactivePowerControl(reaPowerControl);

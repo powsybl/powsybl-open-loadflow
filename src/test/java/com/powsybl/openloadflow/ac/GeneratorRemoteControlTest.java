@@ -355,7 +355,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    void qremoteregulationtest() {
+    void testRemoteReactivePowerControl() {
 
         Network sNetwork = FourBusNetworkFactory.createBaseNetwork();
         Generator g4 = sNetwork.getGenerator("g4");
