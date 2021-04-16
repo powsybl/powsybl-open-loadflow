@@ -1039,6 +1039,42 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
+    void testChangingCompensationThenNot() {
+        // Multiple contingencies: one that lose connectivity and change the slack distribution, and others that lose connectivity without changing distribution
+        // This allows us to check that changing the compensation has no side effect on the next contingencies
+        // The contingency changing distribution must be done before at least one of the other.
+
+        Network network = ConnectedComponentNetworkFactory.createHighlyConnectedNetwork();
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b6_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        String branchId = "l36";
+        String injectionId = "g3";
+        Branch branch = network.getBranch(branchId);
+        List<SensitivityFactor> factors = List.of(new BranchFlowPerInjectionIncrease(
+            createBranchFlow(branch),
+            new InjectionIncrease(injectionId, injectionId, injectionId)
+        ));
+
+        SensitivityFactorsProvider factorsProvider = net -> factors;
+
+        Contingency contingency78 = new Contingency("l78", new BranchContingency("l78"));
+        Contingency contingency12 = new Contingency("l12", new BranchContingency("l12")); // change distribution
+        Contingency contingency35and56and57 = new Contingency("l35+l56+l57", new BranchContingency("l35"),  new BranchContingency("l56"),  new BranchContingency("l57"));
+
+        Function<List<Contingency>, SensitivityAnalysisResult> resultProvider = contingencies -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies, sensiParameters, LocalComputationManager.getDefault()).join();
+
+        SensitivityAnalysisResult result78 = resultProvider.apply(List.of(contingency78));
+        SensitivityAnalysisResult result12 = resultProvider.apply(List.of(contingency12));
+        SensitivityAnalysisResult result35and56and57 = resultProvider.apply(List.of(contingency35and56and57));
+        SensitivityAnalysisResult globalResult = resultProvider.apply(List.of(contingency12, contingency78, contingency35and56and57));
+
+        assertEquals(getContingencyValue(result78, "l78", injectionId, branchId), getContingencyValue(globalResult, "l78", injectionId, branchId), LoadFlowAssert.DELTA_POWER);
+        assertEquals(getContingencyValue(result12, "l12", injectionId, branchId), getContingencyValue(globalResult, "l12", injectionId, branchId), LoadFlowAssert.DELTA_POWER);
+        assertEquals(getContingencyValue(result35and56and57, "l35+l56+l57", injectionId, branchId), getContingencyValue(globalResult, "l35+l56+l57", injectionId, branchId), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testFunctionReferenceWhenLosingATransformer() {
         Network network = ConnectedComponentNetworkFactory.createTwoCcWithATransformerLinkedByASingleLine();
 
