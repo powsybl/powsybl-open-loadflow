@@ -196,6 +196,10 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 targets[column] = getBranchTarget(network.getBranch(num), DiscretePhaseControl.Unit.A);
                 break;
 
+            case BRANCH_Q:
+                targets[column] = network.getBus(num).getTargetQ();
+                break;
+
             case BRANCH_ALPHA1:
                 targets[column] = network.getBranch(num).getPiModel().getA1();
                 break;

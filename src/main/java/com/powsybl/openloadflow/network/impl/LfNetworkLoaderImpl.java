@@ -99,30 +99,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             List<LfGenerator> reactivePowerControlGenerator = controllerBus.getGenerators().stream().filter(LfGenerator::hasReactivePowerControl).collect(Collectors.toList());
             if (!reactivePowerControlGenerator.isEmpty())
             {
-                System.out.println("Got generator " + reactivePowerControlGenerator.get(0).getId() + " for reactive power control");
                 LfGenerator lfGenerator0 = reactivePowerControlGenerator.get(0);
-                LfBus controlledBus = lfGenerator0.getControlledBus(lfNetwork);
-                System.out.println("Controlling bug " + controlledBus.getId());
+                LfBranch controlledBranch = lfGenerator0.getControlledBranch(lfNetwork);
+                Branch.Side controlledBranchSide = lfGenerator0.getControlledBranchSide(lfNetwork);
                 double controllerTargetQ = lfGenerator0.getTargetQ();
-                LfBus finalControlledBus = controlledBus;
 
-                reactivePowerControlGenerator.stream().skip(1).forEach(lfGenerator -> {
-                    LfBus generatorControlledBus = lfGenerator.getControlledBus(lfNetwork);
+                ReactivePowerControl reaPowerControl = controlledBranch.getReactivePowerControl().orElse(
+                        new ReactivePowerControl(controlledBranch, controlledBranchSide, controllerBus, controllerTargetQ));
 
-                    // check that remote control bus is the same for the generators of current controller bus which have voltage control on
-                    checkUniqueControlledBus(finalControlledBus, generatorControlledBus, controllerBus);
-
-                    //BRI To check
-                    // check that target voltage is the same for the generators of current controller bus which have voltage control on
-                    //checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
-                });
-
-                ReactivePowerControl reaPowerControl = controlledBus.getReactivePowerControl().orElse(new ReactivePowerControl(controlledBus, controllerTargetQ));
-                reaPowerControl.addControllerBus(controllerBus);
-                controlledBus.setReactivePowerControl(reaPowerControl);
-
-                //BRI To check
-                //checkUniqueTargetVControlledBus(controllerTargetV, controllerBus, voltageControl); // check even if voltage control just created, for simplicity sake
+                controllerBus.setReactivePowerControl(reaPowerControl);
+                controlledBranch.setReactivePowerControl(reaPowerControl);
             }
         }
     }

@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.Branch;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
@@ -38,9 +39,9 @@ public final class AcEquationSystem {
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_PHI).addTerm(EquationTerm.createVariableTerm(bus, VariableType.BUS_PHI, variableSet));
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_P).setActive(false);
             }
-            
+
             bus.getVoltageControl().ifPresent(vc -> createVoltageControlEquations(vc, bus, variableSet, equationSystem, creationParameters));
-            bus.getReactivePowerControl().ifPresent(reaC -> createReactivePowerControlEquation(reaC, bus, variableSet, equationSystem, creationParameters));
+            bus.getReactivePowerControl().ifPresent(vc -> createReactivePowerControlBusEquation(bus, equationSystem));
 
             createShuntEquations(variableSet, equationSystem, bus);
 
@@ -73,17 +74,38 @@ public final class AcEquationSystem {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
         }
     }
+    private static void createReactivePowerControlBusEquation(LfBus bus, EquationSystem equationSystem) {
+        equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
+    }
 
-    private static void createReactivePowerControlEquation(ReactivePowerControl reactivePowerControl, LfBus bus, VariableSet variableSet,
+    private static void createReactivePowerControlBranchEquation(ReactivePowerControl reactivePowerControl, LfBranch branch, VariableSet variableSet,
                                                       EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
 
-        System.out.println("createReactivePowerControlEquation for bus " + bus.getId());
-        if (reactivePowerControl.isReactivePowerControlLocal()) {
-            System.out.println("Reactive power control is local");
-        } else if (bus.isReactivePowerControlled()) {
-            System.out.println("Reactive power control is distant");
-        }
+        //Reactive power control on a branch is always distant
+        LfBus controller = reactivePowerControl.getControllerBus();
+        if( controller != null )
+        {
+            Equation eqQDist = equationSystem.createEquation(controller.getNum(), EquationType.BRANCH_Q);
 
+            boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
+                               && branch.getDiscretePhaseControl().getMode() == DiscretePhaseControl.Mode.CONTROLLER;
+            boolean deriveR1 = creationParameters.isTransformerVoltageControl() && branch.isVoltageController();
+
+            LfBus side1Bus = branch.getBus1();
+            LfBus side2Bus = branch.getBus2();
+
+            EquationTerm q;
+
+            if (reactivePowerControl.getControlledSide() == Branch.Side.ONE) {
+                q = side2Bus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, side1Bus, side2Bus, variableSet, deriveA1, deriveR1)
+                        : new OpenBranchSide2ReactiveFlowEquationTerm(branch, side1Bus, variableSet, deriveA1, deriveR1);
+            } else {
+                q = side1Bus != null ? new ClosedBranchSide2ReactiveFlowEquationTerm(branch, side1Bus, side2Bus, variableSet, deriveA1, deriveR1)
+                        : new OpenBranchSide1ReactiveFlowEquationTerm(branch, side2Bus, variableSet, deriveA1, deriveR1);
+            }
+
+            eqQDist.addTerm(q);
+        }
     }
 
     private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus) {
@@ -432,6 +454,11 @@ public final class AcEquationSystem {
             for (LfBranch branch : spanningTree.getEdges()) {
                 createNonImpedantBranch(variableSet, equationSystem, branch, branch.getBus1(), branch.getBus2());
             }
+        }
+
+        for(LfBranch branch : network.getBranches())
+        {
+            branch.getReactivePowerControl().ifPresent(reaC -> createReactivePowerControlBranchEquation(reaC, branch, variableSet, equationSystem, creationParameters));
         }
     }
 

@@ -360,15 +360,14 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         Network sNetwork = FourBusNetworkFactory.createBaseNetwork();
         Generator g4 = sNetwork.getGenerator("g4");
         Line l34 = sNetwork.getLine("l34");
+
+        double qtarget = 1.0;
+
         g4.setRegulationMode(RegulationMode.REACTIVE_POWER);
         g4.setRegulatingTerminal(l34.getTerminal(Branch.Side.ONE));
-        g4.setTargetQ(0);
+        g4.setTargetQ(qtarget);
 
         LoadFlowResult result = loadFlowRunner.run(sNetwork, parameters);
-
-        Terminal t = l34.getTerminal(Branch.Side.ONE);
-
-        assertReactivePowerEquals(0, l34.getTerminal(Branch.Side.ONE));
-
+        assertReactivePowerEquals(qtarget, l34.getTerminal(Branch.Side.ONE));
     }
 }

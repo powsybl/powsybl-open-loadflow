@@ -32,12 +32,6 @@ public interface LfBus extends LfElement {
 
     boolean isVoltageControlled();
 
-    boolean hasReactivePowerControllerCapability();
-
-    boolean isReactivePowerControllerEnabled();
-
-    boolean isReactivePowerControlled();
-
     /**
      * Get the number of time, voltage control status has be set from true to false.
      *

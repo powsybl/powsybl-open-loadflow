@@ -37,6 +37,10 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     protected String controlledBusId;
 
+    protected String controlledBranchId;
+
+    protected Branch.Side controlledBranchSide;
+
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
     }
@@ -148,6 +152,14 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         return lfNetwork.getBusById(controlledBusId);
     }
 
+    public LfBranch getControlledBranch(LfNetwork lfNetwork) {
+        return lfNetwork.getBranchById(controlledBranchId);
+    }
+
+    public Branch.Side getControlledBranchSide(LfNetwork lfNetwork) {
+        return controlledBranchSide;
+    }
+
     protected void setVoltageControl(double targetV, Terminal regulatingTerminal, boolean breakers, LfNetworkLoadingReport report) {
         if (!checkVoltageControlConsistency(report)) {
             return;
@@ -193,9 +205,13 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         this.targetV = newTargetV;
     }
 
-    protected void setReactivePowerControl(double targetQ, Terminal regulatingTerminal, boolean breakers) {
-        Bus controlledBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
-        this.controlledBusId = controlledBus.getId();
+    protected void setReactivePowerControl(Terminal regulatingTerminal) {
+
+        Line l = (Line) regulatingTerminal.getConnectable();
+        Branch.Side s = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ? Branch.Side.ONE : Branch.Side.TWO;
+
+        this.controlledBranchId = l.getId();
+        this.controlledBranchSide = s;
         this.hasReactivePowerControl = true;
     }
 

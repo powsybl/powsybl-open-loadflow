@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Branch;
+
 import java.util.OptionalDouble;
 
 /**
@@ -54,4 +56,8 @@ public interface LfGenerator {
     void updateState();
 
     LfBus getControlledBus(LfNetwork lfNetwork);
+
+    LfBranch getControlledBranch(LfNetwork lfNetwork);
+
+    Branch.Side getControlledBranchSide(LfNetwork lfNetwork);
 }

@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Branch;
+
 import java.util.*;
 
 /**
@@ -13,37 +15,34 @@ import java.util.*;
  */
 public class ReactivePowerControl {
 
-    private final LfBus controlled;
+    private final LfBranch controlledBranch;
 
-    private final Set<LfBus> controllers;
+    private final Branch.Side controlledSide;
+
+    private final LfBus controller;
 
     private final double targetValue;
 
-    public ReactivePowerControl(LfBus controlled, double targetValue) {
-        this.controlled = controlled;
+    public ReactivePowerControl(LfBranch controlledBranch, Branch.Side controlledSide, LfBus controller, double targetValue) {
+        this.controlledBranch = controlledBranch;
         this.targetValue = targetValue;
-        this.controllers = new LinkedHashSet<>();
+        this.controlledSide = controlledSide;
+        this.controller = controller;
     }
 
     public double getTargetValue() {
         return targetValue;
     }
 
-    public LfBus getControlledBus() {
-        return controlled;
+    public LfBranch getControlledBranch() {
+        return controlledBranch;
     }
 
-    public Set<LfBus> getControllerBuses() {
-        return controllers;
+    public Branch.Side getControlledSide() {
+        return controlledSide;
     }
 
-    public void addControllerBus(LfBus controllerBus) {
-        Objects.requireNonNull(controllerBus);
-        controllers.add(controllerBus);
-        controllerBus.setReactivePowerControl(this);
-    }
-
-    public boolean isReactivePowerControlLocal() {
-        return controllers.size() == 1 && controllers.contains(controlled);
+    public LfBus getControllerBus() {
+        return controller;
     }
 }

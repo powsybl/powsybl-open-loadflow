@@ -80,7 +80,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
         if(generator.getRegulationMode() == RegulationMode.REACTIVE_POWER)
         {
-            setReactivePowerControl(generator.getTargetQ(), generator.getRegulatingTerminal(), breakers);
+            setReactivePowerControl(generator.getRegulatingTerminal());
         }
     }
 
