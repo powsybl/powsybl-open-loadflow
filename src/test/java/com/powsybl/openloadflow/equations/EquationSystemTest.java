@@ -163,7 +163,7 @@ class EquationSystemTest {
         LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
         EquationSystem equationSystem = AcEquationSystem.create(lfNetwork);
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
-        double[] targets = equationSystem.createTargetVector();
+        double[] targets = TargetVector.createArray(lfNetwork, equationSystem);
         equationSystem.updateEquations(x);
         double[] fx = equationSystem.createEquationVector();
         Vectors.minus(fx, targets);

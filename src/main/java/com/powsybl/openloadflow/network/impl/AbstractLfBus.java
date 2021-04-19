@@ -253,7 +253,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public void setGenerationTargetQ(double generationTargetQ) {
-        this.generationTargetQ = generationTargetQ * PerUnit.SB;
+        double newGenerationTargetQ = generationTargetQ * PerUnit.SB;
+        if (newGenerationTargetQ != this.generationTargetQ) {
+            double oldGenerationTargetQ = this.generationTargetQ;
+            this.generationTargetQ = newGenerationTargetQ;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onGenerationReactivePowerTargetChange(this, oldGenerationTargetQ, newGenerationTargetQ);
+            }
+        }
     }
 
     @Override
@@ -263,7 +270,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public void setLoadTargetP(double loadTargetP) {
-        this.loadTargetP = loadTargetP * PerUnit.SB;
+        double newLoadTargetP = loadTargetP * PerUnit.SB;
+        if (newLoadTargetP != this.loadTargetP) {
+            double oldLoadTargetP = this.loadTargetP;
+            this.loadTargetP = newLoadTargetP;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onLoadActivePowerTargetChange(this, oldLoadTargetP, newLoadTargetP);
+            }
+        }
     }
 
     @Override
@@ -283,7 +297,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public void setLoadTargetQ(double loadTargetQ) {
-        this.loadTargetQ = loadTargetQ * PerUnit.SB;
+        double newLoadTargetQ = loadTargetQ * PerUnit.SB;
+        if (newLoadTargetQ != this.loadTargetQ) {
+            double oldLoadTargetQ = this.loadTargetQ;
+            this.loadTargetQ = newLoadTargetQ;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onLoadReactivePowerTargetChange(this, oldLoadTargetQ, newLoadTargetQ);
+            }
+        }
     }
 
     @Override

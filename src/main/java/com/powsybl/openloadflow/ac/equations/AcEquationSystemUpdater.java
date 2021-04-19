@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcEquationSystemUpdater implements LfNetworkListener {
+public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
     private final EquationSystem equationSystem;
 
