@@ -51,8 +51,8 @@ public abstract class AbstractSensitivityAnalysisTest {
         LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
         lfParameters.setDc(dc);
         lfParameters.setDistributedSlack(distributedSlack);
-        OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new NameSlackBusSelector(slackBusId));
+        OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters();
+        lfParametersExt.setSlackBusSelector(new NameSlackBusSelector(slackBusId));
         lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
         return sensiParameters;
     }

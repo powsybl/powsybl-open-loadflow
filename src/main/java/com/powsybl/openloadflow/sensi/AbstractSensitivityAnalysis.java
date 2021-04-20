@@ -775,10 +775,16 @@ public abstract class AbstractSensitivityAnalysis {
                         LfBus busSide2 = lfNetwork.getBusById(hvdcLine.getConverterStation2().getTerminal().getBusView().getBus().getId());
 
                         if (busSide1 != null) {
-                            buses.put(busSide1, (hvdcLine.getConverterStation1() instanceof VscConverterStation ? -1 : 1) * HvdcConverterStations.getActiveSetpointMultiplier(hvdcLine.getConverterStation1()));
+                            // VSC injection follow here a load sign convention as LCC injection.
+                            // FIXME: for LCC, Q changes when P changes
+                            buses.put(busSide1, (hvdcLine.getConverterStation1() instanceof VscConverterStation ? -1 : 1)
+                                    * HvdcConverterStations.getActiveSetpointMultiplier(hvdcLine.getConverterStation1()));
                         }
                         if (busSide2 != null) {
-                            buses.put(busSide2, (hvdcLine.getConverterStation2() instanceof VscConverterStation ? -1 : 1) * HvdcConverterStations.getActiveSetpointMultiplier(hvdcLine.getConverterStation2()));
+                            // VSC injection follow here a load sign convention as LCC injection.
+                            // FIXME: for LCC, Q changes when P changes
+                            buses.put(busSide2, (hvdcLine.getConverterStation2() instanceof VscConverterStation ? -1 : 1)
+                                    * HvdcConverterStations.getActiveSetpointMultiplier(hvdcLine.getConverterStation2()));
                         }
 
                         lfFactors.add(new MultiVariablesLfSensitivityFactor(factorContext, variableId,

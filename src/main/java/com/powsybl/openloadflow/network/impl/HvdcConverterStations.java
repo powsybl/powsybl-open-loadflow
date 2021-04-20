@@ -32,9 +32,9 @@ public final class HvdcConverterStations {
     public static double getActiveSetpointMultiplier(HvdcConverterStation station) {
         boolean isConverterStationRectifier = isRectifier(station);
         double sign;
-        if (station instanceof LccConverterStation) {
+        if (station instanceof LccConverterStation) { // load convention.
             sign = isConverterStationRectifier ? 1 : -1;
-        } else if (station instanceof VscConverterStation) {
+        } else if (station instanceof VscConverterStation) { // generator convention.
             sign = isConverterStationRectifier ? -1 : 1;
         } else {
             throw new PowsyblException("Unknown HVDC converter station type: " + station.getClass().getSimpleName());
