@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.ParameterConstants;
@@ -91,9 +90,16 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setB2(0)
                 .add();
 
-        FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
-        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, slackBusSelector));
-        assertEquals("Generators [g1, g2] are connected to the same bus 'vl1_0' with a different target voltages: 22.0 and 23.0", exception.getMessage());
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        LfBus controlledBus = lfNetwork.getBusById("vl1_0");
+        assertNotNull(controlledBus);
+
+        Optional<VoltageControl> vc = controlledBus.getVoltageControl();
+        assertTrue(vc.isPresent());
+        assertEquals(23, vc.get().getTargetValue() * controlledBus.getNominalV());
     }
 
     @Test

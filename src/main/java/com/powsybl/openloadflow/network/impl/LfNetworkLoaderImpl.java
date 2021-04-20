@@ -100,8 +100,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         if (deltaTargetV * controlledBus.getNominalV() > TARGET_V_EPSILON) {
             String busesId = vc.getControllerBuses().stream().map(LfBus::getId).collect(Collectors.joining(", "));
             LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by buses '{}' with a different target voltage: {} (kept) and {} (ignored)",
-                    controllerBus.getId(), controlledBus.getId(), busesId,
-                    voltageControlTargetV * controlledBus.getNominalV(), controllerTargetV * controlledBus.getNominalV());
+                    controllerBus.getId(), controlledBus.getId(), busesId, controllerTargetV * controlledBus.getNominalV(),
+                    voltageControlTargetV * controlledBus.getNominalV());
         }
     }
 
@@ -119,8 +119,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         double targetV = lfGenerator.getTargetV();
         if (FastMath.abs(previousTargetV - targetV) > TARGET_V_EPSILON) {
             String generatorIds = controllerBus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
-            throw new PowsyblException("Generators [" + generatorIds + "] are connected to the same bus '" + controllerBus.getId()
-                + "' with a different target voltages: " + targetV * controlledBus.getNominalV() + " and " + previousTargetV * controlledBus.getNominalV());
+            LOGGER.error("Generators [{}] are connected to the same bus '{}' with different target voltages: {} (kept) and {} (rejected)",
+                generatorIds, controllerBus.getId(), targetV * controlledBus.getNominalV(), previousTargetV * controlledBus.getNominalV());
         }
     }
 
