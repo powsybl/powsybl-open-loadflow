@@ -44,6 +44,8 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     private JacobianMatrix j;
 
+    private TargetVector targetVector;
+
     public AcloadFlowEngine(LfNetwork network, AcLoadFlowParameters parameters) {
         this.network = Objects.requireNonNull(network);
         this.parameters = Objects.requireNonNull(parameters);
@@ -139,12 +141,13 @@ public class AcloadFlowEngine implements AutoCloseable {
                     parameters.isPhaseControl(), parameters.isTransformerVoltageControlOn(), parameters.isForceA1Var(), parameters.getBranchesWithCurrent());
             equationSystem = AcEquationSystem.create(network, variableSet, creationParameters);
             j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory());
+            targetVector = new TargetVector(network, equationSystem);
         } else {
             LOGGER.info("Restart AC loadflow on network {}", network.getNum());
         }
 
         RunningContext runningContext = new RunningContext();
-        NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getMatrixFactory(), equationSystem, j, parameters.getStoppingCriteria());
+        NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getMatrixFactory(), equationSystem, j, targetVector, parameters.getStoppingCriteria());
 
         NewtonRaphsonParameters nrParameters = new NewtonRaphsonParameters().setVoltageInitializer(parameters.getVoltageInitializer());
 
