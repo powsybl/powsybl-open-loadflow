@@ -35,6 +35,18 @@ public interface SensitivityFactorReader {
         ContingencyContextType getContextType() {
             return contextType;
         }
+
+        public static ContingencyContext createAllContingencyContext() {
+            return new ContingencyContext(ContingencyContextType.ALL, null);
+        }
+
+        public static ContingencyContext createNoneContingencyContext() {
+            return new ContingencyContext(ContingencyContextType.NONE, null);
+        }
+
+        public static ContingencyContext createSpecificContingencyContext(String contingencyId) {
+            return new ContingencyContext(ContingencyContextType.SPECIFIC, contingencyId);
+        }
     }
 
     interface Handler {

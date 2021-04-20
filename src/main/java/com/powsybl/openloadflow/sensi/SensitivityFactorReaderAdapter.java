@@ -46,18 +46,18 @@ public class SensitivityFactorReaderAdapter implements SensitivityFactorReader {
 
     @Override
     public void read(Handler handler) {
-        ContingencyContext commonContingencyContext = new ContingencyContext(ContingencyContextType.ALL, null);
+        ContingencyContext commonContingencyContext = ContingencyContext.createAllContingencyContext();
         for (SensitivityFactor factor : sensitivityFactorsProvider.getCommonFactors(network)) {
             read(handler, factor, commonContingencyContext);
         }
 
-        ContingencyContext noContingencyContext = new ContingencyContext(ContingencyContextType.NONE, null);
+        ContingencyContext noContingencyContext = ContingencyContext.createNoneContingencyContext();
         for (SensitivityFactor factor : sensitivityFactorsProvider.getAdditionalFactors(network)) {
             read(handler, factor, noContingencyContext);
         }
 
         for (Contingency contingency : contingencies) {
-            ContingencyContext contingencyContext = new ContingencyContext(ContingencyContextType.SPECIFIC, contingency.getId());
+            ContingencyContext contingencyContext = ContingencyContext.createSpecificContingencyContext(contingency.getId());
             for (SensitivityFactor factor : sensitivityFactorsProvider.getAdditionalFactors(network, contingency.getId())) {
                 read(handler, factor, contingencyContext);
             }
