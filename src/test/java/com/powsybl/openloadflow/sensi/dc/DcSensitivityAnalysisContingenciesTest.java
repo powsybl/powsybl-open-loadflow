@@ -1428,7 +1428,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
-    void testDisconnectedBranchAsFunction() {
+    void testContingencyWithDisconnectedBranch() {
         Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedByTwoLines();
         runDcLf(network);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
@@ -1444,6 +1444,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0.133d, getValue(result, "g2", "l46"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.4d, getContingencyValue(result, "l45", "g2", "l46"), LoadFlowAssert.DELTA_POWER);
 
+        // we open l45 at both sides
         Line l45 = network.getLine("l45");
         l45.getTerminal1().disconnect();
         l45.getTerminal2().disconnect();
@@ -1460,7 +1461,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
-    void testDisconnectedSide1BranchAsFunction() {
+    void testFunctionDisconnectedBranchSide1() {
         Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedByTwoLines();
         Line l45 = network.getLine("l45");
         l45.getTerminal1().disconnect();
@@ -1473,11 +1474,12 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
         assertEquals(1, result.getSensitivityValues().size());
+        // sensitivity on an open branch is zero
         assertEquals(0, getValue(result, "g2", "l45"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
-    void testDisconnectedSide2BranchAsFunction() {
+    void testFunctionDisconnectedBranchSide2() {
         Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedByTwoLines();
         Line l45 = network.getLine("l45");
         l45.getTerminal2().disconnect();
@@ -1490,6 +1492,26 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
         assertEquals(1, result.getSensitivityValues().size());
+        // sensitivity on an open branch is zero
+        assertEquals(0, getValue(result, "g2", "l45"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testFunctionDisconnectedBranchBothSides() {
+        Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedByTwoLines();
+        Line l45 = network.getLine("l45");
+        l45.getTerminal1().disconnect();
+        l45.getTerminal2().disconnect();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        SensitivityFactorsProvider factorsProvider = n -> List.of(new BranchFlowPerInjectionIncrease(new BranchFlow("l45", "l45", "l45"),
+                new InjectionIncrease("g2", "g2", "g2")));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+                sensiParameters, LocalComputationManager.getDefault())
+                .join();
+        assertEquals(1, result.getSensitivityValues().size());
+        // sensitivity on an open branch is zero
         assertEquals(0, getValue(result, "g2", "l45"), LoadFlowAssert.DELTA_POWER);
     }
 }

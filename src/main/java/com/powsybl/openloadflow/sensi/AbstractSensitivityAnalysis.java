@@ -584,8 +584,8 @@ public abstract class AbstractSensitivityAnalysis {
 
     public void checkContingencies(Network network, LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
         for (PropagatedContingency contingency : contingencies) {
-            // Element have already been checked and found in PropagatedContingency, so there is no need to
-            // check it again
+            // Elements have already been checked and found in PropagatedContingency, so there is no need to
+            // check them again
             Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
             for (String branchId : contingency.getBranchIdsToOpen()) {
                 LfBranch lfBranch = lfNetwork.getBranchById(branchId);
