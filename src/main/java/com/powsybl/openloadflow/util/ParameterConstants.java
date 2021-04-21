@@ -41,6 +41,9 @@ public final class ParameterConstants {
     public static final String ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME = "addRatioToLinesWithDifferentNominalVoltageAtBothEnds";
     public static final boolean ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE = false;
 
+    public static final String SLACK_BUS_P_MAX_MISMATCH_NAME = "slackBusPMaxMismatch";
+    public static final double SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE = 1e-2;
+
     private ParameterConstants() {
     }
 }
