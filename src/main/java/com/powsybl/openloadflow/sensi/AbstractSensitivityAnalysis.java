@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -675,12 +676,49 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    public List<LfSensitivityFactor> readAndCheckFactors(Network network, SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
-        final List<LfSensitivityFactor> lfFactors = new ArrayList<>();
+    class SensitivityFactorHolder {
+        private final Map<String, List<LfSensitivityFactor>> additionalFactorsPerContingency = new HashMap<>();
+        private final List<LfSensitivityFactor> additionalFactorsNoContingency = new ArrayList<>();
+        private final List<LfSensitivityFactor> commonFactors = new ArrayList<>();
+
+        public List<LfSensitivityFactor> getAllFactors() {
+            List<LfSensitivityFactor> allFactors = new ArrayList<>(commonFactors);
+            allFactors.addAll(additionalFactorsNoContingency);
+            allFactors.addAll(additionalFactorsPerContingency.values().stream().flatMap(List::stream).collect(Collectors.toSet()));
+            return allFactors;
+        }
+
+        public List<LfSensitivityFactor> getFactorsForContingency(String contingencyId) {
+            return Stream.concat(commonFactors.stream(), additionalFactorsPerContingency.getOrDefault(contingencyId, Collections.emptyList()).stream())
+                .collect(Collectors.toList());
+        }
+
+        public List<LfSensitivityFactor> getFactorsForBaseNetwork() {
+            return Stream.concat(commonFactors.stream(), additionalFactorsNoContingency.stream())
+                .collect(Collectors.toList());
+        }
+
+        public void addFactor(LfSensitivityFactor factor, SensitivityFactorReader.ContingencyContext contingencyContext) {
+            switch (contingencyContext.getContextType()) {
+                case ALL:
+                    commonFactors.add(factor);
+                    break;
+                case NONE:
+                    additionalFactorsNoContingency.add(factor);
+                    break;
+                case SPECIFIC:
+                    additionalFactorsPerContingency.computeIfAbsent(contingencyContext.getContingencyId(), k -> new ArrayList<>()).add(factor);
+                    break;
+            }
+        }
+    }
+
+    public SensitivityFactorHolder readAndCheckFactors(Network network, SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
+        final SensitivityFactorHolder factorHolder = new SensitivityFactorHolder();
 
         factorReader.read(new SensitivityFactorReader.Handler() {
             @Override
-            public void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId) {
+            public void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, SensitivityFactorReader.ContingencyContext contingencyContext) {
                 LfElement functionElement;
                 LfElement variableElement;
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER) {
@@ -718,14 +756,14 @@ public abstract class AbstractSensitivityAnalysis {
                 } else {
                     throw new PowsyblException("Function type " + functionType + " not supported");
                 }
-                lfFactors.add(new SingleVariableLfSensitivityFactor(factorContext, variableId,
+                factorHolder.addFactor(new SingleVariableLfSensitivityFactor(factorContext, variableId,
                     functionElement, functionType,
-                    variableElement, variableType));
+                    variableElement, variableType), contingencyContext);
             }
 
             @Override
             public void onMultipleVariablesFactor(Object factorContext, SensitivityFunctionType functionType, String functionId,
-                                                  SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables) {
+                                                  SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables, SensitivityFactorReader.ContingencyContext contingencyContext) {
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
                         && variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
                     checkBranch(network, functionId);
@@ -746,14 +784,14 @@ public abstract class AbstractSensitivityAnalysis {
                             LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
                         }
                     }
-                    lfFactors.add(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
+                    factorHolder.addFactor(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
                         functionElement, functionType,
-                        injectionLfBuses, variableType));
+                        injectionLfBuses, variableType), contingencyContext);
                 } else {
                     throw new PowsyblException("Function type " + functionType + " and variable type " + variableType + " not supported");
                 }
             }
         });
-        return lfFactors;
+        return factorHolder;
     }
 }
