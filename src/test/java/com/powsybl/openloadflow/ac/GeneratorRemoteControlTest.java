@@ -356,18 +356,29 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void testRemoteReactivePowerControl() {
-
+        // Create a basic 4-buses network
         Network sNetwork = FourBusNetworkFactory.createBaseNetwork();
         Generator g4 = sNetwork.getGenerator("g4");
         Line l34 = sNetwork.getLine("l34");
 
         double qtarget = 1.0;
 
+        // First test: generator g4 regulates reactive power on line 4->3 (on side of g4)
+        g4.setRegulationMode(RegulationMode.REACTIVE_POWER);
+        g4.setRegulatingTerminal(l34.getTerminal(Branch.Side.TWO));
+        g4.setTargetQ(qtarget);
+
+        LoadFlowResult result = loadFlowRunner.run(sNetwork, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(qtarget, l34.getTerminal(Branch.Side.TWO));
+
+        // Second test: generator g4 regulates reactive power on line 3->4 (on the opposite side of the line)
         g4.setRegulationMode(RegulationMode.REACTIVE_POWER);
         g4.setRegulatingTerminal(l34.getTerminal(Branch.Side.ONE));
         g4.setTargetQ(qtarget);
 
-        LoadFlowResult result = loadFlowRunner.run(sNetwork, parameters);
+        result = loadFlowRunner.run(sNetwork, parameters);
+        assertTrue(result.isOk());
         assertReactivePowerEquals(qtarget, l34.getTerminal(Branch.Side.ONE));
     }
 }
