@@ -46,6 +46,8 @@ class OpenLoadFlowParametersTest {
 
     private FileSystem fileSystem;
 
+    public static final double DELTA_MISMATCH = 1E-4d;
+
     @BeforeEach
     public void setUp() {
         fileSystem = Jimfs.newFileSystem(Configuration.unix());
@@ -182,5 +184,19 @@ class OpenLoadFlowParametersTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(network.getVoltageLevel("VLHV1").getExtension(SlackTerminal.class).getTerminal().getBusView().getBus().getId(),
                 result.getComponentResults().get(0).getSlackBusId());
+    }
+
+    @Test
+    void testSetSlackBusPMaxMismatch() {
+        LoadFlowParameters parameters = LoadFlowParameters.load();
+        Network network = EurostagTutorialExample1Factory.create();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(-0.004, result.getComponentResults().get(0).getSlackBusActivePowerMismatch(), DELTA_MISMATCH);
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.0001);
+        LoadFlow.Runner loadFlowRunner2 = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
+        LoadFlowResult result2 = loadFlowRunner2.run(network, parameters);
+        assertEquals(-1.8703e-5, result2.getComponentResults().get(0).getSlackBusActivePowerMismatch(), DELTA_MISMATCH);
     }
 }
