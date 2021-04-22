@@ -6,12 +6,17 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.auto.service.AutoService;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.json.ContingencyJsonModule;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.xml.NetworkXml;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -23,8 +28,15 @@ import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityAnalysisProvider;
 import com.powsybl.sensitivity.SensitivityAnalysisResult;
 import com.powsybl.sensitivity.SensitivityFactorsProvider;
+import com.powsybl.sensitivity.json.SensitivityAnalysisParametersJsonModule;
 import com.powsybl.tools.PowsyblCoreVersion;
+import org.joda.time.DateTime;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -126,11 +138,41 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
         LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
+        OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
+
+        SensitivityFactorReader decoratedFactorReader = factorReader;
+
+        // debugging
+        Path debugDir = sensitivityAnalysisParametersExt.getDebugDir();
+        if (debugDir != null) {
+            String dateStr = DateTime.now().toString("yyyy-dd-M--HH-mm-ss-SSS");
+
+            NetworkXml.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
+
+            ObjectWriter objectWriter = new ObjectMapper()
+                    .registerModule(new ContingencyJsonModule())
+                    .registerModule(new LoadFlowParametersJsonModule())
+                    .registerModule(new SensitivityAnalysisParametersJsonModule())
+                    .writerWithDefaultPrettyPrinter();
+            try {
+                try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + ".json"))) {
+                    objectWriter.writeValue(writer, contingencies);
+                }
+
+                try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("parameters-" + dateStr + ".json"))) {
+                    objectWriter.writeValue(writer, sensitivityAnalysisParameters);
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+
+            decoratedFactorReader = new JsonSensitivityFactoryReader(factorReader, debugDir.resolve("factors-" + dateStr + ".json"));
+        }
 
         if (lfParameters.isDc()) {
-            dcSensitivityAnalysis.analyse(network, propagatedContingencies, lfParameters, lfParametersExt, factorReader, valueWriter, reporter);
+            dcSensitivityAnalysis.analyse(network, propagatedContingencies, lfParameters, lfParametersExt, decoratedFactorReader, valueWriter, reporter);
         } else {
-            acSensitivityAnalysis.analyse(network, propagatedContingencies, lfParameters, lfParametersExt, factorReader, valueWriter, reporter);
+            acSensitivityAnalysis.analyse(network, propagatedContingencies, lfParameters, lfParametersExt, decoratedFactorReader, valueWriter, reporter);
         }
     }
 }

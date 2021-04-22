@@ -6,16 +6,35 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
+
+import java.nio.file.Path;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class OpenSensitivityAnalysisParameters extends AbstractExtension<SensitivityAnalysisParameters> {
 
+    private Path debugDir;
+
     @Override
     public String getName() {
         return "OpenSensitivityAnalysisParameters";
     }
+
+    public Path getDebugDir() {
+        return debugDir;
+    }
+
+    public OpenSensitivityAnalysisParameters setDebugDir(Path debugDir) {
+        this.debugDir = debugDir;
+        return this;
+    }
+
+    public static OpenSensitivityAnalysisParameters load() {
+        return new OpenSensitivityAnalysisConfigLoader().load(PlatformConfig.defaultConfig());
+    }
+
 }
