@@ -584,27 +584,17 @@ public abstract class AbstractSensitivityAnalysis {
 
     public void checkContingencies(Network network, LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
         for (PropagatedContingency contingency : contingencies) {
-            for (String branchId : contingency.getBranchIdsToOpen()) {
-                LfBranch lfBranch = lfNetwork.getBranchById(branchId);
-                if (lfBranch == null) {
-                    throw new PowsyblException("The contingency on the branch " + branchId + " not found in the network");
-                }
-            }
-            for (String hvdcId : contingency.getHvdcIdsToOpen()) {
-                HvdcLine hvdcLine = network.getHvdcLine(hvdcId);
-                if (hvdcLine == null) {
-                    throw new PowsyblException("The DC line '" + hvdcId + "' does not exist in the network");
-                }
-            }
+            // Elements have already been checked and found in PropagatedContingency, so there is no need to
+            // check them again
             Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
             for (String branchId : contingency.getBranchIdsToOpen()) {
                 LfBranch lfBranch = lfNetwork.getBranchById(branchId);
                 if (lfBranch == null) {
-                    branchesToRemove.add(branchId); // this is certainly a switch
+                    branchesToRemove.add(branchId); // disconnected branch
                     continue;
                 }
                 if (lfBranch.getBus2() == null || lfBranch.getBus1() == null) {
-                    branchesToRemove.add(branchId); // contains the branches that are connected only on one side
+                    branchesToRemove.add(branchId); // branch connected only on one side
                 }
             }
             contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
@@ -723,7 +713,8 @@ public abstract class AbstractSensitivityAnalysis {
                 LfElement variableElement;
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER) {
                     checkBranch(network, functionId);
-                    functionElement = lfNetwork.getBranchById(functionId);
+                    LfBranch branch = lfNetwork.getBranchById(functionId);
+                    functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                     if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
                         Bus injectionBus = getInjectionBus(network, variableId);
                         variableElement = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
@@ -735,7 +726,8 @@ public abstract class AbstractSensitivityAnalysis {
                     }
                 } else if (functionType == SensitivityFunctionType.BRANCH_CURRENT) {
                     checkBranch(network, functionId);
-                    functionElement = lfNetwork.getBranchById(functionId);
+                    LfBranch branch = lfNetwork.getBranchById(functionId);
+                    functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                     if (variableType == SensitivityVariableType.TRANSFORMER_PHASE) {
                         checkPhaseShifter(network, variableId);
                         variableElement = lfNetwork.getBranchById(variableId);
