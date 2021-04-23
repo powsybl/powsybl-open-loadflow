@@ -41,6 +41,8 @@ import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.reduction.ReductionEngine;
+import com.powsybl.openloadflow.reduction.ReductionParameters;
 import com.powsybl.openloadflow.util.Markers;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.tools.PowsyblCoreVersion;
@@ -281,6 +283,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                       Collections.emptyMap(),
                                       null,
                                       Collections.singletonList(componentResult));
+    }
+
+    public void runReduction(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, List<String> voltageLevelIds) {
+
+        SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt); //To be removed, it is using DC config but needs to be adapted
+
+        ReductionParameters reductionParameters = new ReductionParameters(slackBusSelector, matrixFactory, voltageLevelIds); //To be adapted for reduction needs only, check how to get rid off slackbus selection
+
+        System.out.println("Call ReductionEngine");
+        new ReductionEngine(network, reductionParameters).run();
+
     }
 
     @Override

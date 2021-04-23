@@ -82,6 +82,14 @@ public class Variable implements Comparable<Variable> {
                 x[row] = network.getBranch(num).getPiModel().getR1();
                 break;
 
+            case BUS_VR:
+                x[row] = initializer.getMagnitude(network.getBus(num)) * Math.cos(Math.toRadians(initializer.getAngle(network.getBus(num))));
+                break;
+
+            case BUS_VI:
+                x[row] = initializer.getMagnitude(network.getBus(num)) * Math.sin(Math.toRadians(initializer.getAngle(network.getBus(num))));
+                break;
+
             case DUMMY_P:
             case DUMMY_Q:
                 x[row] = 0;
@@ -114,6 +122,8 @@ public class Variable implements Comparable<Variable> {
 
             case DUMMY_P:
             case DUMMY_Q:
+            case BUS_VR: //check
+            case BUS_VI: //check
                 // nothing to do
                 break;
 

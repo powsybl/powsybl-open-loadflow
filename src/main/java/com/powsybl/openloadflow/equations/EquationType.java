@@ -14,6 +14,8 @@ public enum EquationType {
     BUS_Q("q", SubjectType.BUS),
     BUS_V("v", SubjectType.BUS),
     BUS_PHI("\u03C6", SubjectType.BUS),
+    BUS_YR("y_r", SubjectType.BUS),
+    BUS_YI("y_i", SubjectType.BUS),
     BRANCH_P("t", SubjectType.BRANCH),
     BRANCH_I("i", SubjectType.BRANCH),
     BRANCH_ALPHA1("\u03B1" + "1", SubjectType.BRANCH),
