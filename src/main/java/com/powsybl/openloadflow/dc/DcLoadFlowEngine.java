@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.util.ParameterConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +47,7 @@ public class DcLoadFlowEngine {
     public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters, Reporter reporter) {
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(parameters.getSlackBusSelector(), false, false, false, false,
                 parameters.getPlausibleActivePowerLimit(), false, parameters.isComputeMainConnectedComponentOnly(), parameters.getCountriesToBalance(),
-                parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, false, false);
+                parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, false, false, ParameterConstants.REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE);
         this.networks = LfNetwork.load(network, lfNetworkParameters, reporter);
         this.parameters = Objects.requireNonNull(parameters);
     }

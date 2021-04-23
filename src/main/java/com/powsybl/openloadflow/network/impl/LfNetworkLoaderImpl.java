@@ -475,7 +475,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report);
         createBranches(lfBuses, lfNetwork, loadingContext, report, parameters);
         createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl());
-        createReactivePowerControls(lfNetwork, lfBuses);
+
+        if (parameters.isGeneratorReactivePowerRemoteControl()) {
+            createReactivePowerControls(lfNetwork, lfBuses);
+        }
 
         if (parameters.isTransformerVoltageControl()) {
             // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)

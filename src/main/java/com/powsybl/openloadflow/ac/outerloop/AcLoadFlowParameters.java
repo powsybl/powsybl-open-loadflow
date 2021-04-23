@@ -34,6 +34,8 @@ public class AcLoadFlowParameters {
 
     private final boolean voltageRemoteControl;
 
+    private final boolean reactivePowerRemoteControl;
+
     private final boolean phaseControl;
 
     private final boolean transformerVoltageControlOn;
@@ -65,7 +67,8 @@ public class AcLoadFlowParameters {
                                 boolean twtSplitShuntAdmittance, boolean breakers, double plausibleActivePowerLimit,
                                 boolean forceA1Var, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                 Set<String> branchesWithCurrent, boolean computeMainConnectedComponentOnly,
-                                Set<Country> countriesToBalance, boolean distributedOnConformLoad) {
+                                Set<Country> countriesToBalance, boolean distributedOnConformLoad,
+                                boolean pReactivePowerRemoteControl) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -84,6 +87,7 @@ public class AcLoadFlowParameters {
         this.computeMainConnectedComponentOnly = computeMainConnectedComponentOnly;
         this.countriesToBalance = countriesToBalance;
         this.distributedOnConformLoad = distributedOnConformLoad;
+        this.reactivePowerRemoteControl = pReactivePowerRemoteControl;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -112,6 +116,10 @@ public class AcLoadFlowParameters {
 
     public boolean isVoltageRemoteControl() {
         return voltageRemoteControl;
+    }
+
+    public boolean isReactivePowerRemoteControl() {
+        return reactivePowerRemoteControl;
     }
 
     public boolean isPhaseControl() {

@@ -36,6 +36,7 @@ public class LfNetworkParameters {
     private final Set<Country> countriesToBalance;
 
     private boolean distributedOnConformLoad;
+    private final boolean generatorReactivePowerRemoteControl;
 
     private final boolean phaseControl;
 
@@ -44,14 +45,14 @@ public class LfNetworkParameters {
     public LfNetworkParameters(SlackBusSelector slackBusSelector) {
         this(slackBusSelector, false, false, false, false,
                 ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true, Collections.emptySet(), false, false, false);
+                true, Collections.emptySet(), false, false, false, ParameterConstants.REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE);
     }
 
     public LfNetworkParameters(SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl,
                                boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers,
                                double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                boolean computeMainConnectedComponentOnly, Set<Country> countriesToBalance, boolean distributedOnConformLoad,
-                               boolean phaseControl, boolean transformerVoltageControl) {
+                               boolean phaseControl, boolean transformerVoltageControl, boolean pGeneratorReactivePowerRemoteControl) {
         this.slackBusSelector = slackBusSelector;
         this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
         this.minImpedance = minImpedance;
@@ -64,6 +65,7 @@ public class LfNetworkParameters {
         this.distributedOnConformLoad = distributedOnConformLoad;
         this.phaseControl = phaseControl;
         this.transformerVoltageControl = transformerVoltageControl;
+        this.generatorReactivePowerRemoteControl = pGeneratorReactivePowerRemoteControl;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -72,6 +74,10 @@ public class LfNetworkParameters {
 
     public boolean isGeneratorVoltageRemoteControl() {
         return generatorVoltageRemoteControl;
+    }
+
+    public boolean isGeneratorReactivePowerRemoteControl() {
+        return generatorReactivePowerRemoteControl;
     }
 
     public boolean isMinImpedance() {
