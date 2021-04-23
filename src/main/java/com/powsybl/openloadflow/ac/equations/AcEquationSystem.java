@@ -88,23 +88,12 @@ public final class AcEquationSystem {
 
             Equation eqQDist = equationSystem.createEquation(controller.getNum(), EquationType.BRANCH_Q);
 
-            boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
-                               && branch.getDiscretePhaseControl().getMode() == DiscretePhaseControl.Mode.CONTROLLER;
-            boolean deriveR1 = creationParameters.isTransformerVoltageControl() && branch.isVoltageController();
-
-            LfBus side1Bus = branch.getBus1();
-            LfBus side2Bus = branch.getBus2();
-
             EquationTerm q;
-
             if (reactivePowerControl.getControlledSide() == Branch.Side.ONE) {
-                q = side2Bus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, side1Bus, side2Bus, variableSet, deriveA1, deriveR1)
-                        : new OpenBranchSide2ReactiveFlowEquationTerm(branch, side1Bus, variableSet, deriveA1, deriveR1);
+                q = (EquationTerm) branch.getQ1();
             } else {
-                q = side1Bus != null ? new ClosedBranchSide2ReactiveFlowEquationTerm(branch, side1Bus, side2Bus, variableSet, deriveA1, deriveR1)
-                        : new OpenBranchSide1ReactiveFlowEquationTerm(branch, side2Bus, variableSet, deriveA1, deriveR1);
+                q = (EquationTerm) branch.getQ2();
             }
-
             eqQDist.addTerm(q);
         }
     }
