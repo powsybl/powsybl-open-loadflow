@@ -69,7 +69,7 @@ public class SensitivityFactoryJsonRecorder implements SensitivityFactorReader {
                             jsonGenerator.writeStringField("functionId", functionId);
                             jsonGenerator.writeStringField("variableType", variableType.name());
                             jsonGenerator.writeStringField("variableId", variableId);
-                            jsonGenerator.writeString("variables");
+                            jsonGenerator.writeFieldName("variables");
                             jsonGenerator.writeStartArray();
                             for (WeightedSensitivityVariable variable : variables) {
                                 jsonGenerator.writeStartObject();
