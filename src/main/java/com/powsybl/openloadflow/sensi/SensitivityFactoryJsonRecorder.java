@@ -78,7 +78,6 @@ public class SensitivityFactoryJsonRecorder implements SensitivityFactorReader {
                                 jsonGenerator.writeEndObject();
                             }
                             jsonGenerator.writeEndArray();
-                            jsonGenerator.writeString("contingencyContext");
                             jsonGenerator.writeStringField("contingencyContextType", contingencyContext.getContextType().name());
                             if (contingencyContext.getContingencyId() != null) {
                                 jsonGenerator.writeStringField("contingencyId", contingencyContext.getContingencyId());
