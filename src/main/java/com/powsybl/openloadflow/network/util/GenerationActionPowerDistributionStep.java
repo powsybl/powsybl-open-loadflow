@@ -24,6 +24,17 @@ public class GenerationActionPowerDistributionStep implements ActivePowerDistrib
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GenerationActionPowerDistributionStep.class);
 
+    public enum ParticipationType {
+        MAX,
+        TARGET
+    }
+
+    private ParticipationType participationType;
+
+    public GenerationActionPowerDistributionStep(ParticipationType pParticipationType) {
+        this.participationType = pParticipationType;
+    }
+
     @Override
     public String getElementType() {
         return "generation";
@@ -34,8 +45,8 @@ public class GenerationActionPowerDistributionStep implements ActivePowerDistrib
         return buses.stream()
                 .filter(bus -> !(bus.isDisabled() || bus.isFictitious()))
                 .flatMap(bus -> bus.getGenerators().stream())
-                .filter(generator -> generator.isParticipating() && generator.getParticipationFactor() != 0)
-                .map(generator -> new ParticipatingElement(generator, generator.getParticipationFactor()))
+                .filter(generator -> generator.isParticipating() && getParticipationFactor(generator) != 0)
+                .map(generator -> new ParticipatingElement(generator, getParticipationFactor(generator)))
                 .collect(Collectors.toList());
     }
 
@@ -54,6 +65,8 @@ public class GenerationActionPowerDistributionStep implements ActivePowerDistrib
             ParticipatingElement participatingGenerator = it.next();
             LfGenerator generator = (LfGenerator) participatingGenerator.getElement();
             double factor = participatingGenerator.getFactor();
+
+            System.out.println("Factor " + factor + " for generator " + generator.getId());
 
             double minP = generator.getMinP();
             double maxP = generator.getMaxP();
@@ -91,5 +104,20 @@ public class GenerationActionPowerDistributionStep implements ActivePowerDistrib
                 generatorsAtMax, generatorsAtMin);
 
         return done;
+    }
+
+    private double getParticipationFactor(LfGenerator generator) {
+        double factor;
+        switch (participationType) {
+            case MAX:
+                factor = generator.getMaxP() / generator.getDroop();
+                break;
+            case TARGET:
+                factor = generator.getTargetP();
+                break;
+            default:
+                throw new UnsupportedOperationException("Unknown balance type mode: " + participationType);
+        }
+        return factor;
     }
 }
