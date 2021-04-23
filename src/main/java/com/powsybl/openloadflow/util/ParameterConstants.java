@@ -45,7 +45,7 @@ public final class ParameterConstants {
      * Slack bus maximum active power mismatch in MW: 1 Mw => 10^-2 in p.u
      */
     public static final String SLACK_BUS_P_MAX_MISMATCH_NAME = "slackBusPMaxMismatch";
-    public static final double SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE = 1;
+    public static final double SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE = 1.0;
 
     private ParameterConstants() {
     }
