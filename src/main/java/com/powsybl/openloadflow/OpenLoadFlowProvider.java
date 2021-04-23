@@ -41,8 +41,9 @@ import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.reduction.ReductionEngine;
+import com.powsybl.openloadflow.reduction.ReductionParameters;
 import com.powsybl.openloadflow.util.Markers;
-import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,6 +81,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     public void setForcePhaseControlOffAndAddAngle1Var(boolean forcePhaseControlOffAndAddAngle1Var) {
         this.forcePhaseControlOffAndAddAngle1Var = forcePhaseControlOffAndAddAngle1Var;
+    }
+
+    public MatrixFactory getMatrixFactory() {
+        return matrixFactory;
     }
 
     @Override
@@ -283,12 +288,32 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                       Collections.singletonList(componentResult));
     }
 
+    public void runReduction(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, List<String> voltageLevelIds) {
+
+        SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt); //To be removed, it is using DC config but needs to be adapted
+
+        ReductionParameters reductionParameters = new ReductionParameters(slackBusSelector, matrixFactory, voltageLevelIds); //To be adapted for reduction needs only, check how to get rid off slackbus selection
+
+        new ReductionEngine(network, reductionParameters).run();
+
+    }
+
+    public void runCurrentInjectorComputation(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, List<String> voltageLevelIds) {
+
+        SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt); //To be removed, it is using DC config but needs to be adapted
+
+        ReductionParameters reductionParameters = new ReductionParameters(slackBusSelector, matrixFactory, voltageLevelIds); //To be adapted for reduction needs only, check how to get rid off slackbus selection
+
+        new ReductionEngine(network, reductionParameters).computeCurrentInjections();
+
+    }
+
     @Override
     public CompletableFuture<LoadFlowResult> run(Network network, ComputationManager computationManager, String workingVariantId, LoadFlowParameters parameters) {
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(parameters);
 
-        LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
+        //LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
 
         OpenLoadFlowParameters parametersExt = getParametersExt(parameters);
 
