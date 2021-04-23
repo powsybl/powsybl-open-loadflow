@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.auto.service.AutoService;
@@ -32,9 +33,11 @@ import com.powsybl.sensitivity.json.SensitivityAnalysisParametersJsonModule;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.joda.time.DateTime;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -48,6 +51,8 @@ import java.util.function.Supplier;
 public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvider {
 
     private static final String NAME = "OpenSensitivityAnalysis";
+
+    private static final String DATE_TIME_FORMAT = "yyyy-dd-M--HH-mm-ss-SSS";
 
     private final DcSensitivityAnalysis dcSensitivityAnalysis;
 
@@ -140,6 +145,13 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         run(network, contingencies, sensitivityAnalysisParameters, factors, valueWriter, Reporter.NO_OP);
     }
 
+    private static ObjectMapper createObjectMapper() {
+        return new ObjectMapper()
+                .registerModule(new ContingencyJsonModule())
+                .registerModule(new LoadFlowParametersJsonModule())
+                .registerModule(new SensitivityAnalysisParametersJsonModule());
+    }
+
     public void run(Network network, List<Contingency> contingencies, SensitivityAnalysisParameters sensitivityAnalysisParameters,
                     SensitivityFactorReader factorReader, SensitivityValueWriter valueWriter, Reporter reporter) {
         Objects.requireNonNull(network);
@@ -160,21 +172,18 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         // debugging
         Path debugDir = sensitivityAnalysisParametersExt.getDebugDir();
         if (debugDir != null) {
-            String dateStr = DateTime.now().toString("yyyy-dd-M--HH-mm-ss-SSS");
+            String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);
 
             NetworkXml.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
 
-            ObjectWriter objectWriter = new ObjectMapper()
-                    .registerModule(new ContingencyJsonModule())
-                    .registerModule(new LoadFlowParametersJsonModule())
-                    .registerModule(new SensitivityAnalysisParametersJsonModule())
+            ObjectWriter objectWriter = createObjectMapper()
                     .writerWithDefaultPrettyPrinter();
             try {
-                try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + ".json"))) {
+                try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
                     objectWriter.writeValue(writer, contingencies);
                 }
 
-                try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("parameters-" + dateStr + ".json"))) {
+                try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("parameters-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
                     objectWriter.writeValue(writer, sensitivityAnalysisParameters);
                 }
             } catch (IOException e) {
@@ -189,5 +198,40 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         } else {
             acSensitivityAnalysis.analyse(network, propagatedContingencies, lfParameters, lfParametersExt, decoratedFactorReader, valueWriter, reporter);
         }
+    }
+
+    public void runDebug(DateTime date, SensitivityValueWriter valueWriter, Reporter reporter) {
+        Objects.requireNonNull(date);
+        Objects.requireNonNull(valueWriter);
+        Objects.requireNonNull(reporter);
+
+        OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = OpenSensitivityAnalysisParameters.load();
+        Path debugDir = sensitivityAnalysisParametersExt.getDebugDir();
+        if (debugDir == null) {
+            throw new IllegalArgumentException("Debug mode is not activated");
+        }
+        String dateStr = date.toString(DATE_TIME_FORMAT);
+
+        List<SensitivityFactor2> factors = SensitivityFactor2.parseJson(debugDir.resolve("factors-" + dateStr + ".json"));
+
+        ObjectMapper objectMapper = createObjectMapper();
+        List<Contingency> contingencies;
+        SensitivityAnalysisParameters sensitivityAnalysisParameters;
+        try {
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                contingencies = objectMapper.readValue(reader, new TypeReference<>() {
+                });
+            }
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("parameters-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                sensitivityAnalysisParameters = objectMapper.readValue(reader, new TypeReference<>() {
+                });
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+
+        Network network = NetworkXml.read(debugDir.resolve("network-" + dateStr + ".xiidm"));
+
+        run(network, contingencies, sensitivityAnalysisParameters, new SensitivityFactorModelReader(factors), valueWriter, reporter);
     }
 }
