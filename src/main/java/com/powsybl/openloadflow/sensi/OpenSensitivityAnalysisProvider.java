@@ -166,7 +166,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 throw new UncheckedIOException(e);
             }
 
-            decoratedFactorReader = new JsonSensitivityFactoryReader(factorReader, debugDir.resolve("factors-" + dateStr + ".json"));
+            decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, debugDir.resolve("factors-" + dateStr + ".json"));
         }
 
         if (lfParameters.isDc()) {
