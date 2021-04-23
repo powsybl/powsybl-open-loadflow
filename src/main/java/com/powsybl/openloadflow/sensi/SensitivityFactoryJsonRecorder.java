@@ -38,56 +38,13 @@ public class SensitivityFactoryJsonRecorder implements SensitivityFactorReader {
                 delegate.read(new Handler() {
                     @Override
                     public void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, ContingencyContext contingencyContext) {
-                        try {
-                            jsonGenerator.writeStartObject();
-
-                            jsonGenerator.writeStringField("factorType", "SIMPLE");
-                            jsonGenerator.writeStringField("functionType", functionType.name());
-                            jsonGenerator.writeStringField("functionId", functionId);
-                            jsonGenerator.writeStringField("variableType", variableType.name());
-                            jsonGenerator.writeStringField("variableId", variableId);
-                            jsonGenerator.writeStringField("contingencyContextType", contingencyContext.getContextType().name());
-                            if (contingencyContext.getContingencyId() != null) {
-                                jsonGenerator.writeStringField("contingencyId", contingencyContext.getContingencyId());
-                            }
-
-                            jsonGenerator.writeEndObject();
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
-
+                        SimpleSensitivityFactor.writeJson(jsonGenerator, functionType, functionId, variableType, variableId, contingencyContext);
                         handler.onSimpleFactor(factorContext, functionType, functionId, variableType, variableId, contingencyContext);
                     }
 
                     @Override
                     public void onMultipleVariablesFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables, ContingencyContext contingencyContext) {
-                        try {
-                            jsonGenerator.writeStartObject();
-
-                            jsonGenerator.writeStringField("factorType", "MULTIPLE_VARIABLES");
-                            jsonGenerator.writeStringField("functionType", functionType.name());
-                            jsonGenerator.writeStringField("functionId", functionId);
-                            jsonGenerator.writeStringField("variableType", variableType.name());
-                            jsonGenerator.writeStringField("variableId", variableId);
-                            jsonGenerator.writeFieldName("variables");
-                            jsonGenerator.writeStartArray();
-                            for (WeightedSensitivityVariable variable : variables) {
-                                jsonGenerator.writeStartObject();
-                                jsonGenerator.writeStringField("id", variable.getId());
-                                jsonGenerator.writeNumberField("weight", variable.getWeight());
-                                jsonGenerator.writeEndObject();
-                            }
-                            jsonGenerator.writeEndArray();
-                            jsonGenerator.writeStringField("contingencyContextType", contingencyContext.getContextType().name());
-                            if (contingencyContext.getContingencyId() != null) {
-                                jsonGenerator.writeStringField("contingencyId", contingencyContext.getContingencyId());
-                            }
-
-                            jsonGenerator.writeEndObject();
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
-
+                        MultipleVariablesSensitivityFactor.writeJson(jsonGenerator, functionType, functionId, variableType, variableId, variables, contingencyContext);
                         handler.onMultipleVariablesFactor(factorContext, functionType, functionId, variableType, variableId, variables, contingencyContext);
                     }
                 });

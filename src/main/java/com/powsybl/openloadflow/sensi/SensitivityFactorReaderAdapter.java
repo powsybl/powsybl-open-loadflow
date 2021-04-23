@@ -27,6 +27,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
+ * Adapter to old legacy API.
+ *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class SensitivityFactorReaderAdapter implements SensitivityFactorReader {

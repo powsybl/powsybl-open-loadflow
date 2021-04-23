@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.BranchContingency;
@@ -34,6 +35,7 @@ import com.powsybl.openloadflow.util.PropagatedContingency;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -569,6 +571,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         Objects.requireNonNull(factorReader);
         Objects.requireNonNull(valueWriter);
 
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         // create the network (we only manage main connected component)
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(lfParametersExt.getSlackBusSelector(), false, true, lfParameters.isTwtSplitShuntAdmittance(), false, lfParametersExt.getPlausibleActivePowerLimit(), false);
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfNetworkParameters, reporter);
@@ -769,5 +773,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 }
             }
         }
+
+        stopwatch.stop();
+        LOGGER.info("DC sensitivity analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 }

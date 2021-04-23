@@ -6,22 +6,10 @@
  */
 package com.powsybl.openloadflow.sensi;
 
-import java.nio.file.Path;
-import java.util.Objects;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class SensitivityFactoryJsonPlayer implements SensitivityFactorReader {
-
-    private final Path jsonFile;
-
-    public SensitivityFactoryJsonPlayer(Path jsonFile) {
-        this.jsonFile = Objects.requireNonNull(jsonFile);
-    }
-
-    @Override
-    public void read(Handler handler) {
-
-    }
+public enum SensitivityFactorType {
+    SIMPLE,
+    MULTIPLE_VARIABLES
 }

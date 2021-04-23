@@ -688,7 +688,7 @@ public abstract class AbstractSensitivityAnalysis {
                 .collect(Collectors.toList());
         }
 
-        public void addFactor(LfSensitivityFactor factor, SensitivityFactorReader.ContingencyContext contingencyContext) {
+        public void addFactor(LfSensitivityFactor factor, ContingencyContext contingencyContext) {
             switch (contingencyContext.getContextType()) {
                 case ALL:
                     commonFactors.add(factor);
@@ -708,7 +708,7 @@ public abstract class AbstractSensitivityAnalysis {
 
         factorReader.read(new SensitivityFactorReader.Handler() {
             @Override
-            public void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, SensitivityFactorReader.ContingencyContext contingencyContext) {
+            public void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, ContingencyContext contingencyContext) {
                 LfElement functionElement;
                 LfElement variableElement;
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER) {
@@ -755,7 +755,7 @@ public abstract class AbstractSensitivityAnalysis {
 
             @Override
             public void onMultipleVariablesFactor(Object factorContext, SensitivityFunctionType functionType, String functionId,
-                                                  SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables, SensitivityFactorReader.ContingencyContext contingencyContext) {
+                                                  SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables, ContingencyContext contingencyContext) {
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
                         && variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
                     checkBranch(network, functionId);

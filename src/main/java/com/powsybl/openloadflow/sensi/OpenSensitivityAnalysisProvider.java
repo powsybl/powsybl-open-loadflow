@@ -37,10 +37,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
@@ -115,9 +112,12 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         Reporter sensiReporter = reporter.createSubReporter("sensitivityAnalysis",
             "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
         return CompletableFuture.supplyAsync(() -> {
+            network.getVariantManager().setWorkingVariant(workingStateId);
+
             SensitivityFactorReader factorReader = new SensitivityFactorReaderAdapter(network, sensitivityFactorsProvider, contingencies);
             SensitivityValueWriterAdapter valueWriter = new SensitivityValueWriterAdapter();
-            run(network, workingStateId, contingencies, sensitivityAnalysisParameters, factorReader, valueWriter, sensiReporter);
+            run(network, contingencies, sensitivityAnalysisParameters, factorReader, valueWriter, sensiReporter);
+
             boolean ok = true;
             Map<String, String> metrics = new HashMap<>();
             String logs = "";
@@ -125,14 +125,29 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         });
     }
 
-    public void run(Network network, String workingStateId, List<Contingency> contingencies, SensitivityAnalysisParameters sensitivityAnalysisParameters,
+    public void run(Network network, List<Contingency> contingencies, SensitivityAnalysisParameters sensitivityAnalysisParameters,
                     SensitivityFactorReader factorReader, SensitivityValueWriter valueWriter) {
-        run(network, workingStateId, contingencies, sensitivityAnalysisParameters, factorReader, valueWriter, Reporter.NO_OP);
+        run(network, contingencies, sensitivityAnalysisParameters, factorReader, valueWriter, Reporter.NO_OP);
     }
 
-    public void run(Network network, String workingStateId, List<Contingency> contingencies, SensitivityAnalysisParameters sensitivityAnalysisParameters,
+    public void run(Network network, List<Contingency> contingencies, SensitivityAnalysisParameters sensitivityAnalysisParameters,
+                    List<SensitivityFactor2> factors, SensitivityValueWriter valueWriter, Reporter reporter) {
+        run(network, contingencies, sensitivityAnalysisParameters, new SensitivityFactorModelReader(factors), valueWriter, reporter);
+    }
+
+    public void run(Network network, List<Contingency> contingencies, SensitivityAnalysisParameters sensitivityAnalysisParameters,
+                    List<SensitivityFactor2> factors, SensitivityValueWriter valueWriter) {
+        run(network, contingencies, sensitivityAnalysisParameters, factors, valueWriter, Reporter.NO_OP);
+    }
+
+    public void run(Network network, List<Contingency> contingencies, SensitivityAnalysisParameters sensitivityAnalysisParameters,
                     SensitivityFactorReader factorReader, SensitivityValueWriter valueWriter, Reporter reporter) {
-        network.getVariantManager().setWorkingVariant(workingStateId);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(contingencies);
+        Objects.requireNonNull(sensitivityAnalysisParameters);
+        Objects.requireNonNull(factorReader);
+        Objects.requireNonNull(valueWriter);
+        Objects.requireNonNull(reporter);
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, new HashSet<>());
 
