@@ -135,6 +135,10 @@ public abstract class AbstractSensitivityAnalysis {
         boolean areVariableAndFunctionDisconnected(GraphDecrementalConnectivity<LfBus> connectivity);
 
         boolean isConnectedToComponent(Set<LfBus> connectedComponent);
+
+        SensitivityFactorGroup getGroup();
+
+        void setGroup(SensitivityFactorGroup group);
     }
 
     abstract static class AbstractLfSensitivityFactor implements LfSensitivityFactor {
@@ -159,6 +163,8 @@ public abstract class AbstractSensitivityAnalysis {
         private double baseCaseSensitivityValue = Double.NaN; // the sensitivity value on pre contingency network, that needs to be recomputed if the stack distribution change
 
         protected Status status = Status.VALID;
+
+        protected SensitivityFactorGroup group;
 
         public AbstractLfSensitivityFactor(Object context, String variableId,
                                            LfElement functionElement, SensitivityFunctionType functionType,
@@ -293,13 +299,13 @@ public abstract class AbstractSensitivityAnalysis {
         }
 
         @Override
-        public boolean areVariableAndFunctionDisconnected(GraphDecrementalConnectivity<LfBus> connectivity) {
-            throw new NotImplementedException("areVariableAndFunctionDisconnected should have an override");
+        public SensitivityFactorGroup getGroup() {
+            return group;
         }
 
         @Override
-        public boolean isConnectedToComponent(Set<LfBus> connectedComponent) {
-            throw new NotImplementedException("isConnectedToComponent should have an override");
+        public void setGroup(SensitivityFactorGroup group) {
+            this.group = Objects.requireNonNull(group);
         }
     }
 
@@ -526,9 +532,13 @@ public abstract class AbstractSensitivityAnalysis {
             }
             Pair<SensitivityVariableType, String> id = Pair.of(factor.getVariableType(), factor.getVariableId());
             if (factor instanceof SingleVariableLfSensitivityFactor) {
-                groupIndexedById.computeIfAbsent(id, bar -> new SingleVariableFactorGroup(((SingleVariableLfSensitivityFactor) factor).getVariableElement(), factor.getVariableType())).addFactor(factor);
+                SensitivityFactorGroup factorGroup = groupIndexedById.computeIfAbsent(id, k -> new SingleVariableFactorGroup(((SingleVariableLfSensitivityFactor) factor).getVariableElement(), factor.getVariableType()));
+                factorGroup.addFactor(factor);
+                factor.setGroup(factorGroup);
             } else if (factor instanceof MultiVariablesLfSensitivityFactor) {
-                groupIndexedById.computeIfAbsent(id, bar -> new MultiVariablesFactorGroup(((MultiVariablesLfSensitivityFactor) factor).getWeightedVariableElements(), factor.getVariableType())).addFactor(factor);
+                SensitivityFactorGroup factorGroup = groupIndexedById.computeIfAbsent(id, k -> new MultiVariablesFactorGroup(((MultiVariablesLfSensitivityFactor) factor).getWeightedVariableElements(), factor.getVariableType()));
+                factorGroup.addFactor(factor);
+                factor.setGroup(factorGroup);
             }
         }
 
