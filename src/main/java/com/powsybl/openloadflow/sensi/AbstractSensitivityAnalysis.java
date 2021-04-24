@@ -112,6 +112,8 @@ public abstract class AbstractSensitivityAnalysis {
 
         SensitivityFunctionType getFunctionType();
 
+        ContingencyContext getContingencyContext();
+
         EquationTerm getEquationTerm();
 
         Double getPredefinedResult();
@@ -148,6 +150,8 @@ public abstract class AbstractSensitivityAnalysis {
 
         protected final SensitivityVariableType variableType;
 
+        protected final ContingencyContext contingencyContext;
+
         private Double predefinedResult = null;
 
         private double functionReference = 0d;
@@ -158,12 +162,13 @@ public abstract class AbstractSensitivityAnalysis {
 
         public AbstractLfSensitivityFactor(Object context, String variableId,
                                            LfElement functionElement, SensitivityFunctionType functionType,
-                                           SensitivityVariableType variableType) {
+                                           SensitivityVariableType variableType, ContingencyContext contingencyContext) {
             this.context = context;
             this.variableId = Objects.requireNonNull(variableId);
             this.functionElement = functionElement;
-            this.functionType = functionType;
-            this.variableType = variableType;
+            this.functionType = Objects.requireNonNull(functionType);
+            this.variableType = Objects.requireNonNull(variableType);
+            this.contingencyContext = Objects.requireNonNull(contingencyContext);
             if (functionElement == null) {
                 status = Status.ZERO;
             }
@@ -192,6 +197,11 @@ public abstract class AbstractSensitivityAnalysis {
         @Override
         public SensitivityFunctionType getFunctionType() {
             return functionType;
+        }
+
+        @Override
+        public ContingencyContext getContingencyContext() {
+            return contingencyContext;
         }
 
         @Override
@@ -249,19 +259,28 @@ public abstract class AbstractSensitivityAnalysis {
         }
 
         protected boolean areElementsDisconnected(LfElement functionElement, LfElement variableElement, GraphDecrementalConnectivity<LfBus> connectivity) {
-            if (functionElement instanceof LfBus && variableElement instanceof LfBus) {
-                return connectivity.getComponentNumber((LfBus) functionElement) != connectivity.getComponentNumber((LfBus) variableElement);
-            } else if (functionElement instanceof LfBranch && variableElement instanceof LfBus) {
-                LfBranch branch = (LfBranch) functionElement;
-                return connectivity.getComponentNumber(branch.getBus1()) != connectivity.getComponentNumber((LfBus) variableElement)
-                    || connectivity.getComponentNumber(branch.getBus2()) != connectivity.getComponentNumber((LfBus) variableElement);
-            } else if (functionElement instanceof LfBranch && variableElement instanceof LfBranch) {
-                LfBranch functionBranch = (LfBranch) functionElement;
-                LfBranch variableBranch = (LfBranch) variableElement;
-                return connectivity.getComponentNumber(variableBranch.getBus1()) != connectivity.getComponentNumber(functionBranch.getBus1())
-                    || connectivity.getComponentNumber(variableBranch.getBus1()) != connectivity.getComponentNumber(functionBranch.getBus2());
+            if (functionElement.getType() == ElementType.BUS && variableElement.getType() == ElementType.BUS) {
+                return areBusAndBusDisconnected(connectivity, (LfBus) functionElement, (LfBus) variableElement);
+            } else if (functionElement.getType() == ElementType.BRANCH && variableElement.getType() == ElementType.BUS) {
+                return areBranchAndBusDisconnected(connectivity, (LfBranch) functionElement, (LfBus) variableElement);
+            } else if (functionElement.getType() == ElementType.BRANCH && variableElement.getType() == ElementType.BRANCH) {
+                return areBranchAndBranchDisconnected(connectivity, (LfBranch) functionElement, (LfBranch) variableElement);
             }
             throw new PowsyblException("Combination of function type and variable type is not implemented.");
+        }
+
+        static boolean areBranchAndBranchDisconnected(GraphDecrementalConnectivity<LfBus> connectivity, LfBranch functionBranch, LfBranch variableBranch) {
+            return connectivity.getComponentNumber(variableBranch.getBus1()) != connectivity.getComponentNumber(functionBranch.getBus1())
+                    || connectivity.getComponentNumber(variableBranch.getBus1()) != connectivity.getComponentNumber(functionBranch.getBus2());
+        }
+
+        static boolean areBranchAndBusDisconnected(GraphDecrementalConnectivity<LfBus> connectivity, LfBranch functionBranch, LfBus variableBus) {
+            return connectivity.getComponentNumber(functionBranch.getBus1()) != connectivity.getComponentNumber(variableBus)
+                    || connectivity.getComponentNumber(functionBranch.getBus2()) != connectivity.getComponentNumber(variableBus);
+        }
+
+        static boolean areBusAndBusDisconnected(GraphDecrementalConnectivity<LfBus> connectivity, LfBus functionBus, LfBus variableBus) {
+            return connectivity.getComponentNumber(functionBus) != connectivity.getComponentNumber(variableBus);
         }
 
         protected boolean isElementConnectedToComponent(LfElement element, Set<LfBus> component) {
@@ -290,8 +309,9 @@ public abstract class AbstractSensitivityAnalysis {
 
         SingleVariableLfSensitivityFactor(Object context, String variableId,
                                           LfElement functionElement, SensitivityFunctionType functionType,
-                                          LfElement variableElement, SensitivityVariableType variableType) {
-            super(context, variableId, functionElement, functionType, variableType);
+                                          LfElement variableElement, SensitivityVariableType variableType,
+                                          ContingencyContext contingencyContext) {
+            super(context, variableId, functionElement, functionType, variableType, contingencyContext);
             this.variableElement = variableElement;
             if (variableElement == null) {
                 status = Status.SKIP;
@@ -319,8 +339,9 @@ public abstract class AbstractSensitivityAnalysis {
 
         MultiVariablesLfSensitivityFactor(Object context, String variableId,
                                           LfElement functionElement, SensitivityFunctionType functionType,
-                                          Map<LfElement, Double> weightedVariableElements, SensitivityVariableType variableType) {
-            super(context, variableId, functionElement, functionType, variableType);
+                                          Map<LfElement, Double> weightedVariableElements, SensitivityVariableType variableType,
+                                          ContingencyContext contingencyContext) {
+            super(context, variableId, functionElement, functionType, variableType, contingencyContext);
             this.weightedVariableElements = weightedVariableElements;
             if (weightedVariableElements.isEmpty()) {
                 status = Status.SKIP;
@@ -665,6 +686,7 @@ public abstract class AbstractSensitivityAnalysis {
     }
 
     class SensitivityFactorHolder {
+
         private final Map<String, List<LfSensitivityFactor>> additionalFactorsPerContingency = new HashMap<>();
         private final List<LfSensitivityFactor> additionalFactorsNoContingency = new ArrayList<>();
         private final List<LfSensitivityFactor> commonFactors = new ArrayList<>();
@@ -681,13 +703,19 @@ public abstract class AbstractSensitivityAnalysis {
                 .collect(Collectors.toList());
         }
 
+        public List<LfSensitivityFactor> getFactorsForContingencies(List<String> contingenciesIds) {
+            return Stream.concat(commonFactors.stream(),
+                                 contingenciesIds.stream().flatMap(contingencyId -> additionalFactorsPerContingency.getOrDefault(contingencyId, Collections.emptyList()).stream()))
+                    .collect(Collectors.toList());
+        }
+
         public List<LfSensitivityFactor> getFactorsForBaseNetwork() {
             return Stream.concat(commonFactors.stream(), additionalFactorsNoContingency.stream())
                 .collect(Collectors.toList());
         }
 
-        public void addFactor(LfSensitivityFactor factor, ContingencyContext contingencyContext) {
-            switch (contingencyContext.getContextType()) {
+        public void addFactor(LfSensitivityFactor factor) {
+            switch (factor.getContingencyContext().getContextType()) {
                 case ALL:
                     commonFactors.add(factor);
                     break;
@@ -695,7 +723,7 @@ public abstract class AbstractSensitivityAnalysis {
                     additionalFactorsNoContingency.add(factor);
                     break;
                 case SPECIFIC:
-                    additionalFactorsPerContingency.computeIfAbsent(contingencyContext.getContingencyId(), k -> new ArrayList<>()).add(factor);
+                    additionalFactorsPerContingency.computeIfAbsent(factor.getContingencyContext().getContingencyId(), k -> new ArrayList<>()).add(factor);
                     break;
             }
         }
@@ -752,7 +780,7 @@ public abstract class AbstractSensitivityAnalysis {
                 }
                 factorHolder.addFactor(new SingleVariableLfSensitivityFactor(factorContext, variableId,
                     functionElement, functionType,
-                    variableElement, variableType), contingencyContext);
+                    variableElement, variableType, contingencyContext));
             }
 
             @Override
@@ -786,7 +814,7 @@ public abstract class AbstractSensitivityAnalysis {
                     }
                     factorHolder.addFactor(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
                         functionElement, functionType,
-                        injectionLfBuses, variableType), contingencyContext);
+                        injectionLfBuses, variableType, contingencyContext));
                 } else {
                     throw new PowsyblException("Function type " + functionType + " and variable type " + variableType + " not supported");
                 }
