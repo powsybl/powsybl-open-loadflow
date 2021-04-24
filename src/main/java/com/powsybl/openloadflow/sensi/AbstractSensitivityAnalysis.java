@@ -285,6 +285,7 @@ public abstract class AbstractSensitivityAnalysis {
     }
 
     static class SingleVariableLfSensitivityFactor extends AbstractLfSensitivityFactor {
+
         private final LfElement variableElement;
 
         SingleVariableLfSensitivityFactor(Object context, String variableId,
@@ -313,6 +314,7 @@ public abstract class AbstractSensitivityAnalysis {
     }
 
     static class MultiVariablesLfSensitivityFactor extends AbstractLfSensitivityFactor {
+
         private final Map<LfElement, Double> weightedVariableElements;
 
         MultiVariablesLfSensitivityFactor(Object context, String variableId,
@@ -358,22 +360,23 @@ public abstract class AbstractSensitivityAnalysis {
     }
 
     interface SensitivityFactorGroup {
-        List<AbstractSensitivityAnalysis.LfSensitivityFactor> getFactors();
+
+        List<LfSensitivityFactor> getFactors();
 
         int getIndex();
 
         void setIndex(int index);
 
-        void addFactor(AbstractSensitivityAnalysis.LfSensitivityFactor factor);
+        void addFactor(LfSensitivityFactor factor);
 
         void fillRhs(EquationSystem equationSystem, Matrix rhs, Map<LfBus, Double> participationByBus);
     }
 
     abstract static class AbstractSensitivityFactorGroup implements SensitivityFactorGroup {
 
-        private final List<LfSensitivityFactor> factors = new ArrayList<>();
+        protected final List<LfSensitivityFactor> factors = new ArrayList<>();
 
-        SensitivityVariableType variableType;
+        protected final SensitivityVariableType variableType;
 
         private int index = -1;
 
@@ -409,16 +412,11 @@ public abstract class AbstractSensitivityAnalysis {
             int column = p.getColumn();
             rhs.add(column, getIndex(), injection / PerUnit.SB);
         }
-
-        @Override
-        public void fillRhs(EquationSystem equationSystem, Matrix rhs, Map<LfBus, Double> participationByBus) {
-            throw new NotImplementedException("fillRhs should have an override");
-        }
     }
 
     static class SingleVariableFactorGroup extends AbstractSensitivityFactorGroup {
 
-        LfElement variableElement;
+        private final LfElement variableElement;
 
         SingleVariableFactorGroup(LfElement variableElement, SensitivityVariableType variableType) {
             super(variableType);
@@ -707,6 +705,10 @@ public abstract class AbstractSensitivityAnalysis {
         final SensitivityFactorHolder factorHolder = new SensitivityFactorHolder();
 
         factorReader.read(new SensitivityFactorReader.Handler() {
+
+            // to cache injection id to connected bus id which is slow in IIDM
+            private final Map<String, LfBus> injectionLfBusesByVariableId = new HashMap<>();
+
             @Override
             public void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, ContingencyContext contingencyContext) {
                 LfElement functionElement;
@@ -763,8 +765,14 @@ public abstract class AbstractSensitivityAnalysis {
                     Map<LfElement, Double> injectionLfBuses = new HashMap<>();
                     List<String> skippedInjection = new ArrayList<>(variables.size());
                     for (WeightedSensitivityVariable variable : variables) {
-                        Bus injectionBus = getInjectionBus(network, variable.getId());
-                        LfBus injectionLfBus = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
+                        LfBus injectionLfBus;
+                        if (!injectionLfBusesByVariableId.containsKey(variable.getId())) {
+                            Bus injectionBus = getInjectionBus(network, variable.getId());
+                            injectionLfBus = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
+                            injectionLfBusesByVariableId.put(variable.getId(), injectionLfBus);
+                        } else {
+                            injectionLfBus = injectionLfBusesByVariableId.get(variable.getId());
+                        }
                         if (injectionLfBus == null) {
                             skippedInjection.add(variable.getId());
                             continue;
