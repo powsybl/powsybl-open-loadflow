@@ -744,8 +744,7 @@ public abstract class AbstractSensitivityAnalysis {
 
         factorReader.read(new SensitivityFactorReader.Handler() {
 
-            // to cache injection id to connected bus id which is slow in IIDM
-            private final Map<String, LfBus> injectionLfBusesByVariableId = new HashMap<>();
+            private final Map<String, Map<LfElement, Double>> injectionLfBusesByVariableId = new HashMap<>();
 
             @Override
             public void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, ContingencyContext contingencyContext) {
@@ -800,26 +799,26 @@ public abstract class AbstractSensitivityAnalysis {
                         && variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
                     checkBranch(network, functionId);
                     LfBranch functionElement = lfNetwork.getBranchById(functionId);
-                    Map<LfElement, Double> injectionLfBuses = new HashMap<>();
-                    List<String> skippedInjection = new ArrayList<>(variables.size());
-                    for (WeightedSensitivityVariable variable : variables) {
-                        LfBus injectionLfBus;
-                        if (!injectionLfBusesByVariableId.containsKey(variable.getId())) {
+                    // FIXME Factor model has to be fixed, but we can consider that if same variable ID, the list of variables
+                    // and weight are same
+                    Map<LfElement, Double> injectionLfBuses = injectionLfBusesByVariableId.get(variableId);
+                    if (injectionLfBuses == null) {
+                        injectionLfBuses = new HashMap<>();
+                        injectionLfBusesByVariableId.put(variableId, injectionLfBuses);
+                        List<String> skippedInjection = new ArrayList<>(variables.size());
+                        for (WeightedSensitivityVariable variable : variables) {
                             Bus injectionBus = getInjectionBus(network, variable.getId());
-                            injectionLfBus = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
-                            injectionLfBusesByVariableId.put(variable.getId(), injectionLfBus);
-                        } else {
-                            injectionLfBus = injectionLfBusesByVariableId.get(variable.getId());
+                            LfBus injectionLfBus = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
+                            if (injectionLfBus == null) {
+                                skippedInjection.add(variable.getId());
+                                continue;
+                            }
+                            injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
                         }
-                        if (injectionLfBus == null) {
-                            skippedInjection.add(variable.getId());
-                            continue;
-                        }
-                        injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
-                    }
-                    if (!skippedInjection.isEmpty()) {
-                        if (LOGGER.isWarnEnabled()) {
-                            LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
+                        if (!skippedInjection.isEmpty()) {
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
+                            }
                         }
                     }
                     factorHolder.addFactor(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
