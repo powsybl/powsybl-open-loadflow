@@ -1546,14 +1546,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<SensitivityFactor2> factors = List.of(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER,
                 "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER, "glsk", true, ContingencyContext.createAllContingencyContext()));
 
-        SensitivityValueWriter valueWriter = new SensitivityValueWriter() {
-            @Override
-            public void write(Object factorContext, String contingencyId, int contingencyIndex, double value, double functionReference) {
-
-            }
-        };
-
-        sensiProvider.run(network, contingencies, variableSets, sensiParameters, factors, valueWriter);
+        List<SensitivityValue2> values = sensiProvider.run(network, contingencies, variableSets, sensiParameters, factors);
 
         Path contingenciesFile = null;
         Path factorsFile = null;
@@ -1589,23 +1582,32 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertNotNull(parametersFile);
         assertNotNull(variableSetsFile);
         try (InputStream is = Files.newInputStream(contingenciesFile)) {
-            compareTxt(getClass().getResourceAsStream("/debug-contingencies.json"), is);
+            compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-contingencies.json")), is);
         }
         try (InputStream is = Files.newInputStream(factorsFile)) {
-            compareTxt(getClass().getResourceAsStream("/debug-factors.json"), is);
+            compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-factors.json")), is);
         }
         try (InputStream is = Files.newInputStream(networkFile)) {
-            compareTxt(getClass().getResourceAsStream("/debug-network.xiidm"), is);
+            compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-network.xiidm")), is);
         }
         try (InputStream is = Files.newInputStream(parametersFile)) {
-            compareTxt(getClass().getResourceAsStream("/debug-parameters.json"), is);
+            compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-parameters.json")), is);
         }
         try (InputStream is = Files.newInputStream(variableSetsFile)) {
-            compareTxt(getClass().getResourceAsStream("/debug-variable-sets.json"), is);
+            compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-variable-sets.json")), is);
         }
 
         String dateStr = contingenciesFile.getFileName().toString().substring(14, 37);
         DateTime date = DateTime.parse(dateStr, DateTimeFormat.forPattern(OpenSensitivityAnalysisProvider.DATE_TIME_FORMAT));
-        sensiProvider.replay(date, sensiParameters, valueWriter);
+
+        List<SensitivityValue2> values2 = sensiProvider.replay(date, sensiParameters);
+
+        // assert we have exactly the same result with replay
+        assertEquals(values.size(), values2.size());
+        for (int i = 0; i < values.size(); i++) {
+            assertEquals(values.get(i).getContingencyId(), values2.get(i).getContingencyId());
+            assertEquals(values.get(i).getValue(), values2.get(i).getValue(), LoadFlowAssert.DELTA_POWER);
+            assertEquals(values.get(i).getFunctionReference(), values2.get(i).getFunctionReference(), LoadFlowAssert.DELTA_POWER);
+        }
     }
 }

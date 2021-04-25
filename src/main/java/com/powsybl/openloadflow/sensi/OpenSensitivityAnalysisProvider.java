@@ -179,6 +179,13 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors, valueWriter, Reporter.NO_OP);
     }
 
+    public List<SensitivityValue2> run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
+                                       SensitivityAnalysisParameters sensitivityAnalysisParameters, List<SensitivityFactor2> factors) {
+        SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();
+        run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors, valueWriter, Reporter.NO_OP);
+        return valueWriter.getValues();
+    }
+
     private static ObjectMapper createObjectMapper() {
         return new ObjectMapper()
                 .registerModule(new ContingencyJsonModule())
@@ -283,5 +290,11 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
     public void replay(DateTime date, SensitivityAnalysisParameters sensitivityAnalysisParameters, SensitivityValueWriter valueWriter) {
         replay(date, sensitivityAnalysisParameters, valueWriter, Reporter.NO_OP);
+    }
+
+    public List<SensitivityValue2> replay(DateTime date, SensitivityAnalysisParameters sensitivityAnalysisParameters) {
+        SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();
+        replay(date, sensitivityAnalysisParameters, valueWriter);
+        return valueWriter.getValues();
     }
 }
