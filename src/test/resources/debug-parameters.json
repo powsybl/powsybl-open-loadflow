@@ -13,5 +13,10 @@
     "dc" : true,
     "distributedSlack" : false,
     "balanceType" : "PROPORTIONAL_TO_GENERATION_P_MAX"
+  },
+  "extensions" : {
+    "open-sensitivity-parameters" : {
+      "debugDir" : "/work"
+    }
   }
 }

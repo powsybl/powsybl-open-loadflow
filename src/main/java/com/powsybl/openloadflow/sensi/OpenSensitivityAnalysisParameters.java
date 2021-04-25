@@ -10,25 +10,23 @@ import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 
-import java.nio.file.Path;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class OpenSensitivityAnalysisParameters extends AbstractExtension<SensitivityAnalysisParameters> {
 
-    private Path debugDir;
+    private String debugDir;
 
     @Override
     public String getName() {
-        return "OpenSensitivityAnalysisParameters";
+        return "open-sensitivity-parameters";
     }
 
-    public Path getDebugDir() {
+    public String getDebugDir() {
         return debugDir;
     }
 
-    public OpenSensitivityAnalysisParameters setDebugDir(Path debugDir) {
+    public OpenSensitivityAnalysisParameters setDebugDir(String debugDir) {
         this.debugDir = debugDir;
         return this;
     }
@@ -36,5 +34,4 @@ public class OpenSensitivityAnalysisParameters extends AbstractExtension<Sensiti
     public static OpenSensitivityAnalysisParameters load() {
         return new OpenSensitivityAnalysisConfigLoader().load(PlatformConfig.defaultConfig());
     }
-
 }

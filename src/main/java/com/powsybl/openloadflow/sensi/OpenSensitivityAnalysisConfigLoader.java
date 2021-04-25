@@ -20,13 +20,13 @@ public class OpenSensitivityAnalysisConfigLoader implements SensitivityAnalysisP
     public OpenSensitivityAnalysisParameters load(PlatformConfig platformConfig) {
         OpenSensitivityAnalysisParameters parameters = new OpenSensitivityAnalysisParameters();
         platformConfig.getOptionalModuleConfig("open-sensitivity-default-parameters")
-                .ifPresent(config -> parameters.setDebugDir(config.getPathProperty("debug-dir", null)));
+                .ifPresent(config -> parameters.setDebugDir(config.getStringProperty("debug-dir", null)));
         return parameters;
     }
 
     @Override
     public String getExtensionName() {
-        return "openSensitivityParameters";
+        return "open-sensitivity-parameters";
     }
 
     @Override
