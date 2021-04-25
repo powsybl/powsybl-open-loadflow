@@ -182,7 +182,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return new ObjectMapper()
                 .registerModule(new ContingencyJsonModule())
                 .registerModule(new LoadFlowParametersJsonModule())
-                .registerModule(new SensitivityAnalysisParametersJsonModule());
+                .registerModule(new SensitivityAnalysisParametersJsonModule())
+                .registerModule(new SensitivityJsonModule());
     }
 
     public void run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
@@ -216,6 +217,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             try {
                 try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
                     objectWriter.writeValue(writer, contingencies);
+                }
+
+                try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("variable-sets-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                    objectWriter.writeValue(writer, variableSets);
                 }
 
                 try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("parameters-" + dateStr + ".json"), StandardCharsets.UTF_8)) {

@@ -9,10 +9,10 @@ package com.powsybl.openloadflow.sensi;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+import com.powsybl.commons.PowsyblException;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -67,49 +67,32 @@ public class SensitivityVariableSet {
         }
     }
 
-    private static final class ParsingContext {
-
-        private String id;
-
-        private List<WeightedSensitivityVariable> variables;
-
-        private void reset() {
-            id = null;
-            variables = null;
-        }
-    }
-
-    static List<SensitivityVariableSet> parseJson(JsonParser parser) {
+    static SensitivityVariableSet parseJson(JsonParser parser) {
         Objects.requireNonNull(parser);
-
-        List<SensitivityVariableSet> variableSets = new ArrayList<>();
         try {
-            ParsingContext context = new ParsingContext();
+            String id = null;
+            List<WeightedSensitivityVariable> variables = null;
             JsonToken token;
             while ((token = parser.nextToken()) != null) {
                 if (token == JsonToken.FIELD_NAME) {
                     String fieldName = parser.getCurrentName();
                     switch (fieldName) {
                         case "id":
-                            context.id = parser.nextTextValue();
+                            id = parser.nextTextValue();
                             break;
                         case "variables":
-                            context.variables = WeightedSensitivityVariable.parseJson(parser);
+                            variables = WeightedSensitivityVariable.parseJson(parser);
                             break;
                         default:
                             break;
                     }
-                } else if (token == JsonToken.END_ARRAY) {
-                    variableSets.add(new SensitivityVariableSet(context.id, context.variables));
-                    context.reset();
                 } else if (token == JsonToken.END_OBJECT) {
-                    break;
+                    return new SensitivityVariableSet(id, variables);
                 }
             }
+            throw new PowsyblException("Parsing error");
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-
-        return variableSets;
     }
 }
