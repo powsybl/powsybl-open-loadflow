@@ -66,8 +66,6 @@ public class GenerationActionPowerDistributionStep implements ActivePowerDistrib
             LfGenerator generator = (LfGenerator) participatingGenerator.getElement();
             double factor = participatingGenerator.getFactor();
 
-            System.out.println("Factor " + factor + " for generator " + generator.getId());
-
             double minP = generator.getMinP();
             double maxP = generator.getMaxP();
             double targetP = generator.getTargetP();
