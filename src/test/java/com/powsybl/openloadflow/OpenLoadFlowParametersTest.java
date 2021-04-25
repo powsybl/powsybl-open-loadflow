@@ -19,7 +19,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
@@ -165,7 +165,7 @@ class OpenLoadFlowParametersTest {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         parameters.setWriteSlackBus(true);
         Network network = EurostagTutorialExample1Factory.create();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
 
         // Change the nominal voltage to have a target V distant enough but still plausible (in [0.8 1.2] in Pu), so that the NR diverges
         network.getVoltageLevel("VLGEN").setNominalV(100);
@@ -180,7 +180,7 @@ class OpenLoadFlowParametersTest {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         parameters.setWriteSlackBus(true);
         Network network = EurostagTutorialExample1Factory.create();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(network.getVoltageLevel("VLHV1").getExtension(SlackTerminal.class).getTerminal().getBusView().getBus().getId(),
                 result.getComponentResults().get(0).getSlackBusId());
@@ -190,12 +190,12 @@ class OpenLoadFlowParametersTest {
     void testSetSlackBusPMaxMismatch() {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         Network network = EurostagTutorialExample1Factory.create();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(-0.004, result.getComponentResults().get(0).getSlackBusActivePowerMismatch(), DELTA_MISMATCH);
 
         parameters.getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.0001);
-        LoadFlow.Runner loadFlowRunner2 = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner2 = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result2 = loadFlowRunner2.run(network, parameters);
         assertEquals(-1.8703e-5, result2.getComponentResults().get(0).getSlackBusActivePowerMismatch(), DELTA_MISMATCH);
     }
