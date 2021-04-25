@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.google.common.base.Stopwatch;
@@ -24,33 +25,108 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface SensitivityFactor2 {
+public class SensitivityFactor2 {
 
-    Logger LOGGER = LoggerFactory.getLogger(SensitivityFactor2.class);
+    private static Logger LOGGER = LoggerFactory.getLogger(SensitivityFactor2.class);
 
-    SensitivityFactorType getType();
+    private final SensitivityFunctionType functionType;
+
+    private final String functionId;
+
+    private final SensitivityVariableType variableType;
+
+    private final String variableId;
+
+    private final boolean variableSet;
+
+    private final ContingencyContext contingencyContext;
+
+    public SensitivityFactor2(SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType,
+                              String variableId, boolean variableSet, ContingencyContext contingencyContext) {
+        this.functionType = Objects.requireNonNull(functionType);
+        this.functionId = Objects.requireNonNull(functionId);
+        this.variableType = Objects.requireNonNull(variableType);
+        this.variableId = Objects.requireNonNull(variableId);
+        this.variableSet = variableSet;
+        this.contingencyContext = Objects.requireNonNull(contingencyContext);
+    }
+
+    public SensitivityFunctionType getFunctionType() {
+        return functionType;
+    }
+
+    public String getFunctionId() {
+        return functionId;
+    }
+
+    public SensitivityVariableType getVariableType() {
+        return variableType;
+    }
+
+    public String getVariableId() {
+        return variableId;
+    }
+
+    public boolean isVariableSet() {
+        return variableSet;
+    }
+
+    public ContingencyContext getContingencyContext() {
+        return contingencyContext;
+    }
+
+    @Override
+    public String toString() {
+        return "SensitivityFactor(" +
+                "functionType=" + functionType +
+                ", functionId='" + functionId + '\'' +
+                ", variableType=" + variableType +
+                ", variableId='" + variableId + '\'' +
+                ", variableSet=" + variableSet +
+                ", contingencyContext=" + contingencyContext +
+                ')';
+    }
+
+    static void writeJson(JsonGenerator jsonGenerator, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType,
+                          String variableId, boolean variableSet, ContingencyContext contingencyContext) {
+        try {
+            jsonGenerator.writeStartObject();
+
+            jsonGenerator.writeStringField("functionType", functionType.name());
+            jsonGenerator.writeStringField("functionId", functionId);
+            jsonGenerator.writeStringField("variableType", variableType.name());
+            jsonGenerator.writeStringField("variableId", variableId);
+            jsonGenerator.writeBooleanField("variableSet", variableSet);
+            jsonGenerator.writeStringField("contingencyContextType", contingencyContext.getContextType().name());
+            if (contingencyContext.getContingencyId() != null) {
+                jsonGenerator.writeStringField("contingencyId", contingencyContext.getContingencyId());
+            }
+
+            jsonGenerator.writeEndObject();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
 
     static List<SensitivityFactor2> parseJson(Path jsonFile) {
         return JsonUtil.parseJson(jsonFile, SensitivityFactor2::parseJson);
     }
 
-    final class ParsingContext {
-        private SensitivityFactorType factorType;
+    static final class ParsingContext {
         private SensitivityFunctionType functionType;
         private String functionId;
         private SensitivityVariableType variableType;
         private String variableId;
-        private List<WeightedSensitivityVariable> variables;
+        private Boolean variableSet;
         private ContingencyContextType contingencyContextType;
         private String contingencyId;
 
         private void reset() {
-            factorType = null;
             functionType = null;
             functionId = null;
             variableType = null;
             variableId = null;
-            variables = null;
+            variableSet = null;
             contingencyContextType = null;
             contingencyId = null;
         }
@@ -69,9 +145,6 @@ public interface SensitivityFactor2 {
                 if (token == JsonToken.FIELD_NAME) {
                     String fieldName = parser.getCurrentName();
                     switch (fieldName) {
-                        case "factorType":
-                            context.factorType = SensitivityFactorType.valueOf(parser.nextTextValue());
-                            break;
                         case "functionType":
                             context.functionType = SensitivityFunctionType.valueOf(parser.nextTextValue());
                             break;
@@ -84,8 +157,8 @@ public interface SensitivityFactor2 {
                         case "variableId":
                             context.variableId = parser.nextTextValue();
                             break;
-                        case "variables":
-                            context.variables = WeightedSensitivityVariable.parseJson(parser);
+                        case "variableSet":
+                            context.variableSet = parser.nextBooleanValue();
                             break;
                         case "contingencyContextType":
                             context.contingencyContextType = ContingencyContextType.valueOf(parser.nextTextValue());
@@ -97,18 +170,8 @@ public interface SensitivityFactor2 {
                             break;
                     }
                 } else if (token == JsonToken.END_OBJECT) {
-                    switch (Objects.requireNonNull(context.factorType)) {
-                        case SIMPLE:
-                            factors.add(new SimpleSensitivityFactor(context.functionType, context.functionId, context.variableType, context.variableId,
-                                    new ContingencyContext(context.contingencyContextType, context.contingencyId)));
-                            break;
-                        case MULTIPLE_VARIABLES:
-                            factors.add(new MultipleVariablesSensitivityFactor(context.functionType, context.functionId, context.variableType, context.variableId,
-                                    context.variables, new ContingencyContext(context.contingencyContextType, context.contingencyId)));
-                            break;
-                        default:
-                            throw new IllegalStateException("Unexpected factor type: " + context.factorType);
-                    }
+                    factors.add(new SensitivityFactor2(context.functionType, context.functionId, context.variableType, context.variableId, context.variableSet,
+                            new ContingencyContext(context.contingencyContextType, context.contingencyId)));
                     context.reset();
                 } else if (token == JsonToken.END_ARRAY) {
                     break;

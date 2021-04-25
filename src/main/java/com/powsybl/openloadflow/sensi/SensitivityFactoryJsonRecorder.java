@@ -11,7 +11,6 @@ import com.powsybl.commons.json.JsonUtil;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -35,18 +34,9 @@ public class SensitivityFactoryJsonRecorder implements SensitivityFactorReader {
             try {
                 jsonGenerator.writeStartArray();
 
-                delegate.read(new Handler() {
-                    @Override
-                    public void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, ContingencyContext contingencyContext) {
-                        SimpleSensitivityFactor.writeJson(jsonGenerator, functionType, functionId, variableType, variableId, contingencyContext);
-                        handler.onSimpleFactor(factorContext, functionType, functionId, variableType, variableId, contingencyContext);
-                    }
-
-                    @Override
-                    public void onMultipleVariablesFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables, ContingencyContext contingencyContext) {
-                        MultipleVariablesSensitivityFactor.writeJson(jsonGenerator, functionType, functionId, variableType, variableId, variables, contingencyContext);
-                        handler.onMultipleVariablesFactor(factorContext, functionType, functionId, variableType, variableId, variables, contingencyContext);
-                    }
+                delegate.read((factorContext, functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
+                    SensitivityFactor2.writeJson(jsonGenerator, functionType, functionId, variableType, variableId, variableSet, contingencyContext);
+                    handler.onFactor(factorContext, functionType, functionId, variableType, variableId, variableSet, contingencyContext);
                 });
 
                 jsonGenerator.writeEndArray();

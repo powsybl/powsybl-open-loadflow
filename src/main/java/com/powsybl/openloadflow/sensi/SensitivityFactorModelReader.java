@@ -24,21 +24,8 @@ public class SensitivityFactorModelReader implements SensitivityFactorReader {
     public void read(Handler handler) {
         Objects.requireNonNull(handler);
         for (SensitivityFactor2 factor : factors) {
-            switch (factor.getType()) {
-                case SIMPLE:
-                    SimpleSensitivityFactor simpleFactor = (SimpleSensitivityFactor) factor;
-                    handler.onSimpleFactor(simpleFactor, simpleFactor.getFunctionType(), simpleFactor.getFunctionId(),
-                            simpleFactor.getVariableType(), simpleFactor.getVariableId(), simpleFactor.getContingencyContext());
-                    break;
-                case MULTIPLE_VARIABLES:
-                    MultipleVariablesSensitivityFactor multiVarFactor = (MultipleVariablesSensitivityFactor) factor;
-                    handler.onMultipleVariablesFactor(multiVarFactor, multiVarFactor.getFunctionType(), multiVarFactor.getFunctionId(),
-                            multiVarFactor.getVariableType(), multiVarFactor.getVariableId(), multiVarFactor.getVariables(),
-                            multiVarFactor.getContingencyContext());
-                    break;
-                default:
-                    throw new IllegalStateException("Factor type not supported: " + factor.getType());
-            }
+            handler.onFactor(factor, factor.getFunctionType(), factor.getFunctionId(), factor.getVariableType(),
+                    factor.getVariableId(), factor.isVariableSet(), factor.getContingencyContext());
         }
     }
 }
