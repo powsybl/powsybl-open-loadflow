@@ -51,7 +51,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
     private static final String NAME = "OpenSensitivityAnalysis";
 
-    private static final String DATE_TIME_FORMAT = "yyyy-dd-M--HH-mm-ss-SSS";
+    public static final String DATE_TIME_FORMAT = "yyyy-dd-M--HH-mm-ss-SSS";
 
     private final DcSensitivityAnalysis dcSensitivityAnalysis;
 
@@ -144,7 +144,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                                                             Reporter reporter) {
 
         Reporter sensiReporter = reporter.createSubReporter("sensitivityAnalysis",
-            "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
+                "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
 
@@ -240,7 +240,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }
     }
 
-    public void runDebug(DateTime date, SensitivityValueWriter valueWriter, Reporter reporter) {
+    public void replay(DateTime date, SensitivityValueWriter valueWriter, Reporter reporter) {
         Objects.requireNonNull(date);
         Objects.requireNonNull(valueWriter);
         Objects.requireNonNull(reporter);
@@ -278,5 +278,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         Network network = NetworkXml.read(debugDir.resolve("network-" + dateStr + ".xiidm"));
 
         run(network, contingencies, variableSets, sensitivityAnalysisParameters, new SensitivityFactorModelReader(factors), valueWriter, reporter);
+    }
+
+    public void replay(DateTime date, SensitivityValueWriter valueWriter) {
+        replay(date, valueWriter, Reporter.NO_OP);
     }
 }

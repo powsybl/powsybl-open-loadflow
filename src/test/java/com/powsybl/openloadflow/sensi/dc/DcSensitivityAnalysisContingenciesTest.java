@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.sensi.dc;
 
+import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Jimfs;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
@@ -16,7 +18,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
+import com.powsybl.openloadflow.sensi.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
@@ -26,8 +28,16 @@ import com.powsybl.sensitivity.factors.functions.BranchFlow;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
@@ -1513,5 +1523,91 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(1, result.getSensitivityValues().size());
         // sensitivity on an open branch is zero
         assertEquals(0, getValue(result, "g2", "l45"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testDebug() throws IOException {
+        Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
+        network.setCaseDate(DateTime.parse("2021-04-25T13:47:34.697+02:00"));
+        runDcLf(network);
+
+        try (FileSystem fileSystem = Jimfs.newFileSystem(Configuration.unix())) {
+            SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", false);
+            Path debugDir = fileSystem.getPath("/work");
+            OpenSensitivityAnalysisParameters sensiParametersExt = new OpenSensitivityAnalysisParameters()
+                    .setDebugDir(debugDir);
+            sensiParameters.addExtension(OpenSensitivityAnalysisParameters.class, sensiParametersExt);
+
+            List<Contingency> contingencies = List.of(new Contingency("l34", new BranchContingency("l34")));
+
+            List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk",
+                    List.of(new WeightedSensitivityVariable("g2", 25f),
+                            new WeightedSensitivityVariable("g6", 40f),
+                            new WeightedSensitivityVariable("d3", 35f))));
+
+            List<SensitivityFactor2> factors = List.of(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER,
+                    "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER, "glsk", true, ContingencyContext.createAllContingencyContext()));
+
+            SensitivityValueWriter valueWriter = new SensitivityValueWriter() {
+                @Override
+                public void write(Object factorContext, String contingencyId, int contingencyIndex, double value, double functionReference) {
+
+                }
+            };
+
+            sensiProvider.run(network, contingencies, variableSets, sensiParameters, factors, valueWriter);
+
+            Path contingenciesFile = null;
+            Path factorsFile = null;
+            Path networkFile = null;
+            Path parametersFile = null;
+            Path variableSetsFile = null;
+            PathMatcher contingenciesMatcher = fileSystem.getPathMatcher("glob:contingencies-*.json");
+            PathMatcher factorsMatcher = fileSystem.getPathMatcher("glob:factors-*.json");
+            PathMatcher networkMatcher = fileSystem.getPathMatcher("glob:network-*.xiidm");
+            PathMatcher parametersMatcher = fileSystem.getPathMatcher("glob:parameters-*.json");
+            PathMatcher variableSetsMatcher = fileSystem.getPathMatcher("glob:variable-sets-*.json");
+            for (Path path : Files.list(debugDir).collect(Collectors.toList())) {
+                if (contingenciesMatcher.matches(path.getFileName())) {
+                    contingenciesFile = path;
+                }
+                if (factorsMatcher.matches(path.getFileName())) {
+                    factorsFile = path;
+                }
+                if (networkMatcher.matches(path.getFileName())) {
+                    networkFile = path;
+                }
+                if (parametersMatcher.matches(path.getFileName())) {
+                    parametersFile = path;
+                }
+                if (variableSetsMatcher.matches(path.getFileName())) {
+                    variableSetsFile = path;
+                }
+            }
+            assertNotNull(contingenciesFile);
+            assertNotNull(factorsFile);
+            assertNotNull(networkFile);
+            assertNotNull(parametersFile);
+            assertNotNull(variableSetsFile);
+            try (InputStream is = Files.newInputStream(contingenciesFile)) {
+                compareTxt(getClass().getResourceAsStream("/debug-contingencies.json"), is);
+            }
+            try (InputStream is = Files.newInputStream(factorsFile)) {
+                compareTxt(getClass().getResourceAsStream("/debug-factors.json"), is);
+            }
+            try (InputStream is = Files.newInputStream(networkFile)) {
+                compareTxt(getClass().getResourceAsStream("/debug-network.xiidm"), is);
+            }
+            try (InputStream is = Files.newInputStream(parametersFile)) {
+                compareTxt(getClass().getResourceAsStream("/debug-parameters.json"), is);
+            }
+            try (InputStream is = Files.newInputStream(variableSetsFile)) {
+                compareTxt(getClass().getResourceAsStream("/debug-variable-sets.json"), is);
+            }
+
+            String dateStr = contingenciesFile.getFileName().toString().substring(14, 37);
+            DateTime date = DateTime.parse(dateStr, DateTimeFormat.forPattern(OpenSensitivityAnalysisProvider.DATE_TIME_FORMAT));
+//            sensiProvider.replay(date, valueWriter);
+        }
     }
 }

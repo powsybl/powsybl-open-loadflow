@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.commons.AbstractConverterTest;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.local.LocalComputationManager;
@@ -41,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractSensitivityAnalysisTest {
+public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterTest {
 
     protected final DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
 
