@@ -40,6 +40,14 @@ public class WeightedSensitivityVariable {
         return weight;
     }
 
+    @Override
+    public String toString() {
+        return "WeightedSensitivityVariable(" +
+                "id='" + id + '\'' +
+                ", weight=" + weight +
+                ')';
+    }
+
     private static final class ParsingContext {
 
         private String id;
