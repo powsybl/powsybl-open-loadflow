@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class SensitivityFactor2 {
 
-    private static Logger LOGGER = LoggerFactory.getLogger(SensitivityFactor2.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SensitivityFactor2.class);
 
     private final SensitivityFunctionType functionType;
 
