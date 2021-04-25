@@ -34,8 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static com.powsybl.openloadflow.util.ParameterConstants.*;
-import static org.junit.Assert.*;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Jérémy Labous <jlabous at silicom.fr>
