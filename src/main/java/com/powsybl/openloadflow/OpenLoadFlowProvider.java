@@ -145,11 +145,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Load power factor constant: {}", parametersExt.isLoadPowerFactorConstant());
         LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
         LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
+        LOGGER.info("Slack bus Pmax mismatch: {}", parametersExt.getSlackBusPMaxMismatch());
 
         List<OuterLoop> outerLoops = new ArrayList<>();
         if (parameters.isDistributedSlack()) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant());
-            outerLoops.add(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure()));
+            outerLoops.add(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), parametersExt.getSlackBusPMaxMismatch()));
         }
         if (parameters.isPhaseShifterRegulationOn()) {
             outerLoops.add(new PhaseControlOuterLoop());
