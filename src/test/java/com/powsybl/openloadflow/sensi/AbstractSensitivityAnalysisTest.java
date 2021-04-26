@@ -373,7 +373,7 @@ public abstract class AbstractSensitivityAnalysisTest {
             @Override
             public void read(Handler handler) {
                 for (Pair<String, String> variableFunction : variableAndFunction) {
-                    ContingencyContext contingencyContext = new ContingencyContext(ContingencyContextType.NONE, null);
+                    ContingencyContext contingencyContext = new ContingencyContext(ContingencyContextType.ALL, null);
                     handler.onMultipleVariablesFactor(variableFunction, SensitivityFunctionType.BRANCH_ACTIVE_POWER, variableFunction.getValue(),
                         SensitivityVariableType.HVDC_INJECTION, variableFunction.getKey(), Collections.emptyList(), contingencyContext);
                 }
@@ -401,8 +401,6 @@ public abstract class AbstractSensitivityAnalysisTest {
         }
 
         public Double getSensitivityValue(Pair<String, String> factor, String contingencyId) {
-            System.out.println(sensitivityValuesByContingency.get(contingencyId));
-            System.out.println(sensitivityValuesByContingency.get(contingencyId).get(factor));
             return sensitivityValuesByContingency.get(contingencyId).get(factor).getValue();
         }
 
