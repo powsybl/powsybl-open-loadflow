@@ -46,7 +46,7 @@ public class SensitivityVariableSet {
                 ')';
     }
 
-    static void writeJson(JsonGenerator jsonGenerator, SensitivityVariableSet variableSet) {
+    public static void writeJson(JsonGenerator jsonGenerator, SensitivityVariableSet variableSet) {
         try {
             jsonGenerator.writeStartObject();
 
@@ -67,7 +67,7 @@ public class SensitivityVariableSet {
         }
     }
 
-    static SensitivityVariableSet parseJson(JsonParser parser) {
+    public static SensitivityVariableSet parseJson(JsonParser parser) {
         Objects.requireNonNull(parser);
         try {
             String id = null;
