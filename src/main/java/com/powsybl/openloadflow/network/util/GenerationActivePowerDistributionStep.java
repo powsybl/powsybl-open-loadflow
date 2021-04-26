@@ -20,9 +20,20 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class GenerationActionPowerDistributionStep implements ActivePowerDistribution.Step {
+public class GenerationActivePowerDistributionStep implements ActivePowerDistribution.Step {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GenerationActionPowerDistributionStep.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(GenerationActivePowerDistributionStep.class);
+
+    public enum ParticipationType {
+        MAX,
+        TARGET
+    }
+
+    private ParticipationType participationType;
+
+    public GenerationActivePowerDistributionStep(ParticipationType pParticipationType) {
+        this.participationType = pParticipationType;
+    }
 
     @Override
     public String getElementType() {
@@ -34,8 +45,8 @@ public class GenerationActionPowerDistributionStep implements ActivePowerDistrib
         return buses.stream()
                 .filter(bus -> !(bus.isDisabled() || bus.isFictitious()))
                 .flatMap(bus -> bus.getGenerators().stream())
-                .filter(generator -> generator.isParticipating() && generator.getParticipationFactor() != 0)
-                .map(generator -> new ParticipatingElement(generator, generator.getParticipationFactor()))
+                .filter(generator -> generator.isParticipating() && getParticipationFactor(generator) != 0)
+                .map(generator -> new ParticipatingElement(generator, getParticipationFactor(generator)))
                 .collect(Collectors.toList());
     }
 
@@ -91,5 +102,20 @@ public class GenerationActionPowerDistributionStep implements ActivePowerDistrib
                 generatorsAtMax, generatorsAtMin);
 
         return done;
+    }
+
+    private double getParticipationFactor(LfGenerator generator) {
+        double factor;
+        switch (participationType) {
+            case MAX:
+                factor = generator.getMaxP() / generator.getDroop();
+                break;
+            case TARGET:
+                factor = generator.getTargetP();
+                break;
+            default:
+                throw new UnsupportedOperationException("Unknown balance type mode: " + participationType);
+        }
+        return factor;
     }
 }
