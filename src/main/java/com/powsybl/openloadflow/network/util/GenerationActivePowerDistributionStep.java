@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class GenerationActionPowerDistributionStep implements ActivePowerDistribution.Step {
+public class GenerationActivePowerDistributionStep implements ActivePowerDistribution.Step {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GenerationActionPowerDistributionStep.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(GenerationActivePowerDistributionStep.class);
 
     public enum ParticipationType {
         MAX,
@@ -31,7 +31,7 @@ public class GenerationActionPowerDistributionStep implements ActivePowerDistrib
 
     private ParticipationType participationType;
 
-    public GenerationActionPowerDistributionStep(ParticipationType pParticipationType) {
+    public GenerationActivePowerDistributionStep(ParticipationType pParticipationType) {
         this.participationType = pParticipationType;
     }
 
