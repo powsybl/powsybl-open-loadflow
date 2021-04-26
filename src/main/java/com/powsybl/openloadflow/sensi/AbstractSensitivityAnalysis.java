@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -598,27 +599,17 @@ public abstract class AbstractSensitivityAnalysis {
 
     public void checkContingencies(Network network, LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
         for (PropagatedContingency contingency : contingencies) {
-            for (String branchId : contingency.getBranchIdsToOpen()) {
-                LfBranch lfBranch = lfNetwork.getBranchById(branchId);
-                if (lfBranch == null) {
-                    throw new PowsyblException("The contingency on the branch " + branchId + " not found in the network");
-                }
-            }
-            for (String hvdcId : contingency.getHvdcIdsToOpen()) {
-                HvdcLine hvdcLine = network.getHvdcLine(hvdcId);
-                if (hvdcLine == null) {
-                    throw new PowsyblException("The DC line '" + hvdcId + "' does not exist in the network");
-                }
-            }
+            // Elements have already been checked and found in PropagatedContingency, so there is no need to
+            // check them again
             Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
             for (String branchId : contingency.getBranchIdsToOpen()) {
                 LfBranch lfBranch = lfNetwork.getBranchById(branchId);
                 if (lfBranch == null) {
-                    branchesToRemove.add(branchId); // this is certainly a switch
+                    branchesToRemove.add(branchId); // disconnected branch
                     continue;
                 }
                 if (lfBranch.getBus2() == null || lfBranch.getBus1() == null) {
-                    branchesToRemove.add(branchId); // contains the branches that are connected only on one side
+                    branchesToRemove.add(branchId); // branch connected only on one side
                 }
             }
             contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
@@ -690,17 +681,55 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    public List<LfSensitivityFactor> readAndCheckFactors(Network network, SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
-        final List<LfSensitivityFactor> lfFactors = new ArrayList<>();
+    class SensitivityFactorHolder {
+        private final Map<String, List<LfSensitivityFactor>> additionalFactorsPerContingency = new HashMap<>();
+        private final List<LfSensitivityFactor> additionalFactorsNoContingency = new ArrayList<>();
+        private final List<LfSensitivityFactor> commonFactors = new ArrayList<>();
+
+        public List<LfSensitivityFactor> getAllFactors() {
+            List<LfSensitivityFactor> allFactors = new ArrayList<>(commonFactors);
+            allFactors.addAll(additionalFactorsNoContingency);
+            allFactors.addAll(additionalFactorsPerContingency.values().stream().flatMap(List::stream).collect(Collectors.toSet()));
+            return allFactors;
+        }
+
+        public List<LfSensitivityFactor> getFactorsForContingency(String contingencyId) {
+            return Stream.concat(commonFactors.stream(), additionalFactorsPerContingency.getOrDefault(contingencyId, Collections.emptyList()).stream())
+                .collect(Collectors.toList());
+        }
+
+        public List<LfSensitivityFactor> getFactorsForBaseNetwork() {
+            return Stream.concat(commonFactors.stream(), additionalFactorsNoContingency.stream())
+                .collect(Collectors.toList());
+        }
+
+        public void addFactor(LfSensitivityFactor factor, SensitivityFactorReader.ContingencyContext contingencyContext) {
+            switch (contingencyContext.getContextType()) {
+                case ALL:
+                    commonFactors.add(factor);
+                    break;
+                case NONE:
+                    additionalFactorsNoContingency.add(factor);
+                    break;
+                case SPECIFIC:
+                    additionalFactorsPerContingency.computeIfAbsent(contingencyContext.getContingencyId(), k -> new ArrayList<>()).add(factor);
+                    break;
+            }
+        }
+    }
+
+    public SensitivityFactorHolder readAndCheckFactors(Network network, SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
+        final SensitivityFactorHolder factorHolder = new SensitivityFactorHolder();
 
         factorReader.read(new SensitivityFactorReader.Handler() {
             @Override
-            public void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId) {
+            public void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, SensitivityFactorReader.ContingencyContext contingencyContext) {
                 LfElement functionElement;
                 LfElement variableElement;
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER) {
                     checkBranch(network, functionId);
-                    functionElement = lfNetwork.getBranchById(functionId);
+                    LfBranch branch = lfNetwork.getBranchById(functionId);
+                    functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                     if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
                         Bus injectionBus = getInjectionBus(network, variableId);
                         variableElement = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
@@ -712,7 +741,8 @@ public abstract class AbstractSensitivityAnalysis {
                     }
                 } else if (functionType == SensitivityFunctionType.BRANCH_CURRENT) {
                     checkBranch(network, functionId);
-                    functionElement = lfNetwork.getBranchById(functionId);
+                    LfBranch branch = lfNetwork.getBranchById(functionId);
+                    functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                     if (variableType == SensitivityVariableType.TRANSFORMER_PHASE) {
                         checkPhaseShifter(network, variableId);
                         variableElement = lfNetwork.getBranchById(variableId);
@@ -733,14 +763,15 @@ public abstract class AbstractSensitivityAnalysis {
                 } else {
                     throw new PowsyblException("Function type " + functionType + " not supported");
                 }
-                lfFactors.add(new SingleVariableLfSensitivityFactor(factorContext, variableId,
+                factorHolder.addFactor(new SingleVariableLfSensitivityFactor(factorContext, variableId,
                     functionElement, functionType,
-                    variableElement, variableType));
+                    variableElement, variableType), contingencyContext);
             }
 
             @Override
             public void onMultipleVariablesFactor(Object factorContext, SensitivityFunctionType functionType, String functionId,
-                                                  SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables) {
+                                                  SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables,
+                                                  SensitivityFactorReader.ContingencyContext contingencyContext) {
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER) {
                     checkBranch(network, functionId);
                     LfBranch functionElement = lfNetwork.getBranchById(functionId);
@@ -761,35 +792,36 @@ public abstract class AbstractSensitivityAnalysis {
                                 LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
                             }
                         }
-                        lfFactors.add(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
-                            functionElement, functionType,
-                            injectionLfBuses, variableType));
+                        factorHolder.addFactor(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
+                                functionElement, functionType,
+                                injectionLfBuses, variableType), contingencyContext);
+
                     } else if (variableType == SensitivityVariableType.HVDC_INJECTION) {
                         // corresponds to an augmentation of 1 on the active power setpoint
-                        Map<LfElement, Double> buses = new HashMap<>();
+                        Map<LfElement, Double> injectionLfBuses = new HashMap<>();
                         HvdcLine hvdcLine = network.getHvdcLine(variableId);
                         if (hvdcLine == null) {
                             throw new PowsyblException("HVDC line '" + variableId + "' cannot be found in the network.");
                         }
-                        LfBus busSide1 = lfNetwork.getBusById(hvdcLine.getConverterStation1().getTerminal().getBusView().getBus().getId());
-                        LfBus busSide2 = lfNetwork.getBusById(hvdcLine.getConverterStation2().getTerminal().getBusView().getBus().getId());
+                        LfBus bus1 = lfNetwork.getBusById(hvdcLine.getConverterStation1().getTerminal().getBusView().getBus().getId());
+                        LfBus bus2 = lfNetwork.getBusById(hvdcLine.getConverterStation2().getTerminal().getBusView().getBus().getId());
 
-                        if (busSide1 != null) {
+                        if (bus1 != null) {
                             // VSC injection follow here a load sign convention as LCC injection.
                             // FIXME: for LCC, Q changes when P changes
-                            buses.put(busSide1, (hvdcLine.getConverterStation1() instanceof VscConverterStation ? -1 : 1)
+                            injectionLfBuses.put(bus1, (hvdcLine.getConverterStation1() instanceof VscConverterStation ? -1 : 1)
                                     * HvdcConverterStations.getActiveSetpointMultiplier(hvdcLine.getConverterStation1()));
                         }
-                        if (busSide2 != null) {
+                        if (bus2 != null) {
                             // VSC injection follow here a load sign convention as LCC injection.
                             // FIXME: for LCC, Q changes when P changes
-                            buses.put(busSide2, (hvdcLine.getConverterStation2() instanceof VscConverterStation ? -1 : 1)
+                            injectionLfBuses.put(bus2, (hvdcLine.getConverterStation2() instanceof VscConverterStation ? -1 : 1)
                                     * HvdcConverterStations.getActiveSetpointMultiplier(hvdcLine.getConverterStation2()));
                         }
 
-                        lfFactors.add(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
-                            functionElement, functionType,
-                            buses, variableType));
+                        factorHolder.addFactor(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
+                                functionElement, functionType,
+                                injectionLfBuses, variableType), contingencyContext);
                     } else {
                         throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
                     }
@@ -798,6 +830,6 @@ public abstract class AbstractSensitivityAnalysis {
                 }
             }
         });
-        return lfFactors;
+        return factorHolder;
     }
 }

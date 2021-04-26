@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.util;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
@@ -62,11 +63,16 @@ public class PropagatedContingency {
             for (ContingencyElement element : contingency.getElements()) {
                 switch (element.getType()) {
                     case BRANCH:
-                        propagatedContingency.getBranchIdsToOpen().add(element.getId());
+                        // branch check is done inside branch tripping
                         new BranchTripping(element.getId(), null)
                             .traverse(network, null, switchesToOpen, terminalsToDisconnect);
+                        propagatedContingency.getBranchIdsToOpen().add(element.getId());
                         break;
                     case HVDC_LINE:
+                        HvdcLine hvdcLine = network.getHvdcLine(element.getId());
+                        if (hvdcLine == null) {
+                            throw new PowsyblException("HVDC line '" + element.getId() + "' not found");
+                        }
                         propagatedContingency.getHvdcIdsToOpen().add(element.getId());
                         break;
                     default:

@@ -27,18 +27,16 @@ public class DistributedSlackOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOuterLoop.class);
 
-    /**
-     * Slack bus maximum active power mismatch: 10^-2 in p.u => 1 Mw
-     */
-    private static final double SLACK_BUS_P_MAX_MISMATCH = Math.pow(10, -2);
+    private final double slackBusPMaxMismatch;
 
     private final ActivePowerDistribution activePowerDistribution;
 
     private final boolean throwsExceptionInCaseOfFailure;
 
-    public DistributedSlackOuterLoop(ActivePowerDistribution activePowerDistribution, boolean throwsExceptionInCaseOfFailure) {
+    public DistributedSlackOuterLoop(ActivePowerDistribution activePowerDistribution, boolean throwsExceptionInCaseOfFailure, double slackBusPMaxMismatch) {
         this.activePowerDistribution = Objects.requireNonNull(activePowerDistribution);
         this.throwsExceptionInCaseOfFailure = throwsExceptionInCaseOfFailure;
+        this.slackBusPMaxMismatch = slackBusPMaxMismatch;
     }
 
     @Override
@@ -49,7 +47,7 @@ public class DistributedSlackOuterLoop implements OuterLoop {
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         double slackBusActivePowerMismatch = context.getLastNewtonRaphsonResult().getSlackBusActivePowerMismatch();
-        if (Math.abs(slackBusActivePowerMismatch) > SLACK_BUS_P_MAX_MISMATCH) {
+        if (Math.abs(slackBusActivePowerMismatch) > slackBusPMaxMismatch / PerUnit.SB) {
 
             ActivePowerDistribution.Result result = activePowerDistribution.run(context.getNetwork(), slackBusActivePowerMismatch);
 

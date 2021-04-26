@@ -13,11 +13,47 @@ import java.util.List;
  */
 public interface SensitivityFactorReader {
 
+    enum ContingencyContextType {
+        ALL,
+        NONE,
+        SPECIFIC,
+    }
+
+    class ContingencyContext {
+        private final String contingencyId;
+        private final ContingencyContextType contextType;
+
+        ContingencyContext(ContingencyContextType contingencyContextType, String contingencyId) {
+            this.contextType = contingencyContextType;
+            this.contingencyId = contingencyId;
+        }
+
+        String getContingencyId() {
+            return contingencyId;
+        }
+
+        ContingencyContextType getContextType() {
+            return contextType;
+        }
+
+        public static ContingencyContext createAllContingencyContext() {
+            return new ContingencyContext(ContingencyContextType.ALL, null);
+        }
+
+        public static ContingencyContext createNoneContingencyContext() {
+            return new ContingencyContext(ContingencyContextType.NONE, null);
+        }
+
+        public static ContingencyContext createSpecificContingencyContext(String contingencyId) {
+            return new ContingencyContext(ContingencyContextType.SPECIFIC, contingencyId);
+        }
+    }
+
     interface Handler {
 
-        void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId);
+        void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, ContingencyContext contingencyContext);
 
-        void onMultipleVariablesFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables);
+        void onMultipleVariablesFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables, ContingencyContext contingencyContext);
     }
 
     void read(Handler handler);
