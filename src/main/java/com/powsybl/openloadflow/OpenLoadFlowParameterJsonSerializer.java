@@ -26,7 +26,7 @@ public class OpenLoadFlowParameterJsonSerializer implements JsonLoadFlowParamete
 
     @Override
     public String getExtensionName() {
-        return "open-loadFlow-parameters";
+        return "open-load-flow-parameters";
     }
 
     @Override

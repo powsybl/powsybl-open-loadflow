@@ -48,7 +48,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     @Override
     public String getName() {
-        return "open-loadFlow-parameters";
+        return "open-load-flow-parameters";
     }
 
     public SlackBusSelectionMode getSlackBusSelectionMode() {
@@ -190,7 +190,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         @Override
         public String getExtensionName() {
-            return "open-loadFlow-parameters";
+            return "open-load-flow-parameters";
         }
 
         @Override

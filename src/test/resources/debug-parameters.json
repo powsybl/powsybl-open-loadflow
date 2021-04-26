@@ -14,7 +14,7 @@
     "distributedSlack" : false,
     "balanceType" : "PROPORTIONAL_TO_GENERATION_P_MAX",
     "extensions" : {
-      "open-loadFlow-parameters" : {
+      "open-load-flow-parameters" : {
         "slackBusSelectionMode" : "NAME",
         "slackBusId" : "b1_vl_0",
         "throwsExceptionInCaseOfSlackDistributionFailure" : false,
