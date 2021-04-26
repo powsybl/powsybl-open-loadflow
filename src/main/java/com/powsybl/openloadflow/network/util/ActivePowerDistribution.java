@@ -97,10 +97,11 @@ public final class ActivePowerDistribution {
                 step = new LoadActivePowerDistributionStep(true, loadPowerFactorConstant);
                 break;
             case PROPORTIONAL_TO_GENERATION_P_MAX:
-                step = new GenerationActionPowerDistributionStep();
+                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.MAX);
                 break;
-            case PROPORTIONAL_TO_GENERATION_P: // to be implemented.
-                throw new UnsupportedOperationException("Unsupported balance type mode: " + balanceType);
+            case PROPORTIONAL_TO_GENERATION_P:
+                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.TARGET);
+                break;
             default:
                 throw new UnsupportedOperationException("Unknown balance type mode: " + balanceType);
         }
