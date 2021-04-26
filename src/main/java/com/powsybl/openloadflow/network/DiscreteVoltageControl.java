@@ -17,7 +17,8 @@ import java.util.Objects;
 public class DiscreteVoltageControl {
 
     public enum Mode {
-        VOLTAGE,
+        VOLTAGE_SHUNT,
+        VOLTAGE_TRANSFORMER,
         OFF
     }
 
@@ -25,7 +26,9 @@ public class DiscreteVoltageControl {
 
     private final LfBus controlled;
 
-    protected final List<LfBranch> controllers = new ArrayList<>();
+    protected final List<LfBranch> controllerBranches = new ArrayList<>();
+
+    protected final List<LfBus> controllerBuses = new ArrayList<>();
 
     private final double targetValue;
 
@@ -54,13 +57,24 @@ public class DiscreteVoltageControl {
         return targetValue;
     }
 
-    public List<LfBranch> getControllers() {
-        return controllers;
+    public List<LfBranch> getControllerBranches() {
+        return controllerBranches;
     }
 
-    public void addController(LfBranch controllerBranch) {
+    public List<LfBus> getControllerBuses() {
+        return controllerBuses;
+    }
+
+    public void addControllerBranch(LfBranch controllerBranch) {
         Objects.requireNonNull(controllerBranch);
-        controllers.add(controllerBranch);
+        controllerBranches.add(controllerBranch);
+    }
+
+    public void addControllerBus(LfBus controllerBus) {
+        Objects.requireNonNull(controllerBus);
+        if (!controllerBuses.contains(controllerBus)) {
+            controllerBuses.add(controllerBus);
+        }
     }
 
     public LfBus getControlled() {

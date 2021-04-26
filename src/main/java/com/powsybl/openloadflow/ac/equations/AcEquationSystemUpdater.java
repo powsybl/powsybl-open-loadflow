@@ -92,19 +92,39 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     @Override
     public void onVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode) {
         if (newMode == DiscreteVoltageControl.Mode.OFF) {
-            LfBus bus = voltageControl.getControlled();
+            if (oldMode == DiscreteVoltageControl.Mode.VOLTAGE_TRANSFORMER) {
+                LfBus bus = voltageControl.getControlled();
 
-            // de-activate transformer voltage control equation
-            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V)
-                    .setActive(false);
+                // de-activate transformer voltage control equation
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V)
+                        .setActive(false);
 
-            for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
-                // activate constant R1 equation
-                equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
-                        .setActive(true);
+                for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllerBranches()) {
+                    // activate constant R1 equation
+                    equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
+                            .setActive(true);
 
-                // clean transformer distribution equations
-                equationSystem.removeEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1);
+                    // clean transformer distribution equations
+                    equationSystem.removeEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1);
+                }
+            } else if (oldMode == DiscreteVoltageControl.Mode.VOLTAGE_SHUNT) {
+                LfBus bus = voltageControl.getControlled();
+
+                // de-activate transformer voltage control equation
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V)
+                        .setActive(false);
+
+                for (LfBus controllerBus : bus.getDiscreteVoltageControl().getControllerBuses()) {
+                    List<LfShunt> controllerShunts = controllerBus.getControllerShunts();
+                    LfShunt firstControllerShunt = controllerShunts.get(0);
+                    // activate constant B equation
+                    equationSystem.createEquation(firstControllerShunt.getNum(), EquationType.SHUNT_B)
+                            .setActive(true);
+                    controllerBus.disableShuntControllers();
+                    // TODO: clean shunt distribution equations in case of remote control.
+                }
+            } else {
+                throw new UnsupportedOperationException("Not supported mode");
             }
         } else {
             throw new UnsupportedOperationException("TODO");

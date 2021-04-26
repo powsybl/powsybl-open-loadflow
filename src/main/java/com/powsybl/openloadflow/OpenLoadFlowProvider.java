@@ -19,10 +19,7 @@ import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.loadflow.resultscompletion.z0flows.Z0FlowsCompletion;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.ac.DistributedSlackOuterLoop;
-import com.powsybl.openloadflow.ac.PhaseControlOuterLoop;
-import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
-import com.powsybl.openloadflow.ac.TransformerVoltageControlOuterLoop;
+import com.powsybl.openloadflow.ac.*;
 import com.powsybl.openloadflow.ac.nr.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
@@ -142,6 +139,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
         LOGGER.info("Direct current: {}", parameters.isDc());
         LOGGER.info("Transformer voltage control: {}", parameters.isTransformerVoltageControlOn());
+        LOGGER.info("Shunt voltage control: {}", parameters.isSimulShunt());
         LOGGER.info("Load power factor constant: {}", parametersExt.isLoadPowerFactorConstant());
         LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
         LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
@@ -164,6 +162,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("Outer loops: {}", outerLoops.stream().map(OuterLoop::getType).collect(Collectors.toList()));
         }
+        if (parameters.isSimulShunt()) {
+            outerLoops.add(new ShuntVoltageControlOuterLoop());
+        }
 
         return new AcLoadFlowParameters(slackBusSelector,
                                         voltageInitializer,
@@ -172,6 +173,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                         parametersExt.hasVoltageRemoteControl(),
                                         parameters.isPhaseShifterRegulationOn(),
                                         parameters.isTransformerVoltageControlOn(),
+                                        parameters.isSimulShunt(),
                                         parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
                                         parameters.isTwtSplitShuntAdmittance(),
                                         breakers,

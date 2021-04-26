@@ -189,6 +189,10 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 targets[column] = 0;
                 break;
 
+            case SHUNT_B:
+                targets[column] = network.getShunt(num).getB();
+                break;
+
             case BRANCH_P:
                 targets[column] = getBranchTarget(network.getBranch(num), DiscretePhaseControl.Unit.MW);
                 break;
@@ -310,12 +314,18 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
             case BRANCH_P:
             case BRANCH_I:
+            case BRANCH_RHO1:
+            case BRANCH_ALPHA1:
                 LfBranch branch = equationSystem.getNetwork().getBranch(num);
                 builder.append(", branchId=").append(branch.getId());
                 break;
             case ZERO_Q:
                 LfBus controllerBus = equationSystem.getNetwork().getBus(num);
                 builder.append(", controllerBusId=").append(controllerBus.getId());
+                break;
+            case SHUNT_B:
+                LfShunt shunt = equationSystem.getNetwork().getShunt(num);
+                builder.append(", shuntId=").append(shunt.getId());
                 break;
             case ZERO_V:
             case ZERO_PHI:

@@ -40,9 +40,9 @@ public final class AcEquationSystem {
 
             bus.getVoltageControl().ifPresent(vc -> createVoltageControlEquations(vc, bus, variableSet, equationSystem, creationParameters));
 
-            createShuntEquations(variableSet, equationSystem, bus);
+            createShuntEquations(variableSet, equationSystem, bus, creationParameters);
 
-            if (creationParameters.isTransformerVoltageControl()) {
+            if (creationParameters.isTransformerVoltageControl() || creationParameters.isShuntVoltageControl()) {
                 createDiscreteVoltageControlEquation(bus, variableSet, equationSystem);
             }
             Equation v = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
@@ -72,11 +72,32 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus) {
-        for (LfShunt shunt : bus.getShunts()) {
-            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet);
-            equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
-            shunt.setQ(q);
+    private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus,
+                                             AcEquationSystemCreationParameters creationParameters) {
+        List<LfShunt> controllerShunts = bus.getControllerShunts();
+        if (controllerShunts.isEmpty()) {
+            for (LfShunt shunt : bus.getShunts()) {
+                ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, false);
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
+                shunt.setQ(q);
+            }
+        } else if (creationParameters.isShuntVoltageControl() && bus.getDiscreteVoltageControl() != null
+                && bus.getDiscreteVoltageControl().getControllerBuses().contains(bus)) {
+            // at least one shunt is controlling voltage
+            // B variable is only activated on the first controller shunt
+            // on the other controller shunts, B is set to zero
+            // local control only
+            LfShunt firstControllerShunt = controllerShunts.get(0);
+            ShuntCompensatorReactiveFlowEquationTerm q0 = new ShuntCompensatorReactiveFlowEquationTerm(firstControllerShunt, bus, variableSet, true);
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q0);
+            firstControllerShunt.setQ(q0);
+
+            controllerShunts.stream().skip(1).forEach(lfShunt -> lfShunt.setB(0));
+            bus.getShunts().stream().filter(shunt -> shunt != firstControllerShunt).forEach(shunt -> {
+                ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, false);
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).addTerm(q);
+                shunt.setQ(q);
+            });
         }
     }
 
@@ -128,7 +149,8 @@ public final class AcEquationSystem {
             terms.add(q);
         }
         for (LfShunt shunt : controllerBus.getShunts()) {
-            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, variableSet);
+            //TODO: ask for clarifications
+            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, variableSet, false);
             terms.add(q);
         }
         return terms;
@@ -262,20 +284,28 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createDiscreteVoltageControlEquation(LfBus bus,  VariableSet variableSet, EquationSystem equationSystem) {
+    private static void createDiscreteVoltageControlEquation(LfBus bus, VariableSet variableSet, EquationSystem equationSystem) {
         if (bus.isDiscreteVoltageControlled()) {
             EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
             bus.setV(vTerm);
-            if (bus.getDiscreteVoltageControl().getControllers().size() > 1) {
-                createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
+            if (bus.getDiscreteVoltageControl().getControllerBranches().size() > 1) {
+                createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllerBranches());
             }
 
-            for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
+            for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllerBranches()) {
                 // we also create an equation that will be used later to maintain R1 variable constant
                 // this equation is now inactive
                 equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
                         .addTerm(EquationTerm.createVariableTerm(controllerBranch, VariableType.BRANCH_RHO1, variableSet))
+                        .setActive(false);
+            }
+            for (LfBus controllerBus : bus.getDiscreteVoltageControl().getControllerBuses()) {
+                // we also create an equation that will be used later to maintain B variable constant
+                // this equation is now inactive
+                List<LfShunt> controllerShunts = controllerBus.getControllerShunts();
+                equationSystem.createEquation(controllerShunts.get(0).getNum(), EquationType.SHUNT_B)
+                        .addTerm(EquationTerm.createVariableTerm(controllerShunts.get(0), VariableType.SHUNT_B, variableSet))
                         .setActive(false);
             }
         }
@@ -422,7 +452,7 @@ public final class AcEquationSystem {
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet) {
-        return create(network, variableSet, new AcEquationSystemCreationParameters(false, false));
+        return create(network, variableSet, new AcEquationSystemCreationParameters(false, false, false));
     }
 
     public static EquationSystem create(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {

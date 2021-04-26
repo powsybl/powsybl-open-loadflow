@@ -36,6 +36,8 @@ public class AcLoadFlowParameters {
 
     private final boolean transformerVoltageControlOn;
 
+    private final boolean shuntVoltageControlOn;
+
     private final boolean minImpedance;
 
     private final boolean twtSplitShuntAdmittance;
@@ -53,8 +55,8 @@ public class AcLoadFlowParameters {
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
                                 MatrixFactory matrixFactory, boolean voltageRemoteControl,
-                                boolean phaseControl, boolean transformerVoltageControlOn, boolean minImpedance,
-                                boolean twtSplitShuntAdmittance, boolean breakers, double plausibleActivePowerLimit,
+                                boolean phaseControl, boolean transformerVoltageControlOn, boolean shuntVoltageControlOn,
+                                boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers, double plausibleActivePowerLimit,
                                 boolean forceA1Var, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                 Set<String> branchesWithCurrent) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
@@ -65,6 +67,7 @@ public class AcLoadFlowParameters {
         this.voltageRemoteControl = voltageRemoteControl;
         this.phaseControl = phaseControl;
         this.transformerVoltageControlOn = transformerVoltageControlOn;
+        this.shuntVoltageControlOn = shuntVoltageControlOn;
         this.minImpedance = minImpedance;
         this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
         this.breakers = breakers;
@@ -109,6 +112,9 @@ public class AcLoadFlowParameters {
     public boolean isTransformerVoltageControlOn() {
         return transformerVoltageControlOn;
     }
+
+    public boolean isShuntVoltageControlOn() {
+        return shuntVoltageControlOn; }
 
     public boolean isMinImpedance() {
         return minImpedance;

@@ -15,9 +15,19 @@ public interface LfShunt extends LfElement {
 
     double getB();
 
+    void setB(double b);
+
     void setQ(Evaluable q);
 
     Evaluable getQ();
+
+    double getMinB();
+
+    double getMaxB();
+
+    double getAmplitudeB();
+
+    LfBus getLfBus();
 
     void updateState();
 }

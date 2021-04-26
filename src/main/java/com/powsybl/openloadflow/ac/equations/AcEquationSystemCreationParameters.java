@@ -17,21 +17,25 @@ public class AcEquationSystemCreationParameters {
 
     private final boolean transformerVoltageControl;
 
+    private final boolean shuntVoltageControl;
+
     private final boolean forceA1Var;
 
     private final Set<String> branchesWithCurrent;
 
-    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl) {
-        this(phaseControl, transformerVoltageControl, false);
+    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean shuntVoltageControl) {
+        this(phaseControl, transformerVoltageControl, shuntVoltageControl, false);
     }
 
-    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var) {
-        this(phaseControl, transformerVoltageControl, forceA1Var, null);
+    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean shuntVoltageControl, boolean forceA1Var) {
+        this(phaseControl, transformerVoltageControl, shuntVoltageControl, forceA1Var, null);
     }
 
-    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var, Set<String> branchesWithCurrent) {
+    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean shuntVoltageControl, boolean forceA1Var,
+                                              Set<String> branchesWithCurrent) {
         this.phaseControl = phaseControl;
         this.transformerVoltageControl = transformerVoltageControl;
+        this.shuntVoltageControl = shuntVoltageControl;
         this.forceA1Var = forceA1Var;
         this.branchesWithCurrent = branchesWithCurrent;
     }
@@ -42,6 +46,10 @@ public class AcEquationSystemCreationParameters {
 
     public boolean isTransformerVoltageControl() {
         return transformerVoltageControl;
+    }
+
+    public boolean isShuntVoltageControl() {
+        return shuntVoltageControl;
     }
 
     public boolean isForceA1Var() {

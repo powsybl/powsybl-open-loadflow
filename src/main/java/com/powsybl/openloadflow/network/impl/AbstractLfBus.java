@@ -60,6 +60,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfShunt> shunts = new ArrayList<>();
 
+    protected final List<LfShunt> controllerShunts = new ArrayList<>();
+
     protected final List<Load> loads = new ArrayList<>();
 
     protected final List<Battery> batteries = new ArrayList<>();
@@ -237,8 +239,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         add(LfVscConverterStationImpl.create(vscCs, breakers, report));
     }
 
-    void addShuntCompensator(ShuntCompensator sc) {
-        shunts.add(new LfShuntImpl(sc, network));
+    void addShuntCompensator(ShuntCompensator sc, boolean isShuntVoltageControl) {
+        LfShuntImpl shunt = new LfShuntImpl(sc, network);
+        shunts.add(shunt);
+        if (isShuntVoltageControl && sc.isVoltageRegulatorOn()) {
+            controllerShunts.add(shunt);
+        }
     }
 
     @Override
@@ -365,6 +371,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public List<LfShunt> getControllerShunts() {
+        return controllerShunts;
+    }
+
+    @Override
+    public void disableShuntControllers() {
+        controllerShunts.clear();
+    }
+
+    @Override
     public List<LfGenerator> getGenerators() {
         return generators;
     }
@@ -460,7 +476,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isDiscreteVoltageControlled() {
-        return discreteVoltageControl != null && discreteVoltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE;
+        return discreteVoltageControl != null && discreteVoltageControl.getMode() != DiscreteVoltageControl.Mode.OFF
+                && discreteVoltageControl.getControlled() == this;
     }
 
     @Override
