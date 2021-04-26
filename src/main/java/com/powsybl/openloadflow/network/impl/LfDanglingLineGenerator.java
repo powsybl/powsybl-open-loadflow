@@ -65,7 +65,7 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
     }
 
     @Override
-    public double getParticipationFactor() {
+    public double getDroop() {
         return 0;
     }
 
