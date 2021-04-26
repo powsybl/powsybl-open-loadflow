@@ -1543,8 +1543,12 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                         new WeightedSensitivityVariable("g6", 40f),
                         new WeightedSensitivityVariable("d3", 35f))));
 
-        List<SensitivityFactor2> factors = List.of(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER,
-                "l45", SensitivityVariableType.INJECTION_ACTIVE_POWER, "glsk", true, ContingencyContext.createAllContingencyContext()));
+        List<SensitivityFactor2> factors = List.of(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "l45",
+                                                                          SensitivityVariableType.INJECTION_ACTIVE_POWER, "glsk", true,
+                                                                          ContingencyContext.createAllContingencyContext()),
+                                                   new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "l12",
+                                                                          SensitivityVariableType.INJECTION_ACTIVE_POWER, "g2", false,
+                                                                          ContingencyContext.createAllContingencyContext()));
 
         List<SensitivityValue2> values = sensiProvider.run(network, contingencies, variableSets, sensiParameters, factors);
 

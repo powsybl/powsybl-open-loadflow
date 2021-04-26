@@ -20,7 +20,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.NameSlackBusSelector;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
@@ -54,7 +54,8 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         lfParameters.setDc(dc);
         lfParameters.setDistributedSlack(distributedSlack);
         OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new NameSlackBusSelector(slackBusId));
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId(slackBusId);
         lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
         return sensiParameters;
     }

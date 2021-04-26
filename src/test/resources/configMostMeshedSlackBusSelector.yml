@@ -1,2 +1,2 @@
 open-loadflow-default-parameters:
-    slackBusSelectorType: "MostMeshed"
+    slackBusSelectionMode: "MOST_MESHED"

@@ -12,7 +12,20 @@
     "writeSlackBus" : false,
     "dc" : true,
     "distributedSlack" : false,
-    "balanceType" : "PROPORTIONAL_TO_GENERATION_P_MAX"
+    "balanceType" : "PROPORTIONAL_TO_GENERATION_P_MAX",
+    "extensions" : {
+      "open-loadFlow-parameters" : {
+        "slackBusSelectionMode" : "NAME",
+        "slackBusId" : "b1_vl_0",
+        "throwsExceptionInCaseOfSlackDistributionFailure" : false,
+        "lowImpedanceBranchMode" : "REPLACE_BY_ZERO_IMPEDANCE_LINE",
+        "loadPowerFactorConstant" : false,
+        "dcUseTransformerRatio" : true,
+        "plausibleActivePowerLimit" : 10000.0,
+        "addRatioToLinesWithDifferentNominalVoltageAtBothEnds" : false,
+        "slackBusPMaxMismatch" : 1.0
+      }
+    }
   },
   "extensions" : {
     "open-sensitivity-parameters" : {
