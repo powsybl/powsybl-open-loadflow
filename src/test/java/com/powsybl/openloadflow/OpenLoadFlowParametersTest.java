@@ -105,14 +105,10 @@ class OpenLoadFlowParametersTest {
     @Test
     void testInvalidOpenLoadflowConfig() {
         MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
-        // Invalid -> SlackBusSelectorParametersReader cannot be found
-        olfModuleConfig.setStringProperty("slackBusSelectorType", "Invalid");
+        olfModuleConfig.setStringProperty("slackBusSelectionMode", "Invalid");
 
-        LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
-        OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
-
-        // Default value are selected and error log message is printed
-      //  assertEquals(SLACK_BUS_SELECTION_DEFAULT_VALUE, olfParameters.getSlackBusSelector());
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> LoadFlowParameters.load(platformConfig));
+        assertEquals("No enum constant com.powsybl.openloadflow.network.SlackBusSelectionMode.Invalid", exception.getMessage());
     }
 
     @Test
