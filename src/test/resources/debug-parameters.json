@@ -1,0 +1,35 @@
+{
+  "version" : "1.0",
+  "load-flow-parameters" : {
+    "version" : "1.4",
+    "voltageInitMode" : "UNIFORM_VALUES",
+    "transformerVoltageControlOn" : false,
+    "phaseShifterRegulationOn" : false,
+    "noGeneratorReactiveLimits" : false,
+    "twtSplitShuntAdmittance" : false,
+    "simulShunt" : false,
+    "readSlackBus" : false,
+    "writeSlackBus" : false,
+    "dc" : true,
+    "distributedSlack" : false,
+    "balanceType" : "PROPORTIONAL_TO_GENERATION_P_MAX",
+    "extensions" : {
+      "open-load-flow-parameters" : {
+        "slackBusSelectionMode" : "NAME",
+        "slackBusId" : "b1_vl_0",
+        "throwsExceptionInCaseOfSlackDistributionFailure" : false,
+        "lowImpedanceBranchMode" : "REPLACE_BY_ZERO_IMPEDANCE_LINE",
+        "loadPowerFactorConstant" : false,
+        "dcUseTransformerRatio" : true,
+        "plausibleActivePowerLimit" : 10000.0,
+        "addRatioToLinesWithDifferentNominalVoltageAtBothEnds" : false,
+        "slackBusPMaxMismatch" : 1.0
+      }
+    }
+  },
+  "extensions" : {
+    "open-sensitivity-parameters" : {
+      "debugDir" : "/work"
+    }
+  }
+}

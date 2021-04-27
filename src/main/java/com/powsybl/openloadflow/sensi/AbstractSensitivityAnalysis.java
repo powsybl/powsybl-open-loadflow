@@ -703,7 +703,7 @@ public abstract class AbstractSensitivityAnalysis {
                 .collect(Collectors.toList());
         }
 
-        public void addFactor(LfSensitivityFactor factor, SensitivityFactorReader.ContingencyContext contingencyContext) {
+        public void addFactor(LfSensitivityFactor factor, ContingencyContext contingencyContext) {
             switch (contingencyContext.getContextType()) {
                 case ALL:
                     commonFactors.add(factor);
@@ -718,12 +718,43 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    public SensitivityFactorHolder readAndCheckFactors(Network network, SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
+    public SensitivityFactorHolder readAndCheckFactors(Network network, Map<String, SensitivityVariableSet> variableSetsById,
+                                                       SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
         final SensitivityFactorHolder factorHolder = new SensitivityFactorHolder();
 
-        factorReader.read(new SensitivityFactorReader.Handler() {
-            @Override
-            public void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, SensitivityFactorReader.ContingencyContext contingencyContext) {
+        factorReader.read((factorContext, functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
+            if (variableSet) {
+                if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
+                        && variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
+                    checkBranch(network, functionId);
+                    LfBranch functionElement = lfNetwork.getBranchById(functionId);
+                    Map<LfElement, Double> injectionLfBuses = new HashMap<>();
+                    SensitivityVariableSet set = variableSetsById.get(variableId);
+                    if (set == null) {
+                        throw new PowsyblException("Variable set '" + variableId + "' not found");
+                    }
+                    List<String> skippedInjection = new ArrayList<>(set.getVariables().size());
+                    for (WeightedSensitivityVariable variable : set.getVariables()) {
+                        Bus injectionBus = getInjectionBus(network, variable.getId());
+                        LfBus injectionLfBus = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
+                        if (injectionLfBus == null) {
+                            skippedInjection.add(variable.getId());
+                            continue;
+                        }
+                        injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
+                    }
+                    if (!skippedInjection.isEmpty()) {
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
+                        }
+                    }
+                    factorHolder.addFactor(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
+                            functionElement, functionType,
+                            injectionLfBuses, variableType), contingencyContext);
+                } else {
+                    throw new PowsyblException("Function type " + functionType + " and variable type " + variableType + " not supported");
+                }
+            } else {
                 LfElement functionElement;
                 LfElement variableElement;
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER) {
@@ -770,8 +801,8 @@ public abstract class AbstractSensitivityAnalysis {
 
             @Override
             public void onMultipleVariablesFactor(Object factorContext, SensitivityFunctionType functionType, String functionId,
-                                                  SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables,
-                                                  SensitivityFactorReader.ContingencyContext contingencyContext) {
+                                                  SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables, SensitivityFactorReader.ContingencyContext contingencyContext)
+            {
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER) {
                     checkBranch(network, functionId);
                     LfBranch functionElement = lfNetwork.getBranchById(functionId);
