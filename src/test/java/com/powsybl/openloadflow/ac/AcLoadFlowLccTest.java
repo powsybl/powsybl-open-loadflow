@@ -14,7 +14,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -29,7 +29,7 @@ class AcLoadFlowLccTest {
         LoadFlowParameters parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                                              .setDistributedSlack(false);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector());
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());

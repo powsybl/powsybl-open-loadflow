@@ -9,12 +9,8 @@ package com.powsybl.openloadflow.sensi;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface SensitivityFactorReader {
-
-    interface Handler {
-
-        void onFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, boolean variableSet, ContingencyContext contingencyContext);
-    }
-
-    void read(Handler handler);
+enum ContingencyContextType {
+    ALL,
+    NONE,
+    SPECIFIC,
 }

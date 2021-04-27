@@ -20,10 +20,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
-import com.powsybl.openloadflow.network.NameSlackBusSelector;
+import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,7 +64,7 @@ class OpenLoadFlowParametersTest {
     @Test
     void testConfig() {
         MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
-        olfModuleConfig.setStringProperty("slackBusSelectorType", "First");
+        olfModuleConfig.setStringProperty("slackBusSelectionMode", "FIRST");
 
         LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
 
@@ -78,7 +75,7 @@ class OpenLoadFlowParametersTest {
         assertTrue(parameters.isDistributedSlack());
 
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
-        assertTrue(olfParameters.getSlackBusSelector() instanceof FirstSlackBusSelector);
+        assertEquals(SlackBusSelectionMode.FIRST, olfParameters.getSlackBusSelectionMode());
 
         assertFalse(olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
         assertTrue(olfParameters.hasVoltageRemoteControl());
@@ -96,7 +93,7 @@ class OpenLoadFlowParametersTest {
         assertTrue(parameters.isDistributedSlack());
 
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
-        assertEquals(SLACK_BUS_SELECTOR_DEFAULT_VALUE, olfParameters.getSlackBusSelector());
+        assertEquals(SLACK_BUS_SELECTION_DEFAULT_VALUE, olfParameters.getSlackBusSelectionMode());
         assertEquals(VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.hasVoltageRemoteControl());
         assertEquals(LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
         assertEquals(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE, olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
@@ -108,14 +105,10 @@ class OpenLoadFlowParametersTest {
     @Test
     void testInvalidOpenLoadflowConfig() {
         MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
-        // Invalid -> SlackBusSelectorParametersReader cannot be found
-        olfModuleConfig.setStringProperty("slackBusSelectorType", "Invalid");
+        olfModuleConfig.setStringProperty("slackBusSelectionMode", "Invalid");
 
-        LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
-        OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
-
-        // Default value are selected and error log message is printed
-        assertEquals(SLACK_BUS_SELECTOR_DEFAULT_VALUE, olfParameters.getSlackBusSelector());
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> LoadFlowParameters.load(platformConfig));
+        assertEquals("No enum constant com.powsybl.openloadflow.network.SlackBusSelectionMode.Invalid", exception.getMessage());
     }
 
     @Test
@@ -128,7 +121,7 @@ class OpenLoadFlowParametersTest {
 
         LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
-        assertEquals(FirstSlackBusSelector.class, olfParameters.getSlackBusSelector().getClass());
+        assertEquals(SlackBusSelectionMode.FIRST, olfParameters.getSlackBusSelectionMode());
     }
 
     @Test
@@ -141,7 +134,7 @@ class OpenLoadFlowParametersTest {
 
         LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
-        assertEquals(MostMeshedSlackBusSelector.class, olfParameters.getSlackBusSelector().getClass());
+        assertEquals(SlackBusSelectionMode.MOST_MESHED, olfParameters.getSlackBusSelectionMode());
     }
 
     @Test
@@ -154,8 +147,8 @@ class OpenLoadFlowParametersTest {
 
         LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
-        assertEquals(NameSlackBusSelector.class, olfParameters.getSlackBusSelector().getClass());
-        LfNetwork lfNetwork = LfNetwork.load(EurostagTutorialExample1Factory.create(), olfParameters.getSlackBusSelector()).get(0);
+        assertEquals(SlackBusSelectionMode.NAME, olfParameters.getSlackBusSelectionMode());
+        LfNetwork lfNetwork = LfNetwork.load(EurostagTutorialExample1Factory.create(), SlackBusSelector.fromMode(olfParameters.getSlackBusSelectionMode(), olfParameters.getSlackBusId())).get(0);
         PowsyblException thrown = assertThrows(PowsyblException.class, lfNetwork::getSlackBus);
         assertEquals("Slack bus '???' not found", thrown.getMessage());
     }

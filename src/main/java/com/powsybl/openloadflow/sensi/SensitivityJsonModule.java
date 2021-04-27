@@ -6,15 +6,15 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.fasterxml.jackson.databind.module.SimpleModule;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface SensitivityFactorReader {
+public class SensitivityJsonModule extends SimpleModule {
 
-    interface Handler {
-
-        void onFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, boolean variableSet, ContingencyContext contingencyContext);
+    public SensitivityJsonModule() {
+        addSerializer(SensitivityVariableSet.class, new SensitivityVariableSetJsonSerializer());
+        addDeserializer(SensitivityVariableSet.class, new SensitivityVariableSetJsonDeserializer());
     }
-
-    void read(Handler handler);
 }

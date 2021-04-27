@@ -28,6 +28,7 @@ import com.powsybl.openloadflow.util.PropagatedContingency;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -143,9 +144,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     /**
      * https://people.montefiore.uliege.be/vct/elec0029/lf.pdf / Equation 32 is transposed
      */
-    public void analyse(Network network, List<PropagatedContingency> contingencies, LoadFlowParameters lfParameters,
-                        OpenLoadFlowParameters lfParametersExt, SensitivityFactorReader factorReader, SensitivityValueWriter valueWriter,
-                        Reporter reporter) {
+    public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
+                        LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityFactorReader factorReader,
+                        SensitivityValueWriter valueWriter, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(lfParameters);
@@ -154,7 +155,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         Objects.requireNonNull(valueWriter);
 
         // create LF network (we only manage main connected component)
-        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(lfParametersExt.getSlackBusSelector(), lfParametersExt.hasVoltageRemoteControl(),
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusId());
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector, lfParametersExt.hasVoltageRemoteControl(),
                 true, lfParameters.isTwtSplitShuntAdmittance(), false, lfParametersExt.getPlausibleActivePowerLimit(), false);
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
@@ -164,7 +166,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             Collectors.toMap(PropagatedContingency::getContingency, contingency -> new HashSet<>(contingency.getBranchIdsToOpen()))
         );
 
-        SensitivityFactorHolder factorHolder = readAndCheckFactors(network, factorReader, lfNetwork);
+        Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
+        SensitivityFactorHolder factorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork);
         List<LfSensitivityFactor> lfFactors = factorHolder.getAllFactors();
         LOGGER.info("Running AC sensitivity analysis with {} factors and {} contingencies",  lfFactors.size(), contingencies.size());
 

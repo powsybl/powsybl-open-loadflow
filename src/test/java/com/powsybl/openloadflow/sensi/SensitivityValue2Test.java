@@ -6,15 +6,18 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface SensitivityFactorReader {
+class SensitivityValue2Test {
 
-    interface Handler {
-
-        void onFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, boolean variableSet, ContingencyContext contingencyContext);
+    @Test
+    void test() {
+        SensitivityValue2 value = new SensitivityValue2("", "c1", 0.34, 35);
+        assertEquals("SensitivityValue(factorContext=, contingencyId='c1', value=0.34, functionReference=35.0)", value.toString());
     }
-
-    void read(Handler handler);
 }

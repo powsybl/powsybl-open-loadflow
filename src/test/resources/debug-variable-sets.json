@@ -1,0 +1,13 @@
+[ {
+  "id" : "glsk",
+  "variables" : [ {
+    "id" : "g2",
+    "weight" : 25.0
+  }, {
+    "id" : "g6",
+    "weight" : 40.0
+  }, {
+    "id" : "d3",
+    "weight" : 35.0
+  } ]
+} ]
