@@ -1,0 +1,15 @@
+[ {
+  "functionType" : "BRANCH_ACTIVE_POWER",
+  "functionId" : "l45",
+  "variableType" : "INJECTION_ACTIVE_POWER",
+  "variableId" : "glsk",
+  "variableSet" : true,
+  "contingencyContextType" : "ALL"
+}, {
+  "functionType" : "BRANCH_ACTIVE_POWER",
+  "functionId" : "l12",
+  "variableType" : "INJECTION_ACTIVE_POWER",
+  "variableId" : "g2",
+  "variableSet" : false,
+  "contingencyContextType" : "ALL"
+} ]

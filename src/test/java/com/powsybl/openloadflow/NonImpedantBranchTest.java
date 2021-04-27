@@ -15,7 +15,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -81,7 +81,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 
         // test in DC mode
         parameters.setDc(true);
-        parametersExt.setSlackBusSelector(new FirstSlackBusSelector());
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertTrue(Double.isNaN(b1.getV()));
@@ -117,7 +117,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertAngleEquals(-7.248787, b4);
 
         parameters.setDc(true);
-        parametersExt.setSlackBusSelector(new FirstSlackBusSelector());
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertTrue(Double.isNaN(b1.getV()));

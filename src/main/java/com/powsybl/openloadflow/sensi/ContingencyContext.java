@@ -30,6 +30,14 @@ public class ContingencyContext {
         return contextType;
     }
 
+    @Override
+    public String toString() {
+        return "ContingencyContext(" +
+                "contingencyId='" + Objects.toString(contingencyId, "") + '\'' +
+                ", contextType=" + contextType +
+                ')';
+    }
+
     public static ContingencyContext createAllContingencyContext() {
         return new ContingencyContext(ContingencyContextType.ALL, null);
     }

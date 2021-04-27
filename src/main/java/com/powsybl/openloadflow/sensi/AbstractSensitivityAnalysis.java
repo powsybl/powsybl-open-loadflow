@@ -739,15 +739,45 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    public SensitivityFactorHolder readAndCheckFactors(Network network, SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
+    public SensitivityFactorHolder readAndCheckFactors(Network network, Map<String, SensitivityVariableSet> variableSetsById,
+                                                       SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
         final SensitivityFactorHolder factorHolder = new SensitivityFactorHolder();
 
-        factorReader.read(new SensitivityFactorReader.Handler() {
+        private final Map<String, Map<LfElement, Double>> injectionLfBusesByVariableId = new HashMap<>();
 
-            private final Map<String, Map<LfElement, Double>> injectionLfBusesByVariableId = new HashMap<>();
-
-            @Override
-            public void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, ContingencyContext contingencyContext) {
+        factorReader.read((factorContext, functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
+            if (variableSet) {
+                if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
+                        && variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
+                    checkBranch(network, functionId);
+                    LfBranch functionElement = lfNetwork.getBranchById(functionId);
+                    Map<LfElement, Double> injectionLfBuses = injectionLfBusesByVariableId.get(variableId);
+                    if (injectionLfBuses == null) {
+                        injectionLfBuses = new HashMap<>();
+                        injectionLfBusesByVariableId.put(variableId, injectionLfBuses);
+                        List<String> skippedInjection = new ArrayList<>(variables.size());
+                        for (WeightedSensitivityVariable variable : variables) {
+                            Bus injectionBus = getInjectionBus(network, variable.getId());
+                            LfBus injectionLfBus = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
+                            if (injectionLfBus == null) {
+                                skippedInjection.add(variable.getId());
+                                continue;
+                            }
+                            injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
+                        }
+                        if (!skippedInjection.isEmpty()) {
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
+                            }
+                        }
+                    }
+                    factorHolder.addFactor(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
+                            functionElement, functionType,
+                            injectionLfBuses, variableType), contingencyContext);
+                } else {
+                    throw new PowsyblException("Function type " + functionType + " and variable type " + variableType + " not supported");
+                }
+            } else {
                 LfElement functionElement;
                 LfElement variableElement;
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER) {
@@ -788,45 +818,8 @@ public abstract class AbstractSensitivityAnalysis {
                     throw new PowsyblException("Function type " + functionType + " not supported");
                 }
                 factorHolder.addFactor(new SingleVariableLfSensitivityFactor(factorContext, variableId,
-                    functionElement, functionType,
-                    variableElement, variableType, contingencyContext));
-            }
-
-            @Override
-            public void onMultipleVariablesFactor(Object factorContext, SensitivityFunctionType functionType, String functionId,
-                                                  SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables, ContingencyContext contingencyContext) {
-                if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
-                        && variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
-                    checkBranch(network, functionId);
-                    LfBranch functionElement = lfNetwork.getBranchById(functionId);
-                    // FIXME Factor model has to be fixed, but we can consider that if same variable ID, the list of variables
-                    // and weight are same
-                    Map<LfElement, Double> injectionLfBuses = injectionLfBusesByVariableId.get(variableId);
-                    if (injectionLfBuses == null) {
-                        injectionLfBuses = new HashMap<>();
-                        injectionLfBusesByVariableId.put(variableId, injectionLfBuses);
-                        List<String> skippedInjection = new ArrayList<>(variables.size());
-                        for (WeightedSensitivityVariable variable : variables) {
-                            Bus injectionBus = getInjectionBus(network, variable.getId());
-                            LfBus injectionLfBus = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
-                            if (injectionLfBus == null) {
-                                skippedInjection.add(variable.getId());
-                                continue;
-                            }
-                            injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
-                        }
-                        if (!skippedInjection.isEmpty()) {
-                            if (LOGGER.isWarnEnabled()) {
-                                LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
-                            }
-                        }
-                    }
-                    factorHolder.addFactor(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
                         functionElement, functionType,
-                        injectionLfBuses, variableType, contingencyContext));
-                } else {
-                    throw new PowsyblException("Function type " + functionType + " and variable type " + variableType + " not supported");
-                }
+                        variableElement, variableType), contingencyContext);
             }
         });
         return factorHolder;
