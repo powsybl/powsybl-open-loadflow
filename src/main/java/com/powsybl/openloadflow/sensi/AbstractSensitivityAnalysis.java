@@ -743,37 +743,34 @@ public abstract class AbstractSensitivityAnalysis {
                                                        SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
         final SensitivityFactorHolder factorHolder = new SensitivityFactorHolder();
 
-        private final Map<String, Map<LfElement, Double>> injectionLfBusesByVariableId = new HashMap<>();
-
         factorReader.read((factorContext, functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
             if (variableSet) {
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
                         && variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
                     checkBranch(network, functionId);
                     LfBranch functionElement = lfNetwork.getBranchById(functionId);
-                    Map<LfElement, Double> injectionLfBuses = injectionLfBusesByVariableId.get(variableId);
-                    if (injectionLfBuses == null) {
-                        injectionLfBuses = new HashMap<>();
-                        injectionLfBusesByVariableId.put(variableId, injectionLfBuses);
-                        List<String> skippedInjection = new ArrayList<>(variables.size());
-                        for (WeightedSensitivityVariable variable : variables) {
-                            Bus injectionBus = getInjectionBus(network, variable.getId());
-                            LfBus injectionLfBus = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
-                            if (injectionLfBus == null) {
-                                skippedInjection.add(variable.getId());
-                                continue;
-                            }
-                            injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
+                    Map<LfElement, Double> injectionLfBuses = new HashMap<>();
+                    SensitivityVariableSet set = variableSetsById.get(variableId);
+                    if (set == null) {
+                        throw new PowsyblException("Variable set '" + variableId + "' not found");
+                    }
+                    List<String> skippedInjection = new ArrayList<>(set.getVariables().size());
+                    for (WeightedSensitivityVariable variable : set.getVariables()) {
+                        Bus injectionBus = getInjectionBus(network, variable.getId());
+                        LfBus injectionLfBus = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
+                        if (injectionLfBus == null) {
+                            skippedInjection.add(variable.getId());
+                            continue;
                         }
-                        if (!skippedInjection.isEmpty()) {
-                            if (LOGGER.isWarnEnabled()) {
-                                LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
-                            }
+                        injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
+                    }
+                    if (!skippedInjection.isEmpty()) {
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
                         }
                     }
                     factorHolder.addFactor(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
-                            functionElement, functionType,
-                            injectionLfBuses, variableType), contingencyContext);
+                            functionElement, functionType, injectionLfBuses, variableType, contingencyContext));
                 } else {
                     throw new PowsyblException("Function type " + functionType + " and variable type " + variableType + " not supported");
                 }
@@ -818,8 +815,7 @@ public abstract class AbstractSensitivityAnalysis {
                     throw new PowsyblException("Function type " + functionType + " not supported");
                 }
                 factorHolder.addFactor(new SingleVariableLfSensitivityFactor(factorContext, variableId,
-                        functionElement, functionType,
-                        variableElement, variableType), contingencyContext);
+                        functionElement, functionType, variableElement, variableType, contingencyContext));
             }
         });
         return factorHolder;

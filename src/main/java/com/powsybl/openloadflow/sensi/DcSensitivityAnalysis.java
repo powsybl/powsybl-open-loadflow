@@ -243,7 +243,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         setAlphas(contingencyElements, flowStates, contingenciesStates, 0, ComputedContingencyElement::setAlphaForFunctionReference);
         Map<SensitivityFactorGroup, List<LfSensitivityFactor>> factorsByGroup = lfFactors.stream()
                 .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID)
-                .collect(Collectors.groupingBy(LfSensitivityFactor::getGroup));
+                .collect(Collectors.groupingBy(LfSensitivityFactor::getGroup, LinkedHashMap::new, Collectors.toList()));
         for (Map.Entry<SensitivityFactorGroup, List<LfSensitivityFactor>> e : factorsByGroup.entrySet()) {
             SensitivityFactorGroup factorGroup = e.getKey();
             List<LfSensitivityFactor> factorsForThisGroup = e.getValue();
