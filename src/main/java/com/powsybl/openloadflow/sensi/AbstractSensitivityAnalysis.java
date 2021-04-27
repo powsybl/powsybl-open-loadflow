@@ -743,30 +743,36 @@ public abstract class AbstractSensitivityAnalysis {
                                                        SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
         final SensitivityFactorHolder factorHolder = new SensitivityFactorHolder();
 
+        final Map<String, Map<LfElement, Double>> injectionBusesByVariableId = new HashMap<>();
+
         factorReader.read((factorContext, functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
             if (variableSet) {
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
                         && variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
                     checkBranch(network, functionId);
                     LfBranch functionElement = lfNetwork.getBranchById(functionId);
-                    Map<LfElement, Double> injectionLfBuses = new HashMap<>();
-                    SensitivityVariableSet set = variableSetsById.get(variableId);
-                    if (set == null) {
-                        throw new PowsyblException("Variable set '" + variableId + "' not found");
-                    }
-                    List<String> skippedInjection = new ArrayList<>(set.getVariables().size());
-                    for (WeightedSensitivityVariable variable : set.getVariables()) {
-                        Bus injectionBus = getInjectionBus(network, variable.getId());
-                        LfBus injectionLfBus = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
-                        if (injectionLfBus == null) {
-                            skippedInjection.add(variable.getId());
-                            continue;
+                    Map<LfElement, Double> injectionLfBuses = injectionBusesByVariableId.get(variableId);
+                    if (injectionLfBuses == null) {
+                        injectionLfBuses = new HashMap<>();
+                        injectionBusesByVariableId.put(variableId, injectionLfBuses);
+                        SensitivityVariableSet set = variableSetsById.get(variableId);
+                        if (set == null) {
+                            throw new PowsyblException("Variable set '" + variableId + "' not found");
                         }
-                        injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
-                    }
-                    if (!skippedInjection.isEmpty()) {
-                        if (LOGGER.isWarnEnabled()) {
-                            LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
+                        List<String> skippedInjection = new ArrayList<>(set.getVariables().size());
+                        for (WeightedSensitivityVariable variable : set.getVariables()) {
+                            Bus injectionBus = getInjectionBus(network, variable.getId());
+                            LfBus injectionLfBus = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
+                            if (injectionLfBus == null) {
+                                skippedInjection.add(variable.getId());
+                                continue;
+                            }
+                            injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
+                        }
+                        if (!skippedInjection.isEmpty()) {
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
+                            }
                         }
                     }
                     factorHolder.addFactor(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
