@@ -440,8 +440,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         HvdcWriter hvdcWriter = HvdcWriter.create();
         SensitivityFactorReader reader = createHvdcReader(variableAndFunction);
-        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
-            sensiParameters, reader, hvdcWriter);
+        sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, reader, hvdcWriter);
 
         assertEquals(loadFlowDiff.get("l12"), hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l12")), LoadFlowAssert.DELTA_POWER);
         assertEquals(loadFlowDiff.get("l13"), hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l13")), LoadFlowAssert.DELTA_POWER);
@@ -476,8 +475,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         HvdcWriter hvdcWriter = HvdcWriter.create();
         SensitivityFactorReader reader = createHvdcReader(variableAndFunction);
-        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
-            sensiParameters, reader, hvdcWriter);
+        sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, reader, hvdcWriter);
 
         assertEquals(loadFlowDiff.get("l12"), hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l12")), LoadFlowAssert.DELTA_POWER);
         assertEquals(loadFlowDiff.get("l13"), hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l13")), LoadFlowAssert.DELTA_POWER);
@@ -518,8 +516,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         HvdcWriter hvdcWriter = HvdcWriter.create();
         SensitivityFactorReader reader = createHvdcReader(variableAndFunction);
-        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
-            sensiParameters, reader, hvdcWriter);
+        sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, reader, hvdcWriter);
 
         assertEquals(loadFlowDiff.get("l12"), hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l12")), LoadFlowAssert.DELTA_POWER);
         assertEquals(loadFlowDiff.get("l13"), hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l13")), LoadFlowAssert.DELTA_POWER);
@@ -556,8 +553,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         HvdcWriter hvdcWriter = HvdcWriter.create();
         SensitivityFactorReader reader = createHvdcReader(variableAndFunction);
-        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
-            sensiParameters, reader, hvdcWriter);
+        sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, reader, hvdcWriter);
 
         assertEquals(loadFlowDiff.get("l12"), hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l12")), LoadFlowAssert.DELTA_POWER);
         assertEquals(loadFlowDiff.get("l13"), hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l13")), LoadFlowAssert.DELTA_POWER);

@@ -615,7 +615,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         Network network = HvdcNetworkFactory.createNetworkWithGenerators();
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
-        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusSelector(new MostMeshedSlackBusSelector());
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
         List<Pair<String, String>> variableAndFunction = List.of(
             Pair.of("hvdc34", "l12"),
             Pair.of("hvdc34", "l13"),
@@ -645,8 +645,10 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         HvdcWriter hvdcWriter = HvdcWriter.create();
         SensitivityFactorReader reader = createHvdcReader(variableAndFunction);
-        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusSelector(new NameSlackBusSelector("b1_vl_0")); // the most meshed bus selected in the loadflow
-        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.singletonList(new Contingency("l25", new BranchContingency("l25"))),
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId("b1_vl_0"); // the most meshed bus selected in the loadflow
+        sensiProvider.run(network, Collections.singletonList(new Contingency("l25", new BranchContingency("l25"))), Collections.emptyList(),
             sensiParameters, reader, hvdcWriter);
 
         // FIXME

@@ -262,8 +262,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         HvdcWriter hvdcWriter = HvdcWriter.create();
         SensitivityFactorReader reader = createHvdcReader(variableAndFunction);
 
-        PowsyblException e = assertThrows(PowsyblException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, Collections.emptyList(),
-            sensiParameters, reader, hvdcWriter));
+        PowsyblException e = assertThrows(PowsyblException.class, () -> sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, reader, hvdcWriter));
         assertEquals("HVDC line 'nop' cannot be found in the network.", e.getMessage());
     }
 
@@ -376,8 +375,8 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
             public void read(Handler handler) {
                 for (Pair<String, String> variableFunction : variableAndFunction) {
                     ContingencyContext contingencyContext = new ContingencyContext(ContingencyContextType.NONE, null);
-                    handler.onMultipleVariablesFactor(variableFunction, SensitivityFunctionType.BRANCH_ACTIVE_POWER, variableFunction.getValue(),
-                        SensitivityVariableType.HVDC_INJECTION, variableFunction.getKey(), Collections.emptyList(), contingencyContext);
+                    handler.onFactor(variableFunction, SensitivityFunctionType.BRANCH_ACTIVE_POWER, variableFunction.getValue(),
+                        SensitivityVariableType.HVDC_INJECTION, variableFunction.getKey(), true, contingencyContext);
                 }
             }
         };
