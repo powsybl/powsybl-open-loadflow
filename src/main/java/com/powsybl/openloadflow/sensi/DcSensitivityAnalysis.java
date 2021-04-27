@@ -394,8 +394,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             }
         }
 
-        public Double getPredefinedResult(LfSensitivityFactor lfSensitivityFactor) {
-            return predefinedResults.get(lfSensitivityFactor);
+        void setPredefinedResult() {
+            predefinedResults.forEach(LfSensitivityFactor::setPredefinedResult);
         }
 
         public Collection<PropagatedContingency> getContingencies() {
@@ -718,7 +718,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             // compute the contingencies with loss of connectivity
             for (ConnectivityAnalysisResult connectivityAnalysisResult : connectivityAnalysisResults.values()) {
-                lfFactors.forEach(factor -> factor.setPredefinedResult(connectivityAnalysisResult.getPredefinedResult(factor)));
+                connectivityAnalysisResult.setPredefinedResult();
                 Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
                 // null and unused if slack is not distributed
                 List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
