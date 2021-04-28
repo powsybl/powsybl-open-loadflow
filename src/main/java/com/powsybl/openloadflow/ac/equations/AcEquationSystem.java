@@ -310,6 +310,7 @@ public final class AcEquationSystem {
         deriveA1 = deriveA1 || (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability());
         boolean createCurrent = creationParameters.getBranchesWithCurrent() == null || creationParameters.getBranchesWithCurrent().contains(branch.getId());
         boolean deriveR1 = creationParameters.isTransformerVoltageControl() && branch.isVoltageController();
+        deriveR1 = deriveR1 || (creationParameters.isForceR1Var() && branch.hasVoltageControlCapability());
         if (bus1 != null && bus2 != null) {
             p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
             q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
@@ -375,6 +376,11 @@ public final class AcEquationSystem {
         if (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability()) {
             equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_ALPHA1)
                 .addTerm(EquationTerm.createVariableTerm(branch, VariableType.BRANCH_ALPHA1, variableSet));
+        }
+
+        if (creationParameters.isForceR1Var() && branch.hasVoltageControlCapability()) {
+            equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_RHO1)
+                    .addTerm(EquationTerm.createVariableTerm(branch, VariableType.BRANCH_RHO1, variableSet));
         }
 
         if (i1 != null) {

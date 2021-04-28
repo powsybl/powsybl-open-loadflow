@@ -51,6 +51,8 @@ public interface LfBranch extends LfElement {
 
     boolean hasPhaseControlCapability();
 
+    boolean hasVoltageControlCapability();
+
     DiscretePhaseControl getDiscretePhaseControl();
 
     void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn);

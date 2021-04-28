@@ -120,12 +120,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
                                                           OpenLoadFlowParameters parametersExt, boolean breakers) {
-        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false, null);
+        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false, false, null);
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
                                                           OpenLoadFlowParameters parametersExt, boolean breakers, boolean forceA1Var,
-                                                          Set<String> branchesWithCurrent) {
+                                                          boolean forceR1Var, Set<String> branchesWithCurrent) {
 
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
@@ -178,6 +178,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                         breakers,
                                         parametersExt.getPlausibleActivePowerLimit(),
                                         forceA1Var,
+                                        forceR1Var,
                                         parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                         branchesWithCurrent);
     }

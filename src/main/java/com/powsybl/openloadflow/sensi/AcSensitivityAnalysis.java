@@ -178,8 +178,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         // create AC engine
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters,
-            lfParametersExt, false, true,
-            branchesWithMeasuredCurrent);
+            lfParametersExt, false, true, true, branchesWithMeasuredCurrent); //FIXME: forceA1Var and forceR1Var depend on asked factors.
         try (AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters)) {
 
             engine.run(reporter);

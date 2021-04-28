@@ -42,6 +42,11 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
+    public boolean hasVoltageControlCapability() {
+        return false;
+    }
+
+    @Override
     public void setP1(Evaluable p1) {
         // nothing to do
     }

@@ -19,20 +19,24 @@ public class AcEquationSystemCreationParameters {
 
     private final boolean forceA1Var;
 
+    private final boolean forceR1Var;
+
     private final Set<String> branchesWithCurrent;
 
     public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl) {
-        this(phaseControl, transformerVoltageControl, false);
+        this(phaseControl, transformerVoltageControl, false, false);
     }
 
-    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var) {
-        this(phaseControl, transformerVoltageControl, forceA1Var, null);
+    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var, boolean forceR1Var) {
+        this(phaseControl, transformerVoltageControl, forceA1Var, forceR1Var, null);
     }
 
-    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var, Set<String> branchesWithCurrent) {
+    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var, boolean forceR1Var,
+                                              Set<String> branchesWithCurrent) {
         this.phaseControl = phaseControl;
         this.transformerVoltageControl = transformerVoltageControl;
         this.forceA1Var = forceA1Var;
+        this.forceR1Var = forceR1Var;
         this.branchesWithCurrent = branchesWithCurrent;
     }
 
@@ -46,6 +50,10 @@ public class AcEquationSystemCreationParameters {
 
     public boolean isForceA1Var() {
         return forceA1Var;
+    }
+
+    public boolean isForceR1Var() {
+        return forceR1Var;
     }
 
     public Set<String> getBranchesWithCurrent() {

@@ -103,6 +103,11 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
+    public boolean hasVoltageControlCapability() {
+        return leg.getRatioTapChanger() != null;
+    }
+
+    @Override
     public List<LfLimit> getLimits1() {
         return getLimits1(leg.getCurrentLimits());
     }

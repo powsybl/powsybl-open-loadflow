@@ -52,6 +52,11 @@ public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
+    public boolean hasVoltageControlCapability() {
+        return false;
+    }
+
+    @Override
     public List<LfLimit> getLimits1() {
         return getLimits1(danglingLine.getCurrentLimits());
     }
