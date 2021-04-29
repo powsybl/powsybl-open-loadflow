@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.commons.AbstractConverterTest;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -52,6 +53,7 @@ class LfContingencyTest extends AbstractConverterTest {
     void test() throws IOException {
         Network network = FourSubstationsNodeBreakerFactory.create();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
         assertEquals(2, lfNetworks.size());
 
         OpenSecurityAnalysis sa = new OpenSecurityAnalysisFactory().create(network, null, 0);
@@ -61,7 +63,7 @@ class LfContingencyTest extends AbstractConverterTest {
         List<PropagatedContingency> propagatedContingencies =
             PropagatedContingency.create(network, Collections.singletonList(contingency), new HashSet<>());
 
-        List<LfContingency> lfContingencies = sa.createContingencies(propagatedContingencies, lfNetworks.get(0));
+        List<LfContingency> lfContingencies = sa.createContingencies(propagatedContingencies, mainNetwork);
         assertEquals(1, lfContingencies.size());
 
         Path file = fileSystem.getPath("/work/lfc.json");

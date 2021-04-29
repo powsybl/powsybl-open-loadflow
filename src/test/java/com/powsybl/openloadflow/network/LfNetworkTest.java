@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.AbstractConverterTest;
+import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
@@ -57,9 +58,10 @@ class LfNetworkTest extends AbstractConverterTest {
                 .add();
 
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
         assertEquals(1, lfNetworks.size());
         Path file = fileSystem.getPath("/work/n.json");
-        lfNetworks.get(0).writeJson(file);
+        mainNetwork.writeJson(file);
         try (InputStream is = Files.newInputStream(file)) {
             compareTxt(getClass().getResourceAsStream("/n.json"), is);
         }
@@ -78,9 +80,10 @@ class LfNetworkTest extends AbstractConverterTest {
                 .setRegulationValue(83);
 
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
         assertEquals(1, lfNetworks.size());
         Path file = fileSystem.getPath("/work/n2.json");
-        lfNetworks.get(0).writeJson(file);
+        mainNetwork.writeJson(file);
         try (InputStream is = Files.newInputStream(file)) {
             compareTxt(getClass().getResourceAsStream("/n2.json"), is);
         }
@@ -91,7 +94,7 @@ class LfNetworkTest extends AbstractConverterTest {
         Network network = EurostagTutorialExample1Factory.create();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
-        LfNetwork lfNetwork = lfNetworks.get(0);
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
         assertNull(lfNetwork.getBranchById("AAA"));
         assertNotNull(lfNetwork.getBranchById("NHV1_NHV2_1"));
     }
@@ -101,7 +104,7 @@ class LfNetworkTest extends AbstractConverterTest {
         Network network = DanglingLineNetworkFactory.create();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
-        LfNetwork lfNetwork = lfNetworks.get(0);
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
         assertFalse(lfNetwork.getBusById("DL_BUS").isDisabled());
     }
 }

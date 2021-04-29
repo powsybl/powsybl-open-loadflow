@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.dc;
 
+import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -25,6 +26,7 @@ import org.usefultoys.slf4j.LoggerFactory;
 
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -50,13 +52,14 @@ class DcLoadFlowMatrixTest {
 
         logNetwork(network);
 
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
 
         VariableSet variableSet = new VariableSet();
         DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(true, false, false, true);
-        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, variableSet, creationParameters);
+        EquationSystem equationSystem = DcEquationSystem.create(mainNetwork, variableSet, creationParameters);
 
-        for (LfBus b : lfNetwork.getBuses()) {
+        for (LfBus b : mainNetwork.getBuses()) {
             equationSystem.createEquation(b.getNum(), EquationType.BUS_P);
             variableSet.getVariable(b.getNum(), VariableType.BUS_PHI);
         }
@@ -76,7 +79,7 @@ class DcLoadFlowMatrixTest {
             j.print(ps, equationSystem.getRowNames(), equationSystem.getColumnNames());
         }
 
-        double[] targets = TargetVector.createArray(lfNetwork, equationSystem);
+        double[] targets = TargetVector.createArray(mainNetwork, equationSystem);
         try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
             ps.println("TGT=");
             Matrix.createFromColumn(targets, matrixFactory)
@@ -101,9 +104,10 @@ class DcLoadFlowMatrixTest {
         network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
         network.getLine("NHV1_NHV2_1").getTerminal2().disconnect();
 
-        lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        mainNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
 
-        equationSystem = DcEquationSystem.create(lfNetwork, variableSet, creationParameters);
+        equationSystem = DcEquationSystem.create(mainNetwork, variableSet, creationParameters);
 
         j = new JacobianMatrix(equationSystem, matrixFactory).getMatrix();
 

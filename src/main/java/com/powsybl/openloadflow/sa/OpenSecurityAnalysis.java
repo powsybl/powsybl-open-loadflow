@@ -11,10 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.TopologyKind;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -123,7 +120,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         if (lfNetworks.isEmpty()) {
             throw new PowsyblException("Empty network list");
         }
-        LfNetwork largestNetwork = lfNetworks.get(0);
+        LfNetwork largestNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
         if (!largestNetwork.isValid()) {
             throw new PowsyblException("Largest network is invalid");
         }
