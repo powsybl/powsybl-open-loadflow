@@ -643,7 +643,12 @@ public abstract class AbstractSensitivityAnalysis {
     }
 
     private static void checkBus(Network network, String busId, Map<String, Bus> busCache) {
-        Bus bus = busCache.computeIfAbsent(busId, id -> network.getBusView().getBus(busId));
+        if (busCache.isEmpty()) {
+            network.getBusView()
+                .getBusStream()
+                .forEach(bus -> busCache.put(bus.getId(), bus));
+        }
+        Bus bus = busCache.get(busId);
         if (bus == null) {
             throw new PowsyblException("Bus '" + busId + "' not found");
         }
