@@ -24,7 +24,7 @@
         "plausibleActivePowerLimit" : 10000.0,
         "addRatioToLinesWithDifferentNominalVoltageAtBothEnds" : false,
         "slackBusPMaxMismatch" : 1.0,
-        "loadMainConnectedComponentOnly" : true
+        "computeMainConnectedComponentOnly" : true
       }
     }
   },

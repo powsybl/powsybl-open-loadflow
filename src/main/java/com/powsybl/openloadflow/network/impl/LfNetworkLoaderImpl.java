@@ -547,7 +547,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             }
 
             Predicate<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filterCC =
-                    parameters.getLoadMainConnectedComponentOnly() ? e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM : e -> true;
+                    parameters.getComputeMainConnectedComponentOnly() ? e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM : e -> true;
 
             MutableInt num = new MutableInt(0);
             List<LfNetwork> lfNetworks = busesByCc.entrySet().stream()

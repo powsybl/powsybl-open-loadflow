@@ -50,7 +50,7 @@ public class AcLoadFlowParameters {
 
     private final Set<String> branchesWithCurrent;
 
-    private final boolean loadMainConnectedComponentOnly;
+    private final boolean computeMainConnectedComponentOnly;
 
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
@@ -58,7 +58,7 @@ public class AcLoadFlowParameters {
                                 boolean phaseControl, boolean transformerVoltageControlOn, boolean minImpedance,
                                 boolean twtSplitShuntAdmittance, boolean breakers, double plausibleActivePowerLimit,
                                 boolean forceA1Var, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
-                                Set<String> branchesWithCurrent, boolean loadMainConnectedComponentOnly) {
+                                Set<String> branchesWithCurrent, boolean computeMainConnectedComponentOnly) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -74,7 +74,7 @@ public class AcLoadFlowParameters {
         this.forceA1Var = forceA1Var;
         this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
         this.branchesWithCurrent = branchesWithCurrent;
-        this.loadMainConnectedComponentOnly = loadMainConnectedComponentOnly;
+        this.computeMainConnectedComponentOnly = computeMainConnectedComponentOnly;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -141,8 +141,8 @@ public class AcLoadFlowParameters {
         return branchesWithCurrent;
     }
 
-    public boolean getLoadMainConnectedComponentOnly() {
-        return loadMainConnectedComponentOnly;
+    public boolean getComputeMainConnectedComponentOnly() {
+        return computeMainConnectedComponentOnly;
     }
 
 }
