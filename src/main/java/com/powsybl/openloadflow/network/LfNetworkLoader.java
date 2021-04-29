@@ -16,5 +16,5 @@ import java.util.Optional;
  */
 public interface LfNetworkLoader {
 
-    Optional<List<LfNetwork>> load(Object network, LfNetworkParameters parameters, Reporter reporter, boolean filterMainCC);
+    Optional<List<LfNetwork>> load(Object network, LfNetworkParameters parameters, Reporter reporter);
 }

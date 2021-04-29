@@ -179,7 +179,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                         parametersExt.getPlausibleActivePowerLimit(),
                                         forceA1Var,
                                         parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
-                                        branchesWithCurrent);
+                                        branchesWithCurrent,
+                                        parametersExt.getLoadMainConnectedComponentOnly());
     }
 
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
@@ -259,7 +260,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                      forcePhaseControlOffAndAddAngle1Var,
                                                                      parametersExt.getPlausibleActivePowerLimit(),
                                                                      parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
-                                                                     true);
+                                                                     true,
+                                                                     parametersExt.getLoadMainConnectedComponentOnly());
 
         DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters, reporter)
                 .run(reporter);

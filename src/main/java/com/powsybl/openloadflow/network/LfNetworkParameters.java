@@ -27,13 +27,18 @@ public class LfNetworkParameters {
 
     private final boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
 
+    private final boolean loadMainConnectedComponentOnly;
+
     public LfNetworkParameters(SlackBusSelector slackBusSelector) {
-        this(slackBusSelector, false, false, false, false, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false);
+        this(slackBusSelector, false, false, false, false,
+                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
+                ParameterConstants.LOAD_MAIN_CONNECTED_COMPONENT_ONLY_DEFAULT_VALUE);
     }
 
     public LfNetworkParameters(SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl,
                                boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers,
-                               double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds) {
+                               double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
+                               boolean loadMainConnectedComponentOnly) {
         this.slackBusSelector = slackBusSelector;
         this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
         this.minImpedance = minImpedance;
@@ -41,6 +46,7 @@ public class LfNetworkParameters {
         this.breakers = breakers;
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
         this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+        this.loadMainConnectedComponentOnly = loadMainConnectedComponentOnly;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -69,5 +75,9 @@ public class LfNetworkParameters {
 
     public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
         return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+    }
+
+    public boolean getLoadMainConnectedComponentOnly() {
+        return loadMainConnectedComponentOnly;
     }
 }

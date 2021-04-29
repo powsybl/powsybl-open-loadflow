@@ -512,7 +512,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     @Override
-    public Optional<List<LfNetwork>> load(Object network, LfNetworkParameters parameters, Reporter reporter, boolean filterMainCC) {
+    public Optional<List<LfNetwork>> load(Object network, LfNetworkParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
@@ -547,7 +547,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             }
 
             Predicate<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filterCC =
-                    filterMainCC ? e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM : e -> true;
+                    parameters.getLoadMainConnectedComponentOnly() ? e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM : e -> true;
 
             MutableInt num = new MutableInt(0);
             List<LfNetwork> lfNetworks = busesByCc.entrySet().stream()
