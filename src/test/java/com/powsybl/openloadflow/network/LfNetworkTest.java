@@ -14,6 +14,12 @@ import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
+import com.powsybl.loadflow.LoadFlow;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -106,5 +112,64 @@ class LfNetworkTest extends AbstractConverterTest {
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         assertFalse(lfNetwork.getBusById("DL_BUS").isDisabled());
+    }
+
+    @Test
+    void testMultipleConnectedComponentsACMainComponents() {
+        Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));;
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+
+        //Default is only compute load flow on the main component
+        assertTrue(result.getComponentResults().size() == 1);
+        assertTrue(result.getComponentResults().get(0).getComponentNum() == ComponentConstants.MAIN_NUM);
+    }
+
+    @Test
+    void testMultipleConnectedComponentsACAllComponents() {
+        Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));;
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
+        parametersExt.setComputeMainConnectedComponentOnly(false);
+        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertTrue(result.getComponentResults().size() == 2);
+    }
+
+    @Test
+    void testMultipleConnectedComponentsDCMainComponents() {
+        Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));;
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDc(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+
+        //Default is only compute load flow on the main component
+        assertTrue(result.getComponentResults().size() == 1 );
+        assertTrue(result.getComponentResults().get(0).getComponentNum() == ComponentConstants.MAIN_NUM);
+    }
+
+    @Test
+    void testMultipleConnectedComponentsDCAllComponents() {
+        Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));;
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDc(true);
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
+        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        //DC force the use of only the main component
+        assertTrue(result.getComponentResults().size() == 1);
+        assertTrue(result.getComponentResults().get(0).getComponentNum() == ComponentConstants.MAIN_NUM);
     }
 }
