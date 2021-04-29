@@ -359,7 +359,10 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         // Create a basic 4-buses network
         Network sNetwork = FourBusNetworkFactory.createBaseNetwork();
         Generator g4 = sNetwork.getGenerator("g4");
+        Generator g1 = sNetwork.getGenerator("g1");
         Line l34 = sNetwork.getLine("l34");
+        Line l12 = sNetwork.getLine("l12");
+        Line l13 = sNetwork.getLine("l13");
 
         double qtarget = 1.0;
 
@@ -380,5 +383,28 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         result = loadFlowRunner.run(sNetwork, parameters);
         assertTrue(result.isOk());
         assertReactivePowerEquals(qtarget, l34.getTerminal(Branch.Side.ONE));
+
+        // Third test: generator g4 regulates reactive power on line 1->2 (line which is not linked to bus 4)
+        g4.setRegulationMode(RegulationMode.REACTIVE_POWER);
+        g4.setRegulatingTerminal(l12.getTerminal(Branch.Side.ONE));
+        g4.setTargetQ(qtarget);
+
+        result = loadFlowRunner.run(sNetwork, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(qtarget, l12.getTerminal(Branch.Side.ONE));
+
+        // Fourth test: two regulating generators (generators g4 and g1 regulate reactive power on line 4->3 and 1->3 respectively)
+        // TO DO: fix setting a third generator. There must be a point where voltage is fixed in the network to operate a PF in OLF.
+        g4.setRegulationMode(RegulationMode.REACTIVE_POWER);
+        g4.setRegulatingTerminal(l34.getTerminal(Branch.Side.TWO));
+        g4.setTargetQ(qtarget);
+        g1.setRegulationMode(RegulationMode.REACTIVE_POWER);
+        g1.setRegulatingTerminal(l13.getTerminal(Branch.Side.ONE));
+        g1.setTargetQ(qtarget);
+
+        //result = loadFlowRunner.run(sNetwork, parameters);
+        //assertTrue(result.isOk());
+        //assertReactivePowerEquals(qtarget, l34.getTerminal(Branch.Side.TWO));
+        //assertReactivePowerEquals(qtarget, l13.getTerminal(Branch.Side.ONE));
     }
 }
