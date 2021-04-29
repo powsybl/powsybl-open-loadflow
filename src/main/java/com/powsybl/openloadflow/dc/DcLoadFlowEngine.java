@@ -43,7 +43,7 @@ public class DcLoadFlowEngine {
 
     public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters, Reporter reporter) {
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(parameters.getSlackBusSelector(), false, false, false, false, parameters.getPlausibleActivePowerLimit(), false);
-        this.networks = LfNetwork.load(network, lfNetworkParameters, reporter);
+        this.networks = LfNetwork.load(network, lfNetworkParameters, reporter, false);
         this.parameters = Objects.requireNonNull(parameters);
     }
 

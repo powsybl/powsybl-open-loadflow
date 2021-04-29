@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -511,7 +512,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     @Override
-    public Optional<List<LfNetwork>> load(Object network, LfNetworkParameters parameters, Reporter reporter) {
+    public Optional<List<LfNetwork>> load(Object network, LfNetworkParameters parameters, Reporter reporter, boolean filterMainCC) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
@@ -545,9 +546,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 }
             }
 
+            Predicate<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filterCC =
+                    filterMainCC ? e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM : e -> true;
+
             MutableInt num = new MutableInt(0);
             List<LfNetwork> lfNetworks = busesByCc.entrySet().stream()
-                    .filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
+                    .filter(filterCC)
                     .map(e -> create(num, e.getValue(), switchesByCc.get(e.getKey()), parameters,
                         reporter.createSubReporter("createLfNetwork", "Create network ${networkNum}", "networkNum", num.getValue())))
                     .collect(Collectors.toList());

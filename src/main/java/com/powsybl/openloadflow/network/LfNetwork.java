@@ -427,22 +427,26 @@ public class LfNetwork {
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
-        return load(network, new LfNetworkParameters(slackBusSelector), Reporter.NO_OP);
+        return load(network, new LfNetworkParameters(slackBusSelector), Reporter.NO_OP, true);
     }
 
     public static List<LfNetwork> load(Object network, LfNetworkParameters parameters) {
-        return load(network, parameters, Reporter.NO_OP);
+        return load(network, parameters, Reporter.NO_OP, true);
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, Reporter reporter) {
-        return load(network, new LfNetworkParameters(slackBusSelector), reporter);
+        return load(network, new LfNetworkParameters(slackBusSelector), reporter, true);
     }
 
     public static List<LfNetwork> load(Object network, LfNetworkParameters parameters, Reporter reporter) {
+        return load(network, parameters, reporter, true);
+    }
+
+    public static List<LfNetwork> load(Object network, LfNetworkParameters parameters, Reporter reporter, boolean filterMainCC) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
         for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
-            List<LfNetwork> lfNetworks = importer.load(network, parameters, reporter).orElse(null);
+            List<LfNetwork> lfNetworks = importer.load(network, parameters, reporter, filterMainCC).orElse(null);
             if (lfNetworks != null) {
                 for (LfNetwork lfNetwork : lfNetworks) {
                     Reporter reporterNetwork = reporter.createSubReporter("postLoading", "Post loading process on network ${numNetwork}", "numNetwork", lfNetwork.getNum());
