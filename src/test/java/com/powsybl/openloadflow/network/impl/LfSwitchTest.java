@@ -50,7 +50,7 @@ class LfSwitchTest {
                 new OpenLoadFlowParameters(), true);
         List<LfNetwork> lfNetworks = AcloadFlowEngine.createNetworks(network, acLoadFlowParameters, Reporter.NO_OP);
         assertEquals(1, lfNetworks.size());
-        lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
+        lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         lfSwitch = (LfSwitch) lfNetwork.getBranchById("B3");
     }
 

@@ -44,7 +44,7 @@ class EquationSystemTest {
     @Test
     void test() {
         List<LfNetwork> lfNetworks = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
-        LfNetwork network = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
+        LfNetwork network = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
 
         LfBus bus = network.getBus(0);
         EquationSystem equationSystem = new EquationSystem(network, true);
@@ -125,7 +125,7 @@ class EquationSystemTest {
     @Test
     void writeAcSystemTest() throws IOException {
         List<LfNetwork> lfNetworks = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
-        LfNetwork network = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
+        LfNetwork network = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
 
         EquationSystem equationSystem = AcEquationSystem.create(network);
         try (StringWriter writer = new StringWriter()) {
@@ -148,7 +148,7 @@ class EquationSystemTest {
     @Test
     void writeDcSystemTest() throws IOException {
         List<LfNetwork> lfNetworks = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
-        LfNetwork network = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
+        LfNetwork network = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
 
         EquationSystem equationSystem = DcEquationSystem.create(network, new DcEquationSystemCreationParameters(true, false, false, true));
         try (StringWriter writer = new StringWriter()) {
@@ -168,7 +168,7 @@ class EquationSystemTest {
     void findLargestMismatchesTest() {
         Network network = EurostagTutorialExample1Factory.create();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
-        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
+        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
 
         EquationSystem equationSystem = AcEquationSystem.create(mainNetwork);
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
@@ -187,7 +187,7 @@ class EquationSystemTest {
     void currentMagnitudeTest() {
         Network network = EurostagTutorialExample1Factory.create();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
-        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
+        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
 
         VariableSet variableSet = new VariableSet();
         EquationSystem equationSystem = AcEquationSystem.create(mainNetwork, variableSet);
@@ -217,7 +217,7 @@ class EquationSystemTest {
         line1.getTerminal2().disconnect();
 
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
-        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
+        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
 
         VariableSet variableSet = new VariableSet();
         EquationSystem equationSystem = AcEquationSystem.create(mainNetwork, variableSet);
@@ -237,7 +237,7 @@ class EquationSystemTest {
         Line line1 = network.getLine("NHV1_NHV2_1");
         line1.getTerminal1().disconnect();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
-        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
+        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
 
         VariableSet variableSet = new VariableSet();
         EquationSystem equationSystem = AcEquationSystem.create(mainNetwork, variableSet);

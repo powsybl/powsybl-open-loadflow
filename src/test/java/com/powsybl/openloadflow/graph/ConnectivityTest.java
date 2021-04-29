@@ -33,7 +33,7 @@ class ConnectivityTest {
     void setup() {
         Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
-        lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElse(null);
+        lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
     }
 
     @Test
