@@ -32,7 +32,7 @@ public class NodeBreakerNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *            |
      *      o--C--o
      *      |     |
-     *      |     B2
+     *      |     B1
      *      |     |
      *      |     o
      *      |     |
