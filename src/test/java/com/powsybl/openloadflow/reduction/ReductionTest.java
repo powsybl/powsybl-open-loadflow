@@ -8,7 +8,9 @@ package com.powsybl.openloadflow.reduction;
 
 import com.powsybl.iidm.network.Network;
 import com.powsybl.ieeecdf.converter.*;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -88,6 +90,45 @@ class ReductionTest {
         assertEquals(0.1581, x[1], 0.01);
         assertEquals(0.1506, x[2], 0.01);
         assertEquals(-0.2990, x[3], 0.01);
+    }
+
+    @Test
+    void computeCurrentInjectorWithLfResultsTest() {
+        Network network = IeeeCdfNetworkFactory.create14();
+
+        List<String> voltageLevels = new ArrayList<>();
+
+        OpenLoadFlowParameters parametersExt = loadFlowProvider.getParametersExt(parameters);
+        SlackBusSelector slackBusSelector = new NetworkSlackBusSelector(network, parametersExt.getSlackBusSelector());
+
+        LoadFlowResult resultLf = LoadFlow.run(network, parameters);
+
+        ReductionParameters reductionParameters = new ReductionParameters(slackBusSelector, loadFlowProvider.getMatrixFactory(), voltageLevels);
+
+        ReductionEngine re = new ReductionEngine(network, reductionParameters);
+        LfNetwork lfNetwork = re.getNetworks().get(0);
+
+        ReductionEquationSystemCreationParameters creationParameters = new ReductionEquationSystemCreationParameters(true, false);
+        EquationSystem equationSystem = ReductionEquationSystem.create(lfNetwork, new VariableSet(), creationParameters);
+
+        VoltageInitializer voltageInitializer = reductionParameters.getVoltageInitializer();
+
+        AdmittanceMatrix a = new AdmittanceMatrix(equationSystem, reductionParameters.getMatrixFactory());
+        Matrix a1 = a.getMatrix();
+        Matrix mV = a.getVoltageVector(voltageInitializer);
+        //System.out.println("===> v =");
+        //mV.print(System.out);
+
+        Matrix mI = mV.times(a1);
+        //System.out.println("===> i =");
+        //mI.print(System.out);
+
+        double[] x = re.rowVectorToDouble(mI);
+
+        assertEquals(2.129, x[0], 0.001);
+        assertEquals(0.5461, x[1], 0.001);
+        assertEquals(0.2018, x[2], 0.001);
+        assertEquals(-0.2777, x[3], 0.001);
     }
 
     @Test
