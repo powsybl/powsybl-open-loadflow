@@ -41,7 +41,7 @@ public final class ParameterConstants {
     public static final String ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME = "addRatioToLinesWithDifferentNominalVoltageAtBothEnds";
     public static final boolean ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE = false;
 
-    public static final String LOAD_MAIN_CONNECTED_COMPONENT_ONLY_NAME = "loadMainNetworkConnectedComponentOnly";
+    public static final String LOAD_MAIN_CONNECTED_COMPONENT_ONLY_NAME = "loadMainConnectedComponentOnly";
     public static final boolean LOAD_MAIN_CONNECTED_COMPONENT_ONLY_DEFAULT_VALUE = true;
 
     /**
