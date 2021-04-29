@@ -117,7 +117,7 @@ class LfNetworkTest extends AbstractConverterTest {
     @Test
     void testMultipleConnectedComponentsACMainComponents() {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));;
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
@@ -131,7 +131,7 @@ class LfNetworkTest extends AbstractConverterTest {
     @Test
     void testMultipleConnectedComponentsACAllComponents() {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));;
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
         parametersExt.setComputeMainConnectedComponentOnly(false);
@@ -145,7 +145,7 @@ class LfNetworkTest extends AbstractConverterTest {
     @Test
     void testMultipleConnectedComponentsDCMainComponents() {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));;
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setDc(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -153,14 +153,14 @@ class LfNetworkTest extends AbstractConverterTest {
         assertTrue(result.isOk());
 
         //Default is only compute load flow on the main component
-        assertTrue(result.getComponentResults().size() == 1 );
+        assertTrue(result.getComponentResults().size() == 1);
         assertTrue(result.getComponentResults().get(0).getComponentNum() == ComponentConstants.MAIN_NUM);
     }
 
     @Test
     void testMultipleConnectedComponentsDCAllComponents() {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));;
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setDc(true);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
