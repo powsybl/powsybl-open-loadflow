@@ -115,7 +115,7 @@ class LfNetworkTest extends AbstractConverterTest {
     }
 
     @Test
-    void testMultipleConnectedComponentsACMainComponents() {
+    void testMultipleConnectedComponentsACMainComponent() {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -124,8 +124,8 @@ class LfNetworkTest extends AbstractConverterTest {
         assertTrue(result.isOk());
 
         //Default is only compute load flow on the main component
-        assertTrue(result.getComponentResults().size() == 1);
-        assertTrue(result.getComponentResults().get(0).getComponentNum() == ComponentConstants.MAIN_NUM);
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(ComponentConstants.MAIN_NUM, result.getComponentResults().get(0).getComponentNum());
     }
 
     @Test
@@ -139,11 +139,11 @@ class LfNetworkTest extends AbstractConverterTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isOk());
-        assertTrue(result.getComponentResults().size() == 2);
+        assertEquals(2, result.getComponentResults().size());
     }
 
     @Test
-    void testMultipleConnectedComponentsDCMainComponents() {
+    void testMultipleConnectedComponentsDCMainComponent() {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -153,8 +153,8 @@ class LfNetworkTest extends AbstractConverterTest {
         assertTrue(result.isOk());
 
         //Default is only compute load flow on the main component
-        assertTrue(result.getComponentResults().size() == 1);
-        assertTrue(result.getComponentResults().get(0).getComponentNum() == ComponentConstants.MAIN_NUM);
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(ComponentConstants.MAIN_NUM, result.getComponentResults().get(0).getComponentNum());
     }
 
     @Test
@@ -169,7 +169,7 @@ class LfNetworkTest extends AbstractConverterTest {
 
         assertTrue(result.isOk());
         //DC force the use of only the main component
-        assertTrue(result.getComponentResults().size() == 1);
-        assertTrue(result.getComponentResults().get(0).getComponentNum() == ComponentConstants.MAIN_NUM);
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(ComponentConstants.MAIN_NUM, result.getComponentResults().get(0).getComponentNum());
     }
 }
