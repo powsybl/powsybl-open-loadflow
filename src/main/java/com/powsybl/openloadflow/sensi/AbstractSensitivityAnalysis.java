@@ -59,23 +59,17 @@ public abstract class AbstractSensitivityAnalysis {
         if (t2wt != null) {
             RatioTapChanger rtc = t2wt.getRatioTapChanger();
             if (rtc != null) {
-                throw new NotImplementedException(String.format("[%s] Bus target voltage on two windings transformer is not managed yet", equipmentId));
+                return rtc.getRegulationTerminal();
             }
-            return null;
         }
         ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(equipmentId);
-        Terminal regulatingTerminal = null;
         if (t3wt != null) {
             for (ThreeWindingsTransformer.Leg leg : t3wt.getLegs()) {
                 RatioTapChanger rtc = leg.getRatioTapChanger();
                 if (rtc != null && rtc.isRegulating()) {
-                    regulatingTerminal = rtc.getRegulationTerminal();
+                    return rtc.getRegulationTerminal();
                 }
             }
-            if (regulatingTerminal != null) {
-                throw new NotImplementedException(String.format("[%s] Bus target voltage on three windings transformer is not managed yet", equipmentId));
-            }
-            return null;
         }
         ShuntCompensator shuntCompensator = network.getShuntCompensator(equipmentId);
         if (shuntCompensator != null) {
@@ -785,5 +779,19 @@ public abstract class AbstractSensitivityAnalysis {
             }
         });
         return factorHolder;
+    }
+
+    public boolean hasTransformerBusTargetVoltage(SensitivityFactorHolder factorHolder, Network network) {
+        List<LfSensitivityFactor> factors = factorHolder.getFactorsForBaseNetwork();
+        for (LfSensitivityFactor factor : factors) {
+            if (factor.getVariableType() == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
+                TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer(factor.getVariableId());
+                ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(factor.getVariableId());
+                if (t2wt != null || t3wt != null) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

@@ -94,4 +94,14 @@ public class PhaseControlOuterLoop implements OuterLoop {
         double roundedA1Value = piModel.getA1();
         LOGGER.info("Round phase shift of '{}': {} -> {}", controllerBranch.getId(), a1Value, roundedA1Value);
     }
+
+    @Override
+    public boolean isActive() {
+        return true;
+    }
+
+    @Override
+    public void setActive(boolean active) {
+        //nothing to do
+    }
 }

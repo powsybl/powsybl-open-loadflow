@@ -94,4 +94,14 @@ public class DistributedSlackOuterLoop implements OuterLoop {
 
         return OuterLoopStatus.STABLE;
     }
+
+    @Override
+    public boolean isActive() {
+        return true;
+    }
+
+    @Override
+    public void setActive(boolean active) {
+        //nothing to do
+    }
 }

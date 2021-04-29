@@ -24,6 +24,8 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransformerVoltageControlOuterLoop.class);
 
+    private boolean active = true;
+
     @Override
     public String getType() {
         return "Transformer voltage control";
@@ -54,5 +56,15 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
             }
         }
         return status;
+    }
+
+    @Override
+    public boolean isActive() {
+        return active;
+    }
+
+    @Override
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

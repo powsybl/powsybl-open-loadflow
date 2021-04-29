@@ -34,7 +34,7 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AcloadFlowEngine.class);
 
-    private final LfNetwork network;
+    private LfNetwork network;
 
     private final AcLoadFlowParameters parameters;
 
@@ -66,6 +66,10 @@ public class AcloadFlowEngine implements AutoCloseable {
         return network;
     }
 
+    public void setNetwork(LfNetwork network) {
+        this.network = network;
+    }
+
     public AcLoadFlowParameters getParameters() {
         return parameters;
     }
@@ -76,6 +80,10 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     public EquationSystem getEquationSystem() {
         return equationSystem;
+    }
+
+    public void setEquationSystem(EquationSystem equationSystem) {
+        this.equationSystem = equationSystem;
     }
 
     private void updatePvBusesReactivePower(NewtonRaphsonResult lastNrResult, LfNetwork network, EquationSystem equationSystem) {
@@ -165,11 +173,13 @@ public class AcloadFlowEngine implements AutoCloseable {
 
                 // outer loops are nested: inner most loop first in the list, outer most loop last
                 for (OuterLoop outerLoop : parameters.getOuterLoops()) {
-                    runOuterLoop(outerLoop, network, equationSystem, variableSet, newtonRaphson, nrParameters, runningContext, reporter);
+                    if (outerLoop.isActive()) {
+                        runOuterLoop(outerLoop, network, equationSystem, variableSet, newtonRaphson, nrParameters, runningContext, reporter);
 
-                    // continue with next outer loop only if last Newton-Raphson succeed
-                    if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED) {
-                        break;
+                        // continue with next outer loop only if last Newton-Raphson succeed
+                        if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED) {
+                            break;
+                        }
                     }
                 }
             } while (runningContext.lastNrResult.getIteration() > oldIterationCount

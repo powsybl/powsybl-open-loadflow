@@ -15,8 +15,10 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.TransformerVoltageControlOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
+import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
@@ -177,6 +179,12 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 .collect(Collectors.toSet());
 
         // create AC engine
+        boolean hasTransformerBusTargetVoltage = hasTransformerBusTargetVoltage(factorHolder, network);
+        if (hasTransformerBusTargetVoltage) {
+            // if we have at least one bus target voltage linked to a ratio tap changer, we activate the transformer
+            // voltage control for the AC load flow engine.
+            lfParameters.setTransformerVoltageControlOn(true);
+        }
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters,
             lfParametersExt, false, true,
             branchesWithMeasuredCurrent);
@@ -203,6 +211,24 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 ));
             } else {
                 slackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
+            }
+
+            // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
+            // system obtained just before the transformer steps rounding.
+            if (hasTransformerBusTargetVoltage) {
+                for (OuterLoop outerLoop : engine.getParameters().getOuterLoops()) {
+                    if (outerLoop instanceof TransformerVoltageControlOuterLoop) {
+                        outerLoop.setActive(false);
+                    }
+                }
+                for (LfBus bus : lfNetwork.getBuses()) {
+                    if (bus.getDiscreteVoltageControl() != null && bus.getDiscreteVoltageControl().getMode().equals(DiscreteVoltageControl.Mode.OFF)) {
+                        // switch on regulating transformers
+                        bus.getDiscreteVoltageControl().setMode(DiscreteVoltageControl.Mode.VOLTAGE);
+                    }
+                }
+                engine.setEquationSystem(null); //FIXME: should be an update only.
+                engine.run(reporter);
             }
 
             // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one

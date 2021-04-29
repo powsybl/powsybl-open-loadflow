@@ -107,7 +107,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                 equationSystem.removeEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1);
             }
         } else {
-            throw new UnsupportedOperationException("TODO");
+            // throw new UnsupportedOperationException("TODO");
         }
     }
 }
