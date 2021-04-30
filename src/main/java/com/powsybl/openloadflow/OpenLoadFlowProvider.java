@@ -285,13 +285,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     parameters.isTransformerVoltageControlOn());
         }
 
-        LoadFlowResult.ComponentResult componentResult = new LoadFlowResultImpl.ComponentResultImpl(
+        return new LoadFlowResultImpl.ComponentResultImpl(
                 pResult.getNetwork().getNum(),
                 pResult.getStatus(),
                 0,
                 pResult.getNetwork().getSlackBus().getId(),
                 pResult.getSlackBusActivePowerMismatch() * PerUnit.SB);
-        return componentResult;
     }
 
     @Override
