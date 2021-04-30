@@ -524,7 +524,7 @@ public abstract class AbstractSensitivityAnalysis {
     }
 
     protected List<SensitivityFactorGroup> createFactorGroups(List<LfSensitivityFactor> factors) {
-        Map<Pair<SensitivityVariableType, String>, SensitivityFactorGroup> groupIndexedById = new HashMap<>(factors.size());
+        Map<Pair<SensitivityVariableType, String>, SensitivityFactorGroup> groupIndexedById = new LinkedHashMap<>(factors.size());
         // index factors by variable config
         for (LfSensitivityFactor factor : factors) {
             if (factor.getStatus() == LfSensitivityFactor.Status.SKIP) {
@@ -697,14 +697,14 @@ public abstract class AbstractSensitivityAnalysis {
 
     class SensitivityFactorHolder {
 
-        private final Map<String, List<LfSensitivityFactor>> additionalFactorsPerContingency = new HashMap<>();
+        private final Map<String, List<LfSensitivityFactor>> additionalFactorsPerContingency = new LinkedHashMap<>();
         private final List<LfSensitivityFactor> additionalFactorsNoContingency = new ArrayList<>();
         private final List<LfSensitivityFactor> commonFactors = new ArrayList<>();
 
         public List<LfSensitivityFactor> getAllFactors() {
             List<LfSensitivityFactor> allFactors = new ArrayList<>(commonFactors);
             allFactors.addAll(additionalFactorsNoContingency);
-            allFactors.addAll(additionalFactorsPerContingency.values().stream().flatMap(List::stream).collect(Collectors.toSet()));
+            allFactors.addAll(additionalFactorsPerContingency.values().stream().flatMap(List::stream).collect(Collectors.toCollection(LinkedHashSet::new)));
             return allFactors;
         }
 
@@ -743,7 +743,7 @@ public abstract class AbstractSensitivityAnalysis {
                                                        SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
         final SensitivityFactorHolder factorHolder = new SensitivityFactorHolder();
 
-        final Map<String, Map<LfElement, Double>> injectionBusesByVariableId = new HashMap<>();
+        final Map<String, Map<LfElement, Double>> injectionBusesByVariableId = new LinkedHashMap<>();
 
         factorReader.read((factorContext, functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
             if (variableSet) {
@@ -753,7 +753,7 @@ public abstract class AbstractSensitivityAnalysis {
                     LfBranch functionElement = lfNetwork.getBranchById(functionId);
                     Map<LfElement, Double> injectionLfBuses = injectionBusesByVariableId.get(variableId);
                     if (injectionLfBuses == null) {
-                        injectionLfBuses = new HashMap<>();
+                        injectionLfBuses = new LinkedHashMap<>();
                         injectionBusesByVariableId.put(variableId, injectionLfBuses);
                         SensitivityVariableSet set = variableSetsById.get(variableId);
                         if (set == null) {
