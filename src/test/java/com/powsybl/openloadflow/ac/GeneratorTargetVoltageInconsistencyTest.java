@@ -93,7 +93,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         LfBus controlledBus = lfNetwork.getBusById("vl1_0");
         assertNotNull(controlledBus);
 
@@ -207,7 +207,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         assertEquals(0.5625, g.getTargetV() / g.getTerminal().getVoltageLevel().getNominalV());
 
         List<LfNetwork> networkList = LfNetwork.load(network, parameters);
-        LfNetwork mainNetwork = networkList.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork mainNetwork = networkList.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         LfGenerator generator = mainNetwork.getBusById("vl2_0").getGenerators().get(0);
         assertEquals("g2", generator.getId());
         assertEquals(PlausibleValues.MIN_TARGET_VOLTAGE_PU, generator.getTargetV());
@@ -318,7 +318,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         assertEquals(413, g2.getTargetV());
 
         List<LfNetwork> networkList = LfNetwork.load(network, parameters);
-        LfNetwork mainNetwork = networkList.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork mainNetwork = networkList.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         Optional<VoltageControl> sharedVoltageControl = mainNetwork.getBusById("vl2_0").getVoltageControl();
         assertTrue(sharedVoltageControl.isPresent());
 

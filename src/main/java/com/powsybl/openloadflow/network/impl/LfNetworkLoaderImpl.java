@@ -14,7 +14,6 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import net.jafama.FastMath;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.slf4j.Logger;
@@ -437,9 +436,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private static LfNetwork create(MutableInt num, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
-        LfNetwork lfNetwork = new LfNetwork(num.getValue(), parameters.getSlackBusSelector());
-        num.increment();
+    private static LfNetwork create(Integer num, Integer numSC, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
+        LfNetwork lfNetwork = new LfNetwork(num, numSC, parameters.getSlackBusSelector());
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
@@ -464,7 +462,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 .withValue("nbGenImpacted", report.generatorsDiscardedFromVoltageControlBecauseNotStarted)
                 .build());
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
-                    lfNetwork.getNum(), report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
+                    lfNetwork.getNumCC(), report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall > 0) {
             reporter.report(Report.builder()
@@ -473,38 +471,38 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 .withValue("nbGenImpacted", report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall)
                 .build());
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because of a too small max reactive range",
-                    lfNetwork.getNum(), report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
+                    lfNetwork.getNumCC(), report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP equals 0",
-                    lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero);
+                    lfNetwork.getNumCC(), report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP > maxP",
-                    lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP);
+                    lfNetwork.getNumCC(), report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of maxP not plausible",
-                    lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
+                    lfNetwork.getNumCC(), report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of maxP equals to minP",
-                    lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP);
+                    lfNetwork.getNumCC(), report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP);
         }
         if (report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds > 0) {
             LOGGER.warn("Network {}: {} branches have been discarded because connected to same bus at both ends",
-                    lfNetwork.getNum(), report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds);
+                    lfNetwork.getNumCC(), report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds);
         }
         if (report.linesWithDifferentNominalVoltageAtBothEnds > 0) {
             LOGGER.warn("Network {}: {} lines have a different nominal voltage at both ends: a ratio has been added",
-                    lfNetwork.getNum(), report.linesWithDifferentNominalVoltageAtBothEnds);
+                    lfNetwork.getNumCC(), report.linesWithDifferentNominalVoltageAtBothEnds);
         }
         if (report.nonImpedantBranches > 0) {
-            LOGGER.warn("Network {}: {} branches are non impedant", lfNetwork.getNum(), report.nonImpedantBranches);
+            LOGGER.warn("Network {}: {} branches are non impedant", lfNetwork.getNumCC(), report.nonImpedantBranches);
         }
 
         if (report.voltageControllerCount == 0) {
-            LOGGER.error("Discard network {} because there is no equipment to control voltage", lfNetwork.getNum());
+            LOGGER.error("Discard network {} because there is no equipment to control voltage", lfNetwork.getNumCC());
             lfNetwork.setValid(false);
         }
 
@@ -549,11 +547,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             Predicate<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filterCC =
                     parameters.getComputeMainConnectedComponentOnly() ? e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM : e -> true;
 
-            MutableInt num = new MutableInt(0);
             List<LfNetwork> lfNetworks = busesByCc.entrySet().stream()
                     .filter(filterCC)
-                    .map(e -> create(num, e.getValue(), switchesByCc.get(e.getKey()), parameters,
-                        reporter.createSubReporter("createLfNetwork", "Create network ${networkNum}", "networkNum", num.getValue())))
+                    .map(e -> create(e.getKey().getLeft(), e.getKey().getRight(), e.getValue(), switchesByCc.get(e.getKey()), parameters,
+                        reporter.createSubReporter("createLfNetwork", "Create network ${networkNum}", "networkNum", e.getKey().getLeft())))
                     .collect(Collectors.toList());
 
             stopwatch.stop();

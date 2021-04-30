@@ -119,7 +119,7 @@ class AcloadFlowReactiveLimitsTest {
     void diagramTest() {
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         LfBus genBus = lfNetwork.getBus(0);
         assertEquals("VLGEN_0", genBus.getId());
         LfGenerator gen = genBus.getGenerators().get(0);

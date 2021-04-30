@@ -48,7 +48,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         Network network = EurostagTutorialExample1Factory.createWithFixedCurrentLimits();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt, false);
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
@@ -82,7 +82,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         Network network = DanglingLineNetworkFactory.create();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt, false);
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
@@ -101,7 +101,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         Network network = ThreeWindingsTransformerNetworkFactory.create();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new NameSlackBusSelector("VL_33_0"));
         assertEquals(1, lfNetworks.size());
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt, false);
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
@@ -120,7 +120,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         Network network = EurostagTutorialExample1Factory.createWithFixedCurrentLimits();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt, false);
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
@@ -136,7 +136,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         Network network = DanglingLineNetworkFactory.create();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt, false);
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();
@@ -151,7 +151,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         Network network = ThreeWindingsTransformerNetworkFactory.create();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new NameSlackBusSelector("VL_33_0"));
         assertEquals(1, lfNetworks.size());
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), parameters, parametersExt, false);
         AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters);
         engine.run();

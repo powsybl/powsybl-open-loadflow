@@ -220,7 +220,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     status = LoadFlowResult.ComponentResult.Status.FAILED;
                     break;
             }
-            componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNum(),
+            componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNumCC(),
                                                                             status,
                                                                             result.getNewtonRaphsonIterations(),
                                                                             result.getNetwork().getSlackBus().getId(),
@@ -286,7 +286,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
 
         return new LoadFlowResultImpl.ComponentResultImpl(
-                pResult.getNetwork().getNum(),
+                pResult.getNetwork().getNumCC(),
                 pResult.getStatus(),
                 0,
                 pResult.getNetwork().getSlackBus().getId(),

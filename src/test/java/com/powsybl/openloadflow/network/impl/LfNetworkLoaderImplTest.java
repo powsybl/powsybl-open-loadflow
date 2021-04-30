@@ -43,7 +43,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     @Test
     void initialTest() {
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         LfGenerator lfGenerator = lfNetwork.getBus(0).getGenerators().get(0);
         assertEquals("g", lfGenerator.getId());
         assertTrue(lfGenerator.isParticipating());
@@ -54,7 +54,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         // targetP == 0, generator is discarded from active power control
         g.setTargetP(0);
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         assertFalse(lfNetwork.getBus(0).getGenerators().get(0).isParticipating());
     }
 
@@ -64,7 +64,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         g.setTargetP(10);
         g.setMaxP(5);
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         assertFalse(lfNetwork.getBus(0).getGenerators().get(0).isParticipating());
     }
 
@@ -85,7 +85,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
                 .add();
 
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         assertFalse(lfNetwork.getBus(0).isVoltageControllerEnabled());
     }
 
@@ -95,7 +95,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         g.setTargetP(0);
         g.setMinP(1);
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         assertFalse(lfNetwork.getBus(0).isVoltageControllerEnabled());
     }
 
@@ -105,7 +105,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
-        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         LfBus lfDanglingLineBus = mainNetwork.getBusById("DL_BUS");
         assertTrue(lfDanglingLineBus instanceof LfDanglingLineBus);
         assertEquals("VL", lfDanglingLineBus.getVoltageLevelId());
@@ -121,7 +121,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
-        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         LfBus lfStarBus = mainNetwork.getBusById("3WT_BUS0");
         assertTrue(lfStarBus instanceof LfStarBus);
         assertEquals(voltageLevelLeg1.getId(), lfStarBus.getVoltageLevelId());

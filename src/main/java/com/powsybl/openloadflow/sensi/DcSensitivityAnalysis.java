@@ -580,7 +580,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector, false, true, lfParameters.isTwtSplitShuntAdmittance(),
                 false, lfParametersExt.getPlausibleActivePowerLimit(), false, true);
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfNetworkParameters, reporter);
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         checkContingencies(network, lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
 

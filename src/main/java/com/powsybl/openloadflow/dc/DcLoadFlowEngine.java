@@ -72,7 +72,7 @@ public class DcLoadFlowEngine {
 
     public DcLoadFlowResult run(Reporter reporter) {
         // only process main (largest) connected component
-        LfNetwork network = networks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork network = networks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         return run(reporter, network);
     }
 
@@ -101,7 +101,7 @@ public class DcLoadFlowEngine {
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
 
         // only process main (largest) connected component
-        LfNetwork network = networks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork network = networks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
 
         Collection<LfBus> remainingBuses = new HashSet<>(network.getBuses());
         remainingBuses.removeAll(disabledBuses);

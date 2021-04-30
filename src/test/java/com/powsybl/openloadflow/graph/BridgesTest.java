@@ -43,7 +43,7 @@ class BridgesTest {
         long start = System.currentTimeMillis();
         Network network = EurostagTutorialExample1Factory.create();
         List<LfNetwork> lfn = LfNetwork.load(network, new FirstSlackBusSelector());
-        this.lfNetwork = lfn.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        this.lfNetwork = lfn.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         LOGGER.info("Reading network of {} buses in {} ms", lfNetwork.getBuses().size(), System.currentTimeMillis() - start);
 
         this.bridgesSetReference = getBridgesReference();

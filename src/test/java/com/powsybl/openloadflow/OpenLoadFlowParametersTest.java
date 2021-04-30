@@ -152,7 +152,7 @@ class OpenLoadFlowParametersTest {
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         assertEquals(SlackBusSelectionMode.NAME, olfParameters.getSlackBusSelectionMode());
         List<LfNetwork> lfNetworks = LfNetwork.load(EurostagTutorialExample1Factory.create(), SlackBusSelector.fromMode(olfParameters.getSlackBusSelectionMode(), olfParameters.getSlackBusId()));
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         PowsyblException thrown = assertThrows(PowsyblException.class, lfNetwork::getSlackBus);
         assertEquals("Slack bus '???' not found", thrown.getMessage());
     }

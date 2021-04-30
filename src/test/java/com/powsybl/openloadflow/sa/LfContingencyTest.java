@@ -53,7 +53,7 @@ class LfContingencyTest extends AbstractConverterTest {
     void test() throws IOException {
         Network network = FourSubstationsNodeBreakerFactory.create();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
-        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         assertEquals(2, lfNetworks.size());
 
         OpenSecurityAnalysis sa = new OpenSecurityAnalysisFactory().create(network, null, 0);

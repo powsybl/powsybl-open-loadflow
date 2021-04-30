@@ -40,7 +40,7 @@ class NetworkSlackBusSelectorTest {
     @Test
     void noExtensionTest() {
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new NetworkSlackBusSelector(network, selectorMock));
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         assertEquals("VLHV1_0", lfNetwork.getSlackBus().getId());
         assertEquals(4, fallbackBusCount);
     }
@@ -53,7 +53,7 @@ class NetworkSlackBusSelectorTest {
                 .withTerminal(load.getTerminal())
                 .add();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new NetworkSlackBusSelector(network, selectorMock));
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         assertEquals("VLLOAD_0", lfNetwork.getSlackBus().getId());
         assertEquals(-1, fallbackBusCount);
     }
@@ -71,7 +71,7 @@ class NetworkSlackBusSelectorTest {
                 .withTerminal(gen.getTerminal())
                 .add();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new NetworkSlackBusSelector(network, selectorMock));
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
         assertEquals("VLLOAD_0", lfNetwork.getSlackBus().getId());
         assertEquals(2, fallbackBusCount);
     }
