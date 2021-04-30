@@ -543,6 +543,23 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void disconnectedGeneratorShouldBeSkipped() {
+        Network network = FourBusNetworkFactory.create();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        //Disconnect g4 generator
+        network.getGenerator("g4").getTerminal().disconnect();
+
+        TargetVoltage targetVoltage = new TargetVoltage("g4", "g4", "g4");
+        BusVoltage busVoltage = new BusVoltage("b1", "b1", new IdBasedBusRef("b1"));
+        SensitivityFactorsProvider factorsProvider = n -> Collections.singletonList(new BusVoltagePerTargetV(busVoltage, targetVoltage));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+        assertTrue(result.getSensitivityValues().isEmpty());
+    }
+
+    @Test
     void testBranchFunctionOutsideMainComponent() {
         testBranchFunctionOutsideMainComponent(false);
     }
