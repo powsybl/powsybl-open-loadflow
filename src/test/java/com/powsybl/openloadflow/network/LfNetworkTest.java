@@ -164,6 +164,7 @@ class LfNetworkTest extends AbstractConverterTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setDc(true);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
+        parametersExt.setComputeMainConnectedComponentOnly(false);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
