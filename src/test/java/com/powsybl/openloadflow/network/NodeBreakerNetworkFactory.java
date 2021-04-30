@@ -13,6 +13,7 @@ import com.powsybl.iidm.network.VoltageLevel;
 
 public class NodeBreakerNetworkFactory extends AbstractLoadFlowNetworkFactory {
     /**
+     * <pre>
      *                   G
      *              C    |
      * BBS1 -------[+]------- BBS2     VL1
@@ -24,7 +25,7 @@ public class NodeBreakerNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * BBS3 -----------------          VL2
      *             |
      *             LD
-     *
+     * </pre>
      * 6 buses
      * 6 branches
      *
@@ -162,6 +163,119 @@ public class NodeBreakerNetworkFactory extends AbstractLoadFlowNetworkFactory {
         network.getLine("L1").newCurrentLimits2().setPermanentLimit(940.0).add();
         network.getLine("L2").newCurrentLimits1().setPermanentLimit(940.0).add();
         network.getLine("L2").newCurrentLimits2().setPermanentLimit(940.0).add();
+
+        return network;
+    }
+
+    private static void createBar(VoltageLevel vl, String id, int node) {
+        vl.getNodeBreakerView().newBusbarSection().setId(id).setNode(node).add();
+    }
+
+    private static void createBreaker(VoltageLevel vl, String id, int node1, int node2) {
+        vl.getNodeBreakerView().newBreaker().setId(id).setNode1(node1).setNode2(node2).add();
+    }
+
+    private static void createConnection(VoltageLevel vl, int node1, int node2) {
+        vl.getNodeBreakerView().newInternalConnection().setNode1(node1).setNode2(node2).add();
+    }
+
+    private static void createGenerator(VoltageLevel vl, String id, int node, double v, double p, double q) {
+        vl.newGenerator()
+            .setId(id)
+            .setNode(node)
+            .setMinP(-9999.99)
+            .setMaxP(9999.99)
+            .setVoltageRegulatorOn(true)
+            .setTargetV(v)
+            .setTargetP(p)
+            .setTargetQ(q)
+            .add();
+    }
+
+    private static void createLine(Network network, String id, String vl1, int node1, String vl2, int node2) {
+        network.newLine()
+            .setId(id)
+            .setVoltageLevel1(vl1)
+            .setNode1(node1)
+            .setVoltageLevel2(vl2)
+            .setNode2(node2)
+            .setR(3.0)
+            .setX(33.0)
+            .setG1(0.0)
+            .setB1(386E-6 / 2)
+            .setG2(0.0)
+            .setB2(386E-6 / 2)
+            .add();
+        network.getLine(id).newCurrentLimits1().setPermanentLimit(940.0).add();
+        network.getLine(id).newCurrentLimits2().setPermanentLimit(940.0).add();
+    }
+
+    /**
+     *
+     * <pre>
+     *           G1 (400MW)          G2 (200MW)
+     *           |   C1  BBS2   C2   |
+     *  BBS1 -------[+] -------[+]------- BBS3     VL1
+     *       B1 [+]        |        [+] B4
+     *           |         |         |
+     *           |     L1  |         | L2
+     *           |         |         |
+     *       B2 [+]    B3 [+]       [+] B5
+     *  BBS4  ---------------------------          VL2
+     *                     |
+     *                     LD (600MW)
+     *</pre>
+     *
+     * @author Sylvain Leclerc <sylvain.leclerc at rte-france.com>
+     */
+    public static Network create3Bars() {
+        Network network = Network.create("test", "test");
+        Substation s = network.newSubstation()
+            .setId("S")
+            .add();
+        VoltageLevel vl1 = s.newVoltageLevel()
+            .setId("VL1")
+            .setNominalV(400)
+            .setLowVoltageLimit(370.)
+            .setHighVoltageLimit(420.)
+            .setTopologyKind(TopologyKind.NODE_BREAKER)
+            .add();
+        createBar(vl1, "BBS1", 0);
+        createBar(vl1, "BBS2", 1);
+        createBar(vl1, "BBS3", 2);
+        createBreaker(vl1, "C1", 0, 1);
+        createBreaker(vl1, "C2", 1, 2);
+        createBreaker(vl1, "B1", 0, 5);
+        createConnection(vl1, 1, 6);
+        createBreaker(vl1, "B4", 2, 7);
+        createGenerator(vl1, "G1", 3, 400, 400, 0);
+        createConnection(vl1, 0, 3);
+        createGenerator(vl1, "G2", 4, 400, 200, 0);
+        createConnection(vl1, 2, 4);
+
+
+        VoltageLevel vl2 = s.newVoltageLevel()
+            .setId("VL2")
+            .setNominalV(400)
+            .setTopologyKind(TopologyKind.NODE_BREAKER)
+            .setLowVoltageLimit(370.)
+            .setHighVoltageLimit(420.)
+            .add();
+        createBar(vl2, "BBS4", 0);
+        createBreaker(vl2, "B2", 0, 2);
+        createBreaker(vl2, "B3", 0, 3);
+        createBreaker(vl2, "B5", 0, 4);
+        vl2.newLoad()
+            .setId("LD")
+            .setNode(1)
+            .setP0(600.0)
+            .setQ0(200.0)
+            .add();
+        createConnection(vl2, 0, 1);
+
+        createLine(network, "L1", "VL1", 5, "VL2", 2);
+        createLine(network, "L2", "VL1", 6, "VL2", 3);
+        createLine(network, "L3", "VL1", 7, "VL2", 4);
 
         return network;
     }
