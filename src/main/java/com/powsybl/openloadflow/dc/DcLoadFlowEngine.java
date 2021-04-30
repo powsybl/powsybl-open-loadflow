@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -72,9 +73,16 @@ public class DcLoadFlowEngine {
     public DcLoadFlowResult run(Reporter reporter) {
         // only process main (largest) connected component
         LfNetwork network = networks.stream().filter(n -> n.getNum() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        return run(reporter, network);
+    }
 
+    public List<DcLoadFlowResult> runMultiple(Reporter reporter) {
+        return networks.stream().map(n -> run(reporter, n)).collect(Collectors.toList());
+    }
+
+    public DcLoadFlowResult run(Reporter reporter, LfNetwork pNetwork) {
         DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(parameters.isUpdateFlows(), false, parameters.isForcePhaseControlOffAndAddAngle1Var(), parameters.isUseTransformerRatio());
-        EquationSystem equationSystem = DcEquationSystem.create(network, new VariableSet(), creationParameters);
+        EquationSystem equationSystem = DcEquationSystem.create(pNetwork, new VariableSet(), creationParameters);
 
         LoadFlowResult.ComponentResult.Status status = LoadFlowResult.ComponentResult.Status.FAILED;
         try (JacobianMatrix j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory())) {
@@ -83,8 +91,7 @@ public class DcLoadFlowEngine {
         } catch (Exception e) {
             LOGGER.error("Failed to solve linear system for DC load flow", e);
         }
-
-        return new DcLoadFlowResult(network, getActivePowerMismatch(network.getBuses()), status);
+        return new DcLoadFlowResult(pNetwork, getActivePowerMismatch(pNetwork.getBuses()), status);
     }
 
     public LoadFlowResult.ComponentResult.Status run(EquationSystem equationSystem, JacobianMatrix j,

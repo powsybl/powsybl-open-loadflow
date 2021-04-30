@@ -263,33 +263,35 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                      true,
                                                                      parametersExt.getComputeMainConnectedComponentOnly());
 
-        DcLoadFlowResult result = new DcLoadFlowEngine(network, dcParameters, reporter)
-                .run(reporter);
+        List<DcLoadFlowResult> results = new DcLoadFlowEngine(network, dcParameters, reporter)
+                .runMultiple(reporter);
 
         Networks.resetState(network);
 
-        if (result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED && parameters.isWriteSlackBus()) {
+        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters)).collect(Collectors.toList());
+        boolean ok = results.stream().anyMatch(r -> r.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED);
+        return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentsResult);
+    }
+
+    private LoadFlowResult.ComponentResult processResult(Network network, DcLoadFlowResult pResult, LoadFlowParameters parameters) {
+        if (pResult.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED && parameters.isWriteSlackBus()) {
             SlackTerminal.reset(network);
         }
 
-        if (result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED) {
-            result.getNetwork().updateState(false,
-                                            parameters.isWriteSlackBus(),
-                                            parameters.isPhaseShifterRegulationOn(),
-                                            parameters.isTransformerVoltageControlOn());
+        if (pResult.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED) {
+            pResult.getNetwork().updateState(false,
+                    parameters.isWriteSlackBus(),
+                    parameters.isPhaseShifterRegulationOn(),
+                    parameters.isTransformerVoltageControlOn());
         }
 
         LoadFlowResult.ComponentResult componentResult = new LoadFlowResultImpl.ComponentResultImpl(
-                result.getNetwork().getNum(),
-                result.getStatus(),
+                pResult.getNetwork().getNum(),
+                pResult.getStatus(),
                 0,
-                result.getNetwork().getSlackBus().getId(),
-                result.getSlackBusActivePowerMismatch() * PerUnit.SB);
-
-        return new LoadFlowResultImpl(result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED,
-                                      Collections.emptyMap(),
-                                      null,
-                                      Collections.singletonList(componentResult));
+                pResult.getNetwork().getSlackBus().getId(),
+                pResult.getSlackBusActivePowerMismatch() * PerUnit.SB);
+        return componentResult;
     }
 
     @Override

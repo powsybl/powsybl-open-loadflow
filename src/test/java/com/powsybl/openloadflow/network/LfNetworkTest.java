@@ -169,8 +169,6 @@ class LfNetworkTest extends AbstractConverterTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isOk());
-        //DC force the use of only the main component
-        assertEquals(1, result.getComponentResults().size());
-        assertEquals(ComponentConstants.MAIN_NUM, result.getComponentResults().get(0).getComponentNum());
+        assertEquals(2, result.getComponentResults().size());
     }
 }
