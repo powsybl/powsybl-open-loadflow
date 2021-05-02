@@ -499,27 +499,31 @@ public abstract class AbstractSensitivityAnalysis {
 
         @Override
         public void fillRhs(EquationSystem equationSystem, Matrix rhs, Map<LfBus, Double> participationByBus) {
-            Double weightSum = mainComponentWeights.values().stream().mapToDouble(Math::abs).sum();
+            double weightSum = mainComponentWeights.values().stream().mapToDouble(Math::abs).sum();
             switch (variableType) {
                 case INJECTION_ACTIVE_POWER:
                     for (Map.Entry<LfBus, Double> lfBusAndParticipationFactor : participationByBus.entrySet()) {
                         LfBus lfBus = lfBusAndParticipationFactor.getKey();
-                        Double injection = lfBusAndParticipationFactor.getValue();
+                        double injection = lfBusAndParticipationFactor.getValue();
                         addBusInjection(rhs, lfBus, injection);
                     }
                     for (Map.Entry<LfElement, Double> variableElementAndWeight : mainComponentWeights.entrySet()) {
                         LfElement variableElement = variableElementAndWeight.getKey();
-                        Double weight = variableElementAndWeight.getValue();
+                        double weight = variableElementAndWeight.getValue();
                         addBusInjection(rhs, (LfBus) variableElement, weight / weightSum);
                     }
                     break;
+
+                default:
+                    throw new NotImplementedException("Variable type " + variableType + " is not implemented");
             }
         }
 
-        void updateConnectivityWeights(Set<LfBus> nonConnectedBuses) {
-            mainComponentWeights = mainComponentWeights.entrySet().stream()
+        boolean updateConnectivityWeights(Set<LfBus> nonConnectedBuses) {
+            mainComponentWeights = variableElements.entrySet().stream()
                 .filter(entry -> !nonConnectedBuses.contains((LfBus) entry.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            return mainComponentWeights.size() != variableElements.size();
         }
     }
 
@@ -589,19 +593,20 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    protected void rescaleGlsk(List<SensitivityFactorGroup> factorGroups, Set<LfBus> nonConnectedBuses) {
+    protected boolean rescaleGlsk(List<SensitivityFactorGroup> factorGroups, Set<LfBus> nonConnectedBuses) {
+        boolean rescaled = false;
         // compute the corresponding injection (with participation) for each factor
         for (SensitivityFactorGroup factorGroup : factorGroups) {
-            if (!(factorGroup instanceof MultiVariablesFactorGroup)) {
-                continue;
+            if (factorGroup instanceof MultiVariablesFactorGroup) {
+                MultiVariablesFactorGroup multiVariablesFactorGroup = (MultiVariablesFactorGroup) factorGroup;
+                rescaled |= multiVariablesFactorGroup.updateConnectivityWeights(nonConnectedBuses);
             }
-            MultiVariablesFactorGroup multiVariablesFactorGroup = (MultiVariablesFactorGroup) factorGroup;
-            multiVariablesFactorGroup.updateConnectivityWeights(nonConnectedBuses);
         }
+        return rescaled;
     }
 
     protected void warnSkippedFactors(Collection<LfSensitivityFactor> lfFactors) {
-        List<LfSensitivityFactor> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.SKIP)).collect(Collectors.toList());
+        List<LfSensitivityFactor> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.SKIP).collect(Collectors.toList());
         Set<String> skippedVariables = skippedFactors.stream().map(LfSensitivityFactor::getVariableId).collect(Collectors.toSet());
         if (!skippedVariables.isEmpty()) {
             if (LOGGER.isWarnEnabled()) {

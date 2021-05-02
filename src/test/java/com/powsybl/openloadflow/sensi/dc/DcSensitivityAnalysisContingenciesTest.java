@@ -982,6 +982,44 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
+    void testGlskFactorBug() {
+        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBusWithTransformer();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+
+        Map<String, Float> glskMap = new HashMap<>();
+        glskMap.put("g2", 25f);
+        glskMap.put("g6", 40f);
+        glskMap.put("g10", 35f);
+        LinearGlsk linearGlsk = new LinearGlsk("glsk", "glsk", glskMap);
+        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream().map(branch -> new BranchFlowPerLinearGlsk(
+                createBranchFlow(branch),
+                linearGlsk
+        )).collect(Collectors.toList());
+
+        List<Contingency> contingencies = List.of(new Contingency("l45", new BranchContingency("l45")));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies,
+                sensiParameters, LocalComputationManager.getDefault())
+                .join();
+
+        List<Contingency> contingencies2 = List.of(new Contingency("l34", new BranchContingency("l34")),
+                                                   new Contingency("l45", new BranchContingency("l45")));
+        SensitivityAnalysisResult result2 = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies2,
+                sensiParameters, LocalComputationManager.getDefault())
+                .join();
+
+        // result for l45 contingency should exactly be the same as l34 contingency for simulation 2 should not impact
+        // l45 contingency.
+        // an issue has been identified that is responsible in case of 2 consecutive GLSK sensitivity loosing connectivity
+        // of bad reset of state
+        for (Branch branch : network.getBranches()) {
+            assertEquals(getContingencyValue(result, "l45", "glsk", branch.getId()),
+                         getContingencyValue(result2, "l45", "glsk", branch.getId()),
+                         0d);
+        }
+    }
+
+    @Test
     void testRemainingGlskFactorsAdditionalFactors() {
         Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
         runDcLf(network);
