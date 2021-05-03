@@ -42,8 +42,7 @@ public class SensitivityFactorsProviderAdapter implements SensitivityFactorsProv
         Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, e -> e));
         for (SensitivityFactor2 factor : factors) {
             switch (factor.getFunctionType()) {
-                case BRANCH_ACTIVE_POWER
-                        :
+                case BRANCH_ACTIVE_POWER:
                     switch (factor.getVariableType()) {
                         case INJECTION_ACTIVE_POWER:
                             if (factor.isVariableSet()) {
