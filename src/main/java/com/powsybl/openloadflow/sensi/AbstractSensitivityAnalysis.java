@@ -642,8 +642,13 @@ public abstract class AbstractSensitivityAnalysis {
         }
     }
 
-    private static void checkBus(Network network, String busId) {
-        Bus bus = network.getBusView().getBus(busId);
+    private static void checkBus(Network network, String busId, Map<String, Bus> busCache) {
+        if (busCache.isEmpty()) {
+            network.getBusView()
+                .getBusStream()
+                .forEach(bus -> busCache.put(bus.getId(), bus));
+        }
+        Bus bus = busCache.get(busId);
         if (bus == null) {
             throw new PowsyblException("Bus '" + busId + "' not found");
         }
@@ -707,6 +712,7 @@ public abstract class AbstractSensitivityAnalysis {
                                                        SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
         final SensitivityFactorHolder factorHolder = new SensitivityFactorHolder();
 
+        final Map<String, Bus> busCache = new HashMap<>();
         factorReader.read((factorContext, functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
             if (variableSet) {
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
@@ -766,7 +772,7 @@ public abstract class AbstractSensitivityAnalysis {
                         throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
                     }
                 } else if (functionType == SensitivityFunctionType.BUS_VOLTAGE) {
-                    checkBus(network, functionId);
+                    checkBus(network, functionId, busCache);
                     functionElement = lfNetwork.getBusById(functionId);
                     if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
                         checkRegulatingTerminal(network, variableId);
