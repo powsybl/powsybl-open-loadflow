@@ -778,7 +778,8 @@ public abstract class AbstractSensitivityAnalysis {
                         checkRegulatingTerminal(network, variableId);
                         Terminal regulatingTerminal = getEquipmentRegulatingTerminal(network, variableId);
                         assert regulatingTerminal != null; // this cannot fail because it is checked in checkRegulatingTerminal
-                        variableElement = lfNetwork.getBusById(regulatingTerminal.getBusView().getBus().getId());
+                        Bus regulatedBus = regulatingTerminal.getBusView().getBus();
+                        variableElement = regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
                     } else {
                         throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
                     }
