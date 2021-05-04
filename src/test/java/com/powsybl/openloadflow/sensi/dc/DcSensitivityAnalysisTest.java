@@ -8,13 +8,15 @@ package com.powsybl.openloadflow.sensi.dc;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
+import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.LineContingency;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
+import com.powsybl.openloadflow.sensi.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityAnalysisResult;
@@ -551,5 +553,36 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     @Test
     void testGlskNotFound() {
         testGlskInjectionNotFound(true);
+    }
+
+    @Test
+    void testOldApiAdapter() {
+        Network network = PhaseShifterTestCaseFactory.create();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL2_0");
+        List<Contingency> contingencies = List.of(new Contingency("def", new LineContingency("L1")));
+        List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("set", List.of(new WeightedSensitivityVariable("G1", 100))));
+        List<SensitivityFactor2> factors = List.of(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "L1",
+                                                                          SensitivityVariableType.TRANSFORMER_PHASE, "PS1",
+                                                                          false, ContingencyContext.createNoneContingencyContext()),
+                                                   new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "L1",
+                                                                          SensitivityVariableType.INJECTION_ACTIVE_POWER, "set",
+                                                                          true, ContingencyContext.createAllContingencyContext()));
+        SensitivityFactorsProviderAdapter factorsProvider = new SensitivityFactorsProviderAdapter(factors, variableSets);
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies,
+                sensiParameters, LocalComputationManager.getDefault())
+                .join();
+        List<SensitivityValue2> values = factorsProvider.getValues(result);
+        assertEquals(3, values.size());
+        assertEquals(0.5d, values.get(0).getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(50, values.get(0).getFunctionReference(), LoadFlowAssert.DELTA_POWER);
+        assertNull(values.get(0).getContingencyId());
+        assertEquals(-6.3d, values.get(1).getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(50, values.get(1).getFunctionReference(), LoadFlowAssert.DELTA_POWER);
+        assertNull(values.get(1).getContingencyId());
+        assertEquals(0d, values.get(2).getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, values.get(2).getFunctionReference(), LoadFlowAssert.DELTA_POWER);
+        assertNotNull(values.get(2).getContingencyId());
     }
 }
