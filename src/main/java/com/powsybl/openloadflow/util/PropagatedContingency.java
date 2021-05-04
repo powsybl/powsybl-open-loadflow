@@ -76,10 +76,6 @@ public class PropagatedContingency {
                         propagatedContingency.getHvdcIdsToOpen().add(element.getId());
                         break;
                     case DANGLING_LINE:
-                        DanglingLine danglingLine = network.getDanglingLine(element.getId());
-                        if (danglingLine == null) {
-                            throw new PowsyblException("Dangling line '" + element.getId() + "' not found in the network");
-                        }
                         ContingencyTripping.createDanglingLineTripping(network, element.getId())
                             .traverse(switchesToOpen, terminalsToDisconnect);
                         propagatedContingency.getBranchIdsToOpen().add(element.getId());

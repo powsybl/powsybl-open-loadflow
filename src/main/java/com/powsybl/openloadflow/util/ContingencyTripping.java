@@ -36,7 +36,7 @@ public class ContingencyTripping {
 
         Branch<?> branch = network.getBranch(branchId);
         if (branch == null) {
-            throw new PowsyblException("Branch '" + branchId + "' not found");
+            throw new PowsyblException("Branch '" + branchId + "' not found in the network");
         }
 
         if (voltageLevelId != null) {
@@ -58,7 +58,7 @@ public class ContingencyTripping {
 
         DanglingLine danglingLine = network.getDanglingLine(dlId);
         if (danglingLine == null) {
-            throw new PowsyblException("Branch '" + dlId + "' not found");
+            throw new PowsyblException("Dangling line '" + dlId + "' not found in the network");
         }
 
         return new ContingencyTripping(danglingLine.getTerminal());

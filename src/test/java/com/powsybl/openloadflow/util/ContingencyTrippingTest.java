@@ -47,7 +47,15 @@ class ContingencyTrippingTest {
         Network network = NodeBreakerNetworkFactory.create();
         Exception unknownBranch = assertThrows(PowsyblException.class,
             () -> ContingencyTripping.createBranchTripping(network, "L9"));
-        assertEquals("Branch 'L9' not found", unknownBranch.getMessage());
+        assertEquals("Branch 'L9' not found in the network", unknownBranch.getMessage());
+    }
+
+    @Test
+    void testUnknownDanglingLineTripping() {
+        Network network = NodeBreakerNetworkFactory.create();
+        Exception unknownBranch = assertThrows(PowsyblException.class,
+            () -> ContingencyTripping.createDanglingLineTripping(network, "DL0"));
+        assertEquals("Dangling line 'DL0' not found in the network", unknownBranch.getMessage());
     }
 
     @Test
