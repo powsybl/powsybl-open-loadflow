@@ -69,7 +69,7 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
+    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         bus.setV(v.eval() * getNominalV()).setAngle(angle);
 
         // update slack bus
@@ -77,6 +77,6 @@ public class LfBusImpl extends AbstractLfBus {
             SlackTerminal.attach(bus);
         }
 
-        super.updateState(reactiveLimits, writeSlackBus);
+        super.updateState(reactiveLimits, writeSlackBus, distributedOnConformLoad, loadPowerFactorConstant);
     }
 }

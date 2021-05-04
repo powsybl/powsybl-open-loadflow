@@ -53,15 +53,17 @@ public interface LfBus extends LfElement {
 
     void setLoadTargetP(double loadTargetP);
 
+    double getAbsLoadTargetP();
+
     double getFixedLoadTargetP();
 
-    int getPositiveLoadCount();
+    double getAbsVariableLoadTargetP();
+
+    int getLoadCount();
 
     double getLoadTargetQ();
 
     void setLoadTargetQ(double loadTargetQ);
-
-    double getFixedLoadTargetQ();
 
     double getGenerationTargetP();
 
@@ -103,7 +105,7 @@ public interface LfBus extends LfElement {
 
     void addBranch(LfBranch branch);
 
-    void updateState(boolean reactiveLimits, boolean writeSlackBus);
+    void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant);
 
     DiscreteVoltageControl getDiscreteVoltageControl();
 

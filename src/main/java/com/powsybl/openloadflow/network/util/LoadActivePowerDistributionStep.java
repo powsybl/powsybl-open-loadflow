@@ -40,13 +40,13 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
     @Override
     public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses) {
         return buses.stream()
-                .filter(bus -> bus.getPositiveLoadCount() > 0 && getVariableLoadTargetP(bus) > 0 && !(bus.isFictitious() || bus.isDisabled()))
-                .map(bus -> new ParticipatingElement(bus, getVariableLoadTargetP(bus)))
+                .filter(bus -> bus.getLoadCount() > 0 && !(bus.isFictitious() || bus.isDisabled()))
+                .map(bus -> new ParticipatingElement(bus, getParticipationFactor(bus)))
                 .collect(Collectors.toList());
     }
 
-    private double getVariableLoadTargetP(LfBus bus) {
-        return distributedOnConformLoad ? bus.getLoadTargetP() - bus.getFixedLoadTargetP() : bus.getLoadTargetP();
+    private double getParticipationFactor(LfBus bus) {
+        return distributedOnConformLoad ? bus.getAbsVariableLoadTargetP() : bus.getAbsLoadTargetP();
     }
 
     @Override
@@ -66,14 +66,6 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
 
             double loadTargetP = bus.getLoadTargetP();
             double newLoadTargetP = loadTargetP - remainingMismatch * factor;
-
-            // We stop when the load produces power.
-            double minLoadTargetP = distributedOnConformLoad ? bus.getFixedLoadTargetP() : 0;
-            if (newLoadTargetP <= minLoadTargetP) {
-                newLoadTargetP = minLoadTargetP;
-                loadsAtMin++;
-                it.remove();
-            }
 
             if (newLoadTargetP != loadTargetP) {
                 LOGGER.trace("Rescale '{}' active power target: {} -> {}",

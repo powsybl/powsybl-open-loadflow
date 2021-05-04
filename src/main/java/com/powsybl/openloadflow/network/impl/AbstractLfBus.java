@@ -44,15 +44,15 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double loadTargetP = 0;
 
+    protected double absLoadTargetP = 0;
+
+    protected double absVariableLoadTargetP = 0;
+
     protected double fixedLoadTargetP = 0;
 
-    protected int positiveLoadCount = 0;
-
-    protected double initialLoadTargetQ = 0;
+    protected int loadCount = 0;
 
     protected double loadTargetQ = 0;
-
-    protected double fixedLoadTargetQ = 0;
 
     protected double generationTargetQ = 0;
 
@@ -165,32 +165,31 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     void addLoad(Load load) {
         loads.add(load);
+        loadCount++;
         initialLoadTargetP += load.getP0();
-        initialLoadTargetQ += load.getQ0();
         loadTargetP += load.getP0();
         loadTargetQ += load.getQ0();
+        absLoadTargetP += Math.abs(load.getP0());
         LoadDetail loadDetail = load.getExtension(LoadDetail.class);
         if (loadDetail != null) {
             fixedLoadTargetP = loadDetail.getFixedActivePower();
-            fixedLoadTargetQ = loadDetail.getFixedReactivePower();
-        }
-        if (load.getP0() >= 0) {
-            positiveLoadCount++;
+            absVariableLoadTargetP += Math.abs(loadDetail.getVariableActivePower());
         }
     }
 
     void addBattery(Battery battery) {
+        // note that batteries are out of the slack distribution.
         batteries.add(battery);
-        initialLoadTargetP += battery.getP0();
-        initialLoadTargetQ += battery.getQ0();
         loadTargetP += battery.getP0();
         loadTargetQ += battery.getQ0();
     }
 
     void addLccConverterStation(LccConverterStation lccCs) {
+        // note that LCC converter station are out of the slack distribution.
         lccCss.add(lccCs);
         HvdcLine line = lccCs.getHvdcLine();
-        loadTargetP += getLccConverterStationLoadTargetP(lccCs, line);
+        double targetP = getLccConverterStationLoadTargetP(lccCs, line);
+        loadTargetP += targetP;
         loadTargetQ += getLccConverterStationLoadTargetQ(lccCs, line);
     }
 
@@ -281,13 +280,23 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public double getAbsLoadTargetP() {
+        return absLoadTargetP / PerUnit.SB;
+    }
+
+    @Override
     public double getFixedLoadTargetP() {
         return fixedLoadTargetP / PerUnit.SB;
     }
 
     @Override
-    public int getPositiveLoadCount() {
-        return positiveLoadCount;
+    public double getAbsVariableLoadTargetP() {
+        return absVariableLoadTargetP / PerUnit.SB;
+    }
+
+    @Override
+    public int getLoadCount() {
+        return loadCount;
     }
 
     @Override
@@ -305,11 +314,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 listener.onLoadReactivePowerTargetChange(this, oldLoadTargetQ, newLoadTargetQ);
             }
         }
-    }
-
-    @Override
-    public double getFixedLoadTargetQ() {
-        return fixedLoadTargetQ / PerUnit.SB;
     }
 
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
@@ -420,17 +424,30 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
+    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         // update generator reactive power
         updateGeneratorsState(voltageControllerEnabled ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
 
         // update load power
-        double factorP = initialLoadTargetP != 0 ? loadTargetP / initialLoadTargetP : 1;
-        double factorQ = initialLoadTargetQ != 0 ? loadTargetQ / initialLoadTargetQ : 1;
+        double diffTargetP = loadCount > 0 ? loadTargetP - initialLoadTargetP : 0;
+        double sumUpdatedQ = 0;
         for (Load load : loads) {
+            double updatedP0 = load.getP0() + diffTargetP * Math.abs(load.getP0()) / absLoadTargetP;
+            double updateQ0 = load.getQ0();
+            if (distributedOnConformLoad) {
+                updatedP0 = load.getExtension(LoadDetail.class) == null ? load.getP0() :
+                        load.getP0() + diffTargetP * Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower()) / absVariableLoadTargetP;
+            }
+            if (loadPowerFactorConstant) {
+                updateQ0 = load.getQ0() / load.getP0() * updatedP0;
+            }
             load.getTerminal()
-                    .setP(load.getP0() >= 0 ? factorP * load.getP0() : load.getP0())
-                    .setQ(load.getQ0() >= 0 ? factorQ * load.getQ0() : load.getQ0());
+                    .setP(updatedP0)
+                    .setQ(updateQ0);
+            sumUpdatedQ += updateQ0;
+        }
+        if (Math.abs(sumUpdatedQ - loadTargetQ) > Q_DISPATCH_EPSILON) {
+            LOGGER.error("FIXME"); // it happens when we have a load with negative P0 in the bus.
         }
 
         // update battery power (which are not part of slack distribution)

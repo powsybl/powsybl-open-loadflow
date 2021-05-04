@@ -199,9 +199,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             // update network state
             if (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
                 result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(),
-                                                parameters.isWriteSlackBus(),
-                                                parameters.isPhaseShifterRegulationOn(),
-                                                parameters.isTransformerVoltageControlOn());
+                        parameters.isWriteSlackBus(),
+                        parameters.isPhaseShifterRegulationOn(),
+                        parameters.isTransformerVoltageControlOn(),
+                        parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                        parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
+                                parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant());
             }
 
             LoadFlowResult.ComponentResult.Status status;
@@ -272,9 +275,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         if (result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED) {
             result.getNetwork().updateState(false,
-                                            parameters.isWriteSlackBus(),
-                                            parameters.isPhaseShifterRegulationOn(),
-                                            parameters.isTransformerVoltageControlOn());
+                    parameters.isWriteSlackBus(),
+                    parameters.isPhaseShifterRegulationOn(),
+                    parameters.isTransformerVoltageControlOn(),
+                    parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                    false);
         }
 
         LoadFlowResult.ComponentResult componentResult = new LoadFlowResultImpl.ComponentResultImpl(
