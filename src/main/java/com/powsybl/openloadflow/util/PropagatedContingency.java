@@ -63,6 +63,8 @@ public class PropagatedContingency {
             for (ContingencyElement element : contingency.getElements()) {
                 switch (element.getType()) {
                     case BRANCH:
+                    case LINE:
+                    case TWO_WINDINGS_TRANSFORMER:
                         // branch check is done inside branch tripping
                         new BranchTripping(element.getId(), null)
                             .traverse(network, null, switchesToOpen, terminalsToDisconnect);
