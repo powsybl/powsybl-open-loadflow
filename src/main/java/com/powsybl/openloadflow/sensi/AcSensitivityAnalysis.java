@@ -75,7 +75,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 }
 
                 if (SensitivityFunctionType.BUS_VOLTAGE.equals(factor.getFunctionType())) {
-
                     sensi *= ((LfBus) factor.getFunctionElement()).getNominalV();
                 }
                 valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, sensi * PerUnit.SB, factor.getFunctionReference() * PerUnit.SB);
