@@ -80,4 +80,58 @@ public class DanglingLineFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+    public static Network createWithLoad() {
+
+        Network network = create();
+
+        Substation s3 = network.newSubstation()
+                .setId("S3")
+                .add();
+        VoltageLevel vl3 = s3.newVoltageLevel()
+                .setId("vl3")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl3.getBusBreakerView().newBus()
+                .setId("b3")
+                .add();
+        vl3.newLoad()
+                .setId("load3")
+                .setBus("b3")
+                .setP0(10.0)
+                .setQ0(5.0)
+                .add();
+
+        network.newLine()
+                .setId("l13")
+                .setVoltageLevel1("vl1")
+                .setBus1("b1")
+                .setVoltageLevel2("vl3")
+                .setBus2("b3")
+                .setR(10)
+                .setX(3)
+                .setG1(0)
+                .setG2(0)
+                .setB1(0)
+                .setB2(0)
+                .add();
+        network.newLine()
+                .setId("l32")
+                .setVoltageLevel1("vl3")
+                .setBus1("b3")
+                .setVoltageLevel2("vl2")
+                .setBus2("b2")
+                .setR(10)
+                .setX(10)
+                .setG1(0)
+                .setG2(0)
+                .setB1(0)
+                .setB2(0)
+                .add();
+
+        network.getDanglingLine("dl1").setP0(91);
+
+        return network;
+    }
+
 }

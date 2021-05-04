@@ -71,9 +71,18 @@ public class PropagatedContingency {
                     case HVDC_LINE:
                         HvdcLine hvdcLine = network.getHvdcLine(element.getId());
                         if (hvdcLine == null) {
-                            throw new PowsyblException("HVDC line '" + element.getId() + "' not found");
+                            throw new PowsyblException("HVDC line '" + element.getId() + "' not found in the network");
                         }
                         propagatedContingency.getHvdcIdsToOpen().add(element.getId());
+                        break;
+                    case DANGLING_LINE:
+                        DanglingLine danglingLine = network.getDanglingLine(element.getId());
+                        if (danglingLine == null) {
+                            throw new PowsyblException("Dangling line '" + element.getId() + "' not found in the network");
+                        }
+                        new BranchTripping(element.getId(), null)
+                            .traverse(network, null, switchesToOpen, terminalsToDisconnect);
+                        propagatedContingency.getBranchIdsToOpen().add(element.getId());
                         break;
                     default:
                         //TODO: support all kinds of contingencies
