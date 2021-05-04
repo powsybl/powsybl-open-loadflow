@@ -86,7 +86,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         for (LfSensitivityFactor factor : factors) {
             double functionRef = factor.getEquationTerm().eval();
             if (factor.getFunctionType() == SensitivityFunctionType.BUS_VOLTAGE) {
-                factor.setFunctionReference(functionRef / PerUnit.SB);
+                LfBus bus = (LfBus) factor.getFunctionElement();
+                factor.setFunctionReference(functionRef * bus.getNominalV() / PerUnit.SB);
             } else {
                 factor.setFunctionReference(functionRef);
             }
