@@ -64,8 +64,8 @@ public class PropagatedContingency {
                 switch (element.getType()) {
                     case BRANCH:
                         // branch check is done inside branch tripping
-                        new BranchTripping(element.getId(), null)
-                            .traverse(network, null, switchesToOpen, terminalsToDisconnect);
+                        ContingencyTripping.createBranchTripping(network, element.getId())
+                            .traverse(switchesToOpen, terminalsToDisconnect);
                         propagatedContingency.getBranchIdsToOpen().add(element.getId());
                         break;
                     case HVDC_LINE:
@@ -80,8 +80,8 @@ public class PropagatedContingency {
                         if (danglingLine == null) {
                             throw new PowsyblException("Dangling line '" + element.getId() + "' not found in the network");
                         }
-                        new BranchTripping(element.getId(), null)
-                            .traverse(network, null, switchesToOpen, terminalsToDisconnect);
+                        ContingencyTripping.createDanglingLineTripping(network, element.getId())
+                            .traverse(switchesToOpen, terminalsToDisconnect);
                         propagatedContingency.getBranchIdsToOpen().add(element.getId());
                         break;
                     default:

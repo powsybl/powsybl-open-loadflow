@@ -7,8 +7,6 @@
 package com.powsybl.openloadflow.util;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.computation.ComputationManager;
-import com.powsybl.contingency.tasks.AbstractTrippingTask;
 import com.powsybl.iidm.network.*;
 
 import java.util.*;
@@ -16,42 +14,59 @@ import java.util.*;
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class BranchTripping extends AbstractTrippingTask {
+public class ContingencyTripping {
 
-    private final String branchId;
-    private final String voltageLevelId;
+    private final List<? extends Terminal> terminals;
 
-    public BranchTripping(String branchId) {
-        this(branchId, null);
+    public ContingencyTripping(List<? extends Terminal> terminals) {
+        this.terminals = terminals;
     }
 
-    public BranchTripping(String branchId, String voltageLevelId) {
-        this.branchId = Objects.requireNonNull(branchId);
-        this.voltageLevelId = voltageLevelId;
+    public ContingencyTripping(Terminal terminal) {
+        this(Collections.singletonList(terminal));
     }
 
-    @Override
-    public void traverse(Network network, ComputationManager computationManager, Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect) {
+    public static ContingencyTripping createBranchTripping(Network network, String branchId) {
+        return createBranchTripping(network, branchId, null);
+    }
+
+    public static ContingencyTripping createBranchTripping(Network network, String branchId, String voltageLevelId) {
         Objects.requireNonNull(network);
+        Objects.requireNonNull(branchId);
 
         Branch<?> branch = network.getBranch(branchId);
         if (branch == null) {
             throw new PowsyblException("Branch '" + branchId + "' not found");
         }
 
-        Set<Terminal> traversedTerminals = new HashSet<>();
         if (voltageLevelId != null) {
             if (voltageLevelId.equals(branch.getTerminal1().getVoltageLevel().getId())) {
-                traverseFromTerminal(branch.getTerminal1(), switchesToOpen, traversedTerminals);
+                return new ContingencyTripping(branch.getTerminal1());
             } else if (voltageLevelId.equals(branch.getTerminal2().getVoltageLevel().getId())) {
-                traverseFromTerminal(branch.getTerminal2(), switchesToOpen, traversedTerminals);
+                return new ContingencyTripping(branch.getTerminal2());
             } else {
                 throw new PowsyblException("VoltageLevel '" + voltageLevelId + "' not connected to branch '" + branchId + "'");
             }
         } else {
-            traverseFromTerminal(branch.getTerminal1(), switchesToOpen, traversedTerminals);
-            traverseFromTerminal(branch.getTerminal2(), switchesToOpen, traversedTerminals);
+            return new ContingencyTripping(branch.getTerminals());
         }
+    }
+
+    public static ContingencyTripping createDanglingLineTripping(Network network, String dlId) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(dlId);
+
+        DanglingLine danglingLine = network.getDanglingLine(dlId);
+        if (danglingLine == null) {
+            throw new PowsyblException("Branch '" + dlId + "' not found");
+        }
+
+        return new ContingencyTripping(danglingLine.getTerminal());
+    }
+
+    public void traverse(Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect) {
+        Set<Terminal> traversedTerminals = new HashSet<>();
+        terminals.forEach(t -> traverseFromTerminal(t, switchesToOpen, traversedTerminals));
         terminalsToDisconnect.addAll(traversedTerminals);
     }
 
