@@ -59,6 +59,7 @@ public final class AcEquationSystem {
     private static void createVoltageControlEquations(VoltageControl voltageControl, LfBus bus, VariableSet variableSet,
                                                       EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
         if (voltageControl.isVoltageControlLocal()) {
+            // FIXME annetill: slope.
             EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
             bus.setV(vTerm);

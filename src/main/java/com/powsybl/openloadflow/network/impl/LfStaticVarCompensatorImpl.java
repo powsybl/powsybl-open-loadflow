@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
 import com.powsybl.openloadflow.network.PerUnit;
 
 import java.util.Objects;
@@ -22,6 +23,8 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     private final ReactiveLimits reactiveLimits;
 
     double nominalV;
+
+    private double slope = 0;
 
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc, AbstractLfBus bus, boolean breakers, LfNetworkLoadingReport report) {
         super(0);
@@ -59,6 +62,9 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
         if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
             setVoltageControl(svc.getVoltageSetpoint(), svc.getRegulatingTerminal(), breakers, report);
+        }
+        if (svc.getExtension(VoltagePerReactivePowerControl.class) != null) {
+            this.slope = svc.getExtension(VoltagePerReactivePowerControl.class).getSlope() * PerUnit.SB / nominalV;
         }
     }
 
@@ -107,5 +113,10 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
         svc.getTerminal()
                 .setP(0)
                 .setQ(Double.isNaN(calculatedQ) ? svc.getReactivePowerSetPoint() : -calculatedQ);
+    }
+
+    @Override
+    public double getSlope() {
+        return this.slope;
     }
 }

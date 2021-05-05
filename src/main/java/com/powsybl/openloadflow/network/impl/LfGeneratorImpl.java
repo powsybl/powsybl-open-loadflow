@@ -134,4 +134,9 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
                 .setP(-targetP)
                 .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ);
     }
+
+    @Override
+    public double getSlope() {
+        return 0;
+    }
 }
