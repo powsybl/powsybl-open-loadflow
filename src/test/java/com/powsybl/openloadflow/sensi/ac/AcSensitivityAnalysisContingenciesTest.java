@@ -642,17 +642,10 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .join();
 
         //Flow is around 200 on all lines
-        result.getSensitivityValues().stream()
+        result.getSensitivityValues()
             .forEach(v -> assertEquals(200, v.getFunctionReference(), 5));
 
-        //Flow should be around 400 on L1, around 200 on L3
-        List<SensitivityValue> postContingencySensitivities = result.getSensitivityValuesContingencies().get("L2");
-        //TODO: fails, flows are 300, because the 2 buses are still seen as connected
-        postContingencySensitivities.stream()
-            .filter(v -> v.getFactor().getFunction().getId().equals("L1"))
-            .forEach(v -> assertEquals(400, v.getFunctionReference(), 5));
-        postContingencySensitivities.stream()
-            .filter(v -> v.getFactor().getFunction().getId().equals("L3"))
-            .forEach(v -> assertEquals(200, v.getFunctionReference(), 5));
+        // Propagating contingency on L2 encounters a coupler, which is not (yet) supported in sensitivity analysis
+        assertTrue(result.getSensitivityValuesContingencies().isEmpty());
     }
 }

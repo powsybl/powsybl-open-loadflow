@@ -253,7 +253,6 @@ public class NodeBreakerNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createGenerator(vl1, "G2", 4, 400, 200, 0);
         createConnection(vl1, 2, 4);
 
-
         VoltageLevel vl2 = s.newVoltageLevel()
             .setId("VL2")
             .setNominalV(400)
