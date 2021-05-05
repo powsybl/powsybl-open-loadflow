@@ -55,8 +55,20 @@ public class PropagatedContingency {
         this.index = index;
     }
 
-    public static List<PropagatedContingency> create(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen,
-                                                     boolean removeContingenciesEncounteringCouplers) {
+    public static List<PropagatedContingency> createListForSensitivityAnalysis(Network network, List<Contingency> contingencies) {
+        // Sensitivity analysis works in bus view, hence
+        //   - it cannot deal with contingencies whose propagation encounters a coupler
+        //   - it does not need the set of switches to open
+        return createList(network, contingencies, new HashSet<>(), true);
+    }
+
+    public static List<PropagatedContingency> createListForSecurityAnalysis(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen) {
+        // Security analysis works in bus breaker view, hence needs to know all switches to retain. Couplers are not a problem.
+        return createList(network, contingencies, allSwitchesToOpen, false);
+    }
+
+    private static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen,
+                                                         boolean removeContingenciesEncounteringCouplers) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
