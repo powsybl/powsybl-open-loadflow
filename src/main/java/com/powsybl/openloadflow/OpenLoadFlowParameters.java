@@ -46,6 +46,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double slackBusPMaxMismatch = SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE;
 
+    private boolean voltagePerReactivePowerControl = VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE;
+
     @Override
     public String getName() {
         return "open-load-flow-parameters";
@@ -144,6 +146,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean hasVoltagePerReactivePowerControl() {
+        return voltagePerReactivePowerControl;
+    }
+
+    public OpenLoadFlowParameters setVoltagePerReactivePowerControl(boolean voltagePerReactivePowerControl) {
+        this.voltagePerReactivePowerControl = voltagePerReactivePowerControl;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return new OpenLoadFlowConfigLoader().load(PlatformConfig.defaultConfig());
     }
@@ -160,6 +171,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", dcUseTransformerRatio=" + dcUseTransformerRatio +
                 ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
                 ", addRatioToLinesWithDifferentNominalVoltageAtBothEnds=" + addRatioToLinesWithDifferentNominalVoltageAtBothEnds +
+                ", slackBusPMaxMismatch=" + slackBusPMaxMismatch +
+                ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
                 ')';
     }
 
@@ -184,6 +197,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                         .setPlausibleActivePowerLimit(config.getDoubleProperty(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE))
                         .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(config.getBooleanProperty(ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME, ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE))
                         .setSlackBusPMaxMismatch(config.getDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_NAME, SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE))
+                        .setVoltagePerReactivePowerControl(VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE)
                 );
             return parameters;
         }

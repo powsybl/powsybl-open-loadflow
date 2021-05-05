@@ -147,6 +147,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
         LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
         LOGGER.info("Slack bus Pmax mismatch: {}", parametersExt.getSlackBusPMaxMismatch());
+        LOGGER.info("Voltage per reactive power control: {}", parametersExt.hasVoltagePerReactivePowerControl());
 
         List<OuterLoop> outerLoops = new ArrayList<>();
         if (parameters.isDistributedSlack()) {
@@ -179,7 +180,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                         parametersExt.getPlausibleActivePowerLimit(),
                                         forceA1Var,
                                         parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
-                                        branchesWithCurrent);
+                                        branchesWithCurrent,
+                                        parametersExt.hasVoltagePerReactivePowerControl());
     }
 
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
