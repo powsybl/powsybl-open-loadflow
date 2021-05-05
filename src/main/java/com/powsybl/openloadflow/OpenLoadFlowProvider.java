@@ -221,6 +221,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     break;
             }
             componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNumCC(),
+                                                                            result.getNetwork().getNumSC(),
                                                                             status,
                                                                             result.getNewtonRaphsonIterations(),
                                                                             result.getNetwork().getSlackBus().getId(),
@@ -287,6 +288,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         return new LoadFlowResultImpl.ComponentResultImpl(
                 pResult.getNetwork().getNumCC(),
+                pResult.getNetwork().getNumSC(),
                 pResult.getStatus(),
                 0,
                 pResult.getNetwork().getSlackBus().getId(),

@@ -125,7 +125,7 @@ class LfNetworkTest extends AbstractConverterTest {
 
         //Default is only compute load flow on the main component
         assertEquals(1, result.getComponentResults().size());
-        assertEquals(ComponentConstants.MAIN_NUM, result.getComponentResults().get(0).getComponentNum());
+        assertEquals(ComponentConstants.MAIN_NUM, result.getComponentResults().get(0).getConnectedComponentNum());
     }
 
     @Test
@@ -154,7 +154,7 @@ class LfNetworkTest extends AbstractConverterTest {
 
         //Default is only compute load flow on the main component
         assertEquals(1, result.getComponentResults().size());
-        assertEquals(ComponentConstants.MAIN_NUM, result.getComponentResults().get(0).getComponentNum());
+        assertEquals(ComponentConstants.MAIN_NUM, result.getComponentResults().get(0).getConnectedComponentNum());
     }
 
     @Test
