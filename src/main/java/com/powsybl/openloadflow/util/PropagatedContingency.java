@@ -13,10 +13,7 @@ import com.powsybl.iidm.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -30,9 +27,11 @@ public class PropagatedContingency {
 
     private final int index;
 
-    private final Set<String> branchIdsToOpen = new HashSet<>();
+    private final Set<String> branchIdsToOpen;
 
-    private final Set<String> hvdcIdsToOpen = new HashSet<>();
+    private final Set<Switch> switchesToOpen;
+
+    private final Set<String> hvdcIdsToOpen;
 
     public Contingency getContingency() {
         return contingency;
@@ -50,75 +49,84 @@ public class PropagatedContingency {
         return hvdcIdsToOpen;
     }
 
-    public PropagatedContingency(Contingency contingency, int index) {
-        this.contingency = contingency;
+    public PropagatedContingency(Contingency contingency, int index, Set<String> branchIdsToOpen, Set<String> hvdcIdsToOpen,
+                                 Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect) {
+        this.contingency = Objects.requireNonNull(contingency);
         this.index = index;
+        this.branchIdsToOpen = Objects.requireNonNull(branchIdsToOpen);
+        this.hvdcIdsToOpen = Objects.requireNonNull(hvdcIdsToOpen);
+        this.switchesToOpen = Objects.requireNonNull(switchesToOpen);
+
+        for (Switch sw : switchesToOpen) {
+            branchIdsToOpen.add(sw.getId());
+        }
+
+        for (Terminal terminal : terminalsToDisconnect) {
+            if (terminal.getConnectable() instanceof Branch) {
+                branchIdsToOpen.add(terminal.getConnectable().getId());
+            }
+        }
     }
 
     public static List<PropagatedContingency> createListForSensitivityAnalysis(Network network, List<Contingency> contingencies) {
-        // Sensitivity analysis works in bus view, hence
-        //   - it cannot deal with contingencies whose propagation encounters a coupler
-        //   - it does not need the set of switches to open
-        return createList(network, contingencies, new HashSet<>(), true);
-    }
-
-    public static List<PropagatedContingency> createListForSecurityAnalysis(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen) {
-        // Security analysis works in bus breaker view, hence needs to know all switches to retain. Couplers are not a problem.
-        return createList(network, contingencies, allSwitchesToOpen, false);
-    }
-
-    private static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen,
-                                                         boolean removeContingenciesEncounteringCouplers) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
-            PropagatedContingency propagatedContingency = new PropagatedContingency(contingency, index);
-
-            Set<Switch> switchesToOpen = new HashSet<>();
-            Set<Terminal> terminalsToDisconnect =  new HashSet<>();
-            for (ContingencyElement element : contingency.getElements()) {
-                switch (element.getType()) {
-                    case BRANCH:
-                    case LINE:
-                    case TWO_WINDINGS_TRANSFORMER:
-                        // branch check is done inside branch tripping
-                        new BranchTripping(element.getId(), null)
-                            .traverse(network, null, switchesToOpen, terminalsToDisconnect);
-                        propagatedContingency.getBranchIdsToOpen().add(element.getId());
-                        break;
-                    case HVDC_LINE:
-                        HvdcLine hvdcLine = network.getHvdcLine(element.getId());
-                        if (hvdcLine == null) {
-                            throw new PowsyblException("HVDC line '" + element.getId() + "' not found");
-                        }
-                        propagatedContingency.getHvdcIdsToOpen().add(element.getId());
-                        break;
-                    default:
-                        //TODO: support all kinds of contingencies
-                        throw new UnsupportedOperationException("TODO");
-                }
-            }
-
-            if (!removeContingenciesEncounteringCouplers || switchesToOpen.stream().noneMatch(PropagatedContingency::isCoupler)) {
+            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index);
+            if (!propagatedContingency.containsCouplerToOpen()) {
                 propagatedContingencies.add(propagatedContingency);
-
-                for (Switch sw : switchesToOpen) {
-                    propagatedContingency.getBranchIdsToOpen().add(sw.getId());
-                    allSwitchesToOpen.add(sw);
-                }
-
-                for (Terminal terminal : terminalsToDisconnect) {
-                    if (terminal.getConnectable() instanceof Branch) {
-                        propagatedContingency.getBranchIdsToOpen().add(terminal.getConnectable().getId());
-                    }
-                }
-
             } else {
+                // Sensitivity analysis works in bus view, it cannot deal (yet)  with contingencies whose propagation encounters a coupler
                 LOGGER.error("Contingency '{}' removed from list, as a coupler switch has been encountered while propagating the contingency", contingency.getId());
             }
-
         }
         return propagatedContingencies;
+    }
+
+    public static List<PropagatedContingency> createListForSecurityAnalysis(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen) {
+        List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
+        for (int index = 0; index < contingencies.size(); index++) {
+            Contingency contingency = contingencies.get(index);
+            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index);
+            propagatedContingencies.add(propagatedContingency);
+            allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
+        }
+        return propagatedContingencies;
+    }
+
+    private static PropagatedContingency create(Network network, Contingency contingency, int index) {
+        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Terminal> terminalsToDisconnect =  new HashSet<>();
+        Set<String> branchIdsToOpen = new HashSet<>();
+        Set<String> hvdcIdsToOpen = new HashSet<>();
+        for (ContingencyElement element : contingency.getElements()) {
+            switch (element.getType()) {
+                case BRANCH:
+                case LINE:
+                case TWO_WINDINGS_TRANSFORMER:
+                    // branch check is done inside branch tripping
+                    new BranchTripping(element.getId(), null)
+                        .traverse(network, null, switchesToOpen, terminalsToDisconnect);
+                    branchIdsToOpen.add(element.getId());
+                    break;
+                case HVDC_LINE:
+                    HvdcLine hvdcLine = network.getHvdcLine(element.getId());
+                    if (hvdcLine == null) {
+                        throw new PowsyblException("HVDC line '" + element.getId() + "' not found");
+                    }
+                    hvdcIdsToOpen.add(element.getId());
+                    break;
+                default:
+                    //TODO: support all kinds of contingencies
+                    throw new UnsupportedOperationException("TODO");
+            }
+        }
+
+        return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen, terminalsToDisconnect);
+    }
+
+    private boolean containsCouplerToOpen() {
+        return switchesToOpen.stream().anyMatch(PropagatedContingency::isCoupler);
     }
 
     private static boolean isCoupler(Switch s) {
