@@ -73,11 +73,13 @@ public class PropagatedContingency {
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
             PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index);
-            if (!propagatedContingency.containsCouplerToOpen()) {
+            Optional<Switch> coupler = propagatedContingency.switchesToOpen.stream().filter(PropagatedContingency::isCoupler).findFirst();
+            if (coupler.isEmpty()) {
                 propagatedContingencies.add(propagatedContingency);
             } else {
                 // Sensitivity analysis works in bus view, it cannot deal (yet)  with contingencies whose propagation encounters a coupler
-                LOGGER.error("Contingency '{}' removed from list, as a coupler switch has been encountered while propagating the contingency", contingency.getId());
+                LOGGER.warn("Propagated contingency '{}' not processed: coupler '{}' has been encountered while propagating the contingency",
+                    contingency.getId(), coupler.get().getId());
             }
         }
         return propagatedContingencies;
@@ -123,10 +125,6 @@ public class PropagatedContingency {
         }
 
         return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen, terminalsToDisconnect);
-    }
-
-    private boolean containsCouplerToOpen() {
-        return switchesToOpen.stream().anyMatch(PropagatedContingency::isCoupler);
     }
 
     private static boolean isCoupler(Switch s) {
