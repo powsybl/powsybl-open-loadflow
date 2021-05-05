@@ -10,6 +10,8 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -21,6 +23,8 @@ import java.util.Set;
  * @author Gaël Macherel <gael.macherel@artelys.com>
  */
 public class PropagatedContingency {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PropagatedContingency.class);
 
     private final Contingency contingency;
 
@@ -51,12 +55,12 @@ public class PropagatedContingency {
         this.index = index;
     }
 
-    public static List<PropagatedContingency> create(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen) {
+    public static List<PropagatedContingency> create(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen,
+                                                     boolean removeContingenciesEncounteringCouplers) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
             PropagatedContingency propagatedContingency = new PropagatedContingency(contingency, index);
-            propagatedContingencies.add(propagatedContingency);
 
             Set<Switch> switchesToOpen = new HashSet<>();
             Set<Terminal> terminalsToDisconnect =  new HashSet<>();
@@ -83,18 +87,32 @@ public class PropagatedContingency {
                 }
             }
 
-            for (Switch sw : switchesToOpen) {
-                propagatedContingency.getBranchIdsToOpen().add(sw.getId());
-                allSwitchesToOpen.add(sw);
-            }
+            if (!removeContingenciesEncounteringCouplers || switchesToOpen.stream().noneMatch(PropagatedContingency::isCoupler)) {
+                propagatedContingencies.add(propagatedContingency);
 
-            for (Terminal terminal : terminalsToDisconnect) {
-                if (terminal.getConnectable() instanceof Branch) {
-                    propagatedContingency.getBranchIdsToOpen().add(terminal.getConnectable().getId());
+                for (Switch sw : switchesToOpen) {
+                    propagatedContingency.getBranchIdsToOpen().add(sw.getId());
+                    allSwitchesToOpen.add(sw);
                 }
+
+                for (Terminal terminal : terminalsToDisconnect) {
+                    if (terminal.getConnectable() instanceof Branch) {
+                        propagatedContingency.getBranchIdsToOpen().add(terminal.getConnectable().getId());
+                    }
+                }
+
+            } else {
+                LOGGER.error("Contingency '{}' removed from list, as a coupler switch has been encountered while propagating the contingency", contingency.getId());
             }
 
         }
         return propagatedContingencies;
+    }
+
+    private static boolean isCoupler(Switch s) {
+        VoltageLevel.NodeBreakerView nbv = s.getVoltageLevel().getNodeBreakerView();
+        Connectable<?> c1 = nbv.getTerminal1(s.getId()).getConnectable();
+        Connectable<?> c2 = nbv.getTerminal2(s.getId()).getConnectable();
+        return c1 != c2 && c1.getType() == ConnectableType.BUSBAR_SECTION && c2.getType() == ConnectableType.BUSBAR_SECTION;
     }
 }

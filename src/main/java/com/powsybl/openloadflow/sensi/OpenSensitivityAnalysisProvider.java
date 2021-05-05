@@ -205,7 +205,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         Objects.requireNonNull(valueWriter);
         Objects.requireNonNull(reporter);
 
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, new HashSet<>());
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, new HashSet<>(),
+            true);
 
         LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
