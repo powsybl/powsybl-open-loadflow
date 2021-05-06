@@ -11,6 +11,7 @@ import com.powsybl.ieeecdf.converter.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -142,6 +143,9 @@ class ReductionTest {
 
         OpenLoadFlowParameters parametersExt = loadFlowProvider.getParametersExt(parameters);
         SlackBusSelector slackBusSelector = new NetworkSlackBusSelector(network, SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusId()));
+
+        LoadFlowResult resultLf = LoadFlow.run(network, parameters);
+
         ReductionParameters reductionParameters = new ReductionParameters(slackBusSelector, loadFlowProvider.getMatrixFactory(), voltageLevels);
 
         ReductionEngine re = new ReductionEngine(network, reductionParameters);
@@ -150,7 +154,33 @@ class ReductionTest {
 
         ReductionEngine.ReductionResults results = re.getReductionResults();
 
+        DenseMatrix m = results.getMinusYeq().toDense();
+
         assertEquals(2, results.getBusNumToRealIeq().size(), 0);
+        assertEquals(-10.640432247821, m.get(0, 0), 0.000001);
+        assertEquals(-0.9770922266610, m.get(1, 0), 0.000001);
+        assertEquals(-4.0518208119503, m.get(2, 0), 0.000001);
+        assertEquals(-1.1284861339383, m.get(3, 0), 0.000001);
+        assertEquals(0.9770922266610, m.get(0, 1), 0.000001);
+        assertEquals(-10.640432247821, m.get(1, 1), 0.000001);
+        assertEquals(1.1284861339383, m.get(2, 1), 0.000001);
+        assertEquals(-4.051820811950, m.get(3, 1), 0.000001);
+        assertEquals(-3.2261022158310, m.get(0, 2), 0.000001);
+        assertEquals(-0.3281562136182, m.get(1, 2), 0.000001);
+        assertEquals(-1.3282719530734, m.get(2, 2), 0.000001);
+        assertEquals(-0.36576402166078, m.get(3, 2), 0.000001);
+        assertEquals(0.3281562136182, m.get(0, 3), 0.000001);
+        assertEquals(-3.2261022158310, m.get(1, 3), 0.000001);
+        assertEquals(0.3657640216607, m.get(2, 3), 0.000001);
+        assertEquals(-1.328271953073, m.get(3, 3), 0.000001);
+
+        ReductionEngine.ReductionHypotheses hypo =  re.getReductionHypo();
+        assertEquals(0.159817620898, hypo.eqLoads.get(0).pEq, 0.00001);
+        assertEquals(0.062286236316, hypo.eqLoads.get(0).qEq, 0.00001);
+        assertEquals(13.86653446365, hypo.eqShunts.get(0).gEq, 0.0001);
+        assertEquals(1.305248440279, hypo.eqShunts.get(0).bEq, 0.0001);
+        assertEquals(-0.3030327598342, hypo.eqBranches.get(0).rEq, 0.0001);
+        assertEquals(0.05718010758327, hypo.eqBranches.get(0).xEq, 0.0001);
 
     }
 }

@@ -28,6 +28,12 @@ public class ReductionEngine {
         return networks;
     }
 
+    private ReductionHypotheses reductionHypo;
+
+    public ReductionHypotheses getReductionHypo() {
+        return reductionHypo;
+    }
+
     private ReductionResults results;
 
     public ReductionResults getReductionResults() {
@@ -58,6 +64,10 @@ public class ReductionEngine {
             yeqRowNumToBusType = new HashMap<>();
             yeqColNumToBusNum = new HashMap<>();
             yeqColNumToBusType = new HashMap<>();
+        }
+
+        public Matrix getMinusYeq() {
+            return minusYeq;
         }
 
         public Map<Integer, Double> getBusNumToRealIeq() {
@@ -190,6 +200,8 @@ public class ReductionEngine {
         results = new ReductionResults(tmMinusYeq);
         ybb.processResults(rowVectorToDouble(tmMinusIeq), results);
         results.printReductionResults();
+
+        generateReductionHypotheses();
     }
 
     private Matrix addRowVector(Matrix m1, Matrix m2) {
