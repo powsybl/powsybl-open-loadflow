@@ -1,6 +1,8 @@
 package com.powsybl.openloadflow.reduction.equations;
 
-import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationType;
+import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -11,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.powsybl.openloadflow.network.LfNetwork.LOW_IMPEDANCE_THRESHOLD;
-//import com.powsybl.openloadflow.util.EvaluableConstants;
 
 /**
  * @author Jean-Baptiste Heyberger <jean-baptiste.heyberger at rte-france.com>
