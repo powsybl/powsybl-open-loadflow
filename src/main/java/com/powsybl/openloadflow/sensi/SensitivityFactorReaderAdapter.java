@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Adapter to old legacy API.
+ * Adapter from old legacy API to new one.
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
