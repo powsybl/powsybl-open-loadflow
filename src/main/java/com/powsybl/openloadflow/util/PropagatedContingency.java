@@ -66,16 +66,21 @@ public class PropagatedContingency {
                     case LINE:
                     case TWO_WINDINGS_TRANSFORMER:
                         // branch check is done inside branch tripping
-                        new BranchTripping(element.getId(), null)
-                            .traverse(network, null, switchesToOpen, terminalsToDisconnect);
+                        ContingencyTripping.createBranchTripping(network, element.getId())
+                            .traverse(switchesToOpen, terminalsToDisconnect);
                         propagatedContingency.getBranchIdsToOpen().add(element.getId());
                         break;
                     case HVDC_LINE:
                         HvdcLine hvdcLine = network.getHvdcLine(element.getId());
                         if (hvdcLine == null) {
-                            throw new PowsyblException("HVDC line '" + element.getId() + "' not found");
+                            throw new PowsyblException("HVDC line '" + element.getId() + "' not found in the network");
                         }
                         propagatedContingency.getHvdcIdsToOpen().add(element.getId());
+                        break;
+                    case DANGLING_LINE:
+                        ContingencyTripping.createDanglingLineTripping(network, element.getId())
+                            .traverse(switchesToOpen, terminalsToDisconnect);
+                        propagatedContingency.getBranchIdsToOpen().add(element.getId());
                         break;
                     default:
                         //TODO: support all kinds of contingencies

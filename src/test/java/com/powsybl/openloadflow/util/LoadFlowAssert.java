@@ -25,6 +25,7 @@ public final class LoadFlowAssert {
     public static final double DELTA_POWER = 1E-3d;
     public static final double DELTA_I = 1000 * DELTA_POWER / Math.sqrt(3);
     public static final double DELTA_MISMATCH = 1E-4d;
+    public static final double DELTA_SENSITIVITY_VALUE = 1E-4d;
 
     private LoadFlowAssert() {
     }
