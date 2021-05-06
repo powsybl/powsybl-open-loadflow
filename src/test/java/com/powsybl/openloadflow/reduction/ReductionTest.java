@@ -63,7 +63,7 @@ class ReductionTest {
         List<String> voltageLevels = new ArrayList<>();
 
         OpenLoadFlowParameters parametersExt = loadFlowProvider.getParametersExt(parameters);
-        SlackBusSelector slackBusSelector = new NetworkSlackBusSelector(network, parametersExt.getSlackBusSelector());
+        SlackBusSelector slackBusSelector = new NetworkSlackBusSelector(network, SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusId()));
         ReductionParameters reductionParameters = new ReductionParameters(slackBusSelector, loadFlowProvider.getMatrixFactory(), voltageLevels);
 
         ReductionEngine re = new ReductionEngine(network, reductionParameters);
@@ -99,7 +99,7 @@ class ReductionTest {
         List<String> voltageLevels = new ArrayList<>();
 
         OpenLoadFlowParameters parametersExt = loadFlowProvider.getParametersExt(parameters);
-        SlackBusSelector slackBusSelector = new NetworkSlackBusSelector(network, parametersExt.getSlackBusSelector());
+        SlackBusSelector slackBusSelector = new NetworkSlackBusSelector(network, SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusId()));
 
         LoadFlowResult resultLf = LoadFlow.run(network, parameters);
 
@@ -141,7 +141,7 @@ class ReductionTest {
         voltageLevels.add("VL13");
 
         OpenLoadFlowParameters parametersExt = loadFlowProvider.getParametersExt(parameters);
-        SlackBusSelector slackBusSelector = new NetworkSlackBusSelector(network, parametersExt.getSlackBusSelector());
+        SlackBusSelector slackBusSelector = new NetworkSlackBusSelector(network, SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusId()));
         ReductionParameters reductionParameters = new ReductionParameters(slackBusSelector, loadFlowProvider.getMatrixFactory(), voltageLevels);
 
         ReductionEngine re = new ReductionEngine(network, reductionParameters);

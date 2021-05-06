@@ -2,6 +2,7 @@ package com.powsybl.openloadflow.reduction.equations;
 
 import com.google.common.collect.ImmutableList;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
@@ -119,12 +120,12 @@ public class ClosedBranchReductionEquationTerm extends AbstractNamedEquationTerm
     }
 
     @Override
-    public SubjectType getSubjectType() {
-        return SubjectType.BRANCH;
+    public ElementType getElementType() {
+        return ElementType.BRANCH;
     }
 
     @Override
-    public int getSubjectNum() {
+    public int getElementNum() {
         return branch.getNum();
     }
 
