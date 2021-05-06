@@ -59,9 +59,15 @@ public final class AcEquationSystem {
     private static void createVoltageControlEquations(VoltageControl voltageControl, LfBus bus, VariableSet variableSet,
                                                       EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
         if (voltageControl.isVoltageControlLocal()) {
-            // FIXME annetill: slope.
-            EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
-            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
+            EquationTerm vTerm;
+            List<LfGenerator> generatorsWithSlope = bus.getGenerators().stream().filter(lfGenerator -> lfGenerator.getSlope() != 0).collect(Collectors.toList());
+            if (creationParameters.isVoltagePerReactivePowerControl() && generatorsWithSlope.size() > 0) {
+                vTerm = new GeneratorWithSlopeVoltageEquationTerm(generatorsWithSlope, bus, variableSet, equationSystem, bus.getVoltageControl().orElse(null).getTargetValue());
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
+            } else {
+                vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
+            }
             bus.setV(vTerm);
         } else if (bus.isVoltageControlled()) {
             // remote controlled: set voltage equation on this controlled bus

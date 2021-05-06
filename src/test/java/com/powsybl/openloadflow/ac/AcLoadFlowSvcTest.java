@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -161,5 +162,27 @@ class AcLoadFlowSvcTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertReactivePowerEquals(-svc1.getBmin() * svc1.getVoltageSetpoint() * svc1.getVoltageSetpoint(), svc1.getTerminal()); // min reactive limit has been correctly reached
+    }
+
+    @Test
+    void testSvcWithSlope() {
+        svc1.setVoltageSetPoint(385)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(390, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(385.001, bus2);
+        assertAngleEquals(-0.022026, bus2);
+        assertActivePowerEquals(101.467, l1.getTerminal1());
+        assertReactivePowerEquals(246.249, l1.getTerminal1());
+        assertActivePowerEquals(-101, l1.getTerminal2());
+        assertReactivePowerEquals(-244.850, l1.getTerminal2());
+        assertActivePowerEquals(0, svc1.getTerminal());
+        assertReactivePowerEquals(94.850, svc1.getTerminal());
     }
 }
