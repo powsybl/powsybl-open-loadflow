@@ -7,15 +7,12 @@
 package com.powsybl.openloadflow;
 
 import com.google.auto.service.AutoService;
-import com.powsybl.commons.config.ModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.network.SlackBusSelector;
-import com.powsybl.openloadflow.network.SlackBusSelectorParametersReader;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 
 import java.util.Objects;
-import java.util.ServiceLoader;
 
 import static com.powsybl.openloadflow.util.ParameterConstants.*;
 
@@ -24,7 +21,9 @@ import static com.powsybl.openloadflow.util.ParameterConstants.*;
  */
 public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters> {
 
-    private SlackBusSelector slackBusSelector = SLACK_BUS_SELECTOR_DEFAULT_VALUE;
+    private SlackBusSelectionMode slackBusSelectionMode = SLACK_BUS_SELECTION_DEFAULT_VALUE;
+
+    private String slackBusId = null;
 
     private boolean throwsExceptionInCaseOfSlackDistributionFailure = THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE;
 
@@ -45,17 +44,28 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds = ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE;
 
+    private double slackBusPMaxMismatch = SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE;
+
     @Override
     public String getName() {
-        return "OpenLoadFlowParameters";
+        return "open-load-flow-parameters";
     }
 
-    public SlackBusSelector getSlackBusSelector() {
-        return slackBusSelector;
+    public SlackBusSelectionMode getSlackBusSelectionMode() {
+        return slackBusSelectionMode;
     }
 
-    public OpenLoadFlowParameters setSlackBusSelector(SlackBusSelector slackBusSelector) {
-        this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
+    public OpenLoadFlowParameters setSlackBusSelectionMode(SlackBusSelectionMode slackBusSelectionMode) {
+        this.slackBusSelectionMode = Objects.requireNonNull(slackBusSelectionMode);
+        return this;
+    }
+
+    public String getSlackBusId() {
+        return slackBusId;
+    }
+
+    public OpenLoadFlowParameters setSlackBusId(String slackBusId) {
+        this.slackBusId = slackBusId;
         return this;
     }
 
@@ -116,6 +126,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public double getSlackBusPMaxMismatch() {
+        return slackBusPMaxMismatch;
+    }
+
+    public OpenLoadFlowParameters setSlackBusPMaxMismatch(double pSlackBusPMaxMismatch) {
+        this.slackBusPMaxMismatch = pSlackBusPMaxMismatch;
+        return this;
+    }
+
     public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
         return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
     }
@@ -129,6 +148,21 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return new OpenLoadFlowConfigLoader().load(PlatformConfig.defaultConfig());
     }
 
+    @Override
+    public String toString() {
+        return "OpenLoadFlowParameters(" +
+                "slackBusSelectionMode=" + slackBusSelectionMode +
+                ", slackBusId='" + Objects.requireNonNull(slackBusId, "") + "'" +
+                ", throwsExceptionInCaseOfSlackDistributionFailure=" + throwsExceptionInCaseOfSlackDistributionFailure +
+                ", voltageRemoteControl=" + voltageRemoteControl +
+                ", lowImpedanceBranchMode=" + lowImpedanceBranchMode +
+                ", loadPowerFactorConstant=" + loadPowerFactorConstant +
+                ", dcUseTransformerRatio=" + dcUseTransformerRatio +
+                ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
+                ", addRatioToLinesWithDifferentNominalVoltageAtBothEnds=" + addRatioToLinesWithDifferentNominalVoltageAtBothEnds +
+                ')';
+    }
+
     @AutoService(LoadFlowParameters.ConfigLoader.class)
     public static class OpenLoadFlowConfigLoader implements LoadFlowParameters.ConfigLoader<OpenLoadFlowParameters> {
 
@@ -138,7 +172,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
             platformConfig.getOptionalModuleConfig("open-loadflow-default-parameters")
                 .ifPresent(config -> parameters
-                        .setSlackBusSelector(getSlackBusSelector(config))
+                        .setSlackBusSelectionMode(config.getEnumProperty(SLACK_BUS_SELECTION_PARAM_NAME, SlackBusSelectionMode.class, SLACK_BUS_SELECTION_DEFAULT_VALUE))
+                        .setSlackBusId(config.getStringProperty(SLACK_BUS_ID_PARAM_NAME, null))
                         .setLowImpedanceBranchMode(config.getEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class, LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE))
                         .setVoltageRemoteControl(config.getBooleanProperty(VOLTAGE_REMOTE_CONTROL_PARAM_NAME, VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE))
                         .setThrowsExceptionInCaseOfSlackDistributionFailure(
@@ -148,24 +183,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                         .setDcUseTransformerRatio(config.getBooleanProperty(DC_USE_TRANSFORMER_RATIO_PARAM_NAME, DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE))
                         .setPlausibleActivePowerLimit(config.getDoubleProperty(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE))
                         .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(config.getBooleanProperty(ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME, ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE))
+                        .setSlackBusPMaxMismatch(config.getDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_NAME, SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE))
                 );
             return parameters;
         }
 
-        private SlackBusSelector getSlackBusSelector(ModuleConfig config) {
-            String type = config.getStringProperty("slackBusSelectorType");
-            SlackBusSelector slackBusSelector = null;
-            for (SlackBusSelectorParametersReader reader : ServiceLoader.load(SlackBusSelectorParametersReader.class)) {
-                if (type.equals(reader.getName())) {
-                    slackBusSelector = reader.read(config);
-                }
-            }
-            return slackBusSelector != null ? slackBusSelector : SLACK_BUS_SELECTOR_DEFAULT_VALUE;
-        }
-
         @Override
         public String getExtensionName() {
-            return "openLoadflowParameters";
+            return "open-load-flow-parameters";
         }
 
         @Override

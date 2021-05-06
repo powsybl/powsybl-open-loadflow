@@ -56,7 +56,7 @@ public class LfStarBus extends AbstractLfBus {
 
     @Override
     public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
-        Networks.setPropertyV(t3wt, v);
+        Networks.setPropertyV(t3wt, v.eval() * getNominalV());
         Networks.setPropertyAngle(t3wt, angle);
 
         super.updateState(reactiveLimits, writeSlackBus);

@@ -31,13 +31,13 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
             @Override
             public double getMinQ() {
-                double v = bus.getV() * nominalV;
+                double v = bus.getV().eval() * nominalV;
                 return svc.getBmin() * v * v;
             }
 
             @Override
             public double getMaxQ() {
-                double v = bus.getV() * nominalV;
+                double v = bus.getV().eval() * nominalV;
                 return svc.getBmax() * v * v;
             }
 
@@ -93,7 +93,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     }
 
     @Override
-    public double getParticipationFactor() {
+    public double getDroop() {
         return 0;
     }
 

@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 
@@ -14,8 +15,23 @@ import com.powsybl.sensitivity.SensitivityAnalysisParameters;
  */
 public class OpenSensitivityAnalysisParameters extends AbstractExtension<SensitivityAnalysisParameters> {
 
+    private String debugDir;
+
     @Override
     public String getName() {
-        return "OpenSensitivityAnalysisParameters";
+        return "open-sensitivity-parameters";
+    }
+
+    public String getDebugDir() {
+        return debugDir;
+    }
+
+    public OpenSensitivityAnalysisParameters setDebugDir(String debugDir) {
+        this.debugDir = debugDir;
+        return this;
+    }
+
+    public static OpenSensitivityAnalysisParameters load() {
+        return new OpenSensitivityAnalysisConfigLoader().load(PlatformConfig.defaultConfig());
     }
 }

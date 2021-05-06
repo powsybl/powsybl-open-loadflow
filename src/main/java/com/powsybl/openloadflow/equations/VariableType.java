@@ -6,26 +6,35 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.openloadflow.network.ElementType;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public enum VariableType {
-    BUS_V("v"),
-    BUS_PHI("\u03C6"),
-    BUS_VR("v_r"),
-    BUS_VI("v_i"),
-    BRANCH_ALPHA1("\u03B1" + "1"),
-    BRANCH_RHO1("\u03C1" + "1"),
-    DUMMY_P("dummy_p"),
-    DUMMY_Q("dummy_q");
+    BUS_V("v", ElementType.BUS),
+    BUS_PHI("\u03C6", ElementType.BUS),
+    BUS_VR("v_r", ElementType.BUS),
+    BUS_VI("v_i", ElementType.BUS),
+    BRANCH_ALPHA1("\u03B1" + "1", ElementType.BRANCH),
+    BRANCH_RHO1("\u03C1" + "1", ElementType.BRANCH),
+    DUMMY_P("dummy_p", ElementType.BRANCH),
+    DUMMY_Q("dummy_q", ElementType.BRANCH);
 
     private final String symbol;
 
-    VariableType(String symbol) {
+    private final ElementType elementType;
+
+    VariableType(String symbol, ElementType elementType) {
         this.symbol = symbol;
+        this.elementType = elementType;
     }
 
     public String getSymbol() {
         return symbol;
+    }
+
+    public ElementType getElementType() {
+        return elementType;
     }
 }

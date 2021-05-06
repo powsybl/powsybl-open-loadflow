@@ -36,6 +36,10 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private Evaluable q2 = NAN;
 
+    private Evaluable i1 = NAN;
+
+    private Evaluable i2 = NAN;
+
     protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
         super(network, bus1, bus2, piModel);
         this.branch = branch;
@@ -142,8 +146,8 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public double getP1() {
-        return p1.eval();
+    public Evaluable getP1() {
+        return p1;
     }
 
     @Override
@@ -152,8 +156,8 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public double getP2() {
-        return p2.eval();
+    public Evaluable getP2() {
+        return p2;
     }
 
     @Override
@@ -162,30 +166,48 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
+    public Evaluable getQ1() {
+        return q1;
+    }
+
+    @Override
     public void setQ2(Evaluable q2) {
         this.q2 = Objects.requireNonNull(q2);
     }
 
     @Override
-    public double getI1() {
-        return getBus1() != null ? Math.hypot(p1.eval(), q1.eval())
-            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
+    public Evaluable getQ2() {
+        return q2;
     }
 
     @Override
-    public double getI2() {
-        return getBus2() != null ? Math.hypot(p2.eval(), q2.eval())
-            / (Math.sqrt(3.) * getBus2().getV() / 1000) : Double.NaN;
+    public void setI1(Evaluable i1) {
+        this.i1 = Objects.requireNonNull(i1);
     }
 
     @Override
-    public double getPermanentLimit1() {
-        return branch.getCurrentLimits1() != null ? branch.getCurrentLimits1().getPermanentLimit() * getBus1().getNominalV() / PerUnit.SB : Double.NaN;
+    public Evaluable getI1() {
+        return i1;
     }
 
     @Override
-    public double getPermanentLimit2() {
-        return branch.getCurrentLimits2() != null ? branch.getCurrentLimits2().getPermanentLimit() * getBus2().getNominalV() / PerUnit.SB : Double.NaN;
+    public void setI2(Evaluable i2) {
+        this.i2 = Objects.requireNonNull(i2);
+    }
+
+    @Override
+    public Evaluable getI2() {
+        return i2;
+    }
+
+    @Override
+    public List<LfLimit> getLimits1() {
+        return getLimits1(branch.getCurrentLimits1());
+    }
+
+    @Override
+    public List<LfLimit> getLimits2() {
+        return getLimits2(branch.getCurrentLimits2());
     }
 
     @Override

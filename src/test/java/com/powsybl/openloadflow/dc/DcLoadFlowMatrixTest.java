@@ -76,7 +76,7 @@ class DcLoadFlowMatrixTest {
             j.print(ps, equationSystem.getRowNames(), equationSystem.getColumnNames());
         }
 
-        double[] targets = equationSystem.createTargetVector();
+        double[] targets = TargetVector.createArray(lfNetwork, equationSystem);
         try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
             ps.println("TGT=");
             Matrix.createFromColumn(targets, matrixFactory)

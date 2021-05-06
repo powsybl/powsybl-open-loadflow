@@ -6,10 +6,14 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -52,13 +56,13 @@ public interface EquationTerm extends Evaluable {
         }
 
         @Override
-        public SubjectType getSubjectType() {
-            return term.getSubjectType();
+        public ElementType getElementType() {
+            return term.getElementType();
         }
 
         @Override
-        public int getSubjectNum() {
-            return term.getSubjectNum();
+        public int getElementNum() {
+            return term.getElementNum();
         }
 
         @Override
@@ -92,6 +96,11 @@ public interface EquationTerm extends Evaluable {
         }
 
         @Override
+        public double calculateSensi(DenseMatrix x, int column) {
+            return scalar * term.calculateSensi(x, column);
+        }
+
+        @Override
         public void write(Writer writer) throws IOException {
             writer.write(Double.toString(scalar));
             writer.write(" * ");
@@ -103,6 +112,86 @@ public interface EquationTerm extends Evaluable {
         return new MultiplyByScalarEquationTerm(term, scalar);
     }
 
+    class VariableEquationTerm extends AbstractEquationTerm {
+
+        private final int elementNum;
+
+        private final List<Variable> variables;
+
+        private double value;
+
+        VariableEquationTerm(int elementNum, VariableType variableType, VariableSet variableSet, double initialValue) {
+            this.elementNum = elementNum;
+            this.variables = Collections.singletonList(variableSet.getVariable(elementNum, variableType));
+            value = initialValue;
+        }
+
+        @Override
+        public ElementType getElementType() {
+            return variables.get(0).getType().getElementType();
+        }
+
+        @Override
+        public int getElementNum() {
+            return elementNum;
+        }
+
+        @Override
+        public List<Variable> getVariables() {
+            return variables;
+        }
+
+        @Override
+        public void update(double[] x) {
+            value = x[variables.get(0).getRow()];
+        }
+
+        @Override
+        public double eval() {
+            return value;
+        }
+
+        @Override
+        public double der(Variable variable) {
+            return 1;
+        }
+
+        @Override
+        public boolean hasRhs() {
+            return false;
+        }
+
+        @Override
+        public double rhs() {
+            return 0;
+        }
+
+        @Override
+        public double calculateSensi(DenseMatrix x, int column) {
+            return x.get(variables.get(0).getRow(), column);
+        }
+
+        @Override
+        public void write(Writer writer) throws IOException {
+            variables.get(0).write(writer);
+        }
+    }
+
+    static VariableEquationTerm createVariableTerm(LfElement element, VariableType variableType, VariableSet variableSet) {
+        return createVariableTerm(element, variableType, variableSet, Double.NaN);
+    }
+
+    static VariableEquationTerm createVariableTerm(LfElement element, VariableType variableType, VariableSet variableSet, double initialValue) {
+        Objects.requireNonNull(element);
+        Objects.requireNonNull(variableType);
+        Objects.requireNonNull(variableSet);
+        if (element.getType() != variableType.getElementType()) {
+            throw new IllegalArgumentException("Wrong variable element type: " + variableType.getElementType()
+                + ", expected: " + element.getType());
+        }
+        return new VariableEquationTerm(element.getNum(), variableType, variableSet, initialValue);
+    }
+
     Equation getEquation();
 
     void setEquation(Equation equation);
@@ -111,9 +200,9 @@ public interface EquationTerm extends Evaluable {
 
     void setActive(boolean active);
 
-    SubjectType getSubjectType();
+    ElementType getElementType();
 
-    int getSubjectNum();
+    int getElementNum();
 
     /**
      * Get the list of variable this equation term depends on.
@@ -153,6 +242,8 @@ public interface EquationTerm extends Evaluable {
      * @return value of part of the partial derivative that has to be moved to right hand side
      */
     double rhs();
+
+    double calculateSensi(DenseMatrix x, int column);
 
     void write(Writer writer) throws IOException;
 }

@@ -33,22 +33,21 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private boolean participating;
 
-    private double participationFactor;
+    private double droop;
 
     private LfGeneratorImpl(Generator generator, boolean breakers, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
         super(generator.getTargetP());
         this.generator = generator;
         participating = true;
-        double droop = DEFAULT_DROOP;
+        droop = DEFAULT_DROOP;
         // get participation factor from extension
         ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
-            participating = activePowerControl.isParticipate();
+            participating = activePowerControl.isParticipate() && activePowerControl.getDroop() != 0;
             if (activePowerControl.getDroop() != 0) {
                 droop = activePowerControl.getDroop();
             }
         }
-        participationFactor = generator.getMaxP() / droop;
         if (Math.abs(generator.getTargetP()) < TARGET_P_EPSILON) {
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) equals 0",
                     generator.getId(), generator.getTargetP());
@@ -125,8 +124,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
-    public double getParticipationFactor() {
-        return participationFactor;
+    public double getDroop() {
+        return droop;
     }
 
     @Override

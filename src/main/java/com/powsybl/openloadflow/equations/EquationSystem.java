@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfNetwork;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -27,9 +28,9 @@ public class EquationSystem {
 
     private final Map<Pair<Integer, EquationType>, Equation> equations = new HashMap<>();
 
-    private final Map<Pair<SubjectType, Integer>, List<Equation>> equationsBySubject = new HashMap<>();
+    private final Map<Pair<ElementType, Integer>, List<Equation>> equationsBySubject = new HashMap<>();
 
-    private final Map<Pair<SubjectType, Integer>, List<EquationTerm>> equationTermsBySubject = new HashMap<>();
+    private final Map<Pair<ElementType, Integer>, List<EquationTerm>> equationTermsBySubject = new HashMap<>();
 
     private class EquationCache implements EquationSystemListener {
 
@@ -66,7 +67,8 @@ public class EquationSystem {
 
             Set<Variable> variablesToFind = new HashSet<>();
             for (Equation equation : equations.values()) {
-                if (equation.isActive()) {
+                if (equation.isActive() && EquationUpdateType.DEFAULT == equation.getUpdateType()) {
+                    // do not use equations that would be updated only after NR
                     NavigableMap<Variable, List<EquationTerm>> equationTermsByVariable = null;
                     // check we have at least one equation term active
                     boolean atLeastOneTermIsValid = false;
@@ -77,11 +79,9 @@ public class EquationSystem {
                                 equationTermsByVariable = sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>());
                             }
                             for (Variable variable : equationTerm.getVariables()) {
-                                if (variable.isActive()) {
-                                    equationTermsByVariable.computeIfAbsent(variable, k -> new ArrayList<>())
-                                            .add(equationTerm);
-                                    variablesToFind.add(variable);
-                                }
+                                equationTermsByVariable.computeIfAbsent(variable, k -> new ArrayList<>())
+                                        .add(equationTerm);
+                                variablesToFind.add(variable);
                             }
                         }
                     }
@@ -146,6 +146,12 @@ public class EquationSystem {
 
     private final List<EquationSystemListener> listeners = new ArrayList<>();
 
+    public enum EquationUpdateType {
+        DEFAULT,
+        AFTER_NR,
+        NEVER
+    }
+
     public EquationSystem(LfNetwork network) {
         this(network, false);
     }
@@ -163,23 +169,23 @@ public class EquationSystem {
     void addEquationTerm(EquationTerm equationTerm) {
         if (indexTerms) {
             Objects.requireNonNull(equationTerm);
-            Pair<SubjectType, Integer> subject = Pair.of(equationTerm.getSubjectType(), equationTerm.getSubjectNum());
+            Pair<ElementType, Integer> subject = Pair.of(equationTerm.getElementType(), equationTerm.getElementNum());
             equationTermsBySubject.computeIfAbsent(subject, k -> new ArrayList<>())
                     .add(equationTerm);
         }
     }
 
-    public List<EquationTerm> getEquationTerms(SubjectType subjectType, int subjectNum) {
+    public List<EquationTerm> getEquationTerms(ElementType elementType, int elementNum) {
         if (!indexTerms) {
             throw new PowsyblException("Equations terms have not been indexed");
         }
-        Objects.requireNonNull(subjectType);
-        Pair<SubjectType, Integer> subject = Pair.of(subjectType, subjectNum);
+        Objects.requireNonNull(elementType);
+        Pair<ElementType, Integer> subject = Pair.of(elementType, elementNum);
         return equationTermsBySubject.getOrDefault(subject, Collections.emptyList());
     }
 
-    public <T extends EquationTerm> T getEquationTerm(SubjectType subjectType, int subjectNum, Class<T> clazz) {
-        return getEquationTerms(subjectType, subjectNum)
+    public <T extends EquationTerm> T getEquationTerm(ElementType elementType, int elementNum, Class<T> clazz) {
+        return getEquationTerms(elementType, elementNum)
                 .stream()
                 .filter(term -> clazz.isAssignableFrom(term.getClass()))
                 .map(clazz::cast)
@@ -210,7 +216,7 @@ public class EquationSystem {
         Pair<Integer, EquationType> p = Pair.of(num, type);
         Equation equation = equations.remove(p);
         if (equation != null) {
-            Pair<SubjectType, Integer> subject = Pair.of(type.getSubjectType(), num);
+            Pair<ElementType, Integer> subject = Pair.of(type.getElementType(), num);
             equationsBySubject.remove(subject);
             notifyEquationChange(equation, EquationEventType.EQUATION_REMOVED);
         }
@@ -220,16 +226,16 @@ public class EquationSystem {
     private Equation addEquation(Pair<Integer, EquationType> p) {
         Equation equation = new Equation(p.getLeft(), p.getRight(), EquationSystem.this);
         equations.put(p, equation);
-        Pair<SubjectType, Integer> subject = Pair.of(p.getRight().getSubjectType(), p.getLeft());
+        Pair<ElementType, Integer> subject = Pair.of(p.getRight().getElementType(), p.getLeft());
         equationsBySubject.computeIfAbsent(subject, k -> new ArrayList<>())
                 .add(equation);
         notifyEquationChange(equation, EquationEventType.EQUATION_CREATED);
         return equation;
     }
 
-    public List<Equation> getEquations(SubjectType subjectType, int subjectNum) {
-        Objects.requireNonNull(subjectType);
-        Pair<SubjectType, Integer> subject = Pair.of(subjectType, subjectNum);
+    public List<Equation> getEquations(ElementType elementType, int elementNum) {
+        Objects.requireNonNull(elementType);
+        Pair<ElementType, Integer> subject = Pair.of(elementType, elementNum);
         return equationsBySubject.getOrDefault(subject, Collections.emptyList());
     }
 
@@ -261,14 +267,6 @@ public class EquationSystem {
         return x;
     }
 
-    public double[] createTargetVector() {
-        double[] targets = new double[equationCache.getSortedEquationsToSolve().size()];
-        for (Equation equation : equationCache.getSortedEquationsToSolve().keySet()) {
-            equation.initTarget(network, targets);
-        }
-        return targets;
-    }
-
     public double[] createEquationVector() {
         double[] fx = new double[equationCache.getSortedEquationsToSolve().size()];
         updateEquationVector(fx);
@@ -286,9 +284,16 @@ public class EquationSystem {
     }
 
     public void updateEquations(double[] x) {
+        updateEquations(x, EquationUpdateType.DEFAULT);
+    }
+
+    public void updateEquations(double[] x, EquationUpdateType updateType) {
         Objects.requireNonNull(x);
+        Objects.requireNonNull(updateType);
         for (Equation equation : equations.values()) {
-            equation.update(x);
+            if (updateType == equation.getUpdateType()) {
+                equation.update(x);
+            }
         }
         listeners.forEach(listener -> listener.onStateUpdate(x));
     }

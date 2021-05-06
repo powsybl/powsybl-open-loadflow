@@ -17,7 +17,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -64,7 +64,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
         parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new FirstSlackBusSelector());
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
@@ -266,5 +266,14 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertVoltageEquals(402.143, bus1);
         assertVoltageEquals(389.953, bus2);
         assertVoltageEquals(147.578, loadBus);
+    }
+
+    @Test
+    void noGeneratorTest() {
+        network.getGenerator("GEN").getTerminal().disconnect();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isOk());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
     }
 }

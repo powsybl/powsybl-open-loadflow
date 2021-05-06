@@ -6,21 +6,15 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.util.Evaluable;
+
 import java.util.List;
 import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface LfBus {
-
-    String getId();
-
-    int getNum();
-
-    void setNum(int num);
-
-    LfNetwork getNetwork();
+public interface LfBus extends LfElement {
 
     String getVoltageLevelId();
 
@@ -79,9 +73,9 @@ public interface LfBus {
 
     double getMaxQ();
 
-    double getV();
+    Evaluable getV();
 
-    void setV(double v);
+    void setV(Evaluable v);
 
     double getAngle();
 
@@ -120,4 +114,12 @@ public interface LfBus {
     boolean isDisabled();
 
     void setDisabled(boolean disabled);
+
+    void setP(Evaluable p);
+
+    Evaluable getP();
+
+    void setQ(Evaluable q);
+
+    Evaluable getQ();
 }

@@ -10,8 +10,9 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.reporter.Report;
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
 import net.jafama.FastMath;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
@@ -59,6 +60,8 @@ public class LfNetwork {
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
+    private boolean valid = true;
+
     public LfNetwork(int num, SlackBusSelector slackBusSelector) {
         this.num = num;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
@@ -76,7 +79,6 @@ public class LfNetwork {
             }
             slackBus = slackBusSelector.select(busesByIndex);
             slackBus.setSlack(true);
-            LOGGER.info("Selected slack bus: {}", slackBus.getId());
         }
     }
 
@@ -196,8 +198,9 @@ public class LfNetwork {
                 }
             }
         });
-        if (!Double.isNaN(bus.getV())) {
-            jsonGenerator.writeNumberField("v", bus.getV());
+        Double v = bus.getV().eval();
+        if (!Double.isNaN(v)) {
+            jsonGenerator.writeNumberField("v", v);
         }
         if (!Double.isNaN(bus.getAngle())) {
             jsonGenerator.writeNumberField("angle", bus.getAngle());
@@ -336,7 +339,7 @@ public class LfNetwork {
         }
     }
 
-    private void logSize() {
+    private void reportSize(Reporter reporter) {
         int remoteControlledBusCount = 0;
         int remoteControllerBusCount = 0;
         for (LfBus b : busesById.values()) {
@@ -349,11 +352,20 @@ public class LfNetwork {
                 remoteControlledBusCount++;
             }
         }
+        reporter.report(Report.builder()
+            .withKey("networkSize")
+            .withDefaultMessage("Network ${numNetwork} has ${nbBuses} buses (voltage remote control: ${nbRemoteControllerBuses} controllers, ${nbRemoteControlledBuses} controlled) and ${nbBranches} branches")
+            .withValue("numNetwork", num)
+            .withValue("nbBuses", busesById.values().size())
+            .withValue("nbRemoteControllerBuses", remoteControllerBusCount)
+            .withValue("nbRemoteControlledBuses", remoteControlledBusCount)
+            .withValue("nbBranches", branches.size())
+            .build());
         LOGGER.info("Network {} has {} buses (voltage remote control: {} controllers, {} controlled) and {} branches",
-                num, busesById.values().size(), remoteControllerBusCount, remoteControlledBusCount, branches.size());
+            num, busesById.values().size(), remoteControllerBusCount, remoteControlledBusCount, branches.size());
     }
 
-    public void logBalance() {
+    public void reportBalance(Reporter reporter) {
         double activeGeneration = 0;
         double reactiveGeneration = 0;
         double activeLoad = 0;
@@ -365,8 +377,17 @@ public class LfNetwork {
             reactiveLoad += b.getLoadTargetQ() * PerUnit.SB;
         }
 
-        LOGGER.info("Network {} balance: active generation={} Mw, active load={} Mw, reactive generation={} MVar, reactive load={} MVar",
-                num, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
+        reporter.report(Report.builder()
+            .withKey("networkBalance")
+            .withDefaultMessage("Network ${numNetwork} balance: active generation=${activeGeneration} MW, active load=${activeLoad} MW, reactive generation=${reactiveGeneration} MVar, reactive load=${reactiveLoad} MVar")
+            .withValue("numNetwork", num)
+            .withValue("activeGeneration", activeGeneration)
+            .withValue("activeLoad", activeLoad)
+            .withValue("reactiveGeneration", reactiveGeneration)
+            .withValue("reactiveLoad", reactiveLoad)
+            .build());
+        LOGGER.info("Network {} balance: active generation={} MW, active load={} MW, reactive generation={} MVar, reactive load={} MVar",
+            num, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
     private static void fix(LfNetwork network, boolean minImpedance) {
@@ -406,20 +427,29 @@ public class LfNetwork {
     }
 
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
-        return load(network, new LfNetworkParameters(slackBusSelector));
+        return load(network, new LfNetworkParameters(slackBusSelector), Reporter.NO_OP);
     }
 
     public static List<LfNetwork> load(Object network, LfNetworkParameters parameters) {
+        return load(network, parameters, Reporter.NO_OP);
+    }
+
+    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, Reporter reporter) {
+        return load(network, new LfNetworkParameters(slackBusSelector), reporter);
+    }
+
+    public static List<LfNetwork> load(Object network, LfNetworkParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
         for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
-            List<LfNetwork> lfNetworks = importer.load(network, parameters).orElse(null);
+            List<LfNetwork> lfNetworks = importer.load(network, parameters, reporter).orElse(null);
             if (lfNetworks != null) {
                 for (LfNetwork lfNetwork : lfNetworks) {
+                    Reporter reporterNetwork = reporter.createSubReporter("postLoading", "Post loading process on network ${numNetwork}", "numNetwork", lfNetwork.getNum());
                     fix(lfNetwork, parameters.isMinImpedance());
                     validate(lfNetwork, parameters.isMinImpedance());
-                    lfNetwork.logSize();
-                    lfNetwork.logBalance();
+                    lfNetwork.reportSize(reporterNetwork);
+                    lfNetwork.reportBalance(reporterNetwork);
                 }
                 return lfNetworks;
             }
@@ -453,10 +483,6 @@ public class LfNetwork {
         return piModel.getZ() < LOW_IMPEDANCE_THRESHOLD;
     }
 
-    public GraphDecrementalConnectivity<LfBus> createDecrementalConnectivity() {
-        return createDecrementalConnectivity(() -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
-    }
-
     public GraphDecrementalConnectivity<LfBus> createDecrementalConnectivity(Supplier<GraphDecrementalConnectivity<LfBus>> connectivitySupplier) {
         GraphDecrementalConnectivity<LfBus> connectivity = connectivitySupplier.get();
         getBuses().forEach(connectivity::addVertex);
@@ -474,5 +500,13 @@ public class LfNetwork {
 
     public List<LfNetworkListener> getListeners() {
         return listeners;
+    }
+
+    public boolean isValid() {
+        return valid;
+    }
+
+    public void setValid(boolean valid) {
+        this.valid = valid;
     }
 }

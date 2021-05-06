@@ -10,11 +10,14 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.Evaluable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ToDoubleFunction;
+
+import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -27,7 +30,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean slack = false;
 
-    protected double v;
+    protected Evaluable v;
 
     protected double angle;
 
@@ -71,10 +74,19 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean disabled = false;
 
+    protected Evaluable p = NAN;
+
+    protected Evaluable q = NAN;
+
     protected AbstractLfBus(LfNetwork network, double v, double angle) {
         super(network);
-        this.v = v;
+        this.v = () -> v / getNominalV(); // this will be replaced by an equation term once the equationSystem is created
         this.angle = angle;
+    }
+
+    @Override
+    public ElementType getType() {
+        return ElementType.BUS;
     }
 
     @Override
@@ -178,17 +190,29 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     void addLccConverterStation(LccConverterStation lccCs) {
         lccCss.add(lccCs);
         HvdcLine line = lccCs.getHvdcLine();
+        loadTargetP += getLccConverterStationLoadTargetP(lccCs, line);
+        loadTargetQ += getLccConverterStationLoadTargetQ(lccCs, line);
+    }
+
+    public static double getLccConverterStationLoadTargetP(LccConverterStation lccCs, HvdcLine line) {
         // The active power setpoint is always positive.
         // If the converter station is at side 1 and is rectifier, p should be positive.
         // If the converter station is at side 1 and is inverter, p should be negative.
         // If the converter station is at side 2 and is rectifier, p should be positive.
         // If the converter station is at side 2 and is inverter, p should be negative.
         boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(lccCs);
-        double p = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
+        return (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
                 (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor() / 100); // A LCC station has active losses.
-        double q = Math.abs(p * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
-        loadTargetP += p;
-        loadTargetQ += q;
+    }
+
+    public static double getLccConverterStationLoadTargetQ(LccConverterStation lccCs, HvdcLine line) {
+        // The active power setpoint is always positive.
+        // If the converter station is at side 1 and is rectifier, p should be positive.
+        // If the converter station is at side 1 and is inverter, p should be negative.
+        // If the converter station is at side 2 and is rectifier, p should be positive.
+        // If the converter station is at side 2 and is inverter, p should be negative.
+        double pCs = getLccConverterStationLoadTargetP(lccCs, line);
+        return Math.abs(pCs * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
     }
 
     protected void add(LfGenerator generator) {
@@ -229,7 +253,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public void setGenerationTargetQ(double generationTargetQ) {
-        this.generationTargetQ = generationTargetQ * PerUnit.SB;
+        double newGenerationTargetQ = generationTargetQ * PerUnit.SB;
+        if (newGenerationTargetQ != this.generationTargetQ) {
+            double oldGenerationTargetQ = this.generationTargetQ;
+            this.generationTargetQ = newGenerationTargetQ;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onGenerationReactivePowerTargetChange(this, oldGenerationTargetQ, newGenerationTargetQ);
+            }
+        }
     }
 
     @Override
@@ -239,7 +270,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public void setLoadTargetP(double loadTargetP) {
-        this.loadTargetP = loadTargetP * PerUnit.SB;
+        double newLoadTargetP = loadTargetP * PerUnit.SB;
+        if (newLoadTargetP != this.loadTargetP) {
+            double oldLoadTargetP = this.loadTargetP;
+            this.loadTargetP = newLoadTargetP;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onLoadActivePowerTargetChange(this, oldLoadTargetP, newLoadTargetP);
+            }
+        }
     }
 
     @Override
@@ -259,7 +297,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public void setLoadTargetQ(double loadTargetQ) {
-        this.loadTargetQ = loadTargetQ * PerUnit.SB;
+        double newLoadTargetQ = loadTargetQ * PerUnit.SB;
+        if (newLoadTargetQ != this.loadTargetQ) {
+            double oldLoadTargetQ = this.loadTargetQ;
+            this.loadTargetQ = newLoadTargetQ;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onLoadReactivePowerTargetChange(this, oldLoadTargetQ, newLoadTargetQ);
+            }
+        }
     }
 
     @Override
@@ -285,13 +330,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public double getV() {
-        return v / getNominalV();
+    public Evaluable getV() {
+        return v;
     }
 
     @Override
-    public void setV(double v) {
-        this.v = v * getNominalV();
+    public void setV(Evaluable v) {
+        this.v = v;
     }
 
     @Override
@@ -399,12 +444,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         for (LccConverterStation lccCs : lccCss) {
             boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(lccCs);
             HvdcLine line = lccCs.getHvdcLine();
-            double p = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
+            double pCs = (isConverterStationRectifier ? 1 : -1) * line.getActivePowerSetpoint() *
                     (1 + (isConverterStationRectifier ? 1 : -1) * lccCs.getLossFactor() / 100); // A LCC station has active losses.
-            double q = Math.abs(p * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
+            double qCs = Math.abs(pCs * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
             lccCs.getTerminal()
-                    .setP(p)
-                    .setQ(q);
+                    .setP(pCs)
+                    .setQ(qCs);
         }
     }
 
@@ -431,5 +476,25 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void setDisabled(boolean disabled) {
         this.disabled = disabled;
+    }
+
+    @Override
+    public void setP(Evaluable p) {
+        this.p = Objects.requireNonNull(p);
+    }
+
+    @Override
+    public Evaluable getP() {
+        return p;
+    }
+
+    @Override
+    public void setQ(Evaluable q) {
+        this.q = Objects.requireNonNull(q);
+    }
+
+    @Override
+    public Evaluable getQ() {
+        return q;
     }
 }

@@ -6,7 +6,10 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationType;
+import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.List;
@@ -18,18 +21,21 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcEquationSystemUpdater implements LfNetworkListener {
+public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
     private final EquationSystem equationSystem;
 
     private final VariableSet variableSet;
 
-    public AcEquationSystemUpdater(EquationSystem equationSystem, VariableSet variableSet) {
+    private final AcEquationSystemCreationParameters creationParameters;
+
+    public AcEquationSystemUpdater(EquationSystem equationSystem, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.variableSet = Objects.requireNonNull(variableSet);
+        this.creationParameters = Objects.requireNonNull(creationParameters);
     }
 
-    public static void updateControlledBus(VoltageControl voltageControl, EquationSystem equationSystem, VariableSet variableSet) {
+    private void updateControlledBus(VoltageControl voltageControl, EquationSystem equationSystem, VariableSet variableSet) {
 
         LfBus controlledBus = voltageControl.getControlledBus();
         Set<LfBus> controllerBuses = voltageControl.getControllerBuses();
@@ -45,7 +51,7 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
 
         // create reactive power equations on controller buses that have voltage control on
         if (!controllerBusesWithVoltageControlOn.isEmpty()) {
-            AcEquationSystem.createReactivePowerDistributionEquations(equationSystem, variableSet, controllerBusesWithVoltageControlOn);
+            AcEquationSystem.createReactivePowerDistributionEquations(equationSystem, variableSet, creationParameters, controllerBusesWithVoltageControlOn);
         }
     }
 
@@ -72,17 +78,15 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
 
     @Override
     public void onPhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode) {
-        if (newMode == DiscretePhaseControl.Mode.OFF) {
-            // de-activate a1 variable
-            Variable a1 = variableSet.getVariable(phaseControl.getController().getNum(), VariableType.BRANCH_ALPHA1);
-            a1.setActive(false);
+        boolean on = newMode != DiscretePhaseControl.Mode.OFF;
 
-            // de-activate phase control equation
-            Equation t = equationSystem.createEquation(phaseControl.getControlled().getNum(), EquationType.BRANCH_P);
-            t.setActive(false);
-        } else {
-            throw new UnsupportedOperationException("TODO");
-        }
+        // activate/de-activate phase control equation
+        equationSystem.createEquation(phaseControl.getControlled().getNum(), EquationType.BRANCH_P)
+                .setActive(on);
+
+        // de-activate/activate constant A1 equation
+        equationSystem.createEquation(phaseControl.getController().getNum(), EquationType.BRANCH_ALPHA1)
+                .setActive(!on);
     }
 
     @Override
@@ -91,13 +95,13 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
             LfBus bus = voltageControl.getControlled();
 
             // de-activate transformer voltage control equation
-            Equation t = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
-            t.setActive(false);
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V)
+                    .setActive(false);
 
             for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
-                // de-activate r1 variable
-                Variable r1 = variableSet.getVariable(controllerBranch.getNum(), VariableType.BRANCH_RHO1);
-                r1.setActive(false);
+                // activate constant R1 equation
+                equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
+                        .setActive(true);
 
                 // clean transformer distribution equations
                 equationSystem.removeEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1);
