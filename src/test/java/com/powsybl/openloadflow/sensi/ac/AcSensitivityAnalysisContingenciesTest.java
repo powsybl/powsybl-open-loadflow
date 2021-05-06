@@ -6,15 +6,18 @@
  */
 package com.powsybl.openloadflow.sensi.ac;
 
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.DanglingLineContingency;
 import com.powsybl.contingency.HvdcLineContingency;
 import com.powsybl.iidm.network.IdBasedBusRef;
+import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
 import com.powsybl.openloadflow.network.DanglingLineFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
@@ -629,7 +632,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
-    void testDanglingLineContingency() {
+    void testDanglingLineContingencyDistributedSlackOnLoads() {
         Network network = DanglingLineFactory.createWithLoad();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl3_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
@@ -645,16 +648,46 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0.3695, getContingencyValue(result, "dl1", "g1", "l1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(36.794, getContingencyFunctionReference(result, "l1", "dl1"), LoadFlowAssert.DELTA_POWER);
 
+        network.getDanglingLine("dl1").getTerminal().disconnect(); // FIXME: if I comment this line, I don't retrieve the base sensitivity value
+        Line l1 = network.getLine("l1");
+        LoadFlowParameters parameters = sensiParameters.getLoadFlowParameters();
+        parameters.getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001);
+        runLf(network, parameters, Reporter.NO_OP);
+        double initialP = l1.getTerminal1().getP();
+        assertEquals(36.795, initialP, LoadFlowAssert.DELTA_POWER);
+        network.getGenerator("g1").setTargetP(network.getGenerator("g1").getTargetP() + 1);
+        runLf(network, sensiParameters.getLoadFlowParameters(), Reporter.NO_OP);
+        double finalP = l1.getTerminal1().getP();
+        assertEquals(37.164, finalP, LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.3695, finalP - initialP, LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testDanglingLineContingencyDistributedSlackOnGenerators() {
+        Network network = DanglingLineFactory.createWithLoad();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         SensitivityFactorsProvider factorsProvider2 = n -> List.of(new BranchFlowPerInjectionIncrease(new BranchFlow("l1", "l1", "l1"),
                 new InjectionIncrease("load3", "load3", "load3")));
-        SensitivityAnalysisResult result2 = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider2, contingencies,
+        List<Contingency> contingencies = List.of(new Contingency("dl1", new DanglingLineContingency("dl1")));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider2, contingencies,
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
-        assertEquals(1, result2.getSensitivityValues().size());
-        assertEquals(-0.3697, getValue(result2, "load3", "l1"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(75.272, getFunctionReference(result2, "l1"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-0.3700, getContingencyValue(result2, "dl1", "load3", "l1"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(3.1409, getContingencyFunctionReference(result2, "l1", "dl1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(-0.3697, getValue(result, "load3", "l1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(75.336, getFunctionReference(result, "l1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.3700, getContingencyValue(result, "dl1", "load3", "l1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(3.0071, getContingencyFunctionReference(result, "l1", "dl1"), LoadFlowAssert.DELTA_POWER);
+
+        network.getDanglingLine("dl1").getTerminal().disconnect(); // FIXME: if I comment this line, I don't retrieve the base sensitivity value
+        Line l1 = network.getLine("l1");
+        runLf(network, sensiParameters.getLoadFlowParameters(), Reporter.NO_OP);
+        double initialP = l1.getTerminal1().getP();
+        assertEquals(3.0071, initialP, LoadFlowAssert.DELTA_POWER);
+        network.getLoad("load3").setP0(network.getLoad("load3").getP0() + 1);
+        runLf(network, sensiParameters.getLoadFlowParameters(), Reporter.NO_OP);
+        double finalP = l1.getTerminal1().getP();
+        assertEquals(3.3775, finalP, LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.3700, initialP - finalP, LoadFlowAssert.DELTA_POWER);
     }
 }
