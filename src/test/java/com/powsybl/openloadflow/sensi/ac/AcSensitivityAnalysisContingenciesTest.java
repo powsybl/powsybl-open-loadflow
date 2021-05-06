@@ -22,6 +22,7 @@ import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
 import com.powsybl.openloadflow.network.DanglingLineFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
+import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
@@ -629,6 +630,28 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
             .join());
         assertTrue(e.getCause() instanceof NotImplementedException);
         assertEquals("Contingencies on a DC line are not yet supported in AC mode.", e.getCause().getMessage());
+    }
+
+    @Test
+    void testContingencyPropagationLfSwitch() {
+        Network network = NodeBreakerNetworkFactory.create3Bars();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+            network.getBranchStream().collect(Collectors.toList()));
+        List<Contingency> contingencyList = Collections.singletonList(new Contingency("L2", new BranchContingency("L2")));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencyList,
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+
+        //Flow is around 200 on all lines
+        result.getSensitivityValues()
+            .forEach(v -> assertEquals(200, v.getFunctionReference(), 5));
+
+        // Propagating contingency on L2 encounters a coupler, which is not (yet) supported in sensitivity analysis
+        assertTrue(result.getSensitivityValuesContingencies().isEmpty());
     }
 
     @Test
