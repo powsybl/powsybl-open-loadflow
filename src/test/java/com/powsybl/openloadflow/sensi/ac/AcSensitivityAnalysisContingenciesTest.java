@@ -18,7 +18,6 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.DanglingLineFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;

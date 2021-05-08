@@ -528,7 +528,7 @@ public abstract class AbstractSensitivityAnalysis {
                         Double weight = variableElementAndWeight.getValue();
                         addBusInjection(rhs, (LfBus) variableElement, weight);
                     }
-
+                    break;
                 default:
                     throw new NotImplementedException("Variable type " + variableType + " is not implemented");
             }
