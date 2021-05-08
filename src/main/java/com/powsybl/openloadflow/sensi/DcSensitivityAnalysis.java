@@ -255,9 +255,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             List<LfSensitivityFactor> factorsForThisGroup = e.getValue();
             setAlphas(contingencyElements, factorStates, contingenciesStates, factorGroup.getIndex(), ComputedContingencyElement::setAlphaForSensitivityValue);
             for (LfSensitivityFactor factor : factorsForThisGroup) {
-                if (!lfFactorsSet.contains(factor)) {
-                    continue;
-                }
                 createBranchSensitivityValue(factor, contingenciesStates, contingencyElements, contingencyId, contingencyIndex, contingency, valueWriter);
             }
         }
