@@ -205,7 +205,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         Objects.requireNonNull(valueWriter);
         Objects.requireNonNull(reporter);
 
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, new HashSet<>());
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies);
 
         LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
@@ -248,16 +248,12 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }
     }
 
-    public void replay(DateTime date, SensitivityAnalysisParameters sensitivityAnalysisParameters, SensitivityValueWriter valueWriter, Reporter reporter) {
+    public void replay(DateTime date, Path debugDir, SensitivityValueWriter valueWriter, Reporter reporter) {
         Objects.requireNonNull(date);
+        Objects.requireNonNull(debugDir);
         Objects.requireNonNull(valueWriter);
         Objects.requireNonNull(reporter);
 
-        OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
-        if (sensitivityAnalysisParametersExt.getDebugDir() == null) {
-            throw new IllegalArgumentException("Debug mode is not activated");
-        }
-        Path debugDir = PlatformConfig.defaultConfig().getConfigDir().getFileSystem().getPath(sensitivityAnalysisParametersExt.getDebugDir());
         String dateStr = date.toString(DATE_TIME_FORMAT);
 
         List<SensitivityFactor2> factors = SensitivityFactor2.parseJson(debugDir.resolve("factors-" + dateStr + ".json"));
@@ -265,7 +261,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         ObjectMapper objectMapper = createObjectMapper();
         List<Contingency> contingencies;
         List<SensitivityVariableSet> variableSets;
-        SensitivityAnalysisParameters sensitivityAnalysisParameters2;
+        SensitivityAnalysisParameters sensitivityAnalysisParameters;
         try {
             try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
                 contingencies = objectMapper.readValue(reader, new TypeReference<>() {
@@ -276,25 +272,31 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 });
             }
             try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("parameters-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
-                sensitivityAnalysisParameters2 = objectMapper.readValue(reader, new TypeReference<>() {
+                sensitivityAnalysisParameters = objectMapper.readValue(reader, new TypeReference<>() {
                 });
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
 
+        // to avoid regenerating debug file during replay
+        OpenSensitivityAnalysisParameters sensiParametersExt = sensitivityAnalysisParameters.getExtension(OpenSensitivityAnalysisParameters.class);
+        if (sensiParametersExt != null) {
+            sensiParametersExt.setDebugDir(null);
+        }
+
         Network network = NetworkXml.read(debugDir.resolve("network-" + dateStr + ".xiidm"));
 
-        run(network, contingencies, variableSets, sensitivityAnalysisParameters2, new SensitivityFactorModelReader(factors), valueWriter, reporter);
+        run(network, contingencies, variableSets, sensitivityAnalysisParameters, new SensitivityFactorModelReader(factors), valueWriter, reporter);
     }
 
-    public void replay(DateTime date, SensitivityAnalysisParameters sensitivityAnalysisParameters, SensitivityValueWriter valueWriter) {
-        replay(date, sensitivityAnalysisParameters, valueWriter, Reporter.NO_OP);
+    public void replay(DateTime date, Path debugDir, SensitivityValueWriter valueWriter) {
+        replay(date, debugDir, valueWriter, Reporter.NO_OP);
     }
 
-    public List<SensitivityValue2> replay(DateTime date, SensitivityAnalysisParameters sensitivityAnalysisParameters) {
+    public List<SensitivityValue2> replay(DateTime date, Path debugDir) {
         SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();
-        replay(date, sensitivityAnalysisParameters, valueWriter);
+        replay(date, debugDir, valueWriter);
         return valueWriter.getValues();
     }
 }

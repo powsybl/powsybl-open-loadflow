@@ -65,6 +65,17 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         return createParameters(dc, slackBusId, false);
     }
 
+    protected static SensitivityAnalysisParameters createParameters(boolean dc) {
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
+        LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
+        lfParameters.setDc(dc);
+        lfParameters.setDistributedSlack(true);
+        OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
+        return sensiParameters;
+    }
+
     protected static <T extends Injection<T>> InjectionIncrease createInjectionIncrease(T injection) {
         return new InjectionIncrease(injection.getId(), injection.getId(), injection.getId());
     }

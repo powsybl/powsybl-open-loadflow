@@ -108,7 +108,7 @@ public class SensitivityFactor2 {
         }
     }
 
-    static List<SensitivityFactor2> parseJson(Path jsonFile) {
+    public static List<SensitivityFactor2> parseJson(Path jsonFile) {
         return JsonUtil.parseJson(jsonFile, SensitivityFactor2::parseJson);
     }
 
