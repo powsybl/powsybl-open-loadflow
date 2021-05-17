@@ -432,7 +432,7 @@ public abstract class AbstractSensitivityAnalysis {
             factors.add(factor);
         }
 
-        protected void addBusInjection(Matrix rhs, LfBus lfBus, Double injection) {
+        protected void addBusInjection(Matrix rhs, LfBus lfBus, double injection) {
             Equation p = (Equation) lfBus.getP();
             if (lfBus.isSlack() || !p.isActive()) {
                 return;
@@ -516,7 +516,7 @@ public abstract class AbstractSensitivityAnalysis {
                     break;
                 case HVDC_INJECTION:
                     assert mainComponentWeights.size() <= 2;
-                    Double balanceDiff = mainComponentWeights.values().stream().mapToDouble(x -> x).sum();
+                    double balanceDiff = mainComponentWeights.values().stream().mapToDouble(x -> x).sum();
                     for (Map.Entry<LfBus, Double> lfBusAndParticipationFactor : participationByBus.entrySet()) {
                         LfBus lfBus = lfBusAndParticipationFactor.getKey();
                         Double injection = lfBusAndParticipationFactor.getValue() * balanceDiff; // adapt the sign of the compensation depending on the injection
@@ -877,8 +877,7 @@ public abstract class AbstractSensitivityAnalysis {
                     throw new PowsyblException("Function type " + functionType + " not supported");
                 }
                 factorHolder.addFactor(new SingleVariableLfSensitivityFactor(factorContext, variableId,
-                    functionElement, functionType,
-                    variableElement, variableType, contingencyContext));
+                        functionElement, functionType, variableElement, variableType, contingencyContext));
             }
         });
         return factorHolder;
