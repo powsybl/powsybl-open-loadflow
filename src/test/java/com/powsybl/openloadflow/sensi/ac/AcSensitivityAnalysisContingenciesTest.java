@@ -18,25 +18,21 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.network.DanglingLineFactory;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
-import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
-import com.powsybl.openloadflow.sensi.SensitivityFactorReader;
+import com.powsybl.openloadflow.sensi.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
 import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
 import com.powsybl.sensitivity.factors.BusVoltagePerTargetV;
-import com.powsybl.sensitivity.factors.functions.BusVoltage;
 import com.powsybl.sensitivity.factors.functions.BranchFlow;
+import com.powsybl.sensitivity.factors.functions.BusVoltage;
 import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
 import com.powsybl.sensitivity.factors.variables.TargetVoltage;
 import org.apache.commons.lang3.NotImplementedException;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
@@ -621,15 +617,6 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
-        List<Pair<String, String>> variableAndFunction = List.of(
-            Pair.of("hvdc34", "l12"),
-            Pair.of("hvdc34", "l13"),
-            Pair.of("hvdc34", "l23"),
-            Pair.of("hvdc34", "l25"),
-            Pair.of("hvdc34", "l45"),
-            Pair.of("hvdc34", "l46"),
-            Pair.of("hvdc34", "l56")
-        );
 
         Network network1 = HvdcNetworkFactory.createNetworkWithGenerators();
         network1.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
@@ -648,13 +635,14 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 line -> (network1.getLine(line).getTerminal1().getP() - network2.getLine(line).getTerminal1().getP()) / sensiChange
             ));
 
-        HvdcWriter hvdcWriter = HvdcWriter.create();
-        SensitivityFactorReader reader = createHvdcReader(variableAndFunction);
+        ContingencyContext contingencyContext = ContingencyContext.createAllContingencyContext();
+        List<SensitivityFactor2> factors = SensitivityFactor2.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER, List.of("l12", "l13", "l23", "l25", "l45", "l46", "l56"),
+                                                                           SensitivityVariableType.HVDC_INJECTION, List.of("hvdc34"), true, contingencyContext);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
                 .setSlackBusId("b1_vl_0"); // the most meshed bus selected in the loadflow
-        sensiProvider.run(network, Collections.singletonList(new Contingency("l25", new BranchContingency("l25"))), Collections.emptyList(),
-            sensiParameters, reader, hvdcWriter);
+        SensitivityAnalysisResult2 result = sensiProvider.run(network, Collections.singletonList(new Contingency("l25", new BranchContingency("l25"))), Collections.emptyList(),
+                sensiParameters, factors);
 
         // FIXME
 //        assertEquals(loadFlowDiff.get("l12"), hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l12"), "l25"), LoadFlowAssert.DELTA_POWER);
