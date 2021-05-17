@@ -29,7 +29,7 @@ public final class HvdcConverterStations {
                 || (line.getConverterStation2() == station && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER);
     }
 
-    public static double getActiveSetpointMultiplier(HvdcConverterStation station) {
+    public static double getActivePowerSetpointMultiplier(HvdcConverterStation station) {
         boolean isConverterStationRectifier = isRectifier(station);
         double sign;
         if (station instanceof LccConverterStation) { // load convention.

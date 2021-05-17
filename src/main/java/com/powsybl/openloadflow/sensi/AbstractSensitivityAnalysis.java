@@ -803,32 +803,6 @@ public abstract class AbstractSensitivityAnalysis {
                         factorHolder.addFactor(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
                                     functionElement, functionType,
                                     injectionLfBuses, variableType, contingencyContext));
-                    } else if (variableType == SensitivityVariableType.HVDC_INJECTION) {
-                        // corresponds to an augmentation of 1 on the active power setpoint
-                        Map<LfElement, Double> injectionLfBuses = new HashMap<>();
-                        HvdcLine hvdcLine = network.getHvdcLine(variableId);
-                        if (hvdcLine == null) {
-                            throw new PowsyblException("HVDC line '" + variableId + "' cannot be found in the network.");
-                        }
-                        LfBus bus1 = lfNetwork.getBusById(hvdcLine.getConverterStation1().getTerminal().getBusView().getBus().getId());
-                        LfBus bus2 = lfNetwork.getBusById(hvdcLine.getConverterStation2().getTerminal().getBusView().getBus().getId());
-
-                        if (bus1 != null) {
-                            // VSC injection follow here a load sign convention as LCC injection.
-                            // FIXME: for LCC, Q changes when P changes
-                            injectionLfBuses.put(bus1, (hvdcLine.getConverterStation1() instanceof VscConverterStation ? -1 : 1)
-                                    * HvdcConverterStations.getActiveSetpointMultiplier(hvdcLine.getConverterStation1()));
-                        }
-                        if (bus2 != null) {
-                            // VSC injection follow here a load sign convention as LCC injection.
-                            // FIXME: for LCC, Q changes when P changes
-                            injectionLfBuses.put(bus2, (hvdcLine.getConverterStation2() instanceof VscConverterStation ? -1 : 1)
-                                    * HvdcConverterStations.getActiveSetpointMultiplier(hvdcLine.getConverterStation2()));
-                        }
-
-                        factorHolder.addFactor(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
-                                functionElement, functionType,
-                                injectionLfBuses, variableType, contingencyContext));
                     } else {
                         throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
                     }
@@ -836,48 +810,80 @@ public abstract class AbstractSensitivityAnalysis {
                     throw new PowsyblException("Function type " + functionType + " not supported");
                 }
             } else {
-                LfElement functionElement;
-                LfElement variableElement;
-                if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER) {
+                if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER && variableType == SensitivityVariableType.HVDC_INJECTION) {
                     checkBranch(network, functionId);
                     LfBranch branch = lfNetwork.getBranchById(functionId);
-                    functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
-                    if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
-                        Bus injectionBus = getInjectionBus(network, variableId);
-                        variableElement = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
-                    } else if (variableType == SensitivityVariableType.TRANSFORMER_PHASE) {
-                        checkPhaseShifter(network, variableId);
-                        variableElement = lfNetwork.getBranchById(variableId);
-                    } else {
-                        throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
+                    LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
+
+                    HvdcLine hvdcLine = network.getHvdcLine(variableId);
+                    if (hvdcLine == null) {
+                        throw new PowsyblException("HVDC line '" + variableId + "' cannot be found in the network.");
                     }
-                } else if (functionType == SensitivityFunctionType.BRANCH_CURRENT) {
-                    checkBranch(network, functionId);
-                    LfBranch branch = lfNetwork.getBranchById(functionId);
-                    functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
-                    if (variableType == SensitivityVariableType.TRANSFORMER_PHASE) {
-                        checkPhaseShifter(network, variableId);
-                        variableElement = lfNetwork.getBranchById(variableId);
-                    } else {
-                        throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
+                    LfBus bus1 = lfNetwork.getBusById(hvdcLine.getConverterStation1().getTerminal().getBusView().getBus().getId());
+                    LfBus bus2 = lfNetwork.getBusById(hvdcLine.getConverterStation2().getTerminal().getBusView().getBus().getId());
+
+                    // corresponds to an augmentation of +1 on the active power setpoint on each side on the HVDC line
+                    // => we create a multi (bi) variables factor
+                    Map<LfElement, Double> injectionLfBuses = new HashMap<>(2);
+                    if (bus1 != null) {
+                        // VSC injection follow here a load sign convention as LCC injection.
+                        // FIXME: for LCC, Q changes when P changes
+                        injectionLfBuses.put(bus1, (hvdcLine.getConverterStation1() instanceof VscConverterStation ? -1 : 1)
+                                * HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation1()));
                     }
-                } else if (functionType == SensitivityFunctionType.BUS_VOLTAGE) {
-                    checkBus(network, functionId, busCache);
-                    functionElement = lfNetwork.getBusById(functionId);
-                    if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
-                        checkRegulatingTerminal(network, variableId);
-                        Terminal regulatingTerminal = getEquipmentRegulatingTerminal(network, variableId);
-                        assert regulatingTerminal != null; // this cannot fail because it is checked in checkRegulatingTerminal
-                        Bus regulatedBus = regulatingTerminal.getBusView().getBus();
-                        variableElement = regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
-                    } else {
-                        throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
+                    if (bus2 != null) {
+                        // VSC injection follow here a load sign convention as LCC injection.
+                        // FIXME: for LCC, Q changes when P changes
+                        injectionLfBuses.put(bus2, (hvdcLine.getConverterStation2() instanceof VscConverterStation ? -1 : 1)
+                                * HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation2()));
                     }
+
+                    factorHolder.addFactor(new MultiVariablesLfSensitivityFactor(factorContext, variableId,
+                            functionElement, functionType, injectionLfBuses, variableType, contingencyContext));
                 } else {
-                    throw new PowsyblException("Function type " + functionType + " not supported");
+                    LfElement functionElement;
+                    LfElement variableElement;
+                    if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER) {
+                        checkBranch(network, functionId);
+                        LfBranch branch = lfNetwork.getBranchById(functionId);
+                        functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
+                        if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
+                            Bus injectionBus = getInjectionBus(network, variableId);
+                            variableElement = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
+                        } else if (variableType == SensitivityVariableType.TRANSFORMER_PHASE) {
+                            checkPhaseShifter(network, variableId);
+                            variableElement = lfNetwork.getBranchById(variableId);
+                        } else {
+                            throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
+                        }
+                    } else if (functionType == SensitivityFunctionType.BRANCH_CURRENT) {
+                        checkBranch(network, functionId);
+                        LfBranch branch = lfNetwork.getBranchById(functionId);
+                        functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
+                        if (variableType == SensitivityVariableType.TRANSFORMER_PHASE) {
+                            checkPhaseShifter(network, variableId);
+                            variableElement = lfNetwork.getBranchById(variableId);
+                        } else {
+                            throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
+                        }
+                    } else if (functionType == SensitivityFunctionType.BUS_VOLTAGE) {
+                        checkBus(network, functionId, busCache);
+                        functionElement = lfNetwork.getBusById(functionId);
+                        if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
+                            checkRegulatingTerminal(network, variableId);
+                            Terminal regulatingTerminal = getEquipmentRegulatingTerminal(network, variableId);
+                            assert regulatingTerminal != null; // this cannot fail because it is checked in checkRegulatingTerminal
+                            Bus regulatedBus = regulatingTerminal.getBusView().getBus();
+                            variableElement = regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
+                        } else {
+                            throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
+                        }
+                    } else {
+                        throw new PowsyblException("Function type " + functionType + " not supported");
+                    }
+                    factorHolder.addFactor(new SingleVariableLfSensitivityFactor(factorContext, variableId,
+                            functionElement, functionType, variableElement, variableType, contingencyContext));
                 }
-                factorHolder.addFactor(new SingleVariableLfSensitivityFactor(factorContext, variableId,
-                        functionElement, functionType, variableElement, variableType, contingencyContext));
             }
         });
         return factorHolder;
