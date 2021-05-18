@@ -544,7 +544,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 }
             }
 
-            Stream<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filteredBusesByCcStream = parameters.getComputeMainConnectedComponentOnly()
+            Stream<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filteredBusesByCcStream = parameters.isComputeMainConnectedComponentOnly()
                 ? busesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
                 : busesByCc.entrySet().stream();
 

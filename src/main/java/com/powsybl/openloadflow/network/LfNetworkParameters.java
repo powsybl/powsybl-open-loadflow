@@ -77,7 +77,7 @@ public class LfNetworkParameters {
         return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
     }
 
-    public boolean getComputeMainConnectedComponentOnly() {
+    public boolean isComputeMainConnectedComponentOnly() {
         return computeMainConnectedComponentOnly;
     }
 }
