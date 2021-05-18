@@ -21,8 +21,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
@@ -544,11 +544,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 }
             }
 
-            Predicate<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filterCC =
-                    parameters.getComputeMainConnectedComponentOnly() ? e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM : e -> true;
+            Stream<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filteredBusesByCcStream = parameters.getComputeMainConnectedComponentOnly()
+                ? busesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
+                : busesByCc.entrySet().stream();
 
-            List<LfNetwork> lfNetworks = busesByCc.entrySet().stream()
-                    .filter(filterCC)
+            List<LfNetwork> lfNetworks = filteredBusesByCcStream
                     .map(e -> create(e.getKey().getLeft(), e.getKey().getRight(), e.getValue(), switchesByCc.get(e.getKey()), parameters,
                         reporter.createSubReporter("createLfNetwork", "Create network ${networkNum}", "networkNum", e.getKey().getLeft())))
                     .collect(Collectors.toList());
