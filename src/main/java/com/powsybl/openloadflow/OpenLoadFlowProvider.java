@@ -147,7 +147,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
         LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
         LOGGER.info("Slack bus Pmax mismatch: {}", parametersExt.getSlackBusPMaxMismatch());
-        LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode().toString());
+        LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
 
         List<OuterLoop> outerLoops = new ArrayList<>();
         if (parameters.isDistributedSlack()) {
@@ -252,7 +252,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Balance type: {}", parameters.getBalanceType());
         LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
         LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
-        LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode().toString());
+        LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
 
         DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector,
                                                                      matrixFactory,
