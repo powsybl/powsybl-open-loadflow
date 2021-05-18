@@ -42,14 +42,13 @@ public class DcLoadFlowParameters {
 
     public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory, boolean setVToNan) {
         this(slackBusSelector, matrixFactory, false, true, false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, false,
-                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false, setVToNan, ParameterConstants.COMPUTE_MAIN_CONNECTED_COMPONENT_ONLY_DEFAULT_VALUE);
+                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false, setVToNan, true);
     }
 
     public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory, boolean updateFlows,
                                 boolean useTransformerRatio, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
                                 boolean forcePhaseControlOffAndAddAngle1Var, double plausibleActivePowerLimit,
-                                boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds, boolean setVToNan,
-                                boolean computeMainConnectedComponentOnly) {
+                                boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds, boolean setVToNan, boolean computeMainConnectedComponentOnly) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.updateFlows = updateFlows;
@@ -103,7 +102,8 @@ public class DcLoadFlowParameters {
         return setVToNan;
     }
 
-    public boolean getComputeMainConnectedComponentOnly() {
+    public boolean isComputeMainConnectedComponentOnly() {
         return computeMainConnectedComponentOnly;
     }
+
 }

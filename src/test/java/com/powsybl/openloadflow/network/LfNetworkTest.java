@@ -133,8 +133,8 @@ class LfNetworkTest extends AbstractConverterTest {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
-        parametersExt.setComputeMainConnectedComponentOnly(false);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
@@ -162,9 +162,9 @@ class LfNetworkTest extends AbstractConverterTest {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
         parameters.setDc(true);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
-        parametersExt.setComputeMainConnectedComponentOnly(false);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 

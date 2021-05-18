@@ -32,7 +32,7 @@ public class LfNetworkParameters {
     public LfNetworkParameters(SlackBusSelector slackBusSelector) {
         this(slackBusSelector, false, false, false, false,
                 ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                ParameterConstants.COMPUTE_MAIN_CONNECTED_COMPONENT_ONLY_DEFAULT_VALUE);
+                true);
     }
 
     public LfNetworkParameters(SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl,

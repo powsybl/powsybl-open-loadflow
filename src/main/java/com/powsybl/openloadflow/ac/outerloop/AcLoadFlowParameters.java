@@ -141,7 +141,7 @@ public class AcLoadFlowParameters {
         return branchesWithCurrent;
     }
 
-    public boolean getComputeMainConnectedComponentOnly() {
+    public boolean isComputeMainConnectedComponentOnly() {
         return computeMainConnectedComponentOnly;
     }
 

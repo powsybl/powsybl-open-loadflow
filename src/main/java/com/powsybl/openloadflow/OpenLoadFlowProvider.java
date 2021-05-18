@@ -147,6 +147,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
         LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
         LOGGER.info("Slack bus Pmax mismatch: {}", parametersExt.getSlackBusPMaxMismatch());
+        LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode().toString());
 
         List<OuterLoop> outerLoops = new ArrayList<>();
         if (parameters.isDistributedSlack()) {
@@ -180,7 +181,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                         forceA1Var,
                                         parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                         branchesWithCurrent,
-                                        parametersExt.getComputeMainConnectedComponentOnly());
+                                        parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN);
     }
 
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
@@ -251,6 +252,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Balance type: {}", parameters.getBalanceType());
         LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
         LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
+        LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode().toString());
 
         DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector,
                                                                      matrixFactory,
@@ -262,7 +264,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                      parametersExt.getPlausibleActivePowerLimit(),
                                                                      parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                                                      true,
-                                                                     parametersExt.getComputeMainConnectedComponentOnly());
+                                                                     parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN);
 
         List<DcLoadFlowResult> results = new DcLoadFlowEngine(network, dcParameters, reporter)
                 .runMultiple(reporter);

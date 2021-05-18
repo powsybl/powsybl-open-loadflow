@@ -103,7 +103,6 @@ class OpenLoadFlowParametersTest {
 
         assertEquals(DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE, olfParameters.isDcUseTransformerRatio());
         assertEquals(SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE, olfParameters.getSlackBusPMaxMismatch(), 0.0);
-        assertEquals(COMPUTE_MAIN_CONNECTED_COMPONENT_ONLY_DEFAULT_VALUE, olfParameters.getComputeMainConnectedComponentOnly());
     }
 
     @Test
