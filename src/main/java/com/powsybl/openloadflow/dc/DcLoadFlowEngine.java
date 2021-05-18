@@ -69,12 +69,6 @@ public class DcLoadFlowEngine {
         return -mismatch;
     }
 
-    public DcLoadFlowResult run(Reporter reporter) {
-        // only process main (largest) connected component
-        LfNetwork network = networks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
-        return run(reporter, network);
-    }
-
     public List<DcLoadFlowResult> runMultiple(Reporter reporter) {
         return networks.stream().map(n -> run(reporter, n)).collect(Collectors.toList());
     }
