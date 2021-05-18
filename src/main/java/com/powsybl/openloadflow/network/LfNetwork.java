@@ -12,6 +12,7 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import net.jafama.FastMath;
 import org.jgrapht.Graph;
@@ -361,8 +362,9 @@ public class LfNetwork {
         }
         reporter.report(Report.builder()
             .withKey("networkSize")
-            .withDefaultMessage("Network ${numNetwork} has ${nbBuses} buses (voltage remote control: ${nbRemoteControllerBuses} controllers, ${nbRemoteControlledBuses} controlled) and ${nbBranches} branches")
-            .withValue("numNetwork", numCC)
+            .withDefaultMessage("Network CC${numNetworkCc} SC${numNetworkSc} has ${nbBuses} buses (voltage remote control: ${nbRemoteControllerBuses} controllers, ${nbRemoteControlledBuses} controlled) and ${nbBranches} branches")
+            .withValue("numNetworkCc", numCC)
+            .withValue("numNetworkSc", numSC)
             .withValue("nbBuses", busesById.values().size())
             .withValue("nbRemoteControllerBuses", remoteControllerBusCount)
             .withValue("nbRemoteControlledBuses", remoteControlledBusCount)
@@ -386,8 +388,9 @@ public class LfNetwork {
 
         reporter.report(Report.builder()
             .withKey("networkBalance")
-            .withDefaultMessage("Network ${numNetwork} balance: active generation=${activeGeneration} MW, active load=${activeLoad} MW, reactive generation=${reactiveGeneration} MVar, reactive load=${reactiveLoad} MVar")
-            .withValue("numNetwork", numCC)
+            .withDefaultMessage("Network CC${numNetworkCc} SC${numNetworkSc} balance: active generation=${activeGeneration} MW, active load=${activeLoad} MW, reactive generation=${reactiveGeneration} MVar, reactive load=${reactiveLoad} MVar")
+            .withValue("numNetworkCc", numCC)
+            .withValue("numNetworkSc", numSC)
             .withValue("activeGeneration", activeGeneration)
             .withValue("activeLoad", activeLoad)
             .withValue("reactiveGeneration", reactiveGeneration)
@@ -452,7 +455,9 @@ public class LfNetwork {
             List<LfNetwork> lfNetworks = importer.load(network, parameters, reporter).orElse(null);
             if (lfNetworks != null) {
                 for (LfNetwork lfNetwork : lfNetworks) {
-                    Reporter reporterNetwork = reporter.createSubReporter("postLoading", "Post loading process on network ${numNetwork}", "numNetwork", lfNetwork.getNumCC());
+                    Reporter reporterNetwork = reporter.createSubReporter("postLoading", "Post loading process on network CC${numNetworkCc} SC${numNetworkSc}",
+                        Map.of("numNetworkCc", new TypedValue(lfNetwork.getNumCC(), TypedValue.UNTYPED),
+                            "numNetworkSc", new TypedValue(lfNetwork.getNumSC(), TypedValue.UNTYPED)));
                     fix(lfNetwork, parameters.isMinImpedance());
                     validate(lfNetwork, parameters.isMinImpedance());
                     lfNetwork.reportSize(reporterNetwork);
