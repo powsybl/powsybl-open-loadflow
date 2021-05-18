@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -21,7 +20,8 @@ import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -50,7 +50,7 @@ class LfSwitchTest {
                 new OpenLoadFlowParameters(), true);
         List<LfNetwork> lfNetworks = AcloadFlowEngine.createNetworks(network, acLoadFlowParameters, Reporter.NO_OP);
         assertEquals(1, lfNetworks.size());
-        lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        lfNetwork = lfNetworks.get(0);
         lfSwitch = (LfSwitch) lfNetwork.getBranchById("B3");
     }
 

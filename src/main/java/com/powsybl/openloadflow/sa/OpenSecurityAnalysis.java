@@ -120,7 +120,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         if (lfNetworks.isEmpty()) {
             throw new PowsyblException("Empty network list");
         }
-        LfNetwork largestNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork largestNetwork = lfNetworks.get(0);
         if (!largestNetwork.isValid()) {
             throw new PowsyblException("Largest network is invalid");
         }

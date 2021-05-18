@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +32,7 @@ class ConnectivityTest {
     void setup() {
         Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
-        lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        lfNetwork = lfNetworks.get(0);
     }
 
     @Test

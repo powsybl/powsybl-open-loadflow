@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.sensi;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.Contingency;
-import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
@@ -161,7 +160,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 true, lfParameters.isTwtSplitShuntAdmittance(), false, lfParametersExt.getPlausibleActivePowerLimit(),
                 false, true);
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfNetworkParameters, reporter);
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(network, lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
         Map<Contingency, Collection<String>> propagatedContingencyMap = contingencies.stream().collect(

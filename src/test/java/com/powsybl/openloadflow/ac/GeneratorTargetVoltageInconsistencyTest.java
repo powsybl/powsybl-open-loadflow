@@ -93,7 +93,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.get(0);
         LfBus controlledBus = lfNetwork.getBusById("vl1_0");
         assertNotNull(controlledBus);
 

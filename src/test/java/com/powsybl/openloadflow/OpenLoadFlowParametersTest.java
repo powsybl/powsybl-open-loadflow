@@ -13,7 +13,6 @@ import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.commons.config.MapModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.config.YamlModuleConfigRepository;
-import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -21,7 +20,9 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.SlackBusSelector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -152,7 +153,7 @@ class OpenLoadFlowParametersTest {
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         assertEquals(SlackBusSelectionMode.NAME, olfParameters.getSlackBusSelectionMode());
         List<LfNetwork> lfNetworks = LfNetwork.load(EurostagTutorialExample1Factory.create(), SlackBusSelector.fromMode(olfParameters.getSlackBusSelectionMode(), olfParameters.getSlackBusId()));
-        LfNetwork lfNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork lfNetwork = lfNetworks.get(0);
         PowsyblException thrown = assertThrows(PowsyblException.class, lfNetwork::getSlackBus);
         assertEquals("Slack bus '???' not found", thrown.getMessage());
     }

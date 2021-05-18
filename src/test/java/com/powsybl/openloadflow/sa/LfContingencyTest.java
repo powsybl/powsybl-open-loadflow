@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.commons.AbstractConverterTest;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
-import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -53,7 +52,7 @@ class LfContingencyTest extends AbstractConverterTest {
     void test() throws IOException {
         Network network = FourSubstationsNodeBreakerFactory.create();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
-        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(2, lfNetworks.size());
 
         OpenSecurityAnalysis sa = new OpenSecurityAnalysisFactory().create(network, null, 0);

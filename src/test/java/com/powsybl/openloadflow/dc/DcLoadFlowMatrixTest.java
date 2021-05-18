@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.dc;
 
-import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -53,7 +52,7 @@ class DcLoadFlowMatrixTest {
         logNetwork(network);
 
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
-        LfNetwork mainNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork mainNetwork = lfNetworks.get(0);
 
         VariableSet variableSet = new VariableSet();
         DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(true, false, false, true);
@@ -105,7 +104,7 @@ class DcLoadFlowMatrixTest {
         network.getLine("NHV1_NHV2_1").getTerminal2().disconnect();
 
         lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
-        mainNetwork = lfNetworks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        mainNetwork = lfNetworks.get(0);
 
         equationSystem = DcEquationSystem.create(mainNetwork, variableSet, creationParameters);
 
