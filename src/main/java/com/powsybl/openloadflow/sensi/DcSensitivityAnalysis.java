@@ -503,7 +503,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
     }
 
-    private Map<LfBus, BusState> applyDcLineContingency(Network network, LfNetwork lfNetwork, PropagatedContingency contingency) {
+    private Map<LfBus, BusState> applyHvdcLineContingency(Network network, LfNetwork lfNetwork, PropagatedContingency contingency) {
+        // it applies on the network the loss of the HVDC lines contained in the contingency.
+        // Buses state are stored too.
         Collection<Pair<LfBus, LccConverterStation>> lccs = new HashSet<>();
         Collection<Pair<LfBus, LfVscConverterStationImpl>> vscs = new HashSet<>();
         for (String hvdcId : contingency.getHvdcIdsToOpen()) {
@@ -558,7 +560,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             calculateSensitivityValues(factors, factorStates, contingenciesStates, flowStates, contingencyElements,
                     contingency.getContingency().getId(), contingency.getIndex(), valueWriter);
         } else { // if we have a contingency including the loss of a DC line
-            Map<LfBus, BusState> busStates = applyDcLineContingency(network, lfNetwork, contingency);
+            Map<LfBus, BusState> busStates = applyHvdcLineContingency(network, lfNetwork, contingency);
             boolean shouldChangeRhs = lfParameters.isDistributedSlack()
                     && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
             DenseMatrix statesWithoutDcLine = factorStates;
