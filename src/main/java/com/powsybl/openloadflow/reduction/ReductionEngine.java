@@ -110,6 +110,143 @@ public class ReductionEngine {
             for (int i = 0; i < minusYeq.getRowCount(); i++) {
                 System.out.println("ColYeq[" + i + "] = bus Num  " + getYeqColNumToBusNum().get(i) + " bus Var type " + getYeqColNumToBusType().get(i));
             }
+
+            System.out.println("===> -Yeq =");
+            minusYeq.print(System.out);
+        }
+
+    }
+
+    public class ReductionHypotheses {
+
+        private List<YijBlock> yijBlocks;
+
+        public List<EquivalentBranch> eqBranches;
+
+        public List<EquivalentShunt> eqShunts;
+
+        public List<EquivalentLoad> eqLoads;
+
+        private class YijBlock {
+
+            private int bus1;
+            private int bus2;
+            private double y1r2r;
+            private double y1r2i;
+            private double y1i2r;
+            private double y1i2i;
+            private double y2r1r;
+            private double y2r1i;
+            private double y2i1i;
+            private double y2i1r;
+
+            YijBlock(int busi, int busj) {
+
+                this.bus1 = busi;
+                this.bus2 = busj;
+                y1r2r = 0;
+                y1r2i = 0;
+                y1i2r = 0;
+                y1i2i = 0;
+                y2r1r = 0;
+                y2r1i = 0;
+                y2i1i = 0;
+                y2i1r = 0;
+
+            }
+        }
+
+        private YijBlock createYijBlock(int busi, int busj) {
+            YijBlock yb = new YijBlock(busi, busj);
+            return yb;
+        }
+
+        ReductionHypotheses() {
+            yijBlocks = new ArrayList<YijBlock>();
+            eqBranches = new ArrayList<EquivalentBranch>();
+            eqShunts = new ArrayList<EquivalentShunt>();
+            eqLoads = new ArrayList<EquivalentLoad>();
+        }
+
+        private YijBlock getYijBlock(int i, int j) {
+
+            if (yijBlocks.isEmpty()) {
+                return null;
+            }
+/*
+            ListIterator<YijBlock> itYb = yijBlocks.listIterator();
+            {
+                yb0 = itYb.next();
+            }
+            while  (itYb.hasNext() && ((itYb.next().busi == i && itYb.next().busj == j) || (itYb.next().busi == j && itYb.next().busj == i) ))
+*/
+            YijBlock yb0 = null;
+            for (YijBlock yb : yijBlocks) {
+                if ((yb.bus1 == i && yb.bus2 == j) || (yb.bus1 == j && yb.bus2 == i)) {
+                    yb0 = yb;
+                    break;
+                }
+            }
+
+            return yb0;
+        }
+
+        public class EquivalentBranch {
+
+            public double rEq;
+            public double xEq;
+            public double alphaEq;
+            public int bus1Eq;
+            public int bus2Eq;
+
+            EquivalentBranch(int busi, int busj, double r, double x, double alpha) {
+
+                this.bus1Eq = busi;
+                this.bus2Eq = busj;
+                this.rEq = r;
+                this.xEq = x;
+                this.alphaEq = alpha;
+
+            }
+        }
+
+        private EquivalentBranch createEquivalentBranch(int busi, int busj, double r, double x, double alpha) {
+            EquivalentBranch eqBr = new EquivalentBranch(busi, busj, r, x, alpha);
+            return eqBr;
+        }
+
+        public class EquivalentShunt {
+            public double gEq;
+            public double bEq;
+            public int busEq;
+
+            EquivalentShunt(int bus, double g, double b) {
+                this.busEq = bus;
+                this.gEq = g;
+                this.bEq = b;
+            }
+        }
+
+        private EquivalentShunt createEquivalentShunt(int bus, double g, double b) {
+            EquivalentShunt eqSh = new EquivalentShunt(bus, g, b);
+            return eqSh;
+        }
+
+        public class EquivalentLoad {
+            public double pEq;
+            public double qEq;
+            public int busEq;
+
+            EquivalentLoad(int bus, double p, double q) {
+                this.busEq = bus;
+                this.pEq = p;
+                this.qEq = q;
+            }
+        }
+
+        private EquivalentLoad createEquivalentLoad(int bus, double p, double q) {
+            EquivalentLoad eqLoad = new EquivalentLoad(bus, p, q);
+            return eqLoad;
         }
     }
 
@@ -283,4 +420,161 @@ public class ReductionEngine {
         mI.print(System.out);
     }
 
+    public void generateReductionHypotheses() {
+
+        LfNetwork network = networks.get(0);
+
+        reductionHypo = new ReductionHypotheses();
+        DenseMatrix m = results.minusYeq.toDense();
+
+        //step 1: extract values of [Yeq] binding upper and under extra-diagonal terms together if they have the same nodes
+        //
+        // [I1r]   [ y1r1r y1r1i y1r2r y1r2i ]         [ g1+g12 -b1-b12   -g12    b12  ]   [V1r]
+        // [I1i]   [ y1i1r y1i1i y1i2r y1i2i ]         [ b1+b12 g1+g12    -b12   -g12  ]   [V1i]
+        // [I2r] = [ y2r1r y2r1i y2r2r y2r2i ] * [V] = [ -g21    b21    g2+g21 -b2-b21 ] * [V2r]
+        // [I2i]   [ y2i1r y2i1i y2i2r y2i2i ]         [ -b21    -g21   b2+b21  g2+g21 ]   [V2i]
+        //
+        //
+        HashMap<Integer, ReductionHypotheses.YijBlock > busNumtToDiagonalBlock = new HashMap<>(); //use for a direct access to diaganal blocks from bus num
+        for (int mi = 0; mi < results.minusYeq.getRowCount(); mi++) {
+
+            int busi = results.yeqRowNumToBusNum.get(mi);
+            EquationType typei = results.yeqRowNumToBusType.get(mi);
+
+            for (int mj = 0; mj < results.minusYeq.getRowCount(); mj++) {
+                int busj = results.yeqColNumToBusNum.get(mj);
+
+                if (Math.abs(m.get(mi, mj)) > 0.00001) { //no block created or modified if matrix term is zero
+
+                    VariableType typej = results.yeqColNumToBusType.get(mj);
+
+                    //Create or update Yij block
+                    ReductionHypotheses.YijBlock yb = reductionHypo.getYijBlock(busi, busj);
+                    if (yb == null) {
+                        yb = reductionHypo.createYijBlock(busi, busj);
+                        reductionHypo.yijBlocks.add(yb);
+                        if (busi == busj) {
+                            busNumtToDiagonalBlock.put(busi, yb);
+                        }
+                    }
+                    if (busi == yb.bus1) { //in the case where busi = busj only y1r2r,y1r2i,y1i2i,y1i2r  are useful
+                        if (typei == EquationType.BUS_YR && typej == VariableType.BUS_VR) {
+                            yb.y1r2r = -m.get(mi, mj);
+                        } else if (typei == EquationType.BUS_YR && typej == VariableType.BUS_VI) {
+                            yb.y1r2i = -m.get(mi, mj);
+                        } else if (typei == EquationType.BUS_YI && typej == VariableType.BUS_VI) {
+                            yb.y1i2i = -m.get(mi, mj);
+                        } else if (typei == EquationType.BUS_YI && typej == VariableType.BUS_VR) {
+                            yb.y1i2r = -m.get(mi, mj);
+                        }
+                    } else if (busi == yb.bus2) {
+                        if (typei == EquationType.BUS_YR && typej == VariableType.BUS_VR) {
+                            yb.y2r1r = -m.get(mi, mj);
+                        } else if (typei == EquationType.BUS_YR && typej == VariableType.BUS_VI) {
+                            yb.y2r1i = -m.get(mi, mj);
+                        } else if (typei == EquationType.BUS_YI && typej == VariableType.BUS_VI) {
+                            yb.y2i1i = -m.get(mi, mj);
+                        } else if (typei == EquationType.BUS_YI && typej == VariableType.BUS_VR) {
+                            yb.y2i1r = -m.get(mi, mj);
+                        }
+
+                    }
+                }
+            }
+        }
+
+        //step 2: check the consistency of the blocks since some terms must be equal to deduce an equivalent branch
+        //step 3: deduce g12, b12, g21, b21 and then g1, b1, g2, b2
+        for (ReductionHypotheses.YijBlock yb : reductionHypo.yijBlocks) {
+            //step 2
+            double epsilon = 0.00001;
+            if (Math.abs(yb.y1r2r - yb.y1i2i) > epsilon) {
+                throw new IllegalArgumentException("Admittance block values y1r2r and y1i2i of nodes num {" + yb.bus1 + ";" + yb.bus2 + "} have inconsitant values y1r2r= " + yb.y1r2r + " y1i2i=" + yb.y1i2i);
+            }
+            if (Math.abs(yb.y1i2r + yb.y1r2i) > epsilon) {
+                throw new IllegalArgumentException("Admittance block values y1i2r and y1r2i of nodes num {" + yb.bus1 + ";" + yb.bus2 + "} have inconsitant values");
+            }
+            if (Math.abs(yb.y2r1r - yb.y2i1i) > epsilon) {
+                throw new IllegalArgumentException("Admittance block values y2r1r and y2i1i of nodes num {" + yb.bus1 + ";" + yb.bus2 + "} have inconsitant values");
+            }
+            if (Math.abs(yb.y2i1r + yb.y2r1i) > epsilon) {
+                throw new IllegalArgumentException("Admittance block values y2i1r and y2r1i of nodes num {" + yb.bus1 + ";" + yb.bus2 + "} have inconsitant values");
+            }
+
+        }
+
+        for (ReductionHypotheses.YijBlock yb : reductionHypo.yijBlocks) {
+            //step 3
+            double g12 = 0;
+            double b12 = 0;
+            double g21 = 0;
+            double b21 = 0;
+
+            if (yb.bus1 != yb.bus2) {
+                g12 = -yb.y1r2r;
+                b12 = yb.y1r2i;
+                g21 = -yb.y2r1r;
+                b21 = yb.y2r1i;
+
+                //remove g12 from diagonal term y1r2r = g1 + sum(g1i)
+                busNumtToDiagonalBlock.get(yb.bus1).y1r2r = busNumtToDiagonalBlock.get(yb.bus1).y1r2r - g12;
+                //remove b12 from diagonal term y1i2r = b1 + sum(b1i)
+                busNumtToDiagonalBlock.get(yb.bus1).y1i2r = busNumtToDiagonalBlock.get(yb.bus1).y1i2r - b12;
+                //remove g21 from diagonal term y1r2r = g2 + sum(g2i)
+                busNumtToDiagonalBlock.get(yb.bus2).y1r2r = busNumtToDiagonalBlock.get(yb.bus2).y1r2r - g21;
+                //remove b21 from diagonal term y1i2r = b2 + sum(b2i)
+                busNumtToDiagonalBlock.get(yb.bus2).y1i2r = busNumtToDiagonalBlock.get(yb.bus2).y1i2r - b21;
+
+                //deduce branch characteristics from g12, b12, g21, b21
+                // we use the hypothesis that rho = 1 but in case nominal voltage values of voltage levels are not the same, we will have to create a transformer with rho = 1
+                double denom = g21 * g12 + b21 * b12;
+                double alpha = 0.;
+                if (denom > 0.0001) {
+                    alpha = 0.5 * Math.atan((b21 * g12 - b12 * g21) / denom);
+                }
+
+                double r = (g12 * Math.cos(alpha) - b12 * Math.sin(alpha)) / (g12 * g12 + b12 * b12);
+                double x = -(b12 * Math.cos(alpha) + g12 * Math.sin(alpha)) / (g12 * g12 + b12 * b12);
+
+                ReductionHypotheses.EquivalentBranch eqBr = reductionHypo.createEquivalentBranch(yb.bus1, yb.bus2, r, x, alpha);
+                reductionHypo.eqBranches.add(eqBr);
+                //System.out.println("Equivalent branch r=" + r + " x=" + x + " at busses = " + yb.bus1 + ";" + yb.bus2);
+            }
+
+        }
+
+        //step4: generate hypotheses of creation of equivalent shunts for remaining g1, b1 and g2, b2
+        for (Map.Entry<Integer, ReductionHypotheses.YijBlock > diagBlock : busNumtToDiagonalBlock.entrySet()) {
+            int busNum = diagBlock.getKey();
+            ReductionHypotheses.YijBlock yb = diagBlock.getValue();
+            double g1 = 0;
+            double b1 = 0;
+            g1 = yb.y1r2r;
+            b1 = yb.y1i2r;
+            if (g1 > 0.00001 || b1 > 0.00001) {
+                ReductionHypotheses.EquivalentShunt eqSh = reductionHypo.createEquivalentShunt(busNum, g1, b1);
+                reductionHypo.eqShunts.add(eqSh);
+                //System.out.println("Equivalent shunt g=" + g1 + " b=" + b1 + " at bus num=" + busNum);
+            }
+        }
+
+        //step5: generation of equivalent load injections from equivalent currents
+        for (Map.Entry<Integer, Double > ieq : results.busNumToRealIeq.entrySet()) {
+            int busNum = ieq.getKey();
+            double ir = ieq.getValue();
+            double ii = results.busNumToImagIeq.get(busNum);
+
+            double vr = parameters.getVoltageInitializer().getMagnitude(network.getBus(busNum)) * Math.cos(Math.toRadians(parameters.getVoltageInitializer().getAngle(network.getBus(busNum))));
+            double vi = parameters.getVoltageInitializer().getMagnitude(network.getBus(busNum)) * Math.sin(Math.toRadians(parameters.getVoltageInitializer().getAngle(network.getBus(busNum))));
+
+            double pEq = -(vr * ir + vi * ii);
+            double qEq = ii * vr - vi * ir;
+
+            if (pEq > 0.00001 || qEq > 0.00001) {
+                ReductionHypotheses.EquivalentLoad eqLoad = reductionHypo.createEquivalentLoad(busNum, pEq, qEq);
+                reductionHypo.eqLoads.add(eqLoad);
+                //System.out.println("Equivalent load P=" + pEq + " Q=" + qEq + " at bus num=" + busNum);
+            }
+        }
+    }
 }
