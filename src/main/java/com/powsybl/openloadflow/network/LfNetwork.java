@@ -521,4 +521,10 @@ public class LfNetwork {
     public void setValid(boolean valid) {
         this.valid = valid;
     }
+
+    @Override
+    public String toString() {
+        return "{CC" + numCC +
+            " SC" + numSC + '}';
+    }
 }

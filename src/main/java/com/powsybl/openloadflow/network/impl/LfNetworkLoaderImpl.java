@@ -462,7 +462,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 .withValue("nbGenImpacted", report.generatorsDiscardedFromVoltageControlBecauseNotStarted)
                 .build());
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
-                    lfNetwork.getNumCC(), report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
+                    lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall > 0) {
             reporter.report(Report.builder()
@@ -471,38 +471,38 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 .withValue("nbGenImpacted", report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall)
                 .build());
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because of a too small max reactive range",
-                    lfNetwork.getNumCC(), report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
+                    lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP equals 0",
-                    lfNetwork.getNumCC(), report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero);
+                    lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP > maxP",
-                    lfNetwork.getNumCC(), report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP);
+                    lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of maxP not plausible",
-                    lfNetwork.getNumCC(), report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
+                    lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of maxP equals to minP",
-                    lfNetwork.getNumCC(), report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP);
+                    lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP);
         }
         if (report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds > 0) {
             LOGGER.warn("Network {}: {} branches have been discarded because connected to same bus at both ends",
-                    lfNetwork.getNumCC(), report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds);
+                    lfNetwork, report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds);
         }
         if (report.linesWithDifferentNominalVoltageAtBothEnds > 0) {
             LOGGER.warn("Network {}: {} lines have a different nominal voltage at both ends: a ratio has been added",
-                    lfNetwork.getNumCC(), report.linesWithDifferentNominalVoltageAtBothEnds);
+                    lfNetwork, report.linesWithDifferentNominalVoltageAtBothEnds);
         }
         if (report.nonImpedantBranches > 0) {
-            LOGGER.warn("Network {}: {} branches are non impedant", lfNetwork.getNumCC(), report.nonImpedantBranches);
+            LOGGER.warn("Network {}: {} branches are non impedant", lfNetwork, report.nonImpedantBranches);
         }
 
         if (report.voltageControllerCount == 0) {
-            LOGGER.error("Discard network {} because there is no equipment to control voltage", lfNetwork.getNumCC());
+            LOGGER.error("Discard network {} because there is no equipment to control voltage", lfNetwork);
             lfNetwork.setValid(false);
         }
 
