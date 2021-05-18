@@ -103,7 +103,7 @@ public class DcLoadFlowEngine {
         // only process main (largest) connected component
         LfNetwork network = networks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
 
-        Collection<LfBus> remainingBuses = new HashSet<>(network.getBuses());
+        Collection<LfBus> remainingBuses = new LinkedHashSet<>(network.getBuses());
         remainingBuses.removeAll(disabledBuses);
 
         if (parameters.isDistributedSlack()) {

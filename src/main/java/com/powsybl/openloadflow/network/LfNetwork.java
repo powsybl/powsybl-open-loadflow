@@ -448,7 +448,7 @@ public class LfNetwork {
     public static List<LfNetwork> load(Object network, LfNetworkParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
-        for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class)) {
+        for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class, LfNetwork.class.getClassLoader())) {
             List<LfNetwork> lfNetworks = importer.load(network, parameters, reporter).orElse(null);
             if (lfNetworks != null) {
                 for (LfNetwork lfNetwork : lfNetworks) {

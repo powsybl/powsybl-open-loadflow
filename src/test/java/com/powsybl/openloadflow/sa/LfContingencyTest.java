@@ -60,7 +60,7 @@ class LfContingencyTest extends AbstractConverterTest {
         String branchId = "LINE_S3S4";
         Contingency contingency = new Contingency(branchId, new BranchContingency(branchId));
         List<PropagatedContingency> propagatedContingencies =
-            PropagatedContingency.create(network, Collections.singletonList(contingency), new HashSet<>());
+            PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>());
 
         List<LfContingency> lfContingencies = sa.createContingencies(propagatedContingencies, mainNetwork);
         assertEquals(1, lfContingencies.size());

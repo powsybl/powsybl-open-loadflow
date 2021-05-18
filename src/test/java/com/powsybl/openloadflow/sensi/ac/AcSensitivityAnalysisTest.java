@@ -404,11 +404,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testBusVoltagePerTargetVFunctionRef() {
-        Network network = FourBusNetworkFactory.create();
-        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        Network network = EurostagTutorialExample1Factory.create();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLGEN_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        TargetVoltage targetVoltage = new TargetVoltage("g2", "g2", "g2");
+        TargetVoltage targetVoltage = new TargetVoltage("GEN", "GEN", "GEN");
         SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
             .map(bus -> new BusVoltage(bus.getId(), bus.getId(), new IdBasedBusRef(bus.getId())))
             .map(busVoltage -> new BusVoltagePerTargetV(busVoltage, targetVoltage))
@@ -419,10 +419,10 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             .join();
         runLf(network, sensiParameters.getLoadFlowParameters());
         Function<String, Double> getV = busId -> network.getBusView().getBus(busId).getV();
-        assertEquals(getV.apply("b1_vl_0"), getFunctionReference(result, "b1"), LoadFlowAssert.DELTA_V);
-        assertEquals(getV.apply("b2_vl_0"), getFunctionReference(result, "b2"), LoadFlowAssert.DELTA_V);
-        assertEquals(getV.apply("b3_vl_0"), getFunctionReference(result, "b3"), LoadFlowAssert.DELTA_V);
-        assertEquals(getV.apply("b4_vl_0"), getFunctionReference(result, "b4"), LoadFlowAssert.DELTA_V);
+        assertEquals(getV.apply("VLGEN_0"), getFunctionReference(result, "NGEN"), LoadFlowAssert.DELTA_V);
+        assertEquals(getV.apply("VLHV1_0"), getFunctionReference(result, "NHV1"), LoadFlowAssert.DELTA_V);
+        assertEquals(getV.apply("VLHV2_0"), getFunctionReference(result, "NHV2"), LoadFlowAssert.DELTA_V);
+        assertEquals(getV.apply("VLLOAD_0"), getFunctionReference(result, "NLOAD"), LoadFlowAssert.DELTA_V);
     }
 
     @Test
@@ -540,6 +540,23 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertTrue(e.getCause() instanceof PowsyblException);
 
         assertEquals("The bus ref for 'id' cannot be resolved.", e.getCause().getMessage());
+    }
+
+    @Test
+    void disconnectedGeneratorShouldBeSkipped() {
+        Network network = FourBusNetworkFactory.create();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        //Disconnect g4 generator
+        network.getGenerator("g4").getTerminal().disconnect();
+
+        TargetVoltage targetVoltage = new TargetVoltage("g4", "g4", "g4");
+        BusVoltage busVoltage = new BusVoltage("b1", "b1", new IdBasedBusRef("b1"));
+        SensitivityFactorsProvider factorsProvider = n -> Collections.singletonList(new BusVoltagePerTargetV(busVoltage, targetVoltage));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault())
+            .join();
+        assertTrue(result.getSensitivityValues().isEmpty());
     }
 
     @Test
