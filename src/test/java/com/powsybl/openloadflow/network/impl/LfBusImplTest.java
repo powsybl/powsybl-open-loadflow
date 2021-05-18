@@ -121,13 +121,13 @@ class LfBusImplTest {
     void setUp() {
         network = createNetwork();
         List<LfNetwork> networks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
-        lfNetwork = networks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        lfNetwork = networks.get(0);
     }
 
     @Test
     void updateGeneratorsStateTest() {
         List<LfNetwork> networks = LfNetwork.load(EurostagTutorialExample1Factory.create(), new MostMeshedSlackBusSelector());
-        LfNetwork mainNetwork = networks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork mainNetwork = networks.get(0);
 
         LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0);
         LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();

@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
@@ -94,7 +93,7 @@ public class DcLoadFlowEngine {
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
 
         // only process main (largest) connected component
-        LfNetwork network = networks.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        LfNetwork network = networks.get(0);
 
         Collection<LfBus> remainingBuses = new LinkedHashSet<>(network.getBuses());
         remainingBuses.removeAll(disabledBuses);

@@ -7,10 +7,12 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.FirstSlackBusSelector;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
 import org.jgrapht.alg.connectivity.BiconnectivityInspector;
 import org.jgrapht.graph.Pseudograph;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,7 +45,7 @@ class BridgesTest {
         long start = System.currentTimeMillis();
         Network network = EurostagTutorialExample1Factory.create();
         List<LfNetwork> lfn = LfNetwork.load(network, new FirstSlackBusSelector());
-        this.lfNetwork = lfn.stream().filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getNumSC() == ComponentConstants.MAIN_NUM).findAny().orElseThrow();
+        this.lfNetwork = lfn.get(0);
         LOGGER.info("Reading network of {} buses in {} ms", lfNetwork.getBuses().size(), System.currentTimeMillis() - start);
 
         this.bridgesSetReference = getBridgesReference();
