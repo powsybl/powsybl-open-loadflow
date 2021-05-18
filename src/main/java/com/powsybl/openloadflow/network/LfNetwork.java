@@ -371,7 +371,7 @@ public class LfNetwork {
             .withValue("nbBranches", branches.size())
             .build());
         LOGGER.info("Network {} has {} buses (voltage remote control: {} controllers, {} controlled) and {} branches",
-            numCC, busesById.values().size(), remoteControllerBusCount, remoteControlledBusCount, branches.size());
+            this, busesById.values().size(), remoteControllerBusCount, remoteControlledBusCount, branches.size());
     }
 
     public void reportBalance(Reporter reporter) {
@@ -397,7 +397,7 @@ public class LfNetwork {
             .withValue("reactiveLoad", reactiveLoad)
             .build());
         LOGGER.info("Network {} balance: active generation={} MW, active load={} MW, reactive generation={} MVar, reactive load={} MVar",
-            numCC, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
+            this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
     private static void fix(LfNetwork network, boolean minImpedance) {
