@@ -68,7 +68,7 @@ public class DcLoadFlowEngine {
         return -mismatch;
     }
 
-    public List<DcLoadFlowResult> runMultiple(Reporter reporter) {
+    public List<DcLoadFlowResult> run(Reporter reporter) {
         return networks.stream().map(n -> run(reporter, n)).collect(Collectors.toList());
     }
 

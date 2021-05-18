@@ -267,7 +267,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                      parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN);
 
         List<DcLoadFlowResult> results = new DcLoadFlowEngine(network, dcParameters, reporter)
-                .runMultiple(reporter);
+                .run(reporter);
 
         Networks.resetState(network);
 
