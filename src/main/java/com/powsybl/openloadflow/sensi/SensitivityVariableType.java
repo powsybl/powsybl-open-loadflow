@@ -13,5 +13,5 @@ public enum SensitivityVariableType {
     INJECTION_ACTIVE_POWER, // MW
     TRANSFORMER_PHASE, // A
     BUS_TARGET_VOLTAGE, // Kv
-    HVDC_INJECTION, // MW
+    HVDC_LINE_ACTIVE_POWER, // MW
 }

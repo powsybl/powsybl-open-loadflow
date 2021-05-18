@@ -611,7 +611,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 .filter(lfFactor -> lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER
                     || (lfFactor.getVariableType() != SensitivityVariableType.INJECTION_ACTIVE_POWER
                     && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE
-                    && lfFactor.getVariableType() != SensitivityVariableType.HVDC_INJECTION))
+                    && lfFactor.getVariableType() != SensitivityVariableType.HVDC_LINE_ACTIVE_POWER))
                 .findFirst()
                 .ifPresent(ignored -> {
                     throw new PowsyblException("Only variables of type TRANSFORMER_PHASE or INJECTION_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER are yet supported in DC");

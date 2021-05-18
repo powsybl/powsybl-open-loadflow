@@ -514,7 +514,7 @@ public abstract class AbstractSensitivityAnalysis {
                         addBusInjection(rhs, (LfBus) variableElement, weight / weightSum);
                     }
                     break;
-                case HVDC_INJECTION:
+                case HVDC_LINE_ACTIVE_POWER:
                     assert mainComponentWeights.size() <= 2;
                     double balanceDiff = mainComponentWeights.values().stream().mapToDouble(x -> x).sum();
                     for (Map.Entry<LfBus, Double> lfBusAndParticipationFactor : participationByBus.entrySet()) {
@@ -810,7 +810,7 @@ public abstract class AbstractSensitivityAnalysis {
                     throw new PowsyblException("Function type " + functionType + " not supported");
                 }
             } else {
-                if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER && variableType == SensitivityVariableType.HVDC_INJECTION) {
+                if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
                     checkBranch(network, functionId);
                     LfBranch branch = lfNetwork.getBranchById(functionId);
                     LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;

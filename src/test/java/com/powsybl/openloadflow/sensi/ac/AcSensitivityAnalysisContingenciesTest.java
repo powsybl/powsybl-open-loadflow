@@ -637,7 +637,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         ContingencyContext contingencyContext = ContingencyContext.createAllContingencyContext();
         List<SensitivityFactor2> factors = SensitivityFactor2.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER, List.of("l12", "l13", "l23", "l25", "l45", "l46", "l56"),
-                                                                           SensitivityVariableType.HVDC_INJECTION, List.of("hvdc34"), false, contingencyContext);
+                                                                           SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"), false, contingencyContext);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
                 .setSlackBusId("b1_vl_0"); // the most meshed bus selected in the loadflow
