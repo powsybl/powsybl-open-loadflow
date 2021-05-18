@@ -168,7 +168,7 @@ class DistributedSlackOnLoadTest {
         // then
         assertPowerFactor(network3);
         LoadFlowResult loadFlowResultExpected3 = new LoadFlowResultBuilder(true).addMetrics("5", "CONVERGED")
-                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "VLHV1_0", 0.2279367974426627)
+                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "VLHV1_0", 0.2263232679029059)
                 .build();
         assertLoadFlowResultsEquals(loadFlowResultExpected3, loadFlowResult3);
     }

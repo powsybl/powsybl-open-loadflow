@@ -101,6 +101,8 @@ public interface LfBus extends LfElement {
 
     List<LfShunt> getShunts();
 
+    List<LfLoad> getLoads();
+
     List<LfBranch> getBranches();
 
     void addBranch(LfBranch branch);

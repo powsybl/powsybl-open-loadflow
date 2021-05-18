@@ -60,7 +60,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfShunt> shunts = new ArrayList<>();
 
-    protected final List<Load> loads = new ArrayList<>();
+    protected final List<LfLoad> loads = new ArrayList<>();
 
     protected final List<Battery> batteries = new ArrayList<>();
 
@@ -164,7 +164,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addLoad(Load load) {
-        loads.add(load);
+        LfLoadImpl lfLoad = new LfLoadImpl(load, network);
+        loads.add(lfLoad);
         loadCount++;
         initialLoadTargetP += load.getP0();
         loadTargetP += load.getP0();
@@ -374,6 +375,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public List<LfLoad> getLoads() {
+        return loads;
+    }
+
+    @Override
     public List<LfBranch> getBranches() {
         return branches;
     }
@@ -430,24 +436,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
         // update load power
         double diffTargetP = loadCount > 0 ? loadTargetP - initialLoadTargetP : 0;
-        double sumUpdatedQ = 0;
-        for (Load load : loads) {
-            double updatedP0 = load.getP0() + diffTargetP * Math.abs(load.getP0()) / absLoadTargetP;
-            double updateQ0 = load.getQ0();
-            if (distributedOnConformLoad) {
-                updatedP0 = load.getExtension(LoadDetail.class) == null ? load.getP0() :
-                        load.getP0() + diffTargetP * Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower()) / absVariableLoadTargetP;
-            }
-            if (loadPowerFactorConstant) {
-                updateQ0 = load.getQ0() / load.getP0() * updatedP0;
-            }
-            load.getTerminal()
-                    .setP(updatedP0)
-                    .setQ(updateQ0);
-            sumUpdatedQ += updateQ0;
-        }
-        if (Math.abs(sumUpdatedQ - loadTargetQ) > Q_DISPATCH_EPSILON) {
-            LOGGER.error("FIXME"); // it happens when we have a load with negative P0 in the bus.
+        for (LfLoad load : loads) {
+            double diffP = diffTargetP * load.getParticipationFactor(distributedOnConformLoad, absLoadTargetP, absVariableLoadTargetP);
+            load.updateState(diffP, loadPowerFactorConstant);
         }
 
         // update battery power (which are not part of slack distribution)
