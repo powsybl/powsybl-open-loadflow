@@ -47,7 +47,7 @@ import java.util.stream.Stream;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class OpenSecurityAnalysis implements SecurityAnalysis {
+public class OpenSecurityAnalysis {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OpenSecurityAnalysis.class);
 
@@ -74,31 +74,29 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         this.connectivityProvider = Objects.requireNonNull(connectivityProvider);
     }
 
-    @Override
     public void addInterceptor(SecurityAnalysisInterceptor interceptor) {
         interceptors.add(Objects.requireNonNull(interceptor));
     }
 
-    @Override
     public boolean removeInterceptor(SecurityAnalysisInterceptor interceptor) {
         return interceptors.remove(Objects.requireNonNull(interceptor));
     }
 
-    @Override
-    public CompletableFuture<SecurityAnalysisResult> run(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider) {
+    public CompletableFuture<SecurityAnalysisReport> run(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters,
+                                                         ContingenciesProvider contingenciesProvider) {
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(securityAnalysisParameters);
         Objects.requireNonNull(contingenciesProvider);
         return CompletableFuture.supplyAsync(() -> {
             String oldWorkingVariantId = network.getVariantManager().getWorkingVariantId();
             network.getVariantManager().setWorkingVariant(workingVariantId);
-            SecurityAnalysisResult result = runSync(securityAnalysisParameters, contingenciesProvider);
+            SecurityAnalysisReport result = runSync(securityAnalysisParameters, contingenciesProvider);
             network.getVariantManager().setWorkingVariant(oldWorkingVariantId);
             return result;
         });
     }
 
-    SecurityAnalysisResult runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider) {
+    SecurityAnalysisReport runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
@@ -132,7 +130,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
         stopwatch.stop();
         LOGGER.info("Security analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-        return result;
+        return new SecurityAnalysisReport(result);
     }
 
     List<LfNetwork> createNetworks(Set<Switch> allSwitchesToOpen, AcLoadFlowParameters acParameters) {
