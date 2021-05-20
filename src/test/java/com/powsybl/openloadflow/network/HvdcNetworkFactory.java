@@ -364,8 +364,8 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createLine(network, b1, b3, "l13", 0.1f);
         createLine(network, b2, b3, "l23", 0.1f);
 
-        HvdcConverterStation cs3 = createVsc(b3, "cs3", 1d, 0d);
-        HvdcConverterStation cs4 = createVsc(b4, "cs4", 1d, 0d);
+        HvdcConverterStation cs3 = createVsc(b3, "cs3", 1.2d, 0d);
+        HvdcConverterStation cs4 = createVsc(b4, "cs4", 1.2d, 0d);
         createHvdcLine(network, "hvdc34", cs3, cs4, 400, 0.1, 2);
 
         createLine(network, b4, b5, "l45", 0.1f);
@@ -457,6 +457,15 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      */
     public static Network createNetworkWithGenerators() {
         Network network = createTwoCcLinkedByAHvdcWithGenerators();
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        Bus b5 = network.getBusBreakerView().getBus("b5");
+        createLine(network, b2, b5, "l25", 0.1f);
+        createGenerator(b5, "g5", 1);
+        return network;
+    }
+
+    public static Network createNetworkWithGenerators2() {
+        Network network = createTwoCcLinkedByAHvdcVscWithGenerators();
         Bus b2 = network.getBusBreakerView().getBus("b2");
         Bus b5 = network.getBusBreakerView().getBus("b5");
         createLine(network, b2, b5, "l25", 0.1f);
