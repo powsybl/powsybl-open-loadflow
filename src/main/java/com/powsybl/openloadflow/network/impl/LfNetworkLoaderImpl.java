@@ -49,6 +49,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                                     LoadingContext loadingContext, LfNetworkLoadingReport report) {
         for (Bus bus : buses) {
             LfBusImpl lfBus = createBus(bus, parameters, lfNetwork, loadingContext, report);
+            lfBus.setDisabled(lfBus.isDisabled() || !participateToBalance(parameters, bus));
             lfNetwork.addBus(lfBus);
             lfBuses.add(lfBus);
         }
@@ -565,5 +566,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
 
         return Optional.empty();
+    }
+
+    static boolean participateToBalance(LfNetworkParameters parameters, Bus b) {
+        return parameters.getCountriesToBalance().isEmpty()
+               || b.getVoltageLevel().getSubstation().getCountry()
+                   .map(country -> parameters.getCountriesToBalance().contains(country))
+                   .orElse(false);
     }
 }
