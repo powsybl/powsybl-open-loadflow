@@ -18,4 +18,6 @@ public interface LfLoad extends LfElement {
     double getPowerFactor();
 
     void updateState(double diffP, boolean loadPowerFactorConstant);
+
+    double getUpdatedQ0();
 }

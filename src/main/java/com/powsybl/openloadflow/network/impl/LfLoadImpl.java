@@ -33,6 +33,11 @@ public final class LfLoadImpl extends AbstractElement implements LfLoad {
     }
 
     @Override
+    public double getUpdatedQ0() {
+        return load.getTerminal().getQ();
+    }
+
+    @Override
     public double getParticipationFactor(boolean distributedOnConformLoad, double absLoadTargetP, double absVariableLoadTargetP) {
         if (distributedOnConformLoad) {
             this.participationFactor = load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower()) / absVariableLoadTargetP;
