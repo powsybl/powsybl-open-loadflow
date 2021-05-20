@@ -301,4 +301,29 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisResult result = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
     }
+
+    @Test
+    void testSAWithSeveralConnectedComponents() {
+
+        Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
+
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+
+        // Testing all contingencies at once
+        ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
+                                                            .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
+                                                            .collect(Collectors.toList());
+
+        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
+        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(), null, 0);
+
+        SecurityAnalysisResult result = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
+        assertTrue(result.getPreContingencyResult().isComputationOk());
+    }
 }

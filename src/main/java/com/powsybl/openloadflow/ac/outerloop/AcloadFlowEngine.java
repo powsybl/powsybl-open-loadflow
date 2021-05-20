@@ -58,7 +58,8 @@ public class AcloadFlowEngine implements AutoCloseable {
                                                                         parameters.isTwtSplitShuntAdmittance(),
                                                                         parameters.isBreakers(),
                                                                         parameters.getPlausibleActivePowerLimit(),
-                                                                        parameters.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
+                                                                        parameters.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
+                                                                        parameters.isComputeMainConnectedComponentOnly());
         return LfNetwork.load(network, networkParameters, reporter);
     }
 
@@ -134,7 +135,7 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     public AcLoadFlowResult run(Reporter reporter) {
         if (equationSystem == null) {
-            LOGGER.info("Start AC loadflow on network {}", network.getNum());
+            LOGGER.info("Start AC loadflow on network {}", network);
 
             variableSet = new VariableSet();
             AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(
@@ -143,7 +144,7 @@ public class AcloadFlowEngine implements AutoCloseable {
             j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory());
             targetVector = new TargetVector(network, equationSystem);
         } else {
-            LOGGER.info("Restart AC loadflow on network {}", network.getNum());
+            LOGGER.info("Restart AC loadflow on network {}", network);
         }
 
         RunningContext runningContext = new RunningContext();
@@ -182,7 +183,7 @@ public class AcloadFlowEngine implements AutoCloseable {
         AcLoadFlowResult result = new AcLoadFlowResult(network, outerLoopIterations, nrIterations, runningContext.lastNrResult.getStatus(),
                 runningContext.lastNrResult.getSlackBusActivePowerMismatch());
 
-        LOGGER.info("Ac loadflow complete on network {} (result={})", network.getNum(), result);
+        LOGGER.info("Ac loadflow complete on network {} (result={})", network, result);
 
         return result;
     }

@@ -38,15 +38,17 @@ public class DcLoadFlowParameters {
 
     private final boolean setVToNan;
 
+    private final boolean computeMainConnectedComponentOnly;
+
     public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory, boolean setVToNan) {
         this(slackBusSelector, matrixFactory, false, true, false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, false,
-                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false, setVToNan);
+                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false, setVToNan, true);
     }
 
     public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory, boolean updateFlows,
                                 boolean useTransformerRatio, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
                                 boolean forcePhaseControlOffAndAddAngle1Var, double plausibleActivePowerLimit,
-                                boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds, boolean setVToNan) {
+                                boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds, boolean setVToNan, boolean computeMainConnectedComponentOnly) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.updateFlows = updateFlows;
@@ -57,6 +59,7 @@ public class DcLoadFlowParameters {
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
         this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
         this.setVToNan = setVToNan;
+        this.computeMainConnectedComponentOnly = computeMainConnectedComponentOnly;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -98,4 +101,9 @@ public class DcLoadFlowParameters {
     public boolean isSetVToNan() {
         return setVToNan;
     }
+
+    public boolean isComputeMainConnectedComponentOnly() {
+        return computeMainConnectedComponentOnly;
+    }
+
 }
