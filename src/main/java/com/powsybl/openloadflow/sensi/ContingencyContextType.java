@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.sensi;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-enum ContingencyContextType {
+public enum ContingencyContextType {
     ALL,
     NONE,
     SPECIFIC,
