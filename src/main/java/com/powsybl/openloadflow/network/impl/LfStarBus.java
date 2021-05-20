@@ -64,6 +64,6 @@ public class LfStarBus extends AbstractLfBus {
 
     @Override
     public boolean isParticipating() {
-        return true;
+        return false;
     }
 }
