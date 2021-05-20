@@ -437,7 +437,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     private static LfNetwork create(int numCC, int numSC, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
-        LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector());
+        // NameSlackBusSelector is only available for the {CC0,SC0} network so far
+        SlackBusSelector selector = (numCC != 0 || numSC != 0) && parameters.getSlackBusSelector() instanceof NameSlackBusSelector ?
+            new MostMeshedSlackBusSelector() : parameters.getSlackBusSelector();
+
+        LfNetwork lfNetwork = new LfNetwork(numCC, numSC, selector);
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();

@@ -6,8 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.powsybl.commons.PowsyblException;
 
 import java.util.List;
 import java.util.Objects;
@@ -16,8 +15,6 @@ import java.util.Objects;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class NameSlackBusSelector implements SlackBusSelector {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(NameSlackBusSelector.class);
 
     private final String busId;
 
@@ -28,10 +25,7 @@ public class NameSlackBusSelector implements SlackBusSelector {
     @Override
     public LfBus select(List<LfBus> buses) {
         return buses.stream()
-            .filter(bus -> bus.getId().equals(busId))
-            .findFirst().orElseGet(() -> {
-                LOGGER.warn("Could not find slack bus '{}', taking first bus instead", busId);
-                return buses.get(0);
-            });
+                .filter(bus -> bus.getId().equals(busId))
+                .findFirst().orElseThrow(() -> new PowsyblException("Slack bus '" + busId + "' not found"));
     }
 }
