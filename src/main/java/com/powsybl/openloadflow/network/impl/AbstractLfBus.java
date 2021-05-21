@@ -10,6 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.util.LoadUtil;
 import com.powsybl.openloadflow.util.Evaluable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +61,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfShunt> shunts = new ArrayList<>();
 
-    protected final List<LfLoad> loads = new ArrayList<>();
+    protected final List<Load> loads = new ArrayList<>();
+
+    protected boolean ensurePowerFactorConstantByLoad = false;
 
     protected final List<Battery> batteries = new ArrayList<>();
 
@@ -164,17 +167,20 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addLoad(Load load) {
-        LfLoadImpl lfLoad = new LfLoadImpl(load, network);
-        loads.add(lfLoad);
+        loads.add(load);
         loadCount++;
-        initialLoadTargetP += load.getP0();
-        loadTargetP += load.getP0();
+        double p = load.getP0();
+        initialLoadTargetP += p;
+        loadTargetP += p;
         loadTargetQ += load.getQ0();
-        absLoadTargetP += Math.abs(load.getP0());
+        absLoadTargetP += Math.abs(p);
         LoadDetail loadDetail = load.getExtension(LoadDetail.class);
         if (loadDetail != null) {
             fixedLoadTargetP = loadDetail.getFixedActivePower();
             absVariableLoadTargetP += Math.abs(loadDetail.getVariableActivePower());
+        }
+        if (p < 0) {
+            ensurePowerFactorConstantByLoad = true;
         }
     }
 
@@ -320,6 +326,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
+    @Override
+    public boolean ensurePowerFactorConstantByLoad() {
+        return this.ensurePowerFactorConstantByLoad;
+    }
+
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
         return generators.stream()
                 .mapToDouble(generator -> generator.hasVoltageControl() ? limitQ.applyAsDouble(generator)
@@ -378,7 +389,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public List<LfLoad> getLoads() {
+    public List<Load> getLoads() {
         return loads;
     }
 
@@ -439,11 +450,15 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
         // update load power
         double diffTargetP = loadCount > 0 ? loadTargetP - initialLoadTargetP : 0;
-        double sumUpdatedQ = 0;
-        for (LfLoad load : loads) {
-            double diffP = diffTargetP * load.getParticipationFactor(distributedOnConformLoad, absLoadTargetP, absVariableLoadTargetP);
-            load.updateState(diffP, loadPowerFactorConstant);
-            sumUpdatedQ += load.getUpdatedQ0();
+        double updatedP0;
+        double updatedQ0;
+        for (Load load : loads) {
+            double diffP = diffTargetP * LoadUtil.getParticipationFactor(load, distributedOnConformLoad, absLoadTargetP, absVariableLoadTargetP);
+            updatedP0 = load.getP0() + diffP;
+            updatedQ0 = loadPowerFactorConstant ? LoadUtil.getPowerFactor(load) * updatedP0 : load.getQ0();
+            load.getTerminal()
+                    .setP(updatedP0)
+                    .setQ(updatedQ0);
         }
 
         // update battery power (which are not part of slack distribution)

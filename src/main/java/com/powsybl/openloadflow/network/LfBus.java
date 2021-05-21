@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Load;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.List;
@@ -67,6 +68,8 @@ public interface LfBus extends LfElement {
 
     void setLoadTargetQ(double loadTargetQ);
 
+    public boolean ensurePowerFactorConstantByLoad();
+
     double getGenerationTargetP();
 
     double getGenerationTargetQ();
@@ -103,7 +106,7 @@ public interface LfBus extends LfElement {
 
     List<LfShunt> getShunts();
 
-    List<LfLoad> getLoads();
+    List<Load> getLoads();
 
     List<LfBranch> getBranches();
 

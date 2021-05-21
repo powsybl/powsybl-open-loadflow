@@ -6,8 +6,8 @@
  */
 package com.powsybl.openloadflow.network.util;
 
+import com.powsybl.iidm.network.Load;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfLoad;
 import com.powsybl.openloadflow.network.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,12 +91,17 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
     private static void ensurePowerFactorConstant(LfBus bus, double newLoadTargetP, boolean distributedOnConformLoad) {
         // if loadPowerFactorConstant is true, when updating targetP on loads,
         // we have to keep the power factor constant by updating targetQ.
-        double absLoadTargetP = bus.getAbsLoadTargetP() * PerUnit.SB;
-        double absVariableLoadTargetP = bus.getAbsVariableLoadTargetP() * PerUnit.SB;
-        double initialLoadTargetP = bus.getInitialLoadTargetP();
-        double newLoadTargetQ = 0;
-        for (LfLoad load : bus.getLoads()) {
-            newLoadTargetQ += load.getPowerFactor() * (load.getP0() + (newLoadTargetP - initialLoadTargetP) * load.getParticipationFactor(distributedOnConformLoad, absLoadTargetP, absVariableLoadTargetP));
+        double newLoadTargetQ;
+        if (bus.ensurePowerFactorConstantByLoad()) {
+            double absLoadTargetP = bus.getAbsLoadTargetP() * PerUnit.SB;
+            double absVariableLoadTargetP = bus.getAbsVariableLoadTargetP() * PerUnit.SB;
+            double initialLoadTargetP = bus.getInitialLoadTargetP();
+            newLoadTargetQ = 0;
+            for (Load load : bus.getLoads()) {
+                newLoadTargetQ += LoadUtil.getPowerFactor(load) * (load.getP0() / PerUnit.SB + (newLoadTargetP - initialLoadTargetP) * LoadUtil.getParticipationFactor(load, distributedOnConformLoad, absLoadTargetP, absVariableLoadTargetP));
+            }
+        } else {
+            newLoadTargetQ = newLoadTargetP * bus.getLoadTargetQ() / bus.getLoadTargetP();
         }
         if (newLoadTargetQ != bus.getLoadTargetQ()) {
             LOGGER.info("Rescale '{}' reactive power target on load: {} -> {}",
