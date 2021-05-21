@@ -27,13 +27,18 @@ public class LfNetworkParameters {
 
     private final boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
 
+    private final boolean computeMainConnectedComponentOnly;
+
     public LfNetworkParameters(SlackBusSelector slackBusSelector) {
-        this(slackBusSelector, false, false, false, false, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false);
+        this(slackBusSelector, false, false, false, false,
+                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
+                true);
     }
 
     public LfNetworkParameters(SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl,
                                boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers,
-                               double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds) {
+                               double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
+                               boolean computeMainConnectedComponentOnly) {
         this.slackBusSelector = slackBusSelector;
         this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
         this.minImpedance = minImpedance;
@@ -41,6 +46,7 @@ public class LfNetworkParameters {
         this.breakers = breakers;
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
         this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+        this.computeMainConnectedComponentOnly = computeMainConnectedComponentOnly;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -69,5 +75,9 @@ public class LfNetworkParameters {
 
     public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
         return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+    }
+
+    public boolean isComputeMainConnectedComponentOnly() {
+        return computeMainConnectedComponentOnly;
     }
 }

@@ -160,6 +160,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", dcUseTransformerRatio=" + dcUseTransformerRatio +
                 ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
                 ", addRatioToLinesWithDifferentNominalVoltageAtBothEnds=" + addRatioToLinesWithDifferentNominalVoltageAtBothEnds +
+                ", slackBusPMaxMismatch=" + slackBusPMaxMismatch +
                 ')';
     }
 
