@@ -69,7 +69,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
             double newLoadTargetP = loadTargetP - remainingMismatch * factor;
 
             if (newLoadTargetP != loadTargetP) {
-                LOGGER.info("Rescale '{}' active power target: {} -> {}",
+                LOGGER.trace("Rescale '{}' active power target: {} -> {}",
                         bus.getId(), loadTargetP * PerUnit.SB, newLoadTargetP * PerUnit.SB);
 
                 if (loadPowerFactorConstant) {
@@ -104,7 +104,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
             newLoadTargetQ = newLoadTargetP * bus.getLoadTargetQ() / bus.getLoadTargetP();
         }
         if (newLoadTargetQ != bus.getLoadTargetQ()) {
-            LOGGER.info("Rescale '{}' reactive power target on load: {} -> {}",
+            LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
                     bus.getId(), bus.getLoadTargetQ() * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
             bus.setLoadTargetQ(newLoadTargetQ);
         }
