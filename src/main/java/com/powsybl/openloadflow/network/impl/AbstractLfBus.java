@@ -169,17 +169,17 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     void addLoad(Load load) {
         loads.add(load);
         loadCount++;
-        double p = load.getP0();
-        initialLoadTargetP += p;
-        loadTargetP += p;
+        double p0 = load.getP0();
+        initialLoadTargetP += p0;
+        loadTargetP += p0;
         loadTargetQ += load.getQ0();
-        absLoadTargetP += Math.abs(p);
+        absLoadTargetP += Math.abs(p0);
         LoadDetail loadDetail = load.getExtension(LoadDetail.class);
         if (loadDetail != null) {
             fixedLoadTargetP = loadDetail.getFixedActivePower();
             absVariableLoadTargetP += Math.abs(loadDetail.getVariableActivePower());
         }
-        if (p < 0) {
+        if (p0 < 0) {
             ensurePowerFactorConstantByLoad = true;
         }
     }
