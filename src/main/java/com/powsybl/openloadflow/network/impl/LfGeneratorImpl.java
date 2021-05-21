@@ -8,9 +8,9 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.iidm.network.RegulationMode;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
+import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
 import com.powsybl.openloadflow.network.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,12 +74,13 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             participating = false;
         }
 
-        if (generator.getRegulationMode() == RegulationMode.VOLTAGE) {
+        if (generator.isVoltageRegulatorOn()) {
             setVoltageControl(generator.getTargetV(), generator.getRegulatingTerminal(), breakers, report);
         }
 
-        if (generator.getRegulationMode() == RegulationMode.REACTIVE_POWER) {
-            setReactivePowerControl(generator.getRegulatingTerminal());
+        RemoteReactivePowerControl reactivePowerControl = generator.getExtension(RemoteReactivePowerControl.class);
+        if (reactivePowerControl != null && reactivePowerControl.isEnabled()) {
+            setReactivePowerControl(reactivePowerControl.getRegulatingTerminal());
         }
     }
 
@@ -138,5 +139,10 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         generator.getTerminal()
                 .setP(-targetP)
                 .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ);
+    }
+
+    @Override
+    public double getRemoteTargetQ() {
+        return generator.getExtension(RemoteReactivePowerControl.class).getTargetQ() / PerUnit.SB;
     }
 }

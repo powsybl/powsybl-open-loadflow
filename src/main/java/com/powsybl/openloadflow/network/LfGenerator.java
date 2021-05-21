@@ -60,4 +60,6 @@ public interface LfGenerator {
     LfBranch getControlledBranch(LfNetwork lfNetwork);
 
     Branch.Side getControlledBranchSide(LfNetwork lfNetwork);
+
+    double getRemoteTargetQ();
 }

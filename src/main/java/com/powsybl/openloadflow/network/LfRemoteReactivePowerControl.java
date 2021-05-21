@@ -13,7 +13,7 @@ import java.util.*;
 /**
  * @author Bertrand Rix <bertrand.rix at artelys.com>
  */
-public class RemoteReactivePowerControl {
+public class LfRemoteReactivePowerControl {
 
     private final LfBranch controlledBranch;
 
@@ -23,7 +23,7 @@ public class RemoteReactivePowerControl {
 
     private final double targetValue;
 
-    public RemoteReactivePowerControl(LfBranch controlledBranch, Branch.Side controlledSide, LfBus controller, double targetValue) {
+    public LfRemoteReactivePowerControl(LfBranch controlledBranch, Branch.Side controlledSide, LfBus controller, double targetValue) {
         this.controlledBranch = controlledBranch;
         this.targetValue = targetValue;
         this.controlledSide = controlledSide;

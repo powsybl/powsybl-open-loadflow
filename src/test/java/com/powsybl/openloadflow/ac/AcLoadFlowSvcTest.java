@@ -67,7 +67,7 @@ class AcLoadFlowSvcTest {
                 .setTargetV(390)
                 .setMinP(0)
                 .setMaxP(150)
-                .setRegulationMode(RegulationMode.VOLTAGE)
+                .setVoltageRegulatorOn(true)
                 .add();
         VoltageLevel vl2 = s2.newVoltageLevel()
                 .setId("vl2")
@@ -88,7 +88,7 @@ class AcLoadFlowSvcTest {
                 .setId("svc1")
                 .setConnectableBus("b2")
                 .setBus("b2")
-                .setRegulationMode(RegulationMode.OFF)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.OFF)
                 .setBmin(-0.008)
                 .setBmax(0.008)
                 .add();
@@ -136,7 +136,7 @@ class AcLoadFlowSvcTest {
         assertTrue(Double.isNaN(svc1.getTerminal().getQ()));
 
         svc1.setVoltageSetpoint(385)
-                .setRegulationMode(RegulationMode.VOLTAGE);
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
 
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -157,7 +157,7 @@ class AcLoadFlowSvcTest {
     void shouldReachReactiveMaxLimit() {
         svc1.setBmin(-0.002)
                 .setVoltageSetpoint(385)
-                .setRegulationMode(RegulationMode.VOLTAGE);
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertReactivePowerEquals(-svc1.getBmin() * svc1.getVoltageSetpoint() * svc1.getVoltageSetpoint(), svc1.getTerminal()); // min reactive limit has been correctly reached

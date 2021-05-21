@@ -64,7 +64,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private VoltageControl voltageControl;
 
-    private RemoteReactivePowerControl reactivePowerControl;
+    private LfRemoteReactivePowerControl reactivePowerControl;
 
     protected DiscreteVoltageControl discreteVoltageControl;
 
@@ -128,12 +128,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public Optional<RemoteReactivePowerControl> getReactivePowerControl() {
+    public Optional<LfRemoteReactivePowerControl> getReactivePowerControl() {
         return Optional.ofNullable(reactivePowerControl);
     }
 
     @Override
-    public void setReactivePowerControl(RemoteReactivePowerControl pReactivePowerControl) {
+    public void setReactivePowerControl(LfRemoteReactivePowerControl pReactivePowerControl) {
         Objects.requireNonNull(pReactivePowerControl);
         this.reactivePowerControl = pReactivePowerControl;
     }
@@ -232,7 +232,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean breakers, LfNetworkLoadingReport report) {
-        if (staticVarCompensator.getRegulationMode() != RegulationMode.OFF) {
+        if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
             add(LfStaticVarCompensatorImpl.create(staticVarCompensator, this, breakers, report));
         }
     }

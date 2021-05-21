@@ -215,4 +215,9 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         this.hasReactivePowerControl = true;
     }
 
+    @Override
+    public double getRemoteTargetQ() {
+        return 0.0;
+    }
+
 }

@@ -216,7 +216,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setMaxP(200)
                 .setTargetP(0)
                 .setTargetV(150)
-                .setRegulationMode(RegulationMode.VOLTAGE)
+                .setVoltageRegulatorOn(true)
                 .add();
         // check that the issue that add an undefined targetQ (NaN) to bus generation sum is solved
         LoadFlowResult result = loadFlowRunner.run(network, parameters);

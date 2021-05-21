@@ -46,7 +46,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
            .setTargetV(390)
            .setMinP(0)
            .setMaxP(500)
-           .setRegulationMode(RegulationMode.VOLTAGE)
+           .setVoltageRegulatorOn(true)
             .add();
 
         Substation s2 = network.newSubstation()
@@ -168,7 +168,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
            .setTargetV(390)
            .setMinP(0)
            .setMaxP(500)
-           .setRegulationMode(RegulationMode.VOLTAGE)
+           .setVoltageRegulatorOn(true)
             .add();
 
         Substation s2 = network.newSubstation()
@@ -230,7 +230,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
            .setTargetV(380)
            .setMinP(0)
            .setMaxP(500)
-           .setRegulationMode(RegulationMode.VOLTAGE)
+           .setVoltageRegulatorOn(true)
             .add();
 
         network.newLine()

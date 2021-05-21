@@ -10,7 +10,6 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.EnergySource;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.RegulationMode;
 import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 
 /**
@@ -36,7 +35,7 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
                 .setMaxP(200)
                 .setTargetP(100)
                 .setTargetV(400)
-                .setRegulationMode(RegulationMode.VOLTAGE)
+                .setVoltageRegulatorOn(true)
                 .add();
         g1.newExtension(ActivePowerControlAdder.class)
                 .withParticipate(true)
@@ -52,7 +51,7 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
                 .setMaxP(300)
                 .setTargetP(200)
                 .setTargetQ(300)
-                .setRegulationMode(RegulationMode.OFF)
+                .setVoltageRegulatorOn(false)
                 .add();
         g2.newExtension(ActivePowerControlAdder.class)
                 .withParticipate(true)
@@ -68,7 +67,7 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
                 .setMaxP(150)
                 .setTargetP(90)
                 .setTargetQ(130)
-                .setRegulationMode(RegulationMode.OFF)
+                .setVoltageRegulatorOn(false)
                 .add();
         g3.newExtension(ActivePowerControlAdder.class)
                 .withParticipate(true)
@@ -84,7 +83,7 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
                 .setMaxP(150)
                 .setTargetP(90)
                 .setTargetQ(130)
-                .setRegulationMode(RegulationMode.OFF)
+                .setVoltageRegulatorOn(false)
                 .add();
         g4.newExtension(ActivePowerControlAdder.class)
                 .withParticipate(true)
@@ -113,7 +112,7 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
                 .setMaxP(200)
                 .setTargetP(100)
                 .setTargetV(400)
-                .setRegulationMode(RegulationMode.VOLTAGE)
+                .setVoltageRegulatorOn(true)
                 .add();
         Generator g2 = b2.getVoltageLevel()
                 .newGenerator()
@@ -125,7 +124,7 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
                 .setMaxP(300)
                 .setTargetP(200)
                 .setTargetQ(300)
-                .setRegulationMode(RegulationMode.OFF)
+                .setVoltageRegulatorOn(false)
                 .add();
         createLoad(b1, "l1", 30, 30);
         createLoad(b2, "l2", 60, 40);

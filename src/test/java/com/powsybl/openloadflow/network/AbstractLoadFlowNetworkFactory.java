@@ -58,7 +58,7 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .setMaxP(p)
                 .setTargetP(p)
                 .setTargetV(v)
-                .setRegulationMode(RegulationMode.VOLTAGE)
+                .setVoltageRegulatorOn(true)
                 .add();
         g.getTerminal().setP(-p).setQ(0);
         return g;

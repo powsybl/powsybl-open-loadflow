@@ -79,8 +79,8 @@ public final class AcEquationSystem {
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
     }
 
-    private static void createReactivePowerControlBranchEquation(RemoteReactivePowerControl reactivePowerControl, LfBranch branch,
-                                                      EquationSystem equationSystem) {
+    private static void createReactivePowerControlBranchEquation(LfRemoteReactivePowerControl reactivePowerControl, LfBranch branch,
+                                                                 EquationSystem equationSystem) {
 
         //Reactive power control on a branch is always distant
         LfBus controller = reactivePowerControl.getControllerBus();

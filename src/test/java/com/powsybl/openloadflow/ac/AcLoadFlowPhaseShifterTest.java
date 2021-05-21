@@ -413,7 +413,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setId("G1")
                 .setConnectableBus("B1")
                 .setBus("B1")
-                .setRegulationMode(RegulationMode.VOLTAGE)
+                .setVoltageRegulatorOn(true)
                 .setTargetP(100.0)
                 .setTargetV(400.0)
                 .setMinP(50.0)

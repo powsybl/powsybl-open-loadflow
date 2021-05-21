@@ -76,7 +76,7 @@ class AcloadFlowReactiveLimitsTest {
                 .setConnectableBus("NGEN2")
                 .setMinP(-9999.99)
                 .setMaxP(9999.99)
-                .setRegulationMode(RegulationMode.VOLTAGE)
+                .setVoltageRegulatorOn(true)
                 .setTargetV(24.5)
                 .setTargetP(100)
                 .add();

@@ -57,7 +57,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
             }
         };
 
-        if (svc.getRegulationMode() == RegulationMode.VOLTAGE) {
+        if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
             setVoltageControl(svc.getVoltageSetpoint(), svc.getRegulatingTerminal(), breakers, report);
         }
     }

@@ -101,10 +101,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 LfGenerator lfGenerator0 = reactivePowerControlGenerator.get(0);
                 LfBranch controlledBranch = lfGenerator0.getControlledBranch(lfNetwork);
                 Branch.Side controlledBranchSide = lfGenerator0.getControlledBranchSide(lfNetwork);
-                double controllerTargetQ = lfGenerator0.getTargetQ();
 
-                RemoteReactivePowerControl reaPowerControl = controlledBranch.getReactivePowerControl().orElse(
-                        new RemoteReactivePowerControl(controlledBranch, controlledBranchSide, controllerBus, controllerTargetQ));
+                LfRemoteReactivePowerControl reaPowerControl = controlledBranch.getReactivePowerControl().orElse(
+                        new LfRemoteReactivePowerControl(controlledBranch, controlledBranchSide, controllerBus, lfGenerator0.getRemoteTargetQ()));
 
                 controllerBus.setReactivePowerControl(reaPowerControl);
                 controlledBranch.setReactivePowerControl(reaPowerControl);
@@ -176,7 +175,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             @Override
             public void visitGenerator(Generator generator) {
                 lfBus.addGenerator(generator, parameters.isBreakers(), report, parameters.getPlausibleActivePowerLimit());
-                if (generator.getRegulationMode() == RegulationMode.VOLTAGE) {
+                if (generator.isVoltageRegulatorOn()) {
                     report.voltageControllerCount++;
                 }
             }
@@ -203,7 +202,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             @Override
             public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
                 lfBus.addStaticVarCompensator(staticVarCompensator, parameters.isBreakers(), report);
-                if (staticVarCompensator.getRegulationMode() == RegulationMode.VOLTAGE) {
+                if (staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
                     report.voltageControllerCount++;
                 }
             }
