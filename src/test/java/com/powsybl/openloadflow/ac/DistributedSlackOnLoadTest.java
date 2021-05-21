@@ -160,7 +160,7 @@ class DistributedSlackOnLoadTest {
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         parametersExt.setLoadPowerFactorConstant(true);
         Network network3 = EurostagTutorialExample1Factory.create();
-        network3.getVoltageLevel("VLLOAD").newLoad().setId("LOAD1").setP0(-300).setQ0(1).setBus("NLOAD").setConnectableBus("NLOAD").add();
+        network3.getVoltageLevel("VLLOAD").newLoad().setId("LOAD1").setP0(-10).setQ0(1).setBus("NLOAD").setConnectableBus("NLOAD").add();
 
         //when
         LoadFlowResult loadFlowResult3 = loadFlowRunner.run(network3, parameters);

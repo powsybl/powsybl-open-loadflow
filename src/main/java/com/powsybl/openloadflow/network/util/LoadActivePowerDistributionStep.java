@@ -69,11 +69,11 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
             double newLoadTargetP = loadTargetP - remainingMismatch * factor;
 
             if (newLoadTargetP != loadTargetP) {
-                LOGGER.trace("Rescale '{}' active power target: {} -> {}",
+                LOGGER.info("Rescale '{}' active power target: {} -> {}",
                         bus.getId(), loadTargetP * PerUnit.SB, newLoadTargetP * PerUnit.SB);
 
                 if (loadPowerFactorConstant) {
-                    ensurePowerFactorConstant(bus, loadTargetP, newLoadTargetP, distributedOnConformLoad);
+                    ensurePowerFactorConstant(bus, newLoadTargetP, distributedOnConformLoad);
                 }
 
                 bus.setLoadTargetP(newLoadTargetP);
@@ -88,17 +88,18 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
         return done;
     }
 
-    private static void ensurePowerFactorConstant(LfBus bus, double loadTargetP, double newLoadTargetP, boolean distributedOnConformLoad) {
+    private static void ensurePowerFactorConstant(LfBus bus, double newLoadTargetP, boolean distributedOnConformLoad) {
         // if loadPowerFactorConstant is true, when updating targetP on loads,
         // we have to keep the power factor constant by updating targetQ.
         double absLoadTargetP = bus.getAbsLoadTargetP() * PerUnit.SB;
         double absVariableLoadTargetP = bus.getAbsVariableLoadTargetP() * PerUnit.SB;
+        double initialLoadTargetP = bus.getInitialLoadTargetP();
         double newLoadTargetQ = 0;
         for (LfLoad load : bus.getLoads()) {
-            newLoadTargetQ += load.getPowerFactor() * (load.getP0() + (newLoadTargetP - loadTargetP) * load.getParticipationFactor(distributedOnConformLoad, absLoadTargetP, absVariableLoadTargetP));
+            newLoadTargetQ += load.getPowerFactor() * (load.getP0() + (newLoadTargetP - initialLoadTargetP) * load.getParticipationFactor(distributedOnConformLoad, absLoadTargetP, absVariableLoadTargetP));
         }
         if (newLoadTargetQ != bus.getLoadTargetQ()) {
-            LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
+            LOGGER.info("Rescale '{}' reactive power target on load: {} -> {}",
                     bus.getId(), bus.getLoadTargetQ() * PerUnit.SB, newLoadTargetQ * PerUnit.SB);
             bus.setLoadTargetQ(newLoadTargetQ);
         }

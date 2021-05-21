@@ -279,6 +279,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public double getInitialLoadTargetP() {
+        return initialLoadTargetP / PerUnit.SB;
+    }
+
+    @Override
     public double getAbsLoadTargetP() {
         return absLoadTargetP / PerUnit.SB;
     }
@@ -439,9 +444,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             double diffP = diffTargetP * load.getParticipationFactor(distributedOnConformLoad, absLoadTargetP, absVariableLoadTargetP);
             load.updateState(diffP, loadPowerFactorConstant);
             sumUpdatedQ += load.getUpdatedQ0();
-        }
-        if (Math.abs(sumUpdatedQ - loadTargetQ) > Q_DISPATCH_EPSILON) {
-            LOGGER.error("FIXME"); // it happens when we have a load with negative P0 in the bus.
         }
 
         // update battery power (which are not part of slack distribution)
