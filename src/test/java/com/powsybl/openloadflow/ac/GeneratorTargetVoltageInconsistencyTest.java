@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.ParameterConstants;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -201,7 +202,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false,
                 ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true);
+                true, Collections.emptySet());
 
         Generator g = network.getGenerator("g2");
         assertEquals(0.5625, g.getTargetV() / g.getTerminal().getVoltageLevel().getNominalV());
@@ -312,7 +313,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false,
                 ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true);
+                true, Collections.emptySet());
 
         assertEquals(412, network.getGenerator("g1").getTargetV());
         assertEquals(413, g2.getTargetV());

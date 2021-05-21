@@ -101,7 +101,6 @@ class OpenLoadFlowParametersTest {
         assertEquals(LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
         assertEquals(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE, olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
 
-        assertEquals(DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE, olfParameters.isDcUseTransformerRatio());
         assertEquals(SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE, olfParameters.getSlackBusPMaxMismatch(), 0.0);
     }
 

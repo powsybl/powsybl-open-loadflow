@@ -43,7 +43,7 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
     @Override
     public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses) {
         return buses.stream()
-                .filter(bus -> !(bus.isDisabled() || bus.isFictitious()))
+                .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
                 .flatMap(bus -> bus.getGenerators().stream())
                 .filter(generator -> generator.isParticipating() && getParticipationFactor(generator) != 0)
                 .map(generator -> new ParticipatingElement(generator, getParticipationFactor(generator)))

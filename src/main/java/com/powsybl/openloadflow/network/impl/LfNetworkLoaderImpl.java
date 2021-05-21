@@ -130,7 +130,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static LfBusImpl createBus(Bus bus, LfNetworkParameters parameters, LfNetwork lfNetwork, LoadingContext loadingContext,
                                        LfNetworkLoadingReport report) {
-        LfBusImpl lfBus = LfBusImpl.create(bus, lfNetwork);
+        LfBusImpl lfBus = LfBusImpl.create(bus, lfNetwork, participateToSlackDistribution(parameters, bus));
 
         bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
 
@@ -565,5 +565,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
 
         return Optional.empty();
+    }
+
+    static boolean participateToSlackDistribution(LfNetworkParameters parameters, Bus b) {
+        return parameters.getCountriesToBalance().isEmpty()
+               || b.getVoltageLevel().getSubstation().getCountry()
+                   .map(country -> parameters.getCountriesToBalance().contains(country))
+                   .orElse(false);
     }
 }
