@@ -40,7 +40,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
     @Override
     public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses) {
         return buses.stream()
-                .filter(bus -> bus.getPositiveLoadCount() > 0 && getVariableLoadTargetP(bus) > 0 && !(bus.isFictitious() || bus.isDisabled() || !bus.isParticipating()))
+                .filter(bus -> bus.getPositiveLoadCount() > 0 && getVariableLoadTargetP(bus) > 0 && bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
                 .map(bus -> new ParticipatingElement(bus, getVariableLoadTargetP(bus)))
                 .collect(Collectors.toList());
     }
