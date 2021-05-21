@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.iidm.network.Country;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
@@ -40,7 +39,7 @@ public class DcLoadFlowEngine {
 
     public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory, boolean setVToNan) {
         this.networks = Collections.singletonList(network);
-        parameters = new DcLoadFlowParameters(new FirstSlackBusSelector(), matrixFactory, setVToNan, EnumSet.noneOf(Country.class));
+        parameters = new DcLoadFlowParameters(new FirstSlackBusSelector(), matrixFactory, setVToNan);
     }
 
     public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters, Reporter reporter) {
