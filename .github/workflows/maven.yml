@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v1
         with:
           repository: powsybl/powsybl-core
-          ref: refs/heads/add_regulation_mode_to_generator
+          ref: refs/heads/regulation_extension
 
       - name: Checkout sources
         uses: actions/checkout@v1
