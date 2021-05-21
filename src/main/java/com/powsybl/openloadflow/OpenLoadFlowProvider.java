@@ -265,9 +265,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                      parametersExt.getPlausibleActivePowerLimit(),
                                                                      parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                                                      true,
-                                                                     parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN);
+                                                                     parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
+                                                                      parameters.getCountriesToBalance());
 
-        List<DcLoadFlowResult> results = new DcLoadFlowEngine(network, dcParameters, reporter, parameters.getCountriesToBalance())
+        List<DcLoadFlowResult> results = new DcLoadFlowEngine(network, dcParameters, reporter)
                 .run(reporter);
 
         Networks.resetState(network);

@@ -89,6 +89,6 @@ public class LfNetworkParameters {
     }
 
     public Set<Country> getCountriesToBalance() {
-        return countriesToBalance;
+        return Collections.unmodifiableSet(countriesToBalance);
     }
 }

@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.equations.VoltageInitializer;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -151,7 +152,7 @@ public class AcLoadFlowParameters {
     }
 
     public Set<Country> getCountriesToBalance() {
-        return countriesToBalance;
+        return Collections.unmodifiableSet(countriesToBalance);
     }
 
 }
