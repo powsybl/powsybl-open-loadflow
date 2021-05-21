@@ -182,6 +182,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case BUS_V:
+            case BUS_V_SLOPE:
                 targets[column] = getBusTargetV(network.getBus(num));
                 break;
 

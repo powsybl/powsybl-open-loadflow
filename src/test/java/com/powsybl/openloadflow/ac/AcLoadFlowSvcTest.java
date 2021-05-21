@@ -176,7 +176,7 @@ class AcLoadFlowSvcTest {
 
         assertVoltageEquals(390, bus1);
         assertAngleEquals(0, bus1);
-        assertVoltageEquals(385.001, bus2);
+        assertVoltageEquals(387.845, bus2);
         assertAngleEquals(-0.022026, bus2);
         assertActivePowerEquals(101.467, l1.getTerminal1());
         assertReactivePowerEquals(246.249, l1.getTerminal1());
