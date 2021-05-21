@@ -368,8 +368,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         double qtarget = 1.0;
 
         //Disable voltage control on g4
-        g4.setTargetQ(0)
-          .setVoltageRegulatorOn(false);
+        g4.setTargetQ(0).setVoltageRegulatorOn(false);
 
         // First test: generator g4 regulates reactive power on line 4->3 (on side of g4)
         g4.newExtension(RemoteReactivePowerControlAdder.class)

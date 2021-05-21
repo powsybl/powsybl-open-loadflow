@@ -158,10 +158,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
     private static double getReactivePowerControlTarget(LfBus bus) {
         Objects.requireNonNull(bus);
         Optional<LfRemoteReactivePowerControl> control = bus.getReactivePowerControl();
-        if(control.isPresent()) {
+        if (control.isPresent()) {
             return control.get().getTargetValue();
-        }
-        else {
+        } else {
             throw new PowsyblException("Bus '" + bus.getId() + "' has no target in for reactive remote control");
         }
     }
