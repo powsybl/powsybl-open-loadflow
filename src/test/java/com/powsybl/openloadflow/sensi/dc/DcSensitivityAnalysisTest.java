@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.network.DanglingLineFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.sensi.*;
@@ -713,5 +714,18 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0d, values.get(2).getValue(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, values.get(2).getFunctionReference(), LoadFlowAssert.DELTA_POWER);
         assertNotNull(values.get(2).getContingencyId());
+    }
+
+    @Test
+    void testDanglingLineSensi() {
+        Network network = DanglingLineFactory.create();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0");
+        List<SensitivityFactor2> factors = List.of(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "l1",
+                                                                          SensitivityVariableType.INJECTION_ACTIVE_POWER, "dl1",
+                                                                          false, ContingencyContext.createAllContingencyContext()));
+        SensitivityAnalysisResult2 result = sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, factors);
+        assertEquals(-1d, result.getValue(null, "l1", "dl1").getValue(), LoadFlowAssert.DELTA_POWER);
     }
 }
