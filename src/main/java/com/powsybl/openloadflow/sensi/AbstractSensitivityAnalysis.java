@@ -685,11 +685,14 @@ public abstract class AbstractSensitivityAnalysis {
 
     protected static String getInjectionBusId(Network network, String injectionId) {
         Injection<?> injection = getInjection(network, injectionId);
+        Bus bus = injection.getTerminal().getBusView().getBus();
+        if (bus == null) {
+            return null;
+        }
         if (injection instanceof DanglingLine) {
             return LfDanglingLineBus.getId((DanglingLine) injection);
         } else {
-            Bus bus = injection.getTerminal().getBusView().getBus();
-            return bus != null ? bus.getId() : null;
+            return bus.getId();
         }
     }
 
