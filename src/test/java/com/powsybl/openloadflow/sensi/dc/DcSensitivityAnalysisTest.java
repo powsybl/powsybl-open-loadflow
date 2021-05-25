@@ -740,6 +740,6 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         // dangling line is disconnected on base case => no result
         network.getDanglingLine("dl1").getTerminal().disconnect();
         result = sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, factors);
-        assertNull(result.getValue(null, "l1", "dl1"));
+        assertEquals(0d, result.getValue(null, "l1", "dl1").getValue(), LoadFlowAssert.DELTA_POWER);
     }
 }

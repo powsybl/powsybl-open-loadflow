@@ -631,9 +631,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             dcLoadFlowParameters.isForcePhaseControlOffAndAddAngle1Var(), lfParametersExt.isDcUseTransformerRatio());
         EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet(), dcEquationSystemCreationParameters);
 
-        // we wrap the factor into a class that allows us to have access to their branch and EquationTerm instantly
-        warnSkippedFactors(lfFactors);
+        writeSkippedFactors(lfFactors, valueWriter);
+
+        // next we only work with valid factors
         lfFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList());
+
         // index factors by variable group to compute the minimal number of states
         List<SensitivityFactorGroup> factorGroups = createFactorGroups(lfFactors);
 

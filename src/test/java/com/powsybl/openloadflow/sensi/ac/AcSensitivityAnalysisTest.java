@@ -673,7 +673,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
             sensiParameters, LocalComputationManager.getDefault())
             .join();
-        assertTrue(result.getSensitivityValues().isEmpty());
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(0d, getValue(result, "g4", "b1"));
     }
 
     @Test

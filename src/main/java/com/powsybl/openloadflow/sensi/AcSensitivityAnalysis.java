@@ -186,7 +186,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             engine.run(reporter);
 
-            warnSkippedFactors(lfFactors);
+            writeSkippedFactors(lfFactors, valueWriter);
+
+            // next we only work with valid factors
             lfFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList());
 
             // index factors by variable group to compute a minimal number of states
