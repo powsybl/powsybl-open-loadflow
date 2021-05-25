@@ -23,7 +23,6 @@
         "throwsExceptionInCaseOfSlackDistributionFailure" : false,
         "lowImpedanceBranchMode" : "REPLACE_BY_ZERO_IMPEDANCE_LINE",
         "loadPowerFactorConstant" : false,
-        "dcUseTransformerRatio" : true,
         "plausibleActivePowerLimit" : 10000.0,
         "addRatioToLinesWithDifferentNominalVoltageAtBothEnds" : false,
         "slackBusPMaxMismatch" : 1.0

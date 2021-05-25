@@ -38,8 +38,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean loadPowerFactorConstant = LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE;
 
-    private boolean dcUseTransformerRatio = DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE;
-
     private double plausibleActivePowerLimit = PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
 
     private boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds = ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE;
@@ -105,15 +103,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public boolean isDcUseTransformerRatio() {
-        return dcUseTransformerRatio;
-    }
-
-    public OpenLoadFlowParameters setDcUseTransformerRatio(boolean dcUseTransformerRatio) {
-        this.dcUseTransformerRatio = dcUseTransformerRatio;
-        return this;
-    }
-
     public double getPlausibleActivePowerLimit() {
         return plausibleActivePowerLimit;
     }
@@ -157,7 +146,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", voltageRemoteControl=" + voltageRemoteControl +
                 ", lowImpedanceBranchMode=" + lowImpedanceBranchMode +
                 ", loadPowerFactorConstant=" + loadPowerFactorConstant +
-                ", dcUseTransformerRatio=" + dcUseTransformerRatio +
                 ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
                 ", addRatioToLinesWithDifferentNominalVoltageAtBothEnds=" + addRatioToLinesWithDifferentNominalVoltageAtBothEnds +
                 ", slackBusPMaxMismatch=" + slackBusPMaxMismatch +
@@ -181,7 +169,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                 config.getBooleanProperty(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE)
                         )
                         .setLoadPowerFactorConstant(config.getBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE))
-                        .setDcUseTransformerRatio(config.getBooleanProperty(DC_USE_TRANSFORMER_RATIO_PARAM_NAME, DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE))
                         .setPlausibleActivePowerLimit(config.getDoubleProperty(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE))
                         .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(config.getBooleanProperty(ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME, ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE))
                         .setSlackBusPMaxMismatch(config.getDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_NAME, SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE))
