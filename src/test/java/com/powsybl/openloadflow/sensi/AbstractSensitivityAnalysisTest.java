@@ -324,7 +324,8 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
                 createInjectionIncrease(gen)));
         };
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
-        assertTrue(result.getSensitivityValues().isEmpty());
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(0f, getValue(result, "g3", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
     protected void testPhaseShifterOutsideMainComponent(boolean dc) {
@@ -336,7 +337,8 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
                 new PhaseTapChangerAngle("l45", "l45", "l45")));
         };
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
-        assertTrue(result.getSensitivityValues().isEmpty());
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(0d, getValue(result, "l45", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
     protected void testGlskOutsideMainComponent(boolean dc) {
@@ -351,7 +353,8 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
                 new LinearGlsk("glsk", "glsk", glskMap)));
         };
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
-        assertTrue(result.getSensitivityValues().isEmpty());
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(0, getValue(result, "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
     protected void testGlskPartiallyOutsideMainComponent(boolean dc) {

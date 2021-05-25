@@ -32,9 +32,13 @@ public class LfDanglingLineBus extends AbstractLfBus {
         }
     }
 
+    public static String getId(DanglingLine danglingLine) {
+        return danglingLine.getId() + "_BUS";
+    }
+
     @Override
     public String getId() {
-        return danglingLine.getId() + "_BUS";
+        return getId(danglingLine);
     }
 
     @Override
