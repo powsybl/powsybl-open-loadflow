@@ -52,6 +52,7 @@ class LfContingencyTest extends AbstractConverterTest {
     void test() throws IOException {
         Network network = FourSubstationsNodeBreakerFactory.create();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(2, lfNetworks.size());
 
         OpenSecurityAnalysis sa = new OpenSecurityAnalysisFactory().create(network, null, 0);
@@ -61,7 +62,7 @@ class LfContingencyTest extends AbstractConverterTest {
         List<PropagatedContingency> propagatedContingencies =
             PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>());
 
-        List<LfContingency> lfContingencies = sa.createContingencies(propagatedContingencies, lfNetworks.get(0));
+        List<LfContingency> lfContingencies = sa.createContingencies(propagatedContingencies, mainNetwork);
         assertEquals(1, lfContingencies.size());
 
         Path file = fileSystem.getPath("/work/lfc.json");

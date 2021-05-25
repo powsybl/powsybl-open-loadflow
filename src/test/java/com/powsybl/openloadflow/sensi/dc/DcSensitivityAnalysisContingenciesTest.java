@@ -1097,9 +1097,9 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(loadFlowDiff.get("l13"), result.getValue("l25", "l13", "hvdc34").getValue(), LoadFlowAssert.DELTA_POWER);
         assertEquals(loadFlowDiff.get("l23"), result.getValue("l25", "l23", "hvdc34").getValue(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getValue("l25", "l25", "hvdc34").getValue(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(loadFlowDiff.get("l45"), result.getValue("l25", "l45", "hvdc34").getValue(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(loadFlowDiff.get("l46"), result.getValue("l25", "l46", "hvdc34").getValue(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(loadFlowDiff.get("l56"), result.getValue("l25", "l56", "hvdc34").getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getValue("l25", "l45", "hvdc34").getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getValue("l25", "l46", "hvdc34").getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getValue("l25", "l56", "hvdc34").getValue(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
