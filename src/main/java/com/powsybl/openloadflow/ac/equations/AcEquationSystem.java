@@ -62,7 +62,7 @@ public final class AcEquationSystem {
             EquationTerm vTerm;
             List<LfGenerator> generatorsWithSlope = bus.getGenerators().stream().filter(lfGenerator -> lfGenerator.getSlope() != 0).collect(Collectors.toList());
             if (creationParameters.isVoltagePerReactivePowerControl() && generatorsWithSlope.size() > 0) {
-                vTerm = new GeneratorWithSlopeVoltageEquationTerm(generatorsWithSlope, bus, variableSet, equationSystem, bus.getVoltageControl().orElse(null).getTargetValue());
+                vTerm = new GeneratorWithSlopeVoltageEquationTerm(generatorsWithSlope, bus, variableSet, equationSystem, bus.getVoltageControl().map(VoltageControl::getTargetValue).orElse(Double.NaN));
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_V_SLOPE).addTerm(vTerm);
             } else {
                 vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
