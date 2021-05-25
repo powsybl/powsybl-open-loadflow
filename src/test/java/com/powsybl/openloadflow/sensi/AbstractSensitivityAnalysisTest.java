@@ -64,6 +64,17 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         return createParameters(dc, slackBusId, false);
     }
 
+    protected static SensitivityAnalysisParameters createParameters(boolean dc) {
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
+        LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
+        lfParameters.setDc(dc);
+        lfParameters.setDistributedSlack(true);
+        OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
+        return sensiParameters;
+    }
+
     protected static <T extends Injection<T>> InjectionIncrease createInjectionIncrease(T injection) {
         return new InjectionIncrease(injection.getId(), injection.getId(), injection.getId());
     }
@@ -250,6 +261,16 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Injection 'a' not found", e.getCause().getMessage());
+    }
+
+    protected void testHvdcInjectionNotFound(boolean dc) {
+        SensitivityAnalysisParameters sensiParameters = createParameters(dc, "b1_vl_0", true);
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
+        ContingencyContext contingencyContext = new ContingencyContext(ContingencyContextType.ALL, null);
+        List<SensitivityFactor2> factors = List.of(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, "nop", false, contingencyContext));
+
+        PowsyblException e = assertThrows(PowsyblException.class, () -> sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, factors));
+        assertEquals("HVDC line 'nop' cannot be found in the network.", e.getMessage());
     }
 
     protected void testBranchNotFound(boolean dc) {

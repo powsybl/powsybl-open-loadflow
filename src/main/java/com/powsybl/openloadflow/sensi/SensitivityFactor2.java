@@ -108,7 +108,7 @@ public class SensitivityFactor2 {
         }
     }
 
-    static List<SensitivityFactor2> parseJson(Path jsonFile) {
+    public static List<SensitivityFactor2> parseJson(Path jsonFile) {
         return JsonUtil.parseJson(jsonFile, SensitivityFactor2::parseJson);
     }
 
@@ -184,6 +184,18 @@ public class SensitivityFactor2 {
         stopwatch.stop();
         LOGGER.info("{} factors read in {} ms", factors.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
+        return factors;
+    }
+
+    public static List<SensitivityFactor2> createMatrix(SensitivityFunctionType functionType, List<String> functionIds,
+                                                        SensitivityVariableType variableType, List<String> variableIds,
+                                                        boolean variableSet, ContingencyContext contingencyContext) {
+        List<SensitivityFactor2> factors = new ArrayList<>();
+        for (String functionId : functionIds) {
+            for (String variableId : variableIds) {
+                factors.add(new SensitivityFactor2(functionType, functionId, variableType, variableId, variableSet, contingencyContext));
+            }
+        }
         return factors;
     }
 }
