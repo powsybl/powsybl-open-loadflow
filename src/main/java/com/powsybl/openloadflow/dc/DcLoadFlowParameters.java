@@ -6,12 +6,15 @@
  */
 package com.powsybl.openloadflow.dc;
 
+import com.powsybl.iidm.network.Country;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 import com.powsybl.openloadflow.util.ParameterConstants;
 
+import java.util.Collections;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -40,15 +43,18 @@ public class DcLoadFlowParameters {
 
     private final boolean computeMainConnectedComponentOnly;
 
+    private final Set<Country> countriesToBalance;
+
     public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory, boolean setVToNan) {
         this(slackBusSelector, matrixFactory, false, true, false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, false,
-                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false, setVToNan, true);
+                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false, setVToNan, true, LoadFlowParameters.DEFAULT_COUNTRIES_TO_BALANCE);
     }
 
     public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory, boolean updateFlows,
                                 boolean useTransformerRatio, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
                                 boolean forcePhaseControlOffAndAddAngle1Var, double plausibleActivePowerLimit,
-                                boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds, boolean setVToNan, boolean computeMainConnectedComponentOnly) {
+                                boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds, boolean setVToNan, boolean computeMainConnectedComponentOnly,
+                                Set<Country> countriesToBalance) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.updateFlows = updateFlows;
@@ -60,6 +66,7 @@ public class DcLoadFlowParameters {
         this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
         this.setVToNan = setVToNan;
         this.computeMainConnectedComponentOnly = computeMainConnectedComponentOnly;
+        this.countriesToBalance = countriesToBalance;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -104,6 +111,10 @@ public class DcLoadFlowParameters {
 
     public boolean isComputeMainConnectedComponentOnly() {
         return computeMainConnectedComponentOnly;
+    }
+
+    public Set<Country> getCountriesToBalance() {
+        return Collections.unmodifiableSet(countriesToBalance);
     }
 
 }

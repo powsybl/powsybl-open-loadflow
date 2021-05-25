@@ -122,4 +122,6 @@ public interface LfBus extends LfElement {
     void setQ(Evaluable q);
 
     Evaluable getQ();
+
+    boolean isParticipating();
 }

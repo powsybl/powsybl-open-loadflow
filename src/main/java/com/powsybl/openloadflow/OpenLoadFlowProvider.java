@@ -181,7 +181,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                         forceA1Var,
                                         parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                         branchesWithCurrent,
-                                        parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN);
+                                        parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
+                                        parameters.getCountriesToBalance());
     }
 
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
@@ -247,7 +248,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
         LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
-        LOGGER.info("Use transformer ratio: {}", parametersExt.isDcUseTransformerRatio());
+        LOGGER.info("Use transformer ratio: {}", parameters.isDcUseTransformerRatio());
         LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
         LOGGER.info("Balance type: {}", parameters.getBalanceType());
         LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
@@ -257,14 +258,15 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector,
                                                                      matrixFactory,
                                                                      true,
-                                                                     parametersExt.isDcUseTransformerRatio(),
+                                                                     parameters.isDcUseTransformerRatio(),
                                                                      parameters.isDistributedSlack(),
                                                                      parameters.getBalanceType(),
                                                                      forcePhaseControlOffAndAddAngle1Var,
                                                                      parametersExt.getPlausibleActivePowerLimit(),
                                                                      parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                                                      true,
-                                                                     parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN);
+                                                                     parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
+                                                                      parameters.getCountriesToBalance());
 
         List<DcLoadFlowResult> results = new DcLoadFlowEngine(network, dcParameters, reporter)
                 .run(reporter);
