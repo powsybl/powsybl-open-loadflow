@@ -185,4 +185,86 @@ class AcLoadFlowSvcTest {
         assertActivePowerEquals(0, svc1.getTerminal());
         assertReactivePowerEquals(94.850, svc1.getTerminal());
     }
+
+    @Test
+    void testSvcWithSlope2() {
+        // Test switch PV to PQ
+        svc1.setVoltageSetPoint(440)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(390, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(398.190, bus2);
+        assertAngleEquals(-0.526124, bus2);
+        assertActivePowerEquals(109.018, l1.getTerminal1());
+        assertReactivePowerEquals(-1098.933, l1.getTerminal1());
+        assertActivePowerEquals(-101, l1.getTerminal2());
+        assertReactivePowerEquals(1122.987, l1.getTerminal2());
+        assertActivePowerEquals(0, svc1.getTerminal());
+        assertReactivePowerEquals(-1268.445, svc1.getTerminal());
+    }
+
+    @Test
+    void testSvcWithSlope3() {
+        Generator gen = network.getVoltageLevel("vl2").newGenerator()
+                .setId("gen")
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setTargetP(0)
+                .setTargetV(385)
+                .setTargetQ(100)
+                .setMaxP(100)
+                .setMinP(0)
+                .setVoltageRegulatorOn(true)
+                .add();
+
+        svc1.setVoltageSetPoint(385)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(390, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(385, bus2);
+        assertAngleEquals(0.116345, bus2);
+        assertReactivePowerEquals(228.948, svc1.getTerminal()); // same behaviour as slope = 0
+        assertReactivePowerEquals(228.948, gen.getTerminal()); // same behaviour as slope = 0
+    }
+
+    @Test
+    void testSvcWithSlope4() {
+
+        StaticVarCompensator svc2 = network.getVoltageLevel("vl2").newStaticVarCompensator()
+                .setId("svc2")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setVoltageSetpoint(385)
+                .setBmin(-0.008)
+                .setBmax(0.008)
+                .add();
+
+        svc1.setVoltageSetPoint(385)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        svc2.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
+        svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(390, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(385, bus2);
+        assertAngleEquals(0.116345, bus2);
+        assertReactivePowerEquals(228.948, svc1.getTerminal()); // same behaviour as slope = 0
+        assertReactivePowerEquals(228.948, svc2.getTerminal()); // same behaviour as slope = 0
+    }
 }

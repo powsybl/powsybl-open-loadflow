@@ -47,7 +47,23 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         List<LfBus> controllerBusesWithVoltageControlOn = controllerBuses.stream()
             .filter(LfBus::isVoltageControllerEnabled)
             .collect(Collectors.toList());
-        equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
+
+        // is there one static var compensator with a non-zero slope
+        boolean hasEquationBusVWithSlope = false;
+        if (controllerBuses.size() == 1) {
+            List<LfGenerator> generatorsControllingVoltage = controllerBuses.iterator().next().getGenerators().stream()
+                    .filter(lfGenerator -> lfGenerator.hasVoltageControl())
+                    .collect(Collectors.toList());
+            List<LfGenerator> generatorsControllingVoltageWithSlope = generatorsControllingVoltage.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
+            hasEquationBusVWithSlope = (generatorsControllingVoltageWithSlope.size() == 1) && creationParameters.isVoltagePerReactivePowerControl();
+        }
+
+        if (!hasEquationBusVWithSlope) {
+            equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
+        } else {
+            // we only support one controlling static var compensator without any other controlling generators
+            equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V_SLOPE).setActive(false);
+        }
 
         // create reactive power equations on controller buses that have voltage control on
         if (!controllerBusesWithVoltageControlOn.isEmpty()) {

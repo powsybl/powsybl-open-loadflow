@@ -91,8 +91,7 @@ public class GeneratorWithSlopeVoltageEquationTerm extends AbstractNamedEquation
     public void update(double[] x) {
         Objects.requireNonNull(x);
 
-        // Equation qBus = (Equation) bus.getQ();
-        Equation qBus = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
+        Equation qBus = (Equation) bus.getQ();
 
         EvalAndDerOnTermsFromEquationBUSQ evalAndDerOnTermsFromEquationBUSQ = evalAndDerOnTermsFromEquationBUSQ(x, qBus);
 
