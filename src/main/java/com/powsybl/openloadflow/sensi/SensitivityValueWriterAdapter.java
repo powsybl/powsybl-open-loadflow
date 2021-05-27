@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * Adapter to old legacy API.
+ *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class SensitivityValueWriterAdapter implements SensitivityValueWriter {

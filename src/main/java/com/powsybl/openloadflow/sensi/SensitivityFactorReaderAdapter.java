@@ -24,9 +24,10 @@ import com.powsybl.sensitivity.factors.variables.TargetVoltage;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
+ * Adapter from old legacy API to new one.
+ *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class SensitivityFactorReaderAdapter implements SensitivityFactorReader {
@@ -37,59 +38,63 @@ public class SensitivityFactorReaderAdapter implements SensitivityFactorReader {
 
     private final List<Contingency> contingencies;
 
+    private final List<SensitivityVariableSet> variableSets;
+
     public SensitivityFactorReaderAdapter(Network network, SensitivityFactorsProvider sensitivityFactorsProvider,
-                                          List<Contingency> contingencies) {
+                                          List<Contingency> contingencies, List<SensitivityVariableSet> variableSets) {
         this.network = Objects.requireNonNull(network);
         this.sensitivityFactorsProvider = Objects.requireNonNull(sensitivityFactorsProvider);
         this.contingencies = Objects.requireNonNull(contingencies);
+        this.variableSets = Objects.requireNonNull(variableSets);
     }
 
     @Override
     public void read(Handler handler) {
+        ContingencyContext commonContingencyContext = ContingencyContext.createAllContingencyContext();
         for (SensitivityFactor factor : sensitivityFactorsProvider.getCommonFactors(network)) {
-            read(handler, factor);
+            read(handler, factor, commonContingencyContext);
         }
-        // FIXME additional factors are not yet supported
-        if (!sensitivityFactorsProvider.getAdditionalFactors(network).isEmpty()) {
-            throw new UnsupportedOperationException("Factors specific to base case not yet supported");
+
+        ContingencyContext noContingencyContext = ContingencyContext.createNoneContingencyContext();
+        for (SensitivityFactor factor : sensitivityFactorsProvider.getAdditionalFactors(network)) {
+            read(handler, factor, noContingencyContext);
         }
+
         for (Contingency contingency : contingencies) {
-            if (!sensitivityFactorsProvider.getAdditionalFactors(network, contingency.getId()).isEmpty()) {
-                throw new UnsupportedOperationException("Factors specific to one contingency not yet supported");
+            ContingencyContext contingencyContext = ContingencyContext.createSpecificContingencyContext(contingency.getId());
+            for (SensitivityFactor factor : sensitivityFactorsProvider.getAdditionalFactors(network, contingency.getId())) {
+                read(handler, factor, contingencyContext);
             }
         }
     }
 
-    private void read(Handler handler, SensitivityFactor factor) {
+    private void read(Handler handler, SensitivityFactor factor, ContingencyContext contingencyContext) {
         if (factor instanceof BranchFlowPerInjectionIncrease) {
             BranchFlow branchFlow = ((BranchFlowPerInjectionIncrease) factor).getFunction();
             InjectionIncrease injectionIncrease = ((BranchFlowPerInjectionIncrease) factor).getVariable();
-            handler.onSimpleFactor(factor, SensitivityFunctionType.BRANCH_ACTIVE_POWER, branchFlow.getBranchId(),
-                    SensitivityVariableType.INJECTION_ACTIVE_POWER, injectionIncrease.getInjectionId());
+            handler.onFactor(factor, SensitivityFunctionType.BRANCH_ACTIVE_POWER, branchFlow.getBranchId(),
+                    SensitivityVariableType.INJECTION_ACTIVE_POWER, injectionIncrease.getInjectionId(), false, contingencyContext);
         } else if (factor instanceof BranchFlowPerPSTAngle) {
             BranchFlow branchFlow = ((BranchFlowPerPSTAngle) factor).getFunction();
             PhaseTapChangerAngle phaseTapChangerAngle = ((BranchFlowPerPSTAngle) factor).getVariable();
-            handler.onSimpleFactor(factor, SensitivityFunctionType.BRANCH_ACTIVE_POWER, branchFlow.getBranchId(),
-                    SensitivityVariableType.TRANSFORMER_PHASE, phaseTapChangerAngle.getPhaseTapChangerHolderId());
+            handler.onFactor(factor, SensitivityFunctionType.BRANCH_ACTIVE_POWER, branchFlow.getBranchId(),
+                    SensitivityVariableType.TRANSFORMER_PHASE, phaseTapChangerAngle.getPhaseTapChangerHolderId(), false, contingencyContext);
         } else if (factor instanceof BranchIntensityPerPSTAngle) {
             BranchIntensity branchIntensity = ((BranchIntensityPerPSTAngle) factor).getFunction();
             PhaseTapChangerAngle phaseTapChangerAngle = ((BranchIntensityPerPSTAngle) factor).getVariable();
-            handler.onSimpleFactor(factor, SensitivityFunctionType.BRANCH_CURRENT, branchIntensity.getBranchId(),
-                    SensitivityVariableType.TRANSFORMER_PHASE, phaseTapChangerAngle.getPhaseTapChangerHolderId());
+            handler.onFactor(factor, SensitivityFunctionType.BRANCH_CURRENT, branchIntensity.getBranchId(),
+                    SensitivityVariableType.TRANSFORMER_PHASE, phaseTapChangerAngle.getPhaseTapChangerHolderId(), false, contingencyContext);
         } else if (factor instanceof BusVoltagePerTargetV) {
             BusVoltage busVoltage = ((BusVoltagePerTargetV) factor).getFunction();
             TargetVoltage targetVoltage = ((BusVoltagePerTargetV) factor).getVariable();
             Bus bus = busVoltage.getBusRef().resolve(network, TopologyLevel.BUS_BRANCH).orElseThrow(() -> new PowsyblException("The bus ref for '" + busVoltage.getId() + "' cannot be resolved."));
-            handler.onSimpleFactor(factor, SensitivityFunctionType.BUS_VOLTAGE, bus.getId(),
-                SensitivityVariableType.BUS_TARGET_VOLTAGE, targetVoltage.getEquipmentId());
+            handler.onFactor(factor, SensitivityFunctionType.BUS_VOLTAGE, bus.getId(),
+                SensitivityVariableType.BUS_TARGET_VOLTAGE, targetVoltage.getEquipmentId(), false, contingencyContext);
         } else if (factor instanceof BranchFlowPerLinearGlsk) {
             BranchFlow branchFlow = ((BranchFlowPerLinearGlsk) factor).getFunction();
             LinearGlsk linearGlsk = ((BranchFlowPerLinearGlsk) factor).getVariable();
-            List<WeightedSensitivityVariable> weightedVariables = linearGlsk.getGLSKs().entrySet().stream()
-                    .map(e -> new WeightedSensitivityVariable(e.getKey(), e.getValue()))
-                    .collect(Collectors.toList());
-            handler.onMultipleVariablesFactor(factor, SensitivityFunctionType.BRANCH_ACTIVE_POWER, branchFlow.getBranchId(),
-                    SensitivityVariableType.INJECTION_ACTIVE_POWER, linearGlsk.getId(), weightedVariables);
+            handler.onFactor(factor, SensitivityFunctionType.BRANCH_ACTIVE_POWER, branchFlow.getBranchId(),
+                    SensitivityVariableType.INJECTION_ACTIVE_POWER, linearGlsk.getId(), true, contingencyContext);
         } else {
             throw new UnsupportedOperationException("Only factors of type BranchFlow are supported");
         }

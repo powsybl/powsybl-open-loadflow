@@ -14,7 +14,6 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import net.jafama.FastMath;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.slf4j.Logger;
@@ -23,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
@@ -100,8 +100,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         if (deltaTargetV * controlledBus.getNominalV() > TARGET_V_EPSILON) {
             String busesId = vc.getControllerBuses().stream().map(LfBus::getId).collect(Collectors.joining(", "));
             LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by buses '{}' with a different target voltage: {} (kept) and {} (ignored)",
-                    controllerBus.getId(), controlledBus.getId(), busesId,
-                    voltageControlTargetV * controlledBus.getNominalV(), controllerTargetV * controlledBus.getNominalV());
+                    controllerBus.getId(), controlledBus.getId(), busesId, controllerTargetV * controlledBus.getNominalV(),
+                    voltageControlTargetV * controlledBus.getNominalV());
         }
     }
 
@@ -119,8 +119,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         double targetV = lfGenerator.getTargetV();
         if (FastMath.abs(previousTargetV - targetV) > TARGET_V_EPSILON) {
             String generatorIds = controllerBus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
-            throw new PowsyblException("Generators [" + generatorIds + "] are connected to the same bus '" + controllerBus.getId()
-                + "' with a different target voltages: " + targetV * controlledBus.getNominalV() + " and " + previousTargetV * controlledBus.getNominalV());
+            LOGGER.error("Generators [{}] are connected to the same bus '{}' with different target voltages: {} (kept) and {} (rejected)",
+                generatorIds, controllerBus.getId(), targetV * controlledBus.getNominalV(), previousTargetV * controlledBus.getNominalV());
         }
     }
 
@@ -130,7 +130,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static LfBusImpl createBus(Bus bus, LfNetworkParameters parameters, LfNetwork lfNetwork, LoadingContext loadingContext,
                                        LfNetworkLoadingReport report) {
-        LfBusImpl lfBus = LfBusImpl.create(bus, lfNetwork);
+        LfBusImpl lfBus = LfBusImpl.create(bus, lfNetwork, participateToSlackDistribution(parameters, bus));
 
         bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
 
@@ -436,9 +436,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private static LfNetwork create(MutableInt num, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
-        LfNetwork lfNetwork = new LfNetwork(num.getValue(), parameters.getSlackBusSelector());
-        num.increment();
+    private static LfNetwork create(int numCC, int numSC, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
+        // NameSlackBusSelector is only available for the {CC0,SC0} network so far
+        SlackBusSelector selector = (numCC != 0 || numSC != 0) && parameters.getSlackBusSelector() instanceof NameSlackBusSelector ?
+            new MostMeshedSlackBusSelector() : parameters.getSlackBusSelector();
+
+        LfNetwork lfNetwork = new LfNetwork(numCC, numSC, selector);
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
@@ -463,7 +466,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 .withValue("nbGenImpacted", report.generatorsDiscardedFromVoltageControlBecauseNotStarted)
                 .build());
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
-                    lfNetwork.getNum(), report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
+                    lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall > 0) {
             reporter.report(Report.builder()
@@ -472,38 +475,38 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 .withValue("nbGenImpacted", report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall)
                 .build());
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because of a too small max reactive range",
-                    lfNetwork.getNum(), report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
+                    lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP equals 0",
-                    lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero);
+                    lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP > maxP",
-                    lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP);
+                    lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of maxP not plausible",
-                    lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
+                    lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of maxP equals to minP",
-                    lfNetwork.getNum(), report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP);
+                    lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP);
         }
         if (report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds > 0) {
             LOGGER.warn("Network {}: {} branches have been discarded because connected to same bus at both ends",
-                    lfNetwork.getNum(), report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds);
+                    lfNetwork, report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds);
         }
         if (report.linesWithDifferentNominalVoltageAtBothEnds > 0) {
             LOGGER.warn("Network {}: {} lines have a different nominal voltage at both ends: a ratio has been added",
-                    lfNetwork.getNum(), report.linesWithDifferentNominalVoltageAtBothEnds);
+                    lfNetwork, report.linesWithDifferentNominalVoltageAtBothEnds);
         }
         if (report.nonImpedantBranches > 0) {
-            LOGGER.warn("Network {}: {} branches are non impedant", lfNetwork.getNum(), report.nonImpedantBranches);
+            LOGGER.warn("Network {}: {} branches are non impedant", lfNetwork, report.nonImpedantBranches);
         }
 
         if (report.voltageControllerCount == 0) {
-            LOGGER.error("Discard network {} because there is no equipment to control voltage", lfNetwork.getNum());
+            LOGGER.error("Discard network {} because there is no equipment to control voltage", lfNetwork);
             lfNetwork.setValid(false);
         }
 
@@ -545,11 +548,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 }
             }
 
-            MutableInt num = new MutableInt(0);
-            List<LfNetwork> lfNetworks = busesByCc.entrySet().stream()
-                    .filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
-                    .map(e -> create(num, e.getValue(), switchesByCc.get(e.getKey()), parameters,
-                        reporter.createSubReporter("createLfNetwork", "Create network ${networkNum}", "networkNum", num.getValue())))
+            Stream<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filteredBusesByCcStream = parameters.isComputeMainConnectedComponentOnly()
+                ? busesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
+                : busesByCc.entrySet().stream();
+
+            List<LfNetwork> lfNetworks = filteredBusesByCcStream
+                    .map(e -> create(e.getKey().getLeft(), e.getKey().getRight(), e.getValue(), switchesByCc.get(e.getKey()), parameters,
+                        reporter.createSubReporter("createLfNetwork", "Create network ${networkNum}", "networkNum", e.getKey().getLeft())))
                     .collect(Collectors.toList());
 
             stopwatch.stop();
@@ -560,5 +565,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
 
         return Optional.empty();
+    }
+
+    static boolean participateToSlackDistribution(LfNetworkParameters parameters, Bus b) {
+        return parameters.getCountriesToBalance().isEmpty()
+               || b.getVoltageLevel().getSubstation().getCountry()
+                   .map(country -> parameters.getCountriesToBalance().contains(country))
+                   .orElse(false);
     }
 }

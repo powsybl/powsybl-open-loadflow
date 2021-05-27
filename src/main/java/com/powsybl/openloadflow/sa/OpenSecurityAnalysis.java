@@ -11,10 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.TopologyKind;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -112,7 +109,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, allSwitchesToOpen);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen);
 
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters, lfParametersExt, true);
 

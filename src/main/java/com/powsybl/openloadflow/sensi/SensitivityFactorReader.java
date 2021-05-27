@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.sensi;
 
-import java.util.List;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -15,9 +13,7 @@ public interface SensitivityFactorReader {
 
     interface Handler {
 
-        void onSimpleFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId);
-
-        void onMultipleVariablesFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, List<WeightedSensitivityVariable> variables);
+        void onFactor(Object factorContext, SensitivityFunctionType functionType, String functionId, SensitivityVariableType variableType, String variableId, boolean variableSet, ContingencyContext contingencyContext);
     }
 
     void read(Handler handler);

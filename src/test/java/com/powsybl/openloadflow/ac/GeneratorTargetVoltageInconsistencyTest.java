@@ -6,12 +6,12 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.ParameterConstants;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -91,9 +91,16 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setB2(0)
                 .add();
 
-        FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
-        PowsyblException exception = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, slackBusSelector));
-        assertEquals("Generators [g1, g2] are connected to the same bus 'vl1_0' with a different target voltages: 22.0 and 23.0", exception.getMessage());
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        LfBus controlledBus = lfNetwork.getBusById("vl1_0");
+        assertNotNull(controlledBus);
+
+        Optional<VoltageControl> vc = controlledBus.getVoltageControl();
+        assertTrue(vc.isPresent());
+        assertEquals(23, vc.get().getTargetValue() * controlledBus.getNominalV());
     }
 
     @Test
@@ -193,13 +200,16 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .add();
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
-        LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false);
+        LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false,
+                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
+                true, Collections.emptySet());
 
         Generator g = network.getGenerator("g2");
         assertEquals(0.5625, g.getTargetV() / g.getTerminal().getVoltageLevel().getNominalV());
 
         List<LfNetwork> networkList = LfNetwork.load(network, parameters);
-        LfGenerator generator = networkList.get(0).getBusById("vl2_0").getGenerators().get(0);
+        LfNetwork mainNetwork = networkList.get(0);
+        LfGenerator generator = mainNetwork.getBusById("vl2_0").getGenerators().get(0);
         assertEquals("g2", generator.getId());
         assertEquals(PlausibleValues.MIN_TARGET_VOLTAGE_PU, generator.getTargetV());
     }
@@ -301,13 +311,16 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .add();
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
-        LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false);
+        LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false,
+                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
+                true, Collections.emptySet());
 
         assertEquals(412, network.getGenerator("g1").getTargetV());
         assertEquals(413, g2.getTargetV());
 
         List<LfNetwork> networkList = LfNetwork.load(network, parameters);
-        Optional<VoltageControl> sharedVoltageControl = networkList.get(0).getBusById("vl2_0").getVoltageControl();
+        LfNetwork mainNetwork = networkList.get(0);
+        Optional<VoltageControl> sharedVoltageControl = mainNetwork.getBusById("vl2_0").getVoltageControl();
         assertTrue(sharedVoltageControl.isPresent());
 
         assertEquals(413 / g2.getTerminal().getVoltageLevel().getNominalV(), sharedVoltageControl.get().getTargetValue());

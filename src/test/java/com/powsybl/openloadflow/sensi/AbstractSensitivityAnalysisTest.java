@@ -6,9 +6,12 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.commons.AbstractConverterTest;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.local.LocalComputationManager;
+import com.powsybl.contingency.BranchContingency;
+import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -17,7 +20,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.NameSlackBusSelector;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
@@ -39,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractSensitivityAnalysisTest {
+public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterTest {
 
     protected final DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
 
@@ -51,13 +54,25 @@ public abstract class AbstractSensitivityAnalysisTest {
         lfParameters.setDc(dc);
         lfParameters.setDistributedSlack(distributedSlack);
         OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new NameSlackBusSelector(slackBusId));
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId(slackBusId);
         lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
         return sensiParameters;
     }
 
     protected static SensitivityAnalysisParameters createParameters(boolean dc, String slackBusId) {
         return createParameters(dc, slackBusId, false);
+    }
+
+    protected static SensitivityAnalysisParameters createParameters(boolean dc) {
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
+        LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
+        lfParameters.setDc(dc);
+        lfParameters.setDistributedSlack(true);
+        OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
+        return sensiParameters;
     }
 
     protected static <T extends Injection<T>> InjectionIncrease createInjectionIncrease(T injection) {
@@ -176,6 +191,59 @@ public abstract class AbstractSensitivityAnalysisTest {
         assertEquals("Injection 'a' not found", e.getCause().getMessage());
     }
 
+    protected void testInjectionNotFoundAdditionalFactor(boolean dc) {
+        Network network = EurostagTutorialExample1Factory.create();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
+        SensitivityFactorsProvider factorsProvider = new SensitivityFactorsProvider() {
+            @Override
+            public List<SensitivityFactor> getCommonFactors(Network network) {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public List<SensitivityFactor> getAdditionalFactors(Network network) {
+                Branch branch = network.getBranch("NHV1_NHV2_1");
+                return Collections.singletonList(new BranchFlowPerInjectionIncrease(createBranchFlow(branch),
+                    new InjectionIncrease("a", "a", "a")));
+            }
+        };
+        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+            factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault());
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Injection 'a' not found", e.getCause().getMessage());
+    }
+
+    protected void testInjectionNotFoundAdditionalFactorContingency(boolean dc) {
+        Network network = EurostagTutorialExample1Factory.create();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
+        SensitivityFactorsProvider factorsProvider = new SensitivityFactorsProvider() {
+            @Override
+            public List<SensitivityFactor> getCommonFactors(Network network) {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public List<SensitivityFactor> getAdditionalFactors(Network network) {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public List<SensitivityFactor> getAdditionalFactors(Network network, String contingencyId) {
+                Branch branch = network.getBranch("NHV1_NHV2_1");
+                return Collections.singletonList(new BranchFlowPerInjectionIncrease(createBranchFlow(branch),
+                    new InjectionIncrease("a", "a", "a")));
+            }
+        };
+        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+            factorsProvider, Collections.singletonList(new Contingency("a", new BranchContingency("NHV1_NHV2_2"))), sensiParameters, LocalComputationManager.getDefault());
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Injection 'a' not found", e.getCause().getMessage());
+    }
+
     protected void testGlskInjectionNotFound(boolean dc) {
         Network network = EurostagTutorialExample1Factory.create();
         runAcLf(network);
@@ -193,6 +261,16 @@ public abstract class AbstractSensitivityAnalysisTest {
         CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Injection 'a' not found", e.getCause().getMessage());
+    }
+
+    protected void testHvdcInjectionNotFound(boolean dc) {
+        SensitivityAnalysisParameters sensiParameters = createParameters(dc, "b1_vl_0", true);
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
+        ContingencyContext contingencyContext = new ContingencyContext(ContingencyContextType.ALL, null);
+        List<SensitivityFactor2> factors = List.of(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, "nop", false, contingencyContext));
+
+        PowsyblException e = assertThrows(PowsyblException.class, () -> sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, factors));
+        assertEquals("HVDC line 'nop' cannot be found in the network.", e.getMessage());
     }
 
     protected void testBranchNotFound(boolean dc) {
@@ -246,7 +324,8 @@ public abstract class AbstractSensitivityAnalysisTest {
                 createInjectionIncrease(gen)));
         };
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
-        assertTrue(result.getSensitivityValues().isEmpty());
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(0f, getValue(result, "g3", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
     protected void testPhaseShifterOutsideMainComponent(boolean dc) {
@@ -258,7 +337,8 @@ public abstract class AbstractSensitivityAnalysisTest {
                 new PhaseTapChangerAngle("l45", "l45", "l45")));
         };
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
-        assertTrue(result.getSensitivityValues().isEmpty());
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(0d, getValue(result, "l45", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
     protected void testGlskOutsideMainComponent(boolean dc) {
@@ -273,7 +353,8 @@ public abstract class AbstractSensitivityAnalysisTest {
                 new LinearGlsk("glsk", "glsk", glskMap)));
         };
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
-        assertTrue(result.getSensitivityValues().isEmpty());
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(0, getValue(result, "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
     protected void testGlskPartiallyOutsideMainComponent(boolean dc) {
