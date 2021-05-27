@@ -1,6 +1,5 @@
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
@@ -14,9 +13,6 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
-import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
@@ -27,19 +23,18 @@ import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 
-public class DcSecurityAnalysis extends OpenSecurityAnalysis
-{
+public class DcSecurityAnalysis extends OpenSecurityAnalysis {
+
     DcSensitivityAnalysis sensiDC = null;
-    public DcSecurityAnalysis(final Network network, final LimitViolationDetector detector, final LimitViolationFilter filter, final MatrixFactory matrixFactory, final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider)
-    {
+
+    public DcSecurityAnalysis(final Network network, final LimitViolationDetector detector, final LimitViolationFilter filter,
+                              final MatrixFactory matrixFactory, final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
         super(network, detector, filter, matrixFactory, connectivityProvider);
-
-
     }
+
     @Override
     SecurityAnalysisReport runSync(final SecurityAnalysisParameters securityAnalysisParameters, final ContingenciesProvider contingenciesProvider)
     {
@@ -58,21 +53,6 @@ public class DcSecurityAnalysis extends OpenSecurityAnalysis
 
         sensiDC = new DcSensitivityAnalysis(matrixFactory, connectivityProvider);
 
-        SlackBusSelector slackBusSelector = OpenLoadFlowProvider.getSlackBusSelector(network, lfParameters, lfParametersExt);
-        DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector,
-                matrixFactory,
-                true,
-                lfParameters.isDcUseTransformerRatio(),
-                lfParameters.isDistributedSlack(),
-                lfParameters.getBalanceType(),
-                false,
-                lfParametersExt.getPlausibleActivePowerLimit(),
-                lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
-                true,
-                lfParameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
-                lfParameters.getCountriesToBalance());
-
-        List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, dcParameters);
         OpenSensitivityAnalysisProvider providerSensi = new OpenSensitivityAnalysisProvider();
 
         List<SensitivityVariableSet> variableSets = new ArrayList<>();
@@ -88,47 +68,21 @@ public class DcSecurityAnalysis extends OpenSecurityAnalysis
         }
         SensitivityAnalysisResult2 res = providerSensi.run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors);
 
-        List<LimitViolation> limits = new ArrayList<>();
-
-        //Get matching contingency
-        //
-
-        LfNetwork mainNetwork = lfNetworks.get(0);
         for(Contingency c: contingencies) {
             List<SensitivityValue2> values = res.getValues(c.getId());
+            List<LimitViolation> violations = new ArrayList<>();
 
             for(SensitivityValue2 v : values) {
                 SensitivityFactor2 factor = (SensitivityFactor2) v.getFactorContext();
                 String branchId = factor.getFunctionId();
-
-                Map<Pair<String, Branch.Side>, LimitViolation> violations = new HashMap<>();
-                LfBranch lfb = mainNetwork.getBranchById(branchId);
-                Branch b = network.getBranch(branchId);
-                if(v.getFunctionReference() > b.getActivePowerLimits1().getPermanentLimit()) {
-                    lfb.getLimits1().stream()
-                       .filter(temporaryLimit1 -> v.getFunctionReference() > temporaryLimit1.getValue())
-                       .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
-                       .map(temporaryLimit1 -> createLimitViolation1(lfb, temporaryLimit1))
-                       .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
+                Branch branch = network.getBranch(branchId);
+                double permanentLimit = branch.getActivePowerLimits1().getPermanentLimit();
+                if (v.getFunctionReference() >= permanentLimit) {
+                    violations.add(new LimitViolation(branch.getId(), LimitViolationType.OTHER, null,
+                            Integer.MAX_VALUE, permanentLimit, (float) 1., v.getFunctionReference(), Branch.Side.ONE));
                 }
             }
         }
-    }
-
-    List<LfNetwork> createNetworks(Set<Switch> allSwitchesToOpen, DcLoadFlowParameters dcParameters) {
-        List<LfNetwork> lfNetworks;
-        String tmpVariantId = "olf-tmp-" + UUID.randomUUID().toString();
-        network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
-        try {
-            network.getSwitchStream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
-                   .forEach(sw -> sw.setRetained(false));
-            allSwitchesToOpen.forEach(sw -> sw.setRetained(true));
-            LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(dcParameters.getSlackBusSelector(), false, false, false, false,
-                    dcParameters.getPlausibleActivePowerLimit(), false, dcParameters.isComputeMainConnectedComponentOnly(), dcParameters.getCountriesToBalance(), false);
-            lfNetworks = LfNetwork.load(network, lfNetworkParameters, Reporter.NO_OP);
-        } finally {
-            network.getVariantManager().removeVariant(tmpVariantId);
-        }
-        return lfNetworks;
+        return null;
     }
 }

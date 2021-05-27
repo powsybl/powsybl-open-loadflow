@@ -48,8 +48,8 @@ public class AcSecurityAnalysis extends OpenSecurityAnalysis
         super(network, detector, filter, matrixFactory, connectivityProvider, stateMonitors);
     }
 
-    public AcSecurityAnalysis(final Network network, final LimitViolationDetector detector, final LimitViolationFilter filter, final MatrixFactory matrixFactory, final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider)
-    {
+    public AcSecurityAnalysis(final Network network, final LimitViolationDetector detector, final LimitViolationFilter filter,
+                              final MatrixFactory matrixFactory, final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
         super(network, detector, filter, matrixFactory, connectivityProvider);
     }
 
