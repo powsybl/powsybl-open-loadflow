@@ -112,7 +112,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return parametersExt;
     }
 
-    private static SlackBusSelector getSlackBusSelector(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+    public static SlackBusSelector getSlackBusSelector(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusId());
         return parameters.isReadSlackBus() ? new NetworkSlackBusSelector(network, slackBusSelector)
                                            : slackBusSelector;

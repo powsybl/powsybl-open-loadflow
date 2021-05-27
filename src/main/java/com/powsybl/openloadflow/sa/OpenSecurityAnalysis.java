@@ -59,21 +59,21 @@ import java.util.stream.Stream;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class OpenSecurityAnalysis {
+public abstract class OpenSecurityAnalysis {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(OpenSecurityAnalysis.class);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(OpenSecurityAnalysis.class);
 
-    private final Network network;
+    protected final Network network;
 
-    private final LimitViolationDetector detector;
+    protected final LimitViolationDetector detector;
 
-    private final LimitViolationFilter filter;
+    protected final LimitViolationFilter filter;
 
-    private final List<SecurityAnalysisInterceptor> interceptors = new ArrayList<>();
+    protected final List<SecurityAnalysisInterceptor> interceptors = new ArrayList<>();
 
-    private final MatrixFactory matrixFactory;
+    protected final MatrixFactory matrixFactory;
 
-    private final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider;
+    protected final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider;
 
     private final StateMonitorIndex monitorIndex;
 
@@ -124,65 +124,14 @@ public class OpenSecurityAnalysis {
         });
     }
 
-    SecurityAnalysisReport runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider) {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-
-        LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
-        OpenLoadFlowParameters lfParametersExt = OpenLoadFlowProvider.getParametersExt(securityAnalysisParameters.getLoadFlowParameters());
-        // in some post-contingency computation, it does not remain elements to participate to slack distribution.
-        // in that case, the remaining mismatch is put on the slack bus and no exception is thrown.
-        lfParametersExt.setThrowsExceptionInCaseOfSlackDistributionFailure(false);
-
-        // load contingencies
-        List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
-
-        // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
-        Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen);
-
-        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters, lfParametersExt, true);
-
-        // create networks including all necessary switches
-        List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters);
-
-        // run simulation on largest network
-        if (lfNetworks.isEmpty()) {
-            throw new PowsyblException("Empty network list");
-        }
-        LfNetwork largestNetwork = lfNetworks.get(0);
-        if (!largestNetwork.isValid()) {
-            throw new PowsyblException("Largest network is invalid");
-        }
-        SecurityAnalysisResult result = runSimulations(largestNetwork, propagatedContingencies, acParameters, lfParameters, lfParametersExt);
-
-        stopwatch.stop();
-        LOGGER.info("Security analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
-
-        return new SecurityAnalysisReport(result);
-    }
-
-    List<LfNetwork> createNetworks(Set<Switch> allSwitchesToOpen, AcLoadFlowParameters acParameters) {
-        List<LfNetwork> lfNetworks;
-        String tmpVariantId = "olf-tmp-" + UUID.randomUUID().toString();
-        network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
-        try {
-            network.getSwitchStream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
-                    .forEach(sw -> sw.setRetained(false));
-            allSwitchesToOpen.forEach(sw -> sw.setRetained(true));
-            lfNetworks = AcloadFlowEngine.createNetworks(network, acParameters, Reporter.NO_OP);
-        } finally {
-            network.getVariantManager().removeVariant(tmpVariantId);
-        }
-        return lfNetworks;
-    }
-
+    abstract SecurityAnalysisReport runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider);
     /**
      * Detect violations on branches and on buses
      * @param branches branches on which the violation limits are checked
      * @param buses buses on which the violation limits are checked
      * @param violations list on which the violation limits encountered are added
      */
-    private void detectViolations(Stream<LfBranch> branches, Stream<LfBus> buses, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
+    protected void detectViolations(Stream<LfBranch> branches, Stream<LfBus> buses, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
         // Detect violation limits on branches
         branches.forEach(branch -> detectBranchViolations(branch, violations));
 
@@ -195,7 +144,7 @@ public class OpenSecurityAnalysis {
      * @param branch branch of interest
      * @param violations list on which the violation limits encountered are added
      */
-    private void detectBranchViolations(LfBranch branch, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
+    protected void detectBranchViolations(LfBranch branch, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
         // detect violation limits on a branch
         if (branch.getBus1() != null) {
             branch.getLimits1().stream()
@@ -213,21 +162,21 @@ public class OpenSecurityAnalysis {
         }
     }
 
-    private static LimitViolation createLimitViolation1(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit1) {
+    protected static LimitViolation createLimitViolation1(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit1) {
         double scale1 = PerUnit.SB / branch.getBus1().getNominalV();
         return new LimitViolation(branch.getId(), LimitViolationType.CURRENT, null,
             temporaryLimit1.getAcceptableDuration(), temporaryLimit1.getValue() * scale1,
             (float) 1., branch.getI1().eval() * scale1, Branch.Side.ONE);
     }
 
-    private static LimitViolation createLimitViolation2(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit2) {
+    protected static LimitViolation createLimitViolation2(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit2) {
         double scale2 = PerUnit.SB / branch.getBus2().getNominalV();
         return new LimitViolation(branch.getId(), LimitViolationType.CURRENT, null,
             temporaryLimit2.getAcceptableDuration(), temporaryLimit2.getValue() * scale2,
             (float) 1., branch.getI2().eval() * scale2, Branch.Side.TWO);
     }
 
-    private static Pair<String, Branch.Side> getSubjectSideId(LimitViolation limitViolation) {
+    protected static Pair<String, Branch.Side> getSubjectSideId(LimitViolation limitViolation) {
         return Pair.of(limitViolation.getSubjectId(), limitViolation.getSide());
     }
 
@@ -236,7 +185,7 @@ public class OpenSecurityAnalysis {
      * @param bus branch of interest
      * @param violations list on which the violation limits encountered are added
      */
-    private void detectBusViolations(LfBus bus, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
+    protected void detectBusViolations(LfBus bus, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
         // detect violation limits on a bus
         double scale = bus.getNominalV();
         Double busV = bus.getV().eval();
@@ -252,71 +201,6 @@ public class OpenSecurityAnalysis {
         }
     }
 
-    private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
-                                                  LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
-        // create a contingency list that impact the network
-        List<LfContingency> contingencies = createContingencies(propagatedContingencies, network);
-        List<BranchResult> preContingencyBranchResults = new ArrayList<>();
-        List<BusResults> preContingencyBusResults = new ArrayList<>();
-        List<ThreeWindingsTransformerResult> preContingencyThreeWindingsTransformerResults = new ArrayList<>();
-
-        // run pre-contingency simulation
-        try (AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters)) {
-            AcLoadFlowResult preContingencyLoadFlowResult = engine.run(Reporter.NO_OP);
-            addMonitorInfo(network, monitorIndex.getNoneStateMonitor(), preContingencyBranchResults, preContingencyBusResults,
-                    preContingencyThreeWindingsTransformerResults);
-            addMonitorInfo(network, monitorIndex.getAllStateMonitor(), preContingencyBranchResults, preContingencyBusResults,
-                    preContingencyThreeWindingsTransformerResults);
-            boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
-            Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations = new HashMap<>();
-
-            // only run post-contingency simulations if pre-contingency simulation is ok
-            List<PostContingencyResult> postContingencyResults = new ArrayList<>();
-            if (preContingencyComputationOk) {
-                detectViolations(network.getBranches().stream(), network.getBuses().stream(), preContingencyLimitViolations);
-
-                LOGGER.info("Save pre-contingency state");
-
-                // save base state for later restoration after each contingency
-                Map<LfBus, BusState> busStates = BusState.createBusStates(network.getBuses());
-                Map<LfBranch, BranchState> branchStates = BranchState.createBranchStates(network.getBranches());
-                for (LfBus bus : network.getBuses()) {
-                    bus.setVoltageControlSwitchOffCount(0);
-                }
-
-                // start a simulation for each of the contingency
-                Iterator<LfContingency> contingencyIt = contingencies.iterator();
-                while (contingencyIt.hasNext()) {
-                    LfContingency lfContingency = contingencyIt.next();
-
-                    for (LfBus bus : lfContingency.getBuses()) {
-                        bus.setDisabled(true);
-                    }
-                    for (LfBranch branch : lfContingency.getBranches()) {
-                        branch.setDisabled(true);
-                    }
-
-                    distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
-
-                    PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency, preContingencyLimitViolations);
-                    postContingencyResults.add(postContingencyResult);
-
-                    if (contingencyIt.hasNext()) {
-                        LOGGER.info("Restore pre-contingency state");
-
-                        // restore base state
-                        BusState.restoreBusStates(busStates);
-                        BranchState.restoreBranchStates(branchStates);
-                    }
-                }
-            }
-
-            LimitViolationsResult preContingencyResult = new LimitViolationsResult(preContingencyComputationOk, new ArrayList<>(preContingencyLimitViolations.values()));
-            return new SecurityAnalysisResult(preContingencyResult, postContingencyResults, preContingencyBranchResults,
-                    preContingencyBusResults, preContingencyThreeWindingsTransformerResults);
-        }
-    }
-
     public static void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters,
                                            OpenLoadFlowParameters openLoadFlowParameters) {
         if (loadFlowParameters.isDistributedSlack() && Math.abs(mismatch) > 0) {
@@ -325,63 +209,13 @@ public class OpenSecurityAnalysis {
         }
     }
 
-    private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcloadFlowEngine engine, LfContingency lfContingency,
-                                                               Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations) {
-        LOGGER.info("Start post contingency '{}' simulation", lfContingency.getContingency().getId());
-
-        Stopwatch stopwatch = Stopwatch.createStarted();
-
-        List<Equation> deactivatedEquations = new ArrayList<>();
-        List<EquationTerm> deactivatedEquationTerms = new ArrayList<>();
-        List<BranchResult> branchResults = new ArrayList<>();
-        List<BusResults> busResults = new ArrayList<>();
-        List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
-        LfContingency.deactivateEquations(lfContingency, engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
-
-        // restart LF on post contingency equation system
-        engine.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
-        AcLoadFlowResult postContingencyLoadFlowResult = engine.run(Reporter.NO_OP);
-        boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
-        Map<Pair<String, Branch.Side>, LimitViolation> postContingencyLimitViolations = new HashMap<>();
-        if (postContingencyComputationOk) {
-            detectViolations(
-                    network.getBranches().stream().filter(b -> !b.isDisabled()),
-                    network.getBuses().stream().filter(b -> !b.isDisabled()),
-                    postContingencyLimitViolations);
-            addMonitorInfo(network, monitorIndex.getAllStateMonitor(), branchResults, busResults, threeWindingsTransformerResults);
-            StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(lfContingency.getContingency().getId());
-            if (stateMonitor != null) {
-                addMonitorInfo(network, stateMonitor, branchResults, busResults, threeWindingsTransformerResults);
-            }
-        }
-
-        preContingencyLimitViolations.forEach((subjectSideId, preContingencyViolation) -> {
-            LimitViolation postContingencyViolation = postContingencyLimitViolations.get(subjectSideId);
-            if (violationWeakenedOrEquivalent(preContingencyViolation, postContingencyViolation)) {
-                postContingencyLimitViolations.remove(subjectSideId);
-            }
-        });
-
-        LfContingency.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
-
-        stopwatch.stop();
-        LOGGER.info("Post contingency '{}' simulation done in {} ms", lfContingency.getContingency().getId(),
-                stopwatch.elapsed(TimeUnit.MILLISECONDS));
-
-        return new PostContingencyResult(lfContingency.getContingency(), postContingencyComputationOk, new ArrayList<>(postContingencyLimitViolations.values()),
-                branchResults.stream().collect(Collectors.toMap(BranchResult::getBranchId, Function.identity())),
-                busResults.stream().collect(Collectors.toMap(BusResults::getVoltageLevelId, Function.identity())),
-                threeWindingsTransformerResults.stream().collect(Collectors.toMap(ThreeWindingsTransformerResult::getThreeWindingsTransformerId,
-                        Function.identity())));
-    }
-
     /**
      * Compares two limit violations
      * @param violation1 first limit violation
      * @param violation2 second limit violation
      * @return true if violation2 is weaker than or equivalent to violation1, otherwise false
      */
-    private static boolean violationWeakenedOrEquivalent(LimitViolation violation1, LimitViolation violation2) {
+    protected static boolean violationWeakenedOrEquivalent(LimitViolation violation1, LimitViolation violation2) {
         if (violation2 != null) {
             if (violation2.getLimit() < violation1.getLimit()) {
                 return true; // the limit violated is smaller hence the violation is weaker

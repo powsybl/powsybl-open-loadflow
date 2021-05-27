@@ -140,7 +140,7 @@ class OpenSecurityAnalysisGraphTest {
 
     List<List<LfContingency>> getLoadFlowContingencies(Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
 
-        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+        AcSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
             new LimitViolationFilter(), new DenseMatrixFactory(), connectivityProvider);
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();

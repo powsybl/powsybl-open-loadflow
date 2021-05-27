@@ -59,7 +59,7 @@ class LfContingencyTest extends AbstractConverterTest {
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(2, lfNetworks.size());
 
-        OpenSecurityAnalysis sa = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+        OpenSecurityAnalysis sa = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
             new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
 
         String branchId = "LINE_S3S4";
