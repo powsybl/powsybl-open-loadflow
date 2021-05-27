@@ -49,8 +49,6 @@ public class DcSecurityAnalysis extends OpenSecurityAnalysis {
 
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen);
-
         sensiDC = new DcSensitivityAnalysis(matrixFactory, connectivityProvider);
 
         OpenSensitivityAnalysisProvider providerSensi = new OpenSensitivityAnalysisProvider();
@@ -68,8 +66,24 @@ public class DcSecurityAnalysis extends OpenSecurityAnalysis {
         }
         SensitivityAnalysisResult2 res = providerSensi.run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors);
 
-        for(Contingency c: contingencies) {
-            List<SensitivityValue2> values = res.getValues(c.getId());
+        List<LimitViolation> preContingencyLimitViolations = new ArrayList<>();
+        for(SensitivityValue2 sensValue: res.getValues())
+        {
+            SensitivityFactor2 factor = (SensitivityFactor2) sensValue.getFactorContext();
+            String branchId = factor.getFunctionId();
+            Branch branch = network.getBranch(branchId);
+            double permanentLimit = branch.getActivePowerLimits1().getPermanentLimit();
+            if (sensValue.getFunctionReference() >= permanentLimit) {
+                preContingencyLimitViolations.add(new LimitViolation(branch.getId(), LimitViolationType.OTHER, null,
+                        Integer.MAX_VALUE, permanentLimit, (float) 1., sensValue.getFunctionReference(), Branch.Side.ONE));
+            }
+        }
+
+        LimitViolationsResult preContingencyResult = new LimitViolationsResult(true, preContingencyLimitViolations);
+
+        List<PostContingencyResult> postContingencyResults = new ArrayList<>();
+        for(Contingency contingency : contingencies) {
+            List<SensitivityValue2> values = res.getValues(contingency.getId());
             List<LimitViolation> violations = new ArrayList<>();
 
             for(SensitivityValue2 v : values) {
@@ -82,7 +96,11 @@ public class DcSecurityAnalysis extends OpenSecurityAnalysis {
                             Integer.MAX_VALUE, permanentLimit, (float) 1., v.getFunctionReference(), Branch.Side.ONE));
                 }
             }
+
+            postContingencyResults.add(new PostContingencyResult(contingency, true, violations));
         }
-        return null;
+
+        return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
     }
 }
+;
