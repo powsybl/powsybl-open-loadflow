@@ -495,4 +495,44 @@ class OpenSecurityAnalysisTest {
                         978.937148970407, -1.7348031191643076E-16, 0.0, 4.0061722632990915E-14),
                 report.getResult().getPreContingencyResult().getPreContingencyThreeWindingsTransformerResults().get(0));
     }
+
+    @Test
+    void testSADcMode() {
+
+        Network fourBusNetwork = FourBusNetworkFactory.create();
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId("b1");
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+        ContingenciesProvider contingenciesProvider = network -> Stream.of("l14", "l12")
+                                                                       .map(id -> new Contingency(id, new BranchContingency(id)))
+                                                                       .collect(Collectors.toList());
+
+        fourBusNetwork.getLine("l14").newActivePowerLimits1()
+               .setPermanentLimit(10.0)
+               .beginTemporaryLimit()
+               .setName("10")
+               .setAcceptableDuration(60)
+               .setValue(1000)
+               .endTemporaryLimit()
+               .add();
+
+        fourBusNetwork.getLine("l12").newActivePowerLimits1()
+               .setPermanentLimit(10.0)
+               .beginTemporaryLimit()
+               .setName("10")
+               .setAcceptableDuration(60)
+               .setValue(1000)
+               .endTemporaryLimit()
+               .add();
+
+        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        AbstractSecurityAnalysis securityAnalysis = osaFactory.createDc(fourBusNetwork, null, 0);
+
+        SecurityAnalysisReport result = securityAnalysis.runSync(saParameters, contingenciesProvider);
+        assertTrue(result.getResult().getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+    }
 }

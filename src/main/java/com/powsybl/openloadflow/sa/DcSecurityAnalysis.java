@@ -66,10 +66,12 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             SensitivityFactor2 factor = (SensitivityFactor2) sensValue.getFactorContext();
             String branchId = factor.getFunctionId();
             Branch branch = network.getBranch(branchId);
-            double permanentLimit = branch.getActivePowerLimits1().getPermanentLimit();
-            if (sensValue.getFunctionReference() >= permanentLimit) {
-                preContingencyLimitViolations.add(new LimitViolation(branch.getId(), LimitViolationType.OTHER, null,
-                        Integer.MAX_VALUE, permanentLimit, (float) 1., sensValue.getFunctionReference(), Branch.Side.ONE));
+            if (branch.getActivePowerLimits1() != null) {
+                double permanentLimit = branch.getActivePowerLimits1().getPermanentLimit();
+                if (sensValue.getFunctionReference() >= permanentLimit) {
+                    preContingencyLimitViolations.add(new LimitViolation(branch.getId(), LimitViolationType.OTHER, null,
+                            Integer.MAX_VALUE, permanentLimit, (float) 1., sensValue.getFunctionReference(), Branch.Side.ONE));
+                }
             }
         }
 
@@ -84,10 +86,12 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                 SensitivityFactor2 factor = (SensitivityFactor2) v.getFactorContext();
                 String branchId = factor.getFunctionId();
                 Branch branch = network.getBranch(branchId);
-                double permanentLimit = branch.getActivePowerLimits1().getPermanentLimit();
-                if (v.getFunctionReference() >= permanentLimit) {
-                    violations.add(new LimitViolation(branch.getId(), LimitViolationType.OTHER, null,
-                            Integer.MAX_VALUE, permanentLimit, (float) 1., v.getFunctionReference(), Branch.Side.ONE));
+                if (branch.getActivePowerLimits1() != null) {
+                    double permanentLimit = branch.getActivePowerLimits1().getPermanentLimit();
+                    if (v.getFunctionReference() >= permanentLimit) {
+                        violations.add(new LimitViolation(branch.getId(), LimitViolationType.OTHER, null,
+                                Integer.MAX_VALUE, permanentLimit, (float) 1., v.getFunctionReference(), Branch.Side.ONE));
+                    }
                 }
             }
 
