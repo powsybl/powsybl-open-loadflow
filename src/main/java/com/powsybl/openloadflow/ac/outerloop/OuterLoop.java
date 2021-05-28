@@ -16,8 +16,4 @@ public interface OuterLoop {
     String getType();
 
     OuterLoopStatus check(OuterLoopContext context, Reporter reporter);
-
-    boolean isActive();
-
-    void setActive(boolean active);
 }

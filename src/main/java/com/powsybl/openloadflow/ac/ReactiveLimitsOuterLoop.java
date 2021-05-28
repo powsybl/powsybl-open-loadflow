@@ -232,14 +232,4 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
         return status;
     }
-
-    @Override
-    public boolean isActive() {
-        return true;
-    }
-
-    @Override
-    public void setActive(boolean active) {
-        //nothing to do
-    }
 }

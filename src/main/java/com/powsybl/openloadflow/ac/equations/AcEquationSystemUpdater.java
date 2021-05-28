@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationType;
-import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.List;
@@ -91,8 +88,8 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
     @Override
     public void onVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode) {
+        LfBus bus = voltageControl.getControlled();
         if (newMode == DiscreteVoltageControl.Mode.OFF) {
-            LfBus bus = voltageControl.getControlled();
 
             // de-activate transformer voltage control equation
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V)
@@ -106,8 +103,22 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                 // clean transformer distribution equations
                 equationSystem.removeEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1);
             }
-        } else {
-            // throw new UnsupportedOperationException("TODO");
+        } else { // newMode == DiscreteVoltageControl.Mode.VOLTAGE
+
+            // activate transformer voltage control equation
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V)
+                    .setActive(true);
+
+            if (bus.getDiscreteVoltageControl().getControllers().size() > 1) {
+                // add transformer distribution equations
+                AcEquationSystem.createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
+            }
+
+            for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
+                // de-activate constant R1 equation
+                equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
+                        .setActive(false);
+            }
         }
     }
 }
