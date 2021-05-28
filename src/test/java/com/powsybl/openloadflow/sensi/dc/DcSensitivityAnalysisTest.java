@@ -9,11 +9,13 @@ package com.powsybl.openloadflow.sensi.dc;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.DanglingLineContingency;
 import com.powsybl.contingency.LineContingency;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.network.DanglingLineFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.sensi.*;
@@ -713,5 +715,31 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0d, values.get(2).getValue(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, values.get(2).getFunctionReference(), LoadFlowAssert.DELTA_POWER);
         assertNotNull(values.get(2).getContingencyId());
+    }
+
+    @Test
+    void testDanglingLineSensi() {
+        Network network = DanglingLineFactory.createWithLoad();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0");
+        List<SensitivityFactor2> factors = List.of(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "l1",
+                                                                          SensitivityVariableType.INJECTION_ACTIVE_POWER, "dl1",
+                                                                          false, ContingencyContext.createAllContingencyContext()));
+
+        // dangling line is connected
+        SensitivityAnalysisResult2 result = sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, factors);
+        assertEquals(-0.812d, result.getValue(null, "l1", "dl1").getValue(), LoadFlowAssert.DELTA_POWER);
+
+        // dangling line is connected on base case but will be disconnected by a contingency => 0
+        List<Contingency> contingencies = List.of(new Contingency("c", new DanglingLineContingency("dl1")));
+        result = sensiProvider.run(network, contingencies, Collections.emptyList(), sensiParameters, factors);
+        assertEquals(-0.812d, result.getValue(null, "l1", "dl1").getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, result.getValue("c", "l1", "dl1").getValue(), LoadFlowAssert.DELTA_POWER);
+
+        // dangling line is disconnected on base case => 0
+        network.getDanglingLine("dl1").getTerminal().disconnect();
+        result = sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, factors);
+        assertEquals(0d, result.getValue(null, "l1", "dl1").getValue(), LoadFlowAssert.DELTA_POWER);
     }
 }
