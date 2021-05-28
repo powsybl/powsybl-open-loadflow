@@ -138,6 +138,10 @@ class OpenSecurityAnalysisTest {
         assertEquals(1, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
         assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+
+        StringWriter writer = new StringWriter();
+        Security.print(result, network, writer, new AsciiTableFormatterFactory(), new TableFormatterConfig());
+        System.out.println(writer.toString());
     }
 
     @Test
@@ -507,32 +511,30 @@ class OpenSecurityAnalysisTest {
                 .setSlackBusId("b1");
         lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
         saParameters.setLoadFlowParameters(lfParameters);
-        ContingenciesProvider contingenciesProvider = network -> Stream.of("l14", "l12")
-                                                                       .map(id -> new Contingency(id, new BranchContingency(id)))
-                                                                       .collect(Collectors.toList());
+        ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
+                .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
+                .collect(Collectors.toList());
 
-        fourBusNetwork.getLine("l14").newActivePowerLimits1()
-               .setPermanentLimit(10.0)
-               .beginTemporaryLimit()
-               .setName("10")
-               .setAcceptableDuration(60)
-               .setValue(1000)
-               .endTemporaryLimit()
-               .add();
+        fourBusNetwork.getLine("l14").newActivePowerLimits1().setPermanentLimit(0.1).add();
+        fourBusNetwork.getLine("l12").newActivePowerLimits1().setPermanentLimit(0.2).add();
+        fourBusNetwork.getLine("l23").newActivePowerLimits1().setPermanentLimit(0.25).add();
+        fourBusNetwork.getLine("l34").newActivePowerLimits1().setPermanentLimit(0.15).add();
+        fourBusNetwork.getLine("l13").newActivePowerLimits1().setPermanentLimit(0.1).add();
 
-        fourBusNetwork.getLine("l12").newActivePowerLimits1()
-               .setPermanentLimit(10.0)
-               .beginTemporaryLimit()
-               .setName("10")
-               .setAcceptableDuration(60)
-               .setValue(1000)
-               .endTemporaryLimit()
-               .add();
+        AbstractSecurityAnalysis securityAnalysis = new DcSecurityAnalysis(network);
 
-        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
-        AbstractSecurityAnalysis securityAnalysis = osaFactory.createDc(fourBusNetwork, null, 0);
+        SecurityAnalysisReport report = securityAnalysis.runSync(saParameters, contingenciesProvider);
+        assertTrue(report.getResult().getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+        assertEquals(5, report.getResult().getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(5, report.getResult().getPostContingencyResults().size());
+        assertEquals(4, report.getResult().getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(4, report.getResult().getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(4, report.getResult().getPostContingencyResults().get(2).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(4, report.getResult().getPostContingencyResults().get(3).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(4, report.getResult().getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
 
-        SecurityAnalysisReport result = securityAnalysis.runSync(saParameters, contingenciesProvider);
-        assertTrue(result.getResult().getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+        StringWriter writer = new StringWriter();
+        Security.print(report.getResult(), fourBusNetwork, writer, new AsciiTableFormatterFactory(), new TableFormatterConfig());
+        System.out.println(writer.toString());
     }
 }

@@ -7,7 +7,6 @@ import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -25,6 +24,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     DcSensitivityAnalysis sensiDC = null;
 
+    public DcSecurityAnalysis(final Network network) {
+        super(network);
+    }
+
     public DcSecurityAnalysis(final Network network, final LimitViolationDetector detector, final LimitViolationFilter filter,
                               final MatrixFactory matrixFactory, final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
         super(network, detector, filter, matrixFactory, connectivityProvider);
@@ -33,7 +36,6 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
     @Override
     SecurityAnalysisReport runSync(final SecurityAnalysisParameters securityAnalysisParameters, final ContingenciesProvider contingenciesProvider)
     {
-        LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowProvider.getParametersExt(securityAnalysisParameters.getLoadFlowParameters());
         // in some post-contingency computation, it does not remain elements to participate to slack distribution.
         // in that case, the remaining mismatch is put on the slack bus and no exception is thrown.
@@ -46,7 +48,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
         Set<Switch> allSwitchesToOpen = new HashSet<>();
         sensiDC = new DcSensitivityAnalysis(matrixFactory, connectivityProvider);
 
-        OpenSensitivityAnalysisProvider providerSensi = new OpenSensitivityAnalysisProvider();
+        OpenSensitivityAnalysisProvider sensitivityAnalysisProvider = new OpenSensitivityAnalysisProvider();
 
         List<SensitivityVariableSet> variableSets = new ArrayList<>();
         SensitivityAnalysisParameters sensitivityAnalysisParameters = new SensitivityAnalysisParameters();
@@ -57,18 +59,19 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         List<SensitivityFactor2> factors = new ArrayList<>();
         for (Branch b : network.getBranches()) {
-            factors.add(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, b.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, false, contingencyContext));
+            factors.add(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, b.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                    variableId, false, contingencyContext));
         }
-        SensitivityAnalysisResult2 res = providerSensi.run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors);
+        SensitivityAnalysisResult2 res = sensitivityAnalysisProvider.run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors);
 
         List<LimitViolation> preContingencyLimitViolations = new ArrayList<>();
-        for (SensitivityValue2 sensValue : res.getValues()) {
+        for (SensitivityValue2 sensValue : res.getValues(null)) {
             SensitivityFactor2 factor = (SensitivityFactor2) sensValue.getFactorContext();
             String branchId = factor.getFunctionId();
             Branch branch = network.getBranch(branchId);
             if (branch.getActivePowerLimits1() != null) {
                 double permanentLimit = branch.getActivePowerLimits1().getPermanentLimit();
-                if (sensValue.getFunctionReference() >= permanentLimit) {
+                if (Math.abs(sensValue.getFunctionReference()) >= permanentLimit) {
                     preContingencyLimitViolations.add(new LimitViolation(branch.getId(), LimitViolationType.OTHER, null,
                             Integer.MAX_VALUE, permanentLimit, (float) 1., sensValue.getFunctionReference(), Branch.Side.ONE));
                 }
@@ -88,7 +91,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                 Branch branch = network.getBranch(branchId);
                 if (branch.getActivePowerLimits1() != null) {
                     double permanentLimit = branch.getActivePowerLimits1().getPermanentLimit();
-                    if (v.getFunctionReference() >= permanentLimit) {
+                    if (Math.abs(v.getFunctionReference()) >= permanentLimit) {
                         violations.add(new LimitViolation(branch.getId(), LimitViolationType.OTHER, null,
                                 Integer.MAX_VALUE, permanentLimit, (float) 1., v.getFunctionReference(), Branch.Side.ONE));
                     }
