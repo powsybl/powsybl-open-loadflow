@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sensi.ac;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.DanglingLineContingency;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.IdBasedBusRef;
@@ -563,7 +564,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 line -> (network.getLine(line).getTerminal1().getP() - network1.getLine(line).getTerminal1().getP()) / sensiChange
             ));
 
-        ContingencyContext contingencyContext = ContingencyContext.createAllContingencyContext();
+        ContingencyContext contingencyContext = ContingencyContext.all();
         List<SensitivityFactor2> factors = SensitivityFactor2.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER, List.of("l12", "l13", "l23"),
                                                                            SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"), false, contingencyContext);
         SensitivityAnalysisResult2 result = sensiProvider.run(HvdcNetworkFactory.createNetworkWithGenerators2(), Collections.emptyList(), Collections.emptyList(),
@@ -583,7 +584,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Network network = HvdcNetworkFactory.createNetworkWithGenerators();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", false);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
-        ContingencyContext contingencyContext = ContingencyContext.createAllContingencyContext();
+        ContingencyContext contingencyContext = ContingencyContext.all();
         List<SensitivityFactor2> factors = SensitivityFactor2.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER, List.of("l12", "l13", "l23"),
                                                                            SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"), false, contingencyContext);
         SensitivityAnalysisResult2 result = sensiProvider.run(HvdcNetworkFactory.createNetworkWithGenerators(), Collections.emptyList(), Collections.emptyList(),
@@ -610,7 +611,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 line -> (network.getLine(line).getTerminal1().getP() - network1.getLine(line).getTerminal1().getP()) / sensiChange
             ));
 
-        ContingencyContext contingencyContext = ContingencyContext.createAllContingencyContext();
+        ContingencyContext contingencyContext = ContingencyContext.all();
         List<SensitivityFactor2> factors = SensitivityFactor2.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER, List.of("l12", "l13", "l23", "l25", "l45", "l46", "l56"),
                                                                            SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"), false, contingencyContext);
         SensitivityAnalysisResult2 result = sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, factors);
@@ -642,7 +643,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 lineId -> lineId,
                 line -> (network.getLine(line).getTerminal1().getP() - network1.getLine(line).getTerminal1().getP()) / sensiChange
             ));
-        ContingencyContext contingencyContext = ContingencyContext.createAllContingencyContext();
+        ContingencyContext contingencyContext = ContingencyContext.all();
         List<SensitivityFactor2> factors = SensitivityFactor2.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER, List.of("l12", "l13", "l23", "l25", "l45", "l46", "l56"),
                                                                            SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"), false, contingencyContext);
         SensitivityAnalysisResult2 result = sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, factors);
@@ -727,7 +728,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0");
         List<SensitivityFactor2> factors = List.of(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "l1",
                 SensitivityVariableType.INJECTION_ACTIVE_POWER, "dl1",
-                false, ContingencyContext.createAllContingencyContext()));
+                false, ContingencyContext.all()));
 
         // dangling line is connected
         SensitivityAnalysisResult2 result = sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, factors);

@@ -259,9 +259,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork, parameters.isBreakers());
-            addBranch(lfNetwork, LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), parameters.isTwtSplitShuntAdmittance()), report);
-            addBranch(lfNetwork, LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(), parameters.isTwtSplitShuntAdmittance()), report);
-            addBranch(lfNetwork, LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(), parameters.isTwtSplitShuntAdmittance()), report);
+            LfLegBranch lfBranch1 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), parameters.isTwtSplitShuntAdmittance());
+            LfLegBranch lfBranch2 = LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(), parameters.isTwtSplitShuntAdmittance());
+            LfLegBranch lfBranch3 = LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(), parameters.isTwtSplitShuntAdmittance());
+            addBranch(lfNetwork, lfBranch1, report);
+            addBranch(lfNetwork, lfBranch2, report);
+            addBranch(lfNetwork, lfBranch3, report);
+            lfNetwork.addThreeWindingsTransformer(new LfThreeWindingsTransformer(t3wt.getId(), lfBranch1, lfBranch2, lfBranch3));
         }
 
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
@@ -523,7 +527,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
             Map<Pair<Integer, Integer>, List<Bus>> busesByCc = new TreeMap<>();
             Iterable<Bus> buses = parameters.isBreakers() ? ((Network) network).getBusBreakerView().getBuses()
-                                                          : ((Network) network).getBusView().getBuses();
+                                                            : ((Network) network).getBusView().getBuses();
             for (Bus bus : buses) {
                 Component cc = bus.getConnectedComponent();
                 Component sc = bus.getSynchronousComponent();
@@ -569,8 +573,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     static boolean participateToSlackDistribution(LfNetworkParameters parameters, Bus b) {
         return parameters.getCountriesToBalance().isEmpty()
-               || b.getVoltageLevel().getSubstation().getCountry()
-                   .map(country -> parameters.getCountriesToBalance().contains(country))
-                   .orElse(false);
+                || b.getVoltageLevel().getSubstation().getCountry()
+                .map(country -> parameters.getCountriesToBalance().contains(country))
+                .orElse(false);
     }
 }

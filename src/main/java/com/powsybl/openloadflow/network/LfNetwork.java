@@ -14,6 +14,7 @@ import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.network.impl.LfThreeWindingsTransformer;
 import net.jafama.FastMath;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
@@ -62,6 +63,8 @@ public class LfNetwork {
     private int shuntCount = 0;
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
+
+    private final Map<String, LfThreeWindingsTransformer> threeWindingsTransformersById = new HashMap<>();
 
     private boolean valid = true;
 
@@ -145,6 +148,15 @@ public class LfNetwork {
     public LfBus getBus(int num) {
         updateCache();
         return busesByIndex.get(num);
+    }
+
+    public LfThreeWindingsTransformer getThreeWindingsTransformerById(String id) {
+        Objects.requireNonNull(id);
+        return threeWindingsTransformersById.get(id);
+    }
+
+    public void addThreeWindingsTransformer(LfThreeWindingsTransformer lfThreeWindingsTransformer) {
+        threeWindingsTransformersById.put(lfThreeWindingsTransformer.getLfThreeWindingsTransformerId(), lfThreeWindingsTransformer);
     }
 
     public LfBus getSlackBus() {

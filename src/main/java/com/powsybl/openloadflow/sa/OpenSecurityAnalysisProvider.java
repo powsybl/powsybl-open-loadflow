@@ -20,6 +20,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
+import com.powsybl.security.monitor.StateMonitor;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -48,9 +49,9 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
     public CompletableFuture<SecurityAnalysisReport> run(Network network, String workingVariantId, LimitViolationDetector limitViolationDetector,
                                                          LimitViolationFilter limitViolationFilter, ComputationManager computationManager,
                                                          SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
-                                                         List<SecurityAnalysisInterceptor> interceptors) {
+                                                         List<SecurityAnalysisInterceptor> interceptors, List<StateMonitor> monitors) {
         OpenSecurityAnalysis osa = new OpenSecurityAnalysis(network, limitViolationDetector, limitViolationFilter,
-            new SparseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
+            new SparseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new, monitors);
         interceptors.forEach(osa::addInterceptor);
         return osa.run(workingVariantId, securityAnalysisParameters, contingenciesProvider);
     }

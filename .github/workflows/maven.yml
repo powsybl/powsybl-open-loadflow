@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v1
         with:
           repository: powsybl/powsybl-core
-          ref: refs/heads/integration/refactoring-security-analysis-api
+          ref: refs/heads/monitor-security-analysis
 
       - name: Build and install powsybl-core with Maven
         run: mvn --batch-mode -DskipTests=true --file ../powsybl-core/pom.xml install

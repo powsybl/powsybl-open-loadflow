@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TopologyLevel;
@@ -50,18 +51,18 @@ public class SensitivityFactorReaderAdapter implements SensitivityFactorReader {
 
     @Override
     public void read(Handler handler) {
-        ContingencyContext commonContingencyContext = ContingencyContext.createAllContingencyContext();
+        ContingencyContext commonContingencyContext = ContingencyContext.all();
         for (SensitivityFactor factor : sensitivityFactorsProvider.getCommonFactors(network)) {
             read(handler, factor, commonContingencyContext);
         }
 
-        ContingencyContext noContingencyContext = ContingencyContext.createNoneContingencyContext();
+        ContingencyContext noContingencyContext = ContingencyContext.none();
         for (SensitivityFactor factor : sensitivityFactorsProvider.getAdditionalFactors(network)) {
             read(handler, factor, noContingencyContext);
         }
 
         for (Contingency contingency : contingencies) {
-            ContingencyContext contingencyContext = ContingencyContext.createSpecificContingencyContext(contingency.getId());
+            ContingencyContext contingencyContext = ContingencyContext.specificContingency(contingency.getId());
             for (SensitivityFactor factor : sensitivityFactorsProvider.getAdditionalFactors(network, contingency.getId())) {
                 read(handler, factor, contingencyContext);
             }

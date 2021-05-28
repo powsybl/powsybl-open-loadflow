@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.LoadingLimits;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.openloadflow.network.impl.Transformers;
+import com.powsybl.security.results.BranchResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -186,7 +187,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             double distance = Math.abs(v - discreteVoltageControl.getTargetValue()); // in per unit system
             if (distance > rtc.getTargetDeadband() / 2) {
                 LOGGER.warn("The voltage on bus {} ({} kV) is out of the target value ({} kV) +/- deadband/2 ({} kV)",
-                        discreteVoltageControl.getControlled().getId(), v * nominalV, rtc.getTargetV(), rtc.getTargetDeadband() / 2);
+                    discreteVoltageControl.getControlled().getId(), v * nominalV, rtc.getTargetV(), rtc.getTargetDeadband() / 2);
             }
         }
     }
@@ -204,5 +205,23 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl) {
         this.discreteVoltageControl = discreteVoltageControl;
+    }
+
+    @Override
+    public BranchResult createBranchResult() {
+        if (getBus1() == null && getBus2() == null) {
+            return new BranchResult(getId(), 0, 0, 0, 0, 0, 0);
+        } else if (getBus1() == null) {
+            double currentScale = PerUnit.SB / getBus2().getNominalV();
+            return new BranchResult(getId(), 0, 0, 0,
+                getP2().eval() * PerUnit.SB, getQ2().eval() * PerUnit.SB, getI2().eval() * currentScale);
+        } else if (getBus2() == null) {
+            double currentScale = PerUnit.SB / getBus1().getNominalV();
+            return new BranchResult(getId(), getP1().eval() * PerUnit.SB, getQ1().eval(), getI1().eval() * currentScale, 0, 0, 0);
+        } else {
+            double currentScale = PerUnit.SB / getBus1().getNominalV();
+            return new BranchResult(getId(), getP1().eval() * PerUnit.SB, getQ1().eval(), getI1().eval() * currentScale,
+                getP2().eval() * PerUnit.SB, getQ2().eval() * PerUnit.SB, getI2().eval() * currentScale);
+        }
     }
 }

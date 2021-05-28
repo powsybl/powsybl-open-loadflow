@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.security.results.BusResults;
 
 import java.util.List;
 import java.util.Optional;
@@ -124,4 +125,6 @@ public interface LfBus extends LfElement {
     Evaluable getQ();
 
     boolean isParticipating();
+
+    BusResults createBusResult();
 }

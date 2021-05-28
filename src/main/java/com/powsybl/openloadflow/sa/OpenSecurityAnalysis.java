@@ -25,12 +25,18 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
+import com.powsybl.security.monitor.StateMonitor;
+import com.powsybl.security.monitor.StateMonitorIndex;
+import com.powsybl.security.results.BranchResult;
+import com.powsybl.security.results.BusResults;
+import com.powsybl.security.results.ThreeWindingsTransformerResult;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +44,10 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -60,15 +69,23 @@ public class OpenSecurityAnalysis {
 
     private final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider;
 
+    private final StateMonitorIndex monitorIndex;
+
     private static final double POST_CONTINGENCY_INCREASING_FACTOR = 1.1;
 
     public OpenSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
                                 MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
+        this(network, detector, filter, matrixFactory, connectivityProvider, Collections.emptyList());
+    }
+
+    public OpenSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
+                                MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider, List<StateMonitor> stateMonitors) {
         this.network = Objects.requireNonNull(network);
         this.detector = Objects.requireNonNull(detector);
         this.filter = Objects.requireNonNull(filter);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.connectivityProvider = Objects.requireNonNull(connectivityProvider);
+        this.monitorIndex = new StateMonitorIndex(stateMonitors);
     }
 
     public void addInterceptor(SecurityAnalysisInterceptor interceptor) {
@@ -147,8 +164,9 @@ public class OpenSecurityAnalysis {
 
     /**
      * Detect violations on branches and on buses
-     * @param branches branches on which the violation limits are checked
-     * @param buses buses on which the violation limits are checked
+     *
+     * @param branches   branches on which the violation limits are checked
+     * @param buses      buses on which the violation limits are checked
      * @param violations list on which the violation limits encountered are added
      */
     private void detectViolations(Stream<LfBranch> branches, Stream<LfBus> buses, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
@@ -161,7 +179,8 @@ public class OpenSecurityAnalysis {
 
     /**
      * Detect violation limits on one branch and add them to the given list
-     * @param branch branch of interest
+     *
+     * @param branch     branch of interest
      * @param violations list on which the violation limits encountered are added
      */
     private void detectBranchViolations(LfBranch branch, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
@@ -202,7 +221,8 @@ public class OpenSecurityAnalysis {
 
     /**
      * Detect violation limits on one branch and add them to the given list
-     * @param bus branch of interest
+     *
+     * @param bus        branch of interest
      * @param violations list on which the violation limits encountered are added
      */
     private void detectBusViolations(LfBus bus, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
@@ -225,10 +245,17 @@ public class OpenSecurityAnalysis {
                                                   LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
         // create a contingency list that impact the network
         List<LfContingency> contingencies = createContingencies(propagatedContingencies, network);
+        List<BranchResult> preContingencyBranchResults = new ArrayList<>();
+        List<BusResults> preContingencyBusResults = new ArrayList<>();
+        List<ThreeWindingsTransformerResult> preContingencyThreeWindingsTransformerResults = new ArrayList<>();
 
         // run pre-contingency simulation
         try (AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters)) {
             AcLoadFlowResult preContingencyLoadFlowResult = engine.run(Reporter.NO_OP);
+            addMonitorInfos(network, monitorIndex.getNoneStateMonitor(), preContingencyBranchResults::add, preContingencyBusResults::add,
+                    preContingencyThreeWindingsTransformerResults::add, Collections.emptyList(), Collections.emptyList());
+            addMonitorInfos(network, monitorIndex.getAllStateMonitor(), preContingencyBranchResults::add, preContingencyBusResults::add,
+                    preContingencyThreeWindingsTransformerResults::add, Collections.emptyList(), Collections.emptyList());
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations = new HashMap<>();
 
@@ -269,7 +296,8 @@ public class OpenSecurityAnalysis {
             }
 
             LimitViolationsResult preContingencyResult = new LimitViolationsResult(preContingencyComputationOk, new ArrayList<>(preContingencyLimitViolations.values()));
-            return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
+            return new SecurityAnalysisResult(preContingencyResult, postContingencyResults, preContingencyBranchResults,
+                preContingencyBusResults, preContingencyThreeWindingsTransformerResults);
         }
     }
 
@@ -289,7 +317,9 @@ public class OpenSecurityAnalysis {
 
         List<Equation> deactivatedEquations = new ArrayList<>();
         List<EquationTerm> deactivatedEquationTerms = new ArrayList<>();
-
+        List<BranchResult> branchResults = new ArrayList<>();
+        List<BusResults> busResults = new ArrayList<>();
+        List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
         LfContingency.deactivateEquations(lfContingency, engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
 
         // restart LF on post contingency equation system
@@ -302,6 +332,15 @@ public class OpenSecurityAnalysis {
                 network.getBranches().stream().filter(b -> !lfContingency.getBranches().contains(b)),
                 network.getBuses().stream().filter(b -> !lfContingency.getBuses().contains(b)),
                 postContingencyLimitViolations);
+            addMonitorInfos(network, monitorIndex.getAllStateMonitor(), branchResults::add, busResults::add, threeWindingsTransformerResults::add,
+                lfContingency.getBranches().stream().map(LfBranch::getId).collect(Collectors.toList()),
+                lfContingency.getBuses().stream().map(LfBus::getId).collect(Collectors.toList()));
+            StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitor(lfContingency.getContingency().getId());
+            if (stateMonitor != null) {
+                addMonitorInfos(network, stateMonitor, branchResults::add, busResults::add, threeWindingsTransformerResults::add,
+                    lfContingency.getBranches().stream().map(LfBranch::getId).collect(Collectors.toList()),
+                    lfContingency.getBuses().stream().map(LfBus::getId).collect(Collectors.toList()));
+            }
         }
 
         preContingencyLimitViolations.forEach((subjectSideId, preContingencyViolation) -> {
@@ -312,16 +351,20 @@ public class OpenSecurityAnalysis {
         });
 
         LfContingency.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
-
         stopwatch.stop();
         LOGGER.info("Post contingency '{}' simulation done in {} ms", lfContingency.getContingency().getId(),
-                stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-        return new PostContingencyResult(lfContingency.getContingency(), postContingencyComputationOk, new ArrayList<>(postContingencyLimitViolations.values()));
+        return new PostContingencyResult(lfContingency.getContingency(), postContingencyComputationOk, new ArrayList<>(postContingencyLimitViolations.values()),
+            branchResults.stream().collect(Collectors.toMap(BranchResult::getBranchId, Function.identity())),
+            busResults.stream().collect(Collectors.toMap(BusResults::getVoltageLevelId, Function.identity())),
+            threeWindingsTransformerResults.stream().collect(Collectors.toMap(ThreeWindingsTransformerResult::getThreeWindingsTransformerId,
+                Function.identity())));
     }
 
     /**
      * Compares two limit violations
+     *
      * @param violation1 first limit violation
      * @param violation2 second limit violation
      * @return true if violation2 is weaker than or equivalent to violation1, otherwise false
@@ -341,5 +384,39 @@ public class OpenSecurityAnalysis {
 
     List<LfContingency> createContingencies(List<PropagatedContingency> propagatedContingencies, LfNetwork network) {
         return LfContingency.createContingencies(propagatedContingencies, network, network.createDecrementalConnectivity(connectivityProvider), true);
+    }
+
+    private void addMonitorInfos(LfNetwork lfNetwork, StateMonitor monitor, Consumer<BranchResult> branchResultConsumer,
+                                 Consumer<BusResults> busResultsConsumer, Consumer<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer,
+                                 List<String> branchToFilter, List<String> busToFilter) {
+        monitor.getBranchIds().stream().filter(branchId -> !branchToFilter.contains(branchId))
+                .forEach(branchId -> {
+                    LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+                    if (lfBranch != null) {
+                        branchResultConsumer.accept(lfNetwork.getBranchById(branchId).createBranchResult());
+                    }
+                });
+        lfNetwork.getBuses().stream().filter(lfBus -> monitor.getVoltageLevelIds().contains(lfBus.getVoltageLevelId()))
+                .filter(lfBus -> !busToFilter.contains(lfBus.getId()))
+                .forEach(lfBus -> busResultsConsumer.accept(lfBus.createBusResult()));
+        monitor.getThreeWindingsTransformerIds().stream().filter(threeWindingsTransformerId -> {
+            LfThreeWindingsTransformer lfThreeWindingsTransformer = lfNetwork.getThreeWindingsTransformerById(threeWindingsTransformerId);
+            if (lfThreeWindingsTransformer != null) {
+                if (branchToFilter.contains(lfNetwork.getThreeWindingsTransformerById(threeWindingsTransformerId).getBranchId1()) &&
+                    branchToFilter.contains(lfNetwork.getThreeWindingsTransformerById(threeWindingsTransformerId).getBranchId2()) &&
+                    branchToFilter.contains(lfNetwork.getThreeWindingsTransformerById(threeWindingsTransformerId).getBranchId3())) {
+                    return false;
+                } else if (!branchToFilter.contains(lfNetwork.getThreeWindingsTransformerById(threeWindingsTransformerId).getBranchId1()) &&
+                    !branchToFilter.contains(lfNetwork.getThreeWindingsTransformerById(threeWindingsTransformerId).getBranchId2()) &&
+                    !branchToFilter.contains(lfNetwork.getThreeWindingsTransformerById(threeWindingsTransformerId).getBranchId3())) {
+                    return true;
+                } else {
+                    throw new IllegalStateException("A Contingency must contains all branches of a three windings transformer or none");
+                }
+            } else {
+                return false;
+            }
+        }).forEach(threeWindingTransformerId -> threeWindingsTransformerResultConsumer
+                .accept(lfNetwork.getThreeWindingsTransformerById(threeWindingTransformerId).createThreeWindingsTransformerResult()));
     }
 }

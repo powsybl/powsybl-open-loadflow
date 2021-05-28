@@ -12,6 +12,8 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -266,7 +268,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
     protected void testHvdcInjectionNotFound(boolean dc) {
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "b1_vl_0", true);
         Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
-        ContingencyContext contingencyContext = new ContingencyContext(ContingencyContextType.ALL, null);
+        ContingencyContext contingencyContext = new ContingencyContext(null, ContingencyContextType.ALL);
         List<SensitivityFactor2> factors = List.of(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, "nop", false, contingencyContext));
 
         PowsyblException e = assertThrows(PowsyblException.class, () -> sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, factors));
