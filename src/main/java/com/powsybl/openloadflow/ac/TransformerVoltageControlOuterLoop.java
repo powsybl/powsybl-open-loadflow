@@ -24,8 +24,6 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransformerVoltageControlOuterLoop.class);
 
-    private boolean active = true;
-
     @Override
     public String getType() {
         return "Transformer voltage control";
