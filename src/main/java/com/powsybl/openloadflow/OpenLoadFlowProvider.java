@@ -183,7 +183,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                         branchesWithCurrent,
                                         parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
                                         parameters.getCountriesToBalance(),
-                                        parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+                  parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
     }
 
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {

@@ -44,12 +44,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double loadTargetP = 0;
 
-    protected double absLoadTargetP = 0;
-
-    protected double absVariableLoadTargetP = 0;
-
-    protected double fixedLoadTargetP = 0;
-
     protected int loadCount = 0;
 
     protected double loadTargetQ = 0;
@@ -174,12 +168,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         initialLoadTargetP += p0;
         loadTargetP += p0;
         loadTargetQ += load.getQ0();
-        absLoadTargetP += Math.abs(p0);
         LoadDetail loadDetail = load.getExtension(LoadDetail.class);
-        if (loadDetail != null) {
-            fixedLoadTargetP = loadDetail.getFixedActivePower();
-            absVariableLoadTargetP += Math.abs(loadDetail.getVariableActivePower());
-        }
         if (p0 < 0) {
             ensurePowerFactorConstantByLoad = true;
         }
@@ -289,21 +278,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public double getInitialLoadTargetP() {
         return initialLoadTargetP / PerUnit.SB;
-    }
-
-    @Override
-    public double getFixedLoadTargetP() {
-        return fixedLoadTargetP / PerUnit.SB;
-    }
-
-    @Override
-    public double getAbsLoadTargetP() {
-        return absLoadTargetP / PerUnit.SB;
-    }
-
-    @Override
-    public double getAbsVariableLoadTargetP() {
-        return absVariableLoadTargetP / PerUnit.SB;
     }
 
     @Override

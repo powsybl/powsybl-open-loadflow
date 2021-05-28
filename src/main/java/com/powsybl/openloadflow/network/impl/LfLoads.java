@@ -49,4 +49,8 @@ public class LfLoads extends AbstractElement {
     public List<Double> getP0s() {
         return this.p0s;
     }
+
+    public double getAbsVariableLoadTargetP() {
+        return sum;
+    }
 }

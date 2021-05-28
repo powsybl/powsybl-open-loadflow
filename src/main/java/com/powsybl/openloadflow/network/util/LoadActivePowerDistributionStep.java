@@ -47,7 +47,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
     }
 
     private double getParticipationFactor(LfBus bus) {
-        return distributedOnConformLoad ? bus.getAbsVariableLoadTargetP() : bus.getAbsLoadTargetP();
+        return bus.getLfLoads().getAbsVariableLoadTargetP();
     }
 
     @Override

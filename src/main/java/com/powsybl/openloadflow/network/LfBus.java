@@ -57,19 +57,13 @@ public interface LfBus extends LfElement {
 
     double getInitialLoadTargetP();
 
-    double getAbsLoadTargetP();
-
-    double getFixedLoadTargetP();
-
-    double getAbsVariableLoadTargetP();
-
     int getLoadCount();
 
     double getLoadTargetQ();
 
     void setLoadTargetQ(double loadTargetQ);
 
-    public boolean ensurePowerFactorConstantByLoad();
+    boolean ensurePowerFactorConstantByLoad();
 
     double getGenerationTargetP();
 
