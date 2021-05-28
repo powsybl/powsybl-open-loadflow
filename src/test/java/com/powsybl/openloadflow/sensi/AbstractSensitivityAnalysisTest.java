@@ -64,6 +64,17 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         return createParameters(dc, slackBusId, false);
     }
 
+    protected static SensitivityAnalysisParameters createParameters(boolean dc) {
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
+        LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
+        lfParameters.setDc(dc);
+        lfParameters.setDistributedSlack(true);
+        OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
+        return sensiParameters;
+    }
+
     protected static <T extends Injection<T>> InjectionIncrease createInjectionIncrease(T injection) {
         return new InjectionIncrease(injection.getId(), injection.getId(), injection.getId());
     }
@@ -252,6 +263,16 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         assertEquals("Injection 'a' not found", e.getCause().getMessage());
     }
 
+    protected void testHvdcInjectionNotFound(boolean dc) {
+        SensitivityAnalysisParameters sensiParameters = createParameters(dc, "b1_vl_0", true);
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
+        ContingencyContext contingencyContext = new ContingencyContext(ContingencyContextType.ALL, null);
+        List<SensitivityFactor2> factors = List.of(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, "nop", false, contingencyContext));
+
+        PowsyblException e = assertThrows(PowsyblException.class, () -> sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, factors));
+        assertEquals("HVDC line 'nop' cannot be found in the network.", e.getMessage());
+    }
+
     protected void testBranchNotFound(boolean dc) {
         Network network = EurostagTutorialExample1Factory.create();
         runAcLf(network);
@@ -303,7 +324,8 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
                 createInjectionIncrease(gen)));
         };
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
-        assertTrue(result.getSensitivityValues().isEmpty());
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(0f, getValue(result, "g3", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
     protected void testPhaseShifterOutsideMainComponent(boolean dc) {
@@ -315,7 +337,8 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
                 new PhaseTapChangerAngle("l45", "l45", "l45")));
         };
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
-        assertTrue(result.getSensitivityValues().isEmpty());
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(0d, getValue(result, "l45", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
     protected void testGlskOutsideMainComponent(boolean dc) {
@@ -330,7 +353,8 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
                 new LinearGlsk("glsk", "glsk", glskMap)));
         };
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
-        assertTrue(result.getSensitivityValues().isEmpty());
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(0, getValue(result, "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
     protected void testGlskPartiallyOutsideMainComponent(boolean dc) {

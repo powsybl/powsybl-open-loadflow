@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_POWER;
 
 /**
@@ -118,12 +120,16 @@ class LfBusImplTest {
     @BeforeEach
     void setUp() {
         network = createNetwork();
-        lfNetwork = LfNetwork.load(network, new MostMeshedSlackBusSelector()).get(0);
+        List<LfNetwork> networks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        lfNetwork = networks.get(0);
     }
 
     @Test
     void updateGeneratorsStateTest() {
-        LfBusImpl lfBus = new LfBusImpl(bus1, LfNetwork.load(EurostagTutorialExample1Factory.create(), new MostMeshedSlackBusSelector()).get(0), 385, 0);
+        List<LfNetwork> networks = LfNetwork.load(EurostagTutorialExample1Factory.create(), new MostMeshedSlackBusSelector());
+        LfNetwork mainNetwork = networks.get(0);
+
+        LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0, true);
         LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
         lfBus.addStaticVarCompensator(svc1, true, lfNetworkLoadingReport);
         lfBus.addStaticVarCompensator(svc2, true, lfNetworkLoadingReport);

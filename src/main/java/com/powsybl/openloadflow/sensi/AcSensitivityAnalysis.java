@@ -47,7 +47,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     private void calculateSensitivityValues(List<LfSensitivityFactor> lfFactors, List<SensitivityFactorGroup> factorGroups, DenseMatrix factorsState,
                                             String contingencyId, int contingencyIndex, SensitivityValueWriter valueWriter) {
         Set<LfSensitivityFactor> lfFactorsSet = new HashSet<>(lfFactors);
-        lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.ZERO)).forEach(factor -> valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, 0, Double.NaN));
+        lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.ZERO).forEach(factor -> valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, 0, Double.NaN));
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             for (LfSensitivityFactor factor : factorGroup.getFactors()) {
                 if (!lfFactorsSet.contains(factor)) {
@@ -88,7 +88,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         for (LfSensitivityFactor factor : factors) {
             double functionRef = factor.getEquationTerm().eval();
             if (factor.getFunctionType() == SensitivityFunctionType.BUS_VOLTAGE) {
-                factor.setFunctionReference(functionRef / PerUnit.SB);
+                LfBus bus = (LfBus) factor.getFunctionElement();
+                factor.setFunctionReference(functionRef * bus.getNominalV() / PerUnit.SB);
             } else {
                 factor.setFunctionReference(functionRef);
             }
@@ -159,7 +160,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         // create LF network (we only manage main connected component)
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusId());
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector, lfParametersExt.hasVoltageRemoteControl(),
-                true, lfParameters.isTwtSplitShuntAdmittance(), false, lfParametersExt.getPlausibleActivePowerLimit(), false);
+                true, lfParameters.isTwtSplitShuntAdmittance(), false, lfParametersExt.getPlausibleActivePowerLimit(),
+                false, true, lfParameters.getCountriesToBalance());
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(network, lfNetwork, contingencies);
@@ -192,8 +194,10 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             engine.run(reporter);
 
-            warnSkippedFactors(lfFactors);
-            lfFactors = lfFactors.stream().filter(factor -> factor.getStatus().equals(LfSensitivityFactor.Status.VALID)).collect(Collectors.toList());
+            writeSkippedFactors(lfFactors, valueWriter);
+
+            // next we only work with valid factors
+            lfFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList());
 
             // index factors by variable group to compute a minimal number of states
             List<SensitivityFactorGroup> factorGroups = createFactorGroups(lfFactors);

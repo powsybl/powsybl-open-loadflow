@@ -6,9 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.Generator;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
@@ -22,6 +20,7 @@ import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.EnumSet;
 import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
@@ -154,5 +153,25 @@ class DistributedSlackOnGenerationTest {
         network.getGenerator("GEN").setMinP(1000);
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
                 "Failed to distribute slack bus active power mismatch, -1.4404045651214226 MW remains");
+    }
+
+    @Test
+    void nonParticipatingBus() {
+
+        //B1 and B2 are located in germany the rest is in france
+        Substation b1s = network.getSubstation("b1_s");
+        b1s.setCountry(Country.GE);
+        Substation b2s = network.getSubstation("b2_s");
+        b2s.setCountry(Country.GE);
+
+        //Only substation located in france are used
+        parameters.setCountriesToBalance(EnumSet.of(Country.FR));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-100, g1.getTerminal());
+        assertActivePowerEquals(-200, g2.getTerminal());
+        assertActivePowerEquals(-150, g3.getTerminal());
+        assertActivePowerEquals(-150, g4.getTerminal());
     }
 }

@@ -6,11 +6,13 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
+import com.powsybl.iidm.network.Country;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.equations.VoltageInitializer;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -50,13 +52,18 @@ public class AcLoadFlowParameters {
 
     private final Set<String> branchesWithCurrent;
 
+    private final boolean computeMainConnectedComponentOnly;
+
+    private final Set<Country> countriesToBalance;
+
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
                                 MatrixFactory matrixFactory, boolean voltageRemoteControl,
                                 boolean phaseControl, boolean transformerVoltageControlOn, boolean minImpedance,
                                 boolean twtSplitShuntAdmittance, boolean breakers, double plausibleActivePowerLimit,
                                 boolean forceA1Var, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
-                                Set<String> branchesWithCurrent) {
+                                Set<String> branchesWithCurrent, boolean computeMainConnectedComponentOnly,
+                                Set<Country> countriesToBalance) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -72,6 +79,8 @@ public class AcLoadFlowParameters {
         this.forceA1Var = forceA1Var;
         this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
         this.branchesWithCurrent = branchesWithCurrent;
+        this.computeMainConnectedComponentOnly = computeMainConnectedComponentOnly;
+        this.countriesToBalance = countriesToBalance;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -136,6 +145,14 @@ public class AcLoadFlowParameters {
 
     public Set<String> getBranchesWithCurrent() {
         return branchesWithCurrent;
+    }
+
+    public boolean isComputeMainConnectedComponentOnly() {
+        return computeMainConnectedComponentOnly;
+    }
+
+    public Set<Country> getCountriesToBalance() {
+        return Collections.unmodifiableSet(countriesToBalance);
     }
 
 }

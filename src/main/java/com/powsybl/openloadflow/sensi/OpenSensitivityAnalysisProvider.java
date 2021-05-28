@@ -179,11 +179,11 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors, valueWriter, Reporter.NO_OP);
     }
 
-    public List<SensitivityValue2> run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
+    public SensitivityAnalysisResult2 run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
                                        SensitivityAnalysisParameters sensitivityAnalysisParameters, List<SensitivityFactor2> factors) {
         SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();
         run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors, valueWriter, Reporter.NO_OP);
-        return valueWriter.getValues();
+        return new SensitivityAnalysisResult2(valueWriter.getValues());
     }
 
     private static ObjectMapper createObjectMapper() {
@@ -205,7 +205,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         Objects.requireNonNull(valueWriter);
         Objects.requireNonNull(reporter);
 
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, new HashSet<>());
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies);
 
         LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
