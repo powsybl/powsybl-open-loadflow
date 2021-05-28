@@ -6,15 +6,13 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.google.common.base.Stopwatch;
-import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.TopologyKind;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
@@ -33,6 +31,9 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.BranchState;
 import com.powsybl.openloadflow.util.BusState;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
@@ -59,9 +60,9 @@ import java.util.stream.Stream;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class OpenSecurityAnalysis {
+public abstract class AbstractSecurityAnalysis {
 
-    protected static final Logger LOGGER = LoggerFactory.getLogger(OpenSecurityAnalysis.class);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractSecurityAnalysis.class);
 
     protected final Network network;
 
@@ -79,20 +80,20 @@ public abstract class OpenSecurityAnalysis {
 
     private static final double POST_CONTINGENCY_INCREASING_FACTOR = 1.1;
 
-    public OpenSecurityAnalysis(Network network) {
+    public AbstractSecurityAnalysis(Network network) {
         this(network, new DefaultLimitViolationDetector(), new LimitViolationFilter());
     }
 
-    public OpenSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter) {
+    public AbstractSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter) {
         this(network, detector, filter, new SparseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
     }
 
-    public OpenSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
+    public AbstractSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
                                 MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
         this(network, detector, filter, matrixFactory, connectivityProvider, Collections.emptyList());
     }
 
-    public OpenSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
+    public AbstractSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
                                 MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider, List<StateMonitor> stateMonitors) {
         this.network = Objects.requireNonNull(network);
         this.detector = Objects.requireNonNull(detector);

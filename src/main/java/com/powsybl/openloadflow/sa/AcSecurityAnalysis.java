@@ -36,8 +36,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-
-public class AcSecurityAnalysis extends OpenSecurityAnalysis
+public class AcSecurityAnalysis extends AbstractSecurityAnalysis
 {
     public AcSecurityAnalysis(Network network) {
         super(network);

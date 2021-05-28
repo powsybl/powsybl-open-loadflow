@@ -1,6 +1,5 @@
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
@@ -8,25 +7,21 @@ import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sensi.*;
-import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
+import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.function.Supplier;
 
-
-public class DcSecurityAnalysis extends OpenSecurityAnalysis {
+public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     DcSensitivityAnalysis sensiDC = null;
 
@@ -61,14 +56,13 @@ public class DcSecurityAnalysis extends OpenSecurityAnalysis {
         String variableId = network.getLoads().iterator().next().getId();
 
         List<SensitivityFactor2> factors = new ArrayList<>();
-        for(Branch b: network.getBranches()) {
+        for (Branch b : network.getBranches()) {
             factors.add(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, b.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, false, contingencyContext));
         }
         SensitivityAnalysisResult2 res = providerSensi.run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors);
 
         List<LimitViolation> preContingencyLimitViolations = new ArrayList<>();
-        for(SensitivityValue2 sensValue: res.getValues())
-        {
+        for (SensitivityValue2 sensValue : res.getValues()) {
             SensitivityFactor2 factor = (SensitivityFactor2) sensValue.getFactorContext();
             String branchId = factor.getFunctionId();
             Branch branch = network.getBranch(branchId);
@@ -82,11 +76,11 @@ public class DcSecurityAnalysis extends OpenSecurityAnalysis {
         LimitViolationsResult preContingencyResult = new LimitViolationsResult(true, preContingencyLimitViolations);
 
         List<PostContingencyResult> postContingencyResults = new ArrayList<>();
-        for(Contingency contingency : contingencies) {
+        for (Contingency contingency : contingencies) {
             List<SensitivityValue2> values = res.getValues(contingency.getId());
             List<LimitViolation> violations = new ArrayList<>();
 
-            for(SensitivityValue2 v : values) {
+            for (SensitivityValue2 v : values) {
                 SensitivityFactor2 factor = (SensitivityFactor2) v.getFactorContext();
                 String branchId = factor.getFunctionId();
                 Branch branch = network.getBranch(branchId);
@@ -100,7 +94,6 @@ public class DcSecurityAnalysis extends OpenSecurityAnalysis {
             postContingencyResults.add(new PostContingencyResult(contingency, true, violations));
         }
 
-        return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
+        return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, postContingencyResults));
     }
 }
-;

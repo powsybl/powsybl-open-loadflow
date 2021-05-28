@@ -128,7 +128,7 @@ class OpenSecurityAnalysisTest {
                 .collect(Collectors.toList());
         network.getLine("L1").getCurrentLimits1().setPermanentLimit(200);
 
-        OpenSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+        AbstractSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
             new LimitViolationFilter(), new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
 
         SecurityAnalysisReport report = securityAnalysis.runSync(saParameters, contingenciesProvider);
@@ -202,7 +202,7 @@ class OpenSecurityAnalysisTest {
                 .map(id -> new Contingency(id, new BranchContingency(id)))
                 .collect(Collectors.toList());
 
-        OpenSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network);
+        AbstractSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network);
 
         SecurityAnalysisReport report = securityAnalysis.runSync(saParameters, contingenciesProvider);
         SecurityAnalysisResult result = report.getResult();
@@ -237,7 +237,7 @@ class OpenSecurityAnalysisTest {
             .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
             .collect(Collectors.toList());
 
-        OpenSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+        AbstractSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
             new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
 
         SecurityAnalysisReport report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
@@ -332,7 +332,7 @@ class OpenSecurityAnalysisTest {
                                                             .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
                                                             .collect(Collectors.toList());
 
-        OpenSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+        AbstractSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
             new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
 
         SecurityAnalysisReport report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
@@ -356,7 +356,7 @@ class OpenSecurityAnalysisTest {
 
         List<StateMonitor> monitors = new ArrayList<>();
         monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("l24"), Collections.singleton("b1_vl"), Collections.emptySet()));
-        OpenSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+        AbstractSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
                 new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new, monitors);
 
         SecurityAnalysisReport report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
@@ -388,7 +388,7 @@ class OpenSecurityAnalysisTest {
 
         List<StateMonitor> monitors = new ArrayList<>();
         monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("l1"), Collections.singleton("bus"), Collections.singleton("three windings")));
-        OpenSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+        AbstractSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
                 new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new, monitors);
 
         SecurityAnalysisReport report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
@@ -414,7 +414,7 @@ class OpenSecurityAnalysisTest {
 
         List<StateMonitor> monitors = new ArrayList<>();
         monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("l24"), Collections.singleton("b1_vl"), Collections.emptySet()));
-        OpenSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+        AbstractSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
                 new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new, monitors);
 
         SecurityAnalysisReport report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
@@ -485,7 +485,7 @@ class OpenSecurityAnalysisTest {
 
         List<StateMonitor> monitors = new ArrayList<>();
         monitors.add(new StateMonitor(ContingencyContext.all(), Collections.emptySet(), Collections.emptySet(), Collections.singleton("3wt")));
-        OpenSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+        AbstractSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
                 new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new, monitors);
 
         SecurityAnalysisReport report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
