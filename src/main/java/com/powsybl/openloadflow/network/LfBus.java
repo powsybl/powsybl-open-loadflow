@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Load;
+import com.powsybl.openloadflow.network.impl.LfLoads;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.List;
@@ -107,6 +108,8 @@ public interface LfBus extends LfElement {
     List<LfShunt> getShunts();
 
     List<Load> getLoads();
+
+    LfLoads getLfLoads();
 
     List<LfBranch> getBranches();
 

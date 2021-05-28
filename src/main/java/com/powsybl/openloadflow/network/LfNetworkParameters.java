@@ -35,16 +35,18 @@ public class LfNetworkParameters {
 
     private final Set<Country> countriesToBalance;
 
+    private boolean distributedOnConformLoad;
+
     public LfNetworkParameters(SlackBusSelector slackBusSelector) {
         this(slackBusSelector, false, false, false, false,
                 ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true, Collections.emptySet());
+                true, Collections.emptySet(), false);
     }
 
     public LfNetworkParameters(SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl,
                                boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers,
                                double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
-                               boolean computeMainConnectedComponentOnly, Set<Country> countriesToBalance) {
+                               boolean computeMainConnectedComponentOnly, Set<Country> countriesToBalance, boolean distributedOnConformLoad) {
         this.slackBusSelector = slackBusSelector;
         this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
         this.minImpedance = minImpedance;
@@ -54,6 +56,7 @@ public class LfNetworkParameters {
         this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
         this.computeMainConnectedComponentOnly = computeMainConnectedComponentOnly;
         this.countriesToBalance = countriesToBalance;
+        this.distributedOnConformLoad = distributedOnConformLoad;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -90,5 +93,9 @@ public class LfNetworkParameters {
 
     public Set<Country> getCountriesToBalance() {
         return Collections.unmodifiableSet(countriesToBalance);
+    }
+
+    public boolean isDistributedOnConformLoad() {
+        return  distributedOnConformLoad;
     }
 }

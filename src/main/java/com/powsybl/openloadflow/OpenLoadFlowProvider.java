@@ -182,7 +182,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                         parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                         branchesWithCurrent,
                                         parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
-                                        parameters.getCountriesToBalance());
+                                        parameters.getCountriesToBalance(),
+                                        parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
     }
 
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {

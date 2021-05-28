@@ -6,9 +6,9 @@
  */
 package com.powsybl.openloadflow.network.util;
 
-import com.powsybl.iidm.network.Load;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.openloadflow.network.impl.LfLoads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +73,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
                         bus.getId(), loadTargetP * PerUnit.SB, newLoadTargetP * PerUnit.SB);
 
                 if (loadPowerFactorConstant) {
-                    ensurePowerFactorConstant(bus, newLoadTargetP, distributedOnConformLoad);
+                    ensurePowerFactorConstant(bus, newLoadTargetP);
                 }
 
                 bus.setLoadTargetP(newLoadTargetP);
@@ -88,17 +88,16 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
         return done;
     }
 
-    private static void ensurePowerFactorConstant(LfBus bus, double newLoadTargetP, boolean distributedOnConformLoad) {
+    private static void ensurePowerFactorConstant(LfBus bus, double newLoadTargetP) {
         // if loadPowerFactorConstant is true, when updating targetP on loads,
         // we have to keep the power factor constant by updating targetQ.
         double newLoadTargetQ;
         if (bus.ensurePowerFactorConstantByLoad()) {
-            double absLoadTargetP = bus.getAbsLoadTargetP() * PerUnit.SB;
-            double absVariableLoadTargetP = bus.getAbsVariableLoadTargetP() * PerUnit.SB;
             double initialLoadTargetP = bus.getInitialLoadTargetP();
             newLoadTargetQ = 0;
-            for (Load load : bus.getLoads()) {
-                newLoadTargetQ += LoadUtil.getPowerFactor(load) * (load.getP0() / PerUnit.SB + (newLoadTargetP - initialLoadTargetP) * LoadUtil.getParticipationFactor(load, distributedOnConformLoad, absLoadTargetP, absVariableLoadTargetP));
+            LfLoads loads = bus.getLfLoads();
+            for (int i = 0; i < bus.getLoadCount(); i++) {
+                newLoadTargetQ += loads.getPowerFactors().get(i) * (loads.getP0s().get(i) + (newLoadTargetP - initialLoadTargetP) * loads.getParticipationFactors().get(i));
             }
         } else {
             newLoadTargetQ = newLoadTargetP * bus.getLoadTargetQ() / bus.getLoadTargetP();

@@ -13,7 +13,7 @@ public final class LoadUtil {
 
     public static double getParticipationFactor(Load load, boolean distributedOnConformLoad, double absLoadTargetP, double absVariableLoadTargetP) {
         if (distributedOnConformLoad) {
-            return  load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower()) / absVariableLoadTargetP;
+            return load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower()) / absVariableLoadTargetP;
         } else {
             return Math.abs(load.getP0()) / absLoadTargetP;
         }

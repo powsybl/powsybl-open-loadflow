@@ -10,7 +10,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.util.LoadUtil;
 import com.powsybl.openloadflow.util.Evaluable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +61,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected final List<LfShunt> shunts = new ArrayList<>();
 
     protected final List<Load> loads = new ArrayList<>();
+
+    protected LfLoads lfLoads = new LfLoads(network);
 
     protected boolean ensurePowerFactorConstantByLoad = false;
 
@@ -166,7 +167,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         this.voltageControlSwitchOffCount = voltageControlSwitchOffCount;
     }
 
-    void addLoad(Load load) {
+    void addLoad(Load load, boolean distributedOnConformLoad) {
         loads.add(load);
         loadCount++;
         double p0 = load.getP0();
@@ -182,6 +183,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         if (p0 < 0) {
             ensurePowerFactorConstantByLoad = true;
         }
+        lfLoads.add(load, distributedOnConformLoad);
     }
 
     void addBattery(Battery battery) {
@@ -290,13 +292,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public double getAbsLoadTargetP() {
-        return absLoadTargetP / PerUnit.SB;
+    public double getFixedLoadTargetP() {
+        return fixedLoadTargetP / PerUnit.SB;
     }
 
     @Override
-    public double getFixedLoadTargetP() {
-        return fixedLoadTargetP / PerUnit.SB;
+    public double getAbsLoadTargetP() {
+        return absLoadTargetP / PerUnit.SB;
     }
 
     @Override
@@ -394,6 +396,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public LfLoads getLfLoads() {
+        return lfLoads;
+    }
+
+    @Override
     public List<LfBranch> getBranches() {
         return branches;
     }
@@ -452,13 +459,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         double diffTargetP = loadCount > 0 ? loadTargetP - initialLoadTargetP : 0;
         double updatedP0;
         double updatedQ0;
-        for (Load load : loads) {
-            double diffP = diffTargetP * LoadUtil.getParticipationFactor(load, distributedOnConformLoad, absLoadTargetP, absVariableLoadTargetP);
-            updatedP0 = load.getP0() + diffP;
-            updatedQ0 = loadPowerFactorConstant ? LoadUtil.getPowerFactor(load) * updatedP0 : load.getQ0();
-            load.getTerminal()
-                    .setP(updatedP0)
-                    .setQ(updatedQ0);
+        for (int i = 0; i < loadCount; i++) {
+            double diffP = diffTargetP * lfLoads.getParticipationFactors().get(i);
+            updatedP0 = lfLoads.getP0s().get(i) * PerUnit.SB + diffP;
+            updatedQ0 = loadPowerFactorConstant ? lfLoads.getPowerFactors().get(i) * updatedP0 : loads.get(i).getQ0();
+            loads.get(i).getTerminal().setP(updatedP0);
+            loads.get(i).getTerminal().setQ(updatedQ0);
         }
 
         // update battery power (which are not part of slack distribution)
