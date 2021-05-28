@@ -72,7 +72,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             if (branch.getActivePowerLimits1() != null) {
                 double permanentLimit = branch.getActivePowerLimits1().getPermanentLimit();
                 if (Math.abs(sensValue.getFunctionReference()) >= permanentLimit) {
-                    preContingencyLimitViolations.add(new LimitViolation(branch.getId(), LimitViolationType.OTHER, null,
+                    //FIXME: current is not the good type
+                    preContingencyLimitViolations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, null,
                             Integer.MAX_VALUE, permanentLimit, (float) 1., sensValue.getFunctionReference(), Branch.Side.ONE));
                 }
             }
@@ -92,7 +93,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                 if (branch.getActivePowerLimits1() != null) {
                     double permanentLimit = branch.getActivePowerLimits1().getPermanentLimit();
                     if (Math.abs(v.getFunctionReference()) >= permanentLimit) {
-                        violations.add(new LimitViolation(branch.getId(), LimitViolationType.OTHER, null,
+                        //FIXME: current is not the good type
+                        violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, null,
                                 Integer.MAX_VALUE, permanentLimit, (float) 1., v.getFunctionReference(), Branch.Side.ONE));
                     }
                 }
