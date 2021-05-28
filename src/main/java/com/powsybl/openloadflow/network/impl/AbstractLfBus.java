@@ -40,11 +40,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected int voltageControlSwitchOffCount = 0;
 
-    protected double initialLoadTargetP = 0;
-
     protected double loadTargetP = 0;
-
-    protected int loadCount = 0;
 
     protected double loadTargetQ = 0;
 
@@ -163,9 +159,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     void addLoad(Load load, boolean distributedOnConformLoad) {
         loads.add(load);
-        loadCount++;
         double p0 = load.getP0();
-        initialLoadTargetP += p0;
         loadTargetP += p0;
         loadTargetQ += load.getQ0();
         LoadDetail loadDetail = load.getExtension(LoadDetail.class);
@@ -276,16 +270,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public double getInitialLoadTargetP() {
-        return initialLoadTargetP / PerUnit.SB;
-    }
-
-    @Override
-    public int getLoadCount() {
-        return loadCount;
-    }
-
-    @Override
     public double getLoadTargetQ() {
         return loadTargetQ / PerUnit.SB;
     }
@@ -365,11 +349,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public List<Load> getLoads() {
-        return loads;
-    }
-
-    @Override
     public LfLoads getLfLoads() {
         return lfLoads;
     }
@@ -430,10 +409,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         updateGeneratorsState(voltageControllerEnabled ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
 
         // update load power
-        double diffTargetP = loadCount > 0 ? loadTargetP - initialLoadTargetP : 0;
+        double diffTargetP = lfLoads.getLoadCount() > 0 ? loadTargetP - lfLoads.getInitialLoadTargetP() * PerUnit.SB : 0;
         double updatedP0;
         double updatedQ0;
-        for (int i = 0; i < loadCount; i++) {
+        for (int i = 0; i < lfLoads.getLoadCount(); i++) {
             double diffP = diffTargetP * lfLoads.getParticipationFactors().get(i);
             updatedP0 = lfLoads.getP0s().get(i) * PerUnit.SB + diffP;
             updatedQ0 = loadPowerFactorConstant ? lfLoads.getPowerFactors().get(i) * updatedP0 : loads.get(i).getQ0();

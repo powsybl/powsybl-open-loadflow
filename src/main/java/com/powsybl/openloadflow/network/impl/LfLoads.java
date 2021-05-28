@@ -20,11 +20,16 @@ public class LfLoads extends AbstractElement {
 
     protected double sum = 0;
 
+    protected int loadCount = 0;
+
+    protected double initialLoadTargetP = 0;
+
     protected LfLoads(LfNetwork network) {
         super(network);
     }
 
     public void add(Load load, boolean distributedOnConformLoad) {
+        loadCount++;
         double value;
         if (distributedOnConformLoad) {
             value = load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower());
@@ -33,6 +38,7 @@ public class LfLoads extends AbstractElement {
             value = Math.abs(load.getP0());
             sum += value;
         }
+        initialLoadTargetP += load.getP0() / PerUnit.SB;
         participationFactors.add(value);
         powerFactors.add(load.getP0() != 0 ? load.getQ0() / load.getP0() : 1);
         p0s.add(load.getP0() / PerUnit.SB);
@@ -52,5 +58,13 @@ public class LfLoads extends AbstractElement {
 
     public double getAbsVariableLoadTargetP() {
         return sum;
+    }
+
+    public double getLoadCount() {
+        return loadCount;
+    }
+
+    public double getInitialLoadTargetP() {
+        return initialLoadTargetP;
     }
 }

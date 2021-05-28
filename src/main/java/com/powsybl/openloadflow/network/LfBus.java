@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.Load;
 import com.powsybl.openloadflow.network.impl.LfLoads;
 import com.powsybl.openloadflow.util.Evaluable;
 
@@ -55,10 +54,6 @@ public interface LfBus extends LfElement {
 
     void setLoadTargetP(double loadTargetP);
 
-    double getInitialLoadTargetP();
-
-    int getLoadCount();
-
     double getLoadTargetQ();
 
     void setLoadTargetQ(double loadTargetQ);
@@ -100,8 +95,6 @@ public interface LfBus extends LfElement {
     List<LfGenerator> getGenerators();
 
     List<LfShunt> getShunts();
-
-    List<Load> getLoads();
 
     LfLoads getLfLoads();
 
