@@ -1,7 +1,7 @@
 {
   "version" : "1.0",
   "load-flow-parameters" : {
-    "version" : "1.4",
+    "version" : "1.5",
     "voltageInitMode" : "UNIFORM_VALUES",
     "transformerVoltageControlOn" : false,
     "phaseShifterRegulationOn" : false,
@@ -13,6 +13,9 @@
     "dc" : true,
     "distributedSlack" : false,
     "balanceType" : "PROPORTIONAL_TO_GENERATION_P_MAX",
+    "dcUseTransformerRatio" : true,
+    "countriesToBalance" : [ ],
+    "connectedComponentMode" : "MAIN",
     "extensions" : {
       "open-load-flow-parameters" : {
         "slackBusSelectionMode" : "NAME",
@@ -20,7 +23,6 @@
         "throwsExceptionInCaseOfSlackDistributionFailure" : false,
         "lowImpedanceBranchMode" : "REPLACE_BY_ZERO_IMPEDANCE_LINE",
         "loadPowerFactorConstant" : false,
-        "dcUseTransformerRatio" : true,
         "plausibleActivePowerLimit" : 10000.0,
         "addRatioToLinesWithDifferentNominalVoltageAtBothEnds" : false,
         "slackBusPMaxMismatch" : 1.0

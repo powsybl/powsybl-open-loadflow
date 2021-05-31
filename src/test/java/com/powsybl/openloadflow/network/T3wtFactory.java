@@ -119,26 +119,4 @@ public class T3wtFactory extends AbstractLoadFlowNetworkFactory {
 
         return network;
     }
-
-    public static Network createWithRatioChanger() {
-        Network network = create();
-        ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer("3wt");
-        t3wt.getLeg1().newRatioTapChanger()
-            .setRegulationTerminal(t3wt.getLeg1().getTerminal())
-            .setRegulating(true)
-            .setTargetDeadband(0)
-            .setLoadTapChangingCapabilities(false)
-            .setTapPosition(0)
-            .beginStep()
-            .setR(0)
-            .setX(0)
-            .setG(0)
-            .setB(0)
-            .setRho(0.9)
-            .endStep()
-            .add();
-
-        return network;
-    }
-
 }

@@ -13,6 +13,12 @@ import com.powsybl.iidm.network.*;
  */
 public class DanglingLineFactory extends AbstractLoadFlowNetworkFactory {
 
+    /**
+     *  g1     dl1
+     *  |       |
+     *  b1 ---- b2
+     *      l1
+     */
     public static Network create() {
         Network network = Network.create("dl", "test");
         Substation s1 = network.newSubstation()
@@ -80,6 +86,12 @@ public class DanglingLineFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+    /**
+     *  g1     dl1      load3
+     *  |       |        |
+     *  b1 ---- b2 ----- b3
+     *      l1       l13
+     */
     public static Network createWithLoad() {
 
         Network network = create();

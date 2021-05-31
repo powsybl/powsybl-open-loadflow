@@ -6,7 +6,11 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Country;
 import com.powsybl.openloadflow.util.ParameterConstants;
+
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -27,13 +31,20 @@ public class LfNetworkParameters {
 
     private final boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
 
+    private final boolean computeMainConnectedComponentOnly;
+
+    private final Set<Country> countriesToBalance;
+
     public LfNetworkParameters(SlackBusSelector slackBusSelector) {
-        this(slackBusSelector, false, false, false, false, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false);
+        this(slackBusSelector, false, false, false, false,
+                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
+                true, Collections.emptySet());
     }
 
     public LfNetworkParameters(SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl,
                                boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers,
-                               double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds) {
+                               double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
+                               boolean computeMainConnectedComponentOnly, Set<Country> countriesToBalance) {
         this.slackBusSelector = slackBusSelector;
         this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
         this.minImpedance = minImpedance;
@@ -41,6 +52,8 @@ public class LfNetworkParameters {
         this.breakers = breakers;
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
         this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+        this.computeMainConnectedComponentOnly = computeMainConnectedComponentOnly;
+        this.countriesToBalance = countriesToBalance;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -69,5 +82,13 @@ public class LfNetworkParameters {
 
     public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
         return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+    }
+
+    public boolean isComputeMainConnectedComponentOnly() {
+        return computeMainConnectedComponentOnly;
+    }
+
+    public Set<Country> getCountriesToBalance() {
+        return Collections.unmodifiableSet(countriesToBalance);
     }
 }

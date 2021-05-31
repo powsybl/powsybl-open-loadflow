@@ -55,7 +55,7 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
-    public static Network createWithTransfo() {
+    public static Network createWithPhaseTapChanger() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "test_s", "b2");
@@ -84,28 +84,10 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
-    public static Network createWithTransfoCompensed() {
-        Network network = createWithTransfo();
+    public static Network createWithPhaseTapChangerAndGeneratorAtBus2() {
+        Network network = createWithPhaseTapChanger();
         Bus b2 = network.getBusBreakerView().getBus("b2");
         createGenerator(b2, "g2", 2);
-        return network;
-    }
-
-    public static Network createWithTransfoRatioChanger() {
-        Network network = createWithTransfoCompensed();
-        TwoWindingsTransformer twt = network.getTwoWindingsTransformer("l23");
-        twt.newRatioTapChanger()
-            .setRegulationTerminal(twt.getTerminal1())
-            .setLoadTapChangingCapabilities(false)
-            .setTapPosition(0)
-            .beginStep()
-            .setR(0)
-            .setX(0)
-            .setG(0)
-            .setB(0)
-            .setRho(0.9)
-            .endStep()
-            .add();
         return network;
     }
 
