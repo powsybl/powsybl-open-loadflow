@@ -12,34 +12,34 @@ import java.util.stream.Collectors;
 
 public class LfLoads extends AbstractElement {
 
-    protected final List<Double> participationFactors = new ArrayList<>();
+    private final List<Load> loads = new ArrayList<>();
 
-    protected final List<Double> powerFactors = new ArrayList<>();
+    private final List<Double> participationFactors = new ArrayList<>();
 
-    protected final List<Double> p0s = new ArrayList<>();
+    private final List<Double> powerFactors = new ArrayList<>();
 
-    protected double sumAbsVariableActivePowers = 0;
+    private final List<Double> p0s = new ArrayList<>();
 
-    protected int loadCount = 0;
+    private double sumAbsVariableActivePowers = 0;
 
-    protected double initialLoadTargetP = 0;
+    private double initialLoadTargetP = 0;
 
     protected LfLoads(LfNetwork network) {
         super(network);
     }
 
     public void add(Load load, boolean distributedOnConformLoad) {
-        loadCount++;
-        double value;
+        loads.add(load);
+        double absVariableActivePower;
         if (distributedOnConformLoad) {
-            value = load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower());
-            sumAbsVariableActivePowers += value;
+            absVariableActivePower = load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower());
+            sumAbsVariableActivePowers += absVariableActivePower;
         } else {
-            value = Math.abs(load.getP0());
-            sumAbsVariableActivePowers += value;
+            absVariableActivePower = Math.abs(load.getP0());
+            sumAbsVariableActivePowers += absVariableActivePower;
         }
         initialLoadTargetP += load.getP0() / PerUnit.SB;
-        participationFactors.add(value);
+        participationFactors.add(absVariableActivePower);
         powerFactors.add(load.getP0() != 0 ? load.getQ0() / load.getP0() : 1);
         p0s.add(load.getP0() / PerUnit.SB);
     }
@@ -48,23 +48,32 @@ public class LfLoads extends AbstractElement {
         return sumAbsVariableActivePowers != 0 ? participationFactors.stream().map(p -> p / sumAbsVariableActivePowers).collect(Collectors.toList()) : participationFactors;
     }
 
-    public List<Double> getPowerFactors() {
-        return this.powerFactors;
-    }
-
-    public List<Double> getP0s() {
-        return this.p0s;
-    }
-
     public double getAbsVariableLoadTargetP() {
         return sumAbsVariableActivePowers;
     }
 
     public double getLoadCount() {
-        return loadCount;
+        return loads.size();
     }
 
-    public double getInitialLoadTargetP() {
-        return initialLoadTargetP;
+    public void updateState(double loadTargetP, boolean loadPowerFactorConstant) {
+        double diffTargetP = getLoadCount() > 0 ? loadTargetP - initialLoadTargetP * PerUnit.SB : 0;
+        double updatedP0;
+        double updatedQ0;
+        for (int i = 0; i < getLoadCount(); i++) {
+            double diffP = diffTargetP * getParticipationFactors().get(i);
+            updatedP0 = p0s.get(i) * PerUnit.SB + diffP;
+            updatedQ0 = loadPowerFactorConstant ? powerFactors.get(i) * updatedP0 : loads.get(i).getQ0();
+            loads.get(i).getTerminal().setP(updatedP0);
+            loads.get(i).getTerminal().setQ(updatedQ0);
+        }
+    }
+
+    public double getLoadTargetQ(double newLoadTargetP) {
+        double newLoadTargetQ = 0;
+        for (int i = 0; i < getLoadCount(); i++) {
+            newLoadTargetQ += powerFactors.get(i) * (p0s.get(i) + (newLoadTargetP - initialLoadTargetP) * getParticipationFactors().get(i));
+        }
+        return newLoadTargetQ;
     }
 }

@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PerUnit;
-import com.powsybl.openloadflow.network.impl.LfLoads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,12 +92,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
         // we have to keep the power factor constant by updating targetQ.
         double newLoadTargetQ;
         if (bus.ensurePowerFactorConstantByLoad()) {
-            double initialLoadTargetP = bus.getLfLoads().getInitialLoadTargetP();
-            newLoadTargetQ = 0;
-            LfLoads loads = bus.getLfLoads();
-            for (int i = 0; i < bus.getLfLoads().getLoadCount(); i++) {
-                newLoadTargetQ += loads.getPowerFactors().get(i) * (loads.getP0s().get(i) + (newLoadTargetP - initialLoadTargetP) * loads.getParticipationFactors().get(i));
-            }
+            newLoadTargetQ = bus.getLfLoads().getLoadTargetQ(newLoadTargetP);
         } else {
             newLoadTargetQ = newLoadTargetP * bus.getLoadTargetQ() / bus.getLoadTargetP();
         }

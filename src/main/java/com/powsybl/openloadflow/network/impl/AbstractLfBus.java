@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import org.slf4j.Logger;
@@ -49,8 +48,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected final List<LfGenerator> generators = new ArrayList<>();
 
     protected final List<LfShunt> shunts = new ArrayList<>();
-
-    protected final List<Load> loads = new ArrayList<>();
 
     protected LfLoads lfLoads = new LfLoads(network);
 
@@ -158,7 +155,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addLoad(Load load, boolean distributedOnConformLoad) {
-        loads.add(load);
         double p0 = load.getP0();
         loadTargetP += p0;
         loadTargetQ += load.getQ0();
@@ -408,16 +404,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         updateGeneratorsState(voltageControllerEnabled ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
 
         // update load power
-        double diffTargetP = lfLoads.getLoadCount() > 0 ? loadTargetP - lfLoads.getInitialLoadTargetP() * PerUnit.SB : 0;
-        double updatedP0;
-        double updatedQ0;
-        for (int i = 0; i < lfLoads.getLoadCount(); i++) {
-            double diffP = diffTargetP * lfLoads.getParticipationFactors().get(i);
-            updatedP0 = lfLoads.getP0s().get(i) * PerUnit.SB + diffP;
-            updatedQ0 = loadPowerFactorConstant ? lfLoads.getPowerFactors().get(i) * updatedP0 : loads.get(i).getQ0();
-            loads.get(i).getTerminal().setP(updatedP0);
-            loads.get(i).getTerminal().setQ(updatedQ0);
-        }
+        lfLoads.updateState(loadTargetP, loadPowerFactorConstant);
 
         // update battery power (which are not part of slack distribution)
         for (Battery battery : batteries) {
