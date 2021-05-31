@@ -77,8 +77,7 @@ public class LfLoads extends AbstractElement {
 
     public void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant) {
         for (int i = 0; i < loads.size(); i++) {
-            double diffP = diffLoadTargetP * getParticipationFactors().get(i);
-            double updatedP0 = p0s.get(i) * PerUnit.SB + diffP;
+            double updatedP0 = (p0s.get(i) + diffLoadTargetP * getParticipationFactors().get(i)) * PerUnit.SB;
             double updatedQ0 = loadPowerFactorConstant ? powerFactors.get(i) * updatedP0 : loads.get(i).getQ0();
             loads.get(i).getTerminal().setP(updatedP0);
             loads.get(i).getTerminal().setQ(updatedQ0);

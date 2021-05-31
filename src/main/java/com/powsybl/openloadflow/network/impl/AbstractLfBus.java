@@ -414,7 +414,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         updateGeneratorsState(voltageControllerEnabled ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
 
         // update load power
-        lfLoads.updateState(loadTargetP - initialLoadTargetP, loadPowerFactorConstant);
+        lfLoads.updateState(getLoadTargetP() - getInitialLoadTargetP(), loadPowerFactorConstant);
 
         // update battery power (which are not part of slack distribution)
         for (Battery battery : batteries) {
