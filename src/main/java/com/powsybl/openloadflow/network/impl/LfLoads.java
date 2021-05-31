@@ -24,10 +24,6 @@ public class LfLoads extends AbstractElement {
 
     private final List<Double> participationFactors = new ArrayList<>();
 
-    private final List<Double> powerFactors = new ArrayList<>();
-
-    private final List<Double> p0s = new ArrayList<>();
-
     private double absVariableLoadTargetP = 0;
 
     private boolean participationFactorsNormalized;
@@ -47,8 +43,6 @@ public class LfLoads extends AbstractElement {
             absVariableLoadTargetP += value;
         }
         participationFactors.add(value);
-        powerFactors.add(load.getP0() != 0 ? load.getQ0() / load.getP0() : 1);
-        p0s.add(load.getP0() / PerUnit.SB);
     }
 
     private List<Double> getParticipationFactors() {
@@ -77,18 +71,26 @@ public class LfLoads extends AbstractElement {
 
     public void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant) {
         for (int i = 0; i < loads.size(); i++) {
-            double updatedP0 = (p0s.get(i) + diffLoadTargetP * getParticipationFactors().get(i)) * PerUnit.SB;
-            double updatedQ0 = loadPowerFactorConstant ? powerFactors.get(i) * updatedP0 : loads.get(i).getQ0();
-            loads.get(i).getTerminal().setP(updatedP0);
-            loads.get(i).getTerminal().setQ(updatedQ0);
+            Load load = loads.get(i);
+            double updatedP0 = (load.getP0() / PerUnit.SB + diffLoadTargetP * getParticipationFactors().get(i)) * PerUnit.SB;
+            double updatedQ0 = loadPowerFactorConstant ? getPowerFactor(load) * updatedP0 : load.getQ0();
+            load.getTerminal().setP(updatedP0);
+            load.getTerminal().setQ(updatedQ0);
         }
     }
 
     public double getLoadTargetQ(double diffLoadTargetP) {
         double newLoadTargetQ = 0;
         for (int i = 0; i < loads.size(); i++) {
-            newLoadTargetQ += powerFactors.get(i) * (p0s.get(i) + diffLoadTargetP * getParticipationFactors().get(i));
+            Load load = loads.get(i);
+            double updatedP0 = load.getP0() / PerUnit.SB + diffLoadTargetP * getParticipationFactors().get(i);
+            newLoadTargetQ += getPowerFactor(load) * updatedP0;
         }
         return newLoadTargetQ;
     }
+
+    private static double getPowerFactor(Load load) {
+        return load.getP0() != 0 ? load.getQ0() / load.getP0() : 1;
+    }
+
 }
