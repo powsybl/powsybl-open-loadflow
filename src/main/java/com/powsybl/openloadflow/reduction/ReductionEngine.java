@@ -7,7 +7,6 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.reduction.equations.ReductionEquationSystem;
 import com.powsybl.openloadflow.reduction.equations.ReductionEquationSystemCreationParameters;
-import com.powsybl.openloadflow.util.MatrixUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -327,7 +326,7 @@ public class ReductionEngine {
         yee.solveTransposed(x);
 
         //Step 5: Compute -[Ieq] = [Ybe]*[X] or -t[Ieq] = t[X]*t[Ybe]
-        Matrix mX = MatrixUtil.createFromRow(x, parameters.getMatrixFactory());
+        Matrix mX = Matrix.createFromRow(x, parameters.getMatrixFactory());
         Matrix tmMinusIeq = mX.times(tmYbe);
         //System.out.println("===> -Ieq =");
         //tmMinusIeq.print(System.out);

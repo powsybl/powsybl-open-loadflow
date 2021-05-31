@@ -8,7 +8,6 @@ import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.reduction.ReductionEngine;
-import com.powsybl.openloadflow.util.MatrixUtil;
 
 import java.util.*;
 
@@ -168,9 +167,9 @@ public class AdmittanceMatrix implements AutoCloseable {
                     vPart[admSys.varToColNum.get(var)] = v[row];
                 }
             }
-            mV = MatrixUtil.createFromRow(vPart, matrixFactory);
+            mV = Matrix.createFromRow(vPart, matrixFactory);
         } else {
-            mV = MatrixUtil.createFromRow(v, matrixFactory);
+            mV = Matrix.createFromRow(v, matrixFactory);
         }
 
         return mV;
