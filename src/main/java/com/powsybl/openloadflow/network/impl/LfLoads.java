@@ -14,8 +14,10 @@ import com.powsybl.openloadflow.network.PerUnit;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
+/**
+ * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ */
 public class LfLoads extends AbstractElement {
 
     private final List<Load> loads = new ArrayList<>();
@@ -27,6 +29,8 @@ public class LfLoads extends AbstractElement {
     private final List<Double> p0s = new ArrayList<>();
 
     private double absVariableLoadTargetP = 0;
+
+    private boolean participationFactorsNormalized;
 
     protected LfLoads(LfNetwork network) {
         super(network);
@@ -48,7 +52,19 @@ public class LfLoads extends AbstractElement {
     }
 
     public List<Double> getParticipationFactors() {
-        return absVariableLoadTargetP != 0 ? participationFactors.stream().map(p -> p / absVariableLoadTargetP).collect(Collectors.toList()) : participationFactors;
+        if (!participationFactorsNormalized) {
+            normalizeParticipationFactors();
+        }
+        return participationFactors;
+    }
+
+    private void normalizeParticipationFactors() {
+        if (absVariableLoadTargetP != 0) {
+            for (int i = 0; i < participationFactors.size(); i++) {
+                participationFactors.set(i, participationFactors.get(i) / absVariableLoadTargetP);
+            }
+        }
+        participationFactorsNormalized = true;
     }
 
     public double getAbsVariableLoadTargetP() {
