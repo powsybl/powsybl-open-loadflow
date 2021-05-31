@@ -22,11 +22,13 @@ public class LfLoads extends AbstractElement {
 
     private final List<Load> loads = new ArrayList<>();
 
-    private final List<Double> participationFactors = new ArrayList<>();
+    private double[] participationFactors;
 
     private double absVariableLoadTargetP = 0;
 
-    private boolean participationFactorsNormalized;
+    private boolean distributedOnConformLoad;
+
+    private boolean isInitialized;
 
     protected LfLoads(LfNetwork network) {
         super(network);
@@ -34,35 +36,39 @@ public class LfLoads extends AbstractElement {
 
     public void add(Load load, boolean distributedOnConformLoad) {
         loads.add(load);
-        double value;
-        if (distributedOnConformLoad) {
-            value = load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower());
-            absVariableLoadTargetP += value;
-        } else {
-            value = Math.abs(load.getP0());
-            absVariableLoadTargetP += value;
-        }
-        participationFactors.add(value);
-    }
-
-    private List<Double> getParticipationFactors() {
-        if (!participationFactorsNormalized) {
-            normalizeParticipationFactors();
-        }
-        return participationFactors;
-    }
-
-    private void normalizeParticipationFactors() {
-        if (absVariableLoadTargetP != 0) {
-            for (int i = 0; i < participationFactors.size(); i++) {
-                participationFactors.set(i, participationFactors.get(i) / absVariableLoadTargetP);
-            }
-        }
-        participationFactorsNormalized = true;
+        this.distributedOnConformLoad = distributedOnConformLoad; // TODO: put in constructor instead
     }
 
     public double getAbsVariableLoadTargetP() {
+        init();
         return absVariableLoadTargetP;
+    }
+
+    private void init() {
+        if (isInitialized) {
+            return;
+        }
+
+        participationFactors = new double[loads.size()];
+        for (int i = 0; i < loads.size(); i++) {
+            Load load = loads.get(i);
+            double value;
+            if (distributedOnConformLoad) {
+                value = load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower());
+            } else {
+                value = Math.abs(load.getP0());
+            }
+            absVariableLoadTargetP += value;
+            participationFactors[i] = value;
+        }
+
+        if (absVariableLoadTargetP != 0) {
+            for (int i = 0; i < participationFactors.length; i++) {
+                participationFactors[i] /= absVariableLoadTargetP;
+            }
+        }
+
+        isInitialized = true;
     }
 
     public double getLoadCount() {
@@ -70,9 +76,10 @@ public class LfLoads extends AbstractElement {
     }
 
     public void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant) {
+        init();
         for (int i = 0; i < loads.size(); i++) {
             Load load = loads.get(i);
-            double updatedP0 = (load.getP0() / PerUnit.SB + diffLoadTargetP * getParticipationFactors().get(i)) * PerUnit.SB;
+            double updatedP0 = (load.getP0() / PerUnit.SB + diffLoadTargetP * participationFactors[i]) * PerUnit.SB;
             double updatedQ0 = loadPowerFactorConstant ? getPowerFactor(load) * updatedP0 : load.getQ0();
             load.getTerminal().setP(updatedP0);
             load.getTerminal().setQ(updatedQ0);
@@ -80,10 +87,11 @@ public class LfLoads extends AbstractElement {
     }
 
     public double getLoadTargetQ(double diffLoadTargetP) {
+        init();
         double newLoadTargetQ = 0;
         for (int i = 0; i < loads.size(); i++) {
             Load load = loads.get(i);
-            double updatedP0 = load.getP0() / PerUnit.SB + diffLoadTargetP * getParticipationFactors().get(i);
+            double updatedP0 = load.getP0() / PerUnit.SB + diffLoadTargetP * participationFactors[i];
             newLoadTargetQ += getPowerFactor(load) * updatedP0;
         }
         return newLoadTargetQ;
