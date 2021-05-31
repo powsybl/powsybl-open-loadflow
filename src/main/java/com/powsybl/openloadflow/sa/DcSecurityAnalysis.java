@@ -5,6 +5,7 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.iidm.network.Branch;
+import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -14,7 +15,9 @@ import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sensi.*;
 import com.powsybl.security.*;
+import com.powsybl.security.detectors.LoadingLimitType;
 import com.powsybl.security.results.PostContingencyResult;
+import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 
 import java.util.*;
@@ -64,19 +67,13 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
         }
         SensitivityAnalysisResult2 res = sensitivityAnalysisProvider.run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors);
 
+        DefaultLimitViolationDetector detector = new DefaultLimitViolationDetector(1.0f, EnumSet.noneOf(LoadingLimitType.class));
         List<LimitViolation> preContingencyLimitViolations = new ArrayList<>();
         for (SensitivityValue2 sensValue : res.getValues(null)) {
             SensitivityFactor2 factor = (SensitivityFactor2) sensValue.getFactorContext();
             String branchId = factor.getFunctionId();
             Branch branch = network.getBranch(branchId);
-            if (branch.getActivePowerLimits1() != null) {
-                double permanentLimit = branch.getActivePowerLimits1().getPermanentLimit();
-                if (Math.abs(sensValue.getFunctionReference()) >= permanentLimit) {
-                    //FIXME: current is not the good type
-                    preContingencyLimitViolations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, null,
-                            Integer.MAX_VALUE, permanentLimit, (float) 1., sensValue.getFunctionReference(), Branch.Side.ONE));
-                }
-            }
+            detector.checkPermanentLimit(branch, Branch.Side.ONE, Math.abs(sensValue.getFunctionReference()), preContingencyLimitViolations::add, LimitType.ACTIVE_POWER);
         }
 
         LimitViolationsResult preContingencyResult = new LimitViolationsResult(true, preContingencyLimitViolations);
@@ -90,14 +87,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                 SensitivityFactor2 factor = (SensitivityFactor2) v.getFactorContext();
                 String branchId = factor.getFunctionId();
                 Branch branch = network.getBranch(branchId);
-                if (branch.getActivePowerLimits1() != null) {
-                    double permanentLimit = branch.getActivePowerLimits1().getPermanentLimit();
-                    if (Math.abs(v.getFunctionReference()) >= permanentLimit) {
-                        //FIXME: current is not the good type
-                        violations.add(new LimitViolation(branch.getId(), LimitViolationType.CURRENT, null,
-                                Integer.MAX_VALUE, permanentLimit, (float) 1., v.getFunctionReference(), Branch.Side.ONE));
-                    }
-                }
+                detector.checkPermanentLimit(branch, Branch.Side.ONE, Math.abs(v.getFunctionReference()), violations::add, LimitType.ACTIVE_POWER);
             }
 
             postContingencyResults.add(new PostContingencyResult(contingency, true, violations));
