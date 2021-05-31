@@ -51,7 +51,7 @@ public class LfLoads extends AbstractElement {
         p0s.add(load.getP0() / PerUnit.SB);
     }
 
-    public List<Double> getParticipationFactors() {
+    private List<Double> getParticipationFactors() {
         if (!participationFactorsNormalized) {
             normalizeParticipationFactors();
         }
@@ -76,13 +76,10 @@ public class LfLoads extends AbstractElement {
     }
 
     public void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant) {
-        double diffTargetP = getLoadCount() > 0 ? diffLoadTargetP : 0;
-        double updatedP0;
-        double updatedQ0;
-        for (int i = 0; i < getLoadCount(); i++) {
-            double diffP = diffTargetP * getParticipationFactors().get(i);
-            updatedP0 = p0s.get(i) * PerUnit.SB + diffP;
-            updatedQ0 = loadPowerFactorConstant ? powerFactors.get(i) * updatedP0 : loads.get(i).getQ0();
+        for (int i = 0; i < loads.size(); i++) {
+            double diffP = diffLoadTargetP * getParticipationFactors().get(i);
+            double updatedP0 = p0s.get(i) * PerUnit.SB + diffP;
+            double updatedQ0 = loadPowerFactorConstant ? powerFactors.get(i) * updatedP0 : loads.get(i).getQ0();
             loads.get(i).getTerminal().setP(updatedP0);
             loads.get(i).getTerminal().setQ(updatedQ0);
         }
@@ -90,7 +87,7 @@ public class LfLoads extends AbstractElement {
 
     public double getLoadTargetQ(double diffLoadTargetP) {
         double newLoadTargetQ = 0;
-        for (int i = 0; i < getLoadCount(); i++) {
+        for (int i = 0; i < loads.size(); i++) {
             newLoadTargetQ += powerFactors.get(i) * (p0s.get(i) + diffLoadTargetP * getParticipationFactors().get(i));
         }
         return newLoadTargetQ;
