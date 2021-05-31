@@ -222,8 +222,8 @@ public final class AcEquationSystem {
                                                 LfBranch branch, LfBus bus1, LfBus bus2) {
         Optional<Equation> v1 = equationSystem.getEquation(bus1.getNum(), EquationType.BUS_V);
         Optional<Equation> v2 = equationSystem.getEquation(bus2.getNum(), EquationType.BUS_V);
-        boolean hasV1 = v1.isPresent() && v1.get().isActive(); // may be inactive is the equation has been created for sensitivity
-        boolean hasV2 = v2.isPresent() && v2.get().isActive(); // may be inactive is the equation has been created for sensitivity
+        boolean hasV1 = v1.isPresent() && v1.get().isActive(); // may be inactive if the equation has been created for sensitivity
+        boolean hasV2 = v2.isPresent() && v2.get().isActive(); // may be inactive if the equation has been created for sensitivity
         if (!(hasV1 && hasV2)) {
             // create voltage magnitude coupling equation
             // 0 = v1 - v2 * rho
