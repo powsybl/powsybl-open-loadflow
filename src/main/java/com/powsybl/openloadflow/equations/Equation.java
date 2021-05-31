@@ -182,8 +182,23 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case BUS_V:
-            case BUS_V_SLOPE:
                 targets[column] = getBusTargetV(network.getBus(num));
+                break;
+            case BUS_V_SLOPE:
+                double targetV = getBusTargetV(network.getBus(num));
+                double qbusGen = 0;
+                for (LfGenerator lfGenerator : network.getBus(num).getGenerators()) {
+                    if (!lfGenerator.hasVoltageControl()) {
+                        qbusGen += lfGenerator.getTargetQ();
+                    }
+                }
+                double qbusLoad = network.getBus(num).getLoadTargetQ();
+                List<LfGenerator> generatorsControllingVoltage = network.getBus(num).getGenerators().stream()
+                        .filter(lfGenerator -> lfGenerator.hasVoltageControl())
+                        .collect(Collectors.toList());
+                List<LfGenerator> generatorsControllingVoltageWithSlope = generatorsControllingVoltage.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
+                double slope = generatorsControllingVoltageWithSlope.get(0).getSlope();
+                targets[column] = targetV - slope * (qbusLoad - qbusGen);
                 break;
 
             case BUS_PHI:

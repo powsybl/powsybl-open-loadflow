@@ -68,7 +68,9 @@ public final class AcEquationSystem {
 
             if (creationParameters.isVoltagePerReactivePowerControl() && generatorsControllingVoltageWithSlope.size() == 1 && generatorsControllingVoltage.size() == 1) {
                 // we only support one generator controlling voltage with a non zero slope at a bus.
-                vTerm = new GeneratorWithSlopeVoltageEquationTerm(generatorsControllingVoltageWithSlope, bus, variableSet, equationSystem, bus.getVoltageControl().map(VoltageControl::getTargetValue).orElse(Double.NaN));
+                // Equation is: U + slope * Qsvc = TargetU
+                // Which is modeled with: U + slope * (sum_lines Qline) = TargetU - slope*loadQ + slope*genQ
+                vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_V_SLOPE).addTerm(vTerm);
             } else {
                 vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
@@ -364,6 +366,15 @@ public final class AcEquationSystem {
             }
             sq1.addTerm(q1);
             branch.setQ1(q1);
+            // Add term slope * Q for svc
+            List<LfGenerator> generatorsControllingVoltage = bus1.getGenerators().stream()
+                    .filter(lfGenerator -> lfGenerator.hasVoltageControl())
+                    .collect(Collectors.toList());
+            List<LfGenerator> generatorsControllingVoltageWithSlope = generatorsControllingVoltage.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
+            if (creationParameters.isVoltagePerReactivePowerControl() && generatorsControllingVoltageWithSlope.size() == 1 && generatorsControllingVoltage.size() == 1) {
+                Equation uq1 = equationSystem.createEquation(bus1.getNum(), EquationType.BUS_V_SLOPE);
+                uq1.addTerm(EquationTerm.multiply(q1, generatorsControllingVoltageWithSlope.get(0).getSlope()));
+            }
         }
         if (p2 != null) {
             Equation sp2 = equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P);
@@ -383,6 +394,15 @@ public final class AcEquationSystem {
             }
             sq2.addTerm(q2);
             branch.setQ2(q2);
+            // Add term slope * Q for svc
+            List<LfGenerator> generatorsControllingVoltage = bus2.getGenerators().stream()
+                    .filter(lfGenerator -> lfGenerator.hasVoltageControl())
+                    .collect(Collectors.toList());
+            List<LfGenerator> generatorsControllingVoltageWithSlope = generatorsControllingVoltage.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
+            if (creationParameters.isVoltagePerReactivePowerControl() && generatorsControllingVoltageWithSlope.size() == 1 && generatorsControllingVoltage.size() == 1) {
+                Equation uq2 = equationSystem.createEquation(bus2.getNum(), EquationType.BUS_V_SLOPE);
+                uq2.addTerm(EquationTerm.multiply(q2, generatorsControllingVoltageWithSlope.get(0).getSlope()));
+            }
         }
 
         if (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability()) {
@@ -444,6 +464,31 @@ public final class AcEquationSystem {
         Objects.requireNonNull(creationParameters);
 
         EquationSystem equationSystem = new EquationSystem(network, true);
+
+        // Bus with only one generator contralling voltage with a slope and connected to a non impedent branch is not yet supported
+        List<LfBranch> zeroBranches = network.getBranches().stream()
+                .filter(b -> LfNetwork.isZeroImpedanceBranch(b))
+                .collect(Collectors.toList());
+        for (LfBranch zeroBranch : zeroBranches) {
+            List<LfGenerator> generatorsControllingVoltageat1 = zeroBranch.getBus1().getGenerators().stream()
+                    .filter(lfGenerator -> lfGenerator.hasVoltageControl())
+                    .collect(Collectors.toList());
+            List<LfGenerator> generatorsControllingVoltageWithSlopeat1 = generatorsControllingVoltageat1.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
+
+            if (creationParameters.isVoltagePerReactivePowerControl() && generatorsControllingVoltageWithSlopeat1.size() == 1 && generatorsControllingVoltageat1.size() == 1) {
+                throw new PowsyblException(
+                        "Zero impedance branche that is connected to a bus where only one generator is controling voltage with a slope (buss: " + zeroBranch.getBus1() + ";branch: " + zeroBranch + ")");
+            }
+            List<LfGenerator> generatorsControllingVoltageat2 = zeroBranch.getBus2().getGenerators().stream()
+                    .filter(lfGenerator -> lfGenerator.hasVoltageControl())
+                    .collect(Collectors.toList());
+            List<LfGenerator> generatorsControllingVoltageWithSlopeat2 = generatorsControllingVoltageat2.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
+
+            if (creationParameters.isVoltagePerReactivePowerControl() && generatorsControllingVoltageWithSlopeat2.size() == 1 && generatorsControllingVoltageat2.size() == 1) {
+                throw new PowsyblException(
+                        "Zero impedance branche that is connected to a bus where only one generator is controling voltage with a slope (buss: " + zeroBranch.getBus2() + ";branch: " + zeroBranch + ")");
+            }
+        }
 
         createBusEquations(network, variableSet, creationParameters, equationSystem);
         createBranchEquations(network, variableSet, creationParameters, equationSystem);
