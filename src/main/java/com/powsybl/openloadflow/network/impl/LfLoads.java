@@ -26,7 +26,7 @@ public class LfLoads extends AbstractElement {
 
     private final List<Double> p0s = new ArrayList<>();
 
-    private double sumAbsVariableActivePowers = 0;
+    private double absVariableLoadTargetP = 0;
 
     private double initialLoadTargetP = 0;
 
@@ -36,26 +36,26 @@ public class LfLoads extends AbstractElement {
 
     public void add(Load load, boolean distributedOnConformLoad) {
         loads.add(load);
-        double absVariableActivePower;
+        double value;
         if (distributedOnConformLoad) {
-            absVariableActivePower = load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower());
-            sumAbsVariableActivePowers += absVariableActivePower;
+            value = load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower());
+            absVariableLoadTargetP += value;
         } else {
-            absVariableActivePower = Math.abs(load.getP0());
-            sumAbsVariableActivePowers += absVariableActivePower;
+            value = Math.abs(load.getP0());
+            absVariableLoadTargetP += value;
         }
         initialLoadTargetP += load.getP0() / PerUnit.SB;
-        participationFactors.add(absVariableActivePower);
+        participationFactors.add(value);
         powerFactors.add(load.getP0() != 0 ? load.getQ0() / load.getP0() : 1);
         p0s.add(load.getP0() / PerUnit.SB);
     }
 
     public List<Double> getParticipationFactors() {
-        return sumAbsVariableActivePowers != 0 ? participationFactors.stream().map(p -> p / sumAbsVariableActivePowers).collect(Collectors.toList()) : participationFactors;
+        return absVariableLoadTargetP != 0 ? participationFactors.stream().map(p -> p / absVariableLoadTargetP).collect(Collectors.toList()) : participationFactors;
     }
 
     public double getAbsVariableLoadTargetP() {
-        return sumAbsVariableActivePowers;
+        return absVariableLoadTargetP;
     }
 
     public double getLoadCount() {
