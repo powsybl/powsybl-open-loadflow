@@ -81,7 +81,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
             }
         }
 
-        LOGGER.debug("{} MW / {} MW distributed at iteration {} to {} loads ({} at min consumption)",
+        LOGGER.debug("{} MW / {} MW distributed at iteration {} to {} buses ({} at min consumption)",
                 done * PerUnit.SB, -remainingMismatch * PerUnit.SB, iteration, modifiedBuses, loadsAtMin);
 
         return done;
@@ -92,7 +92,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
         // we have to keep the power factor constant by updating targetQ.
         double newLoadTargetQ;
         if (bus.ensurePowerFactorConstantByLoad()) {
-            newLoadTargetQ = bus.getLfLoads().getLoadTargetQ(newLoadTargetP);
+            newLoadTargetQ = bus.getLfLoads().getLoadTargetQ(newLoadTargetP - bus.getInitialLoadTargetP());
         } else {
             newLoadTargetQ = newLoadTargetP * bus.getLoadTargetQ() / bus.getLoadTargetP();
         }

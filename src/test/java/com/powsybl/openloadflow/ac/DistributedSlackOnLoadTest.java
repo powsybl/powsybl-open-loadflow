@@ -155,6 +155,7 @@ class DistributedSlackOnLoadTest {
                 .addComponentResult(0, 0, LoadFlowResult.ComponentResult.Status.CONVERGED, 4, "VLHV1_0", 0.026900149770181514)
                 .build();
         assertLoadFlowResultsEquals(loadFlowResultExpected2, loadFlowResult2);
+        assertActivePowerEquals(601.440, network1.getLoad("LOAD").getTerminal());
 
         // PROPORTIONAL_TO_CONFORM_LOAD and power factor constant for loads
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
@@ -171,5 +172,7 @@ class DistributedSlackOnLoadTest {
                 .addComponentResult(0, 0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "VLHV1_0", 0.2263232679029059)
                 .build();
         assertLoadFlowResultsEquals(loadFlowResultExpected3, loadFlowResult3);
+        assertActivePowerEquals(611.405, network3.getLoad("LOAD").getTerminal());
+        assertActivePowerEquals(-9.809, network3.getLoad("LOAD1").getTerminal());
     }
 }

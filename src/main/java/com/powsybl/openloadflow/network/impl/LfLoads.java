@@ -28,8 +28,6 @@ public class LfLoads extends AbstractElement {
 
     private double absVariableLoadTargetP = 0;
 
-    private double initialLoadTargetP = 0;
-
     protected LfLoads(LfNetwork network) {
         super(network);
     }
@@ -44,7 +42,6 @@ public class LfLoads extends AbstractElement {
             value = Math.abs(load.getP0());
             absVariableLoadTargetP += value;
         }
-        initialLoadTargetP += load.getP0() / PerUnit.SB;
         participationFactors.add(value);
         powerFactors.add(load.getP0() != 0 ? load.getQ0() / load.getP0() : 1);
         p0s.add(load.getP0() / PerUnit.SB);
@@ -62,8 +59,8 @@ public class LfLoads extends AbstractElement {
         return loads.size();
     }
 
-    public void updateState(double loadTargetP, boolean loadPowerFactorConstant) {
-        double diffTargetP = getLoadCount() > 0 ? loadTargetP - initialLoadTargetP * PerUnit.SB : 0;
+    public void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant) {
+        double diffTargetP = getLoadCount() > 0 ? diffLoadTargetP : 0;
         double updatedP0;
         double updatedQ0;
         for (int i = 0; i < getLoadCount(); i++) {
@@ -75,10 +72,10 @@ public class LfLoads extends AbstractElement {
         }
     }
 
-    public double getLoadTargetQ(double newLoadTargetP) {
+    public double getLoadTargetQ(double diffLoadTargetP) {
         double newLoadTargetQ = 0;
         for (int i = 0; i < getLoadCount(); i++) {
-            newLoadTargetQ += powerFactors.get(i) * (p0s.get(i) + (newLoadTargetP - initialLoadTargetP) * getParticipationFactors().get(i));
+            newLoadTargetQ += powerFactors.get(i) * (p0s.get(i) + diffLoadTargetP * getParticipationFactors().get(i));
         }
         return newLoadTargetQ;
     }

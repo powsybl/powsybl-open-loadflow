@@ -41,6 +41,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double loadTargetP = 0;
 
+    protected double initialLoadTargetP = 0;
+
     protected double loadTargetQ = 0;
 
     protected double generationTargetQ = 0;
@@ -157,6 +159,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     void addLoad(Load load, boolean distributedOnConformLoad) {
         double p0 = load.getP0();
         loadTargetP += p0;
+        initialLoadTargetP += p0;
         loadTargetQ += load.getQ0();
         if (p0 < 0) {
             ensurePowerFactorConstantByLoad = true;
@@ -168,6 +171,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         // note that batteries are out of the slack distribution.
         batteries.add(battery);
         loadTargetP += battery.getP0();
+        // initialLoadTargetP += battery.getP0();
         loadTargetQ += battery.getQ0();
     }
 
@@ -177,6 +181,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         HvdcLine line = lccCs.getHvdcLine();
         double targetP = getLccConverterStationLoadTargetP(lccCs, line);
         loadTargetP += targetP;
+        initialLoadTargetP += targetP;
         loadTargetQ += getLccConverterStationLoadTargetQ(lccCs, line);
     }
 
@@ -250,6 +255,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public double getLoadTargetP() {
         return loadTargetP / PerUnit.SB;
+    }
+
+    @Override
+    public double getInitialLoadTargetP() {
+        return initialLoadTargetP / PerUnit.SB;
     }
 
     @Override
@@ -404,7 +414,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         updateGeneratorsState(voltageControllerEnabled ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
 
         // update load power
-        lfLoads.updateState(loadTargetP, loadPowerFactorConstant);
+        lfLoads.updateState(loadTargetP - initialLoadTargetP, loadPowerFactorConstant);
 
         // update battery power (which are not part of slack distribution)
         for (Battery battery : batteries) {
