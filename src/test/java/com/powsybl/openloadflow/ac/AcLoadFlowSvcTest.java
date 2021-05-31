@@ -178,12 +178,12 @@ class AcLoadFlowSvcTest {
         assertAngleEquals(0, bus1);
         assertVoltageEquals(387.845, bus2);
         assertAngleEquals(-0.022026, bus2);
-        assertActivePowerEquals(101.467, l1.getTerminal1());
-        assertReactivePowerEquals(246.249, l1.getTerminal1());
+        assertActivePowerEquals(101.466, l1.getTerminal1());
+        assertReactivePowerEquals(246.252, l1.getTerminal1());
         assertActivePowerEquals(-101, l1.getTerminal2());
-        assertReactivePowerEquals(-244.850, l1.getTerminal2());
+        assertReactivePowerEquals(-244.853, l1.getTerminal2());
         assertActivePowerEquals(0, svc1.getTerminal());
-        assertReactivePowerEquals(94.850, svc1.getTerminal());
+        assertReactivePowerEquals(94.853, svc1.getTerminal());
     }
 
     @Test
@@ -294,12 +294,12 @@ class AcLoadFlowSvcTest {
         assertVoltageEquals(390, bus1);
         assertAngleEquals(0, bus1);
         assertVoltageEquals(388.462, bus2);
-        assertAngleEquals(-0.052035, bus2);
+        assertAngleEquals(-0.052034, bus2);
         assertActivePowerEquals(101.249, l1.getTerminal1());
-        assertReactivePowerEquals(166.157, l1.getTerminal1());
+        assertReactivePowerEquals(166.160, l1.getTerminal1());
         assertActivePowerEquals(-101, l1.getTerminal2());
-        assertReactivePowerEquals(-165.410, l1.getTerminal2());
+        assertReactivePowerEquals(-165.413, l1.getTerminal2());
         assertActivePowerEquals(0, svc1.getTerminal());
-        assertReactivePowerEquals(115.410, svc1.getTerminal());
+        assertReactivePowerEquals(115.413, svc1.getTerminal());
     }
 }
