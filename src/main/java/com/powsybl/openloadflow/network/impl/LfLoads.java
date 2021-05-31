@@ -18,7 +18,7 @@ public class LfLoads extends AbstractElement {
 
     protected final List<Double> p0s = new ArrayList<>();
 
-    protected double sum = 0;
+    protected double sumAbsVariableActivePowers = 0;
 
     protected int loadCount = 0;
 
@@ -33,10 +33,10 @@ public class LfLoads extends AbstractElement {
         double value;
         if (distributedOnConformLoad) {
             value = load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower());
-            sum += value;
+            sumAbsVariableActivePowers += value;
         } else {
             value = Math.abs(load.getP0());
-            sum += value;
+            sumAbsVariableActivePowers += value;
         }
         initialLoadTargetP += load.getP0() / PerUnit.SB;
         participationFactors.add(value);
@@ -45,7 +45,7 @@ public class LfLoads extends AbstractElement {
     }
 
     public List<Double> getParticipationFactors() {
-        return sum != 0 ? participationFactors.stream().map(p -> p / sum).collect(Collectors.toList()) : participationFactors;
+        return sumAbsVariableActivePowers != 0 ? participationFactors.stream().map(p -> p / sumAbsVariableActivePowers).collect(Collectors.toList()) : participationFactors;
     }
 
     public List<Double> getPowerFactors() {
@@ -57,7 +57,7 @@ public class LfLoads extends AbstractElement {
     }
 
     public double getAbsVariableLoadTargetP() {
-        return sum;
+        return sumAbsVariableActivePowers;
     }
 
     public double getLoadCount() {
