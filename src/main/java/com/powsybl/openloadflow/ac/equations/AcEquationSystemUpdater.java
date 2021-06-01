@@ -109,10 +109,8 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V)
                     .setActive(true);
 
-            if (bus.getDiscreteVoltageControl().getControllers().size() > 1) {
-                // add transformer distribution equations
-                AcEquationSystem.createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
-            }
+            // add transformer distribution equations
+            AcEquationSystem.createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
 
             for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
                 // de-activate constant R1 equation

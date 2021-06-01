@@ -902,9 +902,8 @@ public abstract class AbstractSensitivityAnalysis {
         List<LfSensitivityFactor> factors = factorHolder.getFactorsForBaseNetwork();
         for (LfSensitivityFactor factor : factors) {
             if (factor.getVariableType() == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
-                TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer(factor.getVariableId());
-                ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(factor.getVariableId());
-                if (t2wt != null || t3wt != null) {
+                Identifiable equipment = network.getIdentifiable(factor.getVariableId());
+                if (equipment instanceof TwoWindingsTransformer || equipment instanceof ThreeWindingsTransformer) {
                     return true;
                 }
             }
