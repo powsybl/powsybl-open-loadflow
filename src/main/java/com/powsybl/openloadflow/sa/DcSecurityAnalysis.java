@@ -5,7 +5,6 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -66,14 +65,14 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                     variableId, false, contingencyContext));
         }
         SensitivityAnalysisResult2 res = sensitivityAnalysisProvider.run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors);
-
+        
         DefaultLimitViolationDetector detector = new DefaultLimitViolationDetector(1.0f, EnumSet.noneOf(LoadingLimitType.class));
         List<LimitViolation> preContingencyLimitViolations = new ArrayList<>();
         for (SensitivityValue2 sensValue : res.getValues(null)) {
             SensitivityFactor2 factor = (SensitivityFactor2) sensValue.getFactorContext();
             String branchId = factor.getFunctionId();
             Branch branch = network.getBranch(branchId);
-            detector.checkPermanentLimit(branch, Branch.Side.ONE, Math.abs(sensValue.getFunctionReference()), preContingencyLimitViolations::add, LimitType.ACTIVE_POWER);
+            detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(sensValue.getFunctionReference()), preContingencyLimitViolations::add);
         }
 
         LimitViolationsResult preContingencyResult = new LimitViolationsResult(true, preContingencyLimitViolations);
@@ -87,7 +86,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                 SensitivityFactor2 factor = (SensitivityFactor2) v.getFactorContext();
                 String branchId = factor.getFunctionId();
                 Branch branch = network.getBranch(branchId);
-                detector.checkPermanentLimit(branch, Branch.Side.ONE, Math.abs(v.getFunctionReference()), violations::add, LimitType.ACTIVE_POWER);
+                detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(v.getFunctionReference()), violations::add);
             }
 
             postContingencyResults.add(new PostContingencyResult(contingency, true, violations));
