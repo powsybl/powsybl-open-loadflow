@@ -171,6 +171,20 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return controllerBranch.getPiModel().getR1() - firstControllerBranch.getPiModel().getR1();
     }
 
+    private static double getUPlusLambdaQTarget(LfBus bus) {
+        double targetV = getBusTargetV(bus);
+        double qbusGen = bus.getGenerationTargetQ();
+        double qbusLoad = bus.getLoadTargetQ();
+        List<LfGenerator> generatorsControllingVoltage = bus.getGenerators().stream()
+                .filter(lfGenerator -> lfGenerator.hasVoltageControl())
+                .collect(Collectors.toList());
+        List<LfGenerator> generatorsControllingVoltageWithSlope = generatorsControllingVoltage.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
+        double slope = generatorsControllingVoltageWithSlope.get(0).getSlope();
+        double tmp = targetV - slope * (qbusLoad - qbusGen);
+        System.out.println("Je passe dans l'initialisation de la target pour un U+lambdaQ avec targetV: " + tmp + " bus: " + bus.getId());
+        return targetV - slope * (qbusLoad - qbusGen);
+    }
+
     void initTarget(LfNetwork network, double[] targets) {
         switch (type) {
             case BUS_P:
@@ -184,21 +198,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
             case BUS_V:
                 targets[column] = getBusTargetV(network.getBus(num));
                 break;
+
             case BUS_V_SLOPE:
-                double targetV = getBusTargetV(network.getBus(num));
-                double qbusGen = 0;
-                for (LfGenerator lfGenerator : network.getBus(num).getGenerators()) {
-                    if (!lfGenerator.hasVoltageControl()) {
-                        qbusGen += lfGenerator.getTargetQ();
-                    }
-                }
-                double qbusLoad = network.getBus(num).getLoadTargetQ();
-                List<LfGenerator> generatorsControllingVoltage = network.getBus(num).getGenerators().stream()
-                        .filter(lfGenerator -> lfGenerator.hasVoltageControl())
-                        .collect(Collectors.toList());
-                List<LfGenerator> generatorsControllingVoltageWithSlope = generatorsControllingVoltage.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
-                double slope = generatorsControllingVoltageWithSlope.get(0).getSlope();
-                targets[column] = targetV - slope * (qbusLoad - qbusGen);
+                targets[column] = getUPlusLambdaQTarget(network.getBus(num));
                 break;
 
             case BUS_PHI:

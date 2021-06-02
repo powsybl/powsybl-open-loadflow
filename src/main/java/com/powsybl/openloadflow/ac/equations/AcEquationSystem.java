@@ -296,6 +296,17 @@ public final class AcEquationSystem {
         }
     }
 
+    private static void createSlopeQEquationTerm(LfBus bus, AcEquationSystemCreationParameters creationParameters, EquationSystem equationSystem, EquationTerm q) {
+        List<LfGenerator> generatorsControllingVoltage = bus.getGenerators().stream()
+                .filter(lfGenerator -> lfGenerator.hasVoltageControl())
+                .collect(Collectors.toList());
+        List<LfGenerator> generatorsControllingVoltageWithSlope = generatorsControllingVoltage.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
+        if (creationParameters.isVoltagePerReactivePowerControl() && generatorsControllingVoltageWithSlope.size() == 1 && generatorsControllingVoltage.size() == 1) {
+            Equation uq1 = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V_SLOPE);
+            uq1.addTerm(EquationTerm.multiply(q, generatorsControllingVoltageWithSlope.get(0).getSlope()));
+        }
+    }
+
     public static void createR1DistributionEquations(EquationSystem equationSystem, VariableSet variableSet,
                                                      List<LfBranch> controllerBranches) {
         // we choose first controller bus as reference for reactive power
@@ -366,15 +377,8 @@ public final class AcEquationSystem {
             }
             sq1.addTerm(q1);
             branch.setQ1(q1);
-            // Add term slope * Q for svc
-            List<LfGenerator> generatorsControllingVoltage = bus1.getGenerators().stream()
-                    .filter(lfGenerator -> lfGenerator.hasVoltageControl())
-                    .collect(Collectors.toList());
-            List<LfGenerator> generatorsControllingVoltageWithSlope = generatorsControllingVoltage.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
-            if (creationParameters.isVoltagePerReactivePowerControl() && generatorsControllingVoltageWithSlope.size() == 1 && generatorsControllingVoltage.size() == 1) {
-                Equation uq1 = equationSystem.createEquation(bus1.getNum(), EquationType.BUS_V_SLOPE);
-                uq1.addTerm(EquationTerm.multiply(q1, generatorsControllingVoltageWithSlope.get(0).getSlope()));
-            }
+            // Add term slope * Q for U+lambdaQ control
+            createSlopeQEquationTerm(bus1, creationParameters, equationSystem, q1);
         }
         if (p2 != null) {
             Equation sp2 = equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P);
@@ -394,15 +398,8 @@ public final class AcEquationSystem {
             }
             sq2.addTerm(q2);
             branch.setQ2(q2);
-            // Add term slope * Q for svc
-            List<LfGenerator> generatorsControllingVoltage = bus2.getGenerators().stream()
-                    .filter(lfGenerator -> lfGenerator.hasVoltageControl())
-                    .collect(Collectors.toList());
-            List<LfGenerator> generatorsControllingVoltageWithSlope = generatorsControllingVoltage.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
-            if (creationParameters.isVoltagePerReactivePowerControl() && generatorsControllingVoltageWithSlope.size() == 1 && generatorsControllingVoltage.size() == 1) {
-                Equation uq2 = equationSystem.createEquation(bus2.getNum(), EquationType.BUS_V_SLOPE);
-                uq2.addTerm(EquationTerm.multiply(q2, generatorsControllingVoltageWithSlope.get(0).getSlope()));
-            }
+            // Add term slope * Q for U+lambdaQ control
+            createSlopeQEquationTerm(bus2, creationParameters, equationSystem, q2);
         }
 
         if (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability()) {
