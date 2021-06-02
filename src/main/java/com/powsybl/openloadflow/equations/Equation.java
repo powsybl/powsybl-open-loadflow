@@ -180,8 +180,6 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 .collect(Collectors.toList());
         List<LfGenerator> generatorsControllingVoltageWithSlope = generatorsControllingVoltage.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
         double slope = generatorsControllingVoltageWithSlope.get(0).getSlope();
-        double tmp = targetV - slope * (qbusLoad - qbusGen);
-        System.out.println("Je passe dans l'initialisation de la target pour un U+lambdaQ avec targetV: " + tmp + " bus: " + bus.getId());
         return targetV - slope * (qbusLoad - qbusGen);
     }
 
