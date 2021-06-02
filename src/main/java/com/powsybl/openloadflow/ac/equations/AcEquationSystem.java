@@ -60,16 +60,10 @@ public final class AcEquationSystem {
                                                       EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
         if (voltageControl.isVoltageControlLocal()) {
             EquationTerm vTerm;
-
-            List<LfGenerator> generatorsControllingVoltage = bus.getGenerators().stream()
-                    .filter(lfGenerator -> lfGenerator.hasVoltageControl())
-                    .collect(Collectors.toList());
-            List<LfGenerator> generatorsControllingVoltageWithSlope = generatorsControllingVoltage.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
-
-            if (creationParameters.isVoltagePerReactivePowerControl() && generatorsControllingVoltageWithSlope.size() == 1 && generatorsControllingVoltage.size() == 1) {
+            if (creationParameters.isVoltagePerReactivePowerControl() && bus.getGeneratorControllingVoltageWithSlope() != null) {
                 // we only support one generator controlling voltage with a non zero slope at a bus.
-                // Equation is: U + slope * Qsvc = TargetU
-                // Which is modeled with: U + slope * (sum_lines Qline) = TargetU - slope*loadQ + slope*genQ
+                // equation is: V + slope * qSVC = targetV
+                // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGen
                 vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_V_SLOPE).addTerm(vTerm);
             } else {
@@ -297,13 +291,10 @@ public final class AcEquationSystem {
     }
 
     private static void createSlopeQEquationTerm(LfBus bus, AcEquationSystemCreationParameters creationParameters, EquationSystem equationSystem, EquationTerm q) {
-        List<LfGenerator> generatorsControllingVoltage = bus.getGenerators().stream()
-                .filter(lfGenerator -> lfGenerator.hasVoltageControl())
-                .collect(Collectors.toList());
-        List<LfGenerator> generatorsControllingVoltageWithSlope = generatorsControllingVoltage.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
-        if (creationParameters.isVoltagePerReactivePowerControl() && generatorsControllingVoltageWithSlope.size() == 1 && generatorsControllingVoltage.size() == 1) {
+        LfGenerator generator = bus.getGeneratorControllingVoltageWithSlope();
+        if (creationParameters.isVoltagePerReactivePowerControl() && generator != null) {
             Equation uq1 = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V_SLOPE);
-            uq1.addTerm(EquationTerm.multiply(q, generatorsControllingVoltageWithSlope.get(0).getSlope()));
+            uq1.addTerm(EquationTerm.multiply(q, generator.getSlope()));
         }
     }
 
