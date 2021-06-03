@@ -60,12 +60,10 @@ public final class AcEquationSystem {
                                                       EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
         if (voltageControl.isVoltageControlLocal()) {
             EquationTerm vTerm;
-            if (creationParameters.isVoltagePerReactivePowerControl() && bus.getGeneratorControllingVoltageWithSlope() != null) {
-                // we only support one generator controlling voltage with a non zero slope at a bus.
-                // equation is: V + slope * qSVC = targetV
-                // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGen
+            if (creationParameters.isVoltagePerReactivePowerControl() && voltageControl.getControllerBuses().size() == 1 && bus.getGeneratorControllingVoltageWithSlope() != null) {
                 vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
-                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V_SLOPE).addTerm(vTerm);
+                createBusWithSlopeEquation(bus, creationParameters, variableSet, equationSystem, vTerm);
+
             } else {
                 vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
@@ -290,11 +288,16 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createSlopeQEquationTerm(LfBus bus, AcEquationSystemCreationParameters creationParameters, EquationSystem equationSystem, EquationTerm q) {
-        LfGenerator generator = bus.getGeneratorControllingVoltageWithSlope();
-        if (creationParameters.isVoltagePerReactivePowerControl() && generator != null) {
-            Equation uq1 = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V_SLOPE);
-            uq1.addTerm(EquationTerm.multiply(q, generator.getSlope()));
+    private static void createBusWithSlopeEquation(LfBus bus, AcEquationSystemCreationParameters creationParameters, VariableSet variableSet, EquationSystem equationSystem, EquationTerm vTerm) {
+        // we only support one generator controlling voltage with a non zero slope at a bus.
+        // equation is: V + slope * qSVC = targetV
+        // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
+        Equation eq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V_SLOPE);
+        eq.addTerm(vTerm);
+        List<EquationTerm> controllerBusReactiveTerms = createReactiveTerms(bus, variableSet, creationParameters);
+        double slope = bus.getGeneratorControllingVoltageWithSlope().getSlope();
+        for (EquationTerm eqTerm : controllerBusReactiveTerms) {
+            eq.addTerm(EquationTerm.multiply(eqTerm, slope));
         }
     }
 
@@ -368,8 +371,6 @@ public final class AcEquationSystem {
             }
             sq1.addTerm(q1);
             branch.setQ1(q1);
-            // Add term slope * Q for U+lambdaQ control
-            createSlopeQEquationTerm(bus1, creationParameters, equationSystem, q1);
         }
         if (p2 != null) {
             Equation sp2 = equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P);
@@ -389,8 +390,6 @@ public final class AcEquationSystem {
             }
             sq2.addTerm(q2);
             branch.setQ2(q2);
-            // Add term slope * Q for U+lambdaQ control
-            createSlopeQEquationTerm(bus2, creationParameters, equationSystem, q2);
         }
 
         if (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability()) {
@@ -452,32 +451,6 @@ public final class AcEquationSystem {
         Objects.requireNonNull(creationParameters);
 
         EquationSystem equationSystem = new EquationSystem(network, true);
-
-        // Bus with only one generator contralling voltage with a slope and connected to a non impedent branch is not yet supported
-        List<LfBranch> zeroBranches = network.getBranches().stream()
-                .filter(b -> LfNetwork.isZeroImpedanceBranch(b))
-                .collect(Collectors.toList());
-        for (LfBranch zeroBranch : zeroBranches) {
-            List<LfGenerator> generatorsControllingVoltageat1 = zeroBranch.getBus1().getGenerators().stream()
-                    .filter(lfGenerator -> lfGenerator.hasVoltageControl())
-                    .collect(Collectors.toList());
-            List<LfGenerator> generatorsControllingVoltageWithSlopeat1 = generatorsControllingVoltageat1.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
-
-            if (creationParameters.isVoltagePerReactivePowerControl() && generatorsControllingVoltageWithSlopeat1.size() == 1 && generatorsControllingVoltageat1.size() == 1) {
-                throw new PowsyblException(
-                        "Zero impedance branche that is connected to a bus where only one generator is controling voltage with a slope (buss: " + zeroBranch.getBus1() + ";branch: " + zeroBranch + ")");
-            }
-            List<LfGenerator> generatorsControllingVoltageat2 = zeroBranch.getBus2().getGenerators().stream()
-                    .filter(lfGenerator -> lfGenerator.hasVoltageControl())
-                    .collect(Collectors.toList());
-            List<LfGenerator> generatorsControllingVoltageWithSlopeat2 = generatorsControllingVoltageat2.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
-
-            if (creationParameters.isVoltagePerReactivePowerControl() && generatorsControllingVoltageWithSlopeat2.size() == 1 && generatorsControllingVoltageat2.size() == 1) {
-                throw new PowsyblException(
-                        "Zero impedance branche that is connected to a bus where only one generator is controling voltage with a slope (buss: " + zeroBranch.getBus2() + ";branch: " + zeroBranch + ")");
-            }
-        }
-
         createBusEquations(network, variableSet, creationParameters, equationSystem);
         createBranchEquations(network, variableSet, creationParameters, equationSystem);
 

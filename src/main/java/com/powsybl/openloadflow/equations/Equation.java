@@ -171,16 +171,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return controllerBranch.getPiModel().getR1() - firstControllerBranch.getPiModel().getR1();
     }
 
-    private static double getUPlusLambdaQTarget(LfBus bus) {
-        double targetV = getBusTargetV(bus);
-        double qbusGen = bus.getGenerationTargetQ();
-        double qbusLoad = bus.getLoadTargetQ();
-        List<LfGenerator> generatorsControllingVoltage = bus.getGenerators().stream()
-                .filter(lfGenerator -> lfGenerator.hasVoltageControl())
-                .collect(Collectors.toList());
-        List<LfGenerator> generatorsControllingVoltageWithSlope = generatorsControllingVoltage.stream().filter(gen -> gen.getSlope() != 0).collect(Collectors.toList());
-        double slope = generatorsControllingVoltageWithSlope.get(0).getSlope();
-        return targetV - slope * (qbusLoad - qbusGen);
+    private static double createBusWithSlopeTarget(LfBus bus) {
+        double slope = bus.getGeneratorControllingVoltageWithSlope().getSlope();
+        return getBusTargetV(bus) - slope * (bus.getLoadTargetQ() - bus.getGenerationTargetQ());
     }
 
     void initTarget(LfNetwork network, double[] targets) {
@@ -198,7 +191,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case BUS_V_SLOPE:
-                targets[column] = getUPlusLambdaQTarget(network.getBus(num));
+                targets[column] = createBusWithSlopeTarget(network.getBus(num));
                 break;
 
             case BUS_PHI:
