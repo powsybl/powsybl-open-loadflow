@@ -30,7 +30,6 @@ import com.powsybl.sensitivity.factors.functions.BusVoltage;
 import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
 import com.powsybl.sensitivity.factors.variables.TargetVoltage;
-import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -347,6 +346,41 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     @Test
     void testBusVoltagePerTargetVTwt() {
         Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+
+        Substation substation4 = network.newSubstation()
+                .setId("SUBSTATION4")
+                .setCountry(Country.FR)
+                .add();
+        VoltageLevel vl4 = substation4.newVoltageLevel()
+                .setId("VL_4")
+                .setNominalV(33.0)
+                .setLowVoltageLimit(0.0)
+                .setHighVoltageLimit(100.0)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl4.getBusBreakerView().newBus()
+                .setId("BUS_4")
+                .add();
+        vl4.newLoad()
+                .setId("LOAD_4")
+                .setBus("BUS_4")
+                .setQ0(0)
+                .setP0(10)
+                .add();
+        network.newLine()
+                .setId("LINE_34")
+                .setVoltageLevel1("VL_3")
+                .setVoltageLevel2("VL_4")
+                .setBus1("BUS_3")
+                .setBus2("BUS_4")
+                .setR(1.05)
+                .setX(10.0)
+                .setG1(0.0000005)
+                .setG2(0.)
+                .setB1(0.)
+                .setB2(0.)
+                .add();
+
         TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("T2wT");
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
@@ -362,13 +396,14 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             .map(busVoltage -> new BusVoltagePerTargetV(busVoltage, targetVoltage))
             .collect(Collectors.toList());
 
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
-            sensiParameters, LocalComputationManager.getDefault())
-            .join());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+                sensiParameters, LocalComputationManager.getDefault()).join();
 
-        assertTrue(e.getCause() instanceof NotImplementedException);
-
-        assertEquals("[T2wT] Bus target voltage on two windings transformer is not managed yet", e.getCause().getMessage());
+        assertEquals(4, result.getSensitivityValues().size());
+        assertEquals(0d, getValue(result, "T2wT", "BUS_1"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.035205d,  getValue(result, "T2wT", "BUS_2"), LoadFlowAssert.DELTA_V);
+        assertEquals(1d,  getValue(result, "T2wT", "BUS_3"), LoadFlowAssert.DELTA_V);
+        assertEquals(1.055117d,  getValue(result, "T2wT", "BUS_4"), LoadFlowAssert.DELTA_V);
     }
 
     @Test
@@ -407,13 +442,14 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             .map(bus -> new BusVoltage(bus.getId(), bus.getId(), new IdBasedBusRef(bus.getId())))
             .map(busVoltage -> new BusVoltagePerTargetV(busVoltage, targetVoltage))
             .collect(Collectors.toList());
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
-            sensiParameters, LocalComputationManager.getDefault())
-            .join());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+                sensiParameters, LocalComputationManager.getDefault()).join();
 
-        assertTrue(e.getCause() instanceof NotImplementedException);
-
-        assertEquals("[T3wT] Bus target voltage on three windings transformer is not managed yet", e.getCause().getMessage());
+        assertEquals(4, result.getSensitivityValues().size());
+        assertEquals(0d, getValue(result, "T3wT", "BUS_1"), LoadFlowAssert.DELTA_V);
+        assertEquals(0d,  getValue(result, "T3wT", "BUS_2"), LoadFlowAssert.DELTA_V);
+        assertEquals(1d,  getValue(result, "T3wT", "BUS_3"), LoadFlowAssert.DELTA_V);
+        assertEquals(0d,  getValue(result, "T3wT", "BUS_4"), LoadFlowAssert.DELTA_V);
     }
 
     @Test
