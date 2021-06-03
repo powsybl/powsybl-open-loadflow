@@ -84,6 +84,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isSlack() {
+        network.updateSlack();
         return slack;
     }
 
