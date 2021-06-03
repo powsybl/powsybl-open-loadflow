@@ -8,14 +8,12 @@ package com.powsybl.openloadflow.sensi.ac;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.contingency.BranchContingency;
-import com.powsybl.contingency.Contingency;
-import com.powsybl.contingency.DanglingLineContingency;
-import com.powsybl.contingency.HvdcLineContingency;
+import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.IdBasedBusRef;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
@@ -754,5 +752,34 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         double finalP = l1.getTerminal1().getP();
         assertEquals(3.3775, finalP, LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.3704, initialP - finalP, LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+    }
+
+    @Test
+    void testEurostagFactory() {
+        Network network = EurostagTutorialExample1Factory.create();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLGEN_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        TargetVoltage targetVoltage = new TargetVoltage("NHV2_NLOAD", "NHV2_NLOAD", "NHV2_NLOAD");
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
+                .map(bus -> new BusVoltage(bus.getId(), bus.getId(), new IdBasedBusRef(bus.getId())))
+                .map(busVoltage -> new BusVoltagePerTargetV(busVoltage, targetVoltage))
+                .collect(Collectors.toList());
+
+        List<Contingency> contingencies = List.of(new Contingency("NHV1_NHV2_2", new BranchContingency("NHV1_NHV2_2")));
+
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies,
+                sensiParameters, LocalComputationManager.getDefault())
+                .join();
+        assertEquals(4, result.getSensitivityValues().size());
+        assertEquals(0d, getValue(result, "NHV2_NLOAD", "NGEN"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.035205d,  getValue(result, "NHV2_NLOAD", "NHV1"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.077194d,  getValue(result, "NHV2_NLOAD", "NHV2"), LoadFlowAssert.DELTA_V);
+        assertEquals(1.0d,  getValue(result, "NHV2_NLOAD", "NLOAD"), LoadFlowAssert.DELTA_V);
+
+        assertEquals(0d, getContingencyValue(result, "NHV1_NHV2_2", "NHV2_NLOAD", "NGEN"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.026329d,  getContingencyValue(result, "NHV1_NHV2_2", "NHV2_NLOAD", "NHV1"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.103981d,  getContingencyValue(result, "NHV1_NHV2_2", "NHV2_NLOAD", "NHV2"), LoadFlowAssert.DELTA_V);
+        assertEquals(1.0d,  getContingencyValue(result, "NHV1_NHV2_2", "NHV2_NLOAD", "NLOAD"), LoadFlowAssert.DELTA_V);
     }
 }

@@ -99,7 +99,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                                                            Map<LfBus, Double> participationByBus,
                                                            LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
                                                            String contingencyId, int contingencyIndex, SensitivityValueWriter valueWriter,
-                                                           Reporter reporter) {
+                                                           Reporter reporter, boolean hasTransformerBusTargetVoltage) {
         for (LfBus bus : lfContingency.getBuses()) {
             bus.setDisabled(true);
         }
@@ -116,6 +116,17 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         engine.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
         engine.run(reporter);
+
+        // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
+        // system obtained just before the transformer steps rounding.
+        if (hasTransformerBusTargetVoltage) {
+            for (LfBus bus : lfNetwork.getBuses()) {
+                if (bus.getDiscreteVoltageControl() != null && bus.getDiscreteVoltageControl().getMode().equals(DiscreteVoltageControl.Mode.OFF)) {
+                    // switch on regulating transformers
+                    bus.getDiscreteVoltageControl().setMode(DiscreteVoltageControl.Mode.VOLTAGE);
+                }
+            }
+        }
 
         // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
         try (JacobianMatrix j = createJacobianMatrix(engine.getEquationSystem(), new PreviousValueVoltageInitializer())) {
@@ -257,7 +268,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     .filter(lfFactor ->  lfContingency.getBranches().contains((LfBranch) lfFactor.getFunctionElement()))
                     .forEach(lfFactor -> lfFactor.setPredefinedResult(0d));
                 calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, engine, factorGroups, slackParticipationByBus, lfParameters,
-                        lfParametersExt, lfContingency.getContingency().getId(), lfContingency.getIndex(), valueWriter, reporter);
+                        lfParametersExt, lfContingency.getContingency().getId(), lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage);
                 BusState.restoreBusStates(busStates);
             }
 
@@ -291,7 +302,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 }
 
                 calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, engine, factorGroups, slackParticipationByBusForThisConnectivity,
-                    lfParameters, lfParametersExt, lfContingency.getContingency().getId(), lfContingency.getIndex(), valueWriter, reporter);
+                    lfParameters, lfParametersExt, lfContingency.getContingency().getId(), lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage);
                 BusState.restoreBusStates(busStates);
 
                 connectivity.reset();
