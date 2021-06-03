@@ -51,7 +51,7 @@ public class LfNetwork {
 
     private final Map<String, LfBus> busesById = new LinkedHashMap<>();
 
-    private List<LfBus> busesByIndex;
+    private final List<LfBus> busesByIndex = new ArrayList<>();
 
     private LfBus slackBus;
 
@@ -79,20 +79,15 @@ public class LfNetwork {
         return numSC;
     }
 
-    private void updateCache() {
-        if (busesByIndex == null) {
-            busesByIndex = new ArrayList<>(busesById.values());
-            for (int i = 0; i < busesByIndex.size(); i++) {
-                busesByIndex.get(i).setNum(i);
-            }
+    private void invalidateSlack() {
+        slackBus = null;
+    }
+
+    public void updateSlack() {
+        if (slackBus == null) {
             slackBus = slackBusSelector.select(busesByIndex);
             slackBus.setSlack(true);
         }
-    }
-
-    private void invalidateCache() {
-        busesByIndex = null;
-        slackBus = null;
     }
 
     public void addBranch(LfBranch branch) {
@@ -125,15 +120,16 @@ public class LfNetwork {
 
     public void addBus(LfBus bus) {
         Objects.requireNonNull(bus);
+        bus.setNum(busesByIndex.size());
+        busesByIndex.add(bus);
         busesById.put(bus.getId(), bus);
+        invalidateSlack();
         for (LfShunt shunt : bus.getShunts()) {
             shunt.setNum(shuntCount++);
         }
-        invalidateCache();
     }
 
     public List<LfBus> getBuses() {
-        updateCache();
         return busesByIndex;
     }
 
@@ -143,12 +139,11 @@ public class LfNetwork {
     }
 
     public LfBus getBus(int num) {
-        updateCache();
         return busesByIndex.get(num);
     }
 
     public LfBus getSlackBus() {
-        updateCache();
+        updateSlack();
         return slackBus;
     }
 
@@ -174,7 +169,6 @@ public class LfNetwork {
     }
 
     public void writeJson(Path file) {
-        updateCache();
         try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
             writeJson(writer);
         } catch (IOException e) {
@@ -284,6 +278,7 @@ public class LfNetwork {
 
     public void writeJson(Writer writer) {
         Objects.requireNonNull(writer);
+        updateSlack();
         try (JsonGenerator jsonGenerator = new JsonFactory()
                 .createGenerator(writer)
                 .useDefaultPrettyPrinter()) {
