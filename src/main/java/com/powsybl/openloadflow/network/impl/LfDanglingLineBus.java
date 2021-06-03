@@ -32,9 +32,13 @@ public class LfDanglingLineBus extends AbstractLfBus {
         }
     }
 
+    public static String getId(DanglingLine danglingLine) {
+        return danglingLine.getId() + "_BUS";
+    }
+
     @Override
     public String getId() {
-        return danglingLine.getId() + "_BUS";
+        return getId(danglingLine);
     }
 
     @Override
@@ -63,11 +67,11 @@ public class LfDanglingLineBus extends AbstractLfBus {
     }
 
     @Override
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
+    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         Networks.setPropertyV(danglingLine, v.eval() * getNominalV());
         Networks.setPropertyAngle(danglingLine, angle);
 
-        super.updateState(reactiveLimits, writeSlackBus);
+        super.updateState(reactiveLimits, writeSlackBus, false, false);
     }
 
     @Override

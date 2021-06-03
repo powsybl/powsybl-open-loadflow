@@ -163,7 +163,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
             @Override
             public void visitLoad(Load load) {
-                lfBus.addLoad(load);
+                lfBus.addLoad(load, parameters.isDistributedOnConformLoad());
             }
 
             @Override

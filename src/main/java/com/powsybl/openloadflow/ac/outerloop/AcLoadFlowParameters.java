@@ -56,6 +56,8 @@ public class AcLoadFlowParameters {
 
     private final Set<Country> countriesToBalance;
 
+    private final boolean distributedOnConformLoad;
+
     private boolean voltagePerReactivePowerControl;
 
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
@@ -65,7 +67,8 @@ public class AcLoadFlowParameters {
                                 boolean twtSplitShuntAdmittance, boolean breakers, double plausibleActivePowerLimit,
                                 boolean forceA1Var, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                 Set<String> branchesWithCurrent, boolean computeMainConnectedComponentOnly,
-                                Set<Country> countriesToBalance, boolean voltagePerReactivePowerControl) {
+                                Set<Country> countriesToBalance, boolean distributedOnConformLoad,
+                                boolean voltagePerReactivePowerControl) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -83,6 +86,7 @@ public class AcLoadFlowParameters {
         this.branchesWithCurrent = branchesWithCurrent;
         this.computeMainConnectedComponentOnly = computeMainConnectedComponentOnly;
         this.countriesToBalance = countriesToBalance;
+        this.distributedOnConformLoad = distributedOnConformLoad;
         this.voltagePerReactivePowerControl = voltagePerReactivePowerControl;
     }
 
@@ -156,6 +160,10 @@ public class AcLoadFlowParameters {
 
     public Set<Country> getCountriesToBalance() {
         return Collections.unmodifiableSet(countriesToBalance);
+    }
+
+    public boolean isDistributedOnConformLoad() {
+        return  distributedOnConformLoad;
     }
 
     public boolean isVoltagePerReactivePowerControl() {

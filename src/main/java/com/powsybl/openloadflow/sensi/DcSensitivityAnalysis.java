@@ -598,7 +598,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         // create the network (we only manage main connected component)
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusId());
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector, false, true, lfParameters.isTwtSplitShuntAdmittance(),
-                false, lfParametersExt.getPlausibleActivePowerLimit(), false, true, lfParameters.getCountriesToBalance());
+                false, lfParametersExt.getPlausibleActivePowerLimit(), false, true, lfParameters.getCountriesToBalance(),
+                lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(network, lfNetwork, contingencies);
@@ -631,9 +632,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             dcLoadFlowParameters.isForcePhaseControlOffAndAddAngle1Var(), lfParameters.isDcUseTransformerRatio());
         EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet(), dcEquationSystemCreationParameters);
 
-        // we wrap the factor into a class that allows us to have access to their branch and EquationTerm instantly
-        warnSkippedFactors(lfFactors);
+        writeSkippedFactors(lfFactors, valueWriter);
+
+        // next we only work with valid factors
         lfFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList());
+
         // index factors by variable group to compute the minimal number of states
         List<SensitivityFactorGroup> factorGroups = createFactorGroups(lfFactors);
 

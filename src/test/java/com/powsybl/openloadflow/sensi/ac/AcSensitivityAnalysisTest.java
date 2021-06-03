@@ -8,10 +8,9 @@ package com.powsybl.openloadflow.sensi.ac;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.IdBasedBusRef;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.VariantManagerConstants;
+import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.DanglingLineContingency;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -157,7 +156,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void test4busesWithTransfoInjection() {
-        Network network = FourBusNetworkFactory.createWithTransfoCompensed();
+        Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         runLf(network, sensiParameters.getLoadFlowParameters());
@@ -191,7 +190,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void test4busesPhaseShift() {
-        Network network = FourBusNetworkFactory.createWithTransfoCompensed();
+        Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         runLf(network, sensiParameters.getLoadFlowParameters());
@@ -236,7 +235,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void test4busesFunctionReferenceWithTransformer() {
-        Network network = FourBusNetworkFactory.createWithTransfoCompensed();
+        Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
@@ -258,7 +257,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void test4busesPhaseShiftIntensity() {
-        Network network = FourBusNetworkFactory.createWithTransfoCompensed();
+        Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
@@ -280,7 +279,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void test4busesPhaseShiftIntensityFunctionReference() {
-        Network network = FourBusNetworkFactory.createWithTransfoCompensed();
+        Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
@@ -347,22 +346,29 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testBusVoltagePerTargetVTwt() {
-        Network network = FourBusNetworkFactory.createWithTransfoRatioChanger();
-        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
-        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("T2wT");
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
 
-        TargetVoltage targetVoltage = new TargetVoltage("l23", "l23", "l23");
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VL_1_0", true);
+        TargetVoltage targetVoltage = new TargetVoltage("T2wT", "T2wT", "T2wT");
         SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
             .map(bus -> new BusVoltage(bus.getId(), bus.getId(), new IdBasedBusRef(bus.getId())))
             .map(busVoltage -> new BusVoltagePerTargetV(busVoltage, targetVoltage))
             .collect(Collectors.toList());
+
         CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
             sensiParameters, LocalComputationManager.getDefault())
             .join());
 
         assertTrue(e.getCause() instanceof NotImplementedException);
 
-        assertEquals("[l23] Bus target voltage on two windings transformer is not managed yet", e.getCause().getMessage());
+        assertEquals("[T2wT] Bus target voltage on two windings transformer is not managed yet", e.getCause().getMessage());
     }
 
     @Test
@@ -385,11 +391,18 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testBusVoltagePerTarget3wt() {
-        Network network = T3wtFactory.createWithRatioChanger();
-        SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0", true);
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+        ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer("T3wT");
+        t3wt.getLeg2().getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t3wt.getLeg2().getTerminal())
+                .setTargetV(28.);
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VL_1_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        TargetVoltage targetVoltage = new TargetVoltage("3wt", "3wt", "3wt");
+        TargetVoltage targetVoltage = new TargetVoltage("T3wT", "T3wT", "T3wT");
         SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
             .map(bus -> new BusVoltage(bus.getId(), bus.getId(), new IdBasedBusRef(bus.getId())))
             .map(busVoltage -> new BusVoltagePerTargetV(busVoltage, targetVoltage))
@@ -400,7 +413,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         assertTrue(e.getCause() instanceof NotImplementedException);
 
-        assertEquals("[3wt] Bus target voltage on three windings transformer is not managed yet", e.getCause().getMessage());
+        assertEquals("[T3wT] Bus target voltage on three windings transformer is not managed yet", e.getCause().getMessage());
     }
 
     @Test
@@ -428,7 +441,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testAdditionnalFactors() {
-        Network network = FourBusNetworkFactory.createWithTransfoCompensed();
+        Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         runLf(network, sensiParameters.getLoadFlowParameters());
@@ -507,7 +520,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testTargetVOnNotRegulatingTwt() {
-        Network network = FourBusNetworkFactory.createWithTransfoCompensed();
+        Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
@@ -673,7 +686,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
             sensiParameters, LocalComputationManager.getDefault())
             .join();
-        assertTrue(result.getSensitivityValues().isEmpty());
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(0d, getValue(result, "g4", "b1"));
     }
 
     @Test
@@ -714,5 +728,31 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     @Test
     void testEmptyFactors() {
         testEmptyFactors(false);
+    }
+
+    @Test
+    void testDanglingLineSensi() {
+        Network network = DanglingLineFactory.createWithLoad();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0");
+        List<SensitivityFactor2> factors = List.of(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "l1",
+                SensitivityVariableType.INJECTION_ACTIVE_POWER, "dl1",
+                false, ContingencyContext.createAllContingencyContext()));
+
+        // dangling line is connected
+        SensitivityAnalysisResult2 result = sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, factors);
+        assertEquals(-0.903d, result.getValue(null, "l1", "dl1").getValue(), LoadFlowAssert.DELTA_POWER);
+
+        // dangling line is connected on base case but will be disconnected by a contingency => 0
+        List<Contingency> contingencies = List.of(new Contingency("c", new DanglingLineContingency("dl1")));
+        result = sensiProvider.run(network, contingencies, Collections.emptyList(), sensiParameters, factors);
+        assertEquals(-0.903d, result.getValue(null, "l1", "dl1").getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, result.getValue("c", "l1", "dl1").getValue(), LoadFlowAssert.DELTA_POWER);
+
+        // dangling line is disconnected on base case => 0
+        network.getDanglingLine("dl1").getTerminal().disconnect();
+        result = sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, factors);
+        assertEquals(0d, result.getValue(null, "l1", "dl1").getValue(), LoadFlowAssert.DELTA_POWER);
     }
 }

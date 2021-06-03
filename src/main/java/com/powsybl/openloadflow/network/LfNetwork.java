@@ -153,11 +153,11 @@ public class LfNetwork {
     }
 
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
-                            boolean transformerVoltageControlOn) {
+                            boolean transformerVoltageControlOn, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         for (LfBus bus : busesById.values()) {
-            bus.updateState(reactiveLimits, writeSlackBus);
+            bus.updateState(reactiveLimits, writeSlackBus, distributedOnConformLoad, loadPowerFactorConstant);
             for (LfGenerator generator : bus.getGenerators()) {
                 generator.updateState();
             }

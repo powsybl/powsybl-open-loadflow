@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.HvdcConverterStations;
+import com.powsybl.openloadflow.network.impl.LfDanglingLineBus;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.PropagatedContingency;
@@ -620,8 +621,11 @@ public abstract class AbstractSensitivityAnalysis {
         return rescaled;
     }
 
-    protected void warnSkippedFactors(Collection<LfSensitivityFactor> lfFactors) {
+    protected void writeSkippedFactors(Collection<LfSensitivityFactor> lfFactors, SensitivityValueWriter valueWriter) {
         List<LfSensitivityFactor> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.SKIP).collect(Collectors.toList());
+
+        skippedFactors.forEach(factor -> valueWriter.write(factor.getContext(), null, -1, 0, Double.NaN));
+
         Set<String> skippedVariables = skippedFactors.stream().map(LfSensitivityFactor::getVariableId).collect(Collectors.toSet());
         if (!skippedVariables.isEmpty()) {
             if (LOGGER.isWarnEnabled()) {
@@ -666,6 +670,9 @@ public abstract class AbstractSensitivityAnalysis {
             injection = network.getLoad(injectionId);
         }
         if (injection == null) {
+            injection = network.getDanglingLine(injectionId);
+        }
+        if (injection == null) {
             injection = network.getLccConverterStation(injectionId);
         }
         if (injection == null) {
@@ -679,9 +686,17 @@ public abstract class AbstractSensitivityAnalysis {
         return injection;
     }
 
-    protected static Bus getInjectionBus(Network network, String injectionId) {
+    protected static String getInjectionBusId(Network network, String injectionId) {
         Injection<?> injection = getInjection(network, injectionId);
-        return injection.getTerminal().getBusView().getBus();
+        Bus bus = injection.getTerminal().getBusView().getBus();
+        if (bus == null) {
+            return null;
+        }
+        if (injection instanceof DanglingLine) {
+            return LfDanglingLineBus.getId((DanglingLine) injection);
+        } else {
+            return bus.getId();
+        }
     }
 
     private static void checkBranch(Network network, String branchId) {
@@ -786,8 +801,8 @@ public abstract class AbstractSensitivityAnalysis {
                             }
                             List<String> skippedInjection = new ArrayList<>(set.getVariables().size());
                             for (WeightedSensitivityVariable variable : set.getVariables()) {
-                                Bus injectionBus = getInjectionBus(network, variable.getId());
-                                LfBus injectionLfBus = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
+                                String injectionBusId = getInjectionBusId(network, variable.getId());
+                                LfBus injectionLfBus = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                                 if (injectionLfBus == null) {
                                     skippedInjection.add(variable.getId());
                                     continue;
@@ -848,8 +863,8 @@ public abstract class AbstractSensitivityAnalysis {
                         LfBranch branch = lfNetwork.getBranchById(functionId);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                         if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
-                            Bus injectionBus = getInjectionBus(network, variableId);
-                            variableElement = injectionBus != null ? lfNetwork.getBusById(injectionBus.getId()) : null;
+                            String injectionBusId = getInjectionBusId(network, variableId);
+                            variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                         } else if (variableType == SensitivityVariableType.TRANSFORMER_PHASE) {
                             checkPhaseShifter(network, variableId);
                             variableElement = lfNetwork.getBranchById(variableId);

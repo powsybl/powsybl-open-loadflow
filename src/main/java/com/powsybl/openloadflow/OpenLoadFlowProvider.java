@@ -184,6 +184,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                         branchesWithCurrent,
                                         parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
                                         parameters.getCountriesToBalance(),
+                                        parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                                         parametersExt.hasVoltagePerReactivePowerControl());
     }
 
@@ -206,7 +207,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(),
                                                 parameters.isWriteSlackBus(),
                                                 parameters.isPhaseShifterRegulationOn(),
-                                                parameters.isTransformerVoltageControlOn());
+                                                parameters.isTransformerVoltageControlOn(),
+                                                parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                                                parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
+                                                    parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant());
             }
 
             LoadFlowResult.ComponentResult.Status status;
@@ -268,7 +272,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                      parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                                                      true,
                                                                      parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
-                                                                      parameters.getCountriesToBalance());
+                                                                     parameters.getCountriesToBalance());
 
         List<DcLoadFlowResult> results = new DcLoadFlowEngine(network, dcParameters, reporter)
                 .run(reporter);
@@ -289,7 +293,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             pResult.getNetwork().updateState(false,
                     parameters.isWriteSlackBus(),
                     parameters.isPhaseShifterRegulationOn(),
-                    parameters.isTransformerVoltageControlOn());
+                    parameters.isTransformerVoltageControlOn(),
+                    parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                    false);
         }
 
         return new LoadFlowResultImpl.ComponentResultImpl(
