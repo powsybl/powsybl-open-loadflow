@@ -17,6 +17,7 @@ import com.powsybl.security.*;
 import com.powsybl.security.detectors.LoadingLimitType;
 import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
+import com.powsybl.security.detectors.LoadingLimitType;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 
 import java.util.*;
@@ -65,8 +66,9 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                     variableId, false, contingencyContext));
         }
         SensitivityAnalysisResult2 res = sensitivityAnalysisProvider.run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors);
-        
-        DefaultLimitViolationDetector detector = new DefaultLimitViolationDetector(1.0f, EnumSet.noneOf(LoadingLimitType.class));
+
+        DefaultLimitViolationDetector detector = new DefaultLimitViolationDetector(1.0f, EnumSet.allOf(LoadingLimitType.class));
+
         List<LimitViolation> preContingencyLimitViolations = new ArrayList<>();
         for (SensitivityValue2 sensValue : res.getValues(null)) {
             SensitivityFactor2 factor = (SensitivityFactor2) sensValue.getFactorContext();
