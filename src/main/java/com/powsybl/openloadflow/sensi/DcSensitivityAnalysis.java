@@ -27,6 +27,7 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.AbstractLfBus;
+import com.powsybl.openloadflow.network.impl.LfBusImpl;
 import com.powsybl.openloadflow.network.impl.LfVscConverterStationImpl;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BranchState;
@@ -536,6 +537,19 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
 
         return busStates;
+
+    }
+
+    private void applyGeneratorContingency(Network network, LfNetwork lfNetwork, PropagatedContingency contingency) {
+        // it applies on the network the loss of the generators contained in the contingency.
+        for (String generatorId : contingency.getGeneratorIdsToLose()) {
+            Generator generator = network.getGenerator(generatorId);
+            generator.setTargetP(0);
+            generator.setTargetQ(0);
+            generator.setVoltageRegulatorOn(false);
+            LfBusImpl bus = (LfBusImpl) lfNetwork.getBusById(generator.getTerminal().getBusView().getBus().getId());
+            bus.setIsParticipating(false);
+        }
 
     }
 
