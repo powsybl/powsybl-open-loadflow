@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ToDoubleFunction;
-import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -131,10 +130,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public LfGenerator getGeneratorControllingVoltageWithSlope() {
-        List<LfGenerator> generatorsControllingVoltageWithSlope = generators.stream().filter(gen -> gen.hasVoltageControl() && gen.getSlope() != 0).collect(Collectors.toList());
+        Optional<LfGenerator> firstGeneratorControllingVoltageWithSlope = generators.stream().filter(gen -> gen.hasVoltageControl() && gen.getSlope() != 0).findFirst();
         // we don't support several generators controlling voltage with slope or a generator controlling voltage with
-        // slope and other generators controlling voltage, so we return null.
-        return (generators.stream().filter(gen -> gen.hasVoltageControl()).count() > 1) || generatorsControllingVoltageWithSlope.size() == 0 ? null : generatorsControllingVoltageWithSlope.get(0);
+        // slope and other generators controlling voltage, so we return null if there is more than one generator controlling voltage.
+        return (firstGeneratorControllingVoltageWithSlope.isEmpty() || generators.stream().filter(LfGenerator::hasVoltageControl).count() > 1) ? null : firstGeneratorControllingVoltageWithSlope.get();
     }
 
     @Override
