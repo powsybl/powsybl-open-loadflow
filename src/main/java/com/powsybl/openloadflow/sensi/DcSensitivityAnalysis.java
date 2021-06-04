@@ -32,6 +32,7 @@ import com.powsybl.openloadflow.network.impl.LfVscConverterStationImpl;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BranchState;
 import com.powsybl.openloadflow.util.BusState;
+import com.powsybl.openloadflow.util.GeneratorState;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -540,18 +541,44 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     }
 
-    private void applyGeneratorContingency(Network network, LfNetwork lfNetwork, PropagatedContingency contingency) {
-        // it applies on the network the loss of the generators contained in the contingency.
+    private Map<Generator, GeneratorState> applyGeneratorContingency(Network network, PropagatedContingency contingency) {
+        // It applies on the network the loss of the generators contained in the contingency.
+        // Generator states are stored.
+        Collection<Generator> generatorsToSave = new HashSet<>();
+        for (String generatorId : contingency.getGeneratorIdsToLose()) {
+            Generator generator = network.getGenerator(generatorId);
+            generatorsToSave.add(generator);
+        }
+        Map<Generator, GeneratorState> generatorStates = GeneratorState.createGeneratorStates(generatorsToSave);
         for (String generatorId : contingency.getGeneratorIdsToLose()) {
             Generator generator = network.getGenerator(generatorId);
             generator.setTargetP(0);
             generator.setTargetQ(0);
             generator.setVoltageRegulatorOn(false);
-            LfBusImpl bus = (LfBusImpl) lfNetwork.getBusById(generator.getTerminal().getBusView().getBus().getId());
-            bus.setIsParticipating(false);
         }
 
+        return generatorStates;
     }
+
+    private List<ParticipatingElement> removeGeneratorParticipation(Network network, LfNetwork lfNetwork, PropagatedContingency contingency, List<ParticipatingElement> participatingElements) {
+        // It remove lost generators from participation.
+        // Removed elements are stored.
+        List<ParticipatingElement> removedElements = Collections.emptyList();
+        for (String generatorId : contingency.getGeneratorIdsToLose()) {
+            Generator generator = network.getGenerator(generatorId);
+            LfBus bus = lfNetwork.getBusById(generator.getTerminal().getBusView().getBus().getId());
+            for(ParticipatingElement participatingElement : participatingElements){
+                if(participatingElement.getLfBus()==bus){
+                    removedElements.add(participatingElement);
+                }
+            }
+        }
+        participatingElements.remove(removedElements);
+
+        return removedElements;
+    }
+
+
 
     public DenseMatrix calculateStates(LfNetwork lfNetwork, JacobianMatrix j, EquationSystem equationSystem,
                                        List<SensitivityFactorGroup> factorGroups, LoadFlowParameters lfParameters,
