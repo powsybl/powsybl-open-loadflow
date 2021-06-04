@@ -27,7 +27,6 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.AbstractLfBus;
-import com.powsybl.openloadflow.network.impl.LfBusImpl;
 import com.powsybl.openloadflow.network.impl.LfVscConverterStationImpl;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BranchState;
@@ -567,8 +566,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         for (String generatorId : contingency.getGeneratorIdsToLose()) {
             Generator generator = network.getGenerator(generatorId);
             LfBus bus = lfNetwork.getBusById(generator.getTerminal().getBusView().getBus().getId());
-            for(ParticipatingElement participatingElement : participatingElements){
-                if(participatingElement.getLfBus()==bus){
+            for (ParticipatingElement participatingElement : participatingElements) {
+                if (participatingElement.getLfBus() == bus) {
                     removedElements.add(participatingElement);
                 }
             }
@@ -577,8 +576,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         return removedElements;
     }
-
-
 
     public DenseMatrix calculateStates(LfNetwork lfNetwork, JacobianMatrix j, EquationSystem equationSystem,
                                        List<SensitivityFactorGroup> factorGroups, LoadFlowParameters lfParameters,
