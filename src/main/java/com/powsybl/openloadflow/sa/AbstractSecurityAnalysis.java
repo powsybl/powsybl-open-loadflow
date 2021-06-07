@@ -151,20 +151,20 @@ public abstract class AbstractSecurityAnalysis {
             branch.getLimits1(LimitType.CURRENT).stream()
                 .filter(temporaryLimit1 -> branch.getI1().eval() > temporaryLimit1.getValue())
                 .findFirst()
-                .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.CURRENT, PerUnit.SB / branch.getBus1().getNominalV()))
+                .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.CURRENT, PerUnit.SB / branch.getBus1().getNominalV(), branch.getI1().eval()))
                 .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
 
             branch.getLimits1(LimitType.ACTIVE_POWER).stream()
                   .filter(temporaryLimit1 -> branch.getP1().eval() > temporaryLimit1.getValue())
                   .findFirst()
-                  .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.ACTIVE_POWER, PerUnit.SB))
+                  .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.ACTIVE_POWER, PerUnit.SB, branch.getP1().eval()))
                   .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
 
             double apparentPower1 = computeApparentPower(branch.getP1().eval(), branch.getQ1().eval());
             branch.getLimits1(LimitType.APPARENT_POWER).stream()
                   .filter(temporaryLimit1 -> apparentPower1 > temporaryLimit1.getValue())
                   .findFirst()
-                  .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.APPARENT_POWER, PerUnit.SB))
+                  .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.APPARENT_POWER, PerUnit.SB, apparentPower1))
                   .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
 
         }
@@ -172,36 +172,36 @@ public abstract class AbstractSecurityAnalysis {
             branch.getLimits2().stream()
                 .filter(temporaryLimit2 -> branch.getI2().eval() > temporaryLimit2.getValue())
                 .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
-                .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.CURRENT, PerUnit.SB / branch.getBus2().getNominalV()))
+                .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.CURRENT, PerUnit.SB / branch.getBus2().getNominalV(), branch.getI2().eval()))
                 .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
 
             branch.getLimits2().stream()
                   .filter(temporaryLimit2 -> branch.getP2().eval() > temporaryLimit2.getValue())
                   .findFirst()
-                  .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.ACTIVE_POWER, PerUnit.SB))
+                  .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.ACTIVE_POWER, PerUnit.SB, branch.getP2().eval()))
                   .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
 
             double apparentPower2 = computeApparentPower(branch.getP2().eval(), branch.getQ2().eval());
             branch.getLimits2().stream()
                   .filter(temporaryLimit2 -> apparentPower2 > temporaryLimit2.getValue())
                   .findFirst()
-                  .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.APPARENT_POWER, PerUnit.SB))
+                  .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.APPARENT_POWER, PerUnit.SB, apparentPower2))
                   .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
         }
     }
 
     protected static LimitViolation createLimitViolation1(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit1,
-                                                          LimitViolationType type, double scale) {
+                                                          LimitViolationType type, double scale, double value) {
         return new LimitViolation(branch.getId(), type, null,
                 temporaryLimit1.getAcceptableDuration(), temporaryLimit1.getValue() * scale,
-                (float) 1., branch.getI1().eval() * scale, Branch.Side.ONE);
+                (float) 1., value * scale, Branch.Side.ONE);
     }
 
     protected static LimitViolation createLimitViolation2(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit2,
-                                                          LimitViolationType type, double scale) {
+                                                          LimitViolationType type, double scale, double value) {
         return new LimitViolation(branch.getId(), type, null,
                 temporaryLimit2.getAcceptableDuration(), temporaryLimit2.getValue() * scale,
-                (float) 1., branch.getI2().eval() * scale, Branch.Side.TWO);
+                (float) 1., value * scale, Branch.Side.TWO);
     }
 
     protected static Pair<String, Branch.Side> getSubjectSideId(LimitViolation limitViolation) {
