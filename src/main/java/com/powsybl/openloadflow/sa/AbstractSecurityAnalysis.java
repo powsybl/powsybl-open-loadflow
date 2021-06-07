@@ -148,33 +148,60 @@ public abstract class AbstractSecurityAnalysis {
     protected void detectBranchViolations(LfBranch branch, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
         // detect violation limits on a branch
         if (branch.getBus1() != null) {
-            branch.getLimits1().stream()
+            branch.getLimits1(LimitType.CURRENT).stream()
                 .filter(temporaryLimit1 -> branch.getI1().eval() > temporaryLimit1.getValue())
-                .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
-                .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1))
+                .findFirst()
+                .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.CURRENT, PerUnit.SB / branch.getBus1().getNominalV()))
                 .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
+
+            branch.getLimits1(LimitType.ACTIVE_POWER).stream()
+                  .filter(temporaryLimit1 -> branch.getP1().eval() > temporaryLimit1.getValue())
+                  .findFirst()
+                  .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.ACTIVE_POWER, PerUnit.SB))
+                  .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
+
+            double apparentPower1 = computeApparentPower(branch.getP1().eval(), branch.getQ1().eval());
+            branch.getLimits1(LimitType.APPARENT_POWER).stream()
+                  .filter(temporaryLimit1 -> apparentPower1 > temporaryLimit1.getValue())
+                  .findFirst()
+                  .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.APPARENT_POWER, PerUnit.SB))
+                  .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
+
         }
         if (branch.getBus2() != null) {
             branch.getLimits2().stream()
                 .filter(temporaryLimit2 -> branch.getI2().eval() > temporaryLimit2.getValue())
                 .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
-                .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2))
+                .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.CURRENT, PerUnit.SB / branch.getBus2().getNominalV()))
                 .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
+
+            branch.getLimits2().stream()
+                  .filter(temporaryLimit2 -> branch.getP2().eval() > temporaryLimit2.getValue())
+                  .findFirst()
+                  .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.ACTIVE_POWER, PerUnit.SB))
+                  .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
+
+            double apparentPower2 = computeApparentPower(branch.getP2().eval(), branch.getQ2().eval());
+            branch.getLimits2().stream()
+                  .filter(temporaryLimit2 -> apparentPower2 > temporaryLimit2.getValue())
+                  .findFirst()
+                  .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.APPARENT_POWER, PerUnit.SB))
+                  .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
         }
     }
 
-    protected static LimitViolation createLimitViolation1(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit1) {
-        double scale1 = PerUnit.SB / branch.getBus1().getNominalV();
-        return new LimitViolation(branch.getId(), LimitViolationType.CURRENT, null,
-            temporaryLimit1.getAcceptableDuration(), temporaryLimit1.getValue() * scale1,
-            (float) 1., branch.getI1().eval() * scale1, Branch.Side.ONE);
+    protected static LimitViolation createLimitViolation1(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit1,
+                                                          LimitViolationType type, double scale) {
+        return new LimitViolation(branch.getId(), type, null,
+                temporaryLimit1.getAcceptableDuration(), temporaryLimit1.getValue() * scale,
+                (float) 1., branch.getI1().eval() * scale, Branch.Side.ONE);
     }
 
-    protected static LimitViolation createLimitViolation2(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit2) {
-        double scale2 = PerUnit.SB / branch.getBus2().getNominalV();
-        return new LimitViolation(branch.getId(), LimitViolationType.CURRENT, null,
-            temporaryLimit2.getAcceptableDuration(), temporaryLimit2.getValue() * scale2,
-            (float) 1., branch.getI2().eval() * scale2, Branch.Side.TWO);
+    protected static LimitViolation createLimitViolation2(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit2,
+                                                          LimitViolationType type, double scale) {
+        return new LimitViolation(branch.getId(), type, null,
+                temporaryLimit2.getAcceptableDuration(), temporaryLimit2.getValue() * scale,
+                (float) 1., branch.getI2().eval() * scale, Branch.Side.TWO);
     }
 
     protected static Pair<String, Branch.Side> getSubjectSideId(LimitViolation limitViolation) {
@@ -232,7 +259,7 @@ public abstract class AbstractSecurityAnalysis {
     List<LfContingency> createContingencies(List<PropagatedContingency> propagatedContingencies, LfNetwork network) {
         return LfContingency.createContingencies(propagatedContingencies, network, network.createDecrementalConnectivity(connectivityProvider), true);
     }
-
+    
     private void addMonitorInfo(LfNetwork network, StateMonitor monitor, Collection<BranchResult> branchResultConsumer,
                                 Collection<BusResults> busResultsConsumer, Collection<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer) {
         network.getBranches().stream().filter(lfBranch -> monitor.getBranchIds().contains(lfBranch.getId()))
@@ -245,12 +272,17 @@ public abstract class AbstractSecurityAnalysis {
                 .forEach(id -> threeWindingsTransformerResultConsumer.add(createThreeWindingsTransformerResult(id, network)));
     }
 
-    private ThreeWindingsTransformerResult createThreeWindingsTransformerResult(String threeWindingsTransformerId, LfNetwork network) {
+    private ThreeWindingsTransformerResult createThreeWindingsTransformerResult(String threeWindingsTransformerId, LfNetwork network)
+    {
         LfBranch leg1 = network.getBranchById(threeWindingsTransformerId + "_leg_1");
         LfBranch leg2 = network.getBranchById(threeWindingsTransformerId + "_leg_2");
         LfBranch leg3 = network.getBranchById(threeWindingsTransformerId + "_leg_3");
         return new ThreeWindingsTransformerResult(threeWindingsTransformerId, leg1.getP1().eval(), leg1.getQ1().eval(), leg1.getI1().eval(),
                 leg2.getP1().eval(), leg2.getQ1().eval(), leg2.getI1().eval(),
                 leg3.getP1().eval(), leg3.getQ1().eval(), leg3.getI1().eval());
+    }
+
+    double computeApparentPower(double p, double q) {
+        return Math.sqrt(p * p + q * q);
     }
 }
