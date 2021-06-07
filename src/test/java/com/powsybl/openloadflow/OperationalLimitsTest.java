@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow;
 
 import com.powsybl.iidm.network.Branch;
+import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -70,10 +71,10 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
     }
 
     private double getLimitValueFromAcceptableDuration(LfBranch branch, int acceptableDuration, Branch.Side side) {
-        return (side == Branch.Side.ONE ? branch.getLimits1() : branch.getLimits2()).stream()
-            .filter(l -> l.getAcceptableDuration() == acceptableDuration)
-            .map(AbstractLfBranch.LfLimit::getValue)
-            .findFirst().orElse(Double.NaN);
+        return (side == Branch.Side.ONE ? branch.getLimits1(LimitType.CURRENT) : branch.getLimits2(LimitType.CURRENT)).stream()
+                                                                                             .filter(l -> l.getAcceptableDuration() == acceptableDuration)
+                                                                                             .map(AbstractLfBranch.LfLimit::getValue)
+                                                                                             .findFirst().orElse(Double.NaN);
     }
 
     @Test
@@ -109,8 +110,8 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(Double.isNaN(branch1.getI2().eval()));
         assertEquals(Double.NaN, getLimitValueFromAcceptableDuration(branch1, Integer.MAX_VALUE, Branch.Side.ONE), DELTA_CURRENT);
         assertEquals(Double.NaN, getLimitValueFromAcceptableDuration(branch1, Integer.MAX_VALUE, Branch.Side.TWO), DELTA_CURRENT);
-        assertTrue(branch1.getLimits1().isEmpty());
-        assertTrue(branch1.getLimits2().isEmpty());
+        assertTrue(branch1.getLimits1(LimitType.CURRENT).isEmpty());
+        assertTrue(branch1.getLimits2(LimitType.CURRENT).isEmpty());
     }
 
     @Test

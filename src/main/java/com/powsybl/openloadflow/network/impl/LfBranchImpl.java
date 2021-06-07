@@ -224,6 +224,39 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
+    public List<LfLimit> getLimits1(final LimitType type) {
+        switch (type) {
+            case ACTIVE_POWER:
+                return getLimits1(type, branch.getActivePowerLimits1());
+            case APPARENT_POWER:
+                return getLimits1(type, branch.getApparentPowerLimits1());
+            case CURRENT:
+                return getLimits1(type, branch.getCurrentLimits1());
+            case VOLTAGE:
+            default:
+                throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+        }
+    }
+
+    @Override
+    public List<LfLimit> getLimits2(final LimitType type)
+    {
+        switch (type)
+        {
+
+            case ACTIVE_POWER:
+                return getLimits2(type, branch.getActivePowerLimits2());
+            case APPARENT_POWER:
+                return getLimits2(type, branch.getApparentPowerLimits2());
+            case CURRENT:
+                return getLimits2(type, branch.getCurrentLimits2());
+            case VOLTAGE:
+            default:
+                throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+        }
+    }
+
+    @Override
     public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn) {
         branch.getTerminal1().setP(p1.eval() * PerUnit.SB);
         branch.getTerminal1().setQ(q1.eval() * PerUnit.SB);

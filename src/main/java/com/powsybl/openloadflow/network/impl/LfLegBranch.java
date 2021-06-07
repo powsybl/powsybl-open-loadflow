@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
@@ -116,6 +117,16 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
     @Override
     public BranchResult createBranchResult() {
         throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
+    }
+
+    @Override
+    public List<LfLimit> getLimits1(final LimitType type) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<LfLimit> getLimits2(final LimitType type) {
+        return Collections.emptyList();
     }
 
     @Override

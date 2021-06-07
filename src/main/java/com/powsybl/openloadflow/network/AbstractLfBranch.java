@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.CurrentLimits;
-import com.powsybl.iidm.network.LoadingLimits;
-import com.powsybl.iidm.network.PhaseTapChanger;
-import com.powsybl.iidm.network.RatioTapChanger;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.impl.Transformers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,9 +55,9 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private final LfBus bus2;
 
-    private List<LfLimit> limits1;
+    private HashMap<LimitType, List<LfLimit>> limits1 = new HashMap<>();
 
-    private List<LfLimit> limits2;
+    private HashMap<LimitType, List<LfLimit>> limits2 = new HashMap<>();
 
     private final PiModel piModel;
 
@@ -77,11 +74,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.piModel = Objects.requireNonNull(piModel);
     }
 
-    protected static List<LfLimit> createSortedLimitsList(CurrentLimits currentLimits, LfBus bus) {
+    protected static List<LfLimit> createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus) {
         LinkedList<LfLimit> sortedLimits = new LinkedList<>();
-        if (currentLimits != null) {
+        if (loadingLimits != null) {
             double toPerUnit = bus.getNominalV() / PerUnit.SB;
-            for (LoadingLimits.TemporaryLimit temporaryLimit : currentLimits.getTemporaryLimits()) {
+            for (LoadingLimits.TemporaryLimit temporaryLimit : loadingLimits.getTemporaryLimits()) {
                 if (temporaryLimit.getAcceptableDuration() != 0) {
                     // it is not useful to add a limit with acceptable duration equal to zero as the only value plausible
                     // for this limit is infinity.
@@ -90,7 +87,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                     sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getAcceptableDuration(), valuePerUnit));
                 }
             }
-            sortedLimits.addLast(LfLimit.createPermanentLimit(currentLimits.getPermanentLimit() * toPerUnit));
+            sortedLimits.addLast(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimit() * toPerUnit));
         }
         if (sortedLimits.size() > 1) {
             // we only make that fix if there is more than a permanent limit attached to the branch.
@@ -119,17 +116,31 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     protected List<LfLimit> getLimits1(CurrentLimits currentLimits) {
-        if (limits1 == null) {
-            limits1 = createSortedLimitsList(currentLimits, bus1);
+        if (limits1.get(LimitType.CURRENT) == null) {
+            limits1.put(LimitType.CURRENT, createSortedLimitsList(currentLimits, bus1));
         }
-        return limits1;
+        return limits1.get(LimitType.CURRENT);
     }
 
     protected List<LfLimit> getLimits2(CurrentLimits currentLimits) {
-        if (limits2 == null) {
-            limits2 = createSortedLimitsList(currentLimits, bus2);
+        if (limits2.get(LimitType.CURRENT) == null)  {
+            limits2.put(LimitType.CURRENT, createSortedLimitsList(currentLimits, bus2));
         }
-        return limits2;
+        return limits2.get(LimitType.CURRENT);
+    }
+
+    public List<LfLimit> getLimits1(LimitType type, LoadingLimits loadingLimits) {
+        if (limits1.get(type) == null)  {
+            limits1.put(type, createSortedLimitsList(loadingLimits, bus1));
+        }
+        return limits1.get(type);
+    }
+
+    public List<LfLimit> getLimits2(LimitType type, LoadingLimits loadingLimits) {
+        if (limits2.get(type) == null)  {
+            limits2.put(type, createSortedLimitsList(loadingLimits, bus2));
+        }
+        return limits2.get(type);
     }
 
     @Override
