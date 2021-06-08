@@ -296,6 +296,7 @@ public final class AcEquationSystem {
         eq.addTerm(vTerm);
         List<EquationTerm> controllerBusReactiveTerms = createReactiveTerms(bus, variableSet, creationParameters);
         double slope = bus.getGeneratorControllingVoltageWithSlope().getSlope();
+        eq.setData(new DistributionData(bus.getNum(), slope)); // for later use
         for (EquationTerm eqTerm : controllerBusReactiveTerms) {
             eq.addTerm(EquationTerm.multiply(eqTerm, slope));
         }
