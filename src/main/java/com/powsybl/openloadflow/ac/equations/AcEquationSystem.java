@@ -60,9 +60,10 @@ public final class AcEquationSystem {
                                                       EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
         if (voltageControl.isVoltageControlLocal()) {
             EquationTerm vTerm;
-            if (creationParameters.isVoltagePerReactivePowerControl() && voltageControl.getControllerBuses().size() == 1 && bus.getGeneratorControllingVoltageWithSlope() != null) {
+            if (creationParameters.isVoltagePerReactivePowerControl() && voltageControl.getControllerBuses().size() == 1 && bus.getGeneratorControllingVoltageWithSlope().isPresent()) {
                 vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
-                createBusWithSlopeEquation(bus, creationParameters, variableSet, equationSystem, vTerm);
+                double slope = bus.getGeneratorControllingVoltageWithSlope().get().getSlope();
+                createBusWithSlopeEquation(bus, slope, creationParameters, variableSet, equationSystem, vTerm);
 
             } else {
                 vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
@@ -288,14 +289,13 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createBusWithSlopeEquation(LfBus bus, AcEquationSystemCreationParameters creationParameters, VariableSet variableSet, EquationSystem equationSystem, EquationTerm vTerm) {
+    private static void createBusWithSlopeEquation(LfBus bus, double slope, AcEquationSystemCreationParameters creationParameters, VariableSet variableSet, EquationSystem equationSystem, EquationTerm vTerm) {
         // we only support one generator controlling voltage with a non zero slope at a bus.
         // equation is: V + slope * qSVC = targetV
         // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
         Equation eq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V_SLOPE);
         eq.addTerm(vTerm);
         List<EquationTerm> controllerBusReactiveTerms = createReactiveTerms(bus, variableSet, creationParameters);
-        double slope = bus.getGeneratorControllingVoltageWithSlope().getSlope();
         eq.setData(new DistributionData(bus.getNum(), slope)); // for later use
         for (EquationTerm eqTerm : controllerBusReactiveTerms) {
             eq.addTerm(EquationTerm.multiply(eqTerm, slope));

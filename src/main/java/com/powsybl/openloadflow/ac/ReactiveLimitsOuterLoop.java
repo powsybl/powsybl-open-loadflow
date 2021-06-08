@@ -218,7 +218,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         for (LfBus bus : context.getNetwork().getBuses()) {
             if (bus.isVoltageControllerEnabled() && !bus.isDisabled()) {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
-            } else if (bus.hasVoltageControllerCapability() && !bus.isDisabled() && bus.getGeneratorControllingVoltageWithSlope() == null) {
+            } else if (bus.hasVoltageControllerCapability() && !bus.isDisabled() && bus.getGeneratorControllingVoltageWithSlope().isEmpty()) {
                 // we don't support switching PQ to PV for bus with one controller with slope.
                 checkPqBus(bus, pqToPvBuses);
             }
