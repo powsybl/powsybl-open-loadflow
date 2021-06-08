@@ -572,7 +572,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 }
             }
         }
-        participatingElements.remove(removedElements);
+        participatingElements.removeAll(removedElements);
 
         return removedElements;
     }

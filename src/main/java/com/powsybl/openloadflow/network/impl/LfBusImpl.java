@@ -25,7 +25,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final double highVoltageLimit;
 
-    private boolean participating;
+    private final boolean participating;
 
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, boolean participating) {
         super(network, v, angle);
@@ -87,9 +87,4 @@ public class LfBusImpl extends AbstractLfBus {
     public boolean isParticipating() {
         return participating;
     }
-
-    public void setIsParticipating(boolean b) {
-        participating = b;
-    }
-
 }
