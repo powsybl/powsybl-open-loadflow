@@ -268,6 +268,44 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testApparentPowerLimitViolations() {
+
+        network.getLine("L1").newApparentPowerLimits1()
+               .setPermanentLimit(1.0)
+               .beginTemporaryLimit()
+               .setName("60")
+               .setAcceptableDuration(60)
+               .setValue(1.0)
+               .endTemporaryLimit()
+               .add();
+
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId("VL1_1");
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+        ContingenciesProvider contingenciesProvider = network -> Stream.of("L1", "L2")
+                                                                       .map(id -> new Contingency(id, new BranchContingency(id)))
+                                                                       .collect(Collectors.toList());
+
+        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory();
+        AbstractSecurityAnalysis securityAnalysis = osaFactory.create(network, new LimitViolationFilter(), null, 0);
+
+        SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
+        assertEquals(0, result.getPreContingencyResult().getLimitViolations().size());
+        assertEquals(2, result.getPostContingencyResults().size());
+        assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+
+        int apparentPowerLimitViolationsCount = 0;
+        for (PostContingencyResult r : result.getPostContingencyResults()) {
+            for (LimitViolation v : r.getLimitViolationsResult().getLimitViolations()) {
+                if (v.getLimitType() == LimitViolationType.APPARENT_POWER) {
+                    apparentPowerLimitViolationsCount++;
+                }
+            }
+        }
+        assertEquals(1, apparentPowerLimitViolationsCount);
     }
 
     @Test
