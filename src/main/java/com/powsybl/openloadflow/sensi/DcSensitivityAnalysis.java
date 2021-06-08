@@ -599,24 +599,37 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                                                       DcLoadFlowEngine dcLoadFlowEngine, SensitivityFactorHolder factorHolder, List<ParticipatingElement> participatingElements,
                                                       Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches, Reporter reporter) {
         List<LfSensitivityFactor> factors = factorHolder.getFactorsForContingency(contingency.getContingency().getId());
-        if (contingency.getHvdcIdsToOpen().isEmpty()) {
-            calculateSensitivityValues(factors, factorStates, contingenciesStates, flowStates, contingencyElements,
-                    contingency, valueWriter);
-        } else { // if we have a contingency including the loss of a DC line
-            Map<LfBus, BusState> busStates = applyHvdcLineContingency(network, lfNetwork, contingency);
-            boolean shouldChangeRhs = lfParameters.isDistributedSlack()
-                    && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
-            DenseMatrix statesWithoutDcLine = factorStates;
-            if (shouldChangeRhs) {
-                statesWithoutDcLine = calculateStates(lfNetwork, j, equationSystem, factorGroups, lfParameters, lfParametersExt);
-            }
-            DenseMatrix flowStatesWithoutDcLine = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, factors, lfParameters, participatingElements, disabledBuses, disabledBranches, reporter);
-            calculateSensitivityValues(factors, statesWithoutDcLine, contingenciesStates, flowStatesWithoutDcLine, contingencyElements,
-                    contingency, valueWriter);
-            BusState.restoreBusStates(busStates);
-            if (shouldChangeRhs) {
-                setBaseCaseSensitivityValues(factorGroups, factorStates);
-            }
+        Map<LfBus, BusState> busStates = new HashMap<>();
+        if (!contingency.getHvdcIdsToOpen().isEmpty()) {
+            // if we have a contingency including the loss of a DC line
+            busStates = applyHvdcLineContingency(network, lfNetwork, contingency);
+        }
+        Map<Generator, GeneratorState>  generatorStates = new HashMap<>();
+        List<ParticipatingElement> removedElements = Collections.emptyList();
+        if (!contingency.getGeneratorIdsToLose().isEmpty()) {
+            // if we have a contingency including the loss of a generator
+            generatorStates = applyGeneratorContingency(network, contingency);
+            removedElements = removeGeneratorParticipation(network, lfNetwork, contingency, participatingElements);
+        }
+        boolean shouldChangeRhs = lfParameters.isDistributedSlack()
+                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                && (!contingency.getHvdcIdsToOpen().isEmpty() || !contingency.getGeneratorIdsToLose().isEmpty());
+        DenseMatrix contingencyFactorStates = factorStates;
+        if (shouldChangeRhs) {
+            contingencyFactorStates = calculateStates(lfNetwork, j, equationSystem, factorGroups, lfParameters, lfParametersExt);
+        }
+        DenseMatrix contingencyFlowStates = flowStates;
+        if (!contingency.getHvdcIdsToOpen().isEmpty() || !contingency.getGeneratorIdsToLose().isEmpty()) {
+            contingencyFlowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, factors, lfParameters, participatingElements, disabledBuses, disabledBranches, reporter);
+        }
+        calculateSensitivityValues(factors, contingencyFactorStates, contingenciesStates, contingencyFlowStates, contingencyElements,
+                contingency, valueWriter);
+
+        BusState.restoreBusStates(busStates);
+        GeneratorState.restoreGeneratorStates(generatorStates);
+        participatingElements.addAll(removedElements);
+        if (shouldChangeRhs) {
+            setBaseCaseSensitivityValues(factorGroups, factorStates);
         }
     }
 

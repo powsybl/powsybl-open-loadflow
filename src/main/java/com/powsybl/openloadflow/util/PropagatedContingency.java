@@ -72,7 +72,7 @@ public class PropagatedContingency {
             if (terminal.getConnectable() instanceof Branch) {
                 branchIdsToOpen.add(terminal.getConnectable().getId());
             }
-            if (terminal.getConnectable() instanceof  Generator) {
+            if (terminal.getConnectable() instanceof Generator) {
                 generatorIdsToLose.add(terminal.getConnectable().getId());
             }
         }
