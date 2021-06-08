@@ -274,9 +274,9 @@ public final class AcEquationSystem {
             EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
             bus.setV(vTerm);
-            if (bus.getDiscreteVoltageControl().getControllers().size() > 1) {
-                createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
-            }
+
+            // add transformer distribution equations
+            createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
 
             for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
                 // we also create an equation that will be used later to maintain R1 variable constant
@@ -304,16 +304,18 @@ public final class AcEquationSystem {
 
     public static void createR1DistributionEquations(EquationSystem equationSystem, VariableSet variableSet,
                                                      List<LfBranch> controllerBranches) {
-        // we choose first controller bus as reference for reactive power
-        LfBranch firstControllerBranch = controllerBranches.get(0);
+        if (controllerBranches.size() > 1) {
+            // we choose first controller bus as reference for reactive power
+            LfBranch firstControllerBranch = controllerBranches.get(0);
 
-        // create a R1 distribution equation for all the other controller branches
-        for (int i = 1; i < controllerBranches.size(); i++) {
-            LfBranch controllerBranch = controllerBranches.get(i);
-            Equation zero = equationSystem.createEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1)
-                    .addTerm(EquationTerm.createVariableTerm(controllerBranch, VariableType.BRANCH_RHO1, variableSet))
-                    .addTerm(EquationTerm.multiply(EquationTerm.createVariableTerm(firstControllerBranch, VariableType.BRANCH_RHO1, variableSet), -1));
-            zero.setData(new DistributionData(firstControllerBranch.getNum(), 1)); // for later use
+            // create a R1 distribution equation for all the other controller branches
+            for (int i = 1; i < controllerBranches.size(); i++) {
+                LfBranch controllerBranch = controllerBranches.get(i);
+                Equation zero = equationSystem.createEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1)
+                        .addTerm(EquationTerm.createVariableTerm(controllerBranch, VariableType.BRANCH_RHO1, variableSet))
+                        .addTerm(EquationTerm.multiply(EquationTerm.createVariableTerm(firstControllerBranch, VariableType.BRANCH_RHO1, variableSet), -1));
+                zero.setData(new DistributionData(firstControllerBranch.getNum(), 1)); // for later use
+            }
         }
     }
 
