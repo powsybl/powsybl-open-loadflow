@@ -258,7 +258,7 @@ class OpenSecurityAnalysisTest {
         int activePowerLimitViolationsCount = 0;
         for (PostContingencyResult r : result.getPostContingencyResults()) {
             for (LimitViolation v : r.getLimitViolationsResult().getLimitViolations()) {
-                if ( v.getLimitType() == LimitViolationType.ACTIVE_POWER ) {
+                if (v.getLimitType() == LimitViolationType.ACTIVE_POWER) {
                     activePowerLimitViolationsCount++;
                 }
             }
