@@ -116,31 +116,19 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     protected List<LfLimit> getLimits1(CurrentLimits currentLimits) {
-        if (limits1.get(LimitType.CURRENT) == null) {
-            limits1.put(LimitType.CURRENT, createSortedLimitsList(currentLimits, bus1));
-        }
-        return limits1.get(LimitType.CURRENT);
+        return limits1.computeIfAbsent(LimitType.CURRENT, v -> createSortedLimitsList(currentLimits, bus1));
     }
 
     protected List<LfLimit> getLimits2(CurrentLimits currentLimits) {
-        if (limits2.get(LimitType.CURRENT) == null)  {
-            limits2.put(LimitType.CURRENT, createSortedLimitsList(currentLimits, bus2));
-        }
-        return limits2.get(LimitType.CURRENT);
+        return limits2.computeIfAbsent(LimitType.CURRENT, v -> createSortedLimitsList(currentLimits, bus2));
     }
 
     public List<LfLimit> getLimits1(LimitType type, LoadingLimits loadingLimits) {
-        if (limits1.get(type) == null)  {
-            limits1.put(type, createSortedLimitsList(loadingLimits, bus1));
-        }
-        return limits1.get(type);
+        return limits1.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus1));
     }
 
     public List<LfLimit> getLimits2(LimitType type, LoadingLimits loadingLimits) {
-        if (limits2.get(type) == null)  {
-            limits2.put(type, createSortedLimitsList(loadingLimits, bus2));
-        }
-        return limits2.get(type);
+        return limits2.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus2));
     }
 
     @Override
