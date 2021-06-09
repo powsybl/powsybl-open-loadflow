@@ -59,14 +59,16 @@ public final class AcEquationSystem {
     private static void createVoltageControlEquations(VoltageControl voltageControl, LfBus bus, VariableSet variableSet,
                                                       EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
         if (voltageControl.isVoltageControlLocal()) {
-            EquationTerm vTerm;
-            if (creationParameters.isVoltagePerReactivePowerControl() && voltageControl.getControllerBuses().size() == 1 && bus.getGeneratorControllingVoltageWithSlope().isPresent()) {
-                vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
-                double slope = bus.getGeneratorControllingVoltageWithSlope().get().getSlope();
-                createBusWithSlopeEquation(bus, slope, creationParameters, variableSet, equationSystem, vTerm);
-
+            EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
+            if (creationParameters.isVoltagePerReactivePowerControl() && voltageControl.getControllerBuses().size() == 1) {
+                Optional<LfGenerator> generatorControllingVoltageWithSlope = bus.getGeneratorControllingVoltageWithSlope();
+                if (generatorControllingVoltageWithSlope.isPresent()) {
+                    double slope = generatorControllingVoltageWithSlope.get().getSlope();
+                    createBusWithSlopeEquation(bus, slope, creationParameters, variableSet, equationSystem, vTerm);
+                } else {
+                    equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
+                }
             } else {
-                vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
                 equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
             }
             bus.setV(vTerm);
