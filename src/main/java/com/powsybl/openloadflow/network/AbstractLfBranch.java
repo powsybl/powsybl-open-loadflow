@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.impl.Transformers;
+import org.apache.commons.math3.util.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -221,5 +222,18 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public void setDisabled(boolean disabled) {
         this.disabled = disabled;
+    }
+
+    public double computeApparentPower1() {
+        double p = getP1().eval();
+        double q = getQ1().eval();
+        return FastMath.sqrt(p * p + q * q);
+    }
+
+    @Override
+    public double computeApparentPower2() {
+        double p = getP2().eval();
+        double q = getQ2().eval();
+        return FastMath.sqrt(p * p + q * q);
     }
 }

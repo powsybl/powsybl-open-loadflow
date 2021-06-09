@@ -76,4 +76,8 @@ public interface LfBranch extends LfElement {
     boolean isDisabled();
 
     void setDisabled(boolean disabled);
+
+    double computeApparentPower1();
+
+    double computeApparentPower2();
 }

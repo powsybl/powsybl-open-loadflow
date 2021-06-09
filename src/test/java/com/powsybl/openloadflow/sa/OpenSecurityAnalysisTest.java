@@ -27,6 +27,7 @@ import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResults;
+import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -247,16 +248,15 @@ class OpenSecurityAnalysisTest {
                                                                        .map(id -> new Contingency(id, new BranchContingency(id)))
                                                                        .collect(Collectors.toList());
 
-        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory();
-        AbstractSecurityAnalysis securityAnalysis = osaFactory.create(network, new LimitViolationFilter(), null, 0);
+        AbstractSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network);
 
-        SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
-        assertEquals(1, result.getPreContingencyResult().getLimitViolations().size());
-        assertEquals(2, result.getPostContingencyResults().size());
-        assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+        SecurityAnalysisReport report = securityAnalysis.runSync(saParameters, contingenciesProvider);
+        assertEquals(1, report.getResult().getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(2, report.getResult().getPostContingencyResults().size());
+        assertEquals(2, report.getResult().getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
 
         int activePowerLimitViolationsCount = 0;
-        for (PostContingencyResult r : result.getPostContingencyResults()) {
+        for (PostContingencyResult r : report.getResult().getPostContingencyResults()) {
             for (LimitViolation v : r.getLimitViolationsResult().getLimitViolations()) {
                 if (v.getLimitType() == LimitViolationType.ACTIVE_POWER) {
                     activePowerLimitViolationsCount++;
@@ -289,16 +289,15 @@ class OpenSecurityAnalysisTest {
                                                                        .map(id -> new Contingency(id, new BranchContingency(id)))
                                                                        .collect(Collectors.toList());
 
-        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory();
-        AbstractSecurityAnalysis securityAnalysis = osaFactory.create(network, new LimitViolationFilter(), null, 0);
+        AbstractSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network);
 
-        SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
-        assertEquals(1, result.getPreContingencyResult().getLimitViolations().size());
-        assertEquals(2, result.getPostContingencyResults().size());
-        assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+        SecurityAnalysisReport report = securityAnalysis.runSync(saParameters, contingenciesProvider);
+        assertEquals(1, report.getResult().getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(2, report.getResult().getPostContingencyResults().size());
+        assertEquals(2, report.getResult().getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
 
         int apparentPowerLimitViolationsCount = 0;
-        for (PostContingencyResult r : result.getPostContingencyResults()) {
+        for (PostContingencyResult r : report.getResult().getPostContingencyResults()) {
             for (LimitViolation v : r.getLimitViolationsResult().getLimitViolations()) {
                 if (v.getLimitType() == LimitViolationType.APPARENT_POWER) {
                     apparentPowerLimitViolationsCount++;

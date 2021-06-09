@@ -46,7 +46,6 @@ import com.powsybl.security.results.BusResults;
 import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.math3.util.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -161,12 +160,15 @@ public abstract class AbstractSecurityAnalysis {
                   .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.ACTIVE_POWER, PerUnit.SB, branch.getP1().eval()))
                   .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
 
-            double apparentPower1 = computeApparentPower(branch.getP1().eval(), branch.getQ1().eval());
-            branch.getLimits1(LimitType.APPARENT_POWER).stream()
-                  .filter(temporaryLimit1 -> apparentPower1 > temporaryLimit1.getValue())
-                  .findFirst()
-                  .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.APPARENT_POWER, PerUnit.SB, apparentPower1))
-                  .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
+            //Apparent power is not relevant for fictitious branches and may be NaN
+            double apparentPower1 = branch.computeApparentPower1();
+            if (!Double.isNaN(apparentPower1)) {
+                branch.getLimits1(LimitType.APPARENT_POWER).stream()
+                      .filter(temporaryLimit1 -> apparentPower1 > temporaryLimit1.getValue())
+                      .findFirst()
+                      .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.APPARENT_POWER, PerUnit.SB, apparentPower1))
+                      .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
+            }
 
         }
         if (branch.getBus2() != null) {
@@ -182,12 +184,15 @@ public abstract class AbstractSecurityAnalysis {
                   .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.ACTIVE_POWER, PerUnit.SB, branch.getP2().eval()))
                   .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
 
-            double apparentPower2 = computeApparentPower(branch.getP2().eval(), branch.getQ2().eval());
-            branch.getLimits2(LimitType.APPARENT_POWER).stream()
-                  .filter(temporaryLimit2 -> apparentPower2 > temporaryLimit2.getValue())
-                  .findFirst()
-                  .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.APPARENT_POWER, PerUnit.SB, apparentPower2))
-                  .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
+            //Apparent power is not relevant for fictitious branches and may be NaN
+            double apparentPower2 = branch.computeApparentPower2();
+            if (!Double.isNaN(apparentPower2)) {
+                branch.getLimits2(LimitType.APPARENT_POWER).stream()
+                      .filter(temporaryLimit2 -> apparentPower2 > temporaryLimit2.getValue())
+                      .findFirst()
+                      .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.APPARENT_POWER, PerUnit.SB, apparentPower2))
+                      .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
+            }
         }
     }
 
@@ -281,9 +286,5 @@ public abstract class AbstractSecurityAnalysis {
         return new ThreeWindingsTransformerResult(threeWindingsTransformerId, leg1.getP1().eval(), leg1.getQ1().eval(), leg1.getI1().eval(),
                 leg2.getP1().eval(), leg2.getQ1().eval(), leg2.getI1().eval(),
                 leg3.getP1().eval(), leg3.getQ1().eval(), leg3.getI1().eval());
-    }
-
-    double computeApparentPower(double p, double q) {
-        return FastMath.sqrt(p * p + q * q);
     }
 }
