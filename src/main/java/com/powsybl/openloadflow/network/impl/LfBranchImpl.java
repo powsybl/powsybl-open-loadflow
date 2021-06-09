@@ -206,16 +206,6 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits1() {
-        return getLimits1(branch.getCurrentLimits1());
-    }
-
-    @Override
-    public List<LfLimit> getLimits2() {
-        return getLimits2(branch.getCurrentLimits2());
-    }
-
-    @Override
     public BranchResult createBranchResult() {
         double currentScale1 = PerUnit.SB / nominalV1;
         double currentScale2 = PerUnit.SB / nominalV2;

@@ -47,10 +47,6 @@ public interface LfBranch extends LfElement {
 
     Evaluable getI2();
 
-    List<AbstractLfBranch.LfLimit> getLimits1();
-
-    List<AbstractLfBranch.LfLimit> getLimits2();
-
     List<AbstractLfBranch.LfLimit> getLimits1(LimitType type);
 
     List<AbstractLfBranch.LfLimit> getLimits2(LimitType type);

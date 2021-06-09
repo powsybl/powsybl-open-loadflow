@@ -93,7 +93,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(100, getLimitValueFromAcceptableDuration(branch, 1200, Branch.Side.ONE), DELTA_CURRENT);
         assertEquals(120, getLimitValueFromAcceptableDuration(branch, 600, Branch.Side.ONE), DELTA_CURRENT);
         assertEquals(140, getLimitValueFromAcceptableDuration(branch, 0, Branch.Side.ONE), DELTA_CURRENT);
-        assertTrue(branch.getLimits2().isEmpty());
+        assertTrue(branch.getLimits2(LimitType.CURRENT).isEmpty());
     }
 
     @Test

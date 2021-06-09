@@ -115,14 +115,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         return bus2;
     }
 
-    protected List<LfLimit> getLimits1(CurrentLimits currentLimits) {
-        return limits1.computeIfAbsent(LimitType.CURRENT, v -> createSortedLimitsList(currentLimits, bus1));
-    }
-
-    protected List<LfLimit> getLimits2(CurrentLimits currentLimits) {
-        return limits2.computeIfAbsent(LimitType.CURRENT, v -> createSortedLimitsList(currentLimits, bus2));
-    }
-
     public List<LfLimit> getLimits1(LimitType type, LoadingLimits loadingLimits) {
         return limits1.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus1));
     }

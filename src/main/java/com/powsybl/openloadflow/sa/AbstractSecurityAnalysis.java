@@ -170,20 +170,20 @@ public abstract class AbstractSecurityAnalysis {
 
         }
         if (branch.getBus2() != null) {
-            branch.getLimits2().stream()
+            branch.getLimits2(LimitType.CURRENT).stream()
                 .filter(temporaryLimit2 -> branch.getI2().eval() > temporaryLimit2.getValue())
                 .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
                 .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.CURRENT, PerUnit.SB / branch.getBus2().getNominalV(), branch.getI2().eval()))
                 .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
 
-            branch.getLimits2().stream()
+            branch.getLimits2(LimitType.ACTIVE_POWER).stream()
                   .filter(temporaryLimit2 -> branch.getP2().eval() > temporaryLimit2.getValue())
                   .findFirst()
                   .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.ACTIVE_POWER, PerUnit.SB, branch.getP2().eval()))
                   .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
 
             double apparentPower2 = computeApparentPower(branch.getP2().eval(), branch.getQ2().eval());
-            branch.getLimits2().stream()
+            branch.getLimits2(LimitType.APPARENT_POWER).stream()
                   .filter(temporaryLimit2 -> apparentPower2 > temporaryLimit2.getValue())
                   .findFirst()
                   .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.APPARENT_POWER, PerUnit.SB, apparentPower2))

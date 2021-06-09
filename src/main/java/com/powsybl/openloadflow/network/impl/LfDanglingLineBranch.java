@@ -55,16 +55,6 @@ public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits1() {
-        return getLimits1(danglingLine.getCurrentLimits());
-    }
-
-    @Override
-    public List<LfLimit> getLimits2() {
-        return Collections.emptyList();
-    }
-
-    @Override
     public BranchResult createBranchResult() {
         throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
     }
