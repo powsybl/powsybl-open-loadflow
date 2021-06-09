@@ -46,6 +46,7 @@ import com.powsybl.security.results.BusResults;
 import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.math3.util.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -283,6 +284,6 @@ public abstract class AbstractSecurityAnalysis {
     }
 
     double computeApparentPower(double p, double q) {
-        return Math.sqrt(p * p + q * q);
+        return FastMath.sqrt(p * p + q * q);
     }
 }
