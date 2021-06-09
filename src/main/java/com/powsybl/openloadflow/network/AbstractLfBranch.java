@@ -77,7 +77,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     protected static List<LfLimit> createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus) {
         LinkedList<LfLimit> sortedLimits = new LinkedList<>();
         if (loadingLimits != null) {
-            double toPerUnit = bus.getNominalV() / PerUnit.SB;
+            double toPerUnit = getScaleForLimitType(loadingLimits.getLimitType(), bus);
+
             for (LoadingLimits.TemporaryLimit temporaryLimit : loadingLimits.getTemporaryLimits()) {
                 if (temporaryLimit.getAcceptableDuration() != 0) {
                     // it is not useful to add a limit with acceptable duration equal to zero as the only value plausible
@@ -181,6 +182,19 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                 LOGGER.warn("The voltage on bus {} ({} kV) is out of the target value ({} kV) +/- deadband/2 ({} kV)",
                         discreteVoltageControl.getControlled().getId(), v * nominalV, rtc.getTargetV(), rtc.getTargetDeadband() / 2);
             }
+        }
+    }
+
+    protected static double getScaleForLimitType(LimitType type, LfBus bus) {
+        switch (type) {
+            case ACTIVE_POWER:
+            case APPARENT_POWER:
+                return 1.0 / PerUnit.SB;
+            case CURRENT:
+                return bus.getNominalV() / PerUnit.SB;
+            case VOLTAGE:
+            default:
+                throw new UnsupportedOperationException(String.format("Getting %s limits is not supported on dangling line branch.", type));
         }
     }
 

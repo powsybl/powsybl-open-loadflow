@@ -251,7 +251,7 @@ class OpenSecurityAnalysisTest {
         AbstractSecurityAnalysis securityAnalysis = osaFactory.create(network, new LimitViolationFilter(), null, 0);
 
         SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
-        assertEquals(0, result.getPreContingencyResult().getLimitViolations().size());
+        assertEquals(1, result.getPreContingencyResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
 
@@ -293,7 +293,7 @@ class OpenSecurityAnalysisTest {
         AbstractSecurityAnalysis securityAnalysis = osaFactory.create(network, new LimitViolationFilter(), null, 0);
 
         SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
-        assertEquals(0, result.getPreContingencyResult().getLimitViolations().size());
+        assertEquals(1, result.getPreContingencyResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
 
