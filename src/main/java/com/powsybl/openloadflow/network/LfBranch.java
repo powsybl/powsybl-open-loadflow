@@ -68,4 +68,8 @@ public interface LfBranch extends LfElement {
     boolean isVoltageController();
 
     void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
+
+    void setDiscreteVoltageControlEnabled(boolean enabled);
+
+    boolean isDiscreteVoltageControllerEnabled();
 }

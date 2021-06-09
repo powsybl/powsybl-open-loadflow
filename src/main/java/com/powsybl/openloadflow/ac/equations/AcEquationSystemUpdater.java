@@ -87,6 +87,49 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     @Override
+    public void onDiscreteVoltageControlChange(LfBranch controllerBranch, boolean newDiscreteVoltageControllerEnabled) {
+        if (newDiscreteVoltageControllerEnabled) {
+            // de-activate constant R1 equation
+            equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
+                .setActive(false);
+
+            // update transformer distribution equations
+            List<LfBranch> firstControllerBranches = controllerBranch.getDiscreteVoltageControl().getControllers().stream()
+                .filter(LfBranch::isDiscreteVoltageControllerEnabled)
+                .limit(2)
+                .collect(Collectors.toList());
+            LfBranch firstControllerBranch = firstControllerBranches.get(0); // always exists as controllerBranch is a branch with discrete voltage control enabled
+            if (controllerBranch != firstControllerBranch) {
+                AcEquationSystem.createR1DisctributionEquation(equationSystem, variableSet, firstControllerBranch, controllerBranch);
+            } else if (firstControllerBranches.size() > 1) {
+                LfBranch secondControllerBranch = firstControllerBranches.get(1); // was previously first
+                AcEquationSystem.createR1DisctributionEquation(equationSystem, variableSet, secondControllerBranch, controllerBranch);
+            }
+
+        } else {
+            // activate constant R1 equation
+            equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
+                .setActive(true);
+
+            // update transformer distribution equations
+            Equation zero = equationSystem.removeEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1);
+            if (zero == null) { // it was thus the first branch in controllers with discrete voltage control enabled
+                Optional<LfBranch> firstController = controllerBranch.getDiscreteVoltageControl().getControllers().stream()
+                    .filter(LfBranch::isDiscreteVoltageControllerEnabled)
+                    .findFirst();
+                if (firstController.isPresent()) {
+                    equationSystem.removeEquation(firstController.get().getNum(), EquationType.ZERO_RHO1);
+                } else { // no controllers enabled on this discrete voltage control, thus controlled bus not controlled anymore
+                    // TODO: I don't think it is possible to end up here... and remove it?
+                    LfBus controlledBus = controllerBranch.getDiscreteVoltageControl().getControlled();
+                    equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V)
+                        .setActive(false);
+                }
+            }
+        }
+    }
+
+    @Override
     public void onVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode) {
         LfBus bus = voltageControl.getControlled();
         if (newMode == DiscreteVoltageControl.Mode.OFF) {

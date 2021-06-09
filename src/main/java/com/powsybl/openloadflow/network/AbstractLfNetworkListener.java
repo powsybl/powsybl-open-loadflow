@@ -27,6 +27,11 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
+    public void onDiscreteVoltageControlChange(LfBranch lfBranch, boolean newDiscreteVoltageControllerEnabled) {
+        // empty
+    }
+
+    @Override
     public void onLoadActivePowerTargetChange(LfBus bus, double oldLoadTargetP, double newLoadTargetP) {
         // empty
     }

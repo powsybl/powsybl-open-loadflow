@@ -26,6 +26,7 @@ import com.powsybl.openloadflow.equations.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.util.BranchState;
 import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
@@ -243,6 +244,7 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
                 // save base state for later restoration after each contingency
                 Map<LfBus, BusState> busStates = BusState.createBusStates(network.getBuses());
+                Map<LfBranch, BranchState> branchStates = BranchState.createBranchStates(network.getBranches());
                 for (LfBus bus : network.getBuses()) {
                     bus.setVoltageControlSwitchOffCount(0);
                 }
@@ -254,6 +256,10 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
                     for (LfBus bus : lfContingency.getBuses()) {
                         bus.setDisabled(true);
+                        disableDiscreteVoltageControl(bus, lfContingency);
+                    }
+                    for (LfBranch branch : lfContingency.getBranches()) {
+                        disableDiscreteVoltageControl(branch, lfContingency);
                     }
 
                     distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
@@ -266,12 +272,33 @@ public class OpenSecurityAnalysis implements SecurityAnalysis {
 
                         // restore base state
                         BusState.restoreBusStates(busStates);
+                        BranchState.restoreBranchStates(branchStates);
                     }
                 }
             }
 
             LimitViolationsResult preContingencyResult = new LimitViolationsResult(preContingencyComputationOk, new ArrayList<>(preContingencyLimitViolations.values()));
             return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
+        }
+    }
+
+    private void disableDiscreteVoltageControl(LfBus controlled, LfContingency lfContingency) {
+        if (controlled.isDiscreteVoltageControlled()) {
+            DiscreteVoltageControl dvc = controlled.getDiscreteVoltageControl();
+            if (!lfContingency.getBranches().containsAll(dvc.getControllers())) {
+                for (LfBranch controller : dvc.getControllers()) {
+                    controller.setDiscreteVoltageControlEnabled(false);
+                }
+            }
+        }
+    }
+
+    private void disableDiscreteVoltageControl(LfBranch controller, LfContingency lfContingency) {
+        if (controller.isDiscreteVoltageControllerEnabled()) {
+            DiscreteVoltageControl dvc = controller.getDiscreteVoltageControl();
+            if (!lfContingency.getBuses().contains(dvc.getControlled())) {
+                controller.setDiscreteVoltageControlEnabled(false);
+            }
         }
     }
 
