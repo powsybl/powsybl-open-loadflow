@@ -111,7 +111,17 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
 
     @Override
     public List<LfLimit> getLimits1(final LimitType type) {
-        return Collections.emptyList();
+        switch (type) {
+            case ACTIVE_POWER:
+                return getLimits1(type, leg.getActivePowerLimits());
+            case APPARENT_POWER:
+                return getLimits1(type, leg.getApparentPowerLimits());
+            case CURRENT:
+                return getLimits1(type, leg.getCurrentLimits());
+            case VOLTAGE:
+            default:
+                throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+        }
     }
 
     @Override

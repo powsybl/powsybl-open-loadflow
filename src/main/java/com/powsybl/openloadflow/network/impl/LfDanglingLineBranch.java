@@ -61,10 +61,17 @@ public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
 
     @Override
     public List<LfLimit> getLimits1(final LimitType type) {
-        if (type != LimitType.CURRENT) {
-            throw new UnsupportedOperationException(String.format("Getting %s limits is not supported on dangling line branch.", type.name()));
+        switch (type) {
+            case ACTIVE_POWER:
+                return getLimits1(type, danglingLine.getActivePowerLimits());
+            case APPARENT_POWER:
+                return getLimits1(type, danglingLine.getApparentPowerLimits());
+            case CURRENT:
+                return getLimits1(type, danglingLine.getCurrentLimits());
+            case VOLTAGE:
+            default:
+                throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
         }
-        return getLimits1(type, danglingLine.getCurrentLimits());
     }
 
     @Override
