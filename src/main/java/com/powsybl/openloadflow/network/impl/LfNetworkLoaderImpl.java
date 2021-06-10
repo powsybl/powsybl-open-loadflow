@@ -422,7 +422,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 } else {
                     double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
                     DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
-                            DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
+                            true, rtc.getTargetV() / regulatingTerminalNominalV);
                     voltageControl.addController(controllerBranch);
                     controllerBranch.setDiscreteVoltageControl(voltageControl);
                     controlledBus.setDiscreteVoltageControl(voltageControl);

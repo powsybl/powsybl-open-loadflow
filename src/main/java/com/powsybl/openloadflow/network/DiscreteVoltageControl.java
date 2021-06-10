@@ -16,12 +16,7 @@ import java.util.Objects;
  */
 public class DiscreteVoltageControl {
 
-    public enum Mode {
-        VOLTAGE,
-        OFF
-    }
-
-    private DiscreteVoltageControl.Mode mode;
+    private boolean enabled;
 
     private final LfBus controlled;
 
@@ -29,23 +24,22 @@ public class DiscreteVoltageControl {
 
     private final double targetValue;
 
-    public DiscreteVoltageControl(LfBus controlled, DiscreteVoltageControl.Mode mode, double targetValue) {
+    public DiscreteVoltageControl(LfBus controlled, boolean enabled, double targetValue) {
         this.controlled = Objects.requireNonNull(controlled);
         this.targetValue = targetValue;
-        this.mode = Objects.requireNonNull(mode);
+        this.enabled = enabled;
     }
 
-    public Mode getMode() {
-        return mode;
+    public boolean isEnabled() {
+        return enabled;
     }
 
-    public void setMode(Mode mode) {
-        Objects.requireNonNull(mode);
-        if (mode != this.mode) {
-            Mode oldMode = this.mode;
-            this.mode = mode;
+    public void setControlEnabled(boolean enabled) {
+        Objects.requireNonNull(enabled);
+        if (enabled != this.enabled) {
+            this.enabled = enabled;
             for (LfNetworkListener listener : controlled.getNetwork().getListeners()) {
-                listener.onVoltageControlModeChange(this, oldMode, mode);
+                listener.onDiscreteVoltageControlChange(this, enabled);
             }
         }
     }

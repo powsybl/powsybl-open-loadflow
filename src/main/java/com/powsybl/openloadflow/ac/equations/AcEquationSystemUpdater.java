@@ -130,27 +130,12 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     @Override
-    public void onVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode) {
+    public void onDiscreteVoltageControlChange(DiscreteVoltageControl voltageControl, boolean isEnabledNew) {
         LfBus bus = voltageControl.getControlled();
-        if (newMode == DiscreteVoltageControl.Mode.OFF) {
-
-            // de-activate transformer voltage control equation
-            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V)
-                    .setActive(false);
-
-            for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
-                // activate constant R1 equation
-                equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
-                        .setActive(true);
-
-                // clean transformer distribution equations
-                equationSystem.removeEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1);
-            }
-        } else { // newMode == DiscreteVoltageControl.Mode.VOLTAGE
-
+        if (isEnabledNew) {
             // activate transformer voltage control equation
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V)
-                    .setActive(true);
+                .setActive(true);
 
             // add transformer distribution equations
             AcEquationSystem.createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
@@ -158,7 +143,20 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
                 // de-activate constant R1 equation
                 equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
-                        .setActive(false);
+                    .setActive(false);
+            }
+        } else {
+            // de-activate transformer voltage control equation
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V)
+                .setActive(false);
+
+            for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
+                // activate constant R1 equation
+                equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
+                    .setActive(true);
+
+                // clean transformer distribution equations
+                equationSystem.removeEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1);
             }
         }
     }

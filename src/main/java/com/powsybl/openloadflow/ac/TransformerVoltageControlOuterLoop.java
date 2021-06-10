@@ -10,7 +10,6 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.DiscreteVoltageControl;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
@@ -37,7 +36,7 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
             for (LfBus bus : context.getNetwork().getBuses()) {
                 if (bus.isDiscreteVoltageControlled()) {
                     // switch off regulating transformers
-                    bus.getDiscreteVoltageControl().setMode(DiscreteVoltageControl.Mode.OFF);
+                    bus.getDiscreteVoltageControl().setControlEnabled(false);
 
                     for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
                         // round the rho shift to the closest tap
