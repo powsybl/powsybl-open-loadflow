@@ -416,14 +416,14 @@ class OpenSecurityAnalysisTest {
 
         assertEquals(new BusResults("b1_vl", "b1", 400, 0.003581299841270782), report.getResult().getBusResultsAsList().get(0));
         assertEquals(1, report.getResult().getBranchResultsAsList().size());
-        assertEquals(new BranchResult("l24", 0.0, 0.0, 0.0, 0.0, -0.0, 0.0),
+        assertEquals(new BranchResult("l24", NaN, NaN, NaN, 0.0, -0.0, 0.0),
             report.getResult().getBranchResultsAsList().get(0));
 
         network = DistributedSlackNetworkFactory.create();
         network.getBranch("l24").getTerminal2().disconnect();
         report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
         assertEquals(1, report.getResult().getBranchResultsAsList().size());
-        assertEquals(new BranchResult("l24", 0.0, 0.0, 0.0, 0.0, -0.0, 0.0),
+        assertEquals(new BranchResult("l24", NaN, NaN, NaN, 0.0, -0.0, 0.0),
             report.getResult().getBranchResultsAsList().get(0));
 
         network = DistributedSlackNetworkFactory.create();
@@ -431,7 +431,7 @@ class OpenSecurityAnalysisTest {
         network.getBranch("l24").getTerminal1().disconnect();
         report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
         assertEquals(1, report.getResult().getBranchResultsAsList().size());
-        assertEquals(new BranchResult("l24", 0.0, 0.0, 0.0, 0.0, -0.0, 0.0),
+        assertEquals(new BranchResult("l24", NaN, NaN, NaN, 0.0, -0.0, 0.0),
             report.getResult().getBranchResultsAsList().get(0));
 
     }
@@ -453,18 +453,12 @@ class OpenSecurityAnalysisTest {
 
         List<StateMonitor> monitors = new ArrayList<>();
         monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("dl1"), Collections.singleton("vl1"), Collections.emptySet()));
-        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
-            new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new, monitors);
+        CompletableFuture<SecurityAnalysisReport> report = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+            new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new, monitors)
+                .run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider);
 
-        SecurityAnalysisReport report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
-
-        assertEquals(1, report.getResult().getBusResultsAsList().size());
-
-        assertEquals(new BusResults("vl1", "b1", 390, 0.058104236530870684), report.getResult().getBusResultsAsList().get(0));
-        assertEquals(1, report.getResult().getBranchResultsAsList().size());
-        assertEquals(new BranchResult("dl1", 101.30214011268102, 1.497638251697259, 268.6405409741444, NaN, NaN, NaN),
-            report.getResult().getBranchResultsAsList().get(0));
-
+        CompletionException exception = assertThrows(CompletionException.class, report::join);
+        assertEquals("Unsupported type of branch for branch result: dl1", exception.getCause().getMessage());
     }
 
     @Test

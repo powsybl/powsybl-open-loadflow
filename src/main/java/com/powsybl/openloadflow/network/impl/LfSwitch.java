@@ -6,12 +6,11 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Switch;
-import com.powsybl.openloadflow.network.AbstractLfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.SimplePiModel;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.security.results.BranchResult;
 
 import java.util.Collections;
 import java.util.List;
@@ -109,6 +108,11 @@ public class LfSwitch extends AbstractLfBranch {
     @Override
     public List<LfLimit> getLimits2() {
         return Collections.emptyList();
+    }
+
+    @Override
+    public BranchResult createBranchResult() {
+        throw new PowsyblException("Unsupported type of branch for branch result: " + aSwitch.getId());
     }
 
     @Override

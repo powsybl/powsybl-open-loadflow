@@ -6,8 +6,10 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.security.results.BranchResult;
 
 import java.util.Collections;
 import java.util.List;
@@ -59,6 +61,11 @@ public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
     @Override
     public List<LfLimit> getLimits2() {
         return Collections.emptyList();
+    }
+
+    @Override
+    public BranchResult createBranchResult() {
+        throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
     }
 
     @Override
