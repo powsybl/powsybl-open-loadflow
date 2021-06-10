@@ -192,8 +192,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public DiscreteVoltageControl getDiscreteVoltageControl() {
-        return discreteVoltageControl;
+    public Optional<DiscreteVoltageControl> getDiscreteVoltageControl() {
+        return Optional.ofNullable(discreteVoltageControl);
     }
 
     @Override

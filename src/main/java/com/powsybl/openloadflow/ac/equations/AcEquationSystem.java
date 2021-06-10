@@ -263,22 +263,25 @@ public final class AcEquationSystem {
     }
 
     private static void createDiscreteVoltageControlEquation(LfBus bus,  VariableSet variableSet, EquationSystem equationSystem) {
-        if (bus.isDiscreteVoltageControlled()) {
-            EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
-            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
-            bus.setV(vTerm);
+        bus.getDiscreteVoltageControl()
+            .filter(vc -> bus.isDiscreteVoltageControlled())
+            .map(DiscreteVoltageControl::getControllers)
+            .ifPresent(controllers -> {
+                EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
+                bus.setV(vTerm);
 
-            // add transformer distribution equations
-            createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
+                // add transformer distribution equations
+                createR1DistributionEquations(equationSystem, variableSet, controllers);
 
-            for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
-                // we also create an equation that will be used later to maintain R1 variable constant
-                // this equation is now inactive
-                equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
+                for (LfBranch controllerBranch : controllers) {
+                    // we also create an equation that will be used later to maintain R1 variable constant
+                    // this equation is now inactive
+                    equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
                         .addTerm(EquationTerm.createVariableTerm(controllerBranch, VariableType.BRANCH_RHO1, variableSet))
                         .setActive(false);
-            }
-        }
+                }
+            });
     }
 
     public static void createR1DistributionEquations(EquationSystem equationSystem, VariableSet variableSet,

@@ -314,29 +314,30 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     private static void fixDiscreteVoltageControlsOnConnectedComponent(Set<LfBus> zeroImpedanceConnectedSet) {
-        // Get the list of discrete controlled buses in the zero impedance connected set
-        List<LfBus> discreteControlledBuses = zeroImpedanceConnectedSet.stream().filter(LfBus::isDiscreteVoltageControlled).collect(Collectors.toList());
-        if (discreteControlledBuses.isEmpty()) {
+        // Get the list of discrete control from controlled buses in the zero impedance connected set
+        List<DiscreteVoltageControl> voltageControls = zeroImpedanceConnectedSet.stream().filter(LfBus::isDiscreteVoltageControlled)
+            .map(LfBus::getDiscreteVoltageControl).filter(Optional::isPresent).map(Optional::get)
+            .collect(Collectors.toList());
+        if (voltageControls.isEmpty()) {
             return;
         }
 
         // The first controlled bus is kept and removed from the list
-        LfBus firstControlledBus = discreteControlledBuses.remove(0);
+        DiscreteVoltageControl firstControlledBusVoltageControl = voltageControls.remove(0);
 
         // First resolve problem of discrete voltage controls
-        if (!discreteControlledBuses.isEmpty()) {
+        if (!voltageControls.isEmpty()) {
             // We have several discrete controls whose controlled bus are in the same non-impedant connected set
             // To solve that we keep only one discrete voltage control, the other ones are removed
             // and the corresponding controllers are added to the discrete control kept
             LOGGER.info("Zero impedance connected set with several discrete voltage controls: discrete controls merged");
-            DiscreteVoltageControl firstDvc = firstControlledBus.getDiscreteVoltageControl();
-            discreteControlledBuses.stream()
-                .flatMap(c -> c.getDiscreteVoltageControl().getControllers().stream())
+            voltageControls.stream()
+                .flatMap(vc -> vc.getControllers().stream())
                 .forEach(controller -> {
-                    firstDvc.addController(controller);
-                    controller.setDiscreteVoltageControl(firstDvc);
+                    firstControlledBusVoltageControl.addController(controller);
+                    controller.setDiscreteVoltageControl(firstControlledBusVoltageControl);
                 });
-            discreteControlledBuses.forEach(lfBus -> lfBus.setDiscreteVoltageControl(null));
+            voltageControls.forEach(vc -> vc.getControlled().setDiscreteVoltageControl(null));
         }
 
         // Then resolve problem of mixed shared controls, that is if there are any generator/svc voltage control together with discrete voltage control(s)
@@ -347,9 +348,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             // TODO: deal with mixed shared controls instead of removing all discrete voltage controls
             LOGGER.warn("Zero impedance connected set with voltage control and discrete voltage control: only generator control is kept");
             // First remove it from controllers
-            firstControlledBus.getDiscreteVoltageControl().getControllers().forEach(c -> c.setDiscreteVoltageControl(null));
+            firstControlledBusVoltageControl.getControllers().forEach(c -> c.setDiscreteVoltageControl(null));
             // Then remove it from the controlled lfBus
-            firstControlledBus.setDiscreteVoltageControl(null);
+            firstControlledBusVoltageControl.getControlled().setDiscreteVoltageControl(null);
         }
     }
 
@@ -415,17 +416,21 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             if (controlledBus != null) {
                 if (controlledBus.isVoltageControlled()) {
                     LOGGER.warn("Controlled bus {} has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
-                } else if (controlledBus.isDiscreteVoltageControlled()) {
-                    LOGGER.trace("Controlled bus {} already has a transformer voltage control: a shared control is created", controlledBus.getId());
-                    controlledBus.getDiscreteVoltageControl().addController(controllerBranch);
-                    controllerBranch.setDiscreteVoltageControl(controlledBus.getDiscreteVoltageControl());
                 } else {
-                    double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
-                    DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
+                    Optional<DiscreteVoltageControl> dvcControlledBus = controlledBus.getDiscreteVoltageControl()
+                        .filter(vc -> controlledBus.isDiscreteVoltageControlled());
+                    if (dvcControlledBus.isPresent()) {
+                        LOGGER.trace("Controlled bus {} already has a transformer voltage control: a shared control is created", controlledBus.getId());
+                        dvcControlledBus.get().addController(controllerBranch);
+                        controllerBranch.setDiscreteVoltageControl(dvcControlledBus.get());
+                    } else {
+                        double regulatingTerminalNominalV = regulationTerminal.getVoltageLevel().getNominalV();
+                        DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
                             DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
-                    voltageControl.addController(controllerBranch);
-                    controllerBranch.setDiscreteVoltageControl(voltageControl);
-                    controlledBus.setDiscreteVoltageControl(voltageControl);
+                        voltageControl.addController(controllerBranch);
+                        controllerBranch.setDiscreteVoltageControl(voltageControl);
+                        controlledBus.setDiscreteVoltageControl(voltageControl);
+                    }
                 }
             }
         }

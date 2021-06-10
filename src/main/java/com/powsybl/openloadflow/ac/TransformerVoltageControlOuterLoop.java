@@ -17,6 +17,8 @@ import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Optional;
+
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
@@ -35,11 +37,12 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
 
         if (context.getIteration() == 0) {
             for (LfBus bus : context.getNetwork().getBuses()) {
-                if (bus.isDiscreteVoltageControlled()) {
+                Optional<DiscreteVoltageControl> vc = bus.getDiscreteVoltageControl().filter(vc0 -> bus.isDiscreteVoltageControlled());
+                if (vc.isPresent()) {
                     // switch off regulating transformers
-                    bus.getDiscreteVoltageControl().setMode(DiscreteVoltageControl.Mode.OFF);
+                    vc.get().setMode(DiscreteVoltageControl.Mode.OFF);
 
-                    for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
+                    for (LfBranch controllerBranch : vc.get().getControllers()) {
                         // round the rho shift to the closest tap
                         PiModel piModel = controllerBranch.getPiModel();
                         double r1Value = piModel.getR1();
