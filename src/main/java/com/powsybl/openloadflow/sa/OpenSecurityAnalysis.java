@@ -388,16 +388,24 @@ public class OpenSecurityAnalysis {
         return LfContingency.createContingencies(propagatedContingencies, network, network.createDecrementalConnectivity(connectivityProvider), true);
     }
 
-    private void addMonitorInfo(LfNetwork lfNetwork, StateMonitor monitor, Consumer<BranchResult> branchResultConsumer,
+    private void addMonitorInfo(LfNetwork network, StateMonitor monitor, Consumer<BranchResult> branchResultConsumer,
                                 Consumer<BusResults> busResultsConsumer, Consumer<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer) {
-        lfNetwork.getBranches().stream().filter(lfBranch -> monitor.getBranchIds().contains(lfBranch.getId()))
+        network.getBranches().stream().filter(lfBranch -> monitor.getBranchIds().contains(lfBranch.getId()))
                 .filter(lfBranch -> !lfBranch.isDisabled())
                 .forEach(lfBranch -> branchResultConsumer.accept(lfBranch.createBranchResult()));
-        lfNetwork.getBuses().stream().filter(lfBus -> monitor.getVoltageLevelIds().contains(lfBus.getVoltageLevelId()))
+        network.getBuses().stream().filter(lfBus -> monitor.getVoltageLevelIds().contains(lfBus.getVoltageLevelId()))
                 .filter(lfBus -> !lfBus.isDisabled())
                 .forEach(lfBus -> busResultsConsumer.accept(lfBus.createBusResult()));
-        monitor.getThreeWindingsTransformerIds().stream().filter(id -> lfNetwork.getBusById(id + "_BUS0") != null && !lfNetwork.getBusById(id + "_BUS0").isDisabled())
-                .forEach(threeWindingTransformerId -> threeWindingsTransformerResultConsumer
-                        .accept(lfNetwork.getThreeWindingsTransformerById(threeWindingTransformerId).createThreeWindingsTransformerResult()));
+        monitor.getThreeWindingsTransformerIds().stream().filter(id -> network.getBusById(id + "_BUS0") != null && !network.getBusById(id + "_BUS0").isDisabled())
+                .forEach(id -> threeWindingsTransformerResultConsumer.accept(createThreeWindingsTransformerResult(id, network)));
+    }
+
+    private ThreeWindingsTransformerResult createThreeWindingsTransformerResult(String threeWindingsTransformerId, LfNetwork network) {
+        LfBranch leg1 = network.getBranchById(threeWindingsTransformerId + "_leg_1");
+        LfBranch leg2 = network.getBranchById(threeWindingsTransformerId + "_leg_2");
+        LfBranch leg3 = network.getBranchById(threeWindingsTransformerId + "_leg_3");
+        return new ThreeWindingsTransformerResult(threeWindingsTransformerId, leg1.getP1().eval(), leg1.getQ1().eval(), leg1.getI1().eval(),
+                leg2.getP1().eval(), leg2.getQ1().eval(), leg2.getI1().eval(),
+                leg3.getP1().eval(), leg3.getQ1().eval(), leg3.getI1().eval());
     }
 }

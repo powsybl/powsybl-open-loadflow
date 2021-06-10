@@ -265,7 +265,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             addBranch(lfNetwork, lfBranch1, report);
             addBranch(lfNetwork, lfBranch2, report);
             addBranch(lfNetwork, lfBranch3, report);
-            lfNetwork.addThreeWindingsTransformer(new LfThreeWindingsTransformer(t3wt.getId(), lfBranch1, lfBranch2, lfBranch3));
         }
 
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
@@ -527,7 +526,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
             Map<Pair<Integer, Integer>, List<Bus>> busesByCc = new TreeMap<>();
             Iterable<Bus> buses = parameters.isBreakers() ? ((Network) network).getBusBreakerView().getBuses()
-                                                            : ((Network) network).getBusView().getBuses();
+                                                          : ((Network) network).getBusView().getBuses();
             for (Bus bus : buses) {
                 Component cc = bus.getConnectedComponent();
                 Component sc = bus.getSynchronousComponent();
