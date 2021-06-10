@@ -71,4 +71,8 @@ public interface LfBranch extends LfElement {
     void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
 
     BranchResult createBranchResult();
+
+    boolean isDisabled();
+
+    void setDisabled(boolean disabled);
 }

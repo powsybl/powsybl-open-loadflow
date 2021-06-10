@@ -69,6 +69,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected DiscreteVoltageControl discreteVoltageControl;
 
+    protected boolean disabled = false;
+
     protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
         super(network);
         this.bus1 = bus1;
@@ -223,5 +225,15 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             return new BranchResult(getId(), getP1().eval() * PerUnit.SB, getQ1().eval(), getI1().eval() * currentScale,
                 getP2().eval() * PerUnit.SB, getQ2().eval() * PerUnit.SB, getI2().eval() * currentScale);
         }
+    }
+
+    @Override
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    @Override
+    public void setDisabled(boolean disabled) {
+        this.disabled = disabled;
     }
 }
