@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.util;
 
-import com.powsybl.iidm.network.Generator;
+import com.powsybl.openloadflow.network.LfGenerator;
 
 import java.util.Collection;
 import java.util.Map;
@@ -18,35 +18,29 @@ import java.util.stream.Collectors;
  */
 public class GeneratorState {
     private final double targetP;
-    private final double targetQ;
-    private final boolean isVoltageRegulatorOn;
 
-    public GeneratorState(Generator generator) {
-        this.targetP = generator.getTargetP();
-        this.targetQ = generator.getTargetQ();
-        this.isVoltageRegulatorOn = generator.isVoltageRegulatorOn();
+    public GeneratorState(LfGenerator lfGenerator) {
+        this.targetP = lfGenerator.getTargetP();
     }
 
-    public void restoreGeneratorState(Generator generator) {
-        generator.setTargetP(targetP);
-        generator.setTargetQ(targetQ);
-        generator.setVoltageRegulatorOn(isVoltageRegulatorOn);
+    public void restoreGeneratorState(LfGenerator lfGenerator) {
+        lfGenerator.setTargetP(targetP);
     }
 
     /**
      * Get the map of the states of given generators, indexed by the generator itself
-     * @param generators the generator for which the state is returned
+     * @param lfGenerators the generator for which the state is returned
      * @return the map of the states of given generators, indexed by the generator itself
      */
-    public static Map<Generator, GeneratorState> createGeneratorStates(Collection<Generator> generators) {
-        return generators.stream().collect(Collectors.toMap(Function.identity(), GeneratorState::new));
+    public static Map<LfGenerator, GeneratorState> createGeneratorStates(Collection<LfGenerator> lfGenerators) {
+        return lfGenerators.stream().collect(Collectors.toMap(Function.identity(), GeneratorState::new));
     }
 
     /**
      * Set the generator states based on the given map of states
-     * @param generatorStates the map containing the generator states, indexed by generators
+     * @param lfGeneratorStates the map containing the generator states, indexed by generators
      */
-    public static void restoreGeneratorStates(Map<Generator, GeneratorState> generatorStates) {
-        generatorStates.forEach((gen, state) -> state.restoreGeneratorState(gen));
+    public static void restoreGeneratorStates(Map<LfGenerator, GeneratorState> lfGeneratorStates) {
+        lfGeneratorStates.forEach((gen, state) -> state.restoreGeneratorState(gen));
     }
 }

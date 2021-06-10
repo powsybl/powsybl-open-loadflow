@@ -540,20 +540,22 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     }
 
-    private Map<Generator, GeneratorState> applyGeneratorContingency(Network network, PropagatedContingency contingency) {
+    private Map<LfGenerator, GeneratorState> applyGeneratorContingency(Network network, LfNetwork lfNetwork, PropagatedContingency contingency) {
         // It applies on the network the loss of the generators contained in the contingency.
         // Generator states are stored.
-        Collection<Generator> generatorsToSave = new HashSet<>();
+        Collection<LfGenerator> generatorsToSave = new HashSet<>();
         for (String generatorId : contingency.getGeneratorIdsToLose()) {
             Generator generator = network.getGenerator(generatorId);
-            generatorsToSave.add(generator);
+            LfBus lfBus = lfNetwork.getBusById(generator.getTerminal().getBusView().getBus().getId());
+            LfGenerator lfGenerator = lfBus.getGenerators().stream().filter(gen -> gen.getId().equals(generatorId)).findFirst().orElseThrow();
+            generatorsToSave.add(lfGenerator);
         }
-        Map<Generator, GeneratorState> generatorStates = GeneratorState.createGeneratorStates(generatorsToSave);
+        Map<LfGenerator, GeneratorState> generatorStates = GeneratorState.createGeneratorStates(generatorsToSave);
         for (String generatorId : contingency.getGeneratorIdsToLose()) {
             Generator generator = network.getGenerator(generatorId);
-            generator.setTargetP(0);
-            generator.setTargetQ(0);
-            generator.setVoltageRegulatorOn(false);
+            LfBus lfBus = lfNetwork.getBusById(generator.getTerminal().getBusView().getBus().getId());
+            LfGenerator lfGenerator = lfBus.getGenerators().stream().filter(gen -> gen.getId().equals(generatorId)).findFirst().orElseThrow();
+            lfGenerator.setTargetP(0);
         }
 
         return generatorStates;
@@ -577,11 +579,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return removedElements;
     }
 
-    public DenseMatrix calculateStates(LfNetwork lfNetwork, JacobianMatrix j, EquationSystem equationSystem,
-                                       List<SensitivityFactorGroup> factorGroups, LoadFlowParameters lfParameters,
-                                       OpenLoadFlowParameters lfParametersExt) {
+    public DenseMatrix calculateStates(JacobianMatrix j, EquationSystem equationSystem,
+                                       List<SensitivityFactorGroup> factorGroups,
+                                       List<ParticipatingElement> participatingElements) {
 
-        List<ParticipatingElement> participatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters, lfParametersExt);
         Map<LfBus, Double> slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
             ParticipatingElement::getLfBus,
             element -> -element.getFactor(),
@@ -604,19 +605,27 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             // if we have a contingency including the loss of a DC line
             busStates = applyHvdcLineContingency(network, lfNetwork, contingency);
         }
-        Map<Generator, GeneratorState>  generatorStates = new HashMap<>();
+        Map<LfGenerator, GeneratorState>  generatorStates = new HashMap<>();
         List<ParticipatingElement> removedElements = Collections.emptyList();
         if (!contingency.getGeneratorIdsToLose().isEmpty()) {
             // if we have a contingency including the loss of a generator
-            generatorStates = applyGeneratorContingency(network, contingency);
-            removedElements = removeGeneratorParticipation(network, lfNetwork, contingency, participatingElements);
+            generatorStates = applyGeneratorContingency(network, lfNetwork, contingency);
+            if (lfParameters.isDistributedSlack() && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P)) {
+                removedElements = removeGeneratorParticipation(network, lfNetwork, contingency, participatingElements);
+            }
         }
-        boolean shouldChangeRhs = lfParameters.isDistributedSlack()
-                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
-                && (!contingency.getHvdcIdsToOpen().isEmpty() || !contingency.getGeneratorIdsToLose().isEmpty());
+        boolean shouldChangeRhs =
+            lfParameters.isDistributedSlack()
+            && (
+                ((lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                && !contingency.getHvdcIdsToOpen().isEmpty())
+            ||
+                ((lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX)
+                && !contingency.getGeneratorIdsToLose().isEmpty())
+            );
         DenseMatrix contingencyFactorStates = factorStates;
         if (shouldChangeRhs) {
-            contingencyFactorStates = calculateStates(lfNetwork, j, equationSystem, factorGroups, lfParameters, lfParametersExt);
+            contingencyFactorStates = calculateStates(j, equationSystem, factorGroups, participatingElements);
         }
         DenseMatrix contingencyFlowStates = flowStates;
         if (!contingency.getHvdcIdsToOpen().isEmpty() || !contingency.getGeneratorIdsToLose().isEmpty()) {
@@ -627,7 +636,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         BusState.restoreBusStates(busStates);
         GeneratorState.restoreGeneratorStates(generatorStates);
-        participatingElements.addAll(removedElements);
+        if (participatingElements != null) {
+            participatingElements.addAll(removedElements);
+        }
         if (shouldChangeRhs) {
             setBaseCaseSensitivityValues(factorGroups, factorStates);
         }
