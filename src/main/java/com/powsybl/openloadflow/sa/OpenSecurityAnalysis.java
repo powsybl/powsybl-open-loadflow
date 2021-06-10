@@ -36,6 +36,7 @@ import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResults;
+import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;

@@ -102,8 +102,8 @@ class OpenSecurityAnalysisTest {
             contingenciesProvider, Collections.emptyList());
 
         SecurityAnalysisResult result = futureResult.join().getResult();
-        assertTrue(result.getPreContingencyResult().isComputationOk());
-        assertEquals(0, result.getPreContingencyResult().getLimitViolations().size());
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+        assertEquals(0, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
         assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
@@ -129,8 +129,8 @@ class OpenSecurityAnalysisTest {
 
         SecurityAnalysisReport report = securityAnalysis.runSync(saParameters, contingenciesProvider);
         SecurityAnalysisResult result = report.getResult();
-        assertTrue(result.getPreContingencyResult().isComputationOk());
-        assertEquals(1, result.getPreContingencyResult().getLimitViolations().size());
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+        assertEquals(1, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(1, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
         assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
@@ -157,8 +157,8 @@ class OpenSecurityAnalysisTest {
 
         SecurityAnalysisReport report = securityAnalysis.runSync(saParameters, contingenciesProvider);
         SecurityAnalysisResult result = report.getResult();
-        assertTrue(result.getPreContingencyResult().isComputationOk());
-        assertEquals(0, result.getPreContingencyResult().getLimitViolations().size());
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+        assertEquals(0, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
         assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
@@ -202,8 +202,8 @@ class OpenSecurityAnalysisTest {
 
         SecurityAnalysisReport report = securityAnalysis.runSync(saParameters, contingenciesProvider);
         SecurityAnalysisResult result = report.getResult();
-        assertTrue(result.getPreContingencyResult().isComputationOk());
-        assertEquals(1, result.getPreContingencyResult().getLimitViolations().size());
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+        assertEquals(1, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
 
@@ -237,11 +237,11 @@ class OpenSecurityAnalysisTest {
             new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
 
         SecurityAnalysisReport report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
-        assertTrue(report.getResult().getPreContingencyResult().isComputationOk());
+        assertTrue(report.getResult().getPreContingencyResult().getLimitViolationsResult().isComputationOk());
 
         saParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         SecurityAnalysisReport report2 = securityAnalysis.runSync(saParameters, contingenciesProvider);
-        assertTrue(report2.getResult().getPreContingencyResult().isComputationOk());
+        assertTrue(report2.getResult().getPreContingencyResult().getLimitViolationsResult().isComputationOk());
     }
 
     @Test
@@ -332,7 +332,7 @@ class OpenSecurityAnalysisTest {
             new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
 
         SecurityAnalysisReport report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
-        assertTrue(report.getResult().getPreContingencyResult().isComputationOk());
+        assertTrue(report.getResult().getPreContingencyResult().getLimitViolationsResult().isComputationOk());
     }
 
     @Test
