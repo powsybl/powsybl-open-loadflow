@@ -42,6 +42,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Gaël Macherel <gael.macherel@artelys.com>
@@ -564,7 +566,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     private List<ParticipatingElement> removeGeneratorParticipation(Network network, LfNetwork lfNetwork, PropagatedContingency contingency, List<ParticipatingElement> participatingElements) {
         // It remove lost generators from participation.
         // Removed elements are stored.
-        List<ParticipatingElement> removedElements = Collections.emptyList();
+        List<ParticipatingElement> removedElements = new ArrayList<>(Collections.emptyList());
         for (String generatorId : contingency.getGeneratorIdsToLose()) {
             Generator generator = network.getGenerator(generatorId);
             LfBus bus = lfNetwork.getBusById(generator.getTerminal().getBusView().getBus().getId());
@@ -612,6 +614,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             generatorStates = applyGeneratorContingency(network, lfNetwork, contingency);
             if (lfParameters.isDistributedSlack() && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P)) {
                 removedElements = removeGeneratorParticipation(network, lfNetwork, contingency, participatingElements);
+                normalizeParticipationFactors(participatingElements, "LfGenerators");
             }
         }
         boolean shouldChangeRhs =
@@ -638,6 +641,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         GeneratorState.restoreGeneratorStates(generatorStates);
         if (participatingElements != null) {
             participatingElements.addAll(removedElements);
+            normalizeParticipationFactors(participatingElements, "LfGenerators");
         }
         if (shouldChangeRhs) {
             setBaseCaseSensitivityValues(factorGroups, factorStates);
