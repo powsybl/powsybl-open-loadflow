@@ -17,6 +17,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
@@ -95,7 +96,8 @@ class OpenSecurityAnalysisTest {
             .map(id -> new Contingency(id, new BranchContingency(id)))
             .collect(Collectors.toList());
 
-        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider();
+        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(),
+            () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
         CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network, network.getVariantManager().getWorkingVariantId(),
             new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
             contingenciesProvider, Collections.emptyList());
@@ -151,11 +153,12 @@ class OpenSecurityAnalysisTest {
                 .map(id -> new Contingency(id, new BranchContingency(id)))
                 .collect(Collectors.toList());
 
-        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
-            new LimitViolationFilter(), new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider();
+        CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network, network.getVariantManager().getWorkingVariantId(),
+            new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
+            contingenciesProvider, Collections.emptyList());
 
-        SecurityAnalysisReport report = securityAnalysis.runSync(saParameters, contingenciesProvider);
-        SecurityAnalysisResult result = report.getResult();
+        SecurityAnalysisResult result = futureResult.join().getResult();
         assertTrue(result.getPreContingencyResult().isComputationOk());
         assertEquals(0, result.getPreContingencyResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
@@ -197,7 +200,7 @@ class OpenSecurityAnalysisTest {
                 .collect(Collectors.toList());
 
         OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
-            new LimitViolationFilter(), new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+            new LimitViolationFilter(), new SparseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
 
         SecurityAnalysisReport report = securityAnalysis.runSync(saParameters, contingenciesProvider);
         SecurityAnalysisResult result = report.getResult();
