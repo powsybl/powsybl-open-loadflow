@@ -37,6 +37,7 @@ import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
+import com.powsybl.security.results.PostContingencyResult;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
