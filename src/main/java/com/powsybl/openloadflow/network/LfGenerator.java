@@ -54,4 +54,6 @@ public interface LfGenerator {
     LfBus getControlledBus(LfNetwork lfNetwork);
 
     double getSlope();
+
+    void setSlope(double slope);
 }

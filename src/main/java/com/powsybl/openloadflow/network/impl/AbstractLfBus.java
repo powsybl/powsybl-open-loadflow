@@ -132,11 +132,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public Optional<LfGenerator> getGeneratorControllingVoltageWithSlope() {
-        Optional<LfGenerator> firstGeneratorControllingVoltageWithSlope = generators.stream().filter(gen -> gen.hasVoltageControl() && gen.getSlope() != 0).findFirst();
-        // we don't support several generators controlling voltage with slope or a generator controlling voltage with
-        // slope and other generators controlling voltage, so we return null if there is more than one generator controlling voltage.
-        return (firstGeneratorControllingVoltageWithSlope.isEmpty() || generators.stream().filter(LfGenerator::hasVoltageControl).count() > 1) ?
-            Optional.empty() : firstGeneratorControllingVoltageWithSlope;
+        return generators.stream().filter(gen -> gen.hasVoltageControl() && gen.getSlope() != 0).findFirst();
     }
 
     @Override
@@ -494,5 +490,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     public BusResults createBusResult() {
         double scale = getNominalV();
         return new BusResults(getVoltageLevelId(), getId(), getV().eval() * scale, getAngle());
+    }
+
+    @Override
+    public String toString() {
+        return getId();
     }
 }

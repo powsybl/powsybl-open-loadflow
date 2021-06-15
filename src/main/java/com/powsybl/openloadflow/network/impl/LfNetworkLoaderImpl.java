@@ -61,6 +61,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             List<LfGenerator> voltageControlGenerators = controllerBus.getGenerators().stream().filter(LfGenerator::hasVoltageControl).collect(Collectors.toList());
             if (!voltageControlGenerators.isEmpty()) {
 
+                checkGeneratorsWithSlope(controllerBus, voltageControlGenerators);
+
                 LfGenerator lfGenerator0 = voltageControlGenerators.get(0);
                 LfBus controlledBus = lfGenerator0.getControlledBus(lfNetwork);
                 double controllerTargetV = lfGenerator0.getTargetV();
@@ -88,6 +90,22 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
                 controlledBus.setVoltageControl(voltageControl); // is set even if already present, for simplicity sake
                 checkUniqueTargetVControlledBus(controllerTargetV, controllerBus, voltageControl); // check even if voltage control just created, for simplicity sake
+            }
+        }
+    }
+
+    private static void checkGeneratorsWithSlope(LfBus controllerBus, List<LfGenerator> voltageControlGenerators) {
+        if (voltageControlGenerators.size() > 1) {
+            long nbvoltageControlGeneratorsWithSlope = voltageControlGenerators.stream().filter(generator -> generator.getSlope() != 0).count();
+            if (nbvoltageControlGeneratorsWithSlope > 0) {
+                if (nbvoltageControlGeneratorsWithSlope == 1) {
+                    // we don't support a generator controlling voltage with slope and other generators controlling voltage
+                    LOGGER.warn("Non supported: several generators of bus {} control voltage and one controls voltage with slope. Slope is therefore deactivated on those generators.", controllerBus);
+                } else {
+                    // we don't support several generators controlling voltage with slope
+                    LOGGER.warn("Non supported: several generators of bus {} control voltage with slope. Slope is therefore deactivated on those generators.", controllerBus);
+                }
+                voltageControlGenerators.forEach(g -> g.setSlope(0));
             }
         }
     }
