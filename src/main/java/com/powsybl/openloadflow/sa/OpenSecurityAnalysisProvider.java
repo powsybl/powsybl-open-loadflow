@@ -10,8 +10,8 @@ import com.google.auto.service.AutoService;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBus;
@@ -39,7 +39,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
     }
 
     public OpenSecurityAnalysisProvider() {
-        this(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
+        this(new SparseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
     }
 
     @Override
