@@ -31,7 +31,6 @@ import com.powsybl.openloadflow.network.impl.LfVscConverterStationImpl;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BranchState;
 import com.powsybl.openloadflow.util.BusState;
-import com.powsybl.openloadflow.util.GeneratorState;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -542,17 +541,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     }
 
-    private Map<LfGenerator, GeneratorState> applyGeneratorContingency(Network network, LfNetwork lfNetwork, PropagatedContingency contingency) {
+    private Map<LfBus, BusState> applyGeneratorContingency(Network network, LfNetwork lfNetwork, PropagatedContingency contingency) {
         // It applies on the network the loss of the generators contained in the contingency.
         // Generator states are stored.
-        Collection<LfGenerator> generatorsToSave = new HashSet<>();
+        Collection<LfBus> busesToSave = new HashSet<>();
         for (String generatorId : contingency.getGeneratorIdsToLose()) {
             Generator generator = network.getGenerator(generatorId);
             LfBus lfBus = lfNetwork.getBusById(generator.getTerminal().getBusView().getBus().getId());
-            LfGenerator lfGenerator = lfBus.getGenerators().stream().filter(gen -> gen.getId().equals(generatorId)).findFirst().orElseThrow();
-            generatorsToSave.add(lfGenerator);
+            busesToSave.add(lfBus);
         }
-        Map<LfGenerator, GeneratorState> generatorStates = GeneratorState.createGeneratorStates(generatorsToSave);
+        Map<LfBus, BusState> busStates = BusState.createBusStates(busesToSave);
         for (String generatorId : contingency.getGeneratorIdsToLose()) {
             Generator generator = network.getGenerator(generatorId);
             LfBus lfBus = lfNetwork.getBusById(generator.getTerminal().getBusView().getBus().getId());
@@ -560,7 +558,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             lfGenerator.setTargetP(0);
         }
 
-        return generatorStates;
+        return busStates;
     }
 
     private List<ParticipatingElement> removeGeneratorParticipation(Network network, LfNetwork lfNetwork, PropagatedContingency contingency, List<ParticipatingElement> participatingElements) {
@@ -607,11 +605,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             // if we have a contingency including the loss of a DC line
             busStates = applyHvdcLineContingency(network, lfNetwork, contingency);
         }
-        Map<LfGenerator, GeneratorState>  generatorStates = new HashMap<>();
+        Map<LfBus, BusState>  busStatesGen = new HashMap<>();
         List<ParticipatingElement> removedElements = Collections.emptyList();
         if (!contingency.getGeneratorIdsToLose().isEmpty()) {
             // if we have a contingency including the loss of a generator
-            generatorStates = applyGeneratorContingency(network, lfNetwork, contingency);
+            busStatesGen = applyGeneratorContingency(network, lfNetwork, contingency);
+            for (Map.Entry<LfBus, BusState> busEntry : busStatesGen.entrySet()) {
+                if (!busStates.containsKey(busEntry.getKey())) {
+                    busStates.put(busEntry.getKey(), busEntry.getValue());
+                }
+            }
             if (lfParameters.isDistributedSlack() && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P)) {
                 removedElements = removeGeneratorParticipation(network, lfNetwork, contingency, participatingElements);
                 normalizeParticipationFactors(participatingElements, "LfGenerators");
@@ -638,7 +641,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 contingency, valueWriter);
 
         BusState.restoreBusStates(busStates);
-        GeneratorState.restoreGeneratorStates(generatorStates);
         if (participatingElements != null) {
             participatingElements.addAll(removedElements);
             normalizeParticipationFactors(participatingElements, "LfGenerators");
