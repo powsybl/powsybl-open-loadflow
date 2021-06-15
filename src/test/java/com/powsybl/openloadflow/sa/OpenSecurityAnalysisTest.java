@@ -11,6 +11,7 @@ import com.powsybl.commons.io.table.TableFormatterConfig;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -20,16 +21,18 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
-import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.security.*;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
+import com.powsybl.security.monitor.StateMonitor;
+import com.powsybl.security.results.BranchResult;
+import com.powsybl.security.results.BusResults;
+import com.powsybl.security.results.ThreeWindingsTransformerResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +41,7 @@ import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.lang.Double.NaN;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -333,5 +337,162 @@ class OpenSecurityAnalysisTest {
 
         SecurityAnalysisReport report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
         assertTrue(report.getResult().getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+    }
+
+    @Test
+    void testSAWithStateMonitor() {
+        Network network = DistributedSlackNetworkFactory.create();
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+
+        // Testing all contingencies at once
+        ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
+                .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
+                .collect(Collectors.toList());
+
+        List<StateMonitor> monitors = new ArrayList<>();
+        monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("l24"), Collections.singleton("b1_vl"), Collections.emptySet()));
+        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new, monitors);
+
+        SecurityAnalysisReport report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
+
+        assertEquals(1, report.getResult().getPreContingencyResult().getPreContingencyBusResults().size());
+        assertEquals(new BusResults("b1_vl", "b1", 400, 0.00411772307613007), report.getResult().getPreContingencyResult().getPreContingencyBusResults().get(0));
+        assertEquals(1, report.getResult().getPreContingencyResult().getPreContingencyBranchResults().size());
+        assertEquals(new BranchResult("l24", 244.9999975189166, 3.0000094876289114, 558.8517346879828, -244.9999975189166, -299.86040688975567, 558.8517346881861),
+                report.getResult().getPreContingencyResult().getPreContingencyBranchResults().get(0));
+
+        assertEquals(new BranchResult("l24", 300.0000316340358, 2.999999961752837, 14224.917799052932, -300.00003163403585, -208.94326368159844, 14224.917799052939),
+                report.getResult().getPostContingencyResults().get(0).getBranchResult("l24"));
+    }
+
+    @Test
+    void testSAWithStateMonitorNotExistingBranchBus() {
+        Network network = DistributedSlackNetworkFactory.create();
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+
+        // Testing all contingencies at once
+        ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
+                .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
+                .collect(Collectors.toList());
+
+        List<StateMonitor> monitors = new ArrayList<>();
+        monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("l1"), Collections.singleton("bus"), Collections.singleton("three windings")));
+        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new, monitors);
+
+        SecurityAnalysisReport report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
+        assertEquals(0, report.getResult().getPreContingencyResult().getPreContingencyBusResults().size());
+        assertEquals(0, report.getResult().getPreContingencyResult().getPreContingencyBranchResults().size());
+    }
+
+    @Test
+    void testSAWithStateMonitorDisconnectBranch() {
+        Network network = DistributedSlackNetworkFactory.create();
+        network.getBranch("l24").getTerminal1().disconnect();
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+
+        // Testing all contingencies at once
+        ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
+                .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
+                .collect(Collectors.toList());
+
+        List<StateMonitor> monitors = new ArrayList<>();
+        monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("l24"), Collections.singleton("b1_vl"), Collections.emptySet()));
+        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new, monitors);
+
+        SecurityAnalysisReport report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
+
+        assertEquals(1, report.getResult().getPreContingencyResult().getPreContingencyBusResults().size());
+
+        assertEquals(new BusResults("b1_vl", "b1", 400, 0.003581299841270782), report.getResult().getPreContingencyResult().getPreContingencyBusResults().get(0));
+        assertEquals(1, report.getResult().getPreContingencyResult().getPreContingencyBusResults().size());
+        assertEquals(new BranchResult("l24", NaN, NaN, NaN, 0.0, -0.0, 0.0),
+                report.getResult().getPreContingencyResult().getPreContingencyBranchResults().get(0));
+
+        network = DistributedSlackNetworkFactory.create();
+        network.getBranch("l24").getTerminal2().disconnect();
+        report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
+        assertEquals(1, report.getResult().getPreContingencyResult().getPreContingencyBranchResults().size());
+        assertEquals(new BranchResult("l24", NaN, NaN, NaN, 0.0, -0.0, 0.0),
+                report.getResult().getPreContingencyResult().getPreContingencyBranchResults().get(0));
+
+        network = DistributedSlackNetworkFactory.create();
+        network.getBranch("l24").getTerminal2().disconnect();
+        network.getBranch("l24").getTerminal1().disconnect();
+        report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
+        assertEquals(1, report.getResult().getPreContingencyResult().getPreContingencyBranchResults().size());
+        assertEquals(new BranchResult("l24", NaN, NaN, NaN, 0.0, -0.0, 0.0),
+                report.getResult().getPreContingencyResult().getPreContingencyBranchResults().get(0));
+
+    }
+
+    @Test
+    void testSAWithStateMonitorDanglingLine() {
+        Network network = DanglingLineFactory.create();
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+
+        // Testing all contingencies at once
+        ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
+                .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
+                .collect(Collectors.toList());
+
+        List<StateMonitor> monitors = new ArrayList<>();
+        monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("dl1"), Collections.singleton("vl1"), Collections.emptySet()));
+        CompletableFuture<SecurityAnalysisReport> report = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new, monitors)
+                .run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider);
+
+        CompletionException exception = assertThrows(CompletionException.class, report::join);
+        assertEquals("Unsupported type of branch for branch result: dl1", exception.getCause().getMessage());
+    }
+
+    @Test
+    void testSAWithStateMonitorLfLeg() {
+        Network network = T3wtFactory.create();
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+
+        // Testing all contingencies at once
+        ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
+                .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
+                .collect(Collectors.toList());
+
+        List<StateMonitor> monitors = new ArrayList<>();
+        monitors.add(new StateMonitor(ContingencyContext.all(), Collections.emptySet(), Collections.emptySet(), Collections.singleton("3wt")));
+        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new, monitors);
+
+        SecurityAnalysisReport report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
+        assertEquals(1, report.getResult().getPreContingencyResult().getPreContingencyThreeWindingsTransformerResults().size());
+        assertEquals(new ThreeWindingsTransformerResult("3wt", 1.6109556638123288,
+                        0.8188422244941966, 1030.4601542294686, -1.6100000049961467, -0.7400000017321797,
+                        978.937148970407, -1.7348031191643076E-16, 0.0, 4.0061722632990915E-14),
+                report.getResult().getPreContingencyResult().getPreContingencyThreeWindingsTransformerResults().get(0));
     }
 }
