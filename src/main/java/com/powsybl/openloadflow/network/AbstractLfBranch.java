@@ -56,9 +56,9 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private final LfBus bus2;
 
-    private Map<LimitType, List<LfLimit>> limits1 = new HashMap<>();
+    private Map<LimitType, List<LfLimit>> limits1 = new EnumMap<>(LimitType.class);
 
-    private Map<LimitType, List<LfLimit>> limits2 = new HashMap<>();
+    private Map<LimitType, List<LfLimit>> limits2 = new EnumMap<>(LimitType.class);
 
     private final PiModel piModel;
 

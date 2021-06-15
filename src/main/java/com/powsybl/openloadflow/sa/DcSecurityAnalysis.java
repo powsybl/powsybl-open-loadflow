@@ -6,7 +6,6 @@ import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -42,8 +41,6 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
 
-        // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
-        Set<Switch> allSwitchesToOpen = new HashSet<>();
         sensiDC = new DcSensitivityAnalysis(matrixFactory, connectivityProvider);
 
         OpenSensitivityAnalysisProvider sensitivityAnalysisProvider = new OpenSensitivityAnalysisProvider();
