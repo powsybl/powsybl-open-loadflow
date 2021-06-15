@@ -195,7 +195,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                 return bus.getNominalV() / PerUnit.SB;
             case VOLTAGE:
             default:
-                throw new UnsupportedOperationException(String.format("Getting %s limits is not supported on dangling line branch.", type));
+                throw new UnsupportedOperationException(String.format("Getting scale for limit type %s is not supported.", type));
         }
     }
 
