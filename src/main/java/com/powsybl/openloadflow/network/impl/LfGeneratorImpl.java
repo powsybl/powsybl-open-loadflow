@@ -139,4 +139,9 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     public double getSlope() {
         return 0;
     }
+
+    @Override
+    public void setSlope(double slope) {
+        // nothing to do
+    }
 }

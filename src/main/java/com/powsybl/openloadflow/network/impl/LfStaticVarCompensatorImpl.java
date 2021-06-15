@@ -119,4 +119,9 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     public double getSlope() {
         return this.slope;
     }
+
+    @Override
+    public void setSlope(double slope) {
+        this.slope = slope;
+    }
 }
