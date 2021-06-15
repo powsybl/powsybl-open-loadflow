@@ -20,7 +20,10 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.security.*;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,10 +31,10 @@ import org.junit.jupiter.api.Test;
 
 import java.io.StringWriter;
 import java.util.Collections;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -92,13 +95,15 @@ class OpenSecurityAnalysisTest {
             .map(id -> new Contingency(id, new BranchContingency(id)))
             .collect(Collectors.toList());
 
-        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(),
+        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(),
             () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
-        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, null, 0);
+        CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network, network.getVariantManager().getWorkingVariantId(),
+            new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
+            contingenciesProvider, Collections.emptyList());
 
-        SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
-        assertTrue(result.getPreContingencyResult().isComputationOk());
-        assertEquals(0, result.getPreContingencyResult().getLimitViolations().size());
+        SecurityAnalysisResult result = futureResult.join().getResult();
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+        assertEquals(0, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
         assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
@@ -118,13 +123,14 @@ class OpenSecurityAnalysisTest {
                 .map(id -> new Contingency(id, new BranchContingency(id)))
                 .collect(Collectors.toList());
         network.getLine("L1").getCurrentLimits1().setPermanentLimit(200);
-        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(),
-            () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
-        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, null, 0);
 
-        SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
-        assertTrue(result.getPreContingencyResult().isComputationOk());
-        assertEquals(1, result.getPreContingencyResult().getLimitViolations().size());
+        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+            new LimitViolationFilter(), new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+
+        SecurityAnalysisReport report = securityAnalysis.runSync(saParameters, contingenciesProvider);
+        SecurityAnalysisResult result = report.getResult();
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+        assertEquals(1, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(1, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
         assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
@@ -146,12 +152,14 @@ class OpenSecurityAnalysisTest {
                 .map(id -> new Contingency(id, new BranchContingency(id)))
                 .collect(Collectors.toList());
 
-        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory();
-        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, new LimitViolationFilter(), null, 0);
+        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider();
+        CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network, network.getVariantManager().getWorkingVariantId(),
+            new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
+            contingenciesProvider, Collections.emptyList());
 
-        SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
-        assertTrue(result.getPreContingencyResult().isComputationOk());
-        assertEquals(0, result.getPreContingencyResult().getLimitViolations().size());
+        SecurityAnalysisResult result = futureResult.join().getResult();
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+        assertEquals(0, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
         assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
@@ -190,12 +198,12 @@ class OpenSecurityAnalysisTest {
                 .map(id -> new Contingency(id, new BranchContingency(id)))
                 .collect(Collectors.toList());
 
-        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory();
-        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, new LimitViolationFilter(), null, 0);
+        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network);
 
-        SecurityAnalysisResult result = securityAnalysis.runSync(saParameters, contingenciesProvider);
-        assertTrue(result.getPreContingencyResult().isComputationOk());
-        assertEquals(1, result.getPreContingencyResult().getLimitViolations().size());
+        SecurityAnalysisReport report = securityAnalysis.runSync(saParameters, contingenciesProvider);
+        SecurityAnalysisResult result = report.getResult();
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+        assertEquals(1, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
 
@@ -225,16 +233,15 @@ class OpenSecurityAnalysisTest {
             .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
             .collect(Collectors.toList());
 
-        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
-        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, new DefaultLimitViolationDetector(),
-            new LimitViolationFilter(), null, 0);
+        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+            new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
 
-        SecurityAnalysisResult result = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
-        assertTrue(result.getPreContingencyResult().isComputationOk());
+        SecurityAnalysisReport report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
+        assertTrue(report.getResult().getPreContingencyResult().getLimitViolationsResult().isComputationOk());
 
         saParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        SecurityAnalysisResult result2 = securityAnalysis.runSync(saParameters, contingenciesProvider);
-        assertTrue(result2.getPreContingencyResult().isComputationOk());
+        SecurityAnalysisReport report2 = securityAnalysis.runSync(saParameters, contingenciesProvider);
+        assertTrue(report2.getResult().getPreContingencyResult().getLimitViolationsResult().isComputationOk());
     }
 
     @Test
@@ -247,11 +254,11 @@ class OpenSecurityAnalysisTest {
 
         ContingenciesProvider contingenciesProvider = n -> Collections.emptyList();
 
-        CompletableFuture<SecurityAnalysisResult> result = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new)
-                .create(network, new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, 0)
-                .run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider);
+        CompletableFuture<SecurityAnalysisReport> report = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+            new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new)
+            .run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider);
 
-        CompletionException exception = assertThrows(CompletionException.class, result::join);
+        CompletionException exception = assertThrows(CompletionException.class, report::join);
         assertEquals("Largest network is invalid", exception.getCause().getMessage());
     }
 
@@ -271,11 +278,12 @@ class OpenSecurityAnalysisTest {
                 .map(id -> new Contingency(id, new BranchContingency(id)))
                 .collect(Collectors.toList());
 
-        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
-        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, new DefaultLimitViolationDetector(),
-                new LimitViolationFilter(), null, 0);
-        SecurityAnalysisResult result = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
-        assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
+        SecurityAnalysisReport report = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+            new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new)
+            .run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider)
+            .join();
+
+        assertTrue(report.getResult().getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
     }
 
     @Test
@@ -295,11 +303,12 @@ class OpenSecurityAnalysisTest {
                 .map(id -> new Contingency(id, new BranchContingency(id)))
                 .collect(Collectors.toList());
 
-        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
-        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, new DefaultLimitViolationDetector(),
-                new LimitViolationFilter(), null, 0);
-        SecurityAnalysisResult result = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
-        assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
+        SecurityAnalysisReport report = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+            new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new)
+            .run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider)
+            .join();
+
+        assertTrue(report.getResult().getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
     }
 
     @Test
@@ -319,11 +328,10 @@ class OpenSecurityAnalysisTest {
                                                             .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
                                                             .collect(Collectors.toList());
 
-        OpenSecurityAnalysisFactory osaFactory = new OpenSecurityAnalysisFactory(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
-        OpenSecurityAnalysis securityAnalysis = osaFactory.create(network, new DefaultLimitViolationDetector(),
-                new LimitViolationFilter(), null, 0);
+        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+            new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
 
-        SecurityAnalysisResult result = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
-        assertTrue(result.getPreContingencyResult().isComputationOk());
+        SecurityAnalysisReport report = securityAnalysis.run(network.getVariantManager().getWorkingVariantId(), saParameters, contingenciesProvider).join();
+        assertTrue(report.getResult().getPreContingencyResult().getLimitViolationsResult().isComputationOk());
     }
 }
