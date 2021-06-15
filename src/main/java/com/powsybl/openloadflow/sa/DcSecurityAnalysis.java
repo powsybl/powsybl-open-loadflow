@@ -27,11 +27,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     DcSensitivityAnalysis sensiDC = null;
 
-    public DcSecurityAnalysis(final Network network) {
-        super(network);
-    }
-
-    public DcSecurityAnalysis(final Network network, final LimitViolationDetector detector, final LimitViolationFilter filter,
+    protected DcSecurityAnalysis(final Network network, final LimitViolationDetector detector, final LimitViolationFilter filter,
                               final MatrixFactory matrixFactory, final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider, List<StateMonitor> stateMonitors) {
         super(network, detector, filter, matrixFactory, connectivityProvider, stateMonitors);
     }

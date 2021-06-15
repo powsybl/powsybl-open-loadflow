@@ -43,18 +43,10 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
-    public AcSecurityAnalysis(Network network) {
-        super(network);
-    }
 
-    public AcSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
+    protected AcSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
                                 MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider, List<StateMonitor> stateMonitors) {
         super(network, detector, filter, matrixFactory, connectivityProvider, stateMonitors);
-    }
-
-    public AcSecurityAnalysis(final Network network, final LimitViolationDetector detector, final LimitViolationFilter filter,
-                              final MatrixFactory matrixFactory, final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
-        super(network, detector, filter, matrixFactory, connectivityProvider);
     }
 
     @Override

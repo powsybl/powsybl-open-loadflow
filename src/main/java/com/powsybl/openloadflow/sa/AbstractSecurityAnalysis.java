@@ -12,16 +12,13 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
-import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
@@ -60,20 +57,7 @@ public abstract class AbstractSecurityAnalysis {
 
     private static final double POST_CONTINGENCY_INCREASING_FACTOR = 1.1;
 
-    public AbstractSecurityAnalysis(Network network) {
-        this(network, new DefaultLimitViolationDetector(), new LimitViolationFilter());
-    }
-
-    public AbstractSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter) {
-        this(network, detector, filter, new SparseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
-    }
-
-    public AbstractSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
-                                MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
-        this(network, detector, filter, matrixFactory, connectivityProvider, Collections.emptyList());
-    }
-
-    public AbstractSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
+    protected AbstractSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
                                 MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider, List<StateMonitor> stateMonitors) {
         this.network = Objects.requireNonNull(network);
         this.detector = Objects.requireNonNull(detector);
