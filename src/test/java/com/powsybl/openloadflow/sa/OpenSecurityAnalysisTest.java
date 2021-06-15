@@ -549,9 +549,7 @@ class OpenSecurityAnalysisTest {
                 contingenciesProvider, Collections.emptyList(), monitors);
         report = futureResult.join();
 
-        assertEquals(1, report.getResult().getPreContingencyResult().getPreContingencyBranchResults().size());
-        assertEquals(new BranchResult("l24", NaN, NaN, NaN, 0.0, -0.0, 0.0),
-                report.getResult().getPreContingencyResult().getPreContingencyBranchResults().get(0));
+        assertEquals(0, report.getResult().getPreContingencyResult().getPreContingencyBranchResults().size());
 
         network = DistributedSlackNetworkFactory.create();
         network.getBranch("l24").getTerminal2().disconnect();
@@ -562,10 +560,7 @@ class OpenSecurityAnalysisTest {
                 contingenciesProvider, Collections.emptyList(), monitors);
         report = futureResult.join();
 
-        assertEquals(1, report.getResult().getPreContingencyResult().getPreContingencyBranchResults().size());
-        assertEquals(new BranchResult("l24", NaN, NaN, NaN, 0.0, -0.0, 0.0),
-                report.getResult().getPreContingencyResult().getPreContingencyBranchResults().get(0));
-
+        assertEquals(0, report.getResult().getPreContingencyResult().getPreContingencyBranchResults().size());
     }
 
     @Test
