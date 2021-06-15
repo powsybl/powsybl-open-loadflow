@@ -128,6 +128,7 @@ public abstract class AbstractSecurityAnalysis {
      */
     protected void detectBranchViolations(LfBranch branch, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
         // detect violation limits on a branch
+        // Only detect the most serious one (findFirst) : limit violations are ordered by severity
         if (branch.getBus1() != null) {
             branch.getLimits1(LimitType.CURRENT).stream()
                 .filter(temporaryLimit1 -> branch.getI1().eval() > temporaryLimit1.getValue())
