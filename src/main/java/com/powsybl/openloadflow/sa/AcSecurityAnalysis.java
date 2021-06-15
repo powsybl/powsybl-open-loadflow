@@ -27,7 +27,6 @@ import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
-import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.PostContingencyResult;
 import org.apache.commons.lang3.tuple.Pair;
@@ -36,8 +35,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-public class AcSecurityAnalysis extends AbstractSecurityAnalysis
-{
+public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     public AcSecurityAnalysis(Network network) {
         super(network);
     }

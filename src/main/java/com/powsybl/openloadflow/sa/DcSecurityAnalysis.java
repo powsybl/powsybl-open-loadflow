@@ -17,7 +17,6 @@ import com.powsybl.security.*;
 import com.powsybl.security.detectors.LoadingLimitType;
 import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
-import com.powsybl.security.detectors.LoadingLimitType;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 
 import java.util.*;
@@ -37,8 +36,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
     }
 
     @Override
-    SecurityAnalysisReport runSync(final SecurityAnalysisParameters securityAnalysisParameters, final ContingenciesProvider contingenciesProvider)
-    {
+    SecurityAnalysisReport runSync(final SecurityAnalysisParameters securityAnalysisParameters, final ContingenciesProvider contingenciesProvider) {
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowProvider.getParametersExt(securityAnalysisParameters.getLoadFlowParameters());
         // in some post-contingency computation, it does not remain elements to participate to slack distribution.
         // in that case, the remaining mismatch is put on the slack bus and no exception is thrown.

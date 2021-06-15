@@ -229,11 +229,8 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits2(final LimitType type)
-    {
-        switch (type)
-        {
-
+    public List<LfLimit> getLimits2(final LimitType type) {
+        switch (type) {
             case ACTIVE_POWER:
                 return getLimits2(type, branch.getActivePowerLimits2());
             case APPARENT_POWER:

@@ -7,30 +7,14 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.contingency.ContingenciesProvider;
-import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
-import com.powsybl.openloadflow.util.BranchState;
-import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
@@ -43,7 +27,6 @@ import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResults;
-import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -51,10 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -126,6 +106,7 @@ public abstract class AbstractSecurityAnalysis {
     }
 
     abstract SecurityAnalysisReport runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider);
+
     /**
      * Detect violations on branches and on buses
      * @param branches branches on which the violation limits are checked
@@ -265,7 +246,7 @@ public abstract class AbstractSecurityAnalysis {
     List<LfContingency> createContingencies(List<PropagatedContingency> propagatedContingencies, LfNetwork network) {
         return LfContingency.createContingencies(propagatedContingencies, network, network.createDecrementalConnectivity(connectivityProvider), true);
     }
-    
+
     private void addMonitorInfo(LfNetwork network, StateMonitor monitor, Collection<BranchResult> branchResultConsumer,
                                 Collection<BusResults> busResultsConsumer, Collection<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer) {
         network.getBranches().stream().filter(lfBranch -> monitor.getBranchIds().contains(lfBranch.getId()))
@@ -278,8 +259,7 @@ public abstract class AbstractSecurityAnalysis {
                 .forEach(id -> threeWindingsTransformerResultConsumer.add(createThreeWindingsTransformerResult(id, network)));
     }
 
-    private ThreeWindingsTransformerResult createThreeWindingsTransformerResult(String threeWindingsTransformerId, LfNetwork network)
-    {
+    private ThreeWindingsTransformerResult createThreeWindingsTransformerResult(String threeWindingsTransformerId, LfNetwork network) {
         LfBranch leg1 = network.getBranchById(threeWindingsTransformerId + "_leg_1");
         LfBranch leg2 = network.getBranchById(threeWindingsTransformerId + "_leg_2");
         LfBranch leg3 = network.getBranchById(threeWindingsTransformerId + "_leg_3");
