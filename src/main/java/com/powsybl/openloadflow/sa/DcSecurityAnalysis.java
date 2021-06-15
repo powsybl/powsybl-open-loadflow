@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sensi.*;
 import com.powsybl.security.*;
 import com.powsybl.security.detectors.LoadingLimitType;
+import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
@@ -31,8 +32,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
     }
 
     public DcSecurityAnalysis(final Network network, final LimitViolationDetector detector, final LimitViolationFilter filter,
-                              final MatrixFactory matrixFactory, final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
-        super(network, detector, filter, matrixFactory, connectivityProvider);
+                              final MatrixFactory matrixFactory, final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider, List<StateMonitor> stateMonitors) {
+        super(network, detector, filter, matrixFactory, connectivityProvider, stateMonitors);
     }
 
     @Override
