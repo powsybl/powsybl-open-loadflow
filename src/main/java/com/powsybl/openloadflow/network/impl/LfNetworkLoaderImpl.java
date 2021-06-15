@@ -569,8 +569,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     static boolean participateToSlackDistribution(LfNetworkParameters parameters, Bus b) {
         return parameters.getCountriesToBalance().isEmpty()
-                || b.getVoltageLevel().getSubstation().getCountry()
-                .map(country -> parameters.getCountriesToBalance().contains(country))
-                .orElse(false);
+               || b.getVoltageLevel().getSubstation().getCountry()
+                   .map(country -> parameters.getCountriesToBalance().contains(country))
+                   .orElse(false);
     }
 }
