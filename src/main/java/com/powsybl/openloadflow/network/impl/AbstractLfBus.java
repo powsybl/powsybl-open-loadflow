@@ -10,6 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.security.results.BusResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -487,5 +488,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public Evaluable getQ() {
         return q;
+    }
+
+    @Override
+    public BusResults createBusResult() {
+        double scale = getNominalV();
+        return new BusResults(getVoltageLevelId(), getId(), getV().eval() * scale, getAngle());
     }
 }

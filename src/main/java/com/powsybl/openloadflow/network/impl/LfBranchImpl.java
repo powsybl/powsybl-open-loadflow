@@ -10,6 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.security.results.BranchResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +41,10 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private Evaluable i2 = NAN;
 
+    private static double nominalV1;
+
+    private static double nominalV2;
+
     protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
         super(network, bus1, bus2, piModel);
         this.branch = branch;
@@ -47,8 +52,8 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                            LfNetworkLoadingReport report) {
-        double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
-        double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
+        nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
+        nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
         double r1 = 1;
         if (addRatioToLinesWithDifferentNominalVoltageAtBothEnds && nominalV1 != nominalV2) {
             LOGGER.trace("Line '{}' has a different nominal voltage at both ends ({} and {}): add a ration", line.getId(), nominalV1, nominalV2);
@@ -208,6 +213,14 @@ public class LfBranchImpl extends AbstractLfBranch {
     @Override
     public List<LfLimit> getLimits2() {
         return getLimits2(branch.getCurrentLimits2());
+    }
+
+    @Override
+    public BranchResult createBranchResult() {
+        double currentScale1 = PerUnit.SB / nominalV1;
+        double currentScale2 = PerUnit.SB / nominalV2;
+        return new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval(), i1.eval() * currentScale1,
+                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, i2.eval() * currentScale2);
     }
 
     @Override

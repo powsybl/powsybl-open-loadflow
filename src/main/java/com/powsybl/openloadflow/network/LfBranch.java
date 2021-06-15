@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.security.results.BranchResult;
 
 import java.util.List;
 
@@ -68,4 +69,10 @@ public interface LfBranch extends LfElement {
     boolean isVoltageController();
 
     void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
+
+    BranchResult createBranchResult();
+
+    boolean isDisabled();
+
+    void setDisabled(boolean disabled);
 }
