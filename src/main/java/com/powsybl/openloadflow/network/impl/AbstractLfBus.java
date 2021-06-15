@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BusResults;
@@ -41,19 +40,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected int voltageControlSwitchOffCount = 0;
 
-    protected double initialLoadTargetP = 0;
-
     protected double loadTargetP = 0;
 
-    protected double fixedLoadTargetP = 0;
-
-    protected int positiveLoadCount = 0;
-
-    protected double initialLoadTargetQ = 0;
+    protected double initialLoadTargetP = 0;
 
     protected double loadTargetQ = 0;
-
-    protected double fixedLoadTargetQ = 0;
 
     protected double generationTargetQ = 0;
 
@@ -61,7 +52,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfShunt> shunts = new ArrayList<>();
 
-    protected final List<Load> loads = new ArrayList<>();
+    protected LfLoads lfLoads = new LfLoads(network);
+
+    protected boolean ensurePowerFactorConstantByLoad = false;
 
     protected final List<Battery> batteries = new ArrayList<>();
 
@@ -92,6 +85,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isSlack() {
+        network.updateSlack();
         return slack;
     }
 
@@ -164,34 +158,32 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         this.voltageControlSwitchOffCount = voltageControlSwitchOffCount;
     }
 
-    void addLoad(Load load) {
-        loads.add(load);
-        initialLoadTargetP += load.getP0();
-        initialLoadTargetQ += load.getQ0();
-        loadTargetP += load.getP0();
+    void addLoad(Load load, boolean distributedOnConformLoad) {
+        double p0 = load.getP0();
+        loadTargetP += p0;
+        initialLoadTargetP += p0;
         loadTargetQ += load.getQ0();
-        LoadDetail loadDetail = load.getExtension(LoadDetail.class);
-        if (loadDetail != null) {
-            fixedLoadTargetP = loadDetail.getFixedActivePower();
-            fixedLoadTargetQ = loadDetail.getFixedReactivePower();
+        if (p0 < 0) {
+            ensurePowerFactorConstantByLoad = true;
         }
-        if (load.getP0() >= 0) {
-            positiveLoadCount++;
-        }
+        lfLoads.add(load, distributedOnConformLoad);
     }
 
     void addBattery(Battery battery) {
+        // note that batteries are out of the slack distribution.
         batteries.add(battery);
-        initialLoadTargetP += battery.getP0();
-        initialLoadTargetQ += battery.getQ0();
         loadTargetP += battery.getP0();
+        // initialLoadTargetP += battery.getP0();
         loadTargetQ += battery.getQ0();
     }
 
     void addLccConverterStation(LccConverterStation lccCs) {
+        // note that LCC converter station are out of the slack distribution.
         lccCss.add(lccCs);
         HvdcLine line = lccCs.getHvdcLine();
-        loadTargetP += getLccConverterStationLoadTargetP(lccCs, line);
+        double targetP = getLccConverterStationLoadTargetP(lccCs, line);
+        loadTargetP += targetP;
+        initialLoadTargetP += targetP;
         loadTargetQ += getLccConverterStationLoadTargetQ(lccCs, line);
     }
 
@@ -268,6 +260,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public double getInitialLoadTargetP() {
+        return initialLoadTargetP / PerUnit.SB;
+    }
+
+    @Override
     public void setLoadTargetP(double loadTargetP) {
         double newLoadTargetP = loadTargetP * PerUnit.SB;
         if (newLoadTargetP != this.loadTargetP) {
@@ -277,16 +274,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 listener.onLoadActivePowerTargetChange(this, oldLoadTargetP, newLoadTargetP);
             }
         }
-    }
-
-    @Override
-    public double getFixedLoadTargetP() {
-        return fixedLoadTargetP / PerUnit.SB;
-    }
-
-    @Override
-    public int getPositiveLoadCount() {
-        return positiveLoadCount;
     }
 
     @Override
@@ -307,8 +294,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public double getFixedLoadTargetQ() {
-        return fixedLoadTargetQ / PerUnit.SB;
+    public boolean ensurePowerFactorConstantByLoad() {
+        return this.ensurePowerFactorConstantByLoad;
     }
 
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
@@ -369,6 +356,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public LfLoads getLfLoads() {
+        return lfLoads;
+    }
+
+    @Override
     public List<LfBranch> getBranches() {
         return branches;
     }
@@ -419,18 +411,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
+    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         // update generator reactive power
         updateGeneratorsState(voltageControllerEnabled ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
 
         // update load power
-        double factorP = initialLoadTargetP != 0 ? loadTargetP / initialLoadTargetP : 1;
-        double factorQ = initialLoadTargetQ != 0 ? loadTargetQ / initialLoadTargetQ : 1;
-        for (Load load : loads) {
-            load.getTerminal()
-                    .setP(load.getP0() >= 0 ? factorP * load.getP0() : load.getP0())
-                    .setQ(load.getQ0() >= 0 ? factorQ * load.getQ0() : load.getQ0());
-        }
+        lfLoads.updateState(getLoadTargetP() - getInitialLoadTargetP(), loadPowerFactorConstant);
 
         // update battery power (which are not part of slack distribution)
         for (Battery battery : batteries) {

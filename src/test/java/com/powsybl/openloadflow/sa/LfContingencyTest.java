@@ -12,8 +12,7 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
-import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.util.LfContingency;
@@ -61,7 +60,7 @@ class LfContingencyTest extends AbstractConverterTest {
         assertEquals(2, lfNetworks.size());
 
         OpenSecurityAnalysis sa = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
-            new LimitViolationFilter(), new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+            new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
 
         String branchId = "LINE_S3S4";
         Contingency contingency = new Contingency(branchId, new BranchContingency(branchId));

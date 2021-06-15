@@ -11,9 +11,13 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Branch;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Switch;
+import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
@@ -23,6 +27,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
@@ -31,12 +36,13 @@ import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
+import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
+import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResults;
-import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -73,6 +79,14 @@ public class OpenSecurityAnalysis {
     private final StateMonitorIndex monitorIndex;
 
     private static final double POST_CONTINGENCY_INCREASING_FACTOR = 1.1;
+
+    public OpenSecurityAnalysis(Network network) {
+        this(network, new DefaultLimitViolationDetector(), new LimitViolationFilter());
+    }
+
+    public OpenSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter) {
+        this(network, detector, filter, new SparseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
+    }
 
     public OpenSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
                                 MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
@@ -165,9 +179,8 @@ public class OpenSecurityAnalysis {
 
     /**
      * Detect violations on branches and on buses
-     *
-     * @param branches   branches on which the violation limits are checked
-     * @param buses      buses on which the violation limits are checked
+     * @param branches branches on which the violation limits are checked
+     * @param buses buses on which the violation limits are checked
      * @param violations list on which the violation limits encountered are added
      */
     private void detectViolations(Stream<LfBranch> branches, Stream<LfBus> buses, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
@@ -180,40 +193,39 @@ public class OpenSecurityAnalysis {
 
     /**
      * Detect violation limits on one branch and add them to the given list
-     *
-     * @param branch     branch of interest
+     * @param branch branch of interest
      * @param violations list on which the violation limits encountered are added
      */
     private void detectBranchViolations(LfBranch branch, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
         // detect violation limits on a branch
         if (branch.getBus1() != null) {
             branch.getLimits1().stream()
-                    .filter(temporaryLimit1 -> branch.getI1().eval() > temporaryLimit1.getValue())
-                    .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
-                    .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1))
-                    .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
+                .filter(temporaryLimit1 -> branch.getI1().eval() > temporaryLimit1.getValue())
+                .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
+                .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1))
+                .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
         }
         if (branch.getBus2() != null) {
             branch.getLimits2().stream()
-                    .filter(temporaryLimit2 -> branch.getI2().eval() > temporaryLimit2.getValue())
-                    .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
-                    .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2))
-                    .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
+                .filter(temporaryLimit2 -> branch.getI2().eval() > temporaryLimit2.getValue())
+                .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
+                .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2))
+                .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
         }
     }
 
     private static LimitViolation createLimitViolation1(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit1) {
         double scale1 = PerUnit.SB / branch.getBus1().getNominalV();
         return new LimitViolation(branch.getId(), LimitViolationType.CURRENT, null,
-                temporaryLimit1.getAcceptableDuration(), temporaryLimit1.getValue() * scale1,
-                (float) 1., branch.getI1().eval() * scale1, Branch.Side.ONE);
+            temporaryLimit1.getAcceptableDuration(), temporaryLimit1.getValue() * scale1,
+            (float) 1., branch.getI1().eval() * scale1, Branch.Side.ONE);
     }
 
     private static LimitViolation createLimitViolation2(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit2) {
         double scale2 = PerUnit.SB / branch.getBus2().getNominalV();
         return new LimitViolation(branch.getId(), LimitViolationType.CURRENT, null,
-                temporaryLimit2.getAcceptableDuration(), temporaryLimit2.getValue() * scale2,
-                (float) 1., branch.getI2().eval() * scale2, Branch.Side.TWO);
+            temporaryLimit2.getAcceptableDuration(), temporaryLimit2.getValue() * scale2,
+            (float) 1., branch.getI2().eval() * scale2, Branch.Side.TWO);
     }
 
     private static Pair<String, Branch.Side> getSubjectSideId(LimitViolation limitViolation) {
@@ -222,8 +234,7 @@ public class OpenSecurityAnalysis {
 
     /**
      * Detect violation limits on one branch and add them to the given list
-     *
-     * @param bus        branch of interest
+     * @param bus branch of interest
      * @param violations list on which the violation limits encountered are added
      */
     private void detectBusViolations(LfBus bus, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
@@ -339,7 +350,7 @@ public class OpenSecurityAnalysis {
                     network.getBuses().stream().filter(b -> !b.isDisabled()),
                     postContingencyLimitViolations);
             addMonitorInfo(network, monitorIndex.getAllStateMonitor(), branchResults::add, busResults::add, threeWindingsTransformerResults::add);
-            StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitor(lfContingency.getContingency().getId());
+            StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(lfContingency.getContingency().getId());
             if (stateMonitor != null) {
                 addMonitorInfo(network, stateMonitor, branchResults::add, busResults::add, threeWindingsTransformerResults::add);
             }
@@ -353,6 +364,7 @@ public class OpenSecurityAnalysis {
         });
 
         LfContingency.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
+
         stopwatch.stop();
         LOGGER.info("Post contingency '{}' simulation done in {} ms", lfContingency.getContingency().getId(),
                 stopwatch.elapsed(TimeUnit.MILLISECONDS));
@@ -366,7 +378,6 @@ public class OpenSecurityAnalysis {
 
     /**
      * Compares two limit violations
-     *
      * @param violation1 first limit violation
      * @param violation2 second limit violation
      * @return true if violation2 is weaker than or equivalent to violation1, otherwise false

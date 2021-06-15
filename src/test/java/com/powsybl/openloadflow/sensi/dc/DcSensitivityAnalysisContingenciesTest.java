@@ -508,7 +508,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
     @Test
     void testPhaseShifterUnrelatedContingency() {
-        Network network = FourBusNetworkFactory.createWithTransfo();
+        Network network = FourBusNetworkFactory.createWithPhaseTapChanger();
         runDcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0");
