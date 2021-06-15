@@ -21,14 +21,19 @@ import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.util.BranchState;
 import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.monitor.StateMonitor;
+import com.powsybl.security.results.BranchResult;
+import com.powsybl.security.results.BusResults;
 import com.powsybl.security.results.PostContingencyResult;
+import com.powsybl.security.results.ThreeWindingsTransformerResult;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -107,10 +112,17 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                                   LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
         // create a contingency list that impact the network
         List<LfContingency> contingencies = createContingencies(propagatedContingencies, network);
+        List<BranchResult> preContingencyBranchResults = new ArrayList<>();
+        List<BusResults> preContingencyBusResults = new ArrayList<>();
+        List<ThreeWindingsTransformerResult> preContingencyThreeWindingsTransformerResults = new ArrayList<>();
 
         // run pre-contingency simulation
         try (AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters)) {
             AcLoadFlowResult preContingencyLoadFlowResult = engine.run(Reporter.NO_OP);
+            addMonitorInfo(network, monitorIndex.getNoneStateMonitor(), preContingencyBranchResults, preContingencyBusResults,
+                    preContingencyThreeWindingsTransformerResults);
+            addMonitorInfo(network, monitorIndex.getAllStateMonitor(), preContingencyBranchResults, preContingencyBusResults,
+                    preContingencyThreeWindingsTransformerResults);
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations = new HashMap<>();
 
@@ -123,6 +135,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
                 // save base state for later restoration after each contingency
                 Map<LfBus, BusState> busStates = BusState.createBusStates(network.getBuses());
+                Map<LfBranch, BranchState> branchStates = BranchState.createBranchStates(network.getBranches());
                 for (LfBus bus : network.getBuses()) {
                     bus.setVoltageControlSwitchOffCount(0);
                 }
@@ -135,6 +148,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     for (LfBus bus : lfContingency.getBuses()) {
                         bus.setDisabled(true);
                     }
+                    for (LfBranch branch : lfContingency.getBranches()) {
+                        branch.setDisabled(true);
+                    }
 
                     distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
@@ -146,12 +162,14 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
                         // restore base state
                         BusState.restoreBusStates(busStates);
+                        BranchState.restoreBranchStates(branchStates);
                     }
                 }
             }
 
             LimitViolationsResult preContingencyResult = new LimitViolationsResult(preContingencyComputationOk, new ArrayList<>(preContingencyLimitViolations.values()));
-            return new SecurityAnalysisResult(preContingencyResult, postContingencyResults);
+            return new SecurityAnalysisResult(preContingencyResult, postContingencyResults, preContingencyBranchResults,
+                    preContingencyBusResults, preContingencyThreeWindingsTransformerResults);
         }
     }
 

@@ -56,7 +56,7 @@ public abstract class AbstractSecurityAnalysis {
 
     protected final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider;
 
-    private final StateMonitorIndex monitorIndex;
+    protected final StateMonitorIndex monitorIndex;
 
     private static final double POST_CONTINGENCY_INCREASING_FACTOR = 1.1;
 
@@ -247,7 +247,7 @@ public abstract class AbstractSecurityAnalysis {
         return LfContingency.createContingencies(propagatedContingencies, network, network.createDecrementalConnectivity(connectivityProvider), true);
     }
 
-    private void addMonitorInfo(LfNetwork network, StateMonitor monitor, Collection<BranchResult> branchResultConsumer,
+    protected void addMonitorInfo(LfNetwork network, StateMonitor monitor, Collection<BranchResult> branchResultConsumer,
                                 Collection<BusResults> busResultsConsumer, Collection<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer) {
         network.getBranches().stream().filter(lfBranch -> monitor.getBranchIds().contains(lfBranch.getId()))
                 .filter(lfBranch -> !lfBranch.isDisabled())
