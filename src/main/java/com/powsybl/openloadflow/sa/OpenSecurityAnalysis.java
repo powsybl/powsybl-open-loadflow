@@ -38,11 +38,11 @@ import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
-import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResults;
+import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -51,7 +51,6 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -264,10 +263,10 @@ public class OpenSecurityAnalysis {
         // run pre-contingency simulation
         try (AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters)) {
             AcLoadFlowResult preContingencyLoadFlowResult = engine.run(Reporter.NO_OP);
-            addMonitorInfo(network, monitorIndex.getNoneStateMonitor(), preContingencyBranchResults::add, preContingencyBusResults::add,
-                    preContingencyThreeWindingsTransformerResults::add);
-            addMonitorInfo(network, monitorIndex.getAllStateMonitor(), preContingencyBranchResults::add, preContingencyBusResults::add,
-                    preContingencyThreeWindingsTransformerResults::add);
+            addMonitorInfo(network, monitorIndex.getNoneStateMonitor(), preContingencyBranchResults, preContingencyBusResults,
+                    preContingencyThreeWindingsTransformerResults);
+            addMonitorInfo(network, monitorIndex.getAllStateMonitor(), preContingencyBranchResults, preContingencyBusResults,
+                    preContingencyThreeWindingsTransformerResults);
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations = new HashMap<>();
 
@@ -349,10 +348,10 @@ public class OpenSecurityAnalysis {
                     network.getBranches().stream().filter(b -> !b.isDisabled()),
                     network.getBuses().stream().filter(b -> !b.isDisabled()),
                     postContingencyLimitViolations);
-            addMonitorInfo(network, monitorIndex.getAllStateMonitor(), branchResults::add, busResults::add, threeWindingsTransformerResults::add);
+            addMonitorInfo(network, monitorIndex.getAllStateMonitor(), branchResults, busResults, threeWindingsTransformerResults);
             StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(lfContingency.getContingency().getId());
             if (stateMonitor != null) {
-                addMonitorInfo(network, stateMonitor, branchResults::add, busResults::add, threeWindingsTransformerResults::add);
+                addMonitorInfo(network, stateMonitor, branchResults, busResults, threeWindingsTransformerResults);
             }
         }
 
@@ -399,16 +398,16 @@ public class OpenSecurityAnalysis {
         return LfContingency.createContingencies(propagatedContingencies, network, network.createDecrementalConnectivity(connectivityProvider), true);
     }
 
-    private void addMonitorInfo(LfNetwork network, StateMonitor monitor, Consumer<BranchResult> branchResultConsumer,
-                                Consumer<BusResults> busResultsConsumer, Consumer<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer) {
+    private void addMonitorInfo(LfNetwork network, StateMonitor monitor, Collection<BranchResult> branchResultConsumer,
+                                Collection<BusResults> busResultsConsumer, Collection<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer) {
         network.getBranches().stream().filter(lfBranch -> monitor.getBranchIds().contains(lfBranch.getId()))
                 .filter(lfBranch -> !lfBranch.isDisabled())
-                .forEach(lfBranch -> branchResultConsumer.accept(lfBranch.createBranchResult()));
+                .forEach(lfBranch -> branchResultConsumer.add(lfBranch.createBranchResult()));
         network.getBuses().stream().filter(lfBus -> monitor.getVoltageLevelIds().contains(lfBus.getVoltageLevelId()))
                 .filter(lfBus -> !lfBus.isDisabled())
-                .forEach(lfBus -> busResultsConsumer.accept(lfBus.createBusResult()));
+                .forEach(lfBus -> busResultsConsumer.add(lfBus.createBusResult()));
         monitor.getThreeWindingsTransformerIds().stream().filter(id -> network.getBusById(id + "_BUS0") != null && !network.getBusById(id + "_BUS0").isDisabled())
-                .forEach(id -> threeWindingsTransformerResultConsumer.accept(createThreeWindingsTransformerResult(id, network)));
+                .forEach(id -> threeWindingsTransformerResultConsumer.add(createThreeWindingsTransformerResult(id, network)));
     }
 
     private ThreeWindingsTransformerResult createThreeWindingsTransformerResult(String threeWindingsTransformerId, LfNetwork network) {
