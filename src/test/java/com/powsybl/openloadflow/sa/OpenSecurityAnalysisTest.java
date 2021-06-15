@@ -604,7 +604,7 @@ class OpenSecurityAnalysisTest {
         fourBusNetwork.getLine("l34").newActivePowerLimits1().setPermanentLimit(0.15).add();
         fourBusNetwork.getLine("l13").newActivePowerLimits1().setPermanentLimit(0.1).add();
 
-        AbstractSecurityAnalysis securityAnalysis = new DcSecurityAnalysis(network);
+        AbstractSecurityAnalysis securityAnalysis = new DcSecurityAnalysis(fourBusNetwork);
 
         SecurityAnalysisReport report = securityAnalysis.runSync(saParameters, contingenciesProvider);
         assertTrue(report.getResult().getPreContingencyResult().getLimitViolationsResult().isComputationOk());
