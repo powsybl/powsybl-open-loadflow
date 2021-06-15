@@ -38,7 +38,9 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     public AcSecurityAnalysis(Network network) {
@@ -181,7 +183,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         List<Equation> deactivatedEquations = new ArrayList<>();
         List<EquationTerm> deactivatedEquationTerms = new ArrayList<>();
-
+        List<BranchResult> branchResults = new ArrayList<>();
+        List<BusResults> busResults = new ArrayList<>();
+        List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
         LfContingency.deactivateEquations(lfContingency, engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
 
         // restart LF on post contingency equation system
@@ -191,9 +195,14 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         Map<Pair<String, Branch.Side>, LimitViolation> postContingencyLimitViolations = new HashMap<>();
         if (postContingencyComputationOk) {
             detectViolations(
-                    network.getBranches().stream().filter(b -> !lfContingency.getBranches().contains(b)),
-                    network.getBuses().stream().filter(b -> !lfContingency.getBuses().contains(b)),
+                    network.getBranches().stream().filter(b -> !b.isDisabled()),
+                    network.getBuses().stream().filter(b -> !b.isDisabled()),
                     postContingencyLimitViolations);
+            addMonitorInfo(network, monitorIndex.getAllStateMonitor(), branchResults, busResults, threeWindingsTransformerResults);
+            StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(lfContingency.getContingency().getId());
+            if (stateMonitor != null) {
+                addMonitorInfo(network, stateMonitor, branchResults, busResults, threeWindingsTransformerResults);
+            }
         }
 
         preContingencyLimitViolations.forEach((subjectSideId, preContingencyViolation) -> {
@@ -209,6 +218,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         LOGGER.info("Post contingency '{}' simulation done in {} ms", lfContingency.getContingency().getId(),
                 stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-        return new PostContingencyResult(lfContingency.getContingency(), postContingencyComputationOk, new ArrayList<>(postContingencyLimitViolations.values()));
+        return new PostContingencyResult(lfContingency.getContingency(), postContingencyComputationOk, new ArrayList<>(postContingencyLimitViolations.values()),
+                branchResults.stream().collect(Collectors.toMap(BranchResult::getBranchId, Function.identity())),
+                busResults.stream().collect(Collectors.toMap(BusResults::getVoltageLevelId, Function.identity())),
+                threeWindingsTransformerResults.stream().collect(Collectors.toMap(ThreeWindingsTransformerResult::getThreeWindingsTransformerId,
+                        Function.identity())));
     }
 }
