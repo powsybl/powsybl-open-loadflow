@@ -22,7 +22,12 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode) {
+    public void onDiscreteVoltageControlChange(DiscreteVoltageControl voltageControl, boolean isEnabledNew) {
+        // empty
+    }
+
+    @Override
+    public void onDiscreteVoltageControlChange(LfBranch lfBranch, boolean newDiscreteVoltageControllerEnabled) {
         // empty
     }
 

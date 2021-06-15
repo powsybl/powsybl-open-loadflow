@@ -442,7 +442,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isDiscreteVoltageControlled() {
-        return discreteVoltageControl != null && discreteVoltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE;
+        return discreteVoltageControl != null && discreteVoltageControl.isEnabled();
     }
 
     @Override

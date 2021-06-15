@@ -19,17 +19,20 @@ import java.util.stream.Collectors;
 public class BranchState {
     private final double a1;
     private final double r1;
+    private final boolean isVoltageControllerEnabled;
 
     public BranchState(LfBranch b) {
         PiModel piModel = b.getPiModel();
         a1 = piModel.getA1();
         r1 = piModel.getR1();
+        isVoltageControllerEnabled = b.isDiscreteVoltageControllerEnabled();
     }
 
     public void restoreBranchState(LfBranch branch) {
         PiModel piModel = branch.getPiModel();
         piModel.setA1(a1);
         piModel.setR1(r1);
+        branch.setDiscreteVoltageControlEnabled(isVoltageControllerEnabled);
     }
 
     /**

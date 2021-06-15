@@ -289,13 +289,16 @@ public final class AcEquationSystem {
 
             // create a R1 distribution equation for all the other controller branches
             for (int i = 1; i < controllerBranches.size(); i++) {
-                LfBranch controllerBranch = controllerBranches.get(i);
-                Equation zero = equationSystem.createEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1)
-                        .addTerm(EquationTerm.createVariableTerm(controllerBranch, VariableType.BRANCH_RHO1, variableSet))
-                        .addTerm(EquationTerm.multiply(EquationTerm.createVariableTerm(firstControllerBranch, VariableType.BRANCH_RHO1, variableSet), -1));
-                zero.setData(new DistributionData(firstControllerBranch.getNum(), 1)); // for later use
+                createR1DisctributionEquation(equationSystem, variableSet, firstControllerBranch, controllerBranches.get(i));
             }
         }
+    }
+
+    public static void createR1DisctributionEquation(EquationSystem equationSystem, VariableSet variableSet, LfBranch firstControllerBranch, LfBranch controllerBranch) {
+        Equation zero = equationSystem.createEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1)
+                .addTerm(EquationTerm.createVariableTerm(controllerBranch, VariableType.BRANCH_RHO1, variableSet))
+                .addTerm(EquationTerm.multiply(EquationTerm.createVariableTerm(firstControllerBranch, VariableType.BRANCH_RHO1, variableSet), -1));
+        zero.setData(new DistributionData(firstControllerBranch.getNum(), 1)); // for later use
     }
 
     private static void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,

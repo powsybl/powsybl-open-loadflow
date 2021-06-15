@@ -121,9 +121,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         // system obtained just before the transformer steps rounding.
         if (hasTransformerBusTargetVoltage) {
             for (LfBus bus : lfNetwork.getBuses()) {
-                if (bus.getDiscreteVoltageControl() != null && bus.getDiscreteVoltageControl().getMode().equals(DiscreteVoltageControl.Mode.OFF)) {
+                if (bus.getDiscreteVoltageControl() != null && !bus.getDiscreteVoltageControl().isEnabled()) {
                     // switch on regulating transformers
-                    bus.getDiscreteVoltageControl().setMode(DiscreteVoltageControl.Mode.VOLTAGE);
+                    bus.getDiscreteVoltageControl().setControlEnabled(true);
                 }
             }
         }
@@ -231,9 +231,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             // system obtained just before the transformer steps rounding.
             if (hasTransformerBusTargetVoltage) {
                 for (LfBus bus : lfNetwork.getBuses()) {
-                    if (bus.getDiscreteVoltageControl() != null && bus.getDiscreteVoltageControl().getMode().equals(DiscreteVoltageControl.Mode.OFF)) {
+                    if (bus.getDiscreteVoltageControl() != null && !bus.getDiscreteVoltageControl().isEnabled()) {
                         // switch on regulating transformers
-                        bus.getDiscreteVoltageControl().setMode(DiscreteVoltageControl.Mode.VOLTAGE);
+                        bus.getDiscreteVoltageControl().setControlEnabled(true);
                     }
                 }
             }

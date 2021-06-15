@@ -13,9 +13,11 @@ public interface LfNetworkListener {
 
     void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled);
 
+    void onDiscreteVoltageControlChange(LfBranch lfBranch, boolean newDiscreteVoltageControllerEnabled);
+
     void onPhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode);
 
-    void onVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode);
+    void onDiscreteVoltageControlChange(DiscreteVoltageControl voltageControl, boolean isEnabledNew);
 
     void onLoadActivePowerTargetChange(LfBus bus, double oldLoadTargetP, double newLoadTargetP);
 
