@@ -125,8 +125,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
         Objects.requireNonNull(bus);
         return bus.getDiscreteVoltageControl().filter(dvc -> bus.isDiscreteVoltageControlled())
             .map(DiscreteVoltageControl::getTargetValue)
-            .orElse(getVoltageControlledTargetValue(bus)
-                .orElse(Double.NaN));
+            .orElse(
+                getVoltageControlledTargetValue(bus).orElse(Double.NaN)
+            );
     }
 
     private static Optional<Double> getVoltageControlledTargetValue(LfBus bus) {
