@@ -118,7 +118,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             addMonitorInfo(network, monitorIndex.getAllStateMonitor(), preContingencyBranchResults, preContingencyBusResults,
                     preContingencyThreeWindingsTransformerResults);
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
-            Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations = new HashMap<>();
+            Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations = new LinkedHashMap<>();
 
             // only run post-contingency simulations if pre-contingency simulation is ok
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();

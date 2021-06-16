@@ -260,8 +260,11 @@ class OpenSecurityAnalysisTest {
         assertEquals(1, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
-        assertEquals("L1", result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().get(0).getSubjectId());
-        assertEquals(608.334, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().get(0).getValue(), 10E-3);
+
+        LimitViolation limitViolation0 = result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().get(0);
+        assertEquals("L1", limitViolation0.getSubjectId());
+        assertEquals(LimitViolationType.ACTIVE_POWER, limitViolation0.getLimitType());
+        assertEquals(608.334, limitViolation0.getValue(), 10E-3);
 
         int activePowerLimitViolationsCount = 0;
         for (PostContingencyResult r : result.getPostContingencyResults()) {
