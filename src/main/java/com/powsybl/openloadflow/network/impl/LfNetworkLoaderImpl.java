@@ -332,12 +332,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             // and the corresponding controllers are added to the discrete control kept
             LOGGER.info("Zero impedance connected set with several discrete voltage controls: discrete controls merged");
             voltageControls.stream()
-                .flatMap(vc -> vc.getControllers().stream())
+                .flatMap(dvc -> dvc.getControllers().stream())
                 .forEach(controller -> {
                     firstControlledBusVoltageControl.addController(controller);
                     controller.setDiscreteVoltageControl(firstControlledBusVoltageControl);
                 });
-            voltageControls.forEach(vc -> vc.getControlled().setDiscreteVoltageControl(null));
+            voltageControls.forEach(dvc -> dvc.getControlled().setDiscreteVoltageControl(null));
         }
 
         // Then resolve problem of mixed shared controls, that is if there are any generator/svc voltage control together with discrete voltage control(s)
@@ -418,7 +418,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                     LOGGER.warn("Controlled bus {} has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
                 } else {
                     Optional<DiscreteVoltageControl> dvcControlledBus = controlledBus.getDiscreteVoltageControl()
-                        .filter(vc -> controlledBus.isDiscreteVoltageControlled());
+                        .filter(dvc -> controlledBus.isDiscreteVoltageControlled());
                     if (dvcControlledBus.isPresent()) {
                         LOGGER.trace("Controlled bus {} already has a transformer voltage control: a shared control is created", controlledBus.getId());
                         dvcControlledBus.get().addController(controllerBranch);

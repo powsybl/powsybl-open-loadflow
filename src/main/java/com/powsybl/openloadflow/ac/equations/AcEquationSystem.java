@@ -264,7 +264,7 @@ public final class AcEquationSystem {
 
     private static void createDiscreteVoltageControlEquation(LfBus bus,  VariableSet variableSet, EquationSystem equationSystem) {
         bus.getDiscreteVoltageControl()
-            .filter(vc -> bus.isDiscreteVoltageControlled())
+            .filter(dvc -> bus.isDiscreteVoltageControlled())
             .map(DiscreteVoltageControl::getControllers)
             .ifPresent(controllers -> {
                 EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());

@@ -123,7 +123,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     private static double getBusTargetV(LfBus bus) {
         Objects.requireNonNull(bus);
-        return bus.getDiscreteVoltageControl().filter(vc -> bus.isDiscreteVoltageControlled())
+        return bus.getDiscreteVoltageControl().filter(dvc -> bus.isDiscreteVoltageControlled())
             .map(DiscreteVoltageControl::getTargetValue)
             .orElse(getVoltageControlledTargetValue(bus)
                 .orElse(Double.NaN));
