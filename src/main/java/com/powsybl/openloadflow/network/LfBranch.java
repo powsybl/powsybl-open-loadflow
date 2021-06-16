@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.LimitType;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 
@@ -47,9 +48,9 @@ public interface LfBranch extends LfElement {
 
     Evaluable getI2();
 
-    List<AbstractLfBranch.LfLimit> getLimits1();
+    List<AbstractLfBranch.LfLimit> getLimits1(LimitType type);
 
-    List<AbstractLfBranch.LfLimit> getLimits2();
+    List<AbstractLfBranch.LfLimit> getLimits2(LimitType type);
 
     boolean hasPhaseControlCapability();
 
@@ -76,4 +77,8 @@ public interface LfBranch extends LfElement {
     boolean isDisabled();
 
     void setDisabled(boolean disabled);
+
+    double computeApparentPower1();
+
+    double computeApparentPower2();
 }
