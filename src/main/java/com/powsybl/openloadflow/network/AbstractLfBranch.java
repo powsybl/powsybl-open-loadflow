@@ -138,8 +138,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public DiscretePhaseControl getDiscretePhaseControl() {
-        return phaseControl;
+    public Optional<DiscretePhaseControl> getDiscretePhaseControl() {
+        return Optional.ofNullable(phaseControl);
     }
 
     @Override

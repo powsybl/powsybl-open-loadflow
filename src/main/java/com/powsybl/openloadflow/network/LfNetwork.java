@@ -241,8 +241,7 @@ public class LfNetwork {
         if (piModel.getA1() != 0) {
             jsonGenerator.writeNumberField("a1", piModel.getA1());
         }
-        if (branch.isPhaseController()) {
-            DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl();
+        branch.getDiscretePhaseControl().filter(dpc -> branch.isPhaseController()).ifPresent(phaseControl -> {
             try {
                 jsonGenerator.writeFieldName("discretePhaseControl");
                 jsonGenerator.writeStartObject();
@@ -256,7 +255,7 @@ public class LfNetwork {
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
-        }
+        });
     }
 
     private void writeJson(LfShunt shunt, JsonGenerator jsonGenerator) throws IOException {
