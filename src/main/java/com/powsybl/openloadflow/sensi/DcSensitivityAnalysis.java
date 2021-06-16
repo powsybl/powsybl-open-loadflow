@@ -598,7 +598,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                                                       DcLoadFlowEngine dcLoadFlowEngine, SensitivityFactorHolder factorHolder, List<ParticipatingElement> participatingElements,
                                                       Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches, Reporter reporter) {
         List<LfSensitivityFactor> factors = factorHolder.getFactorsForContingency(contingency.getContingency().getId());
-        List<ParticipatingElement> saveParticipatingElements = participatingElements != null ? new ArrayList(participatingElements) : null;
+        List<ParticipatingElement> saveParticipatingElements = new ArrayList<>(participatingElements);
         Map<LfBus, BusState> busStates = new HashMap<>();
         if (!contingency.getHvdcIdsToOpen().isEmpty() || !contingency.getGeneratorIdsToLose().isEmpty()) {
             // if we have a contingency including the loss of a DC line or a generator
@@ -698,7 +698,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
         // buses that contain elements participating to slack distribution)
-        List<ParticipatingElement> participatingElements = null;
+        List<ParticipatingElement> participatingElements;
         Map<LfBus, Double> slackParticipationByBus;
         if (lfParameters.isDistributedSlack()) {
             participatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters, lfParametersExt);
@@ -708,6 +708,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 Double::sum
             ));
         } else {
+            participatingElements = new ArrayList<>();
             slackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
         }
 
