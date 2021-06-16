@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.contingency.ContingencyContext;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -17,7 +18,7 @@ class SensitivityFactor2Test {
 
     @Test
     void test() {
-        SensitivityFactor2 factor = new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "f1", SensitivityVariableType.INJECTION_ACTIVE_POWER, "v1", false, ContingencyContext.createAllContingencyContext());
+        SensitivityFactor2 factor = new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "f1", SensitivityVariableType.INJECTION_ACTIVE_POWER, "v1", false, ContingencyContext.all());
         assertEquals("SensitivityFactor(functionType=BRANCH_ACTIVE_POWER, functionId='f1', variableType=INJECTION_ACTIVE_POWER, variableId='v1', variableSet=false, contingencyContext=ContingencyContext(contingencyId='', contextType=ALL))", factor.toString());
     }
 }

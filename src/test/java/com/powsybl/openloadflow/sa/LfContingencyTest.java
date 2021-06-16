@@ -11,10 +11,14 @@ import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
+import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
+import com.powsybl.security.LimitViolationFilter;
+import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,7 +59,8 @@ class LfContingencyTest extends AbstractConverterTest {
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(2, lfNetworks.size());
 
-        OpenSecurityAnalysis sa = new OpenSecurityAnalysisFactory().create(network, null, 0);
+        OpenSecurityAnalysis sa = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+            new LimitViolationFilter(), new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
 
         String branchId = "LINE_S3S4";
         Contingency contingency = new Contingency(branchId, new BranchContingency(branchId));

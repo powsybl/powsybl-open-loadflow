@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;

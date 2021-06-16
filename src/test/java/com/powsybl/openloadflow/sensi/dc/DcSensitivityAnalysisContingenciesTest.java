@@ -1112,7 +1112,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 line -> (network1.getLine(line).getTerminal1().getP() - network2.getLine(line).getTerminal1().getP()) / sensiChange
             ));
 
-        ContingencyContext contingencyContext = ContingencyContext.createAllContingencyContext();
+        ContingencyContext contingencyContext = ContingencyContext.all();
         List<SensitivityFactor2> factors = SensitivityFactor2.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER, List.of("l12", "l13", "l23", "l25", "l45", "l46", "l56"),
                                                                            SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"), false, contingencyContext);
         SensitivityAnalysisResult2 result = sensiProvider.run(network, Collections.singletonList(new Contingency("l25", new BranchContingency("l25"))), Collections.emptyList(),
@@ -1135,7 +1135,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
 
-        ContingencyContext contingencyContext = ContingencyContext.createAllContingencyContext();
+        ContingencyContext contingencyContext = ContingencyContext.all();
         List<SensitivityFactor2> factors = SensitivityFactor2.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER, List.of("l12", "l13", "l23", "l25", "l45", "l46", "l56"),
                                                                            SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"), false, contingencyContext);
 
@@ -1674,10 +1674,10 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         List<SensitivityFactor2> factors = List.of(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "l45",
                                                                           SensitivityVariableType.INJECTION_ACTIVE_POWER, "glsk", true,
-                                                                          ContingencyContext.createAllContingencyContext()),
+                                                                          ContingencyContext.all()),
                                                    new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "l12",
                                                                           SensitivityVariableType.INJECTION_ACTIVE_POWER, "g2", false,
-                                                                          ContingencyContext.createAllContingencyContext()));
+                                                                          ContingencyContext.all()));
 
         SensitivityAnalysisResult2 result = sensiProvider.run(network, contingencies, variableSets, sensiParameters, factors);
 
