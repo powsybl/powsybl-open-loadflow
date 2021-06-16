@@ -184,7 +184,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         engine.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
         AcLoadFlowResult postContingencyLoadFlowResult = engine.run(Reporter.NO_OP);
         boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
-        Map<Pair<String, Branch.Side>, LimitViolation> postContingencyLimitViolations = new HashMap<>();
+        Map<Pair<String, Branch.Side>, LimitViolation> postContingencyLimitViolations = new LinkedHashMap<>();
         if (postContingencyComputationOk) {
             detectViolations(
                     network.getBranches().stream().filter(b -> !b.isDisabled()),
