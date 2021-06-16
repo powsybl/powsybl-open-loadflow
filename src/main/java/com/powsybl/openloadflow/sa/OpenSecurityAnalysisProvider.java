@@ -18,6 +18,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
+import com.powsybl.security.monitor.StateMonitor;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -46,10 +47,15 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
     public CompletableFuture<SecurityAnalysisReport> run(Network network, String workingVariantId, LimitViolationDetector limitViolationDetector,
                                                          LimitViolationFilter limitViolationFilter, ComputationManager computationManager,
                                                          SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
-                                                         List<SecurityAnalysisInterceptor> interceptors) {
-        OpenSecurityAnalysis osa = new OpenSecurityAnalysis(network, limitViolationDetector, limitViolationFilter, matrixFactory, connectivityProvider);
-        interceptors.forEach(osa::addInterceptor);
-        return osa.run(workingVariantId, securityAnalysisParameters, contingenciesProvider);
+                                                         List<SecurityAnalysisInterceptor> interceptors, List<StateMonitor> stateMonitors) {
+        AbstractSecurityAnalysis securityAnalysis;
+        if (securityAnalysisParameters.getLoadFlowParameters().isDc()) {
+            securityAnalysis = new DcSecurityAnalysis(network, limitViolationDetector, limitViolationFilter, matrixFactory, connectivityProvider, stateMonitors);
+        } else {
+            securityAnalysis = new AcSecurityAnalysis(network, limitViolationDetector, limitViolationFilter, matrixFactory, connectivityProvider, stateMonitors);
+        }
+        interceptors.forEach(securityAnalysis::addInterceptor);
+        return securityAnalysis.run(workingVariantId, securityAnalysisParameters, contingenciesProvider);
     }
 
     @Override

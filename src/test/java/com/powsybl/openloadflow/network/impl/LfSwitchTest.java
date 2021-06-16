@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -62,8 +63,8 @@ class LfSwitchTest {
         assertEquals(Double.NaN, lfSwitch.getP2().eval());
         assertEquals(Double.NaN, lfSwitch.getI1().eval());
         assertEquals(Double.NaN, lfSwitch.getI2().eval());
-        assertEquals(Collections.emptyList(), lfSwitch.getLimits1());
-        assertEquals(Collections.emptyList(), lfSwitch.getLimits2());
+        assertEquals(Collections.emptyList(), lfSwitch.getLimits1(LimitType.CURRENT));
+        assertEquals(Collections.emptyList(), lfSwitch.getLimits2(LimitType.CURRENT));
     }
 
     @Test

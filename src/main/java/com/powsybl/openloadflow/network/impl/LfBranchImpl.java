@@ -206,21 +206,41 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits1() {
-        return getLimits1(branch.getCurrentLimits1());
-    }
-
-    @Override
-    public List<LfLimit> getLimits2() {
-        return getLimits2(branch.getCurrentLimits2());
-    }
-
-    @Override
     public BranchResult createBranchResult() {
         double currentScale1 = PerUnit.SB / nominalV1;
         double currentScale2 = PerUnit.SB / nominalV2;
         return new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval(), i1.eval() * currentScale1,
                 p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, i2.eval() * currentScale2);
+    }
+
+    @Override
+    public List<LfLimit> getLimits1(final LimitType type) {
+        switch (type) {
+            case ACTIVE_POWER:
+                return getLimits1(type, branch.getActivePowerLimits1());
+            case APPARENT_POWER:
+                return getLimits1(type, branch.getApparentPowerLimits1());
+            case CURRENT:
+                return getLimits1(type, branch.getCurrentLimits1());
+            case VOLTAGE:
+            default:
+                throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+        }
+    }
+
+    @Override
+    public List<LfLimit> getLimits2(final LimitType type) {
+        switch (type) {
+            case ACTIVE_POWER:
+                return getLimits2(type, branch.getActivePowerLimits2());
+            case APPARENT_POWER:
+                return getLimits2(type, branch.getApparentPowerLimits2());
+            case CURRENT:
+                return getLimits2(type, branch.getCurrentLimits2());
+            case VOLTAGE:
+            default:
+                throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+        }
     }
 
     @Override
