@@ -570,7 +570,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             LfGenerator generator = busAndgenerator.getValue();
             generator.setTargetP(0); // we don't change the slack distribution participation here.
             if (distributedSlackOnGenerators && generator.isParticipating()) {
-                participatingElements.remove(generator);
+                participatingElements.stream().filter(elt -> elt.getElement() == generator).findFirst()
+                    .ifPresent(participatingElements::remove);
             }
         }
 
