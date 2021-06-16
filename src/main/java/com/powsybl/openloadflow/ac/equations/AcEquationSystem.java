@@ -257,8 +257,8 @@ public final class AcEquationSystem {
                 // this equation is now inactive
                 LfBranch controller = dpc.getController();
                 equationSystem.createEquation(controller.getNum(), EquationType.BRANCH_ALPHA1)
-                    .addTerm(EquationTerm.createVariableTerm(controller, VariableType.BRANCH_ALPHA1, variableSet))
-                    .setActive(false);
+                        .addTerm(EquationTerm.createVariableTerm(controller, VariableType.BRANCH_ALPHA1, variableSet))
+                        .setActive(false);
             });
     }
 
