@@ -7,8 +7,6 @@ import com.powsybl.contingency.ContingencyContextType;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sensi.*;
@@ -24,7 +22,7 @@ import java.util.function.Supplier;
 
 public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
-    DcSensitivityAnalysis sensiDC = null;
+    DcSensitivityAnalysis dcSensitivityAnalysis = null;
 
     protected DcSecurityAnalysis(final Network network, final LimitViolationDetector detector, final LimitViolationFilter filter,
                               final MatrixFactory matrixFactory, final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider, List<StateMonitor> stateMonitors) {
@@ -33,15 +31,11 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     @Override
     SecurityAnalysisReport runSync(final SecurityAnalysisParameters securityAnalysisParameters, final ContingenciesProvider contingenciesProvider) {
-        OpenLoadFlowParameters lfParametersExt = OpenLoadFlowProvider.getParametersExt(securityAnalysisParameters.getLoadFlowParameters());
-        // in some post-contingency computation, it does not remain elements to participate to slack distribution.
-        // in that case, the remaining mismatch is put on the slack bus and no exception is thrown.
-        lfParametersExt.setThrowsExceptionInCaseOfSlackDistributionFailure(false);
 
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
 
-        sensiDC = new DcSensitivityAnalysis(matrixFactory, connectivityProvider);
+        dcSensitivityAnalysis = new DcSensitivityAnalysis(matrixFactory, connectivityProvider);
 
         OpenSensitivityAnalysisProvider sensitivityAnalysisProvider = new OpenSensitivityAnalysisProvider();
 

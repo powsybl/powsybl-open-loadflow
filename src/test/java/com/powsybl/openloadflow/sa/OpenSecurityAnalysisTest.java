@@ -236,7 +236,7 @@ class OpenSecurityAnalysisTest {
                .beginTemporaryLimit()
                .setName("60")
                .setAcceptableDuration(60)
-               .setValue(1.0)
+               .setValue(1.2)
                .endTemporaryLimit()
                .add();
 
@@ -260,6 +260,8 @@ class OpenSecurityAnalysisTest {
         assertEquals(1, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals("L1", result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().get(0).getSubjectId());
+        assertEquals(608.334, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().get(0).getValue(), 10E-3);
 
         int activePowerLimitViolationsCount = 0;
         for (PostContingencyResult r : result.getPostContingencyResults()) {
@@ -280,7 +282,7 @@ class OpenSecurityAnalysisTest {
                .beginTemporaryLimit()
                .setName("60")
                .setAcceptableDuration(60)
-               .setValue(1.0)
+               .setValue(1.2)
                .endTemporaryLimit()
                .add();
 
@@ -304,6 +306,8 @@ class OpenSecurityAnalysisTest {
         assertEquals(1, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals("L1", result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().get(0).getSubjectId());
+        assertEquals(651.796, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().get(0).getValue(), 10E-3);
 
         int apparentPowerLimitViolationsCount = 0;
         for (PostContingencyResult r : result.getPostContingencyResults()) {
