@@ -37,12 +37,12 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
 
         if (context.getIteration() == 0) {
             for (LfBus bus : context.getNetwork().getBuses()) {
-                Optional<DiscreteVoltageControl> vc = bus.getDiscreteVoltageControl().filter(vc0 -> bus.isDiscreteVoltageControlled());
-                if (vc.isPresent()) {
+                Optional<DiscreteVoltageControl> dvc = bus.getDiscreteVoltageControl().filter(dvc0 -> bus.isDiscreteVoltageControlled());
+                if (dvc.isPresent()) {
                     // switch off regulating transformers
-                    vc.get().setMode(DiscreteVoltageControl.Mode.OFF);
+                    dvc.get().setMode(DiscreteVoltageControl.Mode.OFF);
 
-                    for (LfBranch controllerBranch : vc.get().getControllers()) {
+                    for (LfBranch controllerBranch : dvc.get().getControllers()) {
                         // round the rho shift to the closest tap
                         PiModel piModel = controllerBranch.getPiModel();
                         double r1Value = piModel.getR1();
