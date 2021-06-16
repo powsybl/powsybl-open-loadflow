@@ -11,6 +11,8 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.json.JsonUtil;
+import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.contingency.ContingencyContextType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -171,7 +173,7 @@ public class SensitivityFactor2 {
                     }
                 } else if (token == JsonToken.END_OBJECT) {
                     factors.add(new SensitivityFactor2(context.functionType, context.functionId, context.variableType, context.variableId, context.variableSet,
-                            new ContingencyContext(context.contingencyContextType, context.contingencyId)));
+                            new ContingencyContext(context.contingencyId, context.contingencyContextType)));
                     context.reset();
                 } else if (token == JsonToken.END_ARRAY) {
                     break;
