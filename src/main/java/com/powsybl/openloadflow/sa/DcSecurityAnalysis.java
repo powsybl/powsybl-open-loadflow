@@ -53,7 +53,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
         String variableId = network.getLoads().iterator().next().getId();
 
         List<SensitivityFactor2> factors = new ArrayList<>();
-        for (Branch b : network.getBranches()) {
+        for (Branch<?> b : network.getBranches()) {
             factors.add(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, b.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER,
                     variableId, false, contingencyContext));
         }
@@ -65,7 +65,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
         for (SensitivityValue2 sensValue : res.getValues(null)) {
             SensitivityFactor2 factor = (SensitivityFactor2) sensValue.getFactorContext();
             String branchId = factor.getFunctionId();
-            Branch branch = network.getBranch(branchId);
+            Branch<?> branch = network.getBranch(branchId);
             detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(sensValue.getFunctionReference()), preContingencyLimitViolations::add);
         }
 
@@ -79,7 +79,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             for (SensitivityValue2 v : values) {
                 SensitivityFactor2 factor = (SensitivityFactor2) v.getFactorContext();
                 String branchId = factor.getFunctionId();
-                Branch branch = network.getBranch(branchId);
+                Branch<?> branch = network.getBranch(branchId);
                 detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(v.getFunctionReference()), violations::add);
             }
 
