@@ -309,12 +309,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         if (!minImpedance) {
             // Merge the discrete voltage control in each zero impedance connected set
             List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.createZeroImpedanceSubGraph()).connectedSets();
-            connectedSets.forEach(LfNetworkLoaderImpl::fixDiscreteVoltageControlsOnConnectedComponent);
+            connectedSets.forEach(LfNetworkLoaderImpl::fixZeroImpendanceNetworkWithSeveralControlledBuses);
         }
     }
 
-    private static void fixDiscreteVoltageControlsOnConnectedComponent(Set<LfBus> zeroImpedanceConnectedSet) {
-        // Get the list of discrete control from controlled buses in the zero impedance connected set
+    private static void fixZeroImpendanceNetworkWithSeveralControlledBuses(Set<LfBus> zeroImpedanceConnectedSet) {
+        // Get the list of discrete voltage controls from controlled buses in the zero impedance connected set
         List<DiscreteVoltageControl> voltageControls = zeroImpedanceConnectedSet.stream().filter(LfBus::isDiscreteVoltageControlled)
             .map(LfBus::getDiscreteVoltageControl).filter(Optional::isPresent).map(Optional::get)
             .collect(Collectors.toList());
@@ -322,8 +322,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             return;
         }
 
-        // The first controlled bus is kept and removed from the list
-        DiscreteVoltageControl firstControlledBusVoltageControl = voltageControls.remove(0);
+        // The first discrete voltage control is kept and removed from the list
+        DiscreteVoltageControl firstDiscreteVoltageControl = voltageControls.remove(0);
 
         // First resolve problem of discrete voltage controls
         if (!voltageControls.isEmpty()) {
@@ -334,8 +334,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             voltageControls.stream()
                 .flatMap(dvc -> dvc.getControllers().stream())
                 .forEach(controller -> {
-                    firstControlledBusVoltageControl.addController(controller);
-                    controller.setDiscreteVoltageControl(firstControlledBusVoltageControl);
+                    firstDiscreteVoltageControl.addController(controller);
+                    controller.setDiscreteVoltageControl(firstDiscreteVoltageControl);
                 });
             voltageControls.forEach(dvc -> dvc.getControlled().setDiscreteVoltageControl(null));
         }
@@ -348,9 +348,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             // TODO: deal with mixed shared controls instead of removing all discrete voltage controls
             LOGGER.warn("Zero impedance connected set with voltage control and discrete voltage control: only generator control is kept");
             // First remove it from controllers
-            firstControlledBusVoltageControl.getControllers().forEach(c -> c.setDiscreteVoltageControl(null));
+            firstDiscreteVoltageControl.getControllers().forEach(c -> c.setDiscreteVoltageControl(null));
             // Then remove it from the controlled lfBus
-            firstControlledBusVoltageControl.getControlled().setDiscreteVoltageControl(null);
+            firstDiscreteVoltageControl.getControlled().setDiscreteVoltageControl(null);
         }
     }
 
@@ -404,7 +404,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         if (rtc == null || !rtc.isRegulating() || !rtc.hasLoadTapChangingCapabilities()) {
             return;
         }
-
         LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId);
         if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
             LOGGER.warn("Voltage controller branch {} is open: no voltage control created", controllerBranch.getId());
@@ -420,19 +419,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             return;
         }
 
-        Optional<DiscreteVoltageControl> dvcControlledBus = controlledBus.getDiscreteVoltageControl()
+        Optional<DiscreteVoltageControl> candidateDiscreteVoltageControl = controlledBus.getDiscreteVoltageControl()
             .filter(dvc -> controlledBus.isDiscreteVoltageControlled());
-        if (dvcControlledBus.isPresent()) {
+        if (candidateDiscreteVoltageControl.isPresent()) {
             LOGGER.trace("Controlled bus {} already has a transformer voltage control: a shared control is created", controlledBus.getId());
-            dvcControlledBus.get().addController(controllerBranch);
-            controllerBranch.setDiscreteVoltageControl(dvcControlledBus.get());
+            candidateDiscreteVoltageControl.get().addController(controllerBranch);
+            controllerBranch.setDiscreteVoltageControl(candidateDiscreteVoltageControl.get());
         } else {
             double regulatingTerminalNominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-            DiscreteVoltageControl voltageControl = new DiscreteVoltageControl(controlledBus,
+            DiscreteVoltageControl discreteVoltageControl = new DiscreteVoltageControl(controlledBus,
                 DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
-            voltageControl.addController(controllerBranch);
-            controllerBranch.setDiscreteVoltageControl(voltageControl);
-            controlledBus.setDiscreteVoltageControl(voltageControl);
+            discreteVoltageControl.addController(controllerBranch);
+            controllerBranch.setDiscreteVoltageControl(discreteVoltageControl);
+            controlledBus.setDiscreteVoltageControl(discreteVoltageControl);
         }
     }
 

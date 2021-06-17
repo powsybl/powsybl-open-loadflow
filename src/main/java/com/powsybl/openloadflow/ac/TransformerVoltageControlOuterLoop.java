@@ -35,7 +35,7 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
 
         if (context.getIteration() == 0) {
             List<DiscreteVoltageControl> voltageControlsOn = context.getNetwork().getBuses().stream()
-                .map(bus -> bus.getDiscreteVoltageControl().filter(dpc -> bus.isDiscreteVoltageControlled()))
+                .map(bus -> bus.getDiscreteVoltageControl().filter(dvc -> bus.isDiscreteVoltageControlled()))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toList());
