@@ -20,6 +20,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.DiscreteVoltageControl.Mode;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BusState;
@@ -121,10 +122,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         // system obtained just before the transformer steps rounding.
         if (hasTransformerBusTargetVoltage) {
             for (LfBus bus : lfNetwork.getBuses()) {
-                if (bus.getDiscreteVoltageControl() != null && bus.getDiscreteVoltageControl().getMode().equals(DiscreteVoltageControl.Mode.OFF)) {
-                    // switch on regulating transformers
-                    bus.getDiscreteVoltageControl().setMode(DiscreteVoltageControl.Mode.VOLTAGE);
-                }
+                // switch on regulating transformers
+                bus.getDiscreteVoltageControl().filter(dvc -> dvc.getMode() == Mode.OFF).ifPresent(dvc -> dvc.setMode(Mode.VOLTAGE));
             }
         }
 
@@ -231,10 +230,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             // system obtained just before the transformer steps rounding.
             if (hasTransformerBusTargetVoltage) {
                 for (LfBus bus : lfNetwork.getBuses()) {
-                    if (bus.getDiscreteVoltageControl() != null && bus.getDiscreteVoltageControl().getMode().equals(DiscreteVoltageControl.Mode.OFF)) {
-                        // switch on regulating transformers
-                        bus.getDiscreteVoltageControl().setMode(DiscreteVoltageControl.Mode.VOLTAGE);
-                    }
+                    // switch on regulating transformers
+                    bus.getDiscreteVoltageControl().filter(dvc -> dvc.getMode() == Mode.OFF).ifPresent(dvc -> dvc.setMode(Mode.VOLTAGE));
                 }
             }
 

@@ -241,22 +241,21 @@ public class LfNetwork {
         if (piModel.getA1() != 0) {
             jsonGenerator.writeNumberField("a1", piModel.getA1());
         }
-        if (branch.isPhaseController()) {
-            DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl();
+        branch.getDiscretePhaseControl().filter(dpc -> branch.isPhaseController()).ifPresent(dpc -> {
             try {
                 jsonGenerator.writeFieldName("discretePhaseControl");
                 jsonGenerator.writeStartObject();
-                jsonGenerator.writeStringField("controller", phaseControl.getController().getId());
-                jsonGenerator.writeStringField("controlled", phaseControl.getController().getId());
-                jsonGenerator.writeStringField("mode", phaseControl.getMode().name());
-                jsonGenerator.writeStringField("unit", phaseControl.getUnit().name());
-                jsonGenerator.writeStringField("controlledSide", phaseControl.getControlledSide().name());
-                jsonGenerator.writeNumberField("targetValue", phaseControl.getTargetValue());
+                jsonGenerator.writeStringField("controller", dpc.getController().getId());
+                jsonGenerator.writeStringField("controlled", dpc.getController().getId());
+                jsonGenerator.writeStringField("mode", dpc.getMode().name());
+                jsonGenerator.writeStringField("unit", dpc.getUnit().name());
+                jsonGenerator.writeStringField("controlledSide", dpc.getControlledSide().name());
+                jsonGenerator.writeNumberField("targetValue", dpc.getTargetValue());
                 jsonGenerator.writeEndObject();
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
-        }
+        });
     }
 
     private void writeJson(LfShunt shunt, JsonGenerator jsonGenerator) throws IOException {
