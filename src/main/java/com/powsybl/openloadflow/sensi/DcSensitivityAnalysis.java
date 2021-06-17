@@ -532,7 +532,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX
                 || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
 
-            // DC lines.
+        // DC lines.
         Collection<Pair<LfBus, LccConverterStation>> lccs = new HashSet<>();
         Collection<Pair<LfBus, LfVscConverterStationImpl>> vscs = new HashSet<>();
         for (String hvdcId : contingency.getHvdcIdsToOpen()) {
