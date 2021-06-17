@@ -523,8 +523,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
     }
 
-    private Map<LfBus, BusState> applyContingencyOnNetwork(Network network, LfNetwork lfNetwork, PropagatedContingency contingency,
-                                                           List<ParticipatingElement> participatingElements, LoadFlowParameters lfParameters) {
+    private Map<LfBus, BusState> applyInjectionContingencies(Network network, LfNetwork lfNetwork, PropagatedContingency contingency,
+                                                             List<ParticipatingElement> participatingElements, LoadFlowParameters lfParameters) {
         // it applies on the network the loss of DC lines contained in the contingency.
         // it applies on the network the loss of generators contained in the contingency.
         // Buses state are stored.
@@ -571,7 +571,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             generator.setTargetP(0); // we don't change the slack distribution participation here.
             if (distributedSlackOnGenerators && generator.isParticipating()) {
                 participatingElements.stream().filter(elt -> elt.getElement() == generator).findFirst()
-                    .ifPresent(participatingElements::remove);
+                        .ifPresent(participatingElements::remove);
             }
         }
 
@@ -607,29 +607,26 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             // if we have a contingency including the loss of a generator
             List<ParticipatingElement> saveParticipatingElements = new ArrayList<>(participatingElements);
             Map<LfBus, BusState> busStates = new HashMap<>();
-            busStates = applyContingencyOnNetwork(network, lfNetwork, contingency, participatingElements, lfParameters);
+            busStates = applyInjectionContingencies(network, lfNetwork, contingency, participatingElements, lfParameters);
             DenseMatrix newFlowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, factors, lfParameters,
                     participatingElements, disabledBuses, disabledBranches, reporter);
-            boolean changeParticipatingElements = false;
             DenseMatrix newFactorStates = factorStates;
             if (lfParameters.isDistributedSlack()) {
                 if (!contingency.getGeneratorIdsToLose().isEmpty() && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX
                         || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P)) {
                     normalizeParticipationFactors(participatingElements, "LfGenerators");
-                    changeParticipatingElements = true;
                     newFactorStates = calculateStates(j, equationSystem, factorGroups, participatingElements);
                 }
                 if (!contingency.getHvdcIdsToOpen().isEmpty() && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
                         || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)) {
                     // indeed it should be done only if we have a LCC lost.
                     normalizeParticipationFactors(participatingElements, "LfBus");
-                    changeParticipatingElements = true;
                     newFactorStates = calculateStates(j, equationSystem, factorGroups, participatingElements);
                 }
             }
             calculateSensitivityValues(factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements, contingency, valueWriter);
             BusState.restoreBusStates(busStates);
-            if (changeParticipatingElements) {
+            if (!participatingElements.equals(saveParticipatingElements)) {
                 participatingElements.clear();
                 participatingElements.addAll(saveParticipatingElements);
                 setBaseCaseSensitivityValues(factorGroups, factorStates);
