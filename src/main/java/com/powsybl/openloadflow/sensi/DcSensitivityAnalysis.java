@@ -497,25 +497,22 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     private void processConverterStation(LfNetwork lfNetwork, HvdcConverterStation<?> station,
                                          Collection<Pair<LfBus, LccConverterStation>> lccs, Collection<Pair<LfBus, LfVscConverterStationImpl>> vscs) {
         AbstractLfBus bus = (AbstractLfBus) lfNetwork.getBusById(station.getTerminal().getBusView().getBus().getId());
-        if (bus == null) {
-            return;
-        }
-        if (station instanceof LccConverterStation) {
-            lccs.add(Pair.of(bus, (LccConverterStation) station));
-        } else if (station instanceof VscConverterStation) {
-            vscs.add(Pair.of(bus, bus.getGenerators().stream().filter(LfVscConverterStationImpl.class::isInstance)
-                .map(LfVscConverterStationImpl.class::cast)
-                .filter(lfVscConverterStation -> lfVscConverterStation.getId().equals(station.getId()))
-                .findFirst().orElseThrow()));
+        if (bus != null) {
+            if (station instanceof LccConverterStation) {
+                lccs.add(Pair.of(bus, (LccConverterStation) station));
+            } else if (station instanceof VscConverterStation) {
+                vscs.add(Pair.of(bus, bus.getGenerators().stream().filter(LfVscConverterStationImpl.class::isInstance)
+                        .map(LfVscConverterStationImpl.class::cast)
+                        .filter(lfVscConverterStation -> lfVscConverterStation.getId().equals(station.getId()))
+                        .findFirst().orElseThrow()));
+            }
         }
     }
 
     private void processGenerator(LfNetwork lfNetwork, Generator generator,
                                          Collection<Pair<LfBus, LfGenerator>> generators) {
         AbstractLfBus bus = (AbstractLfBus) lfNetwork.getBusById(generator.getTerminal().getBusView().getBus().getId());
-        if (bus == null) {
-            return;
-        } else {
+        if (bus != null) {
             generators.add(Pair.of(bus, bus.getGenerators().stream().filter(LfGenerator.class::isInstance)
                     .map(LfGenerator.class::cast)
                     .filter(lfGenerator -> lfGenerator.getId().equals(generator.getId()))
@@ -595,7 +592,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     public void calculateContingencySensitivityValues(PropagatedContingency contingency, List<SensitivityFactorGroup> factorGroups, DenseMatrix factorStates, DenseMatrix contingenciesStates,
                                                       DenseMatrix flowStates, Collection<ComputedContingencyElement> contingencyElements, SensitivityValueWriter valueWriter, Network network,
-                                                      LfNetwork lfNetwork, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, JacobianMatrix j, EquationSystem equationSystem,
+                                                      LfNetwork lfNetwork, LoadFlowParameters lfParameters, JacobianMatrix j, EquationSystem equationSystem,
                                                       DcLoadFlowEngine dcLoadFlowEngine, SensitivityFactorHolder factorHolder, List<ParticipatingElement> participatingElements,
                                                       Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches, Reporter reporter) {
         List<LfSensitivityFactor> factors = factorHolder.getFactorsForContingency(contingency.getContingency().getId());
@@ -606,8 +603,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             // if we have a contingency including the loss of a DC line or a generator
             // if we have a contingency including the loss of a generator
             List<ParticipatingElement> saveParticipatingElements = new ArrayList<>(participatingElements);
-            Map<LfBus, BusState> busStates = new HashMap<>();
-            busStates = applyInjectionContingencies(network, lfNetwork, contingency, participatingElements, lfParameters);
+            Map<LfBus, BusState> busStates = applyInjectionContingencies(network, lfNetwork, contingency, participatingElements, lfParameters);
             DenseMatrix newFlowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, factors, lfParameters,
                     participatingElements, disabledBuses, disabledBranches, reporter);
             DenseMatrix newFactorStates = factorStates;
@@ -764,7 +760,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             for (PropagatedContingency contingency : phaseTapChangerContingenciesIndexing.getContingenciesWithoutPhaseTapChangerLoss()) {
                 List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream().map(contingencyElementByBranch::get).collect(Collectors.toList());
                 calculateContingencySensitivityValues(contingency, factorGroups, factorsStates, contingenciesStates, flowStates, contingencyElements, valueWriter,
-                        network, lfNetwork, lfParameters, lfParametersExt, j, equationSystem, dcLoadFlowEngine, factorHolder, participatingElements,
+                        network, lfNetwork, lfParameters, j, equationSystem, dcLoadFlowEngine, factorHolder, participatingElements,
                         Collections.emptyList(), Collections.emptyList(), reporter);
             }
 
@@ -782,7 +778,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 for (PropagatedContingency contingency : propagatedContingencies) {
                     List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream().map(contingencyElementByBranch::get).collect(Collectors.toList());
                     calculateContingencySensitivityValues(contingency, factorGroups, factorsStates, contingenciesStates, flowStates, contingencyElements, valueWriter,
-                            network, lfNetwork, lfParameters, lfParametersExt, j, equationSystem, dcLoadFlowEngine, factorHolder, participatingElements,
+                            network, lfNetwork, lfParameters, j, equationSystem, dcLoadFlowEngine, factorHolder, participatingElements,
                             Collections.emptyList(), removedPhaseTapChangers, reporter);
                 }
             }
@@ -850,7 +846,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 for (PropagatedContingency contingency : phaseTapChangerContingenciesIndexing.getContingenciesWithoutPhaseTapChangerLoss()) {
                     Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream().filter(element -> !elementsToReconnect.contains(element)).map(contingencyElementByBranch::get).collect(Collectors.toList());
                     calculateContingencySensitivityValues(contingency, factorGroups, factorStateForThisConnectivity, contingenciesStates, flowStates, contingencyElements, valueWriter,
-                            network, lfNetwork, lfParameters, lfParametersExt, j, equationSystem, dcLoadFlowEngine, factorHolder, participatingElementsForThisConnectivity,
+                            network, lfNetwork, lfParameters, j, equationSystem, dcLoadFlowEngine, factorHolder, participatingElementsForThisConnectivity,
                             disabledBuses, Collections.emptyList(), reporter);
                 }
 
@@ -868,7 +864,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     for (PropagatedContingency contingency : propagatedContingencies) {
                         Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream().filter(element -> !elementsToReconnect.contains(element)).map(contingencyElementByBranch::get).collect(Collectors.toList());
                         calculateContingencySensitivityValues(contingency, factorGroups, factorStateForThisConnectivity, contingenciesStates, flowStates, contingencyElements, valueWriter,
-                                network, lfNetwork, lfParameters, lfParametersExt, j, equationSystem, dcLoadFlowEngine, factorHolder, participatingElementsForThisConnectivity,
+                                network, lfNetwork, lfParameters, j, equationSystem, dcLoadFlowEngine, factorHolder, participatingElementsForThisConnectivity,
                                 disabledBuses, disabledPhaseTapChangers, reporter);
                     }
                 }
