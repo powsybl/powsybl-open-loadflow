@@ -12,12 +12,12 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.DiscretePhaseControl.Mode;
 import org.jgrapht.Graph;
-import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.OutputStreamWriter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -432,6 +432,9 @@ public final class AcEquationSystem {
         createBranchEquations(network, variableSet, creationParameters, equationSystem);
 
         network.addListener(new AcEquationSystemUpdater(equationSystem, variableSet, creationParameters));
+
+        equationSystem.write(new OutputStreamWriter(System.out));
+        equationSystem.checkConsistency();
 
         return equationSystem;
     }
