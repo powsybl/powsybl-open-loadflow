@@ -218,7 +218,7 @@ public class NodeBreakerNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *  BBS1 -------[+] -------[+]------- BBS3     VL1
      *       B1 [+]        |        [+] B4
      *           |         |         |
-     *           |     L1  |         | L2
+     *        L1 |      L2 |      L3 |
      *           |         |         |
      *       B2 [+]    B3 [+]       [+] B5
      *  BBS4  ---------------------------          VL2
