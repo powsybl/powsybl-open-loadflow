@@ -55,58 +55,75 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     private static void createVoltageControls(LfNetwork lfNetwork, List<LfBus> lfBuses, boolean voltageRemoteControl) {
+        List<VoltageControl> voltageControls = new ArrayList<>();
+
         // set controller -> controlled link
         for (LfBus controllerBus : lfBuses) {
 
             List<LfGenerator> voltageControlGenerators = controllerBus.getGenerators().stream().filter(LfGenerator::hasVoltageControl).collect(Collectors.toList());
             if (!voltageControlGenerators.isEmpty()) {
 
-                checkGeneratorsWithSlope(controllerBus, voltageControlGenerators);
-
                 LfGenerator lfGenerator0 = voltageControlGenerators.get(0);
                 LfBus controlledBus = lfGenerator0.getControlledBus(lfNetwork);
                 double controllerTargetV = lfGenerator0.getTargetV();
 
-                LfBus finalControlledBus = controlledBus;
                 voltageControlGenerators.stream().skip(1).forEach(lfGenerator -> {
                     LfBus generatorControlledBus = lfGenerator.getControlledBus(lfNetwork);
 
                     // check that remote control bus is the same for the generators of current controller bus which have voltage control on
-                    checkUniqueControlledBus(finalControlledBus, generatorControlledBus, controllerBus);
+                    checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus);
 
                     // check that target voltage is the same for the generators of current controller bus which have voltage control on
                     checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
                 });
 
-                if (!voltageRemoteControl && controlledBus != controllerBus) {
+                if (voltageRemoteControl || controlledBus == controllerBus) {
+                    controlledBus.getVoltageControl().ifPresentOrElse(
+                        vc -> updateVoltageControl(vc, controllerBus, controllerTargetV),
+                        () -> createVoltageControl(controlledBus, controllerBus, controllerTargetV, voltageControls));
+                } else {
                     // if voltage remote control deactivated and remote control, set local control instead
                     LOGGER.warn("Remote voltage control is not activated. The voltage target of {} with remote control is rescaled from {} to {}",
                         controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
-                    controlledBus = controllerBus;
+                    createVoltageControl(controllerBus, controllerBus, controllerTargetV, voltageControls);
                 }
-
-                VoltageControl voltageControl = controlledBus.getVoltageControl().orElse(new VoltageControl(controlledBus, controllerTargetV));
-                voltageControl.addControllerBus(controllerBus);
-
-                controlledBus.setVoltageControl(voltageControl); // is set even if already present, for simplicity sake
-                checkUniqueTargetVControlledBus(controllerTargetV, controllerBus, voltageControl); // check even if voltage control just created, for simplicity sake
             }
         }
+
+        voltageControls.forEach(LfNetworkLoaderImpl::checkGeneratorsWithSlope);
     }
 
-    private static void checkGeneratorsWithSlope(LfBus controllerBus, List<LfGenerator> voltageControlGenerators) {
-        if (voltageControlGenerators.size() > 1) {
-            long nbvoltageControlGeneratorsWithSlope = voltageControlGenerators.stream().filter(generator -> generator.getSlope() != 0).count();
-            if (nbvoltageControlGeneratorsWithSlope > 0) {
-                if (nbvoltageControlGeneratorsWithSlope == 1) {
-                    // we don't support a generator controlling voltage with slope and other generators controlling voltage
-                    LOGGER.warn("Non supported: several generators of bus {} control voltage and one controls voltage with slope. Slope is therefore deactivated on those generators.", controllerBus);
-                } else {
-                    // we don't support several generators controlling voltage with slope
-                    LOGGER.warn("Non supported: several generators of bus {} control voltage with slope. Slope is therefore deactivated on those generators.", controllerBus);
-                }
-                voltageControlGenerators.forEach(g -> g.setSlope(0));
-            }
+    private static void createVoltageControl(LfBus controlledBus, LfBus controllerBus, double controllerTargetV, List<VoltageControl> voltageControls) {
+        VoltageControl voltageControl = new VoltageControl(controlledBus, controllerTargetV);
+        voltageControl.addControllerBus(controllerBus);
+        controlledBus.setVoltageControl(voltageControl);
+        voltageControls.add(voltageControl);
+    }
+
+    private static void updateVoltageControl(VoltageControl voltageControl, LfBus controllerBus, double controllerTargetV) {
+        voltageControl.addControllerBus(controllerBus);
+        checkUniqueTargetVControlledBus(controllerTargetV, controllerBus, voltageControl);
+    }
+
+    private static void checkGeneratorsWithSlope(VoltageControl voltageControl) {
+
+        List<LfGenerator> generatorsWithSlope = voltageControl.getControllerBuses().stream()
+            .flatMap(lfBus -> lfBus.getGenerators().stream().filter(generator -> generator.hasVoltageControl() && generator.getSlope() != 0))
+            .collect(Collectors.toList());
+
+        if (generatorsWithSlope.size() > 1) {
+            // we don't support a bus controlled by several generators controlling voltage with slope and other generators controlling voltage
+            generatorsWithSlope.stream().skip(1).forEach(g -> g.setSlope(0));
+            LOGGER.warn("Non supported: {} generators are controlling voltage of bus {} with slope. Slope is kept on first generator {} and deactivated on the others.",
+                generatorsWithSlope.size(), voltageControl.getControlledBus(), generatorsWithSlope.get(0));
+            generatorsWithSlope = Collections.singletonList(generatorsWithSlope.get(0));
+        }
+
+        if (generatorsWithSlope.size() == 1 && generatorsWithSlope.get(0).getBus().getGenerators().stream().filter(LfGenerator::hasVoltageControl).count() > 1) {
+            // we don't support a generator controlling voltage with slope and other generators controlling voltage
+            generatorsWithSlope.get(0).setSlope(0);
+            LOGGER.warn("Non supported: several generators of bus {} control voltage and one controls voltage with slope. Slope is therefore deactivated on those generators.",
+                generatorsWithSlope.get(0).getBus());
         }
     }
 
