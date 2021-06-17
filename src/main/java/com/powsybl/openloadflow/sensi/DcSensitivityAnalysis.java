@@ -599,41 +599,41 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                                                       DcLoadFlowEngine dcLoadFlowEngine, SensitivityFactorHolder factorHolder, List<ParticipatingElement> participatingElements,
                                                       Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches, Reporter reporter) {
         List<LfSensitivityFactor> factors = factorHolder.getFactorsForContingency(contingency.getContingency().getId());
-        List<ParticipatingElement> saveParticipatingElements = new ArrayList<>(participatingElements);
-        Map<LfBus, BusState> busStates = new HashMap<>();
-        if (!contingency.getHvdcIdsToOpen().isEmpty() || !contingency.getGeneratorIdsToLose().isEmpty()) {
+        if (contingency.getHvdcIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty()) {
+            calculateSensitivityValues(factors, factorStates, contingenciesStates, flowStates, contingencyElements,
+                    contingency, valueWriter);
+        } else {
             // if we have a contingency including the loss of a DC line or a generator
             // if we have a contingency including the loss of a generator
+            List<ParticipatingElement> saveParticipatingElements = new ArrayList<>(participatingElements);
+            Map<LfBus, BusState> busStates = new HashMap<>();
             busStates = applyContingencyOnNetwork(network, lfNetwork, contingency, participatingElements, lfParameters);
-        }
-        boolean changeParticipatingElements = false;
-        if (!contingency.getGeneratorIdsToLose().isEmpty() && !participatingElements.equals(saveParticipatingElements)) {
-            normalizeParticipationFactors(participatingElements, "LfGenerators");
-            changeParticipatingElements = true;
-        }
-        if (!contingency.getHvdcIdsToOpen().isEmpty() && lfParameters.isDistributedSlack()
-                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
-                || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)) {
-            // indeed it should be done only if we have a LCC lost.
-            normalizeParticipationFactors(participatingElements, "LfBus");
-            changeParticipatingElements = true;
-        }
-        DenseMatrix contingencyFactorStates = factorStates;
-        if (changeParticipatingElements) {
-            contingencyFactorStates = calculateStates(j, equationSystem, factorGroups, participatingElements);
-        }
-        DenseMatrix contingencyFlowStates = flowStates;
-        if (!contingency.getHvdcIdsToOpen().isEmpty() || !contingency.getGeneratorIdsToLose().isEmpty()) {
-            contingencyFlowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, factors, lfParameters, participatingElements, disabledBuses, disabledBranches, reporter);
-        }
-        calculateSensitivityValues(factors, contingencyFactorStates, contingenciesStates, contingencyFlowStates, contingencyElements,
-                contingency, valueWriter);
-
-        BusState.restoreBusStates(busStates);
-        if (changeParticipatingElements) {
-            participatingElements.clear();
-            participatingElements.addAll(saveParticipatingElements);
-            setBaseCaseSensitivityValues(factorGroups, factorStates);
+            DenseMatrix newFlowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, factors, lfParameters,
+                    participatingElements, disabledBuses, disabledBranches, reporter);
+            boolean changeParticipatingElements = false;
+            DenseMatrix newFactorStates = factorStates;
+            if (lfParameters.isDistributedSlack()) {
+                if (!contingency.getGeneratorIdsToLose().isEmpty() && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX
+                        || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P)) {
+                    normalizeParticipationFactors(participatingElements, "LfGenerators");
+                    changeParticipatingElements = true;
+                    newFactorStates = calculateStates(j, equationSystem, factorGroups, participatingElements);
+                }
+                if (!contingency.getHvdcIdsToOpen().isEmpty() && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
+                        || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)) {
+                    // indeed it should be done only if we have a LCC lost.
+                    normalizeParticipationFactors(participatingElements, "LfBus");
+                    changeParticipatingElements = true;
+                    newFactorStates = calculateStates(j, equationSystem, factorGroups, participatingElements);
+                }
+            }
+            calculateSensitivityValues(factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements, contingency, valueWriter);
+            BusState.restoreBusStates(busStates);
+            if (changeParticipatingElements) {
+                participatingElements.clear();
+                participatingElements.addAll(saveParticipatingElements);
+                setBaseCaseSensitivityValues(factorGroups, factorStates);
+            }
         }
     }
 
