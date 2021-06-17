@@ -28,9 +28,7 @@ class NonImpedantBranchWithBreakerIssueTest {
 
     @Test
     void busBreakerAndNonImpedantBranchIssue() {
-        Network network = NodeBreakerNetworkFactory.create3Bars();
-        network.getSwitch("C1").setRetained(true);
-        network.getSwitch("C2").setRetained(true);
+        Network network = NodeBreakerNetworkFactory.create3barsAndJustOneVoltageLevel();
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         boolean breakers = true;
         LfNetworkParameters networkParameters = new LfNetworkParameters(slackBusSelector, false, false, false, breakers,

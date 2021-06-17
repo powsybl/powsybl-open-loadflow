@@ -278,4 +278,50 @@ public class NodeBreakerNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         return network;
     }
+
+    /**
+     *
+     * <pre>
+     *             G1 (3)                      G2 (4)
+     *             |    C1    BBS2 (1)   C2    |
+     *  BBS1 (0) -------[+] ------------[+]------- BBS3 (2)
+     *                           |
+     *                           LD (5)
+     *</pre>
+     *
+     * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+     */
+    public static Network create3barsAndJustOneVoltageLevel() {
+        Network network = Network.create("test", "test");
+        Substation s = network.newSubstation()
+                .setId("S")
+                .add();
+        VoltageLevel vl1 = s.newVoltageLevel()
+                .setId("VL1")
+                .setNominalV(400)
+                .setLowVoltageLimit(370.)
+                .setHighVoltageLimit(420.)
+                .setTopologyKind(TopologyKind.NODE_BREAKER)
+                .add();
+        createBar(vl1, "BBS1", 0);
+        createBar(vl1, "BBS2", 1);
+        createBar(vl1, "BBS3", 2);
+        createBreaker(vl1, "C1", 0, 1);
+        createBreaker(vl1, "C2", 1, 2);
+        network.getSwitch("C1").setRetained(true);
+        network.getSwitch("C2").setRetained(true);
+        createGenerator(vl1, "G1", 3, 400, 400, 0);
+        createConnection(vl1, 0, 3);
+        createGenerator(vl1, "G2", 4, 400, 200, 0);
+        createConnection(vl1, 2, 4);
+        vl1.newLoad()
+                .setId("LD")
+                .setNode(5)
+                .setP0(600.0)
+                .setQ0(200.0)
+                .add();
+        createConnection(vl1, 1, 5);
+
+        return network;
+    }
 }

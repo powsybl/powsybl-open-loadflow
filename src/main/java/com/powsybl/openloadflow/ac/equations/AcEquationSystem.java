@@ -406,15 +406,6 @@ public final class AcEquationSystem {
         // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph
         Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.createZeroImpedanceSubGraph();
         if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
-            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(zeroImpedanceSubGraph).connectedSets();
-            for (Set<LfBus> connectedSet : connectedSets) {
-                if (connectedSet.size() > 2 && connectedSet.stream().filter(LfBus::isVoltageControllerEnabled).count() > 1) {
-                    String problBuses = connectedSet.stream().map(LfBus::getId).collect(Collectors.joining(", "));
-                    throw new PowsyblException(
-                        "Zero impedance branches that connect at least two buses with voltage control (buses: " + problBuses + ")");
-                }
-            }
-
             SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(zeroImpedanceSubGraph).getSpanningTree();
             for (LfBranch branch : spanningTree.getEdges()) {
                 createNonImpedantBranch(variableSet, equationSystem, branch, branch.getBus1(), branch.getBus2());
