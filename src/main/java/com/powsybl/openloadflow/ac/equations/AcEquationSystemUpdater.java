@@ -6,7 +6,10 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationType;
+import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.List;
@@ -95,7 +98,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V)
                     .setActive(false);
 
-            for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
+            for (LfBranch controllerBranch : voltageControl.getControllers()) {
                 // activate constant R1 equation
                 equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
                         .setActive(true);
@@ -110,9 +113,9 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                     .setActive(true);
 
             // add transformer distribution equations
-            AcEquationSystem.createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
+            AcEquationSystem.createR1DistributionEquations(equationSystem, variableSet, voltageControl.getControllers());
 
-            for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
+            for (LfBranch controllerBranch : voltageControl.getControllers()) {
                 // de-activate constant R1 equation
                 equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
                         .setActive(false);

@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -53,7 +54,7 @@ public interface LfBranch extends LfElement {
 
     boolean hasPhaseControlCapability();
 
-    DiscretePhaseControl getDiscretePhaseControl();
+    Optional<DiscretePhaseControl> getDiscretePhaseControl();
 
     void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn);
 
@@ -65,7 +66,7 @@ public interface LfBranch extends LfElement {
 
     void setDiscretePhaseControl(DiscretePhaseControl discretePhaseControl);
 
-    DiscreteVoltageControl getDiscreteVoltageControl();
+    Optional<DiscreteVoltageControl> getDiscreteVoltageControl();
 
     boolean isVoltageController();
 

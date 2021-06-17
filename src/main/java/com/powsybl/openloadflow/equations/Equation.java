@@ -123,10 +123,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     private static double getBusTargetV(LfBus bus) {
         Objects.requireNonNull(bus);
-        if (bus.isDiscreteVoltageControlled()) {
-            return bus.getDiscreteVoltageControl().getTargetValue();
-        }
-        return getVoltageControlledTargetValue(bus).orElse(Double.NaN);
+        return bus.getDiscreteVoltageControl().filter(dvc -> bus.isDiscreteVoltageControlled())
+            .map(DiscreteVoltageControl::getTargetValue)
+            .orElse(getVoltageControlledTargetValue(bus).orElse(Double.NaN));
     }
 
     private static Optional<Double> getVoltageControlledTargetValue(LfBus bus) {
@@ -146,14 +145,14 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     private static double getBranchTarget(LfBranch branch, DiscretePhaseControl.Unit unit) {
         Objects.requireNonNull(branch);
-        if (!branch.isPhaseControlled()) {
+        Optional<DiscretePhaseControl> phaseControl = branch.getDiscretePhaseControl().filter(dpc -> branch.isPhaseControlled());
+        if (phaseControl.isEmpty()) {
             throw new PowsyblException("Branch '" + branch.getId() + "' is not phase-controlled");
         }
-        DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl();
-        if (phaseControl.getUnit() != unit) {
+        if (phaseControl.get().getUnit() != unit) {
             throw new PowsyblException("Branch '" + branch.getId() + "' has not a target in " + unit);
         }
-        return phaseControl.getTargetValue();
+        return phaseControl.get().getTargetValue();
     }
 
     private static double getReactivePowerDistributionTarget(LfNetwork network, int num, DistributionData data) {

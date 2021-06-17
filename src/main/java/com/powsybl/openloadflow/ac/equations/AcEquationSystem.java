@@ -10,6 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.DiscretePhaseControl.Mode;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
@@ -113,7 +114,7 @@ public final class AcEquationSystem {
                 }
             } else {
                 boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
-                    && branch.getDiscretePhaseControl().getMode() == DiscretePhaseControl.Mode.CONTROLLER;
+                    && branch.getDiscretePhaseControl().filter(dpc -> dpc.getMode() == Mode.CONTROLLER).isPresent();
                 boolean deriveR1 = creationParameters.isTransformerVoltageControl() && branch.isVoltageController();
                 if (branch.getBus1() == controllerBus) {
                     LfBus otherSideBus = branch.getBus2();
@@ -244,41 +245,43 @@ public final class AcEquationSystem {
 
     private static void createBranchActivePowerTargetEquation(LfBranch branch, DiscretePhaseControl.ControlledSide controlledSide,
                                                               EquationSystem equationSystem, VariableSet variableSet, EquationTerm p) {
-        if (branch.isPhaseControlled(controlledSide)) {
-            DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl();
-            if (phaseControl.getMode() == DiscretePhaseControl.Mode.CONTROLLER) {
-                if (phaseControl.getUnit() == DiscretePhaseControl.Unit.A) {
+        branch.getDiscretePhaseControl()
+            .filter(dpc -> branch.isPhaseControlled(controlledSide) && dpc.getMode() == Mode.CONTROLLER)
+            .ifPresent(dpc -> {
+                if (dpc.getUnit() == DiscretePhaseControl.Unit.A) {
                     throw new PowsyblException("Phase control in A is not yet supported");
                 }
                 equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_P).addTerm(p);
 
                 // we also create an equation that will be used later to maintain A1 variable constant
                 // this equation is now inactive
-                LfBranch controller = phaseControl.getController();
+                LfBranch controller = dpc.getController();
                 equationSystem.createEquation(controller.getNum(), EquationType.BRANCH_ALPHA1)
                         .addTerm(EquationTerm.createVariableTerm(controller, VariableType.BRANCH_ALPHA1, variableSet))
                         .setActive(false);
-            }
-        }
+            });
     }
 
     private static void createDiscreteVoltageControlEquation(LfBus bus,  VariableSet variableSet, EquationSystem equationSystem) {
-        if (bus.isDiscreteVoltageControlled()) {
-            EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
-            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
-            bus.setV(vTerm);
+        bus.getDiscreteVoltageControl()
+            .filter(dvc -> bus.isDiscreteVoltageControlled())
+            .map(DiscreteVoltageControl::getControllers)
+            .ifPresent(controllers -> {
+                EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
+                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
+                bus.setV(vTerm);
 
-            // add transformer distribution equations
-            createR1DistributionEquations(equationSystem, variableSet, bus.getDiscreteVoltageControl().getControllers());
+                // add transformer distribution equations
+                createR1DistributionEquations(equationSystem, variableSet, controllers);
 
-            for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
-                // we also create an equation that will be used later to maintain R1 variable constant
-                // this equation is now inactive
-                equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
+                for (LfBranch controllerBranch : controllers) {
+                    // we also create an equation that will be used later to maintain R1 variable constant
+                    // this equation is now inactive
+                    equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
                         .addTerm(EquationTerm.createVariableTerm(controllerBranch, VariableType.BRANCH_RHO1, variableSet))
                         .setActive(false);
-            }
-        }
+                }
+            });
     }
 
     public static void createR1DistributionEquations(EquationSystem equationSystem, VariableSet variableSet,
@@ -308,7 +311,7 @@ public final class AcEquationSystem {
         EquationTerm i1 = null;
         EquationTerm i2 = null;
         boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
-                && branch.getDiscretePhaseControl().getMode() == DiscretePhaseControl.Mode.CONTROLLER;
+                && branch.getDiscretePhaseControl().filter(dpc -> dpc.getMode() == DiscretePhaseControl.Mode.CONTROLLER).isPresent();
         deriveA1 = deriveA1 || (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability());
         boolean createCurrent = creationParameters.getBranchesWithCurrent() == null || creationParameters.getBranchesWithCurrent().contains(branch.getId());
         boolean deriveR1 = creationParameters.isTransformerVoltageControl() && branch.isVoltageController();
