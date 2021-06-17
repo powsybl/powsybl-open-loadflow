@@ -437,8 +437,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public DiscreteVoltageControl getDiscreteVoltageControl() {
-        return discreteVoltageControl;
+    public Optional<DiscreteVoltageControl> getDiscreteVoltageControl() {
+        return Optional.ofNullable(discreteVoltageControl);
     }
 
     @Override

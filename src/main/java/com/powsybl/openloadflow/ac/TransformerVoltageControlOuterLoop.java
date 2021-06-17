@@ -10,12 +10,13 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.DiscreteVoltageControl;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -31,28 +32,34 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
 
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
-        OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         if (context.getIteration() == 0) {
-            for (LfBus bus : context.getNetwork().getBuses()) {
-                if (bus.isDiscreteVoltageControlled()) {
-                    // switch off regulating transformers
-                    bus.getDiscreteVoltageControl().setMode(DiscreteVoltageControl.Mode.OFF);
+            List<DiscreteVoltageControl> voltageControlsOn = context.getNetwork().getBuses().stream()
+                .map(bus -> bus.getDiscreteVoltageControl().filter(dvc -> bus.isDiscreteVoltageControlled()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
 
-                    for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
-                        // round the rho shift to the closest tap
-                        PiModel piModel = controllerBranch.getPiModel();
-                        double r1Value = piModel.getR1();
-                        piModel.roundR1ToClosestTap();
-                        double roundedR1Value = piModel.getR1();
-                        LOGGER.trace("Round voltage shift of '{}': {} -> {}", controllerBranch.getId(), r1Value, roundedR1Value);
-                    }
+            // switch off regulating transformers
+            voltageControlsOn.forEach(this::switchOffVoltageControl);
 
-                    // if at least one transformer has been switched off wee need to continue
-                    status = OuterLoopStatus.UNSTABLE;
-                }
-            }
+            // if at least one transformer has been switched off wee need to continue
+            return voltageControlsOn.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
         }
-        return status;
+
+        return OuterLoopStatus.STABLE;
+    }
+
+    private void switchOffVoltageControl(DiscreteVoltageControl dvc) {
+        dvc.setMode(DiscreteVoltageControl.Mode.OFF);
+
+        for (LfBranch controllerBranch : dvc.getControllers()) {
+            // round the rho shift to the closest tap
+            PiModel piModel = controllerBranch.getPiModel();
+            double r1Value = piModel.getR1();
+            piModel.roundR1ToClosestTap();
+            double roundedR1Value = piModel.getR1();
+            LOGGER.trace("Round voltage shift of '{}': {} -> {}", controllerBranch.getId(), r1Value, roundedR1Value);
+        }
     }
 }
