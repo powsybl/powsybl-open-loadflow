@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -101,18 +102,17 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits1() {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public List<LfLimit> getLimits2() {
-        return Collections.emptyList();
-    }
-
-    @Override
     public BranchResult createBranchResult() {
         throw new PowsyblException("Unsupported type of branch for branch result: " + aSwitch.getId());
+    }
+
+    public List<LfLimit> getLimits1(final LimitType type) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<LfLimit> getLimits2(final LimitType type) {
+        return Collections.emptyList();
     }
 
     @Override
