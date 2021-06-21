@@ -112,24 +112,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     private static void checkGeneratorsWithSlope(VoltageControl voltageControl) {
-
         List<LfGenerator> generatorsWithSlope = voltageControl.getControllerBuses().stream()
             .flatMap(lfBus -> lfBus.getGenerators().stream().filter(generator -> generator.hasVoltageControl() && generator.getSlope() != 0))
             .collect(Collectors.toList());
 
-        if (generatorsWithSlope.size() > 1) {
-            // we don't support a bus controlled by several generators controlling voltage with slope and other generators controlling voltage
-            generatorsWithSlope.stream().skip(1).forEach(g -> g.setSlope(0));
-            LOGGER.warn("Non supported: {} generators are controlling voltage of bus {} with slope. Slope is kept on first generator {} and deactivated on the others.",
-                generatorsWithSlope.size(), voltageControl.getControlledBus(), generatorsWithSlope.get(0));
-            generatorsWithSlope = Collections.singletonList(generatorsWithSlope.get(0));
-        }
-
-        if (generatorsWithSlope.size() == 1 && generatorsWithSlope.get(0).getBus().getGenerators().stream().filter(LfGenerator::hasVoltageControl).count() > 1) {
-            // we don't support a generator controlling voltage with slope and other generators controlling voltage
-            generatorsWithSlope.get(0).setSlope(0);
-            LOGGER.warn("Non supported: several generators of bus {} control voltage and one controls voltage with slope. Slope is therefore deactivated on those generators.",
-                generatorsWithSlope.get(0).getBus());
+        if (!generatorsWithSlope.isEmpty() && voltageControl.isSharedControl()) {
+            generatorsWithSlope.forEach(generator -> generator.setSlope(0));
+            LOGGER.warn("Non supported: shared control on bus {} with {} generator(s) controlling voltage with slope. Slope set to 0 on all those generators.",
+                voltageControl.getControlledBus(), generatorsWithSlope.size());
         }
     }
 

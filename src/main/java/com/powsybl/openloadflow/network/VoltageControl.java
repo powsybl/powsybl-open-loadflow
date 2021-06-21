@@ -51,4 +51,12 @@ public class VoltageControl {
     public boolean isVoltageControlLocal() {
         return controllers.size() == 1 && controllers.contains(controlled);
     }
+
+    /**
+     * Check if the voltage control is shared
+     * @return true if the voltage control is shared, false otherwise
+     */
+    public boolean isSharedControl() {
+        return controllers.stream().flatMap(lfBus -> lfBus.getGenerators().stream()).filter(LfGenerator::hasVoltageControl).count() > 1;
+    }
 }
