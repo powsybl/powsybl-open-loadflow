@@ -25,7 +25,8 @@
         "loadPowerFactorConstant" : false,
         "plausibleActivePowerLimit" : 10000.0,
         "addRatioToLinesWithDifferentNominalVoltageAtBothEnds" : false,
-        "slackBusPMaxMismatch" : 1.0
+        "slackBusPMaxMismatch" : 1.0,
+        "voltagePerReactivePowerControl" : false
       }
     }
   },
