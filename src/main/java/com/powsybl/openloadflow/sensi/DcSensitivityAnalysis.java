@@ -547,9 +547,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
 
         Collection<LfBus> busesToSave = new HashSet<>();
-        busesToSave.addAll(lccs.stream().map(Pair::getKey).collect(Collectors.toSet()));
-        busesToSave.addAll(vscs.stream().map(LfGenerator::getBus).collect(Collectors.toSet()));
-        busesToSave.addAll(generators.stream().map(LfGenerator::getBus).collect(Collectors.toSet()));
+        lccs.stream().map(Pair::getKey).forEach(busesToSave::add);
+        vscs.stream().map(LfGenerator::getBus).forEach(busesToSave::add);
+        generators.stream().map(LfGenerator::getBus).forEach(busesToSave::add);
 
         Map<LfBus, BusState> busStates = BusState.createBusStates(busesToSave);
 
