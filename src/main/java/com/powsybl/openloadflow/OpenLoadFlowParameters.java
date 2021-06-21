@@ -135,7 +135,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public boolean hasVoltagePerReactivePowerControl() {
+    public boolean isVoltagePerReactivePowerControl() {
         return voltagePerReactivePowerControl;
     }
 

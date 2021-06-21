@@ -58,7 +58,7 @@ public class AcLoadFlowParameters {
 
     private final boolean distributedOnConformLoad;
 
-    private boolean voltagePerReactivePowerControl;
+    private final boolean voltagePerReactivePowerControl;
 
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
