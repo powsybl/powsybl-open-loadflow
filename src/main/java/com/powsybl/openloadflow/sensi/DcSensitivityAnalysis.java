@@ -521,8 +521,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
     }
 
-    private Map<LfBus, BusState> applyInjectionContingencies(Network network, LfNetwork lfNetwork, PropagatedContingency contingency,
-                                                             List<ParticipatingElement> participatingElements, LoadFlowParameters lfParameters) {
+    private void applyInjectionContingencies(Network network, LfNetwork lfNetwork, PropagatedContingency contingency,
+                                             List<ParticipatingElement> participatingElements, Map<LfBus, BusState> busStates,
+                                             LoadFlowParameters lfParameters) {
         // it applies on the network the loss of DC lines contained in the contingency.
         // it applies on the network the loss of generators contained in the contingency.
         // Buses state are stored.
@@ -551,7 +552,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         vscs.stream().map(LfGenerator::getBus).forEach(busesToSave::add);
         generators.stream().map(LfGenerator::getBus).forEach(busesToSave::add);
 
-        Map<LfBus, BusState> busStates = BusState.createBusStates(busesToSave);
+        BusState.addBusStates(busesToSave, busStates);
 
         for (Pair<LfBus, LccConverterStation> busAndlcc : lccs) {
             LfBus bus = busAndlcc.getKey();
@@ -572,7 +573,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             }
         }
 
-        return busStates;
     }
 
     public DenseMatrix calculateStates(JacobianMatrix j, EquationSystem equationSystem,
@@ -603,7 +603,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             // if we have a contingency including the loss of a DC line or a generator
             // if we have a contingency including the loss of a generator
             List<ParticipatingElement> saveParticipatingElements = new ArrayList<>(participatingElements);
-            Map<LfBus, BusState> busStates = applyInjectionContingencies(network, lfNetwork, contingency, participatingElements, lfParameters);
+            Map<LfBus, BusState> busStates = new HashMap<>();
+            applyInjectionContingencies(network, lfNetwork, contingency, participatingElements, busStates, lfParameters);
             DenseMatrix newFlowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, factors, lfParameters,
                     participatingElements, disabledBuses, disabledBranches, reporter);
             DenseMatrix newFactorStates = factorStates;
