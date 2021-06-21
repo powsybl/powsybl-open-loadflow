@@ -44,6 +44,10 @@ public class VoltageControl {
         controllerBus.setVoltageControl(this);
     }
 
+    /**
+     * Check if the voltage control is ONLY local
+     * @return true if the voltage control is ONLY local, false otherwise
+     */
     public boolean isVoltageControlLocal() {
         return controllers.size() == 1 && controllers.contains(controlled);
     }

@@ -60,7 +60,7 @@ public final class AcEquationSystem {
                                                       EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
         if (voltageControl.isVoltageControlLocal()) {
             EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
-            if (creationParameters.isVoltagePerReactivePowerControl() && voltageControl.getControllerBuses().size() == 1) {
+            if (creationParameters.isVoltagePerReactivePowerControl()) {
                 Optional<LfGenerator> generatorControllingVoltageWithSlope = bus.getGeneratorControllingVoltageWithSlope();
                 if (generatorControllingVoltageWithSlope.isPresent()) {
                     double slope = generatorControllingVoltageWithSlope.get().getSlope();

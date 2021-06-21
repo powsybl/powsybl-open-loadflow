@@ -45,7 +45,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             .filter(LfBus::isVoltageControllerEnabled)
             .collect(Collectors.toList());
 
-        if (creationParameters.isVoltagePerReactivePowerControl() && voltageControl.getControllerBuses().size() == 1 && voltageControl.isVoltageControlLocal()
+        if (creationParameters.isVoltagePerReactivePowerControl() && voltageControl.isVoltageControlLocal()
                 && controllerBuses.iterator().next().getGeneratorControllingVoltageWithSlope().isPresent()) {
             LfBus controllerBus = voltageControl.getControllerBuses().iterator().next();
             if (!controllerBus.isVoltageControllerEnabled()) {
