@@ -27,6 +27,7 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.AbstractLfBus;
+import com.powsybl.openloadflow.network.impl.LfGeneratorImpl;
 import com.powsybl.openloadflow.network.impl.LfVscConverterStationImpl;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BranchState;
@@ -495,28 +496,28 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     }
 
     private void processConverterStation(LfNetwork lfNetwork, HvdcConverterStation<?> station,
-                                         Collection<Pair<LfBus, LccConverterStation>> lccs, Collection<Pair<LfBus, LfVscConverterStationImpl>> vscs) {
+                                         Collection<Pair<LfBus, LccConverterStation>> lccs, Collection<LfVscConverterStationImpl> vscs) {
         AbstractLfBus bus = (AbstractLfBus) lfNetwork.getBusById(station.getTerminal().getBusView().getBus().getId());
         if (bus != null) {
             if (station instanceof LccConverterStation) {
                 lccs.add(Pair.of(bus, (LccConverterStation) station));
             } else if (station instanceof VscConverterStation) {
-                vscs.add(Pair.of(bus, bus.getGenerators().stream().filter(LfVscConverterStationImpl.class::isInstance)
+                vscs.add(bus.getGenerators().stream().filter(LfVscConverterStationImpl.class::isInstance)
                         .map(LfVscConverterStationImpl.class::cast)
                         .filter(lfVscConverterStation -> lfVscConverterStation.getId().equals(station.getId()))
-                        .findFirst().orElseThrow()));
+                        .findFirst().orElseThrow());
             }
         }
     }
 
     private void processGenerator(LfNetwork lfNetwork, Generator generator,
-                                         Collection<Pair<LfBus, LfGenerator>> generators) {
+                                  Collection<LfGeneratorImpl> generators) {
         AbstractLfBus bus = (AbstractLfBus) lfNetwork.getBusById(generator.getTerminal().getBusView().getBus().getId());
         if (bus != null) {
-            generators.add(Pair.of(bus, bus.getGenerators().stream().filter(LfGenerator.class::isInstance)
-                    .map(LfGenerator.class::cast)
+            generators.add(bus.getGenerators().stream().filter(LfGeneratorImpl.class::isInstance)
+                    .map(LfGeneratorImpl.class::cast)
                     .filter(lfGenerator -> lfGenerator.getId().equals(generator.getId()))
-                    .findFirst().orElseThrow()));
+                    .findFirst().orElseThrow());
         }
     }
 
@@ -531,14 +532,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         // DC lines.
         Collection<Pair<LfBus, LccConverterStation>> lccs = new HashSet<>();
-        Collection<Pair<LfBus, LfVscConverterStationImpl>> vscs = new HashSet<>();
+        Collection<LfVscConverterStationImpl> vscs = new HashSet<>();
         for (String hvdcId : contingency.getHvdcIdsToOpen()) {
             HvdcLine hvdcLine = network.getHvdcLine(hvdcId);
             processConverterStation(lfNetwork, hvdcLine.getConverterStation1(), lccs, vscs);
             processConverterStation(lfNetwork, hvdcLine.getConverterStation2(), lccs, vscs);
         }
+
         // generators.
-        Collection<Pair<LfBus, LfGenerator>> generators = new HashSet<>();
+        Collection<LfGeneratorImpl> generators = new HashSet<>();
         for (String generatorId : contingency.getGeneratorIdsToLose()) {
             Generator generator = network.getGenerator(generatorId);
             processGenerator(lfNetwork, generator, generators);
@@ -546,8 +548,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
         Collection<LfBus> busesToSave = new HashSet<>();
         busesToSave.addAll(lccs.stream().map(Pair::getKey).collect(Collectors.toSet()));
-        busesToSave.addAll(vscs.stream().map(Pair::getKey).collect(Collectors.toSet()));
-        busesToSave.addAll(generators.stream().map(Pair::getKey).collect(Collectors.toSet()));
+        busesToSave.addAll(vscs.stream().map(LfGenerator::getBus).collect(Collectors.toSet()));
+        busesToSave.addAll(generators.stream().map(LfGenerator::getBus).collect(Collectors.toSet()));
 
         Map<LfBus, BusState> busStates = BusState.createBusStates(busesToSave);
 
@@ -558,13 +560,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             bus.setLoadTargetP(bus.getLoadTargetP() - AbstractLfBus.getLccConverterStationLoadTargetP(lcc, line) / PerUnit.SB);
         }
 
-        for (Pair<LfBus, LfVscConverterStationImpl> busAndVsc : vscs) {
-            LfVscConverterStationImpl vsc = busAndVsc.getValue();
+        for (LfVscConverterStationImpl vsc : vscs) {
             vsc.setTargetP(0);
         }
 
-        for (Pair<LfBus, LfGenerator> busAndgenerator : generators) {
-            LfGenerator generator = busAndgenerator.getValue();
+        for (LfGeneratorImpl generator : generators) {
             generator.setTargetP(0); // we don't change the slack distribution participation here.
             if (distributedSlackOnGenerators && generator.isParticipating()) {
                 participatingElements.stream().filter(elt -> elt.getElement() == generator).findFirst()
