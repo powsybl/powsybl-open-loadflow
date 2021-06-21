@@ -59,19 +59,7 @@ public final class AcEquationSystem {
     private static void createVoltageControlEquations(VoltageControl voltageControl, LfBus bus, VariableSet variableSet,
                                                       EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
         if (voltageControl.isVoltageControlLocal()) {
-            EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
-            if (creationParameters.isVoltagePerReactivePowerControl()) {
-                Optional<LfGenerator> generatorControllingVoltageWithSlope = bus.getGeneratorControllingVoltageWithSlope();
-                if (generatorControllingVoltageWithSlope.isPresent()) {
-                    double slope = generatorControllingVoltageWithSlope.get().getSlope();
-                    createBusWithSlopeEquation(bus, slope, creationParameters, variableSet, equationSystem, vTerm);
-                } else {
-                    equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
-                }
-            } else {
-                equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
-            }
-            bus.setV(vTerm);
+            createVoltageControlLocalEquation(bus, variableSet, equationSystem, creationParameters);
         } else if (bus.isVoltageControlled()) {
             // remote controlled: set voltage equation on this controlled bus
             createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet, creationParameters);
@@ -80,6 +68,20 @@ public final class AcEquationSystem {
         if (bus.isVoltageControllerEnabled()) {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
         }
+    }
+
+    private static void createVoltageControlLocalEquation(LfBus bus, VariableSet variableSet, EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
+        EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
+        bus.setV(vTerm);
+        if (creationParameters.isVoltagePerReactivePowerControl()) {
+            List<LfGenerator> generatorControllingVoltageWithSlope = bus.getGeneratorsControllingVoltageWithSlope();
+            if (!generatorControllingVoltageWithSlope.isEmpty()) {
+                double slope = generatorControllingVoltageWithSlope.get(0).getSlope();
+                createBusWithSlopeEquation(bus, slope, creationParameters, variableSet, equationSystem, vTerm);
+                return;
+            }
+        }
+        equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
     }
 
     private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus) {

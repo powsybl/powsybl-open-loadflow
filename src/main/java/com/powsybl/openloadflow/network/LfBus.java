@@ -32,7 +32,7 @@ public interface LfBus extends LfElement {
 
     boolean isVoltageControlled();
 
-    Optional<LfGenerator> getGeneratorControllingVoltageWithSlope();
+    List<LfGenerator> getGeneratorsControllingVoltageWithSlope();
 
     /**
      * Get the number of time, voltage control status has be set from true to false.

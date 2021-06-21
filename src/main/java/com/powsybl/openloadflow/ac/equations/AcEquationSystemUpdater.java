@@ -46,8 +46,8 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             .collect(Collectors.toList());
 
         if (creationParameters.isVoltagePerReactivePowerControl() && voltageControl.isVoltageControlLocal()
-                && controllerBuses.iterator().next().getGeneratorControllingVoltageWithSlope().isPresent()) {
-            LfBus controllerBus = voltageControl.getControllerBuses().iterator().next();
+                && !controllerBuses.iterator().next().getGeneratorsControllingVoltageWithSlope().isEmpty()) {
+            LfBus controllerBus = controllerBuses.iterator().next();
             if (!controllerBus.isVoltageControllerEnabled()) {
                 // we only support one controlling static var compensator without any other controlling generators
                 equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V_SLOPE).setActive(false);
