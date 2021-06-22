@@ -849,9 +849,9 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(1, result.getSensitivityValuesContingencies().size());
         List<SensitivityValue> contingencyResult = result.getSensitivityValuesContingencies().get("g6");
         assertEquals(3, contingencyResult.size());
-        assertEquals(0, getValue(contingencyResult, "g2", "l12"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0, getValue(contingencyResult, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0, getValue(contingencyResult, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.1333, getValue(contingencyResult, "g2", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.1333, getValue(contingencyResult, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.2667, getValue(contingencyResult, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
 
         assertEquals(-4d / 3d, getFunctionReference(contingencyResult, "l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(1d / 3d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
