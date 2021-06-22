@@ -522,7 +522,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     }
 
     private void applyInjectionContingencies(Network network, LfNetwork lfNetwork, PropagatedContingency contingency,
-                                             Set<LfGenerator> participatingGeneratorToRemove, Map<LfBus, BusState> busStates,
+                                             Set<LfGenerator> participatingGeneratorsToRemove, Map<LfBus, BusState> busStates,
                                              LoadFlowParameters lfParameters) {
         // it applies on the network the loss of DC lines contained in the contingency.
         // it applies on the network the loss of generators contained in the contingency.
@@ -566,7 +566,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         for (LfGeneratorImpl generator : generators) {
             generator.setTargetP(0); // we don't change the slack distribution participation here.
             if (distributedSlackOnGenerators && generator.isParticipating()) {
-                participatingGeneratorToRemove.add(generator);
+                participatingGeneratorsToRemove.add(generator);
             }
         }
 
@@ -601,18 +601,18 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             // if we have a contingency including the loss of a generator
 
             Map<LfBus, BusState> busStates = new HashMap<>();
-            Set<LfGenerator> participatingGeneratorToRemove = new HashSet<>();
-            applyInjectionContingencies(network, lfNetwork, contingency, participatingGeneratorToRemove, busStates, lfParameters);
+            Set<LfGenerator> participatingGeneratorsToRemove = new HashSet<>();
+            applyInjectionContingencies(network, lfNetwork, contingency, participatingGeneratorsToRemove, busStates, lfParameters);
 
             List<ParticipatingElement> newParticipatingElements = participatingElements;
             DenseMatrix newFactorStates = factorStates;
-            boolean participatingElementsChanged = !participatingGeneratorToRemove.isEmpty()
+            boolean participatingElementsChanged = !participatingGeneratorsToRemove.isEmpty()
                 || (isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty())
                 || (isDistributedSlackOnLoads(lfParameters) && !contingency.getHvdcIdsToOpen().isEmpty());
             if (participatingElementsChanged) {
                 // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
                 newParticipatingElements = participatingElements.stream()
-                    .filter(participatingElement -> !participatingGeneratorToRemove.contains(participatingElement.getElement()))
+                    .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
                     .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
                     .collect(Collectors.toList());
                 String elementType = isDistributedSlackOnLoads(lfParameters) ? "LfBus" : "LfGenerators";
@@ -630,18 +630,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 setBaseCaseSensitivityValues(factorGroups, factorStates);
             }
         }
-    }
-
-    private boolean isDistributedSlackOnGenerators(LoadFlowParameters lfParameters) {
-        return lfParameters.isDistributedSlack()
-            && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX
-            || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
-    }
-
-    private boolean isDistributedSlackOnLoads(LoadFlowParameters lfParameters) {
-        return lfParameters.isDistributedSlack()
-            &&  (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
-            || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
     }
 
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,

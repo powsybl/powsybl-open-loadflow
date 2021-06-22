@@ -911,4 +911,16 @@ public abstract class AbstractSensitivityAnalysis {
         }
         return false;
     }
+
+    public boolean isDistributedSlackOnGenerators(LoadFlowParameters lfParameters) {
+        return lfParameters.isDistributedSlack()
+                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX
+                || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
+    }
+
+    public boolean isDistributedSlackOnLoads(LoadFlowParameters lfParameters) {
+        return lfParameters.isDistributedSlack()
+                &&  (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
+                || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+    }
 }
