@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -646,7 +647,7 @@ public abstract class AbstractSensitivityAnalysis {
                 }
             }
             contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
-            if (contingency.getBranchIdsToOpen().isEmpty() && contingency.getHvdcIdsToOpen().isEmpty()) {
+            if (contingency.getBranchIdsToOpen().isEmpty() && contingency.getHvdcIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty()) {
                 LOGGER.warn("Contingency {} has no impact", contingency.getContingency().getId());
             }
         }
@@ -899,16 +900,28 @@ public abstract class AbstractSensitivityAnalysis {
         return factorHolder;
     }
 
-    public boolean hasTransformerBusTargetVoltage(SensitivityFactorHolder factorHolder, Network network) {
-        List<LfSensitivityFactor> factors = factorHolder.getFactorsForBaseNetwork();
-        for (LfSensitivityFactor factor : factors) {
-            if (factor.getVariableType() == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
-                Identifiable<?> equipment = network.getIdentifiable(factor.getVariableId());
+    public boolean hasTransformerBusTargetVoltage(SensitivityFactorReader factorReader, Network network) {
+        AtomicBoolean hasTransformerBusTargetVoltage = new AtomicBoolean();
+        factorReader.read((factorContext, functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
+            if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
+                Identifiable<?> equipment = network.getIdentifiable(variableId);
                 if (equipment instanceof TwoWindingsTransformer || equipment instanceof ThreeWindingsTransformer) {
-                    return true;
+                    hasTransformerBusTargetVoltage.set(true);
                 }
             }
-        }
-        return false;
+        });
+        return hasTransformerBusTargetVoltage.get();
+    }
+
+    public boolean isDistributedSlackOnGenerators(LoadFlowParameters lfParameters) {
+        return lfParameters.isDistributedSlack()
+                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX
+                || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
+    }
+
+    public boolean isDistributedSlackOnLoads(LoadFlowParameters lfParameters) {
+        return lfParameters.isDistributedSlack()
+                &&  (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
+                || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
     }
 }

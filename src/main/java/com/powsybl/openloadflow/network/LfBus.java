@@ -109,7 +109,7 @@ public interface LfBus extends LfElement {
 
     void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant);
 
-    DiscreteVoltageControl getDiscreteVoltageControl();
+    Optional<DiscreteVoltageControl> getDiscreteVoltageControl();
 
     boolean isDiscreteVoltageControlled();
 

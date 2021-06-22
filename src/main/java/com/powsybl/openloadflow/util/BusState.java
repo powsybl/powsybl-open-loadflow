@@ -10,8 +10,8 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -59,7 +59,13 @@ public class BusState {
      * @return the map of the states of given buses, indexed by the bus itself
      */
     public static Map<LfBus, BusState> createBusStates(Collection<LfBus> buses) {
-        return buses.stream().collect(Collectors.toMap(Function.identity(), BusState::new));
+        Map<LfBus, BusState> busStates = new HashMap<>();
+        addBusStates(buses, busStates);
+        return busStates;
+    }
+
+    public static void addBusStates(Collection<LfBus> busesToSave, Map<LfBus, BusState> busStates) {
+        busesToSave.forEach(lfBus -> busStates.put(lfBus, new BusState(lfBus)));
     }
 
     /**

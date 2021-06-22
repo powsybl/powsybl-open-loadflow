@@ -20,6 +20,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.DiscreteVoltageControl.Mode;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BusState;
@@ -121,10 +122,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         // system obtained just before the transformer steps rounding.
         if (hasTransformerBusTargetVoltage) {
             for (LfBus bus : lfNetwork.getBuses()) {
-                if (bus.getDiscreteVoltageControl() != null && bus.getDiscreteVoltageControl().getMode().equals(DiscreteVoltageControl.Mode.OFF)) {
-                    // switch on regulating transformers
-                    bus.getDiscreteVoltageControl().setMode(DiscreteVoltageControl.Mode.VOLTAGE);
-                }
+                // switch on regulating transformers
+                bus.getDiscreteVoltageControl().filter(dvc -> dvc.getMode() == Mode.OFF).ifPresent(dvc -> dvc.setMode(Mode.VOLTAGE));
             }
         }
 
@@ -167,11 +166,18 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         Objects.requireNonNull(valueWriter);
 
         // create LF network (we only manage main connected component)
+        boolean hasTransformerBusTargetVoltage = hasTransformerBusTargetVoltage(factorReader, network);
+        if (hasTransformerBusTargetVoltage) {
+            // if we have at least one bus target voltage linked to a ratio tap changer, we activate the transformer
+            // voltage control for the AC load flow engine.
+            lfParameters.setTransformerVoltageControlOn(true);
+        }
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusId());
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector, lfParametersExt.hasVoltageRemoteControl(),
                 true, lfParameters.isTwtSplitShuntAdmittance(), false, lfParametersExt.getPlausibleActivePowerLimit(),
                 false, true, lfParameters.getCountriesToBalance(),
                 lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                lfParameters.isPhaseShifterRegulationOn(), lfParameters.isTransformerVoltageControlOn(),
                 lfParametersExt.isVoltagePerReactivePowerControl());
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
@@ -192,12 +198,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 .collect(Collectors.toSet());
 
         // create AC engine
-        boolean hasTransformerBusTargetVoltage = hasTransformerBusTargetVoltage(factorHolder, network);
-        if (hasTransformerBusTargetVoltage) {
-            // if we have at least one bus target voltage linked to a ratio tap changer, we activate the transformer
-            // voltage control for the AC load flow engine.
-            lfParameters.setTransformerVoltageControlOn(true);
-        }
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters,
             lfParametersExt, false, true,
             branchesWithMeasuredCurrent);
@@ -232,10 +232,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             // system obtained just before the transformer steps rounding.
             if (hasTransformerBusTargetVoltage) {
                 for (LfBus bus : lfNetwork.getBuses()) {
-                    if (bus.getDiscreteVoltageControl() != null && bus.getDiscreteVoltageControl().getMode().equals(DiscreteVoltageControl.Mode.OFF)) {
-                        // switch on regulating transformers
-                        bus.getDiscreteVoltageControl().setMode(DiscreteVoltageControl.Mode.VOLTAGE);
-                    }
+                    // switch on regulating transformers
+                    bus.getDiscreteVoltageControl().filter(dvc -> dvc.getMode() == Mode.OFF).ifPresent(dvc -> dvc.setMode(Mode.VOLTAGE));
                 }
             }
 

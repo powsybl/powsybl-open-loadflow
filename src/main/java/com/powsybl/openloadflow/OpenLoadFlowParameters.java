@@ -152,7 +152,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public String toString() {
         return "OpenLoadFlowParameters(" +
                 "slackBusSelectionMode=" + slackBusSelectionMode +
-                ", slackBusId='" + Objects.requireNonNull(slackBusId, "") + "'" +
+                ", slackBusId='" + Objects.toString(slackBusId, "") + "'" +
                 ", throwsExceptionInCaseOfSlackDistributionFailure=" + throwsExceptionInCaseOfSlackDistributionFailure +
                 ", voltageRemoteControl=" + voltageRemoteControl +
                 ", lowImpedanceBranchMode=" + lowImpedanceBranchMode +

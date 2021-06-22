@@ -59,6 +59,8 @@ public class AcloadFlowEngine implements AutoCloseable {
                                                                         parameters.isComputeMainConnectedComponentOnly(),
                                                                         parameters.getCountriesToBalance(),
                                                                         parameters.isDistributedOnConformLoad(),
+                                                                        parameters.isPhaseControl(),
+                                                                        parameters.isVoltageRemoteControl(),
                                                                         parameters.isVoltagePerReactivePowerControl());
         return LfNetwork.load(network, networkParameters, reporter);
     }
@@ -138,8 +140,9 @@ public class AcloadFlowEngine implements AutoCloseable {
             LOGGER.info("Start AC loadflow on network {}", network);
 
             variableSet = new VariableSet();
-            AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(parameters.isPhaseControl(),
-                    parameters.isTransformerVoltageControlOn(), parameters.isForceA1Var(), parameters.getBranchesWithCurrent(), parameters.isVoltagePerReactivePowerControl());
+            AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(
+                    parameters.isPhaseControl(), parameters.isTransformerVoltageControlOn(), parameters.isForceA1Var(),
+                    parameters.getBranchesWithCurrent(), parameters.isVoltagePerReactivePowerControl());
             equationSystem = AcEquationSystem.create(network, variableSet, creationParameters);
             j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory());
             targetVector = new TargetVector(network, equationSystem);
