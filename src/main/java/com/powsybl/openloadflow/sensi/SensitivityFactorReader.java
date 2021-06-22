@@ -7,6 +7,8 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.sensitivity.SensitivityFunctionType;
+import com.powsybl.sensitivity.SensitivityVariableType;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>

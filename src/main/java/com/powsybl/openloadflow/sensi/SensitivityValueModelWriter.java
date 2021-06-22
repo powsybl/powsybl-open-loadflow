@@ -6,6 +6,9 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.sensitivity.SensitivityFactor;
+import com.powsybl.sensitivity.SensitivityValue;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,14 +17,14 @@ import java.util.List;
  */
 public class SensitivityValueModelWriter implements SensitivityValueWriter {
 
-    private final List<SensitivityValue2> values = new ArrayList<>();
+    private final List<SensitivityValue> values = new ArrayList<>();
 
-    public List<SensitivityValue2> getValues() {
+    public List<SensitivityValue> getValues() {
         return values;
     }
 
     @Override
-    public void write(Object factorContext, String contingencyId, int contingencyIndex, double value, double functionReference) {
-        values.add(new SensitivityValue2(factorContext, contingencyId, value, functionReference));
+    public void write(SensitivityFactor factorContext, String contingencyId, int contingencyIndex, double value, double functionReference) {
+        values.add(new SensitivityValue(factorContext, contingencyId, value, functionReference));
     }
 }

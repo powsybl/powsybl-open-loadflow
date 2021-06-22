@@ -27,8 +27,8 @@ import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.*;
-import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
 import com.powsybl.sensitivity.json.SensitivityAnalysisParametersJsonModule;
+import com.powsybl.sensitivity.json.SensitivityJsonModule;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.joda.time.DateTime;
 
@@ -42,7 +42,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -101,45 +100,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     public CompletableFuture<SensitivityAnalysisResult> run(Network network, String workingStateId,
                                                             SensitivityFactorsProvider sensitivityFactorsProvider,
                                                             List<Contingency> contingencies,
-                                                            SensitivityAnalysisParameters sensitivityAnalysisParameters,
-                                                            ComputationManager computationManager) {
-        return run(network, workingStateId, sensitivityFactorsProvider, contingencies, sensitivityAnalysisParameters, computationManager, Reporter.NO_OP);
-    }
-
-    private static void addVariableSet(SensitivityFactor factor, Map<String, SensitivityVariableSet> variableSetsById) {
-        if (factor instanceof BranchFlowPerLinearGlsk) {
-            BranchFlowPerLinearGlsk glskFactor = (BranchFlowPerLinearGlsk) factor;
-            List<WeightedSensitivityVariable> weightedVariables = glskFactor.getVariable().getGLSKs()
-                    .entrySet().stream()
-                    .map(e -> new WeightedSensitivityVariable(e.getKey(), e.getValue()))
-                    .collect(Collectors.toList());
-            if (!variableSetsById.containsKey(glskFactor.getVariable().getId())) {
-                variableSetsById.put(glskFactor.getVariable().getId(), new SensitivityVariableSet(glskFactor.getVariable().getId(), weightedVariables));
-            }
-        }
-    }
-
-    private static List<SensitivityVariableSet> getVariableSets(Network network, SensitivityFactorsProvider sensitivityFactorsProvider,
-                                                                List<Contingency> contingencies) {
-        Map<String, SensitivityVariableSet> variableSetsById = new HashMap<>();
-        for (SensitivityFactor factor : sensitivityFactorsProvider.getCommonFactors(network)) {
-            addVariableSet(factor, variableSetsById);
-        }
-        for (SensitivityFactor factor : sensitivityFactorsProvider.getAdditionalFactors(network)) {
-            addVariableSet(factor, variableSetsById);
-        }
-        for (Contingency contingency : contingencies) {
-            for (SensitivityFactor factor : sensitivityFactorsProvider.getAdditionalFactors(network, contingency.getId())) {
-                addVariableSet(factor, variableSetsById);
-            }
-        }
-        return new ArrayList<>(variableSetsById.values());
-    }
-
-    @Override
-    public CompletableFuture<SensitivityAnalysisResult> run(Network network, String workingStateId,
-                                                            SensitivityFactorsProvider sensitivityFactorsProvider,
-                                                            List<Contingency> contingencies,
+                                                            List<SensitivityVariableSet> variableSets,
                                                             SensitivityAnalysisParameters sensitivityAnalysisParameters,
                                                             ComputationManager computationManager,
                                                             Reporter reporter) {
@@ -148,16 +109,14 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
         return CompletableFuture.supplyAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
-
-            List<SensitivityVariableSet> variableSets = getVariableSets(network, sensitivityFactorsProvider, contingencies);
-            SensitivityFactorReader factorReader = new SensitivityFactorReaderAdapter(network, sensitivityFactorsProvider, contingencies, variableSets);
+            SensitivityFactorReader factorReader = new SensitivityFactorModelReader(sensitivityFactorsProvider.getCommonFactors(network));
             SensitivityValueWriterAdapter valueWriter = new SensitivityValueWriterAdapter();
             run(network, contingencies, variableSets, sensitivityAnalysisParameters, factorReader, valueWriter, sensiReporter);
 
             boolean ok = true;
             Map<String, String> metrics = new HashMap<>();
             String logs = "";
-            return new SensitivityAnalysisResult(ok, metrics, logs, valueWriter.getSensitivityValues(), valueWriter.getSensitivityValuesByContingency());
+            return new SensitivityAnalysisResult(ok, metrics, logs, valueWriter.getSensitivityValues());
         });
     }
 
@@ -168,22 +127,25 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     }
 
     public void run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
-                    SensitivityAnalysisParameters sensitivityAnalysisParameters, List<SensitivityFactor2> factors,
+                    SensitivityAnalysisParameters sensitivityAnalysisParameters, List<SensitivityFactor> factors,
                     SensitivityValueWriter valueWriter, Reporter reporter) {
         run(network, contingencies, variableSets, sensitivityAnalysisParameters, new SensitivityFactorModelReader(factors), valueWriter, reporter);
     }
 
     public void run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
-                    SensitivityAnalysisParameters sensitivityAnalysisParameters, List<SensitivityFactor2> factors,
+                    SensitivityAnalysisParameters sensitivityAnalysisParameters, List<SensitivityFactor> factors,
                     SensitivityValueWriter valueWriter) {
         run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors, valueWriter, Reporter.NO_OP);
     }
 
-    public SensitivityAnalysisResult2 run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
-                                       SensitivityAnalysisParameters sensitivityAnalysisParameters, List<SensitivityFactor2> factors) {
+    public SensitivityAnalysisResult run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
+                                       SensitivityAnalysisParameters sensitivityAnalysisParameters, List<SensitivityFactor> factors) {
         SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();
         run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors, valueWriter, Reporter.NO_OP);
-        return new SensitivityAnalysisResult2(valueWriter.getValues());
+        boolean ok = true;
+        Map<String, String> metrics = new HashMap<>();
+        String logs = "";
+        return new SensitivityAnalysisResult(ok, metrics, logs, valueWriter.getValues());
     }
 
     private static ObjectMapper createObjectMapper() {
@@ -256,7 +218,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
         String dateStr = date.toString(DATE_TIME_FORMAT);
 
-        List<SensitivityFactor2> factors = SensitivityFactor2.parseJson(debugDir.resolve("factors-" + dateStr + ".json"));
+        List<SensitivityFactor> factors = SensitivityFactor.parseMultipleJson(debugDir.resolve("factors-" + dateStr + ".json"));
 
         ObjectMapper objectMapper = createObjectMapper();
         List<Contingency> contingencies;
@@ -294,7 +256,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         replay(date, debugDir, valueWriter, Reporter.NO_OP);
     }
 
-    public List<SensitivityValue2> replay(DateTime date, Path debugDir) {
+    public List<SensitivityValue> replay(DateTime date, Path debugDir) {
         SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();
         replay(date, debugDir, valueWriter);
         return valueWriter.getValues();

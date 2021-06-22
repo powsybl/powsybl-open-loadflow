@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.powsybl.sensitivity.SensitivityFactor;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -14,16 +16,16 @@ import java.util.Objects;
  */
 public class SensitivityFactorModelReader implements SensitivityFactorReader {
 
-    private final List<SensitivityFactor2> factors;
+    private final List<SensitivityFactor> factors;
 
-    public SensitivityFactorModelReader(List<SensitivityFactor2> factors) {
+    public SensitivityFactorModelReader(List<SensitivityFactor> factors) {
         this.factors = Objects.requireNonNull(factors);
     }
 
     @Override
     public void read(Handler handler) {
         Objects.requireNonNull(handler);
-        for (SensitivityFactor2 factor : factors) {
+        for (SensitivityFactor factor : factors) {
             handler.onFactor(factor, factor.getFunctionType(), factor.getFunctionId(), factor.getVariableType(),
                     factor.getVariableId(), factor.isVariableSet(), factor.getContingencyContext());
         }

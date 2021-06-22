@@ -26,6 +26,7 @@ import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
+import com.powsybl.sensitivity.SensitivityVariableSet;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
