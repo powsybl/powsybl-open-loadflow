@@ -616,8 +616,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
                     .collect(Collectors.toList());
                 String elementType = isDistributedSlackOnLoads(lfParameters) ? "LfBus" : "LfGenerators";
-                normalizeParticipationFactors(participatingElements, elementType);
-                newFactorStates = calculateStates(j, equationSystem, factorGroups, participatingElements);
+                normalizeParticipationFactors(newParticipatingElements, elementType);
+                newFactorStates = calculateStates(j, equationSystem, factorGroups, newParticipatingElements);
             }
 
             DenseMatrix newFlowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, factors, lfParameters,
