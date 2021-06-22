@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -899,17 +900,17 @@ public abstract class AbstractSensitivityAnalysis {
         return factorHolder;
     }
 
-    public boolean hasTransformerBusTargetVoltage(SensitivityFactorHolder factorHolder, Network network) {
-        List<LfSensitivityFactor> factors = factorHolder.getFactorsForBaseNetwork();
-        for (LfSensitivityFactor factor : factors) {
-            if (factor.getVariableType() == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
-                Identifiable<?> equipment = network.getIdentifiable(factor.getVariableId());
+    public boolean hasTransformerBusTargetVoltage(SensitivityFactorReader factorReader, Network network) {
+        AtomicBoolean hasTransformerBusTargetVoltage = new AtomicBoolean();
+        factorReader.read((factorContext, functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
+            if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
+                Identifiable<?> equipment = network.getIdentifiable(variableId);
                 if (equipment instanceof TwoWindingsTransformer || equipment instanceof ThreeWindingsTransformer) {
-                    return true;
+                    hasTransformerBusTargetVoltage.set(true);
                 }
             }
-        }
-        return false;
+        });
+        return hasTransformerBusTargetVoltage.get();
     }
 
     public boolean isDistributedSlackOnGenerators(LoadFlowParameters lfParameters) {

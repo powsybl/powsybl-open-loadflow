@@ -58,7 +58,9 @@ public class AcloadFlowEngine implements AutoCloseable {
                                                                         parameters.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                                                         parameters.isComputeMainConnectedComponentOnly(),
                                                                         parameters.getCountriesToBalance(),
-                                                                        parameters.isDistributedOnConformLoad());
+                                                                        parameters.isDistributedOnConformLoad(),
+                                                                        parameters.isPhaseControl(),
+                                                                        parameters.isVoltageRemoteControl());
         return LfNetwork.load(network, networkParameters, reporter);
     }
 
