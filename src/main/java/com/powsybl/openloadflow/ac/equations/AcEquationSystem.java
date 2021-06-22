@@ -60,7 +60,7 @@ public final class AcEquationSystem {
     private static void createVoltageControlEquations(VoltageControl voltageControl, LfBus bus, VariableSet variableSet,
                                                       EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
         if (voltageControl.isVoltageControlLocal()) {
-            createVoltageControlLocalEquation(bus, variableSet, equationSystem, creationParameters);
+            createLocalVoltageControlEquation(bus, variableSet, equationSystem, creationParameters);
         } else if (bus.isVoltageControlled()) {
             // remote controlled: set voltage equation on this controlled bus
             createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet, creationParameters);
@@ -71,13 +71,13 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createVoltageControlLocalEquation(LfBus bus, VariableSet variableSet, EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
+    private static void createLocalVoltageControlEquation(LfBus bus, VariableSet variableSet, EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
         EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
         bus.setV(vTerm);
         if (creationParameters.isVoltagePerReactivePowerControl()) {
-            List<LfGenerator> generatorControllingVoltageWithSlope = bus.getGeneratorsControllingVoltageWithSlope();
-            if (!generatorControllingVoltageWithSlope.isEmpty()) {
-                double slope = generatorControllingVoltageWithSlope.get(0).getSlope();
+            List<LfGenerator> generatorsControllingVoltageWithSlope = bus.getGeneratorsControllingVoltageWithSlope();
+            if (generatorsControllingVoltageWithSlope.size() == 1) {
+                double slope = generatorsControllingVoltageWithSlope.get(0).getSlope();
                 createBusWithSlopeEquation(bus, slope, creationParameters, variableSet, equationSystem, vTerm);
                 return;
             }

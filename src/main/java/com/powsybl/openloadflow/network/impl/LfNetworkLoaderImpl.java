@@ -84,7 +84,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 } else {
                     // if voltage remote control deactivated and remote control, set local control instead
                     LOGGER.warn("Remote voltage control is not activated. The voltage target of {} with remote control is rescaled from {} to {}",
-                        controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
+                            controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
                     controlledBus.getVoltageControl().ifPresentOrElse(
                         vc -> updateVoltageControl(vc, controllerBus, controllerTargetV), // updating only to check targetV uniqueness
                         () -> createVoltageControl(controllerBus, controllerBus, controllerTargetV, voltageControls, voltagePerReactivePowerControl));
@@ -113,13 +113,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static void checkGeneratorsWithSlope(VoltageControl voltageControl) {
         List<LfGenerator> generatorsWithSlope = voltageControl.getControllerBuses().stream()
-            .flatMap(lfBus -> lfBus.getGenerators().stream().filter(generator -> generator.hasVoltageControl() && generator.getSlope() != 0))
-            .collect(Collectors.toList());
+                .flatMap(lfBus -> lfBus.getGenerators().stream().filter(generator -> generator.hasVoltageControl() && generator.getSlope() != 0))
+                .collect(Collectors.toList());
 
-        if (!generatorsWithSlope.isEmpty() && voltageControl.isSharedControl()) {
-            generatorsWithSlope.forEach(generator -> generator.setSlope(0));
-            LOGGER.warn("Non supported: shared control on bus {} with {} generator(s) controlling voltage with slope. Slope set to 0 on all those generators.",
-                voltageControl.getControlledBus(), generatorsWithSlope.size());
+        if (!generatorsWithSlope.isEmpty()) {
+            if (voltageControl.isSharedControl()) {
+                generatorsWithSlope.forEach(generator -> generator.setSlope(0));
+                LOGGER.warn("Non supported: shared control on bus {} with {} generator(s) controlling voltage with slope. Slope set to 0 on all those generators",
+                        voltageControl.getControlledBus(), generatorsWithSlope.size());
+            }
+            if (!voltageControl.isVoltageControlLocal()) {
+                LOGGER.warn("Non supported: remote control on bus {} with {} generator(s) controlling voltage with slope",
+                        voltageControl.getControlledBus(), generatorsWithSlope.size());
+            }
         }
     }
 
