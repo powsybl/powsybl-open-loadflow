@@ -605,6 +605,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             applyInjectionContingencies(network, lfNetwork, contingency, participatingGeneratorToRemove, busStates, lfParameters);
 
             List<ParticipatingElement> newParticipatingElements = participatingElements;
+            DenseMatrix newFactorStates = factorStates;
             boolean participatingElementsChanged = !participatingGeneratorToRemove.isEmpty()
                 || (isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty())
                 || (isDistributedSlackOnLoads(lfParameters) && !contingency.getHvdcIdsToOpen().isEmpty());
@@ -614,22 +615,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     .filter(participatingElement -> !participatingGeneratorToRemove.contains(participatingElement.getElement()))
                     .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
                     .collect(Collectors.toList());
+                String elementType = isDistributedSlackOnLoads(lfParameters) ? "LfBus" : "LfGenerators";
+                normalizeParticipationFactors(participatingElements, elementType);
+                newFactorStates = calculateStates(j, equationSystem, factorGroups, participatingElements);
             }
 
-            // TODO: shouldn't this be put after the participation factors normalization?
             DenseMatrix newFlowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, factors, lfParameters,
                 newParticipatingElements, disabledBuses, disabledBranches, reporter);
-
-            DenseMatrix newFactorStates = factorStates;
-            if (isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty()) {
-                normalizeParticipationFactors(newParticipatingElements, "LfGenerators");
-                newFactorStates = calculateStates(j, equationSystem, factorGroups, newParticipatingElements);
-            }
-            if (isDistributedSlackOnLoads(lfParameters) && !contingency.getHvdcIdsToOpen().isEmpty()) {
-                // indeed it should be done only if we have a LCC lost.
-                normalizeParticipationFactors(newParticipatingElements, "LfBus");
-                newFactorStates = calculateStates(j, equationSystem, factorGroups, newParticipatingElements);
-            }
 
             calculateSensitivityValues(factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements, contingency, valueWriter);
 
