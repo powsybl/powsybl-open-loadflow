@@ -647,7 +647,7 @@ public abstract class AbstractSensitivityAnalysis {
                 }
             }
             contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
-            if (contingency.getBranchIdsToOpen().isEmpty() && contingency.getHvdcIdsToOpen().isEmpty()) {
+            if (contingency.getBranchIdsToOpen().isEmpty() && contingency.getHvdcIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty()) {
                 LOGGER.warn("Contingency {} has no impact", contingency.getContingency().getId());
             }
         }
@@ -911,5 +911,17 @@ public abstract class AbstractSensitivityAnalysis {
             }
         });
         return hasTransformerBusTargetVoltage.get();
+    }
+
+    public boolean isDistributedSlackOnGenerators(LoadFlowParameters lfParameters) {
+        return lfParameters.isDistributedSlack()
+                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX
+                || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
+    }
+
+    public boolean isDistributedSlackOnLoads(LoadFlowParameters lfParameters) {
+        return lfParameters.isDistributedSlack()
+                &&  (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
+                || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
     }
 }
