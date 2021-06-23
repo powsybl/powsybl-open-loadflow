@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
@@ -20,6 +21,8 @@ import com.powsybl.openloadflow.util.ParameterConstants;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -40,5 +43,10 @@ class NonImpedantBranchWithBreakerIssueTest {
                                                                              false, true, Collections.emptySet(), true, Collections.emptySet(), false);
         new AcloadFlowEngine(lfNetwork, acLoadFlowParameters)
                 .run();
+        lfNetwork.updateState(false, false, false, false, false, false);
+        for (Bus bus : network.getBusView().getBuses()) {
+            assertEquals(400, bus.getV(), 0);
+            assertEquals(0, bus.getAngle(), 0);
+        }
     }
 }
