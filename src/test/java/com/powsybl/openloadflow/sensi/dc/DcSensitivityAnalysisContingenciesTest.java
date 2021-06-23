@@ -1657,15 +1657,15 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         List<SensitivityValue> values2 = sensiProvider.replay(date, fileSystem.getPath(debugDir));
 
-        SensitivityValue[] resultValues = (SensitivityValue[]) result.getValues().toArray();
-
         // assert we have exactly the same result with replay
         assertEquals(result.getValues().size(), values2.size());
-        for (int i = 0; i < result.getValues().size(); i++) {
+        Iterator<SensitivityValue> itExpected = values2.iterator();
 
-            assertEquals(resultValues[i].getContingencyId(), values2.get(i).getContingencyId());
-            assertEquals(resultValues[i].getValue(), values2.get(i).getValue(), LoadFlowAssert.DELTA_POWER);
-            assertEquals(resultValues[i].getFunctionReference(), values2.get(i).getFunctionReference(), LoadFlowAssert.DELTA_POWER);
+        for (SensitivityValue actual : result.getValues()) {
+            SensitivityValue expected = itExpected.next();
+            assertEquals(actual.getContingencyId(), expected.getContingencyId());
+            assertEquals(actual.getValue(), expected.getValue(), LoadFlowAssert.DELTA_POWER);
+            assertEquals(actual.getFunctionReference(), expected.getFunctionReference(), LoadFlowAssert.DELTA_POWER);
         }
     }
 

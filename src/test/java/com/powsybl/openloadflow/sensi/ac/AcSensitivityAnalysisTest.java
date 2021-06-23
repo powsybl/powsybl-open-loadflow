@@ -489,7 +489,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
+        // FIXME: make sure using getBusView is the right thing to do
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusView().getBusStream()
                 .map(bus -> createBusVoltagePerTargetV(bus.getId(), "d3"))
                 .collect(Collectors.toList());
         CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
@@ -507,7 +508,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
+        // FIXME: make sure using getBusView is the right thing to do
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusView().getBusStream()
                 .map(bus -> createBusVoltagePerTargetV(bus.getId(), "a"))
                 .collect(Collectors.toList());
         CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
@@ -525,7 +527,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
+        // FIXME: make sure using getBusView is the right thing to do
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusView().getBusStream()
                 .map(bus -> createBusVoltagePerTargetV(bus.getId(), "l23"))
                 .collect(Collectors.toList());
         CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
@@ -677,6 +680,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         //Disconnect g4 generator
         network.getGenerator("g4").getTerminal().disconnect();
+
+        // FIXME: using getBusBreakerView in AbstractSensitivityAnalysis.checkBus -> make this test passed
 
         SensitivityFactorsProvider factorsProvider = n -> Collections.singletonList(createBusVoltagePerTargetV("b1", "g4"));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
