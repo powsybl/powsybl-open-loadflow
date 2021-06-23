@@ -26,7 +26,7 @@ import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
-import com.powsybl.sensitivity.SensitivityVariableSet;
+import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
@@ -47,14 +47,14 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
     private void calculateSensitivityValues(List<LfSensitivityFactor> lfFactors, List<SensitivityFactorGroup> factorGroups, DenseMatrix factorsState,
                                             String contingencyId, int contingencyIndex, SensitivityValueWriter valueWriter) {
         Set<LfSensitivityFactor> lfFactorsSet = new HashSet<>(lfFactors);
-        lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.ZERO).forEach(factor -> valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, 0, Double.NaN));
+        lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.ZERO).forEach(factor -> valueWriter.write((SensitivityFactor) factor.getContext(), contingencyId, contingencyIndex, 0, Double.NaN));
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             for (LfSensitivityFactor factor : factorGroup.getFactors()) {
                 if (!lfFactorsSet.contains(factor)) {
                     continue;
                 }
                 if (factor.getPredefinedResult() != null) {
-                    valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, factor.getPredefinedResult(), factor.getPredefinedResult());
+                    valueWriter.write((SensitivityFactor) factor.getContext(), contingencyId, contingencyIndex, factor.getPredefinedResult(), factor.getPredefinedResult());
                     continue;
                 }
 
@@ -79,7 +79,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 if (SensitivityFunctionType.BUS_VOLTAGE.equals(factor.getFunctionType())) {
                     sensi *= ((LfBus) factor.getFunctionElement()).getNominalV();
                 }
-                valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, sensi * PerUnit.SB, factor.getFunctionReference() * PerUnit.SB);
+                valueWriter.write((SensitivityFactor) factor.getContext(), contingencyId, contingencyIndex, sensi * PerUnit.SB, factor.getFunctionReference() * PerUnit.SB);
             }
         }
     }

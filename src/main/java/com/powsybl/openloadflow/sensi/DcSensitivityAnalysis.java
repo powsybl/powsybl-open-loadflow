@@ -32,7 +32,7 @@ import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BranchState;
 import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.PropagatedContingency;
-import com.powsybl.sensitivity.SensitivityVariableSet;
+import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -225,7 +225,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 sensiValue = 0d;
             }
         }
-        valueWriter.write(factor.getContext(), contingency != null ? contingency.getContingency().getId() : null, contingency != null ? contingency.getIndex() : -1,
+        valueWriter.write((SensitivityFactor) factor.getContext(), contingency != null ? contingency.getContingency().getId() : null, contingency != null ? contingency.getIndex() : -1,
                 sensiValue * PerUnit.SB, flowValue * PerUnit.SB);
     }
 
@@ -244,7 +244,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             return;
         }
         lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.ZERO)
-                .forEach(factor -> valueWriter.write(factor.getContext(), contingency != null ? contingency.getContingency().getId() : null,
+                .forEach(factor -> valueWriter.write((SensitivityFactor) factor.getContext(), contingency != null ? contingency.getContingency().getId() : null,
                                                      contingency != null ? contingency.getIndex() : -1, 0, Double.NaN));
         setAlphas(contingencyElements, flowStates, contingenciesStates, 0, ComputedContingencyElement::setAlphaForFunctionReference);
         Map<SensitivityFactorGroup, List<LfSensitivityFactor>> factorsByGroup = lfFactors.stream()
