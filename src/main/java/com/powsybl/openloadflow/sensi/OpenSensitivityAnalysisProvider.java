@@ -112,6 +112,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             // FIXME : check following 2 lines
             List<SensitivityFactor> factors = new ArrayList<>(sensitivityFactorsProvider.getCommonFactors(network));
             factors.addAll(sensitivityFactorsProvider.getAdditionalFactors(network));
+            contingencies.forEach(c -> factors.addAll(sensitivityFactorsProvider.getAdditionalFactors(network, c.getId())));
+
             SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors);
             SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();
             run(network, contingencies, variableSets, sensitivityAnalysisParameters, factorReader, valueWriter, sensiReporter);
