@@ -48,7 +48,26 @@ class NonImpedantBranchWithBreakerIssueTest {
             assertEquals(400, bus.getV(), 0);
             assertEquals(0, bus.getAngle(), 0);
         }
-        assertEquals(0, network.getGenerator("G1").getTerminal().getQ(), 0);
-        assertEquals(-200, network.getGenerator("G2").getTerminal().getQ(), 0);
+        assertEquals(-200, network.getGenerator("G1").getTerminal().getQ(), 0);
+        assertEquals(0, network.getGenerator("G2").getTerminal().getQ(), 0);
+    }
+
+    @Test
+    void busBreakerAndNonImpedantBranchIssueRef() {
+        Network network = NodeBreakerNetworkFactory.create3barsAndJustOneVoltageLevel();
+        FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
+        boolean breakers = false;
+        LfNetworkParameters networkParameters = new LfNetworkParameters(slackBusSelector, false, false, false, breakers,
+                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
+                true, Collections.emptySet(), false);
+        LfNetwork lfNetwork = LfNetwork.load(network, networkParameters).get(0);
+        AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(slackBusSelector, new UniformValueVoltageInitializer(), new DefaultNewtonRaphsonStoppingCriteria(),
+                Collections.emptyList(), new DenseMatrixFactory(), false, false, false, false, false, breakers, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
+                false, true, Collections.emptySet(), true, Collections.emptySet(), false);
+        new AcloadFlowEngine(lfNetwork, acLoadFlowParameters)
+                .run();
+        lfNetwork.updateState(false, false, false, false, false, false);
+        assertEquals(-100, network.getGenerator("G1").getTerminal().getQ(), 0);
+        assertEquals(-100, network.getGenerator("G2").getTerminal().getQ(), 0);
     }
 }
