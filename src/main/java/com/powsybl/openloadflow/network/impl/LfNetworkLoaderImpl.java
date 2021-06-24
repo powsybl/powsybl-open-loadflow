@@ -352,8 +352,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                         .flatMap(dvc -> dvc.getControllers().stream())
                         .forEach(controller -> controller.setDiscreteVoltageControl(null));
                 discreteVoltageControls.forEach(dvc -> dvc.getControlled().setDiscreteVoltageControl(null));
-            } else {
-                return;
             }
         } else {
             if (!discreteVoltageControls.isEmpty()) {
@@ -370,8 +368,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                             controller.setDiscreteVoltageControl(firstDiscreteVoltageControl);
                         });
                 discreteVoltageControls.forEach(dvc -> dvc.getControlled().setDiscreteVoltageControl(null));
-            } else {
-                return;
             }
         }
     }
