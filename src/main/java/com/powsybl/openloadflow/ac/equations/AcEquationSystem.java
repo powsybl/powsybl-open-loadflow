@@ -144,16 +144,21 @@ public final class AcEquationSystem {
         LfBus firstControllerBus = controllerBuses.get(0);
         List<EquationTerm> firstControllerBusReactiveTerms = createReactiveTerms(firstControllerBus, variableSet, creationParameters);
 
-        // create a reactive power distribution equation for all the other controller buses
-        for (int i = 1; i < controllerBuses.size(); i++) {
-            LfBus controllerBus = controllerBuses.get(i);
-            double c = qKeys[0] / qKeys[i];
+        Optional<VoltageControl> voltageControl = firstControllerBus.getVoltageControl();
 
-            // l0 - c * li = q0 - c * qi
-            Equation zero = equationSystem.createEquation(controllerBus.getNum(), EquationType.ZERO_Q);
-            zero.setData(new DistributionData(firstControllerBus.getNum(), c)); // for later use
-            zero.addTerms(firstControllerBusReactiveTerms);
-            zero.addTerms(createReactiveTerms(controllerBus, variableSet, creationParameters).stream().map(term -> EquationTerm.multiply(term, -c)).collect(Collectors.toList()));
+        if (voltageControl.isPresent() && !voltageControl.get().isZeroImpedance()) {
+
+            // create a reactive power distribution equation for all the other controller buses
+            for (int i = 1; i < controllerBuses.size(); i++) {
+                LfBus controllerBus = controllerBuses.get(i);
+                double c = qKeys[0] / qKeys[i];
+
+                // l0 - c * li = q0 - c * qi
+                Equation zero = equationSystem.createEquation(controllerBus.getNum(), EquationType.ZERO_Q);
+                zero.setData(new DistributionData(firstControllerBus.getNum(), c)); // for later use
+                zero.addTerms(firstControllerBusReactiveTerms);
+                zero.addTerms(createReactiveTerms(controllerBus, variableSet, creationParameters).stream().map(term -> EquationTerm.multiply(term, -c)).collect(Collectors.toList()));
+            }
         }
     }
 

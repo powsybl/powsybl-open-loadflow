@@ -20,6 +20,8 @@ public class VoltageControl {
 
     private final double targetValue;
 
+    private boolean zeroImpedance = false;
+
     public VoltageControl(LfBus controlled, double targetValue) {
         this.controlled = controlled;
         this.targetValue = targetValue;
@@ -46,5 +48,13 @@ public class VoltageControl {
 
     public boolean isVoltageControlLocal() {
         return controllers.size() == 1 && controllers.contains(controlled);
+    }
+
+    public boolean isZeroImpedance() {
+        return this.zeroImpedance;
+    }
+
+    public void setZeroImpedance(boolean zeroImpedance) {
+        this.zeroImpedance = zeroImpedance;
     }
 }
