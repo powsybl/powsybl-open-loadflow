@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.DiscretePhaseControl.Mode;
-import com.powsybl.openloadflow.network.impl.LfBusImpl;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
@@ -428,23 +427,6 @@ public final class AcEquationSystem {
         Objects.requireNonNull(creationParameters);
 
         EquationSystem equationSystem = new EquationSystem(network, true);
-
-        // Switch in excess PV buses to PQ buses in an impedent sub-graph
-        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.createZeroImpedanceSubGraph();
-        // Sould iterate on connected components of zeroImpedanceSubGraph
-        boolean hasPVBus = false;
-        for (LfBus bus : zeroImpedanceSubGraph.vertexSet()) {
-            if (bus.isVoltageControlled()) {
-                if (hasPVBus) {
-                    // Remove from voltage control the excedent PV bus
-                    LfBusImpl busi = (LfBusImpl) bus;
-                    busi.removeVoltageControl();
-                } else {
-                    // Found first PV node in the subgraph
-                    hasPVBus = true;
-                }
-            }
-        }
 
         createBusEquations(network, variableSet, creationParameters, equationSystem);
         createBranchEquations(network, variableSet, creationParameters, equationSystem);

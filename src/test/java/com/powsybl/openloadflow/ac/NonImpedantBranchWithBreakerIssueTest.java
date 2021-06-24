@@ -46,7 +46,7 @@ class NonImpedantBranchWithBreakerIssueTest {
         lfNetwork.updateState(false, false, false, false, false, false);
         for (Bus bus : network.getBusView().getBuses()) {
             assertEquals(400, bus.getV(), 0);
-            assertEquals(0, bus.getAngle(), 0);
+            assertEquals(Double.NaN, bus.getAngle(), 0);
         }
     }
 }

@@ -45,6 +45,8 @@ public interface LfBus extends LfElement {
 
     Optional<VoltageControl> getVoltageControl();
 
+    void removeVoltageControl();
+
     void setVoltageControl(VoltageControl voltageControl);
 
     double getTargetP();
