@@ -157,7 +157,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     private static double getReactivePowerControlTarget(LfBus bus) {
         Objects.requireNonNull(bus);
-        Optional<LfRemoteReactivePowerControl> control = bus.getReactivePowerControl();
+        Optional<ReactivePowerControl> control = bus.getReactivePowerControl();
         if (control.isPresent()) {
             return control.get().getTargetValue();
         } else {

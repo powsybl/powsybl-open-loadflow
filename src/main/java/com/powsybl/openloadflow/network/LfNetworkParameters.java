@@ -36,11 +36,12 @@ public class LfNetworkParameters {
     private final Set<Country> countriesToBalance;
 
     private boolean distributedOnConformLoad;
-    private final boolean generatorReactivePowerRemoteControl;
 
     private final boolean phaseControl;
 
     private final boolean transformerVoltageControl;
+
+    private final boolean reactivePowerRemoteControl;
 
     public LfNetworkParameters(SlackBusSelector slackBusSelector) {
         this(slackBusSelector, false, false, false, false,
@@ -52,7 +53,7 @@ public class LfNetworkParameters {
                                boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers,
                                double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                boolean computeMainConnectedComponentOnly, Set<Country> countriesToBalance, boolean distributedOnConformLoad,
-                               boolean phaseControl, boolean transformerVoltageControl, boolean pGeneratorReactivePowerRemoteControl) {
+                               boolean phaseControl, boolean transformerVoltageControl, boolean reactivePowerRemoteControl) {
         this.slackBusSelector = slackBusSelector;
         this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
         this.minImpedance = minImpedance;
@@ -65,7 +66,7 @@ public class LfNetworkParameters {
         this.distributedOnConformLoad = distributedOnConformLoad;
         this.phaseControl = phaseControl;
         this.transformerVoltageControl = transformerVoltageControl;
-        this.generatorReactivePowerRemoteControl = pGeneratorReactivePowerRemoteControl;
+        this.reactivePowerRemoteControl = reactivePowerRemoteControl;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -74,10 +75,6 @@ public class LfNetworkParameters {
 
     public boolean isGeneratorVoltageRemoteControl() {
         return generatorVoltageRemoteControl;
-    }
-
-    public boolean isGeneratorReactivePowerRemoteControl() {
-        return generatorReactivePowerRemoteControl;
     }
 
     public boolean isMinImpedance() {
@@ -118,5 +115,9 @@ public class LfNetworkParameters {
 
     public boolean isTransformerVoltageControl() {
         return transformerVoltageControl;
+    }
+
+    public boolean isReactivePowerRemoteControl() {
+        return reactivePowerRemoteControl;
     }
 }

@@ -34,8 +34,6 @@ public class AcLoadFlowParameters {
 
     private final boolean voltageRemoteControl;
 
-    private final boolean reactivePowerRemoteControl;
-
     private final boolean phaseControl;
 
     private final boolean transformerVoltageControlOn;
@@ -60,6 +58,8 @@ public class AcLoadFlowParameters {
 
     private final boolean distributedOnConformLoad;
 
+    private final boolean reactivePowerRemoteControl;
+
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
                                 NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
                                 MatrixFactory matrixFactory, boolean voltageRemoteControl,
@@ -68,7 +68,7 @@ public class AcLoadFlowParameters {
                                 boolean forceA1Var, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                 Set<String> branchesWithCurrent, boolean computeMainConnectedComponentOnly,
                                 Set<Country> countriesToBalance, boolean distributedOnConformLoad,
-                                boolean pReactivePowerRemoteControl) {
+                                boolean reactivePowerRemoteControl) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
@@ -87,7 +87,7 @@ public class AcLoadFlowParameters {
         this.computeMainConnectedComponentOnly = computeMainConnectedComponentOnly;
         this.countriesToBalance = countriesToBalance;
         this.distributedOnConformLoad = distributedOnConformLoad;
-        this.reactivePowerRemoteControl = pReactivePowerRemoteControl;
+        this.reactivePowerRemoteControl = reactivePowerRemoteControl;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -116,10 +116,6 @@ public class AcLoadFlowParameters {
 
     public boolean isVoltageRemoteControl() {
         return voltageRemoteControl;
-    }
-
-    public boolean isReactivePowerRemoteControl() {
-        return reactivePowerRemoteControl;
     }
 
     public boolean isPhaseControl() {
@@ -168,5 +164,9 @@ public class AcLoadFlowParameters {
 
     public boolean isDistributedOnConformLoad() {
         return  distributedOnConformLoad;
+    }
+
+    public boolean isReactivePowerRemoteControl() {
+        return reactivePowerRemoteControl;
     }
 }

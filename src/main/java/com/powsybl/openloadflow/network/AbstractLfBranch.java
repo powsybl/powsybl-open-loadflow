@@ -68,7 +68,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected boolean disabled = false;
 
-    private LfRemoteReactivePowerControl reactivePowerControl;
+    private ReactivePowerControl reactivePowerControl;
 
     protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
         super(network);
@@ -239,12 +239,12 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         return FastMath.sqrt(p * p + q * q);
     }
 
-    public Optional<LfRemoteReactivePowerControl> getReactivePowerControl() {
+    public Optional<ReactivePowerControl> getReactivePowerControl() {
         return Optional.ofNullable(reactivePowerControl);
     }
 
     @Override
-    public void setReactivePowerControl(LfRemoteReactivePowerControl pReactivePowerControl) {
+    public void setReactivePowerControl(ReactivePowerControl pReactivePowerControl) {
         Objects.requireNonNull(pReactivePowerControl);
         this.reactivePowerControl = pReactivePowerControl;
     }

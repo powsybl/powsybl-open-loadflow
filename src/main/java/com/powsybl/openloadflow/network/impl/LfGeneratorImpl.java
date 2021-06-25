@@ -80,7 +80,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
         RemoteReactivePowerControl reactivePowerControl = generator.getExtension(RemoteReactivePowerControl.class);
         if (reactivePowerControl != null && reactivePowerControl.isEnabled()) {
-            setReactivePowerControl(reactivePowerControl.getRegulatingTerminal());
+            setReactivePowerControl(reactivePowerControl.getRegulatingTerminal(), reactivePowerControl.getTargetQ());
         }
     }
 
@@ -139,10 +139,5 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         generator.getTerminal()
                 .setP(-targetP)
                 .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ);
-    }
-
-    @Override
-    public double getRemoteTargetQ() {
-        return generator.getExtension(RemoteReactivePowerControl.class).getTargetQ() / PerUnit.SB;
     }
 }

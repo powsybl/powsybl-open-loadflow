@@ -6,28 +6,28 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.Branch;
-
 import java.util.*;
 
 /**
  * @author Bertrand Rix <bertrand.rix at artelys.com>
  */
-public class LfRemoteReactivePowerControl {
+public class ReactivePowerControl {
+
+    public enum ControlledSide {
+        ONE,
+        TWO
+    }
 
     private final LfBranch controlledBranch;
-
-    private final Branch.Side controlledSide;
-
+    private final ControlledSide controlledSide;
     private final LfBus controller;
-
     private final double targetValue;
 
-    public LfRemoteReactivePowerControl(LfBranch controlledBranch, Branch.Side controlledSide, LfBus controller, double targetValue) {
+    public ReactivePowerControl(LfBranch controlledBranch, ControlledSide controlledSide, LfBus controller, double targetValue) {
         this.controlledBranch = controlledBranch;
-        this.targetValue = targetValue;
         this.controlledSide = controlledSide;
         this.controller = controller;
+        this.targetValue = targetValue;
     }
 
     public double getTargetValue() {
@@ -38,7 +38,7 @@ public class LfRemoteReactivePowerControl {
         return controlledBranch;
     }
 
-    public Branch.Side getControlledSide() {
+    public ControlledSide getControlledSide() {
         return controlledSide;
     }
 

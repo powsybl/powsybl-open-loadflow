@@ -33,13 +33,15 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     protected boolean hasVoltageControl = false;
 
-    protected boolean hasReactivePowerControl = false;
-
     protected String controlledBusId;
+
+    protected boolean hasReactivePowerControl = false;
 
     protected String controlledBranchId;
 
-    protected Branch.Side controlledBranchSide;
+    protected ReactivePowerControl.ControlledSide controlledBranchSide;
+
+    protected double remoteTargetQ = Double.NaN;
 
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
@@ -152,14 +154,6 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         return lfNetwork.getBusById(controlledBusId);
     }
 
-    public LfBranch getControlledBranch(LfNetwork lfNetwork) {
-        return lfNetwork.getBranchById(controlledBranchId);
-    }
-
-    public Branch.Side getControlledBranchSide(LfNetwork lfNetwork) {
-        return controlledBranchSide;
-    }
-
     protected void setVoltageControl(double targetV, Terminal regulatingTerminal, boolean breakers, LfNetworkLoadingReport report) {
         if (!checkVoltageControlConsistency(report)) {
             return;
@@ -205,19 +199,27 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         this.targetV = newTargetV;
     }
 
-    protected void setReactivePowerControl(Terminal regulatingTerminal) {
-
-        Line l = (Line) regulatingTerminal.getConnectable();
-        Branch.Side s = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ? Branch.Side.ONE : Branch.Side.TWO;
-
-        this.controlledBranchId = l.getId();
-        this.controlledBranchSide = s;
+    protected void setReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
         this.hasReactivePowerControl = true;
+        Line l = (Line) regulatingTerminal.getConnectable();
+        this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
+                ReactivePowerControl.ControlledSide.ONE : ReactivePowerControl.ControlledSide.TWO;
+        this.controlledBranchId = l.getId();
+        this.remoteTargetQ = targetQ / PerUnit.SB;
+    }
+
+    @Override
+    public LfBranch getControlledBranch(LfNetwork lfNetwork) {
+        return lfNetwork.getBranchById(controlledBranchId);
+    }
+
+    @Override
+    public ReactivePowerControl.ControlledSide getControlledBranchSide() {
+        return this.controlledBranchSide;
     }
 
     @Override
     public double getRemoteTargetQ() {
-        return 0.0;
+        return this.remoteTargetQ;
     }
-
 }

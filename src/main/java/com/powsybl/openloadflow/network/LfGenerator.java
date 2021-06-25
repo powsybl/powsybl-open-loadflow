@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.Branch;
-
 import java.util.OptionalDouble;
 
 /**
@@ -59,7 +57,7 @@ public interface LfGenerator {
 
     LfBranch getControlledBranch(LfNetwork lfNetwork);
 
-    Branch.Side getControlledBranchSide(LfNetwork lfNetwork);
+    ReactivePowerControl.ControlledSide getControlledBranchSide();
 
     double getRemoteTargetQ();
 }

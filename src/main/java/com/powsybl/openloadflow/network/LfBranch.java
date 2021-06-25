@@ -82,7 +82,7 @@ public interface LfBranch extends LfElement {
 
     double computeApparentPower2();
 
-    Optional<LfRemoteReactivePowerControl> getReactivePowerControl();
+    Optional<ReactivePowerControl> getReactivePowerControl();
 
-    void setReactivePowerControl(LfRemoteReactivePowerControl pReactivePowerControl);
+    void setReactivePowerControl(ReactivePowerControl pReactivePowerControl);
 }

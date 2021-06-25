@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.iidm.network.Branch;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
@@ -41,12 +40,13 @@ public final class AcEquationSystem {
             }
 
             bus.getVoltageControl().ifPresent(vc -> createVoltageControlEquations(vc, bus, variableSet, equationSystem, creationParameters));
-            bus.getReactivePowerControl().ifPresent(vc -> createReactivePowerControlBusEquation(bus, equationSystem));
-
             createShuntEquations(variableSet, equationSystem, bus);
 
             if (creationParameters.isTransformerVoltageControl()) {
                 createDiscreteVoltageControlEquation(bus, variableSet, equationSystem);
+            }
+            if (creationParameters.isReactivePowerControl()) {
+                bus.getReactivePowerControl().ifPresent(vc -> equationSystem.createEquation(vc.getControllerBus().getNum(), EquationType.BUS_Q).setActive(false));
             }
             Equation v = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
             if (v.getTerms().isEmpty()) {
@@ -75,26 +75,14 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createReactivePowerControlBusEquation(LfBus bus, EquationSystem equationSystem) {
-        equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
-    }
-
-    private static void createReactivePowerControlBranchEquation(LfRemoteReactivePowerControl reactivePowerControl, LfBranch branch,
-                                                                 EquationSystem equationSystem) {
-
-        //Reactive power control on a branch is always distant
+    private static void createReactivePowerControlBranchEquation(ReactivePowerControl reactivePowerControl, EquationSystem equationSystem) {
+        // Reactive power control on a branch is always distant
         LfBus controller = reactivePowerControl.getControllerBus();
         if (controller != null) {
-
-            Equation eqQDist = equationSystem.createEquation(controller.getNum(), EquationType.BRANCH_Q);
-
-            EquationTerm q;
-            if (reactivePowerControl.getControlledSide() == Branch.Side.ONE) {
-                q = (EquationTerm) branch.getQ1();
-            } else {
-                q = (EquationTerm) branch.getQ2();
-            }
-            eqQDist.addTerm(q);
+            Equation equation = equationSystem.createEquation(controller.getNum(), EquationType.BRANCH_Q);
+            EquationTerm q = (EquationTerm) (reactivePowerControl.getControlledSide() == ReactivePowerControl.ControlledSide.ONE ?
+                    reactivePowerControl.getControlledBranch().getQ1() : reactivePowerControl.getControlledBranch().getQ2());
+            equation.addTerm(q);
         }
     }
 
@@ -447,7 +435,7 @@ public final class AcEquationSystem {
         }
 
         for (LfBranch branch : network.getBranches()) {
-            branch.getReactivePowerControl().ifPresent(reaC -> createReactivePowerControlBranchEquation(reaC, branch, equationSystem));
+            branch.getReactivePowerControl().ifPresent(reactivePowerControl -> createReactivePowerControlBranchEquation(reactivePowerControl, equationSystem));
         }
     }
 

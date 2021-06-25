@@ -93,20 +93,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     private static void createReactivePowerControls(LfNetwork lfNetwork, List<LfBus> lfBuses) {
-
         for (LfBus controllerBus : lfBuses) {
-
-            List<LfGenerator> reactivePowerControlGenerator = controllerBus.getGenerators().stream().filter(LfGenerator::hasReactivePowerControl).collect(Collectors.toList());
+            List<LfGenerator> reactivePowerControlGenerator = controllerBus.getGenerators().stream()
+                    .filter(LfGenerator::hasReactivePowerControl).collect(Collectors.toList());
             if (!reactivePowerControlGenerator.isEmpty()) {
-                LfGenerator lfGenerator0 = reactivePowerControlGenerator.get(0);
-                LfBranch controlledBranch = lfGenerator0.getControlledBranch(lfNetwork);
-                Branch.Side controlledBranchSide = lfGenerator0.getControlledBranchSide(lfNetwork);
-
-                LfRemoteReactivePowerControl reaPowerControl = controlledBranch.getReactivePowerControl().orElse(
-                        new LfRemoteReactivePowerControl(controlledBranch, controlledBranchSide, controllerBus, lfGenerator0.getRemoteTargetQ()));
-
-                controllerBus.setReactivePowerControl(reaPowerControl);
-                controlledBranch.setReactivePowerControl(reaPowerControl);
+                LfGenerator lfGenerator = reactivePowerControlGenerator.get(0); // FIXME
+                LfBranch controlledBranch = lfGenerator.getControlledBranch(lfNetwork);
+                ReactivePowerControl control = controlledBranch.getReactivePowerControl().orElse(
+                        new ReactivePowerControl(controlledBranch, lfGenerator.getControlledBranchSide(),
+                                controllerBus, lfGenerator.getRemoteTargetQ()));
+                controllerBus.setReactivePowerControl(control);
+                controlledBranch.setReactivePowerControl(control);
             }
         }
     }
@@ -475,7 +472,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         createBranches(lfBuses, lfNetwork, loadingContext, report, parameters);
         createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl());
 
-        if (parameters.isGeneratorReactivePowerRemoteControl()) {
+        if (parameters.isReactivePowerRemoteControl()) {
             createReactivePowerControls(lfNetwork, lfBuses);
         }
 
