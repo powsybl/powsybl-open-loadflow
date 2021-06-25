@@ -35,6 +35,14 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     protected String controlledBusId;
 
+    protected boolean hasReactivePowerControl = false;
+
+    protected String controlledBranchId;
+
+    protected ReactivePowerControl.ControlledSide controlledBranchSide;
+
+    protected double remoteTargetQ = Double.NaN;
+
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
     }
@@ -72,6 +80,11 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public boolean hasVoltageControl() {
         return hasVoltageControl;
+    }
+
+    @Override
+    public boolean hasReactivePowerControl() {
+        return hasReactivePowerControl;
     }
 
     @Override
@@ -186,4 +199,27 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         this.targetV = newTargetV;
     }
 
+    protected void setReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
+        this.hasReactivePowerControl = true;
+        Line l = (Line) regulatingTerminal.getConnectable();
+        this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
+                ReactivePowerControl.ControlledSide.ONE : ReactivePowerControl.ControlledSide.TWO;
+        this.controlledBranchId = l.getId();
+        this.remoteTargetQ = targetQ / PerUnit.SB;
+    }
+
+    @Override
+    public LfBranch getControlledBranch(LfNetwork lfNetwork) {
+        return lfNetwork.getBranchById(controlledBranchId);
+    }
+
+    @Override
+    public ReactivePowerControl.ControlledSide getControlledBranchSide() {
+        return this.controlledBranchSide;
+    }
+
+    @Override
+    public double getRemoteTargetQ() {
+        return this.remoteTargetQ;
+    }
 }

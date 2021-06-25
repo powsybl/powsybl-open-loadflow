@@ -177,7 +177,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 true, lfParameters.isTwtSplitShuntAdmittance(), false, lfParametersExt.getPlausibleActivePowerLimit(),
                 false, true, lfParameters.getCountriesToBalance(),
                 lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                lfParameters.isPhaseShifterRegulationOn(), lfParameters.isTransformerVoltageControlOn());
+                lfParameters.isPhaseShifterRegulationOn(), lfParameters.isTransformerVoltageControlOn(), lfParametersExt.hasReactivePowerRemoteControl());
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(network, lfNetwork, contingencies);

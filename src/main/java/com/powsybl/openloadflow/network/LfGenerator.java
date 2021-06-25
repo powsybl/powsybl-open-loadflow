@@ -21,6 +21,8 @@ public interface LfGenerator {
 
     boolean hasVoltageControl();
 
+    boolean hasReactivePowerControl();
+
     double getTargetV();
 
     OptionalDouble getRemoteControlReactiveKey();
@@ -52,4 +54,10 @@ public interface LfGenerator {
     void updateState();
 
     LfBus getControlledBus(LfNetwork lfNetwork);
+
+    LfBranch getControlledBranch(LfNetwork lfNetwork);
+
+    ReactivePowerControl.ControlledSide getControlledBranchSide();
+
+    double getRemoteTargetQ();
 }

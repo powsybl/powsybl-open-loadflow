@@ -135,7 +135,7 @@ class AcLoadFlowSvcTest {
         assertTrue(Double.isNaN(svc1.getTerminal().getP()));
         assertTrue(Double.isNaN(svc1.getTerminal().getQ()));
 
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
 
         result = loadFlowRunner.run(network, parameters);

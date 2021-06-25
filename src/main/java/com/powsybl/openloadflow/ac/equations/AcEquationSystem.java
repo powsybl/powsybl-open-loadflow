@@ -40,11 +40,13 @@ public final class AcEquationSystem {
             }
 
             bus.getVoltageControl().ifPresent(vc -> createVoltageControlEquations(vc, bus, variableSet, equationSystem, creationParameters));
-
             createShuntEquations(variableSet, equationSystem, bus);
 
             if (creationParameters.isTransformerVoltageControl()) {
                 createDiscreteVoltageControlEquation(bus, variableSet, equationSystem);
+            }
+            if (creationParameters.isReactivePowerControl()) {
+                bus.getReactivePowerControl().ifPresent(vc -> equationSystem.createEquation(vc.getControllerBus().getNum(), EquationType.BUS_Q).setActive(false));
             }
             Equation v = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V);
             if (v.getTerms().isEmpty()) {
@@ -70,6 +72,17 @@ public final class AcEquationSystem {
 
         if (bus.isVoltageControllerEnabled()) {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
+        }
+    }
+
+    private static void createReactivePowerControlBranchEquation(ReactivePowerControl reactivePowerControl, EquationSystem equationSystem) {
+        // Reactive power control on a branch is always distant
+        LfBranch controlledBranch = reactivePowerControl.getControlledBranch();
+        if (controlledBranch != null) {
+            Equation equation = equationSystem.createEquation(controlledBranch.getNum(), EquationType.BRANCH_Q);
+            EquationTerm q = (EquationTerm) (reactivePowerControl.getControlledSide() == ReactivePowerControl.ControlledSide.ONE ?
+                    reactivePowerControl.getControlledBranch().getQ1() : reactivePowerControl.getControlledBranch().getQ2());
+            equation.addTerm(q);
         }
     }
 
@@ -401,7 +414,12 @@ public final class AcEquationSystem {
         // create zero and non zero impedance branch equations
         network.getBranches().stream()
             .filter(b -> !LfNetwork.isZeroImpedanceBranch(b))
-            .forEach(b -> createImpedantBranch(b, b.getBus1(), b.getBus2(), variableSet, creationParameters, equationSystem));
+            .forEach(b -> {
+                createImpedantBranch(b, b.getBus1(), b.getBus2(), variableSet, creationParameters, equationSystem);
+                if (creationParameters.isReactivePowerControl()) {
+                    b.getReactivePowerControl().ifPresent(reactivePowerControl -> createReactivePowerControlBranchEquation(reactivePowerControl, equationSystem));
+                }
+            });
 
         // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph
         Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.createZeroImpedanceSubGraph();

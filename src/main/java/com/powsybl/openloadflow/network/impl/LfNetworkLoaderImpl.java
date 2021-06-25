@@ -92,6 +92,22 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
+    private static void createReactivePowerControls(LfNetwork lfNetwork, List<LfBus> lfBuses) {
+        for (LfBus controllerBus : lfBuses) {
+            List<LfGenerator> reactivePowerControlGenerator = controllerBus.getGenerators().stream()
+                    .filter(LfGenerator::hasReactivePowerControl).collect(Collectors.toList());
+            if (!reactivePowerControlGenerator.isEmpty()) {
+                LfGenerator lfGenerator = reactivePowerControlGenerator.get(0); // FIXME
+                LfBranch controlledBranch = lfGenerator.getControlledBranch(lfNetwork);
+                ReactivePowerControl control = controlledBranch.getReactivePowerControl().orElse(
+                        new ReactivePowerControl(controlledBranch, lfGenerator.getControlledBranchSide(),
+                                controllerBus, lfGenerator.getRemoteTargetQ()));
+                controllerBus.setReactivePowerControl(control);
+                controlledBranch.setReactivePowerControl(control);
+            }
+        }
+    }
+
     private static void checkUniqueTargetVControlledBus(double controllerTargetV, LfBus controllerBus, VoltageControl vc) {
         // check if target voltage is consistent with other already existing controller buses
         double voltageControlTargetV = vc.getTargetValue();
@@ -455,6 +471,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report);
         createBranches(lfBuses, lfNetwork, loadingContext, report, parameters);
         createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl());
+
+        if (parameters.isReactivePowerRemoteControl()) {
+            createReactivePowerControls(lfNetwork, lfBuses);
+        }
 
         if (parameters.isTransformerVoltageControl()) {
             // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)

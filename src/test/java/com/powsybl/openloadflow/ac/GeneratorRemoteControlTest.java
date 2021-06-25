@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControlAdder;
+import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -17,6 +18,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -350,5 +352,65 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(-10, g3.getTerminal());
         assertReactivePowerEquals(-88.407, g4.getTerminal());
         assertReactivePowerEquals(-88.407, g4bis.getTerminal());
+    }
+
+    @Test
+    void testRemoteReactivePowerControl() {
+        // Create a basic 4-buses network
+        Network sNetwork = FourBusNetworkFactory.createBaseNetwork();
+        Generator g4 = sNetwork.getGenerator("g4");
+        Generator g1 = sNetwork.getGenerator("g1");
+        Line l34 = sNetwork.getLine("l34");
+        Line l12 = sNetwork.getLine("l12");
+        Line l13 = sNetwork.getLine("l13");
+
+        double qtarget = 1.0;
+
+        //Disable voltage control on g4
+        g4.setTargetQ(0).setVoltageRegulatorOn(false);
+
+        // First test: generator g4 regulates reactive power on line 4->3 (on side of g4)
+        g4.newExtension(RemoteReactivePowerControlAdder.class)
+          .withTargetQ(qtarget)
+          .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
+          .withEnabled(true).add();
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
+
+        LoadFlowResult result = loadFlowRunner.run(sNetwork, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(qtarget, l34.getTerminal(Branch.Side.TWO));
+
+        // Second test: generator g4 regulates reactive power on line 3->4 (on the opposite side of the line)
+        g4.newExtension(RemoteReactivePowerControlAdder.class)
+          .withTargetQ(qtarget)
+          .withRegulatingTerminal(l34.getTerminal(Branch.Side.ONE))
+          .withEnabled(true).add();
+
+        result = loadFlowRunner.run(sNetwork, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(qtarget, l34.getTerminal(Branch.Side.ONE));
+
+        // Third test: generator g4 regulates reactive power on line 1->2 (line which is not linked to bus 4)
+        g4.newExtension(RemoteReactivePowerControlAdder.class)
+          .withTargetQ(qtarget)
+          .withRegulatingTerminal(l12.getTerminal(Branch.Side.ONE))
+          .withEnabled(true).add();
+
+        result = loadFlowRunner.run(sNetwork, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(qtarget, l12.getTerminal(Branch.Side.ONE));
+
+        // Fourth test: two regulating generators (generators g4 and g1 regulate reactive power on line 4->3 and 1->3 respectively)
+        // TO DO: fix setting a third generator. There must be a point where voltage is fixed in the network to operate a PF in OLF.
+        /*g4.newExtension(RemoteReactivePowerControlAdder.class)
+          .withTargetQ(qtarget)
+          .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
+          .withEnabled(true).add();
+
+        g1.newExtension(RemoteReactivePowerControlAdder.class)
+          .withTargetQ(qtarget)
+          .withRegulatingTerminal(l13.getTerminal(Branch.Side.ONE))
+          .withEnabled(true).add();*/
     }
 }
