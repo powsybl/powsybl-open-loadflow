@@ -27,7 +27,7 @@ public final class ParameterConstants {
     public static final boolean VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE = true;
 
     public static final String REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME = "reactivePowerRemoteControl";
-    public static final boolean REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE = true;
+    public static final boolean REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE = false;
 
     public static final String LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME = "lowImpedanceBranchMode";
     public static final LowImpedanceBranchMode LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE = LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE;

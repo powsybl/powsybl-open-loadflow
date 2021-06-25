@@ -375,6 +375,8 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
           .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
           .withEnabled(true).add();
 
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
+
         LoadFlowResult result = loadFlowRunner.run(sNetwork, parameters);
         assertTrue(result.isOk());
         assertReactivePowerEquals(qtarget, l34.getTerminal(Branch.Side.TWO));

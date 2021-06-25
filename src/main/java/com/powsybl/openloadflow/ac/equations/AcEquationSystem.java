@@ -77,9 +77,9 @@ public final class AcEquationSystem {
 
     private static void createReactivePowerControlBranchEquation(ReactivePowerControl reactivePowerControl, EquationSystem equationSystem) {
         // Reactive power control on a branch is always distant
-        LfBus controller = reactivePowerControl.getControllerBus();
-        if (controller != null) {
-            Equation equation = equationSystem.createEquation(controller.getNum(), EquationType.BRANCH_Q);
+        LfBranch controlledBranch = reactivePowerControl.getControlledBranch();
+        if (controlledBranch != null) {
+            Equation equation = equationSystem.createEquation(controlledBranch.getNum(), EquationType.BRANCH_Q);
             EquationTerm q = (EquationTerm) (reactivePowerControl.getControlledSide() == ReactivePowerControl.ControlledSide.ONE ?
                     reactivePowerControl.getControlledBranch().getQ1() : reactivePowerControl.getControlledBranch().getQ2());
             equation.addTerm(q);
@@ -414,7 +414,12 @@ public final class AcEquationSystem {
         // create zero and non zero impedance branch equations
         network.getBranches().stream()
             .filter(b -> !LfNetwork.isZeroImpedanceBranch(b))
-            .forEach(b -> createImpedantBranch(b, b.getBus1(), b.getBus2(), variableSet, creationParameters, equationSystem));
+            .forEach(b -> {
+                createImpedantBranch(b, b.getBus1(), b.getBus2(), variableSet, creationParameters, equationSystem);
+                if (creationParameters.isReactivePowerControl()) {
+                    b.getReactivePowerControl().ifPresent(reactivePowerControl -> createReactivePowerControlBranchEquation(reactivePowerControl, equationSystem));
+                }
+            });
 
         // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph
         Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.createZeroImpedanceSubGraph();
@@ -432,10 +437,6 @@ public final class AcEquationSystem {
             for (LfBranch branch : spanningTree.getEdges()) {
                 createNonImpedantBranch(variableSet, equationSystem, branch, branch.getBus1(), branch.getBus2());
             }
-        }
-
-        for (LfBranch branch : network.getBranches()) {
-            branch.getReactivePowerControl().ifPresent(reactivePowerControl -> createReactivePowerControlBranchEquation(reactivePowerControl, equationSystem));
         }
     }
 

@@ -155,13 +155,13 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return phaseControl.get().getTargetValue();
     }
 
-    private static double getReactivePowerControlTarget(LfBus bus) {
-        Objects.requireNonNull(bus);
-        Optional<ReactivePowerControl> control = bus.getReactivePowerControl();
+    private static double getReactivePowerControlTarget(LfBranch branch) {
+        Objects.requireNonNull(branch);
+        Optional<ReactivePowerControl> control = branch.getReactivePowerControl();
         if (control.isPresent()) {
             return control.get().getTargetValue();
         } else {
-            throw new PowsyblException("Bus '" + bus.getId() + "' has no target in for reactive remote control");
+            throw new PowsyblException("Branch '" + branch.getId() + "' has no target in for reactive remote control");
         }
     }
 
@@ -207,7 +207,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 break;
 
             case BRANCH_Q:
-                targets[column] = getReactivePowerControlTarget(network.getBus(num));
+                targets[column] = getReactivePowerControlTarget(network.getBranch(num));
                 break;
 
             case BRANCH_ALPHA1:
