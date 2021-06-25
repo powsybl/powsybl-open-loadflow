@@ -32,6 +32,8 @@ class NonImpedantBranchWithBreakerIssueTest {
     @Test
     void busBreakerAndNonImpedantBranchIssue() {
         Network network = NodeBreakerNetworkFactory.create3barsAndJustOneVoltageLevel();
+        network.getGenerator("G1").newMinMaxReactiveLimits().setMaxQ(100).setMinQ(-100).add();
+        network.getGenerator("G2").newMinMaxReactiveLimits().setMaxQ(100).setMinQ(-100).add();
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         boolean breakers = true;
         LfNetworkParameters networkParameters = new LfNetworkParameters(slackBusSelector, false, false, false, breakers,
@@ -48,7 +50,7 @@ class NonImpedantBranchWithBreakerIssueTest {
             assertEquals(400, bus.getV(), 0);
             assertEquals(0, bus.getAngle(), 0);
         }
-        assertEquals(-200, network.getGenerator("G1").getTerminal().getQ(), 0);
+        assertEquals(-200, network.getGenerator("G1").getTerminal().getQ(), 0); //FIXME: reactive capability curve violated.
         assertEquals(0, network.getGenerator("G2").getTerminal().getQ(), 0);
     }
 
