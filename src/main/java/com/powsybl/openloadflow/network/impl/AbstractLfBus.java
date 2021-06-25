@@ -224,9 +224,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         add(LfGeneratorImpl.create(generator, breakers, report, plausibleActivePowerLimit));
     }
 
-    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean breakers, LfNetworkLoadingReport report) {
+    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean voltagePerReactivePowerControl, boolean breakers, LfNetworkLoadingReport report) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
-            add(LfStaticVarCompensatorImpl.create(staticVarCompensator, this, breakers, report));
+            add(LfStaticVarCompensatorImpl.create(staticVarCompensator, this, voltagePerReactivePowerControl, breakers, report));
         }
     }
 
