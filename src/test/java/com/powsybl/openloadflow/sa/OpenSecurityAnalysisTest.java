@@ -484,10 +484,10 @@ class OpenSecurityAnalysisTest {
         assertEquals(1, result.getPreContingencyResult().getPreContingencyBusResults().size());
         assertEquals(new BusResults("b1_vl", "b1", 400, 0.00411772307613007), result.getPreContingencyResult().getPreContingencyBusResults().get(0));
         assertEquals(1, result.getPreContingencyResult().getPreContingencyBranchResults().size());
-        assertEquals(new BranchResult("l24", 244.9999975189166, 3.0000094876289114, 558.8517346879828, -244.9999975189166, -299.86040688975567, 558.8517346881861),
+        assertEquals(new BranchResult("l24", 244.9999975189166, 3.0000094876289114, 558.8517346879828, -244.9999975189166, -299.86040688975567, 558.8517346881861, Float.NaN),
                 result.getPreContingencyResult().getPreContingencyBranchResults().get(0));
 
-        assertEquals(new BranchResult("l24", 300.0000316340358, 2.999999961752837, 14224.917799052932, -300.00003163403585, -208.94326368159844, 14224.917799052939),
+        assertEquals(new BranchResult("l24", 300.0000316340358, 2.999999961752837, 14224.917799052932, -300.00003163403585, -208.94326368159844, 14224.917799052939, Float.NaN),
                 result.getPostContingencyResults().get(0).getBranchResult("l24"));
     }
 
@@ -548,7 +548,7 @@ class OpenSecurityAnalysisTest {
 
         assertEquals(new BusResults("b1_vl", "b1", 400, 0.003581299841270782), report.getResult().getPreContingencyResult().getPreContingencyBusResults().get(0));
         assertEquals(1, report.getResult().getPreContingencyResult().getPreContingencyBusResults().size());
-        assertEquals(new BranchResult("l24", NaN, NaN, NaN, 0.0, -0.0, 0.0),
+        assertEquals(new BranchResult("l24", NaN, NaN, NaN, 0.0, -0.0, 0.0, Float.NaN),
                 report.getResult().getPreContingencyResult().getPreContingencyBranchResults().get(0));
 
         network = DistributedSlackNetworkFactory.create();
