@@ -51,5 +51,4 @@ public class AcEquationSystemCreationParameters {
     public Set<String> getBranchesWithCurrent() {
         return branchesWithCurrent;
     }
-
 }
