@@ -219,10 +219,10 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             if (bus.isVoltageControllerEnabled() && !bus.isDisabled()) {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
             } else if (bus.hasVoltageControllerCapability() && !bus.isDisabled()) {
-                if (bus.getGeneratorsControllingVoltageWithSlope().isEmpty()) {
-                    // we don't support switching PQ to PV for bus with one controller with slope.
+                if (!bus.hasGeneratorWithSlope()) {
                     checkPqBus(bus, pqToPvBuses);
                 } else {
+                    // we don't support switching PQ to PV for bus with one controller with slope.
                     LOGGER.warn("Controller bus '{}' wants to control back voltage with slope: not supported", bus.getId());
                 }
             }

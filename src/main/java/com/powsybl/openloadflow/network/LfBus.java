@@ -34,6 +34,10 @@ public interface LfBus extends LfElement {
 
     List<LfGenerator> getGeneratorsControllingVoltageWithSlope();
 
+    boolean hasGeneratorWithSlope();
+
+    void setHasGeneratorWithSlope(boolean b);
+
     /**
      * Get the number of time, voltage control status has be set from true to false.
      *

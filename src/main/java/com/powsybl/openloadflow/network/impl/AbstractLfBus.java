@@ -37,6 +37,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double calculatedQ = Double.NaN;
 
+    private boolean hasGeneratorWithSlope;
+
     protected boolean voltageControllerEnabled = false;
 
     protected int voltageControlSwitchOffCount = 0;
@@ -134,6 +136,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public List<LfGenerator> getGeneratorsControllingVoltageWithSlope() {
         return generators.stream().filter(gen -> gen.hasVoltageControl() && gen.getSlope() != 0).collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean hasGeneratorWithSlope() {
+        return hasGeneratorWithSlope;
+    }
+
+    @Override
+    public void setHasGeneratorWithSlope(boolean b) {
+        hasGeneratorWithSlope = b;
     }
 
     @Override
