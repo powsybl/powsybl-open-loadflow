@@ -29,8 +29,7 @@ public class AcEquationSystemCreationParameters {
         this(phaseControl, transformerVoltageControl, forceA1Var, null);
     }
 
-    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var,
-                                              Set<String> branchesWithCurrent) {
+    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var, Set<String> branchesWithCurrent) {
         this.phaseControl = phaseControl;
         this.transformerVoltageControl = transformerVoltageControl;
         this.forceA1Var = forceA1Var;
