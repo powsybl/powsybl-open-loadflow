@@ -37,7 +37,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double calculatedQ = Double.NaN;
 
-    private boolean hasGeneratorWithSlope;
+    private boolean hasGeneratorsWithSlope;
 
     protected boolean voltageControllerEnabled = false;
 
@@ -140,12 +140,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean hasGeneratorsWithSlope() {
-        return hasGeneratorWithSlope;
+        return hasGeneratorsWithSlope;
     }
 
     @Override
-    public void removeSlopes() {
-        hasGeneratorWithSlope = false;
+    public void removeGeneratorSlopes() {
+        hasGeneratorsWithSlope = false;
         generators.forEach(g -> g.setSlope(0));
     }
 
@@ -241,8 +241,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
             LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, this, voltagePerReactivePowerControl, breakers, report);
             add(lfSvc);
-            if (lfSvc.getSlope() > 0) {
-                hasGeneratorWithSlope = true;
+            if (lfSvc.getSlope() != 0) {
+                hasGeneratorsWithSlope = true;
             }
         }
     }

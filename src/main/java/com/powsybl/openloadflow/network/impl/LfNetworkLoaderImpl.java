@@ -119,11 +119,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
         if (!generatorsWithSlope.isEmpty()) {
             if (voltageControl.isSharedControl()) {
-                generatorsWithSlope.forEach(generator -> generator.getBus().removeSlopes());
+                generatorsWithSlope.forEach(generator -> generator.getBus().removeGeneratorSlopes());
                 LOGGER.warn("Non supported: shared control on bus {} with {} generator(s) controlling voltage with slope. Slope set to 0 on all those generators",
                         voltageControl.getControlledBus(), generatorsWithSlope.size());
             } else if (!voltageControl.isVoltageControlLocal()) {
-                generatorsWithSlope.forEach(generator -> generator.getBus().removeSlopes());
+                generatorsWithSlope.forEach(generator -> generator.getBus().removeGeneratorSlopes());
                 LOGGER.warn("Non supported: remote control on bus {} with {} generator(s) controlling voltage with slope",
                         voltageControl.getControlledBus(), generatorsWithSlope.size());
             }
