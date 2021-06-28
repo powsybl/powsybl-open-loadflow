@@ -113,21 +113,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     private static void checkGeneratorsWithSlope(VoltageControl voltageControl) {
         List<LfGenerator> generatorsWithSlope = voltageControl.getControllerBuses().stream()
-                .flatMap(lfBus -> lfBus.getGenerators().stream().filter(generator -> generator.hasVoltageControl() && generator.getSlope() != 0))
+                .filter(LfBus::hasGeneratorsWithSlope)
+                .flatMap(lfBus -> lfBus.getGeneratorsControllingVoltageWithSlope().stream())
                 .collect(Collectors.toList());
 
         if (!generatorsWithSlope.isEmpty()) {
             if (voltageControl.isSharedControl()) {
-                generatorsWithSlope.forEach(generator -> generator.setSlope(0));
+                generatorsWithSlope.forEach(generator -> generator.getBus().removeSlopes());
                 LOGGER.warn("Non supported: shared control on bus {} with {} generator(s) controlling voltage with slope. Slope set to 0 on all those generators",
                         voltageControl.getControlledBus(), generatorsWithSlope.size());
             } else if (!voltageControl.isVoltageControlLocal()) {
-                generatorsWithSlope.forEach(generator -> generator.setSlope(0));
+                generatorsWithSlope.forEach(generator -> generator.getBus().removeSlopes());
                 LOGGER.warn("Non supported: remote control on bus {} with {} generator(s) controlling voltage with slope",
                         voltageControl.getControlledBus(), generatorsWithSlope.size());
-            } else {
-                // Only one generator with slope with local control
-                generatorsWithSlope.get(0).getBus().setHasGeneratorWithSlope(true);
             }
         }
     }

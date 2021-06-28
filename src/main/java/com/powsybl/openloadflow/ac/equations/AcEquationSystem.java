@@ -74,7 +74,7 @@ public final class AcEquationSystem {
     private static void createLocalVoltageControlEquation(LfBus bus, VariableSet variableSet, EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
         EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
         bus.setV(vTerm);
-        if (bus.hasGeneratorWithSlope()) {
+        if (bus.hasGeneratorsWithSlope()) {
             // take first generator with slope: network loading ensures that there's only one generator with slope
             double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
             createBusWithSlopeEquation(bus, slope, creationParameters, variableSet, equationSystem, vTerm);
