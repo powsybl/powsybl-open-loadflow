@@ -123,6 +123,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                         voltageControl.getControlledBus(), generatorsWithSlope.size());
             }
             if (!voltageControl.isVoltageControlLocal()) {
+                generatorsWithSlope.forEach(generator -> generator.setSlope(0));
                 LOGGER.warn("Non supported: remote control on bus {} with {} generator(s) controlling voltage with slope",
                         voltageControl.getControlledBus(), generatorsWithSlope.size());
             }

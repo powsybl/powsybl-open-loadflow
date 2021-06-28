@@ -74,13 +74,11 @@ public final class AcEquationSystem {
     private static void createLocalVoltageControlEquation(LfBus bus, VariableSet variableSet, EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
         EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
         bus.setV(vTerm);
-        if (creationParameters.isVoltagePerReactivePowerControl()) {
-            List<LfGenerator> generatorsControllingVoltageWithSlope = bus.getGeneratorsControllingVoltageWithSlope();
-            if (generatorsControllingVoltageWithSlope.size() == 1) {
-                double slope = generatorsControllingVoltageWithSlope.get(0).getSlope();
-                createBusWithSlopeEquation(bus, slope, creationParameters, variableSet, equationSystem, vTerm);
-                return;
-            }
+        List<LfGenerator> generatorsControllingVoltageWithSlope = bus.getGeneratorsControllingVoltageWithSlope();
+        if (generatorsControllingVoltageWithSlope.size() == 1) {
+            double slope = generatorsControllingVoltageWithSlope.get(0).getSlope();
+            createBusWithSlopeEquation(bus, slope, creationParameters, variableSet, equationSystem, vTerm);
+            return;
         }
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
     }

@@ -244,12 +244,14 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
         assertVoltageEquals(20, b3); // PV
         System.out.println(b3.getV());
 
-        svc3.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
+        parametersExt.setVoltagePerReactivePowerControl(true);
+        svc3.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.00001).add();
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isOk());
         // bus 1 and 3 switch PQ at first outer loop, then at next outer loop bus 3 does not go back PV
         assertVoltageEquals(17.034003, b1); // PQ => v != 17
         assertVoltageEquals(21, b2); // PV
+        System.out.println(b3.getV());
         assertEquals(20.00140, b3.getV(), 10E-3); // remains PQ because of slope
     }
 }
