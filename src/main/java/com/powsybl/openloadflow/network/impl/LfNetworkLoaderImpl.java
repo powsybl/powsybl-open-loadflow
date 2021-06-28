@@ -344,8 +344,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                         firstVoltageControl.addControllerBus(controller);
                         controller.setVoltageControl(firstVoltageControl);
                     });
-            firstVoltageControl.setZeroImpedance(true); // FIXME: to be improved.
-            voltageControls.forEach(vc -> vc.getControlledBus().removeVoltageControl());
+            voltageControls.stream()
+                    .filter(vc -> !firstVoltageControl.getControllerBuses().contains(vc.getControlledBus()))
+                    .forEach(vc -> vc.getControlledBus().removeVoltageControl());
 
             // Second, we have to remove all the discrete voltage controls if present.
             if (!discreteVoltageControls.isEmpty()) {
