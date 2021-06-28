@@ -35,16 +35,19 @@ public class NewtonRaphson {
 
     private final JacobianMatrix j;
 
+    private final TargetVector targetVector;
+
     public NewtonRaphson(LfNetwork network, MatrixFactory matrixFactory, EquationSystem equationSystem, JacobianMatrix j,
-                         NewtonRaphsonStoppingCriteria stoppingCriteria) {
+                         TargetVector targetVector, NewtonRaphsonStoppingCriteria stoppingCriteria) {
         this.network = Objects.requireNonNull(network);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.j = Objects.requireNonNull(j);
+        this.targetVector = Objects.requireNonNull(targetVector);
         this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
     }
 
-    private NewtonRaphsonStatus runIteration(double[] fx, double[] targets, double[] x) {
+    private NewtonRaphsonStatus runIteration(double[] fx, double[] x) {
         LOGGER.debug("Start iteration {}", iteration);
 
         try {
@@ -65,7 +68,7 @@ public class NewtonRaphson {
             // recalculate f(x) with new x
             equationSystem.updateEquationVector(fx);
 
-            Vectors.minus(fx, targets);
+            Vectors.minus(fx, targetVector.toArray());
 
             if (LOGGER.isTraceEnabled()) {
                 equationSystem.findLargestMismatches(fx, 5)
@@ -109,18 +112,15 @@ public class NewtonRaphson {
 
         equationSystem.updateEquations(x);
 
-        // initialize target vector
-        double[] targets = equationSystem.createTargetVector();
-
         // initialize mismatch vector (difference between equation values and targets)
         double[] fx = equationSystem.createEquationVector();
 
-        Vectors.minus(fx, targets);
+        Vectors.minus(fx, targetVector.toArray());
 
         // start iterations
         NewtonRaphsonStatus status = NewtonRaphsonStatus.NO_CALCULATION;
         while (iteration <= parameters.getMaxIteration()) {
-            NewtonRaphsonStatus newStatus = runIteration(fx, targets, x);
+            NewtonRaphsonStatus newStatus = runIteration(fx, x);
             if (newStatus != null) {
                 status = newStatus;
                 break;

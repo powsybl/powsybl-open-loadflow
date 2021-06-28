@@ -6,11 +6,9 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.CurrentLimits;
-import com.powsybl.iidm.network.LoadingLimits;
-import com.powsybl.iidm.network.PhaseTapChanger;
-import com.powsybl.iidm.network.RatioTapChanger;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.impl.Transformers;
+import org.apache.commons.math3.util.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,15 +56,17 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private final LfBus bus2;
 
-    private List<LfLimit> limits1;
+    private Map<LimitType, List<LfLimit>> limits1 = new EnumMap<>(LimitType.class);
 
-    private List<LfLimit> limits2;
+    private Map<LimitType, List<LfLimit>> limits2 = new EnumMap<>(LimitType.class);
 
     private final PiModel piModel;
 
     protected DiscretePhaseControl phaseControl;
 
     protected DiscreteVoltageControl discreteVoltageControl;
+
+    protected boolean disabled = false;
 
     protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
         super(network);
@@ -75,11 +75,12 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.piModel = Objects.requireNonNull(piModel);
     }
 
-    protected static List<LfLimit> createSortedLimitsList(CurrentLimits currentLimits, LfBus bus) {
+    protected static List<LfLimit> createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus) {
         LinkedList<LfLimit> sortedLimits = new LinkedList<>();
-        if (currentLimits != null) {
-            double toPerUnit = bus.getNominalV() / PerUnit.SB;
-            for (LoadingLimits.TemporaryLimit temporaryLimit : currentLimits.getTemporaryLimits()) {
+        if (loadingLimits != null) {
+            double toPerUnit = getScaleForLimitType(loadingLimits.getLimitType(), bus);
+
+            for (LoadingLimits.TemporaryLimit temporaryLimit : loadingLimits.getTemporaryLimits()) {
                 if (temporaryLimit.getAcceptableDuration() != 0) {
                     // it is not useful to add a limit with acceptable duration equal to zero as the only value plausible
                     // for this limit is infinity.
@@ -88,7 +89,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                     sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getAcceptableDuration(), valuePerUnit));
                 }
             }
-            sortedLimits.addLast(LfLimit.createPermanentLimit(currentLimits.getPermanentLimit() * toPerUnit));
+            sortedLimits.addLast(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimit() * toPerUnit));
         }
         if (sortedLimits.size() > 1) {
             // we only make that fix if there is more than a permanent limit attached to the branch.
@@ -116,18 +117,12 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         return bus2;
     }
 
-    protected List<LfLimit> getLimits1(CurrentLimits currentLimits) {
-        if (limits1 == null) {
-            limits1 = createSortedLimitsList(currentLimits, bus1);
-        }
-        return limits1;
+    public List<LfLimit> getLimits1(LimitType type, LoadingLimits loadingLimits) {
+        return limits1.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus1));
     }
 
-    protected List<LfLimit> getLimits2(CurrentLimits currentLimits) {
-        if (limits2 == null) {
-            limits2 = createSortedLimitsList(currentLimits, bus2);
-        }
-        return limits2;
+    public List<LfLimit> getLimits2(LimitType type, LoadingLimits loadingLimits) {
+        return limits2.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus2));
     }
 
     @Override
@@ -136,8 +131,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public DiscretePhaseControl getDiscretePhaseControl() {
-        return phaseControl;
+    public Optional<DiscretePhaseControl> getDiscretePhaseControl() {
+        return Optional.ofNullable(phaseControl);
     }
 
     @Override
@@ -191,9 +186,22 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
+    protected static double getScaleForLimitType(LimitType type, LfBus bus) {
+        switch (type) {
+            case ACTIVE_POWER:
+            case APPARENT_POWER:
+                return 1.0 / PerUnit.SB;
+            case CURRENT:
+                return bus.getNominalV() / PerUnit.SB;
+            case VOLTAGE:
+            default:
+                throw new UnsupportedOperationException(String.format("Getting scale for limit type %s is not supported.", type));
+        }
+    }
+
     @Override
-    public DiscreteVoltageControl getDiscreteVoltageControl() {
-        return discreteVoltageControl;
+    public Optional<DiscreteVoltageControl> getDiscreteVoltageControl() {
+        return Optional.ofNullable(discreteVoltageControl);
     }
 
     @Override
@@ -204,5 +212,28 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl) {
         this.discreteVoltageControl = discreteVoltageControl;
+    }
+
+    @Override
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    @Override
+    public void setDisabled(boolean disabled) {
+        this.disabled = disabled;
+    }
+
+    public double computeApparentPower1() {
+        double p = getP1().eval();
+        double q = getQ1().eval();
+        return FastMath.sqrt(p * p + q * q);
+    }
+
+    @Override
+    public double computeApparentPower2() {
+        double p = getP2().eval();
+        double q = getQ2().eval();
+        return FastMath.sqrt(p * p + q * q);
     }
 }

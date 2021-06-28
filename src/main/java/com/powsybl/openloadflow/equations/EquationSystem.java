@@ -282,14 +282,6 @@ public class EquationSystem {
         return x;
     }
 
-    public double[] createTargetVector() {
-        double[] targets = new double[equationCache.getSortedEquationsToSolve().size()];
-        for (Equation equation : equationCache.getSortedEquationsToSolve().keySet()) {
-            equation.initTarget(network, targets);
-        }
-        return targets;
-    }
-
     public double[] createEquationVector() {
         double[] fx = new double[equationCache.getSortedEquationsToSolve().size()];
         updateEquationVector(fx);

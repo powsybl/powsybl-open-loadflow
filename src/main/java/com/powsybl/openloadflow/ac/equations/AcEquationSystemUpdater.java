@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcEquationSystemUpdater implements LfNetworkListener {
+public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
     private final EquationSystem equationSystem;
 
@@ -91,14 +91,14 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
 
     @Override
     public void onVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode) {
+        LfBus bus = voltageControl.getControlled();
         if (newMode == DiscreteVoltageControl.Mode.OFF) {
-            LfBus bus = voltageControl.getControlled();
 
             // de-activate transformer voltage control equation
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_V)
                     .setActive(false);
 
-            for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
+            for (LfBranch controllerBranch : voltageControl.getControllers()) {
                 // activate constant R1 equation
                 equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
                         .setActive(true);
@@ -106,8 +106,20 @@ public class AcEquationSystemUpdater implements LfNetworkListener {
                 // clean transformer distribution equations
                 equationSystem.removeEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1);
             }
-        } else {
-            throw new UnsupportedOperationException("TODO");
+        } else { // newMode == DiscreteVoltageControl.Mode.VOLTAGE
+
+            // activate transformer voltage control equation
+            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V)
+                    .setActive(true);
+
+            // add transformer distribution equations
+            AcEquationSystem.createR1DistributionEquations(equationSystem, variableSet, voltageControl.getControllers());
+
+            for (LfBranch controllerBranch : voltageControl.getControllers()) {
+                // de-activate constant R1 equation
+                equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
+                        .setActive(false);
+            }
         }
     }
 }

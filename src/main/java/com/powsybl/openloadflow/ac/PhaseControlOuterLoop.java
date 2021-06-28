@@ -16,6 +16,10 @@ import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -44,50 +48,39 @@ public class PhaseControlOuterLoop implements OuterLoop {
     }
 
     private OuterLoopStatus firstIteration(OuterLoopContext context) {
-        OuterLoopStatus status = OuterLoopStatus.STABLE;
-        for (LfBranch branch : context.getNetwork().getBranches()) {
-            if (branch.isPhaseControlled()) {
-                switch (branch.getDiscretePhaseControl().getMode()) {
-                    case CONTROLLER:
-                        // all branches with active power control are switched off
-                        switchOffPhaseControl(branch);
-                        // if at least one phase shifter has been switched off we need to continue
-                        status = OuterLoopStatus.UNSTABLE;
-                        break;
-                    case LIMITER:
-                        status = OuterLoopStatus.UNSTABLE;
-                        break;
-                    default:
-                        // nothing has to be done
-                }
-            }
-        }
-        return status;
+
+        List<DiscretePhaseControl> phaseControlsOn = context.getNetwork().getBranches().stream()
+            .map(branch -> branch.getDiscretePhaseControl().filter(dpc -> branch.isPhaseControlled()))
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .filter(dpc -> dpc.getMode() == DiscretePhaseControl.Mode.CONTROLLER || dpc.getMode() == DiscretePhaseControl.Mode.LIMITER)
+            .collect(Collectors.toList());
+
+        // all branches with active power control are switched off
+        // TODO: only done for controller mode so far, phase shifter in limiter mode not yet implemented
+        phaseControlsOn.stream().filter(dpc -> dpc.getMode() == DiscretePhaseControl.Mode.CONTROLLER).forEach(this::switchOffPhaseControl);
+
+        // if at least one phase shifter has been switched off we need to continue
+        return phaseControlsOn.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
     }
 
     private OuterLoopStatus nextIteration(OuterLoopContext context) {
         // at second outer loop iteration we switch on phase control for branches that are in limiter mode
         // and a current greater than the limit
         for (LfBranch branch : context.getNetwork().getBranches()) {
-            if (branch.isPhaseControlled()) {
-                switch (branch.getDiscretePhaseControl().getMode()) {
-                    case LIMITER:
-                        // TODO
-                        LOGGER.warn("Phase shifter in limiter mode not yet implemented");
-                    default:
-                        // nothing has to be done
-                }
-            }
+            branch.getDiscretePhaseControl()
+                .filter(dpc -> branch.isPhaseControlled() && dpc.getMode() == DiscretePhaseControl.Mode.LIMITER)
+                .ifPresent(discretePhaseControl -> LOGGER.warn("Phase shifter in limiter mode not yet implemented")); // TODO
         }
         return OuterLoopStatus.STABLE;
     }
 
-    private void switchOffPhaseControl(LfBranch branch) {
+    private void switchOffPhaseControl(DiscretePhaseControl phaseControl) {
         // switch off phase control
-        branch.getDiscretePhaseControl().setMode(DiscretePhaseControl.Mode.OFF);
+        phaseControl.setMode(DiscretePhaseControl.Mode.OFF);
 
         // round the phase shift to the closest tap
-        LfBranch controllerBranch = branch.getDiscretePhaseControl().getController();
+        LfBranch controllerBranch = phaseControl.getController();
         PiModel piModel = controllerBranch.getPiModel();
         double a1Value = piModel.getA1();
         piModel.roundA1ToClosestTap();

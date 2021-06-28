@@ -6,8 +6,11 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.DanglingLine;
+import com.powsybl.iidm.network.LimitType;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.security.results.BranchResult;
 
 import java.util.Collections;
 import java.util.List;
@@ -52,12 +55,27 @@ public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits1() {
-        return getLimits1(danglingLine.getCurrentLimits());
+    public BranchResult createBranchResult() {
+        throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
     }
 
     @Override
-    public List<LfLimit> getLimits2() {
+    public List<LfLimit> getLimits1(final LimitType type) {
+        switch (type) {
+            case ACTIVE_POWER:
+                return getLimits1(type, danglingLine.getActivePowerLimits());
+            case APPARENT_POWER:
+                return getLimits1(type, danglingLine.getApparentPowerLimits());
+            case CURRENT:
+                return getLimits1(type, danglingLine.getCurrentLimits());
+            case VOLTAGE:
+            default:
+                throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+        }
+    }
+
+    @Override
+    public List<LfLimit> getLimits2(final LimitType type) {
         return Collections.emptyList();
     }
 

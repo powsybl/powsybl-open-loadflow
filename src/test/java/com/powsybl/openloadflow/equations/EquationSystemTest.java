@@ -42,7 +42,9 @@ class EquationSystemTest {
 
     @Test
     void test() {
-        LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector()).get(0);
+        List<LfNetwork> lfNetworks = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
+        LfNetwork network = lfNetworks.get(0);
+
         LfBus bus = network.getBus(0);
         EquationSystem equationSystem = new EquationSystem(network, true);
         equationSystem.addListener(new EquationSystemListener() {
@@ -121,7 +123,9 @@ class EquationSystemTest {
 
     @Test
     void writeAcSystemTest() throws IOException {
-        LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector()).get(0);
+        List<LfNetwork> lfNetworks = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
+        LfNetwork network = lfNetworks.get(0);
+
         EquationSystem equationSystem = AcEquationSystem.create(network);
         try (StringWriter writer = new StringWriter()) {
             equationSystem.write(writer);
@@ -142,7 +146,9 @@ class EquationSystemTest {
 
     @Test
     void writeDcSystemTest() throws IOException {
-        LfNetwork network = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector()).get(0);
+        List<LfNetwork> lfNetworks = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
+        LfNetwork network = lfNetworks.get(0);
+
         EquationSystem equationSystem = DcEquationSystem.create(network, new DcEquationSystemCreationParameters(true, false, false, true));
         try (StringWriter writer = new StringWriter()) {
             equationSystem.write(writer);
@@ -160,10 +166,12 @@ class EquationSystemTest {
     @Test
     void findLargestMismatchesTest() {
         Network network = EurostagTutorialExample1Factory.create();
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
-        EquationSystem equationSystem = AcEquationSystem.create(lfNetwork);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+
+        EquationSystem equationSystem = AcEquationSystem.create(mainNetwork);
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
-        double[] targets = equationSystem.createTargetVector();
+        double[] targets = TargetVector.createArray(mainNetwork, equationSystem);
         equationSystem.updateEquations(x);
         double[] fx = equationSystem.createEquationVector();
         Vectors.minus(fx, targets);
@@ -177,12 +185,14 @@ class EquationSystemTest {
     @Test
     void currentMagnitudeTest() {
         Network network = EurostagTutorialExample1Factory.create();
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+
         VariableSet variableSet = new VariableSet();
-        EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, variableSet);
+        EquationSystem equationSystem = AcEquationSystem.create(mainNetwork, variableSet);
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
         equationSystem.updateEquations(x, EquationSystem.EquationUpdateType.AFTER_NR);
-        LfBranch branch = lfNetwork.getBranchById("NHV1_NHV2_1");
+        LfBranch branch = mainNetwork.getBranchById("NHV1_NHV2_1");
         EquationTerm i1 = equationSystem.getEquation(branch.getBus1().getNum(), EquationType.BUS_I).orElse(null).getTerms().get(1);
         EquationTerm i2 = equationSystem.getEquation(branch.getBus2().getNum(), EquationType.BUS_I).orElse(null).getTerms().get(0);
         Variable v1var = variableSet.getVariable(branch.getBus1().getNum(), VariableType.BUS_V);
@@ -204,12 +214,15 @@ class EquationSystemTest {
         Network network = EurostagTutorialExample1Factory.create();
         Line line1 = network.getLine("NHV1_NHV2_1");
         line1.getTerminal2().disconnect();
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+
         VariableSet variableSet = new VariableSet();
-        EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, variableSet);
+        EquationSystem equationSystem = AcEquationSystem.create(mainNetwork, variableSet);
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
         equationSystem.updateEquations(x, EquationSystem.EquationUpdateType.AFTER_NR);
-        LfBranch branch = lfNetwork.getBranchById("NHV1_NHV2_1");
+        LfBranch branch = mainNetwork.getBranchById("NHV1_NHV2_1");
         EquationTerm i1 = equationSystem.getEquation(branch.getBus1().getNum(), EquationType.BUS_I).orElse(null).getTerms().stream().filter(OpenBranchSide2CurrentMagnitudeEquationTerm.class::isInstance).findAny().get();
         Variable v1var = variableSet.getVariable(branch.getBus1().getNum(), VariableType.BUS_V);
         Variable ph1var = variableSet.getVariable(branch.getBus1().getNum(), VariableType.BUS_PHI);
@@ -222,12 +235,14 @@ class EquationSystemTest {
         Network network = EurostagTutorialExample1Factory.create();
         Line line1 = network.getLine("NHV1_NHV2_1");
         line1.getTerminal1().disconnect();
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+
         VariableSet variableSet = new VariableSet();
-        EquationSystem equationSystem = AcEquationSystem.create(lfNetwork, variableSet);
+        EquationSystem equationSystem = AcEquationSystem.create(mainNetwork, variableSet);
         double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
         equationSystem.updateEquations(x, EquationSystem.EquationUpdateType.AFTER_NR);
-        LfBranch branch = lfNetwork.getBranchById("NHV1_NHV2_1");
+        LfBranch branch = mainNetwork.getBranchById("NHV1_NHV2_1");
         EquationTerm i2 = equationSystem.getEquation(branch.getBus2().getNum(), EquationType.BUS_I).orElse(null).getTerms().stream().filter(OpenBranchSide1CurrentMagnitudeEquationTerm.class::isInstance).findAny().get();
         Variable v2var = variableSet.getVariable(branch.getBus2().getNum(), VariableType.BUS_V);
         Variable ph2var = variableSet.getVariable(branch.getBus2().getNum(), VariableType.BUS_PHI);

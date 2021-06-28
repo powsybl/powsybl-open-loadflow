@@ -43,7 +43,7 @@ public interface LfGenerator {
 
     boolean isParticipating();
 
-    double getParticipationFactor();
+    double getDroop();
 
     double getCalculatedQ();
 

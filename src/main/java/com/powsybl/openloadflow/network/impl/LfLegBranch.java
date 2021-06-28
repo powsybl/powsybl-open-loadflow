@@ -7,10 +7,12 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.security.results.BranchResult;
 
 import java.util.*;
 
@@ -103,12 +105,27 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
-    public List<LfLimit> getLimits1() {
-        return getLimits1(leg.getCurrentLimits());
+    public BranchResult createBranchResult() {
+        throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
     }
 
     @Override
-    public List<LfLimit> getLimits2() {
+    public List<LfLimit> getLimits1(final LimitType type) {
+        switch (type) {
+            case ACTIVE_POWER:
+                return getLimits1(type, leg.getActivePowerLimits());
+            case APPARENT_POWER:
+                return getLimits1(type, leg.getApparentPowerLimits());
+            case CURRENT:
+                return getLimits1(type, leg.getCurrentLimits());
+            case VOLTAGE:
+            default:
+                throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+        }
+    }
+
+    @Override
+    public List<LfLimit> getLimits2(final LimitType type) {
         return Collections.emptyList();
     }
 

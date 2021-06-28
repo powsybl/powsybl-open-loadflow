@@ -6,9 +6,12 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.LimitType;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.security.results.BranchResult;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -45,13 +48,13 @@ public interface LfBranch extends LfElement {
 
     Evaluable getI2();
 
-    List<AbstractLfBranch.LfLimit> getLimits1();
+    List<AbstractLfBranch.LfLimit> getLimits1(LimitType type);
 
-    List<AbstractLfBranch.LfLimit> getLimits2();
+    List<AbstractLfBranch.LfLimit> getLimits2(LimitType type);
 
     boolean hasPhaseControlCapability();
 
-    DiscretePhaseControl getDiscretePhaseControl();
+    Optional<DiscretePhaseControl> getDiscretePhaseControl();
 
     void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn);
 
@@ -63,9 +66,19 @@ public interface LfBranch extends LfElement {
 
     void setDiscretePhaseControl(DiscretePhaseControl discretePhaseControl);
 
-    DiscreteVoltageControl getDiscreteVoltageControl();
+    Optional<DiscreteVoltageControl> getDiscreteVoltageControl();
 
     boolean isVoltageController();
 
     void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
+
+    BranchResult createBranchResult();
+
+    boolean isDisabled();
+
+    void setDisabled(boolean disabled);
+
+    double computeApparentPower1();
+
+    double computeApparentPower2();
 }

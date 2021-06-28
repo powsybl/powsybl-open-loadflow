@@ -40,9 +40,8 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
         // If the converter station is at side 1 and is inverter, targetP should be positive.
         // If the converter station is at side 2 and is rectifier, targetP should be negative.
         // If the converter station is at side 2 and is inverter, targetP should be positive.
-        boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(vscCs);
         HvdcLine line = vscCs.getHvdcLine();
-        return (isConverterStationRectifier ? -1 : 1) * line.getActivePowerSetpoint() * (1 + (isConverterStationRectifier ? 1 : -1) * vscCs.getLossFactor() / 100);
+        return line.getActivePowerSetpoint() * HvdcConverterStations.getActivePowerSetpointMultiplier(vscCs);
     }
 
     @Override
@@ -71,7 +70,7 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     }
 
     @Override
-    public double getParticipationFactor() {
+    public double getDroop() {
         return 0;
     }
 

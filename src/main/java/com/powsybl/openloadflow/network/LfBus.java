@@ -6,7 +6,9 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.network.impl.LfLoads;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.security.results.BusResults;
 
 import java.util.List;
 import java.util.Optional;
@@ -51,17 +53,15 @@ public interface LfBus extends LfElement {
 
     double getLoadTargetP();
 
+    double getInitialLoadTargetP();
+
     void setLoadTargetP(double loadTargetP);
-
-    double getFixedLoadTargetP();
-
-    int getPositiveLoadCount();
 
     double getLoadTargetQ();
 
     void setLoadTargetQ(double loadTargetQ);
 
-    double getFixedLoadTargetQ();
+    boolean ensurePowerFactorConstantByLoad();
 
     double getGenerationTargetP();
 
@@ -99,13 +99,15 @@ public interface LfBus extends LfElement {
 
     List<LfShunt> getShunts();
 
+    LfLoads getLfLoads();
+
     List<LfBranch> getBranches();
 
     void addBranch(LfBranch branch);
 
-    void updateState(boolean reactiveLimits, boolean writeSlackBus);
+    void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant);
 
-    DiscreteVoltageControl getDiscreteVoltageControl();
+    Optional<DiscreteVoltageControl> getDiscreteVoltageControl();
 
     boolean isDiscreteVoltageControlled();
 
@@ -122,4 +124,8 @@ public interface LfBus extends LfElement {
     void setQ(Evaluable q);
 
     Evaluable getQ();
+
+    boolean isParticipating();
+
+    BusResults createBusResult();
 }
