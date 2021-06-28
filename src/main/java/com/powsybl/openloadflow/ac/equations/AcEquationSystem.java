@@ -144,8 +144,6 @@ public final class AcEquationSystem {
         LfBus firstControllerBus = controllerBuses.get(0);
         List<EquationTerm> firstControllerBusReactiveTerms = createReactiveTerms(firstControllerBus, variableSet, creationParameters);
 
-        Optional<VoltageControl> voltageControl = firstControllerBus.getVoltageControl();
-
         // create a reactive power distribution equation for all the other controller buses
         for (int i = 1; i < controllerBuses.size(); i++) {
             LfBus controllerBus = controllerBuses.get(i);
