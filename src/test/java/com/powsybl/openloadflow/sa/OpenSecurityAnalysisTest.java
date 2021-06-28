@@ -487,7 +487,7 @@ class OpenSecurityAnalysisTest {
         assertEquals(new BranchResult("l24", 244.9999975189166, 3.0000094876289114, 558.8517346879828, -244.9999975189166, -299.86040688975567, 558.8517346881861),
                 result.getPreContingencyResult().getPreContingencyBranchResults().get(0));
 
-        assertEquals(new BranchResult("l24", 300.0000316340358, 2.999999961752837, 14224.917799052932, -300.00003163403585, -208.94326368159844, 14224.917799052939),
+        assertEquals(new BranchResult("l24", 300.0000316340358, 2.999999961752837, 14224.917799052933, -300.00003163403585, -208.94326368159844, 14224.917799052939),
                 result.getPostContingencyResults().get(0).getBranchResult("l24"));
     }
 
