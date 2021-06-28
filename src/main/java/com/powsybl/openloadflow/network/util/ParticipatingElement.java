@@ -21,7 +21,7 @@ public class ParticipatingElement {
 
     private double factor;
 
-    ParticipatingElement(Object element, double factor) {
+    public ParticipatingElement(Object element, double factor) {
         this.element = element;
         this.factor = factor;
     }

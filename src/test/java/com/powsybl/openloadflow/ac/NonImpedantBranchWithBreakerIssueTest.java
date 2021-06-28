@@ -38,7 +38,7 @@ class NonImpedantBranchWithBreakerIssueTest {
         boolean breakers = true;
         LfNetworkParameters networkParameters = new LfNetworkParameters(slackBusSelector, false, false, false, breakers,
                                                                         ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                                                                        true, Collections.emptySet(), false);
+                                                                        true, Collections.emptySet(), false, false, false);
         LfNetwork lfNetwork = LfNetwork.load(network, networkParameters).get(0);
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(slackBusSelector, new UniformValueVoltageInitializer(), new DefaultNewtonRaphsonStoppingCriteria(),
                                                                              Collections.emptyList(), new DenseMatrixFactory(), false, false, false, false, false, breakers, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
@@ -61,7 +61,7 @@ class NonImpedantBranchWithBreakerIssueTest {
         boolean breakers = false;
         LfNetworkParameters networkParameters = new LfNetworkParameters(slackBusSelector, false, false, false, breakers,
                 ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true, Collections.emptySet(), false);
+                true, Collections.emptySet(), false, false, false);
         LfNetwork lfNetwork = LfNetwork.load(network, networkParameters).get(0);
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(slackBusSelector, new UniformValueVoltageInitializer(), new DefaultNewtonRaphsonStoppingCriteria(),
                 Collections.emptyList(), new DenseMatrixFactory(), false, false, false, false, false, breakers, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
