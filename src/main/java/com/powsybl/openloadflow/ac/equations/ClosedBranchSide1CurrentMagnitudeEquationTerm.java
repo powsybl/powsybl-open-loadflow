@@ -68,7 +68,7 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
 
         double reI1 = r1 * (w1 * interReI1 - w2 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
         double imI1 = r1 * (w1 * interImI1 + w2 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
-        i1 = Math.hypot(reI1, imI1);
+        i1 = FastMath.hypot(reI1, imI1);
 
         double dreI1dv1 = r1 * r1 * interReI1 * CURRENT_NORMALIZATION_FACTOR;
         double dreI1dv2 = r1 * (-y * R2 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;

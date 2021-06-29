@@ -55,7 +55,7 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
         double reI1 = r1 * w1 * (gres * cosPh1 - bres * sinPh1) * CURRENT_NORMALIZATION_FACTOR;
         double imI1 = r1 * w1 * (gres * sinPh1 + bres * cosPh1) * CURRENT_NORMALIZATION_FACTOR;
-        i1 = Math.hypot(reI1, imI1);
+        i1 = FastMath.hypot(reI1, imI1);
 
         double dreI1dv1 = r1 * r1 * (gres * cosPh1 - bres * sinPh1) * CURRENT_NORMALIZATION_FACTOR;
 
