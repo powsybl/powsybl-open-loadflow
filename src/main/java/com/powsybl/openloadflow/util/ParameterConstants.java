@@ -44,6 +44,9 @@ public final class ParameterConstants {
     public static final String SLACK_BUS_P_MAX_MISMATCH_NAME = "slackBusPMaxMismatch";
     public static final double SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE = 1.0;
 
+    public static final String VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME = "voltagePerReactivePowerControl";
+    public static final boolean VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE = false;
+
     private ParameterConstants() {
     }
 }
