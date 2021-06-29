@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ToDoubleFunction;
+import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -35,6 +36,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected double angle;
 
     protected double calculatedQ = Double.NaN;
+
+    private boolean hasGeneratorsWithSlope;
 
     protected boolean voltageControllerEnabled = false;
 
@@ -135,6 +138,22 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public List<LfGenerator> getGeneratorsControllingVoltageWithSlope() {
+        return generators.stream().filter(gen -> gen.hasVoltageControl() && gen.getSlope() != 0).collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean hasGeneratorsWithSlope() {
+        return hasGeneratorsWithSlope;
+    }
+
+    @Override
+    public void removeGeneratorSlopes() {
+        hasGeneratorsWithSlope = false;
+        generators.forEach(g -> g.setSlope(0));
+    }
+
+    @Override
     public boolean isVoltageControllerEnabled() {
         return voltageControllerEnabled;
     }
@@ -222,9 +241,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         add(LfGeneratorImpl.create(generator, breakers, report, plausibleActivePowerLimit));
     }
 
-    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean breakers, LfNetworkLoadingReport report) {
+    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean voltagePerReactivePowerControl, boolean breakers, LfNetworkLoadingReport report) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
-            add(LfStaticVarCompensatorImpl.create(staticVarCompensator, this, breakers, report));
+            LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, this, voltagePerReactivePowerControl, breakers, report);
+            add(lfSvc);
+            if (lfSvc.getSlope() != 0) {
+                hasGeneratorsWithSlope = true;
+            }
         }
     }
 
@@ -489,5 +512,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     public BusResults createBusResult() {
         double scale = getNominalV();
         return new BusResults(getVoltageLevelId(), getId(), getV().eval() * scale, getAngle());
+    }
+
+    @Override
+    public String toString() {
+        return getId();
     }
 }
