@@ -672,7 +672,7 @@ class OpenSecurityAnalysisTest {
         assertEquals(5, result.getPostContingencyResults().get(0).getBranchResults().size());
 
         List<String> contingencies = result.getPostContingencyResults().stream().map(r -> r.getContingency().getId()).collect(Collectors.toList());
-        for(String c : contingencies) {
+        for (String c : contingencies) {
             PostContingencyResult resultCont = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals(c)).findFirst().get();
             assertEquals(0.0, resultCont.getBranchResult(c).getP1());
             assertEquals(1.0, resultCont.getBranchResult(c).getFlowTransfer1());
