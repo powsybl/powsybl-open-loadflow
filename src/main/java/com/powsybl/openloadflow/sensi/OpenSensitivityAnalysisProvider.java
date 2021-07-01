@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.auto.service.AutoService;
 import com.powsybl.commons.config.PlatformConfig;
+import com.powsybl.commons.json.JsonUtil;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.Contingency;
@@ -223,7 +224,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
         String dateStr = date.toString(DATE_TIME_FORMAT);
 
-        List<SensitivityFactor> factors = SensitivityFactor.parseMultipleJson(debugDir.resolve("factors-" + dateStr + ".json"));
+        List<SensitivityFactor> factors = JsonUtil.parseJson(debugDir.resolve("factors-" + dateStr + ".json"), SensitivityFactor::parseMultipleJson);
 
         ObjectMapper objectMapper = createObjectMapper();
         List<Contingency> contingencies;
