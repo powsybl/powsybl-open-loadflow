@@ -675,7 +675,7 @@ class OpenSecurityAnalysisTest {
         for (String c : contingencies) {
             PostContingencyResult resultCont = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals(c)).findFirst().get();
             assertEquals(0.0, resultCont.getBranchResult(c).getP1());
-            assertEquals(1.0, resultCont.getBranchResult(c).getFlowTransfer1());
+            assertEquals(-1.0, resultCont.getBranchResult(c).getFlowTransfer1());
         }
 
         StringWriter writer = new StringWriter();

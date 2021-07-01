@@ -94,7 +94,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                 BranchResult preContBR = preContingencyBranchResults.get(branchId);
                 double preContingencyFlow = preContBR.getP1();
                 double postContingencyFlow = v.getFunctionReference();
-                double flowTransfer1 = (preContingencyFlow - postContingencyFlow) / preContRefFlow;
+                double flowTransfer1 = (postContingencyFlow - preContingencyFlow) / preContRefFlow;
                 System.out.println("Branch " + branchId + " " + preContingencyFlow + " -> " + postContingencyFlow + " => " + flowTransfer1);
 
                 postContingencyBranchResults.put(branchId, new BranchResult(branchId, v.getFunctionReference(), Float.NaN, Float.NaN, Float.NaN, Float.NaN, Float.NaN, flowTransfer1));
