@@ -14,10 +14,8 @@ import com.powsybl.security.*;
 import com.powsybl.security.detectors.LoadingLimitType;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
-import com.powsybl.security.results.BusResults;
 import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
-import com.powsybl.security.results.ThreeWindingsTransformerResult;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 
 import java.util.*;
@@ -61,8 +59,6 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         StateMonitor monitor = monitorIndex.getAllStateMonitor();
         Map<String, BranchResult> preContingencyBranchResults = new HashMap<>();
-        List<BusResults> preContingencyBusResults = new ArrayList<>();
-        List<ThreeWindingsTransformerResult> preContingencyThreeWindingsTransformerResults = new ArrayList<>();
 
         List<LimitViolation> preContingencyLimitViolations = new ArrayList<>();
         for (SensitivityValue2 sensValue : res.getValues(null)) {
@@ -84,21 +80,20 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             BranchResult preContRefBR = preContingencyBranchResults.get(contingency.getId());
             double preContRefFlow = preContRefBR.getP1();
 
-            System.out.println("Contingence " + contingency.getId() + " Ref flow = " + preContRefFlow);
             for (SensitivityValue2 v : values) {
                 SensitivityFactor2 factor = (SensitivityFactor2) v.getFactorContext();
                 String branchId = factor.getFunctionId();
                 Branch<?> branch = network.getBranch(branchId);
 
-                //TODO compute flow transfer with preContingencyBranchResult
-                BranchResult preContBR = preContingencyBranchResults.get(branchId);
-                double preContingencyFlow = preContBR.getP1();
-                double postContingencyFlow = v.getFunctionReference();
-                double flowDiff = preContingencyFlow >= 0.0 ? postContingencyFlow - preContingencyFlow : preContingencyFlow - postContingencyFlow;
-                double flowTransfer1 = flowDiff / Math.abs(preContRefFlow);
-                System.out.println("Branch " + branchId + " " + preContingencyFlow + " -> " + postContingencyFlow + " => " + flowTransfer1);
+                if (monitor.getBranchIds().contains(branchId)) {
+                    BranchResult preContBR = preContingencyBranchResults.get(branchId);
+                    double preContingencyFlow = preContBR.getP1();
+                    double postContingencyFlow = v.getFunctionReference();
+                    double flowDelta = preContingencyFlow >= 0.0 ? postContingencyFlow - preContingencyFlow : preContingencyFlow - postContingencyFlow;
+                    double flowTransfer = flowDelta / Math.abs(preContRefFlow);
+                    postContingencyBranchResults.put(branchId, new BranchResult(branchId, v.getFunctionReference(), Float.NaN, Float.NaN, Float.NaN, Float.NaN, Float.NaN, flowTransfer));
+                }
 
-                postContingencyBranchResults.put(branchId, new BranchResult(branchId, v.getFunctionReference(), Float.NaN, Float.NaN, Float.NaN, Float.NaN, Float.NaN, flowTransfer1));
                 detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(v.getFunctionReference()), violations::add);
             }
 

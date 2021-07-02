@@ -33,10 +33,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
@@ -653,10 +650,13 @@ class OpenSecurityAnalysisTest {
         fourBusNetwork.getLine("l34").newActivePowerLimits1().setPermanentLimit(0.15).add();
         fourBusNetwork.getLine("l13").newActivePowerLimits1().setPermanentLimit(0.1).add();
 
+        List<StateMonitor> monitors = new ArrayList<>();
+        monitors.add(new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "l34", "l13"), Collections.emptySet(), Collections.emptySet()));
+
         OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
         CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(fourBusNetwork, fourBusNetwork.getVariantManager().getWorkingVariantId(),
                 new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
-                contingenciesProvider, Collections.emptyList(), Collections.emptyList());
+                contingenciesProvider, Collections.emptyList(), monitors);
         SecurityAnalysisResult result = futureResult.join().getResult();
 
         assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
@@ -675,7 +675,7 @@ class OpenSecurityAnalysisTest {
         for (String c : contingencies) {
             PostContingencyResult resultCont = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals(c)).findFirst().get();
             assertEquals(0.0, resultCont.getBranchResult(c).getP1());
-            assertEquals(-1.0, resultCont.getBranchResult(c).getFlowTransfer1());
+            assertEquals(-1.0, resultCont.getBranchResult(c).getFlowTransfer());
         }
 
         StringWriter writer = new StringWriter();
