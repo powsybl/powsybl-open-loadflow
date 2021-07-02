@@ -65,7 +65,6 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             SensitivityFactor2 factor = (SensitivityFactor2) sensValue.getFactorContext();
             String branchId = factor.getFunctionId();
             Branch<?> branch = network.getBranch(branchId);
-            //TODO only store what should be monitored
             preContingencyBranchResults.put(branchId, new BranchResult(branchId, sensValue.getFunctionReference(), Float.NaN, Float.NaN, Float.NaN, Float.NaN, Float.NaN, Float.NaN));
             detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(sensValue.getFunctionReference()), preContingencyLimitViolations::add);
         }
