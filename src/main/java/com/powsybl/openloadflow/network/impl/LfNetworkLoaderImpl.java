@@ -99,9 +99,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             if (!reactivePowerControlGenerator.isEmpty()) {
                 LfGenerator lfGenerator = reactivePowerControlGenerator.get(0); // FIXME
                 LfBranch controlledBranch = lfGenerator.getControlledBranch(lfNetwork);
-                ReactivePowerControl control = controlledBranch.getReactivePowerControl().orElse(
-                        new ReactivePowerControl(controlledBranch, lfGenerator.getControlledBranchSide(),
-                                controllerBus, lfGenerator.getRemoteTargetQ()));
+                Optional<ReactivePowerControl> controlOpt = controlledBranch.getReactivePowerControl();
+                if (controlOpt.isPresent()) {
+                    throw new PowsyblException("Branch: " + controlledBranch.getId() + " is remotely controled by two generators");
+                }
+                ReactivePowerControl control = new ReactivePowerControl(controlledBranch,
+                        lfGenerator.getControlledBranchSide(),
+                        controllerBus, lfGenerator.getRemoteTargetQ());
                 controllerBus.setReactivePowerControl(control);
                 controlledBranch.setReactivePowerControl(control);
             }
