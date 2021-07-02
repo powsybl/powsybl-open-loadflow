@@ -678,6 +678,26 @@ class OpenSecurityAnalysisTest {
             assertEquals(-1.0, resultCont.getBranchResult(c).getFlowTransfer());
         }
 
+        //Check branch results for flowTransfer computation for contingency on l14
+        PostContingencyResult postContl14 = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals("l14")).findFirst().get();
+        assertEquals("l14", postContl14.getContingency().getId());
+
+        BranchResult brl14l12 = postContl14.getBranchResult("l12");
+        assertEquals(0.3333, brl14l12.getP1(), 1e-3);
+        assertEquals(0.3333, brl14l12.getFlowTransfer(), 1e-3);
+
+        BranchResult brl14l23 = postContl14.getBranchResult("l23");
+        assertEquals(1.3333, brl14l23.getP1(), 1e-3);
+        assertEquals(0.3333, brl14l23.getFlowTransfer(), 1e-3);
+
+        BranchResult brl14l34 = postContl14.getBranchResult("l34");
+        assertEquals(-1.0, brl14l34.getP1(), 1e-3);
+        assertEquals(-0.9999, brl14l34.getFlowTransfer(), 1e-3);
+
+        BranchResult brl14l13 = postContl14.getBranchResult("l13");
+        assertEquals(1.6666, brl14l13.getP1(), 1e-3);
+        assertEquals(0.6666, brl14l13.getFlowTransfer(), 1e-3);
+
         StringWriter writer = new StringWriter();
         Security.print(result, fourBusNetwork, writer, new AsciiTableFormatterFactory(), new TableFormatterConfig());
     }
