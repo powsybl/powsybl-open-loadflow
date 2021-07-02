@@ -19,6 +19,8 @@ import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.CompletionException;
+
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -169,8 +171,8 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b3, "l23", 0.05);
         createLine(network, b3, b4, "l34", 0.05);
 
-        // CompletionException exception = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        // assertEquals("Non impedant branch 'l12' is connected to PV buses 'b1_vl_0' and 'b2_vl_0' with inconsistent target voltages: 1.0 and 1.01", exception.getCause().getMessage());
+        CompletionException exception = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("Non impedant branch 'l12' is connected to PV buses 'b1_vl_0' and 'b2_vl_0' with inconsistent target voltages: 1.0 and 1.01", exception.getCause().getMessage());
     }
 
     @Test
