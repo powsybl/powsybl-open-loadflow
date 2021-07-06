@@ -532,7 +532,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         List<String> busIds = new ArrayList<>(10);
         for (int i = 1; i <= 10; i++) {
-            busIds.add("b" + i);
+            busIds.add("b" + i + "_vl_0");
         }
         List<Contingency> contingencies = Collections.singletonList(new Contingency("l45", new BranchContingency("l45")));
         SensitivityFactorsProvider factorsProvider = n -> busIds.stream()
@@ -563,7 +563,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         List<String> busIds = new ArrayList<>(10);
         for (int i = 1; i <= 10; i++) {
-            busIds.add("b" + i);
+            busIds.add("b" + i + "_vl_0");
         }
         List<Contingency> contingencies = Collections.singletonList(new Contingency("l45", new BranchContingency("l45")));
 
@@ -739,7 +739,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLGEN_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusView().getBusStream()
                 .map(bus -> createBusVoltagePerTargetV(bus.getId(), "NHV2_NLOAD"))
                 .collect(Collectors.toList());
 
