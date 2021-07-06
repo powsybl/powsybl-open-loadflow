@@ -189,6 +189,10 @@ class OpenSecurityAnalysisTest {
 
         StringWriter writer = new StringWriter();
         Security.print(result, network, writer, new AsciiTableFormatterFactory(), new TableFormatterConfig());
+        List<LimitViolation> limitViolations1 = result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations();
+        LimitViolation lowViolation = limitViolations1.get(2);
+        assertEquals(LimitViolationType.LOW_VOLTAGE, lowViolation.getLimitType());
+        assertEquals(370, lowViolation.getLimit());
         System.out.println(writer.toString());
     }
 
