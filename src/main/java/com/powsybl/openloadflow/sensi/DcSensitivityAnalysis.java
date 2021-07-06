@@ -220,15 +220,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     break;
                 }
                 double contingencySensitivity = p1.calculateSensi(contingenciesStates, contingencyElement.getContingencyIndex());
+                flowValue += contingencyElement.getAlphaForFunctionReference() * contingencySensitivity;
+                sensiValue +=  contingencyElement.getAlphaForSensitivityValue() * contingencySensitivity;
                 if (contingencyElement.getElement().getId().equals(factor.getVariableId())) {
                     // the equipment responsible for the variable is indeed in contingency, the sensitivity value equals to zero.
                     // No assumption about the reference flow on the monitored branch.
                     sensiValue = 0d;
-                    flowValue += contingencyElement.getAlphaForFunctionReference() * contingencySensitivity;
-                    break;
                 }
-                flowValue += contingencyElement.getAlphaForFunctionReference() * contingencySensitivity;
-                sensiValue +=  contingencyElement.getAlphaForSensitivityValue() * contingencySensitivity;
             }
             if (contingency != null && contingency.getHvdcIdsToOpen().contains(factor.getVariableId())) {
                 sensiValue = 0d;
