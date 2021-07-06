@@ -8,8 +8,8 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Branch;
+import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -195,7 +195,7 @@ public abstract class AbstractSecurityAnalysis {
             violations.put(getSubjectSideId(limitViolation1), limitViolation1);
         }
         if (!Double.isNaN(bus.getLowVoltageLimit()) && busV < bus.getLowVoltageLimit()) {
-            LimitViolation limitViolation2 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.LOW_VOLTAGE, bus.getHighVoltageLimit() * scale,
+            LimitViolation limitViolation2 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.LOW_VOLTAGE, bus.getLowVoltageLimit() * scale,
                     (float) 1., busV * scale);
             violations.put(getSubjectSideId(limitViolation2), limitViolation2);
         }
