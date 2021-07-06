@@ -548,7 +548,8 @@ class OpenSecurityAnalysisTest {
         List<StateMonitor> monitors = new ArrayList<>();
         monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("dl1"), Collections.singleton("vl1"), emptySet()));
 
-        CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, allBranches(network), monitors));
+        List<Contingency> contingencies = allBranches(network);
+        CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors));
         assertEquals("Unsupported type of branch for branch result: dl1", exception.getCause().getMessage());
     }
 
