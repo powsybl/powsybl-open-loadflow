@@ -211,25 +211,29 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         } else {
             sensiValue = factor.getBaseSensitivityValue();
             flowValue = factor.getFunctionReference();
+            boolean zeroSensiValue = false;
+            boolean zeroFlowValue = false;
             for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                if (contingencyElement.getElement().getId().equals(functionBranchId)) {
-                    // the monitored branch is in contingency, the sensitivity value equals to zero and its post-contingency flow
-                    // equals to zero too.
-                    sensiValue = 0d;
-                    flowValue = 0d;
-                    break;
-                }
                 double contingencySensitivity = p1.calculateSensi(contingenciesStates, contingencyElement.getContingencyIndex());
                 flowValue += contingencyElement.getAlphaForFunctionReference() * contingencySensitivity;
                 sensiValue +=  contingencyElement.getAlphaForSensitivityValue() * contingencySensitivity;
+                if (contingencyElement.getElement().getId().equals(functionBranchId)) {
+                    // the monitored branch is in contingency, the sensitivity value equals to zero and its post-contingency flow
+                    // equals to zero too.
+                    zeroSensiValue = true;
+                    zeroFlowValue = true;
+                }
                 if (contingencyElement.getElement().getId().equals(factor.getVariableId())) {
                     // the equipment responsible for the variable is indeed in contingency, the sensitivity value equals to zero.
                     // No assumption about the reference flow on the monitored branch.
-                    sensiValue = 0d;
+                    zeroSensiValue = true;
                 }
             }
-            if (contingency != null && contingency.getHvdcIdsToOpen().contains(factor.getVariableId())) {
+            if (contingency != null && contingency.getHvdcIdsToOpen().contains(factor.getVariableId()) || zeroSensiValue) {
                 sensiValue = 0d;
+            }
+            if (zeroFlowValue) {
+                flowValue = 0d;
             }
         }
         valueWriter.write(factor.getContext(), contingency != null ? contingency.getContingency().getId() : null, contingency != null ? contingency.getIndex() : -1,
