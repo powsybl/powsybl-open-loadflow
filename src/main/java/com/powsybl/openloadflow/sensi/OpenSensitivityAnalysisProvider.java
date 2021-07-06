@@ -115,7 +115,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             factors.addAll(sensitivityFactorsProvider.getAdditionalFactors(network));
             contingencies.forEach(c -> factors.addAll(sensitivityFactorsProvider.getAdditionalFactors(network, c.getId())));
 
-            SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors);
+            SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
             SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();
             run(network, contingencies, variableSets, sensitivityAnalysisParameters, factorReader, valueWriter, sensiReporter);
 
@@ -135,7 +135,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     public void run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
                     SensitivityAnalysisParameters sensitivityAnalysisParameters, List<SensitivityFactor> factors,
                     SensitivityValueWriter valueWriter, Reporter reporter) {
-        run(network, contingencies, variableSets, sensitivityAnalysisParameters, new SensitivityFactorModelReader(factors), valueWriter, reporter);
+        run(network, contingencies, variableSets, sensitivityAnalysisParameters, new SensitivityFactorModelReader(factors, network), valueWriter, reporter);
     }
 
     public void run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
@@ -255,7 +255,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
         Network network = NetworkXml.read(debugDir.resolve("network-" + dateStr + ".xiidm"));
 
-        run(network, contingencies, variableSets, sensitivityAnalysisParameters, new SensitivityFactorModelReader(factors), valueWriter, reporter);
+        run(network, contingencies, variableSets, sensitivityAnalysisParameters, new SensitivityFactorModelReader(factors, network), valueWriter, reporter);
     }
 
     public void replay(DateTime date, Path debugDir, SensitivityValueWriter valueWriter) {

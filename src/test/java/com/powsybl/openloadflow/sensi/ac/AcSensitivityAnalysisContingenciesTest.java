@@ -532,7 +532,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         List<String> busIds = new ArrayList<>(10);
         for (int i = 1; i <= 10; i++) {
-            busIds.add("b" + i + "_vl_0");
+            busIds.add("b" + i);
         }
         List<Contingency> contingencies = Collections.singletonList(new Contingency("l45", new BranchContingency("l45")));
         SensitivityFactorsProvider factorsProvider = n -> busIds.stream()
@@ -563,7 +563,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         List<String> busIds = new ArrayList<>(10);
         for (int i = 1; i <= 10; i++) {
-            busIds.add("b" + i + "_vl_0");
+            busIds.add("b" + i);
         }
         List<Contingency> contingencies = Collections.singletonList(new Contingency("l45", new BranchContingency("l45")));
 
@@ -739,7 +739,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLGEN_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        SensitivityFactorsProvider factorsProvider = n -> network.getBusView().getBusStream()
+        SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
                 .map(bus -> createBusVoltagePerTargetV(bus.getId(), "NHV2_NLOAD"))
                 .collect(Collectors.toList());
 
@@ -748,7 +748,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies, Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
-        assertEquals(4, result.getValues().size());
+        assertEquals(4, result.getPreContingencyValues().size());
         assertEquals(0d, getValue(result, "NHV2_NLOAD", "NGEN"), LoadFlowAssert.DELTA_V);
         assertEquals(0.035205d,  getValue(result, "NHV2_NLOAD", "NHV1"), LoadFlowAssert.DELTA_V);
         assertEquals(0.077194d,  getValue(result, "NHV2_NLOAD", "NHV2"), LoadFlowAssert.DELTA_V);
