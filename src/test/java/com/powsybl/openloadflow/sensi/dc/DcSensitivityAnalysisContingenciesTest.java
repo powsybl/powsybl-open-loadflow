@@ -12,6 +12,7 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sensi.*;
@@ -1800,5 +1801,20 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         double finalP = l1.getTerminal1().getP();
         assertEquals(2.0624, finalP, LoadFlowAssert.DELTA_POWER);
         assertEquals(0.1875, finalP - initialP, LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void contingencyOnPhaseTapChangerTest() {
+        Network network = PhaseShifterTestCaseFactory.create();
+        SensitivityAnalysisParameters parameters = createParameters(true, "VL1_0", true);
+        parameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        SensitivityFactorsProvider factorsProvider2 = n -> List.of(new BranchFlowPerPSTAngle(new BranchFlow("L1", "L1", "L1"),
+                new PhaseTapChangerAngle("PS1", "PS1", "PS1")));
+        List<Contingency> contingencies = List.of(new Contingency("PS1", new BranchContingency("PS1")));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider2, contingencies,
+                parameters, LocalComputationManager.getDefault())
+                .join();
+        assertEquals(100.0, getContingencyFunctionReference(result, "L1", "PS1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, getContingencyValue(result, "PS1", "PS1", "L1"), LoadFlowAssert.DELTA_POWER);
     }
 }
