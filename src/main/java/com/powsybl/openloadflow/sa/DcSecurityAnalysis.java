@@ -15,7 +15,7 @@ import com.powsybl.security.detectors.LoadingLimitType;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
-import com.powsybl.sensitivity.SensitivityAnalysisParameters;
+import com.powsybl.sensitivity.*;
 
 import java.util.*;
 import java.util.function.Supplier;
@@ -46,18 +46,18 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
         ContingencyContext contingencyContext = new ContingencyContext(null, ContingencyContextType.ALL);
         String variableId = network.getLoads().iterator().next().getId();
 
-        List<SensitivityFactor2> factors = new ArrayList<>();
+        List<SensitivityFactor> factors = new ArrayList<>();
         for (Branch<?> b : network.getBranches()) {
-            factors.add(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, b.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER,
+            factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER, b.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER,
                     variableId, false, contingencyContext));
         }
-        SensitivityAnalysisResult2 res = sensitivityAnalysisProvider.run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors);
+        SensitivityAnalysisResult res = sensitivityAnalysisProvider.run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors);
 
         DefaultLimitViolationDetector detector = new DefaultLimitViolationDetector(1.0f, EnumSet.allOf(LoadingLimitType.class));
 
         List<LimitViolation> preContingencyLimitViolations = new ArrayList<>();
-        for (SensitivityValue2 sensValue : res.getValues(null)) {
-            SensitivityFactor2 factor = (SensitivityFactor2) sensValue.getFactorContext();
+        for (SensitivityValue sensValue : res.getValues(null)) {
+            SensitivityFactor factor = sensValue.getFactor();
             String branchId = factor.getFunctionId();
             Branch<?> branch = network.getBranch(branchId);
             detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(sensValue.getFunctionReference()), preContingencyLimitViolations::add);
@@ -67,11 +67,11 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         List<PostContingencyResult> postContingencyResults = new ArrayList<>();
         for (Contingency contingency : contingencies) {
-            List<SensitivityValue2> values = res.getValues(contingency.getId());
+            List<SensitivityValue> values = res.getValues(contingency.getId());
             List<LimitViolation> violations = new ArrayList<>();
 
-            for (SensitivityValue2 v : values) {
-                SensitivityFactor2 factor = (SensitivityFactor2) v.getFactorContext();
+            for (SensitivityValue v : values) {
+                SensitivityFactor factor = v.getFactor();
                 String branchId = factor.getFunctionId();
                 Branch<?> branch = network.getBranch(branchId);
                 detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(v.getFunctionReference()), violations::add);
