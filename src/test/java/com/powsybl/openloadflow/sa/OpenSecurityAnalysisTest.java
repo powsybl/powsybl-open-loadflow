@@ -571,10 +571,9 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, allBranches(network), monitors);
 
         assertEquals(1, result.getPreContingencyResult().getPreContingencyThreeWindingsTransformerResults().size());
-        assertEquals(new ThreeWindingsTransformerResult("3wt", 1.6109556638123288,
-                        0.8188422244941966, 1030.4601542294686, -1.6100000049961467, -0.7400000017321797,
-                        978.937148970407, -1.7348031191643076E-16, 0.0, 4.0061722632990915E-14),
-                result.getPreContingencyResult().getPreContingencyThreeWindingsTransformerResults().get(0));
+        assertAlmostEquals(new ThreeWindingsTransformerResult("3wt", 161, 82, 258,
+                                                              -161, -74, 435, 0, 0, 0),
+                result.getPreContingencyResult().getPreContingencyThreeWindingsTransformerResults().get(0), 1);
     }
 
     @Test
@@ -633,6 +632,19 @@ class OpenSecurityAnalysisTest {
         assertEquals(expected.getP2(), actual.getP2(), epsilon);
         assertEquals(expected.getQ2(), actual.getQ2(), epsilon);
         assertEquals(expected.getI2(), actual.getI2(), epsilon);
+    }
+
+    private static void assertAlmostEquals(ThreeWindingsTransformerResult expected, ThreeWindingsTransformerResult actual, double epsilon) {
+        assertEquals(expected.getThreeWindingsTransformerId(), actual.getThreeWindingsTransformerId());
+        assertEquals(expected.getP1(), actual.getP1(), epsilon);
+        assertEquals(expected.getQ1(), actual.getQ1(), epsilon);
+        assertEquals(expected.getI1(), actual.getI1(), epsilon);
+        assertEquals(expected.getP2(), actual.getP2(), epsilon);
+        assertEquals(expected.getQ2(), actual.getQ2(), epsilon);
+        assertEquals(expected.getI2(), actual.getI2(), epsilon);
+        assertEquals(expected.getP3(), actual.getP3(), epsilon);
+        assertEquals(expected.getQ3(), actual.getQ3(), epsilon);
+        assertEquals(expected.getI3(), actual.getI3(), epsilon);
     }
 
     /**

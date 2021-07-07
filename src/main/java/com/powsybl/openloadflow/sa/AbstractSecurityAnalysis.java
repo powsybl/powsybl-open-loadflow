@@ -117,7 +117,7 @@ public abstract class AbstractSecurityAnalysis {
             branch.getLimits1(LimitType.CURRENT).stream()
                 .filter(temporaryLimit1 -> branch.getI1().eval() > temporaryLimit1.getValue())
                 .findFirst()
-                .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.CURRENT, PerUnit.SB / branch.getBus1().getNominalV(), branch.getI1().eval()))
+                .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.CURRENT, PerUnit.ib(branch.getBus1().getNominalV()), branch.getI1().eval()))
                 .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
 
             branch.getLimits1(LimitType.ACTIVE_POWER).stream()
@@ -141,7 +141,7 @@ public abstract class AbstractSecurityAnalysis {
             branch.getLimits2(LimitType.CURRENT).stream()
                 .filter(temporaryLimit2 -> branch.getI2().eval() > temporaryLimit2.getValue())
                 .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
-                .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.CURRENT, PerUnit.SB / branch.getBus2().getNominalV(), branch.getI2().eval()))
+                .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.CURRENT, PerUnit.ib(branch.getBus2().getNominalV()), branch.getI2().eval()))
                 .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
 
             branch.getLimits2(LimitType.ACTIVE_POWER).stream()
@@ -248,8 +248,12 @@ public abstract class AbstractSecurityAnalysis {
         LfBranch leg1 = network.getBranchById(threeWindingsTransformerId + "_leg_1");
         LfBranch leg2 = network.getBranchById(threeWindingsTransformerId + "_leg_2");
         LfBranch leg3 = network.getBranchById(threeWindingsTransformerId + "_leg_3");
-        return new ThreeWindingsTransformerResult(threeWindingsTransformerId, leg1.getP1().eval(), leg1.getQ1().eval(), leg1.getI1().eval(),
-                leg2.getP1().eval(), leg2.getQ1().eval(), leg2.getI1().eval(),
-                leg3.getP1().eval(), leg3.getQ1().eval(), leg3.getI1().eval());
+        double i1Base = PerUnit.ib(leg1.getBus1().getNominalV());
+        double i2Base = PerUnit.ib(leg2.getBus1().getNominalV());
+        double i3Base = PerUnit.ib(leg3.getBus1().getNominalV());
+        return new ThreeWindingsTransformerResult(threeWindingsTransformerId,
+                leg1.getP1().eval() * PerUnit.SB, leg1.getQ1().eval() * PerUnit.SB, leg1.getI1().eval() * i1Base,
+                leg2.getP1().eval() * PerUnit.SB, leg2.getQ1().eval() * PerUnit.SB, leg2.getI1().eval() * i2Base,
+                leg3.getP1().eval() * PerUnit.SB, leg3.getQ1().eval() * PerUnit.SB, leg3.getI1().eval() * i3Base);
     }
 }
