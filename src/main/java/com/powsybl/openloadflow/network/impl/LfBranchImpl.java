@@ -41,10 +41,6 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private Evaluable i2 = NAN;
 
-    private static double nominalV1;
-
-    private static double nominalV2;
-
     protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
         super(network, bus1, bus2, piModel);
         this.branch = branch;
@@ -52,8 +48,8 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                            LfNetworkLoadingReport report) {
-        nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
-        nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
+        double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
+        double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
         double r1 = 1;
         if (addRatioToLinesWithDifferentNominalVoltageAtBothEnds && nominalV1 != nominalV2) {
             LOGGER.trace("Line '{}' has a different nominal voltage at both ends ({} and {}): add a ration", line.getId(), nominalV1, nominalV2);
@@ -207,10 +203,10 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     @Override
     public BranchResult createBranchResult() {
-        double currentScale1 = PerUnit.SB / nominalV1;
-        double currentScale2 = PerUnit.SB / nominalV2;
-        return new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval(), i1.eval() * currentScale1,
-                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, i2.eval() * currentScale2);
+        double currentScale1 = PerUnit.SB / branch.getTerminal1().getVoltageLevel().getNominalV();
+        double currentScale2 = PerUnit.SB / branch.getTerminal2().getVoltageLevel().getNominalV();
+        return new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
+                                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval());
     }
 
     @Override
