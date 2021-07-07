@@ -435,7 +435,7 @@ public abstract class AbstractSensitivityAnalysis {
                 return;
             }
             int column = p.getColumn();
-            rhs.add(column, getIndex(), injection / PerUnit.SB);
+            rhs.add(column, getIndex(), injection);
         }
     }
 
@@ -923,5 +923,55 @@ public abstract class AbstractSensitivityAnalysis {
         return lfParameters.isDistributedSlack()
                 &&  (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
                 || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+    }
+
+    /**
+     * Base value for per-uniting, depending on the function type
+     */
+    private static double getFunctionBaseValue(LfSensitivityFactor factor) {
+        switch (factor.getFunctionType()) {
+            case BRANCH_ACTIVE_POWER:
+                return PerUnit.SB;
+            case BRANCH_CURRENT:
+                LfBranch branch = (LfBranch) factor.getFunctionElement();
+                return PerUnit.ib(branch.getBus1().getNominalV());
+            case BUS_VOLTAGE:
+                LfBus bus = (LfBus) factor.getFunctionElement();
+                return bus.getNominalV();
+            default:
+                throw new IllegalArgumentException("Unknown function type " + factor.getFunctionType());
+        }
+    }
+
+    /**
+     * Base value for per-uniting, depending on the variable type
+     */
+    private static double getVariableBaseValue(LfSensitivityFactor factor) {
+        switch (factor.getVariableType()) {
+            case HVDC_LINE_ACTIVE_POWER:
+            case INJECTION_ACTIVE_POWER:
+                return PerUnit.SB;
+            case TRANSFORMER_PHASE:
+                return 1; //TODO: radians ?
+            case BUS_TARGET_VOLTAGE:
+                LfBus bus = (LfBus) ((SingleVariableLfSensitivityFactor) factor).getVariableElement();
+                return bus.getNominalV();
+            default:
+                throw new IllegalArgumentException("Unknown function type " + factor.getFunctionType());
+        }
+    }
+
+    /**
+     * Unscales sensitivity value from per-unit, according to its type.
+     */
+    protected static double unscaleSensitivity(LfSensitivityFactor factor, double sensitivity) {
+        return sensitivity * getFunctionBaseValue(factor) / getVariableBaseValue(factor);
+    }
+
+    /**
+     * Unscales function value from per-unit, according to its type.
+     */
+    protected static double unscaleFunction(LfSensitivityFactor factor, double value) {
+        return value * getFunctionBaseValue(factor);
     }
 }

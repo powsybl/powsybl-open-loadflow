@@ -634,7 +634,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         ContingencyContext contingencyContext = ContingencyContext.all();
         List<SensitivityFactor2> factors = SensitivityFactor2.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER, List.of("l12", "l13", "l23"),
                                                                            SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"), false, contingencyContext);
-        SensitivityAnalysisResult2 result = sensiProvider.run(HvdcNetworkFactory.createNetworkWithGenerators(), Collections.emptyList(), Collections.emptyList(),
+        SensitivityAnalysisResult2 result = sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(),
                 sensiParameters, factors);
 
         assertEquals(-0.346002, result.getValue(null, "l12", "hvdc34").getValue(), LoadFlowAssert.DELTA_POWER);

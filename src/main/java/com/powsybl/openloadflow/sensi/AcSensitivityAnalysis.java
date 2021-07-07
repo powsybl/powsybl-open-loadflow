@@ -75,43 +75,15 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     sensi += Math.toRadians(factor.getEquationTerm().der(phi1Var));
                 }
 
-                if (SensitivityFunctionType.BUS_VOLTAGE.equals(factor.getFunctionType())) {
-                    sensi *= ((LfBus) factor.getFunctionElement()).getNominalV();
-                } else if (SensitivityFunctionType.BRANCH_CURRENT.equals(factor.getFunctionType())) {
-                    sensi *= PerUnit.ib(((LfBranch) factor.getFunctionElement()).getBus1().getNominalV());
-                } else if (SensitivityFunctionType.BRANCH_ACTIVE_POWER.equals(factor.getFunctionType())) {
-                    sensi *= PerUnit.SB;
-                }
-
-                if (SensitivityVariableType.BUS_TARGET_VOLTAGE.equals(factor.getVariableType())) {
-                    LfBus bus = (LfBus) ((SingleVariableLfSensitivityFactor) factor).getVariableElement();
-                    sensi /= bus.getNominalV();
-                }
-                valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, sensi, factor.getFunctionReference());
+                valueWriter.write(factor.getContext(), contingencyId, contingencyIndex,
+                                  unscaleSensitivity(factor, sensi), unscaleFunction(factor, factor.getFunctionReference()));
             }
         }
     }
 
     protected void setFunctionReferences(List<LfSensitivityFactor> factors) {
         for (LfSensitivityFactor factor : factors) {
-            double functionRef = factor.getEquationTerm().eval();
-            double baseValue;
-            switch (factor.getFunctionType()) {
-                case BRANCH_ACTIVE_POWER:
-                    baseValue = PerUnit.SB;
-                    break;
-                case BRANCH_CURRENT:
-                    LfBranch branch = (LfBranch) factor.getFunctionElement();
-                    baseValue = PerUnit.ib(branch.getBus1().getNominalV());
-                    break;
-                case BUS_VOLTAGE:
-                    LfBus bus = (LfBus) factor.getFunctionElement();
-                    baseValue = bus.getNominalV();
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unknown function type " + factor.getFunctionType());
-            }
-            factor.setFunctionReference(baseValue * functionRef);
+            factor.setFunctionReference(factor.getEquationTerm().eval());
         }
     }
 
