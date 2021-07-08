@@ -458,7 +458,7 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testSAWithStateMonitor() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
         // 2 N-1 on the 2 lines
         List<Contingency> contingencies = List.of(
