@@ -678,12 +678,12 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         Network network = DanglingLineFactory.createWithLoad();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl3_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        SensitivityFactorsProvider factorsProvider = n -> List.of(createBranchFlowPerInjectionIncrease("l1", "g1", "dl1"));
+        SensitivityFactorsProvider factorsProvider = n -> List.of(createBranchFlowPerInjectionIncrease("l1", "g1"));
         List<Contingency> contingencies = List.of(new Contingency("dl1", new DanglingLineContingency("dl1")));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies, Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
-        assertEquals(1, result.getValues().size());
+        assertEquals(1, result.getPreContingencyValues().size());
         assertEquals(0.3697, getValue(result, "g1", "l1"), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
         assertEquals(75.272, getFunctionReference(result, "l1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.3695, getContingencyValue(result, "dl1", "g1", "l1"), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
@@ -708,12 +708,12 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         Network network = DanglingLineFactory.createWithLoad();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-        SensitivityFactorsProvider factorsProvider2 = n -> List.of(createBranchFlowPerInjectionIncrease("l1", "load3", "dl1"));
+        SensitivityFactorsProvider factorsProvider2 = n -> List.of(createBranchFlowPerInjectionIncrease("l1", "load3"));
         List<Contingency> contingencies = List.of(new Contingency("dl1", new DanglingLineContingency("dl1")));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider2, contingencies, Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
-        assertEquals(1, result.getValues().size());
+        assertEquals(1, result.getPreContingencyValues().size());
         assertEquals(-0.3704, getValue(result, "load3", "l1"), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
         assertEquals(75.336, getFunctionReference(result, "l1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.3704, getContingencyValue(result, "dl1", "load3", "l1"), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
