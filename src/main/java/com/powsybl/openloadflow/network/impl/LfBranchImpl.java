@@ -203,8 +203,8 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     @Override
     public BranchResult createBranchResult() {
-        double currentScale1 = PerUnit.SB / branch.getTerminal1().getVoltageLevel().getNominalV();
-        double currentScale2 = PerUnit.SB / branch.getTerminal2().getVoltageLevel().getNominalV();
+        double currentScale1 = PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
+        double currentScale2 = PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
         return new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
                                 p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval());
     }

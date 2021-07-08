@@ -233,8 +233,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 sensiValue = 0d;
             }
         }
+
         valueWriter.write(factor.getContext(), contingency != null ? contingency.getContingency().getId() : null, contingency != null ? contingency.getIndex() : -1,
-                sensiValue * PerUnit.SB, flowValue * PerUnit.SB);
+                          unscaleSensitivity(factor, sensiValue), unscaleFunction(factor, flowValue));
     }
 
     protected void setBaseCaseSensitivityValues(List<SensitivityFactorGroup> factorGroups, DenseMatrix factorsState) {
@@ -275,7 +276,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             LfBranch lfBranch = element.getLfBranch();
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
             // we solve a*alpha = b
-            double a = lfBranch.getPiModel().getX() / PerUnit.SB - (contingenciesStates.get(p1.getVariables().get(0).getRow(), element.getContingencyIndex())
+            double a = lfBranch.getPiModel().getX() - (contingenciesStates.get(p1.getVariables().get(0).getRow(), element.getContingencyIndex())
                     - contingenciesStates.get(p1.getVariables().get(1).getRow(), element.getContingencyIndex()));
             double b = states.get(p1.getVariables().get(0).getRow(), columnState) - states.get(p1.getVariables().get(1).getRow(), columnState);
             setValue.accept(element, b / a);
@@ -293,7 +294,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 for (ComputedContingencyElement element2 : contingencyElements) {
                     double value = 0d;
                     if (element.equals(element2)) {
-                        value = lfBranch.getPiModel().getX() / PerUnit.SB;
+                        value = lfBranch.getPiModel().getX();
                     }
                     value = value - (contingenciesStates.get(p1.getVariables().get(0).getRow(), element2.getContingencyIndex())
                             - contingenciesStates.get(p1.getVariables().get(1).getRow(), element2.getContingencyIndex()));
@@ -326,7 +327,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 }
                 sum += value;
             }
-            if (sum * PerUnit.SB > 1d - CONNECTIVITY_LOSS_THRESHOLD) {
+            if (sum > 1d - CONNECTIVITY_LOSS_THRESHOLD) {
                 // all lines that have a non-0 sensitivity associated to "element" breaks the connectivity
                 groupOfElementsBreakingConnectivity.addAll(responsibleElements);
             }
@@ -345,15 +346,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             LfBus bus2 = lfBranch.getBus2();
             if (bus1.isSlack()) {
                 Equation p = equationSystem.getEquation(bus2.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p.getColumn(), element.getContingencyIndex(), -1 / PerUnit.SB);
+                rhs.set(p.getColumn(), element.getContingencyIndex(), -1);
             } else if (bus2.isSlack()) {
                 Equation p = equationSystem.getEquation(bus1.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p.getColumn(), element.getContingencyIndex(), 1 / PerUnit.SB);
+                rhs.set(p.getColumn(), element.getContingencyIndex(), 1);
             } else {
                 Equation p1 = equationSystem.getEquation(bus1.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
                 Equation p2 = equationSystem.getEquation(bus2.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p1.getColumn(), element.getContingencyIndex(), 1 / PerUnit.SB);
-                rhs.set(p2.getColumn(), element.getContingencyIndex(), -1 / PerUnit.SB);
+                rhs.set(p1.getColumn(), element.getContingencyIndex(), 1);
+                rhs.set(p2.getColumn(), element.getContingencyIndex(), -1);
             }
         }
     }
@@ -561,7 +562,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             LfBus bus = busAndlcc.getKey();
             LccConverterStation lcc = busAndlcc.getValue();
             HvdcLine line = lcc.getHvdcLine();
-            bus.setLoadTargetP(bus.getLoadTargetP() - AbstractLfBus.getLccConverterStationLoadTargetP(lcc, line) / PerUnit.SB);
+            bus.setLoadTargetP(bus.getLoadTargetP() - AbstractLfBus.getLccConverterStationLoadTargetP(lcc, line));
         }
 
         for (LfVscConverterStationImpl vsc : vscs) {
