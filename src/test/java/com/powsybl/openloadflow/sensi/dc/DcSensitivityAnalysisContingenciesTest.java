@@ -51,19 +51,19 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<Contingency> contingencies = List.of(new Contingency(l.getId(), new BranchContingency(l.getId())));
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().filter(gen -> gen.getId().equals("g2")).collect(Collectors.toList()),
-                network.getBranchStream().collect(Collectors.toList()), "l23");
+                network.getBranchStream().collect(Collectors.toList()));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies, Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                                                         .join();
 
-        assertEquals(5, result.getValues().size());
+        assertEquals(5, result.getPreContingencyValues().size());
         assertEquals(0.05d, getValue(result, "g2", "l14"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.35d, getValue(result, "g2", "l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.25d, getValue(result, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.15d, getValue(result, "g2", "l34"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.1d, getValue(result, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
 
-        assertEquals(1, result.getValuesByContingencyId().size());
+        assertEquals(1, result.getValuesByContingencyId().keySet().stream().filter(v -> v != null).count());
         assertEquals(5, result.getValues("l23").size());
         assertEquals(2d / 15d, getContingencyValue(result, "l23", "g2", "l14"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.6d, getContingencyValue(result, "l23", "g2", "l12"), LoadFlowAssert.DELTA_POWER);
@@ -82,19 +82,19 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<Contingency> contingencies = List.of(new Contingency(l.getId(), new BranchContingency(l.getId())));
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().filter(gen -> gen.getId().equals("g2")).collect(Collectors.toList()),
-                network.getBranchStream().collect(Collectors.toList()), "l12");
+                network.getBranchStream().collect(Collectors.toList()));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies, Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                                                         .join();
 
-        assertEquals(5, result.getValues().size());
+        assertEquals(5, result.getPreContingencyValues().size());
         assertEquals(0.05d, getValue(result, "g2", "l14"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.35d, getValue(result, "g2", "l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.25d, getValue(result, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.15d, getValue(result, "g2", "l34"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.1d, getValue(result, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
 
-        assertEquals(1, result.getValuesByContingencyId().size());
+        assertEquals(1, result.getValuesByContingencyId().keySet().stream().filter(v -> v != null).count());
         assertEquals(5, result.getValues("l12").size());
         assertEquals(-1d / 15d, getContingencyValue(result, "l12", "g2", "l14"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, getContingencyValue(result, "l12", "g2", "l12"), LoadFlowAssert.DELTA_POWER);
@@ -139,15 +139,16 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
             sensiParameters, LocalComputationManager.getDefault())
             .join();
 
-        assertEquals(2, result.getValues().size());
+        assertEquals(4, result.getPreContingencyValues().size());
         assertEquals(0.05d, getValue(result, "g2", "l14"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.1d, getValue(result, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
 
-        assertEquals(1, result.getValuesByContingencyId().size());
-        assertEquals(3, result.getValues("l12").size());
+        assertEquals(1, result.getValuesByContingencyId().keySet().stream().filter(v -> v != null).count());
+        assertEquals(4, result.getValues("l12").size());
         assertEquals(0d, getContingencyValue(result, "l12", "g2", "l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(4d / 15d, getContingencyValue(result, "l12", "g2", "l34"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-1d / 3d, getContingencyValue(result, "l12", "g2", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.0666, getContingencyValue(result, "l12", "g2", "l14"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -208,19 +209,19 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<Contingency> contingencies = List.of(new Contingency("l23+l34", new BranchContingency("l23"), new BranchContingency("l34")));
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().filter(gen -> gen.getId().equals("g2")).collect(Collectors.toList()),
-                network.getBranchStream().collect(Collectors.toList()), "l23+l34");
+                network.getBranchStream().collect(Collectors.toList()));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies, Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                                                         .join();
 
-        assertEquals(5, result.getValues().size());
+        assertEquals(5, result.getPreContingencyValues().size());
         assertEquals(0.05d, getValue(result, "g2", "l14"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.35d, getValue(result, "g2", "l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.25d, getValue(result, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.15d, getValue(result, "g2", "l34"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.1d, getValue(result, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
 
-        assertEquals(1, result.getValuesByContingencyId().size());
+        assertEquals(1, result.getValuesByContingencyId().keySet().stream().filter(v -> v != null).count());
         assertEquals(5, result.getValues("l23+l34").size());
         assertEquals(0.2, getContingencyValue(result, "l23+l34", "g2", "l14"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.6d, getContingencyValue(result, "l23+l34", "g2", "l12"), LoadFlowAssert.DELTA_POWER);
@@ -316,7 +317,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
             sensiParameters, LocalComputationManager.getDefault())
             .join();
 
-        assertEquals(1, result.getValues().size());
+        assertEquals(1, result.getValuesByContingencyId().keySet().stream().filter(v -> v != null).count());
         assertEquals(14, result.getValues("l34").size());
         assertEquals(-0.5d, getContingencyValue(result, "l34", "g2", "l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.5d, getContingencyValue(result, "l34", "g2", "l23"), LoadFlowAssert.DELTA_POWER);
@@ -508,7 +509,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("l23");
         SensitivityFactorsProvider factorsProvider = n -> {
             List<SensitivityFactor> factors = new LinkedList<>();
-            network.getBranches().forEach(branch -> factors.add(createBranchFlowPerPSTAngle(branch.getId(), ps1.getId(), "l14")));
+            network.getBranches().forEach(branch -> factors.add(createBranchFlowPerPSTAngle(branch.getId(), ps1.getId())));
             return factors;
         };
 
@@ -517,14 +518,14 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 sensiParameters, LocalComputationManager.getDefault())
                                                         .join();
 
-        assertEquals(5, result.getValues().size());
+        assertEquals(5, result.getPreContingencyValues().size());
         assertEquals(15d / 4d * Math.PI / 180d, getValue(result, "l23", "l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-10d / 4d * Math.PI / 180d, getValue(result, "l23", "l13"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-5d / 4d * Math.PI / 180d, getValue(result, "l23", "l14"), LoadFlowAssert.DELTA_POWER);
         assertEquals(15d / 4d * Math.PI / 180d, getValue(result, "l23", "l23"), LoadFlowAssert.DELTA_POWER);
         assertEquals(5d / 4d * Math.PI / 180d, getValue(result, "l23", "l34"), LoadFlowAssert.DELTA_POWER);
 
-        assertEquals(1, result.getValuesByContingencyId().size());
+        assertEquals(1, result.getValuesByContingencyId().keySet().stream().filter(v -> v != null).count());
         assertEquals(5, result.getValues("l14").size());
 
         assertEquals(10d / 3d * Math.PI / 180d, getContingencyValue(result, "l14", "l23", "l12"), LoadFlowAssert.DELTA_POWER);
@@ -1660,12 +1661,12 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         Network network = DanglingLineFactory.createWithLoad();
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl3_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        SensitivityFactorsProvider factorsProvider = n -> List.of(createBranchFlowPerInjectionIncrease("l1", "g1", "dl1"));
+        SensitivityFactorsProvider factorsProvider = n -> List.of(createBranchFlowPerInjectionIncrease("l1", "g1"));
         List<Contingency> contingencies = List.of(new Contingency("dl1", new DanglingLineContingency("dl1")));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies, Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
-        assertEquals(1, result.getValues().size());
+        assertEquals(1, result.getPreContingencyValues().size());
         assertEquals(0.1875, getValue(result, "g1", "l1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(75.881, getFunctionReference(result, "l1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.1875, getContingencyValue(result, "dl1", "g1", "l1"), LoadFlowAssert.DELTA_POWER);
@@ -1688,12 +1689,12 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         Network network = DanglingLineFactory.createWithLoad();
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl3_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-        SensitivityFactorsProvider factorsProvider2 = n -> List.of(createBranchFlowPerInjectionIncrease("l1", "load3", "dl1"));
+        SensitivityFactorsProvider factorsProvider2 = n -> List.of(createBranchFlowPerInjectionIncrease("l1", "load3"));
         List<Contingency> contingencies = List.of(new Contingency("dl1", new DanglingLineContingency("dl1")));
         SensitivityAnalysisResult result2 = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider2, contingencies, Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
-        assertEquals(1, result2.getValues().size());
+        assertEquals(1, result2.getPreContingencyValues().size());
         assertEquals(-0.1874, getValue(result2, "load3", "l1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(75.813, getFunctionReference(result2, "l1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.1875, getContingencyValue(result2, "dl1", "load3", "l1"), LoadFlowAssert.DELTA_POWER);
