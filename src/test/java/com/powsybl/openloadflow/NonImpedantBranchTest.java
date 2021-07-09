@@ -227,4 +227,81 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
     }
+
+    @Test
+    void twoLinkedPVBusesTest() {
+        Network network = Network.create("TwoPVBusesWithNonImpLine", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        createGenerator(b1, "g1", 2, 1);
+        createGenerator(b2, "g2", 2, 1);
+        Line l12 = createLine(network, b1, b2, "l12", 0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(1, b1);
+        assertVoltageEquals(1, b2);
+        assertAngleEquals(0, b1);
+        assertAngleEquals(0, b2);
+        assertActivePowerEquals(0, l12.getTerminal1());
+        assertActivePowerEquals(0, l12.getTerminal2());
+        assertReactivePowerEquals(0, l12.getTerminal1());
+        assertReactivePowerEquals(0, l12.getTerminal2());
+    }
+
+    @Test
+    void nonImpedentNetworkWithTwoPVBusesTest() {
+        Network network = Network.create("TwoPVBusesInNonImpNet", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 2, 1);
+        createGenerator(b3, "g3", 2, 1);
+        createLoad(b2, "l2", 4, 2);
+        Line l12 = createLine(network, b1, b2, "l12", 0);
+        Line l23 = createLine(network, b2, b3, "l23", 0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertVoltageEquals(1, b1);
+        assertVoltageEquals(1, b2);
+        assertVoltageEquals(1, b3);
+        assertAngleEquals(0, b1);
+        assertAngleEquals(0, b2);
+        assertAngleEquals(0, b3);
+        assertActivePowerEquals(2, l12.getTerminal1());
+        assertActivePowerEquals(-2, l12.getTerminal2());
+        assertActivePowerEquals(-2, l23.getTerminal1());
+        assertActivePowerEquals(2, l23.getTerminal2());
+        assertReactivePowerEquals(1, l12.getTerminal1());
+        assertReactivePowerEquals(-1, l12.getTerminal2());
+        assertReactivePowerEquals(-1, l23.getTerminal1());
+        assertReactivePowerEquals(1, l23.getTerminal2());
+    }
+
+    @Test
+    void nonImpedentNetworkWithCycleTest() {
+        Network network = Network.create("ThreeBusesNetworkWithCycle", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 2, 1);
+        createGenerator(b3, "g3", 2, 1);
+        createLoad(b2, "l2", 4, 2);
+        Line l12 = createLine(network, b1, b2, "l12", 0);
+        Line l23 = createLine(network, b2, b3, "l23", 0);
+        Line l31 = createLine(network, b3, b1, "l31", 0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        // FIX ME
+        //assertTrue(result.isOk());
+        //assertVoltageEquals(1, b1);
+        //assertVoltageEquals(1, b2);
+        //assertVoltageEquals(1, b3);
+        //assertAngleEquals(0, b1);
+        //assertAngleEquals(0, b2);
+        //assertAngleEquals(0, b3);
+    }
 }
