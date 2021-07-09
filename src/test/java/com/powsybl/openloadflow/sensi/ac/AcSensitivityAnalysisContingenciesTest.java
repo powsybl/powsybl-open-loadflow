@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sensi.ac;
 
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Line;
@@ -23,6 +24,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
@@ -644,9 +646,9 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         };
 
         List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies, Collections.emptyList(),
-            sensiParameters, LocalComputationManager.getDefault())
-            .join());
+        CompletableFuture<SensitivityAnalysisResult> task = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies, Collections.emptyList(),
+                sensiParameters, LocalComputationManager.getDefault());
+        CompletionException e = assertThrows(CompletionException.class, () -> task.join());
         assertTrue(e.getCause() instanceof NotImplementedException);
         assertEquals("Contingencies on a DC line are not yet supported in AC mode.", e.getCause().getMessage());
     }

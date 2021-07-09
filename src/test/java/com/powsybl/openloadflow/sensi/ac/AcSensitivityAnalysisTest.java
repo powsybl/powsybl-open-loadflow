@@ -22,6 +22,7 @@ import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -492,9 +493,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
                 .map(bus -> createBusVoltagePerTargetV(bus.getId(), "d3"))
                 .collect(Collectors.toList());
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
-            sensiParameters, LocalComputationManager.getDefault())
-            .join());
+        CompletableFuture<SensitivityAnalysisResult> task = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+                sensiParameters, LocalComputationManager.getDefault());
+        CompletionException e = assertThrows(CompletionException.class, () -> task.join());
 
         assertTrue(e.getCause() instanceof PowsyblException);
 
@@ -510,9 +511,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
                 .map(bus -> createBusVoltagePerTargetV(bus.getId(), "a"))
                 .collect(Collectors.toList());
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
-            sensiParameters, LocalComputationManager.getDefault())
-            .join());
+        CompletableFuture<SensitivityAnalysisResult> task = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+                sensiParameters, LocalComputationManager.getDefault());
+        CompletionException e = assertThrows(CompletionException.class, () -> task.join());
 
         assertTrue(e.getCause() instanceof PowsyblException);
 
@@ -528,9 +529,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityFactorsProvider factorsProvider = n -> network.getBusBreakerView().getBusStream()
                 .map(bus -> createBusVoltagePerTargetV(bus.getId(), "l23"))
                 .collect(Collectors.toList());
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
-            sensiParameters, LocalComputationManager.getDefault())
-            .join());
+        CompletableFuture<SensitivityAnalysisResult> task = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+                sensiParameters, LocalComputationManager.getDefault());
+        CompletionException e = assertThrows(CompletionException.class, () -> task.join());
 
         assertTrue(e.getCause() instanceof PowsyblException);
 
@@ -545,9 +546,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityFactorsProvider factorsProvider = n -> Collections.singletonList(createBusVoltagePerTargetV("id", "g2"));
 
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
-            sensiParameters, LocalComputationManager.getDefault())
-            .join());
+        CompletableFuture<SensitivityAnalysisResult> task = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+                sensiParameters, LocalComputationManager.getDefault());
+        CompletionException e = assertThrows(CompletionException.class, () -> task.join());
 
         assertTrue(e.getCause() instanceof PowsyblException);
 
