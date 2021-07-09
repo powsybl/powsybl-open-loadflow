@@ -115,7 +115,6 @@ public final class AcEquationSystem {
             EquationTerm q;
             if (LfNetwork.isZeroImpedanceBranch(branch)) {
                 if (!branch.isSpanningTreeEdge()) {
-                    System.out.println("toto: " + branch.getId());
                     continue;
                 }
                 if (branch.getBus1() == controllerBus) {
