@@ -194,7 +194,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             case APPARENT_POWER:
                 return 1.0 / PerUnit.SB;
             case CURRENT:
-                return bus.getNominalV() / PerUnit.SB;
+                return 1.0 / PerUnit.ib(bus.getNominalV());
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting scale for limit type %s is not supported.", type));
