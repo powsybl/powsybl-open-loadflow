@@ -204,21 +204,27 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         // note that LCC converter station are out of the slack distribution.
         lccCss.add(lccCs);
         HvdcLine line = lccCs.getHvdcLine();
-        double targetP = getLccConverterStationLoadTargetP(lccCs, line);
+        double targetP = PerUnit.SB * getLccConverterStationLoadTargetP(lccCs, line);
         loadTargetP += targetP;
         initialLoadTargetP += targetP;
-        loadTargetQ += getLccConverterStationLoadTargetQ(lccCs, line);
+        loadTargetQ += PerUnit.SB * getLccConverterStationLoadTargetQ(lccCs, line);
     }
 
+    /**
+     * Gets active power for an LCC station in per-unit.
+     */
     public static double getLccConverterStationLoadTargetP(LccConverterStation lccCs, HvdcLine line) {
         // The active power setpoint is always positive.
         // If the converter station is at side 1 and is rectifier, p should be positive.
         // If the converter station is at side 1 and is inverter, p should be negative.
         // If the converter station is at side 2 and is rectifier, p should be positive.
         // If the converter station is at side 2 and is inverter, p should be negative.
-        return line.getActivePowerSetpoint() * HvdcConverterStations.getActivePowerSetpointMultiplier(lccCs); // A LCC station has active losses.
+        return line.getActivePowerSetpoint() / PerUnit.SB * HvdcConverterStations.getActivePowerSetpointMultiplier(lccCs); // A LCC station has active losses.
     }
 
+    /**
+     * Gets reactive power for an LCC station in per-unit.
+     */
     public static double getLccConverterStationLoadTargetQ(LccConverterStation lccCs, HvdcLine line) {
         // The active power setpoint is always positive.
         // If the converter station is at side 1 and is rectifier, p should be positive.
