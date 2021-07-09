@@ -346,6 +346,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     private static void fixAllVoltageControls(LfNetwork lfNetwork, boolean minImpedance) {
         // If min impedance is set, there is no zero-impedance branch
         if (!minImpedance) {
+            lfNetwork.validate(lfNetwork, false);
             // Merge the discrete voltage control in each zero impedance connected set
             List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.createZeroImpedanceSubGraph()).connectedSets();
             connectedSets.forEach(LfNetworkLoaderImpl::mergeVoltageControls);
