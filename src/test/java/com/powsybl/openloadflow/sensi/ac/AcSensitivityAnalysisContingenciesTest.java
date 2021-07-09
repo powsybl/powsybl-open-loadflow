@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.sensi.ac;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Line;
