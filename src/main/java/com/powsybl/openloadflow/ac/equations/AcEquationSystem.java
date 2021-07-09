@@ -11,9 +11,6 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.DiscretePhaseControl.Mode;
-import org.jgrapht.Graph;
-import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
-import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -117,6 +114,10 @@ public final class AcEquationSystem {
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm q;
             if (LfNetwork.isZeroImpedanceBranch(branch)) {
+                if (!branch.isSpanningTreeEdge()) {
+                    System.out.println("toto: " + branch.getId());
+                    continue;
+                }
                 if (branch.getBus1() == controllerBus) {
                     q = EquationTerm.createVariableTerm(branch, VariableType.DUMMY_Q, variableSet);
                 } else {
@@ -124,16 +125,16 @@ public final class AcEquationSystem {
                 }
             } else {
                 boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
-                    && branch.getDiscretePhaseControl().filter(dpc -> dpc.getMode() == Mode.CONTROLLER).isPresent();
+                        && branch.getDiscretePhaseControl().filter(dpc -> dpc.getMode() == Mode.CONTROLLER).isPresent();
                 boolean deriveR1 = creationParameters.isTransformerVoltageControl() && branch.isVoltageController();
                 if (branch.getBus1() == controllerBus) {
                     LfBus otherSideBus = branch.getBus2();
                     q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1, deriveR1)
-                                             : new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet, deriveA1, deriveR1);
+                            : new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet, deriveA1, deriveR1);
                 } else {
                     LfBus otherSideBus = branch.getBus1();
                     q = otherSideBus != null ? new ClosedBranchSide2ReactiveFlowEquationTerm(branch, otherSideBus, controllerBus, variableSet, deriveA1, deriveR1)
-                                             : new OpenBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, variableSet, deriveA1, deriveR1);
+                            : new OpenBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, variableSet, deriveA1, deriveR1);
                 }
             }
             terms.add(q);
@@ -426,14 +427,10 @@ public final class AcEquationSystem {
             .filter(b -> !LfNetwork.isZeroImpedanceBranch(b))
             .forEach(b -> createImpedantBranch(b, b.getBus1(), b.getBus2(), variableSet, creationParameters, equationSystem));
 
-        // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph
-        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.createZeroImpedanceSubGraph();
-        if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
-            SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(zeroImpedanceSubGraph).getSpanningTree();
-            for (LfBranch branch : spanningTree.getEdges()) {
-                createNonImpedantBranch(variableSet, equationSystem, branch, branch.getBus1(), branch.getBus2());
-            }
-        }
+        // create zero and non zero impedance branch equations
+        network.getBranches().stream()
+                .filter(b -> LfNetwork.isZeroImpedanceBranch(b) && b.isSpanningTreeEdge())
+                .forEach(b -> createNonImpedantBranch(variableSet, equationSystem, b, b.getBus1(), b.getBus2()));
     }
 
     public static EquationSystem create(LfNetwork network) {

@@ -289,19 +289,18 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createGenerator(b1, "g1", 2, 1);
         createGenerator(b3, "g3", 2, 1);
         createLoad(b2, "l2", 4, 2);
-        Line l12 = createLine(network, b1, b2, "l12", 0);
-        Line l23 = createLine(network, b2, b3, "l23", 0);
-        Line l31 = createLine(network, b3, b1, "l31", 0);
+        createLine(network, b1, b2, "l12", 0);
+        createLine(network, b2, b3, "l23", 0);
+        createLine(network, b3, b1, "l31", 0);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
-        // FIX ME
-        //assertTrue(result.isOk());
-        //assertVoltageEquals(1, b1);
-        //assertVoltageEquals(1, b2);
-        //assertVoltageEquals(1, b3);
-        //assertAngleEquals(0, b1);
-        //assertAngleEquals(0, b2);
-        //assertAngleEquals(0, b3);
+        assertTrue(result.isOk());
+        assertVoltageEquals(1, b1);
+        assertVoltageEquals(1, b2);
+        assertVoltageEquals(1, b3);
+        assertAngleEquals(0, b1);
+        assertAngleEquals(0, b2);
+        assertAngleEquals(0, b3);
     }
 }
