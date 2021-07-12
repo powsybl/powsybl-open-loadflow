@@ -45,7 +45,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void testLineCurrentLimits() {
-        Network network = EurostagTutorialExample1Factory.createWithFixedCurrentLimits();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedCurrentLimits());
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
@@ -116,7 +116,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void testLineActivePowerLimits() {
-        Network network = EurostagTutorialExample1Factory.createWithFixedLimits();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedLimits());
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
@@ -134,7 +134,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void testLineApparentPowerLimits() {
-        Network network = EurostagTutorialExample1Factory.createWithFixedLimits();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedLimits());
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
