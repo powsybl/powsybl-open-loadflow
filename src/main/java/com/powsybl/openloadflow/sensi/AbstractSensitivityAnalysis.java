@@ -655,7 +655,8 @@ public abstract class AbstractSensitivityAnalysis {
 
     public void checkLoadFlowParameters(LoadFlowParameters lfParameters) {
         if (!lfParameters.getBalanceType().equals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX)
-            && !lfParameters.getBalanceType().equals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)) {
+                && !lfParameters.getBalanceType().equals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
+                && !lfParameters.getBalanceType().equals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P)) {
             throw new UnsupportedOperationException("Unsupported balance type mode: " + lfParameters.getBalanceType());
         }
     }

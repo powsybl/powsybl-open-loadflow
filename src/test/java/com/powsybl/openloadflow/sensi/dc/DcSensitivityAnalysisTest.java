@@ -110,9 +110,44 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     void testGeneratorInjection4busesDistributed() {
         // The factors are generators injections
         Network network = FourBusNetworkFactory.create();
+        for (Generator generator : network.getGenerators()) {
+            generator.setMaxP(generator.getTargetP() + 0.5);
+        }
         runDcLf(network);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                network.getBranchStream().collect(Collectors.toList()));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+                sensiParameters, LocalComputationManager.getDefault())
+                .join();
+
+        assertEquals(0.192d, getValue(result, "g1", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.269d, getValue(result, "g1", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.115d, getValue(result, "g1", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.038d, getValue(result, "g1", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.154d, getValue(result, "g1", "l13"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0.067d, getValue(result, "g2", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.356d, getValue(result, "g2", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.260d, getValue(result, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.163d, getValue(result, "g2", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.096d, getValue(result, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-0.433d, getValue(result, "g4", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.144d, getValue(result, "g4", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.24d, getValue(result, "g4", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.337d, getValue(result, "g4", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.096d, getValue(result, "g4", "l13"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testGeneratorInjection4busesDistributed2() {
+        // The factors are generators injections
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
         SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
