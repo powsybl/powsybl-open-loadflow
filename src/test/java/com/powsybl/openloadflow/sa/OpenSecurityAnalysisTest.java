@@ -683,22 +683,75 @@ class OpenSecurityAnalysisTest {
         assertEquals("l14", postContl14.getContingency().getId());
 
         BranchResult brl14l12 = postContl14.getBranchResult("l12");
-        assertEquals(0.3333, brl14l12.getP1(), 1e-3);
-        assertEquals(0.3333, brl14l12.getFlowTransfer(), 1e-3);
+        assertEquals(0.33, brl14l12.getP1(), 1e-2);
+        assertEquals(0.33, brl14l12.getFlowTransfer(), 1e-2);
 
         BranchResult brl14l23 = postContl14.getBranchResult("l23");
-        assertEquals(1.3333, brl14l23.getP1(), 1e-3);
-        assertEquals(0.3333, brl14l23.getFlowTransfer(), 1e-3);
+        assertEquals(1.33, brl14l23.getP1(), 1e-2);
+        assertEquals(0.33, brl14l23.getFlowTransfer(), 1e-2);
 
         BranchResult brl14l34 = postContl14.getBranchResult("l34");
-        assertEquals(-1.0, brl14l34.getP1(), 1e-3);
-        assertEquals(-0.9999, brl14l34.getFlowTransfer(), 1e-3);
+        assertEquals(-1.0, brl14l34.getP1(), 1e-2);
+        assertEquals(1.0, brl14l34.getFlowTransfer(), 1e-2);
 
         BranchResult brl14l13 = postContl14.getBranchResult("l13");
-        assertEquals(1.6666, brl14l13.getP1(), 1e-3);
-        assertEquals(0.6666, brl14l13.getFlowTransfer(), 1e-3);
+        assertEquals(1.66, brl14l13.getP1(), 1e-2);
+        assertEquals(0.66, brl14l13.getFlowTransfer(), 1e-2);
 
         StringWriter writer = new StringWriter();
         Security.print(result, fourBusNetwork, writer, new AsciiTableFormatterFactory(), new TableFormatterConfig());
+    }
+
+    @Test
+    void testSAmodeACAllBranchMonitoredFlowTransfer() {
+        Network network = FourBusNetworkFactory.create();
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+
+        // Testing all contingencies at once
+        ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
+                                                            .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
+                                                            .collect(Collectors.toList());
+
+        Set<String> allBranchIds = network.getBranchStream().map(b -> b.getId()).collect(Collectors.toSet());
+
+        List<StateMonitor> monitors = new ArrayList<>();
+        monitors.add(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
+
+        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
+        CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network, network.getVariantManager().getWorkingVariantId(),
+                new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
+                contingenciesProvider, Collections.emptyList(), monitors);
+        SecurityAnalysisResult result = futureResult.join().getResult();
+
+        assertEquals(5, result.getPostContingencyResults().size());
+
+        for (PostContingencyResult r : result.getPostContingencyResults()) {
+            assertEquals(4, r.getBranchResults().size());
+        }
+
+        //Check branch results for flowTransfer computation for contingency on l14
+        PostContingencyResult postContl14 = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals("l14")).findFirst().get();
+        assertEquals("l14", postContl14.getContingency().getId());
+
+        BranchResult brl14l12 = postContl14.getBranchResult("l12");
+        assertEquals(0.33, brl14l12.getP1(), 1e-2);
+        assertEquals(0.33, brl14l12.getFlowTransfer(), 1e-2);
+
+        BranchResult brl14l23 = postContl14.getBranchResult("l23");
+        assertEquals(1.33, brl14l23.getP1(), 1e-2);
+        assertEquals(0.33, brl14l23.getFlowTransfer(), 1e-2);
+
+        BranchResult brl14l34 = postContl14.getBranchResult("l34");
+        assertEquals(-1.0, brl14l34.getP1(), 1e-2);
+        assertEquals(1.0, brl14l34.getFlowTransfer(), 1e-2);
+
+        BranchResult brl14l13 = postContl14.getBranchResult("l13");
+        assertEquals(1.66, brl14l13.getP1(), 1e-2);
+        assertEquals(0.66, brl14l13.getFlowTransfer(), 1e-2);
     }
 }

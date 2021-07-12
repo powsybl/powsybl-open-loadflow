@@ -77,7 +77,6 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             List<SensitivityValue2> values = res.getValues(contingency.getId());
             List<LimitViolation> violations = new ArrayList<>();
             BranchResult preContRefBR = preContingencyBranchResults.get(contingency.getId());
-            double preContRefFlow = preContRefBR.getP1();
 
             for (SensitivityValue2 v : values) {
                 SensitivityFactor2 factor = (SensitivityFactor2) v.getFactorContext();
@@ -86,10 +85,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
                 if (monitor.getBranchIds().contains(branchId)) {
                     BranchResult preContBR = preContingencyBranchResults.get(branchId);
-                    double preContingencyFlow = preContBR.getP1();
-                    double postContingencyFlow = v.getFunctionReference();
-                    double flowDelta = preContingencyFlow >= 0.0 ? postContingencyFlow - preContingencyFlow : preContingencyFlow - postContingencyFlow;
-                    double flowTransfer = flowDelta / Math.abs(preContRefFlow);
+                    double flowTransfer = computeFlowTransfer(v.getFunctionReference(), preContBR.getP1(), preContRefBR.getP1());
                     postContingencyBranchResults.put(branchId, new BranchResult(branchId, v.getFunctionReference(), Float.NaN, Float.NaN, Float.NaN, Float.NaN, Float.NaN, flowTransfer));
                 }
 

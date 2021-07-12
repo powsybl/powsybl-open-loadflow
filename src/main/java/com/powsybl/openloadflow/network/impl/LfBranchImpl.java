@@ -206,11 +206,11 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public BranchResult createBranchResult() {
+    public BranchResult createBranchResult(double flowTransfer) {
         double currentScale1 = PerUnit.SB / nominalV1;
         double currentScale2 = PerUnit.SB / nominalV2;
         return new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval(), i1.eval() * currentScale1,
-                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, i2.eval() * currentScale2, Float.NaN);
+                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, i2.eval() * currentScale2, flowTransfer);
     }
 
     @Override

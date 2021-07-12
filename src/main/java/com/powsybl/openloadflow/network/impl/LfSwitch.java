@@ -102,7 +102,7 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public BranchResult createBranchResult() {
+    public BranchResult createBranchResult(double flowTransfer) {
         throw new PowsyblException("Unsupported type of branch for branch result: " + aSwitch.getId());
     }
 

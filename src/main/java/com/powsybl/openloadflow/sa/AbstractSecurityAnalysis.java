@@ -236,12 +236,41 @@ public abstract class AbstractSecurityAnalysis {
                                 Collection<BusResults> busResultsConsumer, Collection<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer) {
         network.getBranches().stream().filter(lfBranch -> monitor.getBranchIds().contains(lfBranch.getId()))
                 .filter(lfBranch -> !lfBranch.isDisabled())
-                .forEach(lfBranch -> branchResultConsumer.add(lfBranch.createBranchResult()));
+                .forEach(lfBranch -> branchResultConsumer.add(lfBranch.createBranchResult(Float.NaN)));
         network.getBuses().stream().filter(lfBus -> monitor.getVoltageLevelIds().contains(lfBus.getVoltageLevelId()))
                 .filter(lfBus -> !lfBus.isDisabled())
                 .forEach(lfBus -> busResultsConsumer.add(lfBus.createBusResult()));
         monitor.getThreeWindingsTransformerIds().stream().filter(id -> network.getBusById(id + "_BUS0") != null && !network.getBusById(id + "_BUS0").isDisabled())
                 .forEach(id -> threeWindingsTransformerResultConsumer.add(createThreeWindingsTransformerResult(id, network)));
+    }
+
+    protected void addMonitorInfoPostContingency(LfNetwork network, StateMonitor monitor, Collection<BranchResult> branchResultConsumer,
+                                                 Collection<BusResults> busResultsConsumer, Collection<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer,
+                                                 List<BranchResult> preContingencyBranchResults, String contingencyId) {
+
+        //If contingency is a branch, compute flow transfer
+        Optional<BranchResult> contingencyBranchResult = preContingencyBranchResults.stream().filter(r -> r.getBranchId().equals(contingencyId)).findFirst();
+        if (contingencyBranchResult.isPresent()) {
+            BranchResult inContingencyBranchResultN = contingencyBranchResult.get();
+            for (LfBranch b : network.getBranches()) {
+                if (monitor.getBranchIds().contains(b.getId()) && !b.isDisabled()) {
+                    Optional<BranchResult> branchResultN = preContingencyBranchResults.stream().filter(r -> r.getBranchId().equals(b.getId())).findFirst();
+                    if (branchResultN.isPresent()) {
+                        branchResultConsumer.add(createPostContingencyBranchResult(b, branchResultN.get(), inContingencyBranchResultN));
+                    }
+                }
+            }
+        } else {
+            network.getBranches().stream().filter(lfBranch -> monitor.getBranchIds().contains(lfBranch.getId()))
+                   .filter(lfBranch -> !lfBranch.isDisabled())
+                   .forEach(lfBranch -> branchResultConsumer.add(lfBranch.createBranchResult(Float.NaN)));
+        }
+
+        network.getBuses().stream().filter(lfBus -> monitor.getVoltageLevelIds().contains(lfBus.getVoltageLevelId()))
+               .filter(lfBus -> !lfBus.isDisabled())
+               .forEach(lfBus -> busResultsConsumer.add(lfBus.createBusResult()));
+        monitor.getThreeWindingsTransformerIds().stream().filter(id -> network.getBusById(id + "_BUS0") != null && !network.getBusById(id + "_BUS0").isDisabled())
+               .forEach(id -> threeWindingsTransformerResultConsumer.add(createThreeWindingsTransformerResult(id, network)));
     }
 
     private ThreeWindingsTransformerResult createThreeWindingsTransformerResult(String threeWindingsTransformerId, LfNetwork network) {
@@ -251,5 +280,13 @@ public abstract class AbstractSecurityAnalysis {
         return new ThreeWindingsTransformerResult(threeWindingsTransformerId, leg1.getP1().eval(), leg1.getQ1().eval(), leg1.getI1().eval(),
                 leg2.getP1().eval(), leg2.getQ1().eval(), leg2.getI1().eval(),
                 leg3.getP1().eval(), leg3.getQ1().eval(), leg3.getI1().eval());
+    }
+
+    protected BranchResult createPostContingencyBranchResult(LfBranch branch, BranchResult branchResultN, BranchResult inContingencyBranchResultN) {
+        return branch.createBranchResult(computeFlowTransfer(branch.getP1().eval() * PerUnit.SB, branchResultN.getP1(), inContingencyBranchResultN.getP1()));
+    }
+
+    protected double computeFlowTransfer(double p1PostContingency, double p1PreContingency, double referenceFlow) {
+        return (p1PostContingency - p1PreContingency) / referenceFlow;
     }
 }

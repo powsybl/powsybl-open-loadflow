@@ -55,7 +55,7 @@ public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
-    public BranchResult createBranchResult() {
+    public BranchResult createBranchResult(double flowTransfer) {
         throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
     }
 

@@ -148,7 +148,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
                     distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
-                    PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency, preContingencyLimitViolations);
+                    PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency, preContingencyLimitViolations, preContingencyBranchResults);
                     postContingencyResults.add(postContingencyResult);
 
                     if (contingencyIt.hasNext()) {
@@ -168,7 +168,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     }
 
     private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcloadFlowEngine engine, LfContingency lfContingency,
-                                                               Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations) {
+                                                               Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations, List<BranchResult> preContingencyBranchResults) {
         LOGGER.info("Start post contingency '{}' simulation", lfContingency.getContingency().getId());
 
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -190,10 +190,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     network.getBranches().stream().filter(b -> !b.isDisabled()),
                     network.getBuses().stream().filter(b -> !b.isDisabled()),
                     postContingencyLimitViolations);
-            addMonitorInfo(network, monitorIndex.getAllStateMonitor(), branchResults, busResults, threeWindingsTransformerResults);
+            addMonitorInfoPostContingency(network, monitorIndex.getAllStateMonitor(), branchResults, busResults, threeWindingsTransformerResults, preContingencyBranchResults, lfContingency.getContingency().getId());
+
             StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(lfContingency.getContingency().getId());
             if (stateMonitor != null) {
-                addMonitorInfo(network, stateMonitor, branchResults, busResults, threeWindingsTransformerResults);
+                addMonitorInfoPostContingency(network, stateMonitor, branchResults, busResults, threeWindingsTransformerResults, preContingencyBranchResults, lfContingency.getContingency().getId());
             }
         }
 
