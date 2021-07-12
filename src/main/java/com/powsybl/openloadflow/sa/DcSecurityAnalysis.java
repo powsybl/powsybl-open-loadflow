@@ -83,7 +83,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                 String branchId = factor.getFunctionId();
                 Branch<?> branch = network.getBranch(branchId);
 
-                if (monitor.getBranchIds().contains(branchId)) {
+                if (monitor.getBranchIds().contains(branchId) && branchId != contingency.getId()) {
                     BranchResult preContBR = preContingencyBranchResults.get(branchId);
                     double flowTransfer = computeFlowTransfer(v.getFunctionReference(), preContBR.getP1(), preContRefBR.getP1());
                     postContingencyBranchResults.put(branchId, new BranchResult(branchId, v.getFunctionReference(), Float.NaN, Float.NaN, Float.NaN, Float.NaN, Float.NaN, flowTransfer));
