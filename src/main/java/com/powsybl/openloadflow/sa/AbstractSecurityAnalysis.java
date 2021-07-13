@@ -236,7 +236,7 @@ public abstract class AbstractSecurityAnalysis {
                                 Collection<BusResults> busResultsConsumer, Collection<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer) {
         network.getBranches().stream().filter(lfBranch -> monitor.getBranchIds().contains(lfBranch.getId()))
                 .filter(lfBranch -> !lfBranch.isDisabled())
-                .forEach(lfBranch -> branchResultConsumer.add(lfBranch.createBranchResult(Float.NaN)));
+                .forEach(lfBranch -> branchResultConsumer.add(lfBranch.createBranchResult(Double.NaN)));
         network.getBuses().stream().filter(lfBus -> monitor.getVoltageLevelIds().contains(lfBus.getVoltageLevelId()))
                 .filter(lfBus -> !lfBus.isDisabled())
                 .forEach(lfBus -> busResultsConsumer.add(lfBus.createBusResult()));
@@ -263,7 +263,7 @@ public abstract class AbstractSecurityAnalysis {
         } else {
             network.getBranches().stream().filter(lfBranch -> monitor.getBranchIds().contains(lfBranch.getId()))
                    .filter(lfBranch -> !lfBranch.isDisabled())
-                   .forEach(lfBranch -> branchResultConsumer.add(lfBranch.createBranchResult(Float.NaN)));
+                   .forEach(lfBranch -> branchResultConsumer.add(lfBranch.createBranchResult(Double.NaN)));
         }
 
         network.getBuses().stream().filter(lfBus -> monitor.getVoltageLevelIds().contains(lfBus.getVoltageLevelId()))

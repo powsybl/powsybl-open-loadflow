@@ -65,7 +65,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             SensitivityFactor2 factor = (SensitivityFactor2) sensValue.getFactorContext();
             String branchId = factor.getFunctionId();
             Branch<?> branch = network.getBranch(branchId);
-            preContingencyBranchResults.put(branchId, new BranchResult(branchId, sensValue.getFunctionReference(), Float.NaN, Float.NaN, Float.NaN, Float.NaN, Float.NaN, Float.NaN));
+            preContingencyBranchResults.put(branchId, new BranchResult(branchId, sensValue.getFunctionReference(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN));
             detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(sensValue.getFunctionReference()), preContingencyLimitViolations::add);
         }
 
@@ -86,7 +86,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                 if (monitor.getBranchIds().contains(branchId) && !branchId.equals(contingency.getId())) {
                     BranchResult preContBR = preContingencyBranchResults.get(branchId);
                     double flowTransfer = computeFlowTransfer(v.getFunctionReference(), preContBR.getP1(), preContRefBR.getP1());
-                    postContingencyBranchResults.put(branchId, new BranchResult(branchId, v.getFunctionReference(), Float.NaN, Float.NaN, Float.NaN, Float.NaN, Float.NaN, flowTransfer));
+                    postContingencyBranchResults.put(branchId, new BranchResult(branchId, v.getFunctionReference(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, flowTransfer));
                 }
 
                 detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(v.getFunctionReference()), violations::add);
