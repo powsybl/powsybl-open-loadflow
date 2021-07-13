@@ -66,4 +66,17 @@ class PerUnitTest {
         p1.update(x);
         assertEquals(856.4176570806668, p1.eval() / PerUnit.SB, 0d);
     }
+
+    @Test
+    void testBaseCurrent() {
+        // silly test to check the formulae:
+        // when P = SB and v = vnom, i should be equal to base current
+        double p = PerUnit.SB;
+        double v = 400;
+        // factor 1000 because p is in MW and V in kV, so :
+        // p = 1000 * sqrt(3) * v * i
+        double i = 1000 * p / (Math.sqrt(3) * v);
+        double ib = PerUnit.ib(400);
+        assertEquals(i, ib);
+    }
 }

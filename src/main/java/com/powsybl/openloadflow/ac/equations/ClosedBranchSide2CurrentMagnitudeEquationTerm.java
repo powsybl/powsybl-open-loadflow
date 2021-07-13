@@ -66,19 +66,19 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
         double interReI2 = g2 * cosPh2 - b2 * sinPh2 + y * sinPh2Ksi;
         double interImI2 = g2 * sinPh2 + b2 * cosPh2 - y * cosPh2Ksi;
 
-        double reI2 = R2 * (w2 * interReI2 - w1 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
-        double imI2 = R2 * (w2 * interImI2 + w1 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
+        double reI2 = R2 * (w2 * interReI2 - w1 * sinTheta);
+        double imI2 = R2 * (w2 * interImI2 + w1 * cosTheta);
         i2 = Math.hypot(reI2, imI2);
 
-        double dreI2dv2 = R2 * R2 * interReI2 * CURRENT_NORMALIZATION_FACTOR;
-        double dreI2dv1 = R2 * (-y * r1 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
-        double dreI2dph2 = R2 * w2 * (-g2 * sinPh2 - b2 * cosPh2 + y * cosPh2Ksi) * CURRENT_NORMALIZATION_FACTOR;
-        double dreI2dph1 = R2 * (-w1 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
+        double dreI2dv2 = R2 * R2 * interReI2;
+        double dreI2dv1 = R2 * (-y * r1 * sinTheta);
+        double dreI2dph2 = R2 * w2 * (-g2 * sinPh2 - b2 * cosPh2 + y * cosPh2Ksi);
+        double dreI2dph1 = R2 * (-w1 * cosTheta);
 
-        double dimI2dv2 = R2 * R2 * interImI2 * CURRENT_NORMALIZATION_FACTOR;
-        double dimI2dv1 = R2 * (y * r1 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
-        double dimI2dph2 = R2 * w2 * interReI2 * CURRENT_NORMALIZATION_FACTOR;
-        double dimI2dph1 = R2 * (-w1 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
+        double dimI2dv2 = R2 * R2 * interImI2;
+        double dimI2dv1 = R2 * (y * r1 * cosTheta);
+        double dimI2dph2 = R2 * w2 * interReI2;
+        double dimI2dph1 = R2 * (-w1 * sinTheta);
 
         di2dv2 = (reI2 * dreI2dv2 + imI2 * dimI2dv2) / i2;
         di2dv1 = (reI2 * dreI2dv1 + imI2 * dimI2dv1) / i2;

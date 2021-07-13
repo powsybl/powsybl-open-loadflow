@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.ToDoubleFunction;
+import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -35,6 +36,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected double angle;
 
     protected double calculatedQ = Double.NaN;
+
+    private boolean hasGeneratorsWithSlope;
 
     protected boolean voltageControllerEnabled = false;
 
@@ -131,6 +134,22 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public List<LfGenerator> getGeneratorsControllingVoltageWithSlope() {
+        return generators.stream().filter(gen -> gen.hasVoltageControl() && gen.getSlope() != 0).collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean hasGeneratorsWithSlope() {
+        return hasGeneratorsWithSlope;
+    }
+
+    @Override
+    public void removeGeneratorSlopes() {
+        hasGeneratorsWithSlope = false;
+        generators.forEach(g -> g.setSlope(0));
+    }
+
+    @Override
     public boolean isVoltageControllerEnabled() {
         return voltageControllerEnabled;
     }
@@ -181,21 +200,27 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         // note that LCC converter station are out of the slack distribution.
         lccCss.add(lccCs);
         HvdcLine line = lccCs.getHvdcLine();
-        double targetP = getLccConverterStationLoadTargetP(lccCs, line);
+        double targetP = PerUnit.SB * getLccConverterStationLoadTargetP(lccCs, line);
         loadTargetP += targetP;
         initialLoadTargetP += targetP;
-        loadTargetQ += getLccConverterStationLoadTargetQ(lccCs, line);
+        loadTargetQ += PerUnit.SB * getLccConverterStationLoadTargetQ(lccCs, line);
     }
 
+    /**
+     * Gets active power for an LCC station in per-unit.
+     */
     public static double getLccConverterStationLoadTargetP(LccConverterStation lccCs, HvdcLine line) {
         // The active power setpoint is always positive.
         // If the converter station is at side 1 and is rectifier, p should be positive.
         // If the converter station is at side 1 and is inverter, p should be negative.
         // If the converter station is at side 2 and is rectifier, p should be positive.
         // If the converter station is at side 2 and is inverter, p should be negative.
-        return line.getActivePowerSetpoint() * HvdcConverterStations.getActivePowerSetpointMultiplier(lccCs); // A LCC station has active losses.
+        return line.getActivePowerSetpoint() / PerUnit.SB * HvdcConverterStations.getActivePowerSetpointMultiplier(lccCs); // A LCC station has active losses.
     }
 
+    /**
+     * Gets reactive power for an LCC station in per-unit.
+     */
     public static double getLccConverterStationLoadTargetQ(LccConverterStation lccCs, HvdcLine line) {
         // The active power setpoint is always positive.
         // If the converter station is at side 1 and is rectifier, p should be positive.
@@ -218,9 +243,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         add(LfGeneratorImpl.create(generator, breakers, report, plausibleActivePowerLimit));
     }
 
-    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean breakers, LfNetworkLoadingReport report) {
+    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean voltagePerReactivePowerControl, boolean breakers, LfNetworkLoadingReport report) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
-            add(LfStaticVarCompensatorImpl.create(staticVarCompensator, this, breakers, report));
+            LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, this, voltagePerReactivePowerControl, breakers, report);
+            add(lfSvc);
+            if (lfSvc.getSlope() != 0) {
+                hasGeneratorsWithSlope = true;
+            }
         }
     }
 
@@ -485,5 +514,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     public BusResults createBusResult() {
         double scale = getNominalV();
         return new BusResults(getVoltageLevelId(), getId(), getV().eval() * scale, getAngle());
+    }
+
+    @Override
+    public String toString() {
+        return getId();
     }
 }

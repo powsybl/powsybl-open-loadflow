@@ -60,9 +60,7 @@ public final class AcEquationSystem {
     private static void createVoltageControlEquations(VoltageControl voltageControl, LfBus bus, VariableSet variableSet,
                                                       EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
         if (voltageControl.isVoltageControlLocal()) {
-            EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
-            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
-            bus.setV(vTerm);
+            createLocalVoltageControlEquation(bus, variableSet, equationSystem, creationParameters);
         } else if (bus.isVoltageControlled()) {
             // remote controlled: set voltage equation on this controlled bus
             createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet, creationParameters);
@@ -71,6 +69,18 @@ public final class AcEquationSystem {
         if (bus.isVoltageControllerEnabled()) {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
         }
+    }
+
+    private static void createLocalVoltageControlEquation(LfBus bus, VariableSet variableSet, EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
+        EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
+        bus.setV(vTerm);
+        if (bus.hasGeneratorsWithSlope()) {
+            // take first generator with slope: network loading ensures that there's only one generator with slope
+            double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
+            createBusWithSlopeEquation(bus, slope, creationParameters, variableSet, equationSystem, vTerm);
+            return;
+        }
+        equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
     }
 
     private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus) {
@@ -208,8 +218,8 @@ public final class AcEquationSystem {
                                                 LfBranch branch, LfBus bus1, LfBus bus2) {
         Optional<Equation> v1 = equationSystem.getEquation(bus1.getNum(), EquationType.BUS_V);
         Optional<Equation> v2 = equationSystem.getEquation(bus2.getNum(), EquationType.BUS_V);
-        boolean hasV1 = v1.isPresent() && v1.get().isActive(); // may be inactive is the equation has been created for sensitivity
-        boolean hasV2 = v2.isPresent() && v2.get().isActive(); // may be inactive is the equation has been created for sensitivity
+        boolean hasV1 = v1.isPresent() && v1.get().isActive(); // may be inactive if the equation has been created for sensitivity
+        boolean hasV2 = v2.isPresent() && v2.get().isActive(); // may be inactive if the equation has been created for sensitivity
         if (!(hasV1 && hasV2)) {
             // create voltage magnitude coupling equation
             // 0 = v1 - v2 * rho
@@ -282,6 +292,19 @@ public final class AcEquationSystem {
                         .setActive(false);
                 }
             });
+    }
+
+    private static void createBusWithSlopeEquation(LfBus bus, double slope, AcEquationSystemCreationParameters creationParameters, VariableSet variableSet, EquationSystem equationSystem, EquationTerm vTerm) {
+        // we only support one generator controlling voltage with a non zero slope at a bus.
+        // equation is: V + slope * qSVC = targetV
+        // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
+        Equation eq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V_SLOPE);
+        eq.addTerm(vTerm);
+        List<EquationTerm> controllerBusReactiveTerms = createReactiveTerms(bus, variableSet, creationParameters);
+        eq.setData(new DistributionData(bus.getNum(), slope)); // for later use
+        for (EquationTerm eqTerm : controllerBusReactiveTerms) {
+            eq.addTerm(EquationTerm.multiply(eqTerm, slope));
+        }
     }
 
     public static void createR1DistributionEquations(EquationSystem equationSystem, VariableSet variableSet,

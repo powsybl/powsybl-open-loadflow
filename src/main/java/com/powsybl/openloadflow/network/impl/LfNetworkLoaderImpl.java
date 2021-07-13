@@ -54,7 +54,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void createVoltageControls(LfNetwork lfNetwork, List<LfBus> lfBuses, boolean voltageRemoteControl) {
+    private static void createVoltageControls(LfNetwork lfNetwork, List<LfBus> lfBuses, boolean voltageRemoteControl, boolean voltagePerReactivePowerControl) {
+        List<VoltageControl> voltageControls = new ArrayList<>();
+
         // set controller -> controlled link
         for (LfBus controllerBus : lfBuses) {
 
@@ -65,29 +67,65 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 LfBus controlledBus = lfGenerator0.getControlledBus(lfNetwork);
                 double controllerTargetV = lfGenerator0.getTargetV();
 
-                LfBus finalControlledBus = controlledBus;
                 voltageControlGenerators.stream().skip(1).forEach(lfGenerator -> {
                     LfBus generatorControlledBus = lfGenerator.getControlledBus(lfNetwork);
 
                     // check that remote control bus is the same for the generators of current controller bus which have voltage control on
-                    checkUniqueControlledBus(finalControlledBus, generatorControlledBus, controllerBus);
+                    checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus);
 
                     // check that target voltage is the same for the generators of current controller bus which have voltage control on
                     checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
                 });
 
-                if (!voltageRemoteControl && controlledBus != controllerBus) {
+                if (voltageRemoteControl || controlledBus == controllerBus) {
+                    controlledBus.getVoltageControl().ifPresentOrElse(
+                        vc -> updateVoltageControl(vc, controllerBus, controllerTargetV),
+                        () -> createVoltageControl(controlledBus, controllerBus, controllerTargetV, voltageControls, voltagePerReactivePowerControl));
+                } else {
                     // if voltage remote control deactivated and remote control, set local control instead
                     LOGGER.warn("Remote voltage control is not activated. The voltage target of {} with remote control is rescaled from {} to {}",
-                        controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
-                    controlledBus = controllerBus;
+                            controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
+                    controlledBus.getVoltageControl().ifPresentOrElse(
+                        vc -> updateVoltageControl(vc, controllerBus, controllerTargetV), // updating only to check targetV uniqueness
+                        () -> createVoltageControl(controllerBus, controllerBus, controllerTargetV, voltageControls, voltagePerReactivePowerControl));
                 }
+            }
+        }
 
-                VoltageControl voltageControl = controlledBus.getVoltageControl().orElse(new VoltageControl(controlledBus, controllerTargetV));
-                voltageControl.addControllerBus(controllerBus);
+        if (voltagePerReactivePowerControl) {
+            voltageControls.forEach(LfNetworkLoaderImpl::checkGeneratorsWithSlope);
+        }
+    }
 
-                controlledBus.setVoltageControl(voltageControl); // is set even if already present, for simplicity sake
-                checkUniqueTargetVControlledBus(controllerTargetV, controllerBus, voltageControl); // check even if voltage control just created, for simplicity sake
+    private static void createVoltageControl(LfBus controlledBus, LfBus controllerBus, double controllerTargetV, List<VoltageControl> voltageControls, boolean voltagePerReactivePowerControl) {
+        VoltageControl voltageControl = new VoltageControl(controlledBus, controllerTargetV);
+        voltageControl.addControllerBus(controllerBus);
+        controlledBus.setVoltageControl(voltageControl);
+        if (voltagePerReactivePowerControl) {
+            voltageControls.add(voltageControl);
+        }
+    }
+
+    private static void updateVoltageControl(VoltageControl voltageControl, LfBus controllerBus, double controllerTargetV) {
+        voltageControl.addControllerBus(controllerBus);
+        checkUniqueTargetVControlledBus(controllerTargetV, controllerBus, voltageControl);
+    }
+
+    private static void checkGeneratorsWithSlope(VoltageControl voltageControl) {
+        List<LfGenerator> generatorsWithSlope = voltageControl.getControllerBuses().stream()
+                .filter(LfBus::hasGeneratorsWithSlope)
+                .flatMap(lfBus -> lfBus.getGeneratorsControllingVoltageWithSlope().stream())
+                .collect(Collectors.toList());
+
+        if (!generatorsWithSlope.isEmpty()) {
+            if (voltageControl.isSharedControl()) {
+                generatorsWithSlope.forEach(generator -> generator.getBus().removeGeneratorSlopes());
+                LOGGER.warn("Non supported: shared control on bus {} with {} generator(s) controlling voltage with slope. Slope set to 0 on all those generators",
+                        voltageControl.getControlledBus(), generatorsWithSlope.size());
+            } else if (!voltageControl.isVoltageControlLocal()) {
+                generatorsWithSlope.forEach(generator -> generator.getBus().removeGeneratorSlopes());
+                LOGGER.warn("Non supported: remote control on bus {} with {} generator(s) controlling voltage with slope",
+                        voltageControl.getControlledBus(), generatorsWithSlope.size());
             }
         }
     }
@@ -182,7 +220,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
             @Override
             public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
-                lfBus.addStaticVarCompensator(staticVarCompensator, parameters.isBreakers(), report);
+                lfBus.addStaticVarCompensator(staticVarCompensator, parameters.isVoltagePerReactivePowerControl(), parameters.isBreakers(), report);
                 if (staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
                     report.voltageControllerCount++;
                 }
@@ -454,7 +492,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report);
         createBranches(lfBuses, lfNetwork, loadingContext, report, parameters);
-        createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl());
+        createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isVoltagePerReactivePowerControl());
 
         if (parameters.isTransformerVoltageControl()) {
             // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)
