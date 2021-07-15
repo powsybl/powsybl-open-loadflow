@@ -108,7 +108,7 @@ public class PropagatedContingency {
 
     private static PropagatedContingency create(Network network, Contingency contingency, int index) {
         Set<Switch> switchesToOpen = new HashSet<>();
-        Set<Terminal> terminalsToDisconnect =  new HashSet<>();
+        Set<Terminal> terminalsToDisconnect = new HashSet<>();
         Set<String> branchIdsToOpen = new HashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
         Set<String> generatorIdsToLose = new HashSet<>();
@@ -152,14 +152,34 @@ public class PropagatedContingency {
     }
 
     private static boolean isCoupler(Switch s) {
-        VoltageLevel.NodeBreakerView nbv = s.getVoltageLevel().getNodeBreakerView();
-        Terminal terminal1 = nbv.getTerminal1(s.getId());
-        Terminal terminal2 = nbv.getTerminal2(s.getId());
-        if (terminal1 == null || terminal2 == null) {
-            return false; // FIXME: this can be a coupler, a traverser could be used to detect it
+        if (s.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
+            VoltageLevel.NodeBreakerView nbv = s.getVoltageLevel().getNodeBreakerView();
+            return connectedToBusbars(nbv.getNode1(s.getId()), s) && connectedToBusbars(nbv.getNode2(s.getId()), s);
+        } else {
+            return false;
         }
-        Connectable<?> c1 = terminal1.getConnectable();
-        Connectable<?> c2 = terminal2.getConnectable();
-        return c1 != c2 && c1.getType() == ConnectableType.BUSBAR_SECTION && c2.getType() == ConnectableType.BUSBAR_SECTION;
+    }
+
+    private static boolean connectedToBusbars(int node, Switch swStart) {
+        VoltageLevel.NodeBreakerView nbv = swStart.getVoltageLevel().getNodeBreakerView();
+
+        // Testing terminal connected to switch
+        Optional<Terminal> t0 = nbv.getOptionalTerminal(node);
+        if (t0.isPresent()) {
+            return t0.get().getConnectable().getType() == ConnectableType.BUSBAR_SECTION;
+        }
+
+        // If no terminal connected to switch, a traverser is needed
+        ArrayList<Terminal> firstTerminalsEncountered = new ArrayList<>();
+        nbv.traverse(node, (nodeBefore, sw, nodeAfter) -> {
+            if (sw == swStart) {
+                return false; // no need to go back to starting switch
+            }
+            Optional<Terminal> t = nbv.getOptionalTerminal(nodeAfter);
+            t.ifPresent(firstTerminalsEncountered::add);
+            return t.isEmpty();
+        });
+        return firstTerminalsEncountered.stream()
+            .allMatch(t -> t.getConnectable().getType() == ConnectableType.BUSBAR_SECTION);
     }
 }
