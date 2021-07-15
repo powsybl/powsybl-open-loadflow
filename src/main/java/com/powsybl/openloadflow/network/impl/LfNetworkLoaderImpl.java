@@ -12,6 +12,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.graph.ConflictingVoltageControlManager;
 import com.powsybl.openloadflow.network.*;
 import net.jafama.FastMath;
 import org.apache.commons.lang3.tuple.Pair;
@@ -343,6 +344,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
+    private static void fixConflictingVoltageControls(LfNetwork lfNetwork, List<LfBus> lfBuses) {
+        ConflictingVoltageControlManager.fixConflicts(lfNetwork, lfBuses);
+    }
+
     private static void fixDiscreteVoltageControls(LfNetwork lfNetwork, boolean minImpedance) {
         // If min impedance is set, there is no zero-impedance branch
         if (!minImpedance) {
@@ -507,6 +512,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             // Fixing discrete voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
             fixDiscreteVoltageControls(lfNetwork, parameters.isMinImpedance());
         }
+
+        fixConflictingVoltageControls(lfNetwork, lfBuses);
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             reporter.report(Report.builder()
