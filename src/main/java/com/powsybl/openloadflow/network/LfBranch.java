@@ -72,7 +72,7 @@ public interface LfBranch extends LfElement {
 
     void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
 
-    BranchResult createBranchResult(double flowTransfer);
+    BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1);
 
     boolean isDisabled();
 

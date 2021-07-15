@@ -202,7 +202,11 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public BranchResult createBranchResult(double flowTransfer) {
+    public BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1) {
+        double flowTransfer = Double.NaN;
+        if (preContingencyP1 != Double.NaN && branchInContingencyP1 != Double.NaN) {
+            flowTransfer = (p1.eval() * PerUnit.SB - preContingencyP1) / branchInContingencyP1;
+        }
         double currentScale1 = PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
         double currentScale2 = PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
         return new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),

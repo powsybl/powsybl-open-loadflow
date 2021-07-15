@@ -76,16 +76,16 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             Map<String, BranchResult> postContingencyBranchResults = new HashMap<>();
             List<SensitivityValue2> values = res.getValues(contingency.getId());
             List<LimitViolation> violations = new ArrayList<>();
-            BranchResult preContRefBR = preContingencyBranchResults.get(contingency.getId());
+            double branchInContingencyP1 = preContingencyBranchResults.get(contingency.getId()).getP1();
 
             for (SensitivityValue2 v : values) {
                 SensitivityFactor2 factor = (SensitivityFactor2) v.getFactorContext();
                 String branchId = factor.getFunctionId();
                 Branch<?> branch = network.getBranch(branchId);
 
-                if (monitor.getBranchIds().contains(branchId) && !branchId.equals(contingency.getId())) {
-                    BranchResult preContBR = preContingencyBranchResults.get(branchId);
-                    double flowTransfer = computeFlowTransfer(v.getFunctionReference(), preContBR.getP1(), preContRefBR.getP1());
+                if (monitor.getBranchIds().contains(branchId)) {
+                    BranchResult preContingencyBranchResult = preContingencyBranchResults.get(branchId);
+                    double flowTransfer = (v.getFunctionReference() - preContingencyBranchResult.getP1()) / branchInContingencyP1;
                     postContingencyBranchResults.put(branchId, new BranchResult(branchId, v.getFunctionReference(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, flowTransfer));
                 }
 

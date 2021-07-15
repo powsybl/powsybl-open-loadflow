@@ -617,7 +617,7 @@ class OpenSecurityAnalysisTest {
         assertEquals(4, result.getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
 
         //Branch result for first contingency
-        assertEquals(4, result.getPostContingencyResults().get(0).getBranchResults().size());
+        assertEquals(5, result.getPostContingencyResults().get(0).getBranchResults().size());
 
         //Check branch results for flowTransfer computation for contingency on l14
         PostContingencyResult postContl14 = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals("l14")).findFirst().get();
@@ -626,6 +626,10 @@ class OpenSecurityAnalysisTest {
         BranchResult brl14l12 = postContl14.getBranchResult("l12");
         assertEquals(0.33, brl14l12.getP1(), 1e-2);
         assertEquals(0.33, brl14l12.getFlowTransfer(), 1e-2);
+
+        BranchResult brl14l14 = postContl14.getBranchResult("l14");
+        assertEquals(0.0, brl14l14.getP1(), 1e-2);
+        assertEquals(-1.0, brl14l14.getFlowTransfer(), 1e-2);
 
         BranchResult brl14l23 = postContl14.getBranchResult("l23");
         assertEquals(1.33, brl14l23.getP1(), 1e-2);
