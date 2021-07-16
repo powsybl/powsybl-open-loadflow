@@ -124,16 +124,16 @@ public final class AcEquationSystem {
                 }
             } else {
                 boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
-                        && branch.getDiscretePhaseControl().filter(dpc -> dpc.getMode() == Mode.CONTROLLER).isPresent();
+                    && branch.getDiscretePhaseControl().filter(dpc -> dpc.getMode() == Mode.CONTROLLER).isPresent();
                 boolean deriveR1 = creationParameters.isTransformerVoltageControl() && branch.isVoltageController();
                 if (branch.getBus1() == controllerBus) {
                     LfBus otherSideBus = branch.getBus2();
                     q = otherSideBus != null ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, otherSideBus, variableSet, deriveA1, deriveR1)
-                            : new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet, deriveA1, deriveR1);
+                                             : new OpenBranchSide2ReactiveFlowEquationTerm(branch, controllerBus, variableSet, deriveA1, deriveR1);
                 } else {
                     LfBus otherSideBus = branch.getBus1();
                     q = otherSideBus != null ? new ClosedBranchSide2ReactiveFlowEquationTerm(branch, otherSideBus, controllerBus, variableSet, deriveA1, deriveR1)
-                            : new OpenBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, variableSet, deriveA1, deriveR1);
+                                             : new OpenBranchSide1ReactiveFlowEquationTerm(branch, controllerBus, variableSet, deriveA1, deriveR1);
                 }
             }
             terms.add(q);
