@@ -782,7 +782,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             new Contingency("c1", new BranchContingency("L1"))
         );
 
-        //throws
-        PropagatedContingency.createListForSensitivityAnalysis(network, contingencies);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies);
+        assertEquals(1, propagatedContingencies.size());
     }
 }

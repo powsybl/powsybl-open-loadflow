@@ -156,7 +156,7 @@ public class PropagatedContingency {
         Terminal terminal1 = nbv.getTerminal1(s.getId());
         Terminal terminal2 = nbv.getTerminal2(s.getId());
         if (terminal1 == null || terminal2 == null) {
-            return false;
+            return false; // FIXME: this can be a coupler, a traverser could be used to detect it
         }
         Connectable<?> c1 = terminal1.getConnectable();
         Connectable<?> c2 = terminal2.getConnectable();
