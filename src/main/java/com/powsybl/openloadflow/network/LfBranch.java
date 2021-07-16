@@ -81,4 +81,8 @@ public interface LfBranch extends LfElement {
     double computeApparentPower1();
 
     double computeApparentPower2();
+
+    void setSpanningTreeEdge(boolean spanningTreeEdge);
+
+    boolean isSpanningTreeEdge();
 }
