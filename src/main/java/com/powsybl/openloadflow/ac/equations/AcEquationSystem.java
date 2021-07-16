@@ -14,8 +14,10 @@ import com.powsybl.openloadflow.network.DiscretePhaseControl.Mode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.OutputStreamWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -451,9 +453,6 @@ public final class AcEquationSystem {
         createBranchEquations(network, variableSet, creationParameters, equationSystem);
 
         network.addListener(new AcEquationSystemUpdater(equationSystem, variableSet, creationParameters));
-
-        equationSystem.write(new OutputStreamWriter(System.out));
-        equationSystem.checkConsistency();
 
         return equationSystem;
     }

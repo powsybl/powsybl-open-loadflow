@@ -10,11 +10,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfNetwork;
 import org.apache.commons.lang3.tuple.Pair;
-import org.jgrapht.Graph;
-import org.jgrapht.alg.connectivity.ConnectivityInspector;
-import org.jgrapht.graph.Pseudograph;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -26,8 +21,6 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class EquationSystem {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(EquationSystem.class);
 
     private final LfNetwork network;
 
@@ -354,37 +347,5 @@ public class EquationSystem {
                 .sorted(Comparator.comparingDouble((Map.Entry<Equation, Double> e) -> Math.abs(e.getValue())).reversed())
                 .limit(count)
                 .collect(Collectors.toList());
-    }
-
-    public void checkConsistency() {
-        Graph<Variable, Object> graph = new Pseudograph<>(Object.class);
-        for (Equation equation : equations.values()) {
-            if (equation.isActive()) {
-                List<Variable> variables = new ArrayList<>();
-                for (EquationTerm term : equation.getTerms()) {
-                    if (term.isActive()) {
-                        variables.addAll(term.getVariables());
-                    }
-                }
-                for (Variable variable : variables) {
-                    if (!graph.containsVertex(variable)) {
-                        graph.addVertex(variable);
-                    }
-                }
-                if (variables.size() > 1) {
-                    for (int i = 1; i < variables.size(); i++) {
-                        graph.addEdge(variables.get(i), variables.get(0));
-                    }
-                }
-
-            }
-        }
-        List<Set<Variable>> connectedSets = new ConnectivityInspector<>(graph).connectedSets();
-        if (connectedSets.size() > 1) {
-            LOGGER.error("Equation system has {} independent sub systems", connectedSets.size());
-            for (Set<Variable> connectedSet : connectedSets) {
-                LOGGER.error("Equation sub system: {}", connectedSet);
-            }
-        }
     }
 }
