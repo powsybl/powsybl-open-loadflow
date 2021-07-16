@@ -156,7 +156,7 @@ public class PropagatedContingency {
             VoltageLevel.NodeBreakerView nbv = s.getVoltageLevel().getNodeBreakerView();
             return connectedToBusbars(nbv.getNode1(s.getId()), s) && connectedToBusbars(nbv.getNode2(s.getId()), s);
         } else {
-            return false;
+            return false; // FIXME: find a way to detect coupler in bus breaker view
         }
     }
 
@@ -169,15 +169,18 @@ public class PropagatedContingency {
             return t0.get().getConnectable().getType() == ConnectableType.BUSBAR_SECTION;
         }
 
-        // If no terminal connected to switch, a traverser is needed
+        // If no terminal connected to switch, traverser is needed to see whether the node is connected to busbars only
         ArrayList<Terminal> firstTerminalsEncountered = new ArrayList<>();
         nbv.traverse(node, (nodeBefore, sw, nodeAfter) -> {
             if (sw == swStart) {
                 return false; // no need to go back to starting switch
             }
+            if (sw != null && sw.isOpen()) { // sw == null <=> internal connection, which is always closed
+                return false; // not connected to nodeAfter if switch is opened
+            }
             Optional<Terminal> t = nbv.getOptionalTerminal(nodeAfter);
             t.ifPresent(firstTerminalsEncountered::add);
-            return t.isEmpty();
+            return t.isEmpty(); // stop at first terminal encountered
         });
         return firstTerminalsEncountered.stream()
             .allMatch(t -> t.getConnectable().getType() == ConnectableType.BUSBAR_SECTION);
