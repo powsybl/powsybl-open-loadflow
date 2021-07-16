@@ -406,7 +406,7 @@ public class LfNetwork {
         }
     }
 
-    public static void validate(LfNetwork network, boolean minImpedance) {
+    private static void validate(LfNetwork network, boolean minImpedance) {
         if (minImpedance) {
             return;
         }
