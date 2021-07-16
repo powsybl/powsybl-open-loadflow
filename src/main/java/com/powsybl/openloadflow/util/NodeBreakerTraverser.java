@@ -56,11 +56,8 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traver
                     // switches after are often opened and sometimes followed by an end node
                     return true;
                 }
-                if (isEquivalentToStopAfterSwitch(sw, nodeAfter)) {
-                    // Retaining the switch is equivalent to stop at the node after
-                    // - if the node after the switch is an end node (e.g. load or generator)
-                    // - if the node after the switch is a line
-                    sw.getVoltageLevel().getNodeBreakerView().getOptionalTerminal(nodeAfter).ifPresent(traversedTerminals::add);
+                if (isEndNodeAfterSwitch(sw, nodeAfter)) {
+                    // No need to retain switch if the node after the switch is an end node (e.g. load or generator)
                     return false;
                 }
                 switchesToOpen.add(sw);
@@ -73,15 +70,13 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traver
         return true;
     }
 
-    private static boolean isEquivalentToStopAfterSwitch(Switch sw, int nodeAfter) {
+    private static boolean isEndNodeAfterSwitch(Switch sw, int nodeAfter) {
         Terminal terminal2 = sw.getVoltageLevel().getNodeBreakerView().getTerminal(nodeAfter);
         if (terminal2 != null) {
             ConnectableType connectableAfter = terminal2.getConnectable().getType();
             boolean endNodeAfter = connectableAfter == ConnectableType.GENERATOR
                 || connectableAfter == ConnectableType.LOAD
                 || connectableAfter == ConnectableType.DANGLING_LINE
-                || connectableAfter == ConnectableType.TWO_WINDINGS_TRANSFORMER
-                || connectableAfter == ConnectableType.LINE
                 || connectableAfter == ConnectableType.STATIC_VAR_COMPENSATOR
                 || connectableAfter == ConnectableType.SHUNT_COMPENSATOR;
 
