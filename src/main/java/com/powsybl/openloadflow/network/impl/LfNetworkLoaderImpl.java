@@ -400,22 +400,21 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 discreteVoltageControls.forEach(dvc -> dvc.getControlled().setDiscreteVoltageControl(null));
             }
         } else {
-            if (!discreteVoltageControls.isEmpty()) {
-                // The first discrete voltage control is kept and removed from the list
-                DiscreteVoltageControl firstDiscreteVoltageControl = discreteVoltageControls.remove(0);
-                // We have several discrete controls whose controlled bus are in the same non-impedant connected set
-                // To solve that we keep only one discrete voltage control, the other ones are removed
-                // and the corresponding controllers are added to the discrete control kept
-                LOGGER.info("Zero impedance connected set with several discrete voltage controls: discrete controls merged");
-                discreteVoltageControls.forEach(voltageControl -> checkUniqueTargetV(voltageControl, firstDiscreteVoltageControl));
-                discreteVoltageControls.stream()
-                        .flatMap(dvc -> dvc.getControllers().stream())
-                        .forEach(controller -> {
-                            firstDiscreteVoltageControl.addController(controller);
-                            controller.setDiscreteVoltageControl(firstDiscreteVoltageControl);
-                        });
-                discreteVoltageControls.forEach(dvc -> dvc.getControlled().setDiscreteVoltageControl(null));
-            }
+            // The first discrete voltage control is kept and removed from the list
+            // Note that here we know that there is at least one discrete voltage control
+            DiscreteVoltageControl firstDiscreteVoltageControl = discreteVoltageControls.remove(0);
+            // We have several discrete controls whose controlled bus are in the same non-impedant connected set
+            // To solve that we keep only one discrete voltage control, the other ones are removed
+            // and the corresponding controllers are added to the discrete control kept
+            LOGGER.info("Zero impedance connected set with several discrete voltage controls: discrete controls merged");
+            discreteVoltageControls.forEach(voltageControl -> checkUniqueTargetV(voltageControl, firstDiscreteVoltageControl));
+            discreteVoltageControls.stream()
+                .flatMap(dvc -> dvc.getControllers().stream())
+                .forEach(controller -> {
+                    firstDiscreteVoltageControl.addController(controller);
+                    controller.setDiscreteVoltageControl(firstDiscreteVoltageControl);
+                });
+            discreteVoltageControls.forEach(dvc -> dvc.getControlled().setDiscreteVoltageControl(null));
         }
     }
 
