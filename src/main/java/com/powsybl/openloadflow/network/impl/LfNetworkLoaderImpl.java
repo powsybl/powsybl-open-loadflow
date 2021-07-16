@@ -380,6 +380,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             // To solve that we keep only one voltage control (and its target value), the other ones are removed
             // and the corresponding controllers are added to the control kept
             LOGGER.info("Zero impedance connected set with several voltage controls: controls are merged");
+            voltageControls.forEach(voltageControl -> checkUniqueTargetV(voltageControl, firstVoltageControl));
             voltageControls.stream()
                     .flatMap(vc -> vc.getControllerBuses().stream())
                     .forEach(controller -> {
@@ -406,6 +407,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 // To solve that we keep only one discrete voltage control, the other ones are removed
                 // and the corresponding controllers are added to the discrete control kept
                 LOGGER.info("Zero impedance connected set with several discrete voltage controls: discrete controls merged");
+                discreteVoltageControls.forEach(voltageControl -> checkUniqueTargetV(voltageControl, firstDiscreteVoltageControl));
                 discreteVoltageControls.stream()
                         .flatMap(dvc -> dvc.getControllers().stream())
                         .forEach(controller -> {
@@ -414,6 +416,20 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                         });
                 discreteVoltageControls.forEach(dvc -> dvc.getControlled().setDiscreteVoltageControl(null));
             }
+        }
+    }
+
+    private static void checkUniqueTargetV(VoltageControl vc1, VoltageControl vc2) {
+        if (FastMath.abs(vc1.getTargetValue() - vc2.getTargetValue()) > TARGET_V_EPSILON) {
+            LOGGER.error("Two generators are controlling buses (bus {} and bus {}) which are in the same non-impedant connected set, but with different target voltages: only one target voltage is kept",
+                vc1.getControlledBus().getId(), vc2.getControlledBus().getId());
+        }
+    }
+
+    private static void checkUniqueTargetV(DiscreteVoltageControl dvc1, DiscreteVoltageControl dvc2) {
+        if (FastMath.abs(dvc1.getTargetValue() - dvc2.getTargetValue()) > TARGET_V_EPSILON) {
+            LOGGER.error("Two transformers are controlling buses (bus {} and bus {}) which are in the same non-impedant connected set, but with different target voltages: only one target voltage is kept",
+                dvc1.getControlled().getId(), dvc2.getControlled().getId());
         }
     }
 
