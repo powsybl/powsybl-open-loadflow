@@ -69,9 +69,14 @@ public class NodeBreakerNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("BBS2")
                 .setNode(1)
                 .add();
+        vl1.getNodeBreakerView().newDisconnector()
+            .setId("D")
+            .setNode1(0)
+            .setNode2(6)
+            .add();
         vl1.getNodeBreakerView().newBreaker()
                 .setId("C")
-                .setNode1(0)
+                .setNode1(6)
                 .setNode2(1)
                 .add();
         vl1.getNodeBreakerView().newBreaker()

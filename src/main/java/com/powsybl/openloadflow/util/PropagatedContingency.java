@@ -108,7 +108,7 @@ public class PropagatedContingency {
 
     private static PropagatedContingency create(Network network, Contingency contingency, int index) {
         Set<Switch> switchesToOpen = new HashSet<>();
-        Set<Terminal> terminalsToDisconnect =  new HashSet<>();
+        Set<Terminal> terminalsToDisconnect = new HashSet<>();
         Set<String> branchIdsToOpen = new HashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
         Set<String> generatorIdsToLose = new HashSet<>();
@@ -152,9 +152,35 @@ public class PropagatedContingency {
     }
 
     private static boolean isCoupler(Switch s) {
-        VoltageLevel.NodeBreakerView nbv = s.getVoltageLevel().getNodeBreakerView();
-        Connectable<?> c1 = nbv.getTerminal1(s.getId()).getConnectable();
-        Connectable<?> c2 = nbv.getTerminal2(s.getId()).getConnectable();
-        return c1 != c2 && c1.getType() == ConnectableType.BUSBAR_SECTION && c2.getType() == ConnectableType.BUSBAR_SECTION;
+        if (s.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
+            VoltageLevel.NodeBreakerView nbv = s.getVoltageLevel().getNodeBreakerView();
+            return connectedToBusbars(nbv.getNode1(s.getId()), nbv, s) && connectedToBusbars(nbv.getNode2(s.getId()), nbv, s);
+        } else {
+            return false; // FIXME: find a way to detect coupler in bus breaker view
+        }
+    }
+
+    private static boolean connectedToBusbars(int node, VoltageLevel.NodeBreakerView nbv, Switch swStart) {
+        // Testing terminal connected to switch
+        Optional<Terminal> t0 = nbv.getOptionalTerminal(node);
+        if (t0.isPresent()) {
+            return t0.get().getConnectable().getType() == ConnectableType.BUSBAR_SECTION;
+        }
+
+        // If no terminal connected to switch, traverser is needed to see whether the node is connected to busbars only
+        ArrayList<Terminal> firstTerminalsEncountered = new ArrayList<>();
+        nbv.traverse(node, (nodeBefore, sw, nodeAfter) -> {
+            if (sw == swStart) {
+                return false; // no need to go back to starting switch
+            }
+            if (sw != null && sw.isOpen()) { // sw == null <=> internal connection, which is always closed
+                return false; // not connected to nodeAfter if switch is opened
+            }
+            Optional<Terminal> t = nbv.getOptionalTerminal(nodeAfter);
+            t.ifPresent(firstTerminalsEncountered::add);
+            return t.isEmpty(); // stop at first terminal encountered
+        });
+        return firstTerminalsEncountered.stream()
+            .allMatch(t -> t.getConnectable().getType() == ConnectableType.BUSBAR_SECTION);
     }
 }
