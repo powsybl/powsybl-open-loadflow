@@ -52,13 +52,50 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
         double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
+        double a1 = a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1();
+        updateWithState(v1, v2, ph1, ph2, r1, a1);
+    }
+
+    @Override
+    public double eval() {
+        return i1;
+    }
+
+    @Override
+    public double der(Variable variable) {
+        Objects.requireNonNull(variable);
+        if (variable.equals(v1Var)) {
+            return di1dv1;
+        } else if (variable.equals(v2Var)) {
+            return di1dv2;
+        } else if (variable.equals(ph1Var)) {
+            return di1dph1;
+        } else if (variable.equals(ph2Var)) {
+            return di1dph2;
+        } else if (variable.equals(a1Var)) {
+            return di1da1;
+        } else {
+            throw new IllegalStateException("Unknown variable: " + variable);
+        }
+    }
+
+    @Override
+    protected String getName() {
+        return "ac_i_closed_1";
+    }
+
+    public void updateFromState(double v1, double v2, double ph1, double ph2) {
+        updateWithState(v1, v2, ph1, ph2, branch.getPiModel().getR1(), branch.getPiModel().getA1());
+    }
+
+    private void updateWithState(double v1, double v2, double ph1, double ph2, double r1, double a1) {
         double w1 = r1 * v1;
         double w2 = y * R2 * v2;
         double cosPh1 = FastMath.cos(ph1);
         double sinPh1 = FastMath.sin(ph1);
         double cosPh1Ksi = FastMath.cos(ph1 + ksi);
         double sinPh1Ksi = FastMath.sin(ph1 + ksi);
-        double theta = ksi - (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1())
+        double theta = ksi - a1
                 + A2 + ph2;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
@@ -88,33 +125,5 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
         if (a1Var != null) {
             di1da1 = -di1dph2;
         }
-    }
-
-    @Override
-    public double eval() {
-        return i1;
-    }
-
-    @Override
-    public double der(Variable variable) {
-        Objects.requireNonNull(variable);
-        if (variable.equals(v1Var)) {
-            return di1dv1;
-        } else if (variable.equals(v2Var)) {
-            return di1dv2;
-        } else if (variable.equals(ph1Var)) {
-            return di1dph1;
-        } else if (variable.equals(ph2Var)) {
-            return di1dph2;
-        } else if (variable.equals(a1Var)) {
-            return di1da1;
-        } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
-        }
-    }
-
-    @Override
-    protected String getName() {
-        return "ac_i_closed_1";
     }
 }

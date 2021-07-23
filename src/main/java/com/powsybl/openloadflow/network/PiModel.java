@@ -47,4 +47,8 @@ public interface PiModel {
 
     void roundR1ToClosestTap();
 
+    boolean decreaseA1WithTapPositionIncrement();
+
+    boolean increaseA1WithTapPositionIncrement();
+
 }
