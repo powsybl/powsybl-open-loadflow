@@ -15,7 +15,10 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import net.jafama.FastMath;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
+import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
+import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -343,53 +346,89 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void fixDiscreteVoltageControls(LfNetwork lfNetwork, boolean minImpedance) {
+    private static void fixAllVoltageControls(LfNetwork lfNetwork, boolean minImpedance, boolean transformerVoltageControl) {
         // If min impedance is set, there is no zero-impedance branch
         if (!minImpedance) {
             // Merge the discrete voltage control in each zero impedance connected set
             List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.createZeroImpedanceSubGraph()).connectedSets();
-            connectedSets.forEach(LfNetworkLoaderImpl::fixZeroImpendanceNetworkWithSeveralControlledBuses);
+            connectedSets.forEach(set -> mergeVoltageControls(set, transformerVoltageControl));
         }
     }
 
-    private static void fixZeroImpendanceNetworkWithSeveralControlledBuses(Set<LfBus> zeroImpedanceConnectedSet) {
+    private static void mergeVoltageControls(Set<LfBus> zeroImpedanceConnectedSet, boolean transformerVoltageControl) {
+        // Get the list of voltage controls from controlled buses in the zero impedance connected set
+        List<VoltageControl> voltageControls = zeroImpedanceConnectedSet.stream().filter(LfBus::isVoltageControlled)
+                .map(LfBus::getVoltageControl).filter(Optional::isPresent).map(Optional::get)
+                .collect(Collectors.toList());
+
         // Get the list of discrete voltage controls from controlled buses in the zero impedance connected set
-        List<DiscreteVoltageControl> voltageControls = zeroImpedanceConnectedSet.stream().filter(LfBus::isDiscreteVoltageControlled)
-            .map(LfBus::getDiscreteVoltageControl).filter(Optional::isPresent).map(Optional::get)
-            .collect(Collectors.toList());
-        if (voltageControls.isEmpty()) {
+        List<DiscreteVoltageControl> discreteVoltageControls = !transformerVoltageControl ? Collections.emptyList() :
+            zeroImpedanceConnectedSet.stream().filter(LfBus::isDiscreteVoltageControlled)
+                .map(LfBus::getDiscreteVoltageControl).filter(Optional::isPresent).map(Optional::get)
+                .collect(Collectors.toList());
+
+        if (voltageControls.isEmpty() && discreteVoltageControls.isEmpty()) {
             return;
         }
 
-        // The first discrete voltage control is kept and removed from the list
-        DiscreteVoltageControl firstDiscreteVoltageControl = voltageControls.remove(0);
-
-        // First resolve problem of discrete voltage controls
         if (!voltageControls.isEmpty()) {
+            // The first voltage control is kept and removed from the list
+            VoltageControl firstVoltageControl = voltageControls.remove(0);
+
+            // First resolve problem of voltage controls (generator, static var compensator, etc.)
+            // We have several controls whose controlled bus are in the same non-impedant connected set
+            // To solve that we keep only one voltage control (and its target value), the other ones are removed
+            // and the corresponding controllers are added to the control kept
+            LOGGER.info("Zero impedance connected set with several voltage controls: controls are merged");
+            voltageControls.forEach(voltageControl -> checkUniqueTargetV(voltageControl, firstVoltageControl));
+            voltageControls.stream()
+                    .flatMap(vc -> vc.getControllerBuses().stream())
+                    .forEach(controller -> {
+                        firstVoltageControl.addControllerBus(controller);
+                        controller.setVoltageControl(firstVoltageControl);
+                    });
+            voltageControls.stream()
+                    .filter(vc -> !firstVoltageControl.getControllerBuses().contains(vc.getControlledBus()))
+                    .forEach(vc -> vc.getControlledBus().removeVoltageControl());
+
+            // Second, we have to remove all the discrete voltage controls if present.
+            if (!discreteVoltageControls.isEmpty()) {
+                LOGGER.info("Zero impedance connected set with several discrete voltage controls and a voltage control: discrete controls deleted");
+                discreteVoltageControls.stream()
+                        .flatMap(dvc -> dvc.getControllers().stream())
+                        .forEach(controller -> controller.setDiscreteVoltageControl(null));
+                discreteVoltageControls.forEach(dvc -> dvc.getControlled().setDiscreteVoltageControl(null));
+            }
+        } else {
+            // The first discrete voltage control is kept and removed from the list
+            // Note that here we know that there is at least one discrete voltage control
+            DiscreteVoltageControl firstDiscreteVoltageControl = discreteVoltageControls.remove(0);
             // We have several discrete controls whose controlled bus are in the same non-impedant connected set
             // To solve that we keep only one discrete voltage control, the other ones are removed
             // and the corresponding controllers are added to the discrete control kept
             LOGGER.info("Zero impedance connected set with several discrete voltage controls: discrete controls merged");
-            voltageControls.stream()
+            discreteVoltageControls.forEach(dvc -> checkUniqueTargetV(dvc, firstDiscreteVoltageControl));
+            discreteVoltageControls.stream()
                 .flatMap(dvc -> dvc.getControllers().stream())
                 .forEach(controller -> {
                     firstDiscreteVoltageControl.addController(controller);
                     controller.setDiscreteVoltageControl(firstDiscreteVoltageControl);
                 });
-            voltageControls.forEach(dvc -> dvc.getControlled().setDiscreteVoltageControl(null));
+            discreteVoltageControls.forEach(dvc -> dvc.getControlled().setDiscreteVoltageControl(null));
         }
+    }
 
-        // Then resolve problem of mixed shared controls, that is if there are any generator/svc voltage control together with discrete voltage control(s)
-        // Check if there is one bus with remote voltage control or local voltage control
-        boolean hasControlledBus = zeroImpedanceConnectedSet.stream().anyMatch(LfBus::isVoltageControlled);
-        if (hasControlledBus) {
-            // If any generator/svc voltage controls, remove the merged discrete voltage control
-            // TODO: deal with mixed shared controls instead of removing all discrete voltage controls
-            LOGGER.warn("Zero impedance connected set with voltage control and discrete voltage control: only generator control is kept");
-            // First remove it from controllers
-            firstDiscreteVoltageControl.getControllers().forEach(c -> c.setDiscreteVoltageControl(null));
-            // Then remove it from the controlled lfBus
-            firstDiscreteVoltageControl.getControlled().setDiscreteVoltageControl(null);
+    private static void checkUniqueTargetV(VoltageControl vc1, VoltageControl vc2) {
+        if (FastMath.abs(vc1.getTargetValue() - vc2.getTargetValue()) > TARGET_V_EPSILON) {
+            LOGGER.error("Two controller buses are controlling buses {} and {} which are in the same non-impedant connected set, but with different target voltages ({} and {}): only target voltage {} is kept",
+                vc1.getControlledBus().getId(), vc2.getControlledBus().getId(), vc1.getTargetValue(), vc2.getTargetValue(), vc2.getTargetValue());
+        }
+    }
+
+    private static void checkUniqueTargetV(DiscreteVoltageControl dvc1, DiscreteVoltageControl dvc2) {
+        if (FastMath.abs(dvc1.getTargetValue() - dvc2.getTargetValue()) > TARGET_V_EPSILON) {
+            LOGGER.error("Two transformers are controlling buses {} and {} which are in the same non-impedant connected set, but with different target voltages ({} and {}): only target voltage {} is kept",
+                dvc1.getControlled().getId(), dvc2.getControlled().getId(), dvc1.getTargetValue(), dvc2.getTargetValue(), dvc2.getTargetValue());
         }
     }
 
@@ -503,9 +542,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             createSwitches(switches, lfNetwork);
         }
 
-        if (parameters.isTransformerVoltageControl()) {
-            // Fixing discrete voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
-            fixDiscreteVoltageControls(lfNetwork, parameters.isMinImpedance());
+        // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
+        fixAllVoltageControls(lfNetwork, parameters.isMinImpedance(), parameters.isTransformerVoltageControl());
+
+        if (!parameters.isMinImpedance()) {
+            // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph
+            Graph<LfBus, LfBranch> zeroImpedanceSubGraph = lfNetwork.createZeroImpedanceSubGraph();
+            if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
+                SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(zeroImpedanceSubGraph).getSpanningTree();
+                for (LfBranch branch : spanningTree.getEdges()) {
+                    branch.setSpanningTreeEdge(true);
+                }
+            }
         }
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
