@@ -182,7 +182,7 @@ public class PropagatedContingency {
             t.ifPresent(firstTerminalsEncountered::add);
             return t.isEmpty(); // stop at first terminal encountered
         });
-        return firstTerminalsEncountered.stream()
-            .allMatch(t -> t.getConnectable().getType() == ConnectableType.BUSBAR_SECTION);
+        return !firstTerminalsEncountered.isEmpty()
+            && firstTerminalsEncountered.stream().allMatch(t -> t.getConnectable().getType() == ConnectableType.BUSBAR_SECTION);
     }
 }
