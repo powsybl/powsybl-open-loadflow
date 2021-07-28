@@ -170,8 +170,13 @@ public class PropagatedContingency {
         }
 
         // If no terminal connected to switch, traverser is needed to see whether the node is connected to busbars only
-        ArrayList<Terminal> firstTerminalsEncountered = new ArrayList<>();
+        boolean[] connectedToNonBusbarTerminal = new boolean[1];
+        boolean[] connectedToBusbarTerminal = new boolean[1];
         nbv.traverse(node, (nodeBefore, sw, nodeAfter) -> {
+            if (connectedToNonBusbarTerminal[0]) {
+                // No need to continue: found a terminal which does not correspond to a busbar, hence starting switch is not a coupler
+                return false;
+            }
             if (sw == swStart) {
                 return false; // no need to go back to starting switch
             }
@@ -179,10 +184,16 @@ public class PropagatedContingency {
                 return false; // not connected to nodeAfter if switch is opened
             }
             Optional<Terminal> t = nbv.getOptionalTerminal(nodeAfter);
-            t.ifPresent(firstTerminalsEncountered::add);
-            return t.isEmpty(); // stop at first terminal encountered
+            if (t.isPresent()) {
+                if (t.get().getConnectable().getType() != ConnectableType.BUSBAR_SECTION) {
+                    connectedToNonBusbarTerminal[0] = true;
+                } else {
+                    connectedToBusbarTerminal[0] = true;
+                }
+                return false; // stop current traversing at first terminal encountered
+            }
+            return true;
         });
-        return !firstTerminalsEncountered.isEmpty()
-            && firstTerminalsEncountered.stream().allMatch(t -> t.getConnectable().getType() == ConnectableType.BUSBAR_SECTION);
+        return !connectedToNonBusbarTerminal[0] && connectedToBusbarTerminal[0];
     }
 }
