@@ -8,7 +8,10 @@ package com.powsybl.openloadflow.sensi.dc;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.contingency.*;
+import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.contingency.DanglingLineContingency;
+import com.powsybl.contingency.LineContingency;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
@@ -16,10 +19,8 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.DanglingLineFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.sensi.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
-import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityAnalysisResult;
 import com.powsybl.sensitivity.SensitivityFactor;
@@ -775,14 +776,4 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0d, result.getValue(null, "l1", "dl1").getValue(), LoadFlowAssert.DELTA_POWER);
     }
 
-    @Test
-    void testContingencyOnOpenLine() {
-        Network network = NodeBreakerNetworkFactory.create();
-        List<Contingency> contingencies = List.of(
-            new Contingency("c1", new BranchContingency("L1"))
-        );
-
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies);
-        assertEquals(0, propagatedContingencies.size());
-    }
 }
