@@ -38,7 +38,7 @@ class PropagatedContingencyTest {
     void testCouplerNextToOpenDisconnector() {
         Network network = NodeBreakerNetworkFactory.create();
 
-        // Open disconnector "D" and arrange network so that "C1" is a retained switch for branch "L2" contingency
+        // Open disconnector "D" and arrange network so that "C" is a retained switch for branch "L2" contingency
         network.getSwitch("D").setOpen(true);
         network.getSwitch("B1").setFictitious(true);
         network.getVoltageLevel("VL1").getNodeBreakerView().newInternalConnection().setNode1(0).setNode2(6).add();
@@ -66,6 +66,26 @@ class PropagatedContingencyTest {
     }
 
     @Test
+    void testSwitchConnectedTo2wtAndBusbar() {
+        Network network = NodeBreakerNetworkFactory.create();
+
+        // Add 2wt with a breaker on one side, a breaker and a busbar on the other side
+        // (note that marking the 2wt as a terminal to disconnect instead of retaining the 2 switches might be a feature added in the future)
+        network.getVoltageLevel("VL1").getNodeBreakerView().newInternalConnection().setNode1(3).setNode2(7).add();
+        network.getVoltageLevel("VL1").getNodeBreakerView().newSwitch().setId("B5").setNode1(8).setNode2(7).setKind(SwitchKind.BREAKER).add();
+        network.getVoltageLevel("VL1").getNodeBreakerView().newInternalConnection().setNode1(8).setNode2(1).add();
+        network.getVoltageLevel("VL1").getNodeBreakerView().newInternalConnection().setNode1(8).setNode2(9).add();
+        network.getVoltageLevel("VL2").getNodeBreakerView().newSwitch().setId("B6").setNode1(0).setNode2(4).setKind(SwitchKind.BREAKER).add();
+        network.getSubstation("S").newTwoWindingsTransformer().setId("TR1").setVoltageLevel1("VL1").setNode1(9).setVoltageLevel2("VL2").setNode2(4)
+            .setRatedU1(400).setRatedU2(400).setR(1).setX(30).setG(0).setB(0).add();
+
+        List<Contingency> contingencies = List.of(new Contingency("l2", new BranchContingency("L2")));
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies);
+        assertEquals(1, propagatedContingencies.size());
+        assertEquals(Set.of("L2", "B1", "B5"), propagatedContingencies.get(0).getBranchIdsToOpen());
+    }
+
+    @Test
     void testCouplerConnectedTo3Bars() {
         Network network = NodeBreakerNetworkFactory.create3Bars();
 
@@ -73,8 +93,13 @@ class PropagatedContingencyTest {
         VoltageLevel.NodeBreakerView nbv1 = network.getVoltageLevel("VL1").getNodeBreakerView();
         nbv1.newInternalConnection().setNode1(1).setNode2(8).add();
         nbv1.newBreaker().setId("C3").setNode1(8).setNode2(9).setKind(SwitchKind.BREAKER).add();
-        nbv1.newInternalConnection().setNode1(9).setNode2(0).add();
+        nbv1.newInternalConnection().setNode1(9).setNode2(10).add(); // Add intermediate node 10 to traverse a node with no terminal
+        nbv1.newInternalConnection().setNode1(10).setNode2(0).add();
         nbv1.newInternalConnection().setNode1(9).setNode2(2).add();
+
+        // Remove couplers "C1" and "C2" from switches to open
+        nbv1.getSwitch("C1").setFictitious(true);
+        nbv1.getSwitch("C2").setFictitious(true);
 
         List<Contingency> contingencies = Collections.singletonList(new Contingency("l2", new BranchContingency("L2")));
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies);
