@@ -107,7 +107,7 @@ public class PropagatedContingency {
     }
 
     private static PropagatedContingency create(Network network, Contingency contingency, int index) {
-        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Switch> switchesToOpen = new LinkedHashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         Set<String> branchIdsToOpen = new HashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
