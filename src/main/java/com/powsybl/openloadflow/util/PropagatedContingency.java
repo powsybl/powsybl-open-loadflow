@@ -152,12 +152,10 @@ public class PropagatedContingency {
     }
 
     private static boolean isCoupler(Switch s) {
-        if (s.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER) {
-            VoltageLevel.NodeBreakerView nbv = s.getVoltageLevel().getNodeBreakerView();
-            return connectedToBusbars(nbv.getNode1(s.getId()), s) && connectedToBusbars(nbv.getNode2(s.getId()), s);
-        } else {
-            return false; // FIXME: find a way to detect coupler in bus breaker view
-        }
+        // Note that we can safely get the node breaker view. Indeed, in bus breaker view, there is no switch to open,
+        // as fault is not propagated (for each switch we have no idea what kind it was in the initial node breaker topology)
+        VoltageLevel.NodeBreakerView nbv = s.getVoltageLevel().getNodeBreakerView();
+        return connectedToBusbars(nbv.getNode1(s.getId()), s) && connectedToBusbars(nbv.getNode2(s.getId()), s);
     }
 
     private static boolean connectedToBusbars(int node, Switch swStart) {
