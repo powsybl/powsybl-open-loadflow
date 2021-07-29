@@ -434,8 +434,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         boolean uniqueTargetV = voltageControls.stream().noneMatch(vc -> FastMath.abs(vc.getTargetValue() - vcRef.getTargetValue()) > TARGET_V_EPSILON);
         if (!uniqueTargetV) {
             LOGGER.error("Inconsistent voltage controls: buses {} are in the same non-impedant connected set and are controlled with different target voltages ({}). Only target voltage {} is kept",
-                voltageControls.stream().map(vc -> vc.getControlledBus().getId()).collect(Collectors.toList()),
-                voltageControls.stream().map(vc -> String.valueOf(vc.getTargetValue())).collect(Collectors.toList()),
+                voltageControls.stream().map(VoltageControl::getControlledBus).collect(Collectors.toList()),
+                voltageControls.stream().map(VoltageControl::getTargetValue).collect(Collectors.toList()),
                 vcRef.getTargetValue());
         }
     }
@@ -445,8 +445,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         boolean uniqueTargetV = discreteVoltageControls.stream().noneMatch(dvc -> FastMath.abs(dvc.getTargetValue() - dvcRef.getTargetValue()) > TARGET_V_EPSILON);
         if (!uniqueTargetV) {
             LOGGER.error("Inconsistent transformer voltage controls: buses {} are in the same non-impedant connected set and are controlled with different target voltages ({}). Only target voltage {} is kept",
-                discreteVoltageControls.stream().map(dvc -> dvc.getControlled().getId()).collect(Collectors.toList()),
-                discreteVoltageControls.stream().map(dvc -> String.valueOf(dvc.getTargetValue())).collect(Collectors.toList()),
+                discreteVoltageControls.stream().map(DiscreteVoltageControl::getControlled).collect(Collectors.toList()),
+                discreteVoltageControls.stream().map(DiscreteVoltageControl::getTargetValue).collect(Collectors.toList()),
                 dvcRef.getTargetValue());
         }
     }
