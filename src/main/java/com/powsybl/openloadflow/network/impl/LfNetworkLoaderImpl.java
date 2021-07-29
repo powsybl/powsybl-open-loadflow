@@ -382,11 +382,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             if (voltageControls.size() > 1) {
                 LOGGER.info("Zero impedance connected set with several voltage controls: controls are merged");
 
-                checkVcUniqueTargetV(voltageControls);
-
                 // Sort voltage controls to have a merged voltage control with a deterministic controlled bus,
                 // a deterministic target value and controller buses in a deterministic order
                 voltageControls.sort(Comparator.comparing(VoltageControl::getTargetValue).thenComparing(vc -> vc.getControlledBus().getId()));
+                checkVcUniqueTargetV(voltageControls);
 
                 // Merge the controllers into the kept voltage control
                 VoltageControl keptVoltageControl = voltageControls.remove(voltageControls.size() - 1);
@@ -416,7 +415,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             // Sort discrete voltage controls to have a merged discrete voltage control with a deterministic controlled bus,
             // a deterministic target value and controller branches in a deterministic order
             discreteVoltageControls.sort(Comparator.comparing(DiscreteVoltageControl::getTargetValue).thenComparing(vc -> vc.getControlled().getId()));
-
             checkDvcUniqueTargetV(discreteVoltageControls);
 
             // Merge the controllers into the kept voltage control
