@@ -369,7 +369,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 .map(LfBus::getDiscreteVoltageControl).filter(Optional::isPresent).map(Optional::get)
                 .collect(Collectors.toList());
 
-        if (voltageControls.isEmpty() && discreteVoltageControls.isEmpty()) {
+        if (voltageControls.isEmpty() && discreteVoltageControls.size() <= 1) {
             return;
         }
 
@@ -379,7 +379,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             // We have several controls whose controlled bus are in the same non-impedant connected set
             // To solve that we keep only one voltage control (and its target value), the other ones are removed
             // and the corresponding controllers are added to the control kept
-            if (!voltageControls.isEmpty()) {
+            if (voltageControls.size() > 1) {
                 LOGGER.info("Zero impedance connected set with several voltage controls: controls are merged");
 
                 checkVcUniqueTargetV(voltageControls);
@@ -408,7 +408,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 discreteVoltageControls.forEach(dvc -> dvc.getControlled().setDiscreteVoltageControl(null));
             }
         } else {
-            // We have several discrete controls whose controlled bus are in the same non-impedant connected set
+            // We have at least 2 discrete controls whose controlled bus are in the same non-impedant connected set
             // To solve that we keep only one discrete voltage control, the other ones are removed
             // and the corresponding controllers are added to the discrete control kept
             LOGGER.info("Zero impedance connected set with several discrete voltage controls: discrete controls merged");
