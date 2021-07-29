@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.DiscretePhaseControl;
 import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,16 +129,18 @@ public class PhaseControlOuterLoop implements OuterLoop {
         }
 
         Variable a1Var = variableSet.getVariable(controllerBranch.getNum(), VariableType.BRANCH_ALPHA1);
+        LfBus b1 = controllerBranch.getBus1();
+        LfBus b2 = controllerBranch.getBus2();
         if (controlledSide == DiscretePhaseControl.ControlledSide.ONE) {
-            ClosedBranchSide1CurrentMagnitudeEquationTerm i = new ClosedBranchSide1CurrentMagnitudeEquationTerm(controllerBranch, controllerBranch.getBus1(), controllerBranch.getBus2(), variableSet, true, false);
-            i.updateFromState(controllerBranch.getBus1().getV().eval(), controllerBranch.getBus2().getV().eval(),
-                    controllerBranch.getBus1().getAngle(), controllerBranch.getBus2().getAngle());
-            return i.der(a1Var) > 0;
+            ClosedBranchSide1CurrentMagnitudeEquationTerm i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(controllerBranch, controllerBranch.getBus1(), controllerBranch.getBus2(), variableSet, true, false);
+            i1.updateFromState(b1.getV().eval(), b2.getV().eval(),
+                    Math.toRadians(b1.getAngle()), Math.toRadians(b2.getAngle()));
+            return i1.der(a1Var) > 0;
         } else {
-            ClosedBranchSide2CurrentMagnitudeEquationTerm i = new ClosedBranchSide2CurrentMagnitudeEquationTerm(controllerBranch, controllerBranch.getBus1(), controllerBranch.getBus2(), variableSet, true, false);
-            i.updateFromState(controllerBranch.getBus1().getV().eval(), controllerBranch.getBus2().getV().eval(),
-                    controllerBranch.getBus1().getAngle(), controllerBranch.getBus2().getAngle());
-            return i.der(a1Var) > 0;
+            ClosedBranchSide2CurrentMagnitudeEquationTerm i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(controllerBranch, controllerBranch.getBus1(), controllerBranch.getBus2(), variableSet, true, false);
+            i2.updateFromState(b1.getV().eval(), b2.getV().eval(),
+                    Math.toRadians(b1.getAngle()), Math.toRadians(b2.getAngle()));
+            return i2.der(a1Var) > 0;
         }
     }
 }

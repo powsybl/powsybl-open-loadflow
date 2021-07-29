@@ -251,7 +251,7 @@ public class LfBranchImpl extends AbstractLfBranch {
             updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
         }
 
-        if (phaseShifterRegulationOn && isPhaseControlled()) {
+        if (phaseShifterRegulationOn && isPhaseControlled() && phaseControl.getMode() != DiscretePhaseControl.Mode.LIMITER) {
             // check if the target value deadband is respected
             checkTargetDeadband(phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE ? p1.eval() : p2.eval());
         }
