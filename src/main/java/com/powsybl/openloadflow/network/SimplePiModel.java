@@ -124,4 +124,9 @@ public class SimplePiModel implements PiModel {
     public void roundR1ToClosestTap() {
         throw new IllegalStateException("R1 rounding is not supported in simple Pi model implementation");
     }
+
+    @Override
+    public double getCurrentTapA1() {
+        throw new IllegalStateException("Getting current tap A1 is not supported for simple Pi model implementation.");
+    }
 }

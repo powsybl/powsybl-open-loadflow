@@ -7,10 +7,17 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.openloadflow.ac.equations.AbstractClosedBranchAcFlowEquationTerm;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ActiveFlowEquationTerm;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.Variable;
+import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.DiscretePhaseControl;
+import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
@@ -58,7 +65,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
 
         // all branches with active power control are switched off
         // TODO: only done for controller mode so far, phase shifter in limiter mode not yet implemented
-        phaseControlsOn.stream().filter(dpc -> dpc.getMode() == DiscretePhaseControl.Mode.CONTROLLER).forEach(this::switchOffPhaseControl);
+        phaseControlsOn.stream().filter(dpc -> dpc.getMode() == DiscretePhaseControl.Mode.CONTROLLER).forEach(s -> switchOffPhaseControl(s, context));
 
         // if at least one phase shifter has been switched off we need to continue
         return phaseControlsOn.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
@@ -75,7 +82,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
         return OuterLoopStatus.STABLE;
     }
 
-    private void switchOffPhaseControl(DiscretePhaseControl phaseControl) {
+    private void switchOffPhaseControl(DiscretePhaseControl phaseControl, OuterLoopContext context) {
         // switch off phase control
         phaseControl.setMode(DiscretePhaseControl.Mode.OFF);
 
@@ -83,6 +90,35 @@ public class PhaseControlOuterLoop implements OuterLoop {
         LfBranch controllerBranch = phaseControl.getController();
         PiModel piModel = controllerBranch.getPiModel();
         double a1Value = piModel.getA1();
+
+        EquationSystem sys = context.getEquationSystem();
+        LfBranch controlledBranch = phaseControl.getControlled();
+
+        //When controller is not the controlled branch we cannot use partial derivative to assess the impact of a1 variation
+        //To take into account the deadband a sensitivity analysis or a new load flow computation is needed
+        //Therefore deadband check is not supported yet
+        if (controllerBranch.getId().equals(controlledBranch.getId())) {
+            AbstractClosedBranchAcFlowEquationTerm term = null;
+            double p = 0.0;
+            if (phaseControl.getControlledSide().equals(DiscretePhaseControl.ControlledSide.ONE)) {
+                term = sys.getEquationTerm(ElementType.BRANCH, controlledBranch.getNum(), ClosedBranchSide1ActiveFlowEquationTerm.class);
+                p = controlledBranch.getP1().eval();
+            } else {
+                term = sys.getEquationTerm(ElementType.BRANCH, controlledBranch.getNum(), ClosedBranchSide2ActiveFlowEquationTerm.class);
+                p = controlledBranch.getP2().eval();
+            }
+
+            Variable v = context.getVariableSet().getVariable(controlledBranch.getNum(), VariableType.BRANCH_ALPHA1);
+            double dpSideXa1 = term.der(v);
+            double currentTapFlow = p + dpSideXa1 * (piModel.getCurrentTapA1() - a1Value);
+            if (currentTapFlow < phaseControl.getTargetValue() + phaseControl.getTargetDeadband() && currentTapFlow > phaseControl.getTargetValue() - phaseControl.getTargetDeadband()) {
+                piModel.setA1(Double.NaN);
+                //Flow is within deadband
+                LOGGER.info("Flow is within deadband '{}': {} -> {}", controllerBranch.getId(), a1Value, piModel.getA1());
+                return;
+            }
+        }
+
         piModel.roundA1ToClosestTap();
         double roundedA1Value = piModel.getA1();
         LOGGER.info("Round phase shift of '{}': {} -> {}", controllerBranch.getId(), a1Value, roundedA1Value);

@@ -40,6 +40,11 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
+    public double getCurrentTapA1() {
+        return getModel().getA1();
+    }
+
+    @Override
     public double getR() {
         return getModel().getR();
     }
