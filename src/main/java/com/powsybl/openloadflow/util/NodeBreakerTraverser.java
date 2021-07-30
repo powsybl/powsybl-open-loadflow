@@ -114,7 +114,7 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traver
     }
 
     private static boolean noInternalConnectionAtNode(int node, VoltageLevel.NodeBreakerView nbv) {
-        return nbv.getInternalConnectionStream().noneMatch(ic -> ic.getNode1() == node || ic.getNode2() == node);
+        return nbv.getNodeStreamInternalConnectedTo(node).findFirst().isEmpty();
     }
 
     private static boolean isOpenable(Switch aSwitch) {
