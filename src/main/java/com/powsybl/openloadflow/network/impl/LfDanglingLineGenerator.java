@@ -78,4 +78,14 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
     public void updateState() {
         // nothing to update
     }
+
+    @Override
+    public double getSlope() {
+        return 0;
+    }
+
+    @Override
+    public void setSlope(double slope) {
+        // nothing to do
+    }
 }

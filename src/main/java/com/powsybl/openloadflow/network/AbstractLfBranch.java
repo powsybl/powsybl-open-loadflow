@@ -68,6 +68,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected boolean disabled = false;
 
+    protected boolean spanningTreeEdge = false;
+
     protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
         super(network);
         this.bus1 = bus1;
@@ -192,7 +194,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             case APPARENT_POWER:
                 return 1.0 / PerUnit.SB;
             case CURRENT:
-                return bus.getNominalV() / PerUnit.SB;
+                return 1.0 / PerUnit.ib(bus.getNominalV());
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting scale for limit type %s is not supported.", type));
@@ -235,5 +237,15 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         double p = getP2().eval();
         double q = getQ2().eval();
         return FastMath.sqrt(p * p + q * q);
+    }
+
+    @Override
+    public void setSpanningTreeEdge(boolean spanningTreeEdge) {
+        this.spanningTreeEdge = spanningTreeEdge;
+    }
+
+    @Override
+    public boolean isSpanningTreeEdge() {
+        return this.spanningTreeEdge;
     }
 }

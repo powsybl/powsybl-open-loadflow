@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.*;
 
 /**
- * @author Anne Tilloy <anne.tilloy at artelys.com>
+ * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
 public class DanglingLineFactory extends AbstractLoadFlowNetworkFactory {
 

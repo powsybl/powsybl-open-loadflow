@@ -153,8 +153,13 @@ public class PropagatedContingency {
 
     private static boolean isCoupler(Switch s) {
         VoltageLevel.NodeBreakerView nbv = s.getVoltageLevel().getNodeBreakerView();
-        Connectable<?> c1 = nbv.getTerminal1(s.getId()).getConnectable();
-        Connectable<?> c2 = nbv.getTerminal2(s.getId()).getConnectable();
+        Terminal terminal1 = nbv.getTerminal1(s.getId());
+        Terminal terminal2 = nbv.getTerminal2(s.getId());
+        if (terminal1 == null || terminal2 == null) {
+            return false; // FIXME: this can be a coupler, a traverser could be used to detect it
+        }
+        Connectable<?> c1 = terminal1.getConnectable();
+        Connectable<?> c2 = terminal2.getConnectable();
         return c1 != c2 && c1.getType() == ConnectableType.BUSBAR_SECTION && c2.getType() == ConnectableType.BUSBAR_SECTION;
     }
 }

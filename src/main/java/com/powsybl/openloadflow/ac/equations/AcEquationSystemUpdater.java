@@ -40,18 +40,26 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         LfBus controlledBus = voltageControl.getControlledBus();
         Set<LfBus> controllerBuses = voltageControl.getControllerBuses();
 
-        // clean reactive power distribution equations
-        controllerBuses.forEach(b -> equationSystem.removeEquation(b.getNum(), EquationType.ZERO_Q));
-
-        // controlled bus has a voltage equation only if one of the controller bus has voltage control on
-        List<LfBus> controllerBusesWithVoltageControlOn = controllerBuses.stream()
-            .filter(LfBus::isVoltageControllerEnabled)
-            .collect(Collectors.toList());
-        equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
-
-        // create reactive power equations on controller buses that have voltage control on
-        if (!controllerBusesWithVoltageControlOn.isEmpty()) {
-            AcEquationSystem.createReactivePowerDistributionEquations(equationSystem, variableSet, creationParameters, controllerBusesWithVoltageControlOn);
+        LfBus firstControllerBus = controllerBuses.iterator().next();
+        if (firstControllerBus.hasGeneratorsWithSlope()) {
+            // we only support one controlling static var compensator without any other controlling generators
+            // we don't support controller bus that wants to control back voltage with slope.
+            if (!firstControllerBus.isVoltageControllerEnabled()) {
+                equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V_SLOPE).setActive(false);
+            }
+        } else {
+            // controlled bus has a voltage equation only if one of the controller bus has voltage control on
+            List<LfBus> controllerBusesWithVoltageControlOn = controllerBuses.stream()
+                    .filter(LfBus::isVoltageControllerEnabled)
+                    .collect(Collectors.toList());
+            // clean reactive power distribution equations
+            controllerBuses.forEach(b -> equationSystem.removeEquation(b.getNum(), EquationType.ZERO_Q));
+            // is there one static var compensator with a non-zero slope
+            equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
+            // create reactive power equations on controller buses that have voltage control on
+            if (!controllerBusesWithVoltageControlOn.isEmpty()) {
+                AcEquationSystem.createReactivePowerDistributionEquations(equationSystem, variableSet, creationParameters, controllerBusesWithVoltageControlOn);
+            }
         }
     }
 

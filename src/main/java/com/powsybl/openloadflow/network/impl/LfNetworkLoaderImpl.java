@@ -15,7 +15,10 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import net.jafama.FastMath;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
+import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
+import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +57,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void createVoltageControls(LfNetwork lfNetwork, List<LfBus> lfBuses, boolean voltageRemoteControl) {
+    private static void createVoltageControls(LfNetwork lfNetwork, List<LfBus> lfBuses, boolean voltageRemoteControl, boolean voltagePerReactivePowerControl) {
+        List<VoltageControl> voltageControls = new ArrayList<>();
+
         // set controller -> controlled link
         for (LfBus controllerBus : lfBuses) {
 
@@ -65,29 +70,65 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                 LfBus controlledBus = lfGenerator0.getControlledBus(lfNetwork);
                 double controllerTargetV = lfGenerator0.getTargetV();
 
-                LfBus finalControlledBus = controlledBus;
                 voltageControlGenerators.stream().skip(1).forEach(lfGenerator -> {
                     LfBus generatorControlledBus = lfGenerator.getControlledBus(lfNetwork);
 
                     // check that remote control bus is the same for the generators of current controller bus which have voltage control on
-                    checkUniqueControlledBus(finalControlledBus, generatorControlledBus, controllerBus);
+                    checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus);
 
                     // check that target voltage is the same for the generators of current controller bus which have voltage control on
                     checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
                 });
 
-                if (!voltageRemoteControl && controlledBus != controllerBus) {
+                if (voltageRemoteControl || controlledBus == controllerBus) {
+                    controlledBus.getVoltageControl().ifPresentOrElse(
+                        vc -> updateVoltageControl(vc, controllerBus, controllerTargetV),
+                        () -> createVoltageControl(controlledBus, controllerBus, controllerTargetV, voltageControls, voltagePerReactivePowerControl));
+                } else {
                     // if voltage remote control deactivated and remote control, set local control instead
                     LOGGER.warn("Remote voltage control is not activated. The voltage target of {} with remote control is rescaled from {} to {}",
-                        controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
-                    controlledBus = controllerBus;
+                            controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
+                    controlledBus.getVoltageControl().ifPresentOrElse(
+                        vc -> updateVoltageControl(vc, controllerBus, controllerTargetV), // updating only to check targetV uniqueness
+                        () -> createVoltageControl(controllerBus, controllerBus, controllerTargetV, voltageControls, voltagePerReactivePowerControl));
                 }
+            }
+        }
 
-                VoltageControl voltageControl = controlledBus.getVoltageControl().orElse(new VoltageControl(controlledBus, controllerTargetV));
-                voltageControl.addControllerBus(controllerBus);
+        if (voltagePerReactivePowerControl) {
+            voltageControls.forEach(LfNetworkLoaderImpl::checkGeneratorsWithSlope);
+        }
+    }
 
-                controlledBus.setVoltageControl(voltageControl); // is set even if already present, for simplicity sake
-                checkUniqueTargetVControlledBus(controllerTargetV, controllerBus, voltageControl); // check even if voltage control just created, for simplicity sake
+    private static void createVoltageControl(LfBus controlledBus, LfBus controllerBus, double controllerTargetV, List<VoltageControl> voltageControls, boolean voltagePerReactivePowerControl) {
+        VoltageControl voltageControl = new VoltageControl(controlledBus, controllerTargetV);
+        voltageControl.addControllerBus(controllerBus);
+        controlledBus.setVoltageControl(voltageControl);
+        if (voltagePerReactivePowerControl) {
+            voltageControls.add(voltageControl);
+        }
+    }
+
+    private static void updateVoltageControl(VoltageControl voltageControl, LfBus controllerBus, double controllerTargetV) {
+        voltageControl.addControllerBus(controllerBus);
+        checkUniqueTargetVControlledBus(controllerTargetV, controllerBus, voltageControl);
+    }
+
+    private static void checkGeneratorsWithSlope(VoltageControl voltageControl) {
+        List<LfGenerator> generatorsWithSlope = voltageControl.getControllerBuses().stream()
+                .filter(LfBus::hasGeneratorsWithSlope)
+                .flatMap(lfBus -> lfBus.getGeneratorsControllingVoltageWithSlope().stream())
+                .collect(Collectors.toList());
+
+        if (!generatorsWithSlope.isEmpty()) {
+            if (voltageControl.isSharedControl()) {
+                generatorsWithSlope.forEach(generator -> generator.getBus().removeGeneratorSlopes());
+                LOGGER.warn("Non supported: shared control on bus {} with {} generator(s) controlling voltage with slope. Slope set to 0 on all those generators",
+                        voltageControl.getControlledBus(), generatorsWithSlope.size());
+            } else if (!voltageControl.isVoltageControlLocal()) {
+                generatorsWithSlope.forEach(generator -> generator.getBus().removeGeneratorSlopes());
+                LOGGER.warn("Non supported: remote control on bus {} with {} generator(s) controlling voltage with slope",
+                        voltageControl.getControlledBus(), generatorsWithSlope.size());
             }
         }
     }
@@ -182,7 +223,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
             @Override
             public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
-                lfBus.addStaticVarCompensator(staticVarCompensator, parameters.isBreakers(), report);
+                lfBus.addStaticVarCompensator(staticVarCompensator, parameters.isVoltagePerReactivePowerControl(), parameters.isBreakers(), report);
                 if (staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
                     report.voltageControllerCount++;
                 }
@@ -305,53 +346,89 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void fixDiscreteVoltageControls(LfNetwork lfNetwork, boolean minImpedance) {
+    private static void fixAllVoltageControls(LfNetwork lfNetwork, boolean minImpedance, boolean transformerVoltageControl) {
         // If min impedance is set, there is no zero-impedance branch
         if (!minImpedance) {
             // Merge the discrete voltage control in each zero impedance connected set
             List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.createZeroImpedanceSubGraph()).connectedSets();
-            connectedSets.forEach(LfNetworkLoaderImpl::fixZeroImpendanceNetworkWithSeveralControlledBuses);
+            connectedSets.forEach(set -> mergeVoltageControls(set, transformerVoltageControl));
         }
     }
 
-    private static void fixZeroImpendanceNetworkWithSeveralControlledBuses(Set<LfBus> zeroImpedanceConnectedSet) {
+    private static void mergeVoltageControls(Set<LfBus> zeroImpedanceConnectedSet, boolean transformerVoltageControl) {
+        // Get the list of voltage controls from controlled buses in the zero impedance connected set
+        List<VoltageControl> voltageControls = zeroImpedanceConnectedSet.stream().filter(LfBus::isVoltageControlled)
+                .map(LfBus::getVoltageControl).filter(Optional::isPresent).map(Optional::get)
+                .collect(Collectors.toList());
+
         // Get the list of discrete voltage controls from controlled buses in the zero impedance connected set
-        List<DiscreteVoltageControl> voltageControls = zeroImpedanceConnectedSet.stream().filter(LfBus::isDiscreteVoltageControlled)
-            .map(LfBus::getDiscreteVoltageControl).filter(Optional::isPresent).map(Optional::get)
-            .collect(Collectors.toList());
-        if (voltageControls.isEmpty()) {
+        List<DiscreteVoltageControl> discreteVoltageControls = !transformerVoltageControl ? Collections.emptyList() :
+            zeroImpedanceConnectedSet.stream().filter(LfBus::isDiscreteVoltageControlled)
+                .map(LfBus::getDiscreteVoltageControl).filter(Optional::isPresent).map(Optional::get)
+                .collect(Collectors.toList());
+
+        if (voltageControls.isEmpty() && discreteVoltageControls.isEmpty()) {
             return;
         }
 
-        // The first discrete voltage control is kept and removed from the list
-        DiscreteVoltageControl firstDiscreteVoltageControl = voltageControls.remove(0);
-
-        // First resolve problem of discrete voltage controls
         if (!voltageControls.isEmpty()) {
+            // The first voltage control is kept and removed from the list
+            VoltageControl firstVoltageControl = voltageControls.remove(0);
+
+            // First resolve problem of voltage controls (generator, static var compensator, etc.)
+            // We have several controls whose controlled bus are in the same non-impedant connected set
+            // To solve that we keep only one voltage control (and its target value), the other ones are removed
+            // and the corresponding controllers are added to the control kept
+            LOGGER.info("Zero impedance connected set with several voltage controls: controls are merged");
+            voltageControls.forEach(voltageControl -> checkUniqueTargetV(voltageControl, firstVoltageControl));
+            voltageControls.stream()
+                    .flatMap(vc -> vc.getControllerBuses().stream())
+                    .forEach(controller -> {
+                        firstVoltageControl.addControllerBus(controller);
+                        controller.setVoltageControl(firstVoltageControl);
+                    });
+            voltageControls.stream()
+                    .filter(vc -> !firstVoltageControl.getControllerBuses().contains(vc.getControlledBus()))
+                    .forEach(vc -> vc.getControlledBus().removeVoltageControl());
+
+            // Second, we have to remove all the discrete voltage controls if present.
+            if (!discreteVoltageControls.isEmpty()) {
+                LOGGER.info("Zero impedance connected set with several discrete voltage controls and a voltage control: discrete controls deleted");
+                discreteVoltageControls.stream()
+                        .flatMap(dvc -> dvc.getControllers().stream())
+                        .forEach(controller -> controller.setDiscreteVoltageControl(null));
+                discreteVoltageControls.forEach(dvc -> dvc.getControlled().setDiscreteVoltageControl(null));
+            }
+        } else {
+            // The first discrete voltage control is kept and removed from the list
+            // Note that here we know that there is at least one discrete voltage control
+            DiscreteVoltageControl firstDiscreteVoltageControl = discreteVoltageControls.remove(0);
             // We have several discrete controls whose controlled bus are in the same non-impedant connected set
             // To solve that we keep only one discrete voltage control, the other ones are removed
             // and the corresponding controllers are added to the discrete control kept
             LOGGER.info("Zero impedance connected set with several discrete voltage controls: discrete controls merged");
-            voltageControls.stream()
+            discreteVoltageControls.forEach(dvc -> checkUniqueTargetV(dvc, firstDiscreteVoltageControl));
+            discreteVoltageControls.stream()
                 .flatMap(dvc -> dvc.getControllers().stream())
                 .forEach(controller -> {
                     firstDiscreteVoltageControl.addController(controller);
                     controller.setDiscreteVoltageControl(firstDiscreteVoltageControl);
                 });
-            voltageControls.forEach(dvc -> dvc.getControlled().setDiscreteVoltageControl(null));
+            discreteVoltageControls.forEach(dvc -> dvc.getControlled().setDiscreteVoltageControl(null));
         }
+    }
 
-        // Then resolve problem of mixed shared controls, that is if there are any generator/svc voltage control together with discrete voltage control(s)
-        // Check if there is one bus with remote voltage control or local voltage control
-        boolean hasControlledBus = zeroImpedanceConnectedSet.stream().anyMatch(LfBus::isVoltageControlled);
-        if (hasControlledBus) {
-            // If any generator/svc voltage controls, remove the merged discrete voltage control
-            // TODO: deal with mixed shared controls instead of removing all discrete voltage controls
-            LOGGER.warn("Zero impedance connected set with voltage control and discrete voltage control: only generator control is kept");
-            // First remove it from controllers
-            firstDiscreteVoltageControl.getControllers().forEach(c -> c.setDiscreteVoltageControl(null));
-            // Then remove it from the controlled lfBus
-            firstDiscreteVoltageControl.getControlled().setDiscreteVoltageControl(null);
+    private static void checkUniqueTargetV(VoltageControl vc1, VoltageControl vc2) {
+        if (FastMath.abs(vc1.getTargetValue() - vc2.getTargetValue()) > TARGET_V_EPSILON) {
+            LOGGER.error("Two controller buses are controlling buses {} and {} which are in the same non-impedant connected set, but with different target voltages ({} and {}): only target voltage {} is kept",
+                vc1.getControlledBus().getId(), vc2.getControlledBus().getId(), vc1.getTargetValue(), vc2.getTargetValue(), vc2.getTargetValue());
+        }
+    }
+
+    private static void checkUniqueTargetV(DiscreteVoltageControl dvc1, DiscreteVoltageControl dvc2) {
+        if (FastMath.abs(dvc1.getTargetValue() - dvc2.getTargetValue()) > TARGET_V_EPSILON) {
+            LOGGER.error("Two transformers are controlling buses {} and {} which are in the same non-impedant connected set, but with different target voltages ({} and {}): only target voltage {} is kept",
+                dvc1.getControlled().getId(), dvc2.getControlled().getId(), dvc1.getTargetValue(), dvc2.getTargetValue(), dvc2.getTargetValue());
         }
     }
 
@@ -454,7 +531,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report);
         createBranches(lfBuses, lfNetwork, loadingContext, report, parameters);
-        createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl());
+        createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isVoltagePerReactivePowerControl());
 
         if (parameters.isTransformerVoltageControl()) {
             // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)
@@ -465,9 +542,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             createSwitches(switches, lfNetwork);
         }
 
-        if (parameters.isTransformerVoltageControl()) {
-            // Fixing discrete voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
-            fixDiscreteVoltageControls(lfNetwork, parameters.isMinImpedance());
+        // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
+        fixAllVoltageControls(lfNetwork, parameters.isMinImpedance(), parameters.isTransformerVoltageControl());
+
+        if (!parameters.isMinImpedance()) {
+            // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph
+            Graph<LfBus, LfBranch> zeroImpedanceSubGraph = lfNetwork.createZeroImpedanceSubGraph();
+            if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
+                SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(zeroImpedanceSubGraph).getSpanningTree();
+                for (LfBranch branch : spanningTree.getEdges()) {
+                    branch.setSpanningTreeEdge(true);
+                }
+            }
         }
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {

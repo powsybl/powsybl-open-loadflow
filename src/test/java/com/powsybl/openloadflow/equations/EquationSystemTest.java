@@ -199,14 +199,14 @@ class EquationSystemTest {
         Variable v2var = variableSet.getVariable(branch.getBus2().getNum(), VariableType.BUS_V);
         Variable ph1var = variableSet.getVariable(branch.getBus1().getNum(), VariableType.BUS_PHI);
         Variable ph2var = variableSet.getVariable(branch.getBus2().getNum(), VariableType.BUS_PHI);
-        assertEquals(-24895.468, i1.der(v1var), 10E-3);
-        assertEquals(25056.371, i1.der(v2var), 10E-3);
-        assertEquals(2277.852, i1.der(ph1var), 10E-3);
-        assertEquals(-2277.852, i1.der(ph2var), 10E-3);
-        assertEquals(25056.371, i2.der(v1var), 10E-3);
-        assertEquals(-24895.468, i2.der(v2var), 10E-3);
-        assertEquals(-2277.852, i2.der(ph1var), 10E-3);
-        assertEquals(2277.852, i2.der(ph2var), 10E-3);
+        assertEquals(-43.120215, i1.der(v1var), 10E-6);
+        assertEquals(43.398907, i1.der(v2var), 10E-6);
+        assertEquals(3.945355, i1.der(ph1var), 10E-6);
+        assertEquals(-3.945355, i1.der(ph2var), 10E-6);
+        assertEquals(43.398907, i2.der(v1var), 10E-6);
+        assertEquals(-43.120215, i2.der(v2var), 10E-6);
+        assertEquals(-3.945355, i2.der(ph1var), 10E-6);
+        assertEquals(3.945355, i2.der(ph2var), 10E-6);
     }
 
     @Test
@@ -226,7 +226,7 @@ class EquationSystemTest {
         EquationTerm i1 = equationSystem.getEquation(branch.getBus1().getNum(), EquationType.BUS_I).orElse(null).getTerms().stream().filter(OpenBranchSide2CurrentMagnitudeEquationTerm.class::isInstance).findAny().get();
         Variable v1var = variableSet.getVariable(branch.getBus1().getNum(), VariableType.BUS_V);
         Variable ph1var = variableSet.getVariable(branch.getBus1().getNum(), VariableType.BUS_PHI);
-        assertEquals(322.837, i1.der(v1var), 10E-3);
+        assertEquals(0.559170, i1.der(v1var), 10E-6);
         assertThrows(IllegalStateException.class, () -> i1.der(ph1var));
     }
 
@@ -246,7 +246,7 @@ class EquationSystemTest {
         EquationTerm i2 = equationSystem.getEquation(branch.getBus2().getNum(), EquationType.BUS_I).orElse(null).getTerms().stream().filter(OpenBranchSide1CurrentMagnitudeEquationTerm.class::isInstance).findAny().get();
         Variable v2var = variableSet.getVariable(branch.getBus2().getNum(), VariableType.BUS_V);
         Variable ph2var = variableSet.getVariable(branch.getBus2().getNum(), VariableType.BUS_PHI);
-        assertEquals(322.837, i2.der(v2var), 10E-3);
+        assertEquals(0.55917, i2.der(v2var), 10E-6);
         assertThrows(IllegalStateException.class, () -> i2.der(ph2var));
     }
 }

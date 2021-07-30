@@ -75,23 +75,15 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     sensi += Math.toRadians(factor.getEquationTerm().der(phi1Var));
                 }
 
-                if (SensitivityFunctionType.BUS_VOLTAGE.equals(factor.getFunctionType())) {
-                    sensi *= ((LfBus) factor.getFunctionElement()).getNominalV();
-                }
-                valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, sensi * PerUnit.SB, factor.getFunctionReference() * PerUnit.SB);
+                valueWriter.write(factor.getContext(), contingencyId, contingencyIndex,
+                                  unscaleSensitivity(factor, sensi), unscaleFunction(factor, factor.getFunctionReference()));
             }
         }
     }
 
     protected void setFunctionReferences(List<LfSensitivityFactor> factors) {
         for (LfSensitivityFactor factor : factors) {
-            double functionRef = factor.getEquationTerm().eval();
-            if (factor.getFunctionType() == SensitivityFunctionType.BUS_VOLTAGE) {
-                LfBus bus = (LfBus) factor.getFunctionElement();
-                factor.setFunctionReference(functionRef * bus.getNominalV() / PerUnit.SB);
-            } else {
-                factor.setFunctionReference(functionRef);
-            }
+            factor.setFunctionReference(factor.getEquationTerm().eval());
         }
     }
 
@@ -177,7 +169,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 true, lfParameters.isTwtSplitShuntAdmittance(), false, lfParametersExt.getPlausibleActivePowerLimit(),
                 false, true, lfParameters.getCountriesToBalance(),
                 lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                lfParameters.isPhaseShifterRegulationOn(), lfParameters.isTransformerVoltageControlOn());
+                lfParameters.isPhaseShifterRegulationOn(), lfParameters.isTransformerVoltageControlOn(),
+                lfParametersExt.isVoltagePerReactivePowerControl());
         List<LfNetwork> lfNetworks = LfNetwork.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(network, lfNetwork, contingencies);

@@ -44,7 +44,19 @@ public class VoltageControl {
         controllerBus.setVoltageControl(this);
     }
 
+    /**
+     * Check if the voltage control is ONLY local
+     * @return true if the voltage control is ONLY local, false otherwise
+     */
     public boolean isVoltageControlLocal() {
         return controllers.size() == 1 && controllers.contains(controlled);
+    }
+
+    /**
+     * Check if the voltage control is shared
+     * @return true if the voltage control is shared, false otherwise
+     */
+    public boolean isSharedControl() {
+        return controllers.stream().flatMap(lfBus -> lfBus.getGenerators().stream()).filter(LfGenerator::hasVoltageControl).count() > 1;
     }
 }

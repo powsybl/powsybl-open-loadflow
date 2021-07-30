@@ -11,14 +11,13 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.DiscretePhaseControl.Mode;
-import org.jgrapht.Graph;
-import org.jgrapht.alg.connectivity.ConnectivityInspector;
-import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
-import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -60,9 +59,7 @@ public final class AcEquationSystem {
     private static void createVoltageControlEquations(VoltageControl voltageControl, LfBus bus, VariableSet variableSet,
                                                       EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
         if (voltageControl.isVoltageControlLocal()) {
-            EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
-            equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
-            bus.setV(vTerm);
+            createLocalVoltageControlEquation(bus, variableSet, equationSystem, creationParameters);
         } else if (bus.isVoltageControlled()) {
             // remote controlled: set voltage equation on this controlled bus
             createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet, creationParameters);
@@ -71,6 +68,18 @@ public final class AcEquationSystem {
         if (bus.isVoltageControllerEnabled()) {
             equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q).setActive(false);
         }
+    }
+
+    private static void createLocalVoltageControlEquation(LfBus bus, VariableSet variableSet, EquationSystem equationSystem, AcEquationSystemCreationParameters creationParameters) {
+        EquationTerm vTerm = EquationTerm.createVariableTerm(bus, VariableType.BUS_V, variableSet, bus.getV().eval());
+        bus.setV(vTerm);
+        if (bus.hasGeneratorsWithSlope()) {
+            // take first generator with slope: network loading ensures that there's only one generator with slope
+            double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
+            createBusWithSlopeEquation(bus, slope, creationParameters, variableSet, equationSystem, vTerm);
+            return;
+        }
+        equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
     }
 
     private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus) {
@@ -107,6 +116,9 @@ public final class AcEquationSystem {
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm q;
             if (LfNetwork.isZeroImpedanceBranch(branch)) {
+                if (!branch.isSpanningTreeEdge()) {
+                    continue;
+                }
                 if (branch.getBus1() == controllerBus) {
                     q = EquationTerm.createVariableTerm(branch, VariableType.DUMMY_Q, variableSet);
                 } else {
@@ -208,8 +220,8 @@ public final class AcEquationSystem {
                                                 LfBranch branch, LfBus bus1, LfBus bus2) {
         Optional<Equation> v1 = equationSystem.getEquation(bus1.getNum(), EquationType.BUS_V);
         Optional<Equation> v2 = equationSystem.getEquation(bus2.getNum(), EquationType.BUS_V);
-        boolean hasV1 = v1.isPresent() && v1.get().isActive(); // may be inactive is the equation has been created for sensitivity
-        boolean hasV2 = v2.isPresent() && v2.get().isActive(); // may be inactive is the equation has been created for sensitivity
+        boolean hasV1 = v1.isPresent() && v1.get().isActive(); // may be inactive if the equation has been created for sensitivity
+        boolean hasV2 = v2.isPresent() && v2.get().isActive(); // may be inactive if the equation has been created for sensitivity
         if (!(hasV1 && hasV2)) {
             // create voltage magnitude coupling equation
             // 0 = v1 - v2 * rho
@@ -282,6 +294,19 @@ public final class AcEquationSystem {
                         .setActive(false);
                 }
             });
+    }
+
+    private static void createBusWithSlopeEquation(LfBus bus, double slope, AcEquationSystemCreationParameters creationParameters, VariableSet variableSet, EquationSystem equationSystem, EquationTerm vTerm) {
+        // we only support one generator controlling voltage with a non zero slope at a bus.
+        // equation is: V + slope * qSVC = targetV
+        // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
+        Equation eq = equationSystem.createEquation(bus.getNum(), EquationType.BUS_V_SLOPE);
+        eq.addTerm(vTerm);
+        List<EquationTerm> controllerBusReactiveTerms = createReactiveTerms(bus, variableSet, creationParameters);
+        eq.setData(new DistributionData(bus.getNum(), slope)); // for later use
+        for (EquationTerm eqTerm : controllerBusReactiveTerms) {
+            eq.addTerm(EquationTerm.multiply(eqTerm, slope));
+        }
     }
 
     public static void createR1DistributionEquations(EquationSystem equationSystem, VariableSet variableSet,
@@ -403,23 +428,10 @@ public final class AcEquationSystem {
             .filter(b -> !LfNetwork.isZeroImpedanceBranch(b))
             .forEach(b -> createImpedantBranch(b, b.getBus1(), b.getBus2(), variableSet, creationParameters, equationSystem));
 
-        // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph
-        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.createZeroImpedanceSubGraph();
-        if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
-            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(zeroImpedanceSubGraph).connectedSets();
-            for (Set<LfBus> connectedSet : connectedSets) {
-                if (connectedSet.size() > 2 && connectedSet.stream().filter(LfBus::isVoltageControllerEnabled).count() > 1) {
-                    String problBuses = connectedSet.stream().map(LfBus::getId).collect(Collectors.joining(", "));
-                    throw new PowsyblException(
-                        "Zero impedance branches that connect at least two buses with voltage control (buses: " + problBuses + ")");
-                }
-            }
-
-            SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(zeroImpedanceSubGraph).getSpanningTree();
-            for (LfBranch branch : spanningTree.getEdges()) {
-                createNonImpedantBranch(variableSet, equationSystem, branch, branch.getBus1(), branch.getBus2());
-            }
-        }
+        // create zero and non zero impedance branch equations
+        network.getBranches().stream()
+                .filter(b -> LfNetwork.isZeroImpedanceBranch(b) && b.isSpanningTreeEdge())
+                .forEach(b -> createNonImpedantBranch(variableSet, equationSystem, b, b.getBus1(), b.getBus2()));
     }
 
     public static EquationSystem create(LfNetwork network) {
