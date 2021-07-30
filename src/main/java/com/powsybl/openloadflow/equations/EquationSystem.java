@@ -81,10 +81,13 @@ public class EquationSystem {
 
             // equations to add
             for (Equation equation : equationsToAdd) {
+                // do not use equations that would be updated only after NR
                 if (equation.isActive() && EquationUpdateType.DEFAULT == equation.getUpdateType()) {
-                    // do not use equations that would be updated only after NR
+                    // check we have at least one equation term active
+                    boolean atLeastOneTermIsValid = false;
                     for (EquationTerm equationTerm : equation.getTerms()) {
                         if (equationTerm.isActive()) {
+                            atLeastOneTermIsValid = true;
                             for (Variable variable : equationTerm.getVariables()) {
                                 sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>())
                                         .computeIfAbsent(variable, k -> new ArrayList<>())
@@ -93,6 +96,9 @@ public class EquationSystem {
                                         .add(equation);
                             }
                         }
+                    }
+                    if (!atLeastOneTermIsValid) {
+                        throw new IllegalStateException("Equation " + equation + " is active but all of its terms are inactive");
                     }
                 }
             }
