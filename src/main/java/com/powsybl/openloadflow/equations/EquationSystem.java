@@ -82,6 +82,7 @@ public class EquationSystem {
             // equations to add
             for (Equation equation : equationsToAdd) {
                 if (equation.isActive() && EquationUpdateType.DEFAULT == equation.getUpdateType()) {
+                    // do not use equations that would be updated only after NR
                     for (EquationTerm equationTerm : equation.getTerms()) {
                         if (equationTerm.isActive()) {
                             for (Variable variable : equationTerm.getVariables()) {
