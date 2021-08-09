@@ -45,6 +45,7 @@ import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.Markers;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.tools.PowsyblCoreVersion;
+import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -148,6 +149,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
         LOGGER.info("Slack bus Pmax mismatch: {}", parametersExt.getSlackBusPMaxMismatch());
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
+        LOGGER.info("Voltage per reactive power control: {}", parametersExt.isVoltagePerReactivePowerControl());
+        LOGGER.info("Reactive Power Remote control: {}", parametersExt.hasReactivePowerRemoteControl());
 
         List<OuterLoop> outerLoops = new ArrayList<>();
         if (parameters.isDistributedSlack()) {
@@ -184,6 +187,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                         parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
                                         parameters.getCountriesToBalance(),
                                         parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                                        parametersExt.isVoltagePerReactivePowerControl(),
                                         parametersExt.hasReactivePowerRemoteControl());
     }
 
@@ -241,7 +245,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 // to be consistent with low impedance criteria used in DcEquationSystem and AcEquationSystem
                 double nominalV = line.getTerminal1().getVoltageLevel().getNominalV();
                 double zb = nominalV * nominalV / PerUnit.SB;
-                double z = Math.hypot(line.getR(), line.getX());
+                double z = FastMath.hypot(line.getR(), line.getX());
                 return z / zb <= LOW_IMPEDANCE_THRESHOLD;
             }).complete();
         }

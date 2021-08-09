@@ -82,7 +82,11 @@ public interface LfBranch extends LfElement {
 
     double computeApparentPower2();
 
+    void setSpanningTreeEdge(boolean spanningTreeEdge);
+
+    boolean isSpanningTreeEdge();
+
     Optional<ReactivePowerControl> getReactivePowerControl();
 
-    void setReactivePowerControl(ReactivePowerControl pReactivePowerControl);
+    void setReactivePowerControl(ReactivePowerControl reactivePowerControl);
 }

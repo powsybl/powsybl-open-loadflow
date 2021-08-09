@@ -58,6 +58,8 @@ public class AcLoadFlowParameters {
 
     private final boolean distributedOnConformLoad;
 
+    private final boolean voltagePerReactivePowerControl;
+
     private final boolean reactivePowerRemoteControl;
 
     public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
@@ -68,6 +70,7 @@ public class AcLoadFlowParameters {
                                 boolean forceA1Var, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                 Set<String> branchesWithCurrent, boolean computeMainConnectedComponentOnly,
                                 Set<Country> countriesToBalance, boolean distributedOnConformLoad,
+                                boolean voltagePerReactivePowerControl,
                                 boolean reactivePowerRemoteControl) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
@@ -87,6 +90,7 @@ public class AcLoadFlowParameters {
         this.computeMainConnectedComponentOnly = computeMainConnectedComponentOnly;
         this.countriesToBalance = countriesToBalance;
         this.distributedOnConformLoad = distributedOnConformLoad;
+        this.voltagePerReactivePowerControl = voltagePerReactivePowerControl;
         this.reactivePowerRemoteControl = reactivePowerRemoteControl;
     }
 
@@ -164,6 +168,10 @@ public class AcLoadFlowParameters {
 
     public boolean isDistributedOnConformLoad() {
         return  distributedOnConformLoad;
+    }
+
+    public boolean isVoltagePerReactivePowerControl() {
+        return voltagePerReactivePowerControl;
     }
 
     public boolean isReactivePowerRemoteControl() {

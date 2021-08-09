@@ -180,6 +180,11 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return controllerBranch.getPiModel().getR1() - firstControllerBranch.getPiModel().getR1();
     }
 
+    private static double createBusWithSlopeTarget(LfBus bus, DistributionData data) {
+        double slope = data.getC();
+        return getBusTargetV(bus) - slope * (bus.getLoadTargetQ() - bus.getGenerationTargetQ());
+    }
+
     void initTarget(LfNetwork network, double[] targets) {
         switch (type) {
             case BUS_P:
@@ -192,6 +197,10 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
             case BUS_V:
                 targets[column] = getBusTargetV(network.getBus(num));
+                break;
+
+            case BUS_V_SLOPE:
+                targets[column] = createBusWithSlopeTarget(network.getBus(num), getData());
                 break;
 
             case BUS_PHI:

@@ -30,8 +30,6 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReactiveLimitsOuterLoop.class);
 
-    private static final double Q_EPS = Math.pow(10, -5); // 10^-5 in p.u => 10^-3 in Mw
-
     private static final Comparator<PvToPqBus> BY_NOMINAL_V_COMPARATOR = Comparator.comparingDouble(
         pvToPqBus -> pvToPqBus.controllerBus.getVoltageControl()
             .map(vc -> -vc.getControlledBus().getNominalV())
@@ -196,10 +194,12 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         double minQ = controllerCapableBus.getMinQ();
         double maxQ = controllerCapableBus.getMaxQ();
         double q = controllerCapableBus.getGenerationTargetQ();
-        if (Math.abs(q - maxQ) < Q_EPS && controllerCapableBus.getV().eval() > getBusTargetV(controllerCapableBus)) { // bus produce too much reactive power
+        double distanceToMaxQ = Math.abs(q - maxQ);
+        double distanceToMinQ = Math.abs(q - minQ);
+        if (distanceToMaxQ < distanceToMinQ  && controllerCapableBus.getV().eval() > getBusTargetV(controllerCapableBus)) { // bus produce too much reactive power
             pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MAX));
         }
-        if (Math.abs(q - minQ) < Q_EPS && controllerCapableBus.getV().eval() < getBusTargetV(controllerCapableBus)) { // bus absorb too much reactive power
+        if (distanceToMaxQ > distanceToMinQ && controllerCapableBus.getV().eval() < getBusTargetV(controllerCapableBus)) { // bus absorb too much reactive power
             pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MIN));
         }
     }
@@ -219,7 +219,12 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             if (bus.isVoltageControllerEnabled() && !bus.isDisabled()) {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
             } else if (bus.hasVoltageControllerCapability() && !bus.isDisabled()) {
-                checkPqBus(bus, pqToPvBuses);
+                if (!bus.hasGeneratorsWithSlope()) {
+                    checkPqBus(bus, pqToPvBuses);
+                } else {
+                    // we don't support switching PQ to PV for bus with one controller with slope.
+                    LOGGER.warn("Controller bus '{}' wants to control back voltage with slope: not supported", bus.getId());
+                }
             }
         }
 
