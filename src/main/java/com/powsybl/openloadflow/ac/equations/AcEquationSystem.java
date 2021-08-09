@@ -444,9 +444,7 @@ public final class AcEquationSystem {
         // create zero and non zero impedance branch equations
         network.getBranches().stream()
             .filter(b -> !LfNetwork.isZeroImpedanceBranch(b))
-            .forEach(b -> {
-                createImpedantBranch(b, b.getBus1(), b.getBus2(), variableSet, creationParameters, equationSystem);
-            });
+            .forEach(b -> createImpedantBranch(b, b.getBus1(), b.getBus2(), variableSet, creationParameters, equationSystem));
 
         // create zero and non zero impedance branch equations
         network.getBranches().stream()
