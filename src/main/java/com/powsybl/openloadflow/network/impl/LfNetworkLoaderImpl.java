@@ -176,7 +176,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         for (LfBus controllerBus : lfBuses) {
             List<LfGenerator> generators = controllerBus.getGenerators().stream()
                     .filter(LfGenerator::hasReactivePowerControl).collect(Collectors.toList());
-            if (generators.size() >= 1) {
+            if (!generators.isEmpty()) {
                 Optional<VoltageControl> voltageControl = controllerBus.getVoltageControl();
                 if (voltageControl.isPresent()) {
                     LOGGER.warn("Bus " + controllerBus.getId() + " has both voltage and remote reactive power controls: only voltage control is kept");

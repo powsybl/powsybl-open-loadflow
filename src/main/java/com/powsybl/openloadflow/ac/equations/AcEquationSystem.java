@@ -85,15 +85,13 @@ public final class AcEquationSystem {
         equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
     }
 
-    private static void createReactivePowerControlBranchEquation(ReactivePowerControl reactivePowerControl, EquationSystem equationSystem) {
-        // Reactive power control on a branch is always distant
-        LfBranch controlledBranch = reactivePowerControl.getControlledBranch();
-        if (controlledBranch != null) {
-            Equation equation = equationSystem.createEquation(controlledBranch.getNum(), EquationType.BRANCH_Q);
-            EquationTerm q = (EquationTerm) (reactivePowerControl.getControlledSide() == ReactivePowerControl.ControlledSide.ONE ?
-                    reactivePowerControl.getControlledBranch().getQ1() : reactivePowerControl.getControlledBranch().getQ2());
-            equation.addTerm(q);
-        }
+    private static void createReactivePowerControlBranchEquation(LfBranch branch, ReactivePowerControl.ControlledSide controlledSide, EquationSystem equationSystem, EquationTerm q) {
+        branch.getReactivePowerControl().ifPresent(reactivePowerControl -> {
+            if (reactivePowerControl.getControlledSide() == controlledSide) {
+                Equation equation = equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_Q);
+                equation.addTerm(q);
+            }
+        });
     }
 
     private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus) {
@@ -395,6 +393,9 @@ public final class AcEquationSystem {
             }
             sq1.addTerm(q1);
             branch.setQ1(q1);
+            if (creationParameters.isReactivePowerControl()) {
+                createReactivePowerControlBranchEquation(branch, ReactivePowerControl.ControlledSide.ONE, equationSystem, q1);
+            }
         }
         if (p2 != null) {
             Equation sp2 = equationSystem.createEquation(bus2.getNum(), EquationType.BUS_P);
@@ -414,6 +415,9 @@ public final class AcEquationSystem {
             }
             sq2.addTerm(q2);
             branch.setQ2(q2);
+            if (creationParameters.isReactivePowerControl()) {
+                createReactivePowerControlBranchEquation(branch, ReactivePowerControl.ControlledSide.TWO, equationSystem, q2);
+            }
         }
 
         if (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability()) {
@@ -442,9 +446,6 @@ public final class AcEquationSystem {
             .filter(b -> !LfNetwork.isZeroImpedanceBranch(b))
             .forEach(b -> {
                 createImpedantBranch(b, b.getBus1(), b.getBus2(), variableSet, creationParameters, equationSystem);
-                if (creationParameters.isReactivePowerControl()) {
-                    b.getReactivePowerControl().ifPresent(reactivePowerControl -> createReactivePowerControlBranchEquation(reactivePowerControl, equationSystem));
-                }
             });
 
         // create zero and non zero impedance branch equations

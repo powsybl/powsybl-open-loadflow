@@ -150,8 +150,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return reactivePowerRemoteControl;
     }
 
-    public OpenLoadFlowParameters setReactivePowerRemoteControl(boolean pReactivePowerRemoteControl) {
-        this.reactivePowerRemoteControl = pReactivePowerRemoteControl;
+    public OpenLoadFlowParameters setReactivePowerRemoteControl(boolean reactivePowerRemoteControl) {
+        this.reactivePowerRemoteControl = reactivePowerRemoteControl;
         return this;
     }
 
