@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.*;
-
 /**
  * @author Bertrand Rix <bertrand.rix at artelys.com>
  */
