@@ -133,26 +133,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
-    private static void createReactivePowerControls(LfNetwork lfNetwork, List<LfBus> lfBuses) {
-        for (LfBus controllerBus : lfBuses) {
-            List<LfGenerator> reactivePowerControlGenerator = controllerBus.getGenerators().stream()
-                    .filter(LfGenerator::hasReactivePowerControl).collect(Collectors.toList());
-            if (!reactivePowerControlGenerator.isEmpty()) {
-                LfGenerator lfGenerator = reactivePowerControlGenerator.get(0); // FIXME
-                LfBranch controlledBranch = lfGenerator.getControlledBranch(lfNetwork);
-                Optional<ReactivePowerControl> controlOpt = controlledBranch.getReactivePowerControl();
-                if (controlOpt.isPresent()) {
-                    throw new PowsyblException("Branch: " + controlledBranch.getId() + " is remotely controled by two generators");
-                }
-                ReactivePowerControl control = new ReactivePowerControl(controlledBranch,
-                        lfGenerator.getControlledBranchSide(),
-                        controllerBus, lfGenerator.getRemoteTargetQ());
-                controllerBus.setReactivePowerControl(control);
-                controlledBranch.setReactivePowerControl(control);
-            }
-        }
-    }
-
     private static void checkUniqueTargetVControlledBus(double controllerTargetV, LfBus controllerBus, VoltageControl vc) {
         // check if target voltage is consistent with other already existing controller buses
         double voltageControlTargetV = vc.getTargetValue();
@@ -182,6 +162,39 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             String generatorIds = controllerBus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
             LOGGER.error("Generators [{}] are connected to the same bus '{}' with different target voltages: {} (kept) and {} (rejected)",
                 generatorIds, controllerBus.getId(), targetV * controlledBus.getNominalV(), previousTargetV * controlledBus.getNominalV());
+        }
+    }
+
+    private static void createRemoteReactivePowerControl(LfBranch controlledBranch, ReactivePowerControl.ControlledSide side, LfBus controllerBus,
+                                                         double targetQ) {
+        ReactivePowerControl control = new ReactivePowerControl(controlledBranch, side, controllerBus, targetQ);
+        controllerBus.setReactivePowerControl(control);
+        controlledBranch.setReactivePowerControl(control);
+    }
+
+    private static void createReactivePowerControls(LfNetwork lfNetwork, List<LfBus> lfBuses) {
+        for (LfBus controllerBus : lfBuses) {
+            List<LfGenerator> generators = controllerBus.getGenerators().stream()
+                    .filter(LfGenerator::hasReactivePowerControl).collect(Collectors.toList());
+            if (generators.size() >= 1) {
+                Optional<VoltageControl> voltageControl = controllerBus.getVoltageControl();
+                if (voltageControl.isPresent()) {
+                    LOGGER.warn("Bus " + controllerBus.getId() + " has both voltage and remote reactive power controls: only voltage control is kept");
+                    continue;
+                }
+                if (generators.size() == 1) {
+                    LfGenerator lfGenerator = generators.get(0);
+                    LfBranch controlledBranch = lfGenerator.getControlledBranch(lfNetwork);
+                    Optional<ReactivePowerControl> control = controlledBranch.getReactivePowerControl();
+                    if (control.isPresent()) {
+                        LOGGER.warn("Branch " + controlledBranch.getId() + " is remotely controlled by a generator: no new remote reactive control created");
+                    } else {
+                        createRemoteReactivePowerControl(lfGenerator.getControlledBranch(lfNetwork), lfGenerator.getControlledBranchSide(), controllerBus, lfGenerator.getRemoteTargetQ());
+                    }
+                } else if (generators.size() > 1) {
+                    LOGGER.warn("Bus " + controllerBus.getId() + " has more than one generator controlling reactive power remotely: not yet supported");
+                }
+            }
         }
     }
 

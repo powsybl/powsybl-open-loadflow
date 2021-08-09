@@ -22,12 +22,9 @@ import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.concurrent.CompletionException;
-
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -359,20 +356,20 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void testRemoteReactivePowerControl() {
-        // Create a basic 4-buses network
-        Network sNetwork = FourBusNetworkFactory.createBaseNetwork();
-        Generator g4 = sNetwork.getGenerator("g4");
-        Generator g1 = sNetwork.getGenerator("g1");
-        Line l34 = sNetwork.getLine("l34");
-        Line l12 = sNetwork.getLine("l12");
-        Line l13 = sNetwork.getLine("l13");
+        // create a basic 4-buses network
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        Generator g4 = network.getGenerator("g4");
+        Generator g1 = network.getGenerator("g1");
+        Line l34 = network.getLine("l34");
+        Line l12 = network.getLine("l12");
+        Line l13 = network.getLine("l13");
 
         double targetQ = 1.0;
 
-        //Disable voltage control on g4
+        // disable voltage control on g4
         g4.setTargetQ(0).setVoltageRegulatorOn(false);
 
-        // First test: generator g4 regulates reactive power on line 4->3 (on side of g4)
+        // first test: generator g4 regulates reactive power on line 4->3 (on side of g4)
         g4.newExtension(RemoteReactivePowerControlAdder.class)
           .withTargetQ(targetQ)
           .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
@@ -380,41 +377,39 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
 
-        LoadFlowResult result = loadFlowRunner.run(sNetwork, parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertReactivePowerEquals(targetQ, l34.getTerminal(Branch.Side.TWO));
 
-        // Second test: generator g4 regulates reactive power on line 3->4 (on the opposite side of the line)
+        // second test: generator g4 regulates reactive power on line 3->4 (on the opposite side of the line)
         g4.newExtension(RemoteReactivePowerControlAdder.class)
           .withTargetQ(targetQ)
           .withRegulatingTerminal(l34.getTerminal(Branch.Side.ONE))
           .withEnabled(true).add();
 
-        result = loadFlowRunner.run(sNetwork, parameters);
+        result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertReactivePowerEquals(targetQ, l34.getTerminal(Branch.Side.ONE));
 
-        // Third test: generator g4 regulates reactive power on line 1->2 (line which is not linked to bus 4)
+        // third test: generator g4 regulates reactive power on line 1->2 (line which is not linked to bus 4)
         g4.newExtension(RemoteReactivePowerControlAdder.class)
           .withTargetQ(targetQ)
           .withRegulatingTerminal(l12.getTerminal(Branch.Side.ONE))
           .withEnabled(true).add();
 
-        result = loadFlowRunner.run(sNetwork, parameters);
+        result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertReactivePowerEquals(targetQ, l12.getTerminal(Branch.Side.ONE));
     }
 
     @Test
-    void testTwoRemoteReactivePowerControlsOnSameTerminal() {
+    void testSharedRemoteReactivePowerControl() {
         // we create a basic 4-buses network
-        Network sNetwork = FourBusNetworkFactory.createBaseNetwork();
-        Bus b2 = sNetwork.getBusBreakerView().getBus("b2");
-        Generator g4 = sNetwork.getGenerator("g4");
-        Generator g1 = sNetwork.getGenerator("g1");
-        Line l34 = sNetwork.getLine("l34");
-        Line l12 = sNetwork.getLine("l12");
-        Line l13 = sNetwork.getLine("l13");
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        Generator g4 = network.getGenerator("g4");
+        Generator g1 = network.getGenerator("g1");
+        Line l34 = network.getLine("l34");
         createGenerator(b2, "g2", 0);
 
         double targetQ = 1.0;
@@ -434,24 +429,36 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .withEnabled(true).add();
 
         parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(1, l34.getTerminal(Branch.Side.TWO));
 
-        assertThrows(CompletionException.class, () -> loadFlowRunner.run(sNetwork, parameters),
-                "Branch: l34 is remotely controlled by more than one generator");
+        // generators g1 and g4 both regulate reactive power on line 4->3
+        g1.newExtension(RemoteReactivePowerControlAdder.class)
+                .withTargetQ(targetQ)
+                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
+                .withEnabled(true).add();
+        g4.newExtension(RemoteReactivePowerControlAdder.class)
+                .withTargetQ(targetQ)
+                .withRegulatingTerminal(l34.getTerminal(Branch.Side.ONE))
+                .withEnabled(true).add();
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertReactivePowerEquals(1, l34.getTerminal(Branch.Side.TWO));
     }
 
     @Test
     void testNotSupportedRemoteReactivePowerControl() {
         // Create a basic 4-buses network
-        Network sNetwork = FourBusNetworkFactory.createBaseNetwork();
-        Generator g4 = sNetwork.getGenerator("g4");
-        Generator g1 = sNetwork.getGenerator("g1");
-        Line l34 = sNetwork.getLine("l34");
-        Line l12 = sNetwork.getLine("l12");
-        Line l13 = sNetwork.getLine("l13");
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        Generator g4 = network.getGenerator("g4");
+        Line l34 = network.getLine("l34");
 
         double targetQ = 1.0;
 
-        // First test: generator g4 regulates reactive power on line 4->3 (on side of g4)
+        // first test: generator g4 regulates reactive power on line 4->3 (on side of g4)
         g4.newExtension(RemoteReactivePowerControlAdder.class)
                 .withTargetQ(targetQ)
                 .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
@@ -459,8 +466,32 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
 
-        LoadFlowResult result = loadFlowRunner.run(sNetwork, parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertReactivePowerEquals(0.274417, l34.getTerminal(Branch.Side.TWO));
+    }
+
+    @Test
+    void testNotSupportedRemoteReactivePowerControl2() {
+        Network network = FourBusNetworkFactory.createWithTwoGeneratorsAtBus2();
+        Generator g2 = network.getGenerator("g2");
+        Line l34 = network.getLine("l34");
+
+        double targetQ = 1.0;
+
+        // generator g2 regulates reactive power on line 4->3
+        // generator g5 regulates voltage
+        // they are both connected to the same bus
+        g2.setTargetQ(0).setVoltageRegulatorOn(false);
+        g2.newExtension(RemoteReactivePowerControlAdder.class)
+                .withTargetQ(targetQ)
+                .withRegulatingTerminal(l34.getTerminal(Branch.Side.TWO))
+                .withEnabled(true).add();
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(0.162232, l34.getTerminal(Branch.Side.TWO));
     }
 }
