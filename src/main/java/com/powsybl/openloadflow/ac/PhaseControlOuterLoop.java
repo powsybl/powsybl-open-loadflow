@@ -96,45 +96,37 @@ public class PhaseControlOuterLoop implements OuterLoop {
     }
 
     private OuterLoopStatus changeTapPositions(OuterLoopContext context, DiscretePhaseControl phaseControl) {
+        // only local control supported: controlled branch is controller branch.
         double currentLimit = phaseControl.getTargetValue();
         LfBranch controllerBranch = phaseControl.getController();
-        LfBranch controlledBranch = phaseControl.getControlled();
         PiModel piModel = controllerBranch.getPiModel();
         boolean isSensibilityPositive;
         boolean success = false;
-        if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE && currentLimit < controlledBranch.getI1().eval()) {
-            isSensibilityPositive = isSensitivityCurrentPerA1Positive(context.getVariableSet(),
-                    controlledBranch, controllerBranch, DiscretePhaseControl.ControlledSide.ONE);
+        if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE && currentLimit < controllerBranch.getI1().eval()) {
+            isSensibilityPositive = isSensitivityCurrentPerA1Positive(context.getVariableSet(), controllerBranch, DiscretePhaseControl.ControlledSide.ONE);
             success = isSensibilityPositive ? piModel.getNewTapPosition(PiModel.Direction.DECREASE) : piModel.getNewTapPosition(PiModel.Direction.INCREASE);
 
-        } else if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.TWO && currentLimit < controlledBranch.getI2().eval()) {
-            isSensibilityPositive = isSensitivityCurrentPerA1Positive(context.getVariableSet(),
-                    controlledBranch, controllerBranch, DiscretePhaseControl.ControlledSide.TWO);
+        } else if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.TWO && currentLimit < controllerBranch.getI2().eval()) {
+            isSensibilityPositive = isSensitivityCurrentPerA1Positive(context.getVariableSet(), controllerBranch, DiscretePhaseControl.ControlledSide.TWO);
             success = isSensibilityPositive ? piModel.getNewTapPosition(PiModel.Direction.DECREASE) : piModel.getNewTapPosition(PiModel.Direction.INCREASE);
         }
         return success ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE;
     }
 
-    boolean isSensitivityCurrentPerA1Positive(VariableSet variableSet, LfBranch controlledBranch,
-                                              LfBranch controllerBranch,
+    boolean isSensitivityCurrentPerA1Positive(VariableSet variableSet, LfBranch controllerBranch,
                                               DiscretePhaseControl.ControlledSide controlledSide) {
-        if (controlledBranch != controllerBranch) {
-            // Log a warning because the impact of PST angle on a remote branch is not known without computing a true sensitivity analysis
-            // For the moment, only equation system derivatives are used to assess the impact
-            // Below local impact is measured and remote impact is supposed to be the same
-            LOGGER.info("WARNING: remote current limiter phase control from branch {} on branch {} ", controllerBranch, controlledBranch);
-        }
-
         Variable a1Var = variableSet.getVariable(controllerBranch.getNum(), VariableType.BRANCH_ALPHA1);
         LfBus b1 = controllerBranch.getBus1();
         LfBus b2 = controllerBranch.getBus2();
         if (controlledSide == DiscretePhaseControl.ControlledSide.ONE) {
-            ClosedBranchSide1CurrentMagnitudeEquationTerm i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(controllerBranch, controllerBranch.getBus1(), controllerBranch.getBus2(), variableSet, true, false);
+            ClosedBranchSide1CurrentMagnitudeEquationTerm i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(controllerBranch,
+                    b1, b2, variableSet, true, false);
             i1.updateFromState(b1.getV().eval(), b2.getV().eval(),
                     Math.toRadians(b1.getAngle()), Math.toRadians(b2.getAngle()));
             return i1.der(a1Var) > 0;
         } else {
-            ClosedBranchSide2CurrentMagnitudeEquationTerm i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(controllerBranch, controllerBranch.getBus1(), controllerBranch.getBus2(), variableSet, true, false);
+            ClosedBranchSide2CurrentMagnitudeEquationTerm i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(controllerBranch,
+                    b1, b2, variableSet, true, false);
             i2.updateFromState(b1.getV().eval(), b2.getV().eval(),
                     Math.toRadians(b1.getAngle()), Math.toRadians(b2.getAngle()));
             return i2.der(a1Var) > 0;

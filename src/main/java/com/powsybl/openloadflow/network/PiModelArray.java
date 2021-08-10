@@ -149,7 +149,6 @@ public class PiModelArray implements PiModel {
 
     @Override
     public boolean getNewTapPosition(Direction direction) {
-        double a1 = getA1();
         double previousA1 = Double.NaN;
         double nextA1 = Double.NaN;
         if (tapPosition < lowTapPosition + models.size() - 1) {
