@@ -179,7 +179,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             if (!generators.isEmpty()) {
                 Optional<VoltageControl> voltageControl = controllerBus.getVoltageControl();
                 if (voltageControl.isPresent()) {
-                    LOGGER.warn("Bus " + controllerBus.getId() + " has both voltage and remote reactive power controls: only voltage control is kept");
+                    LOGGER.warn("Bus {} has both voltage and remote reactive power controls: only voltage control is kept", controllerBus.getId());
                     continue;
                 }
                 if (generators.size() == 1) {
@@ -187,12 +187,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                     LfBranch controlledBranch = lfGenerator.getControlledBranch(lfNetwork);
                     Optional<ReactivePowerControl> control = controlledBranch.getReactivePowerControl();
                     if (control.isPresent()) {
-                        LOGGER.warn("Branch " + controlledBranch.getId() + " is remotely controlled by a generator: no new remote reactive control created");
+                        LOGGER.warn("Branch {} is remotely controlled by a generator: no new remote reactive control created", controlledBranch.getId());
                     } else {
                         createRemoteReactivePowerControl(lfGenerator.getControlledBranch(lfNetwork), lfGenerator.getControlledBranchSide(), controllerBus, lfGenerator.getRemoteTargetQ());
                     }
                 } else if (generators.size() > 1) {
-                    LOGGER.warn("Bus " + controllerBus.getId() + " has more than one generator controlling reactive power remotely: not yet supported");
+                    LOGGER.warn("Bus {} has more than one generator controlling reactive power remotely: not yet supported", controllerBus.getId());
                 }
             }
         }

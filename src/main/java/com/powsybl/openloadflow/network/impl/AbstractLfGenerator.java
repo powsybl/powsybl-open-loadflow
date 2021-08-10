@@ -206,7 +206,6 @@ public abstract class AbstractLfGenerator implements LfGenerator {
             this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
                     ReactivePowerControl.ControlledSide.ONE : ReactivePowerControl.ControlledSide.TWO;
             this.controlledBranchId = l.getId();
-
         } else if (connectable instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer l = (TwoWindingsTransformer) connectable;
             this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
@@ -214,7 +213,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
             this.controlledBranchId = l.getId();
         } else {
             LOGGER.error("Generator '{}' is controlled by an instance of {}: not supported",
-                    getId(), connectable.getClass().toString());
+                    getId(), connectable.getClass());
             return;
         }
         this.hasReactivePowerControl = true;
