@@ -200,11 +200,24 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     }
 
     protected void setReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
+        Connectable connectable = regulatingTerminal.getConnectable();
+        if (connectable instanceof Line) {
+            Line l = (Line) connectable;
+            this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
+                    ReactivePowerControl.ControlledSide.ONE : ReactivePowerControl.ControlledSide.TWO;
+            this.controlledBranchId = l.getId();
+
+        } else if (connectable instanceof TwoWindingsTransformer) {
+            TwoWindingsTransformer l = (TwoWindingsTransformer) connectable;
+            this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
+                    ReactivePowerControl.ControlledSide.ONE : ReactivePowerControl.ControlledSide.TWO;
+            this.controlledBranchId = l.getId();
+        } else {
+            LOGGER.error("Generator '{}' is controlled by an instance of {}: not supported",
+                    getId(), connectable.getClass().toString());
+            return;
+        }
         this.hasReactivePowerControl = true;
-        Line l = (Line) regulatingTerminal.getConnectable();
-        this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
-                ReactivePowerControl.ControlledSide.ONE : ReactivePowerControl.ControlledSide.TWO;
-        this.controlledBranchId = l.getId();
         this.remoteTargetQ = targetQ / PerUnit.SB;
     }
 
