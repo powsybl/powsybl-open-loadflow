@@ -148,7 +148,7 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public boolean decreaseA1WithTapPositionIncrement() {
+    public boolean getNewTapPosition(Direction direction) {
         double a1 = getA1();
         double previousA1 = Double.NaN;
         double nextA1 = Double.NaN;
@@ -158,34 +158,16 @@ public class PiModelArray implements PiModel {
         if (tapPosition > lowTapPosition) {
             previousA1 = models.get(tapPosition - lowTapPosition - 1).getA1();
         }
-        if (previousA1 != Double.NaN && previousA1 < a1) {
-            tapPosition = tapPosition - 1;
+        if (previousA1 != Double.NaN &&
+                (direction == Direction.INCREASE && previousA1 > a1) ||
+                (direction == Direction.DECREASE && previousA1 < a1)) {
+            tapPosition--;
             return true;
         }
-        if (nextA1 != Double.NaN && nextA1 < a1) {
-            tapPosition = tapPosition + 1;
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public boolean increaseA1WithTapPositionIncrement() {
-        double a1 = getA1();
-        double previousA1 = Double.NaN;
-        double nextA1 = Double.NaN;
-        if (tapPosition < lowTapPosition + models.size() - 1) {
-            nextA1 = models.get(tapPosition - lowTapPosition + 1).getA1();
-        }
-        if (tapPosition > lowTapPosition) {
-            previousA1 = models.get(tapPosition - lowTapPosition - 1).getA1();
-        }
-        if (previousA1 != Double.NaN && previousA1 > a1) {
-            tapPosition = tapPosition - 1;
-            return true;
-        }
-        if (nextA1 != Double.NaN && nextA1 > a1) {
-            tapPosition = tapPosition + 1;
+        if (nextA1 != Double.NaN &&
+                (direction == Direction.INCREASE && nextA1 > a1) ||
+                (direction == Direction.DECREASE && nextA1 < a1)) {
+            tapPosition++;
             return true;
         }
         return false;

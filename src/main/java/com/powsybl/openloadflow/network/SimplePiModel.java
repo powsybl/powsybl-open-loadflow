@@ -126,12 +126,7 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
-    public boolean decreaseA1WithTapPositionIncrement() {
-        throw new IllegalStateException("No tap position in simple Pi model implementation");
-    }
-
-    @Override
-    public boolean increaseA1WithTapPositionIncrement() {
-        throw new IllegalStateException("No tap position in simple Pi model implementation");
+    public boolean getNewTapPosition(Direction direction) {
+        throw new IllegalStateException("No tap position change in simple Pi model implementation");
     }
 }

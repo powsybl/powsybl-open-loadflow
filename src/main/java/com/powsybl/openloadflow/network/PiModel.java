@@ -47,8 +47,10 @@ public interface PiModel {
 
     void roundR1ToClosestTap();
 
-    boolean decreaseA1WithTapPositionIncrement();
+    enum Direction {
+        INCREASE,
+        DECREASE
+    }
 
-    boolean increaseA1WithTapPositionIncrement();
-
+    boolean getNewTapPosition(Direction direction);
 }

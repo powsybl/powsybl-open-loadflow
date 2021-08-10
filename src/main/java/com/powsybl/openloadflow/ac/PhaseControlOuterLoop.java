@@ -76,7 +76,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .filter(dpc -> dpc.getMode() == DiscretePhaseControl.Mode.LIMITER)
-                .filter(dpc -> detectUnstability(context, dpc) == OuterLoopStatus.UNSTABLE)
+                .filter(dpc -> changeTapPositions(context, dpc) == OuterLoopStatus.UNSTABLE)
                 .collect(Collectors.toList());
 
         return phaseControlsUnstable.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
@@ -95,27 +95,24 @@ public class PhaseControlOuterLoop implements OuterLoop {
         LOGGER.info("Round phase shift of '{}': {} -> {}", controllerBranch.getId(), a1Value, roundedA1Value);
     }
 
-    private OuterLoopStatus detectUnstability(OuterLoopContext context, DiscretePhaseControl phaseControl) {
-        OuterLoopStatus status = OuterLoopStatus.STABLE;
+    private OuterLoopStatus changeTapPositions(OuterLoopContext context, DiscretePhaseControl phaseControl) {
         double currentLimit = phaseControl.getTargetValue();
         LfBranch controllerBranch = phaseControl.getController();
         LfBranch controlledBranch = phaseControl.getControlled();
-
+        PiModel piModel = controllerBranch.getPiModel();
+        boolean isSensibilityPositive;
+        boolean success = false;
         if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE && currentLimit < controlledBranch.getI1().eval()) {
-            PiModel piModel = controllerBranch.getPiModel();
-            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(context.getVariableSet(),
+            isSensibilityPositive = isSensitivityCurrentPerA1Positive(context.getVariableSet(),
                     controlledBranch, controllerBranch, DiscretePhaseControl.ControlledSide.ONE);
-            boolean success = isSensibilityPositive ? piModel.decreaseA1WithTapPositionIncrement() : piModel.increaseA1WithTapPositionIncrement();
-            status = success ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE;
+            success = isSensibilityPositive ? piModel.getNewTapPosition(PiModel.Direction.DECREASE) : piModel.getNewTapPosition(PiModel.Direction.INCREASE);
 
-        } else if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.TWO && currentLimit < controlledBranch.getI1().eval()) {
-            PiModel piModel = controllerBranch.getPiModel();
-            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(context.getVariableSet(),
+        } else if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.TWO && currentLimit < controlledBranch.getI2().eval()) {
+            isSensibilityPositive = isSensitivityCurrentPerA1Positive(context.getVariableSet(),
                     controlledBranch, controllerBranch, DiscretePhaseControl.ControlledSide.TWO);
-            boolean success = isSensibilityPositive ? piModel.decreaseA1WithTapPositionIncrement() : piModel.increaseA1WithTapPositionIncrement();
-            status = success ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE;
+            success = isSensibilityPositive ? piModel.getNewTapPosition(PiModel.Direction.DECREASE) : piModel.getNewTapPosition(PiModel.Direction.INCREASE);
         }
-        return status;
+        return success ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE;
     }
 
     boolean isSensitivityCurrentPerA1Positive(VariableSet variableSet, LfBranch controlledBranch,
