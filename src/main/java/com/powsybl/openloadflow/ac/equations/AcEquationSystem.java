@@ -336,7 +336,7 @@ public final class AcEquationSystem {
         EquationTerm i1 = null;
         EquationTerm i2 = null;
         boolean deriveA1 = creationParameters.isPhaseControl() && branch.isPhaseController()
-                && branch.getDiscretePhaseControl().filter(dpc -> dpc.getMode() == DiscretePhaseControl.Mode.CONTROLLER).isPresent();
+                && branch.getDiscretePhaseControl().filter(dpc -> dpc.getMode() != DiscretePhaseControl.Mode.OFF).isPresent();
         deriveA1 = deriveA1 || (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability());
         boolean createCurrent = creationParameters.getBranchesWithCurrent() == null || creationParameters.getBranchesWithCurrent().contains(branch.getId());
         boolean deriveR1 = creationParameters.isTransformerVoltageControl() && branch.isVoltageController();
@@ -402,7 +402,8 @@ public final class AcEquationSystem {
             branch.setQ2(q2);
         }
 
-        if (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability()) {
+        if ((creationParameters.isForceA1Var() && branch.hasPhaseControlCapability()) || (creationParameters.isPhaseControl() && branch.isPhaseController()
+                && branch.getDiscretePhaseControl().filter(dpc -> dpc.getMode() == Mode.LIMITER).isPresent())) {
             equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_ALPHA1)
                 .addTerm(EquationTerm.createVariableTerm(branch, VariableType.BRANCH_ALPHA1, variableSet));
         }

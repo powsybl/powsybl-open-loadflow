@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationType;
-import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.List;
@@ -128,6 +125,18 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                 equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_RHO1)
                         .setActive(false);
             }
+        }
+    }
+
+    @Override
+    public void onPhaseControlTapChange(DiscretePhaseControl phaseControl) {
+        // for limiter mode only, after a tap changes.
+        if (phaseControl.getMode() == DiscretePhaseControl.Mode.LIMITER) {
+            LfBranch controllerBranch = phaseControl.getController();
+            equationSystem.removeEquation(controllerBranch.getNum(), EquationType.BRANCH_ALPHA1);
+
+            equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_ALPHA1)
+                    .addTerm(EquationTerm.createVariableTerm(controllerBranch, VariableType.BRANCH_ALPHA1, variableSet));
         }
     }
 }

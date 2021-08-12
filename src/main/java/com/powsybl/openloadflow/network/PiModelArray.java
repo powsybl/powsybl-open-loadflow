@@ -149,24 +149,27 @@ public class PiModelArray implements PiModel {
 
     @Override
     public boolean getNewTapPosition(Direction direction) {
+        this.a1 = getA1();
         double previousA1 = Double.NaN;
         double nextA1 = Double.NaN;
         if (tapPosition < lowTapPosition + models.size() - 1) {
-            nextA1 = models.get(tapPosition - lowTapPosition + 1).getA1();
+            nextA1 = models.get(tapPosition - lowTapPosition + 1).getA1(); // abs?
         }
         if (tapPosition > lowTapPosition) {
-            previousA1 = models.get(tapPosition - lowTapPosition - 1).getA1();
+            previousA1 = models.get(tapPosition - lowTapPosition - 1).getA1(); // abs?
         }
         if (previousA1 != Double.NaN &&
-                (direction == Direction.INCREASE && previousA1 > a1) ||
-                (direction == Direction.DECREASE && previousA1 < a1)) {
-            tapPosition--;
+                ((direction == Direction.INCREASE && previousA1 > a1) || (direction == Direction.DECREASE && previousA1 < a1))) {
+            tapPosition = tapPosition - 1;
+            LOGGER.info("New tap position {} ", tapPosition);
+            a1 = Double.NaN;
             return true;
         }
         if (nextA1 != Double.NaN &&
-                (direction == Direction.INCREASE && nextA1 > a1) ||
-                (direction == Direction.DECREASE && nextA1 < a1)) {
-            tapPosition++;
+                ((direction == Direction.INCREASE && nextA1 > a1) || (direction == Direction.DECREASE && nextA1 < a1))) {
+            tapPosition = tapPosition + 1;
+            LOGGER.info("New tap position {} ", tapPosition);
+            a1 = Double.NaN;
             return true;
         }
         return false;

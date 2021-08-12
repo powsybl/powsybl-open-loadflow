@@ -24,4 +24,6 @@ public interface LfNetworkListener {
     void onGenerationActivePowerTargetChange(LfGenerator generator, double oldGenerationTargetP, double newGenerationTargetP);
 
     void onGenerationReactivePowerTargetChange(LfBus bus, double oldGenerationTargetQ, double newGenerationTargetQ);
+
+    void onPhaseControlTapChange(DiscretePhaseControl phaseControl);
 }

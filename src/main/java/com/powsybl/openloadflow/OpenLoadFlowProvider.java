@@ -11,6 +11,7 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
@@ -120,7 +121,14 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
                                                           OpenLoadFlowParameters parametersExt, boolean breakers) {
-        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false, null);
+        Set<String> branchesWithCurrent = null;
+        if (parameters.isPhaseShifterRegulationOn()) {
+            branchesWithCurrent = network.getTwoWindingsTransformerStream()
+                    .filter(twt -> twt.getPhaseTapChanger() != null && twt.getPhaseTapChanger().getRegulationMode() == PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
+                    .map(twt -> twt.getId())
+                    .collect(Collectors.toSet());
+        }
+        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false, branchesWithCurrent);
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,

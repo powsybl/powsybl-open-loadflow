@@ -53,7 +53,7 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
         double ph1 = x[ph1Var.getRow()];
         double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
         double a1 = a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1();
-        updateWithState(v1, v2, ph1, ph2, r1, a1);
+        updateCurrent(v1, v2, ph1, ph2, r1, a1); // FIXME: should be optional
     }
 
     @Override
@@ -84,11 +84,7 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
         return "ac_i_closed_2";
     }
 
-    public void updateFromState(double v1, double v2, double ph1, double ph2) {
-        updateWithState(v1, v2, ph1, ph2, branch.getPiModel().getR1(), branch.getPiModel().getA1());
-    }
-
-    private void updateWithState(double v1, double v2, double ph1, double ph2, double r1, double a1) {
+    private void updateCurrent(double v1, double v2, double ph1, double ph2, double r1, double a1) {
         double w2 = R2 * v2;
         double w1 = y * r1 * v1;
         double cosPh2 = FastMath.cos(ph2);
