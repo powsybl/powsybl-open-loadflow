@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -157,12 +158,15 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
                 controllerBus.setVoltageControllerEnabled(true);
                 if (pqToPvBus.voltageLimitDirection != null) {
                     controllerBus.getGenerators().stream().forEach(gen -> gen.setStandByAutomaton(false));
-                    // For static var compensator in stand by only.
-                    if (pqToPvBus.voltageLimitDirection.equals(VoltageLimitDirection.MAX)) {
-                        pqToPvBus.controllerBus.getVoltageControl().get().setTargetValue(pqToPvBus.controllerBus.getGenerators().get(0).getHighTargetV());
-                    }
-                    if (pqToPvBus.voltageLimitDirection.equals(VoltageLimitDirection.MIN)) {
-                        pqToPvBus.controllerBus.getVoltageControl().get().setTargetValue(pqToPvBus.controllerBus.getGenerators().get(0).getLowTargetV());
+                    Optional<VoltageControl> vc = pqToPvBus.controllerBus.getVoltageControl();
+                    if (vc.isPresent()) {
+                        // For static var compensator in stand by only.
+                        if (pqToPvBus.voltageLimitDirection.equals(VoltageLimitDirection.MAX)) {
+                            vc.get().setTargetValue(pqToPvBus.controllerBus.getGenerators().get(0).getHighTargetV());
+                        }
+                        if (pqToPvBus.voltageLimitDirection.equals(VoltageLimitDirection.MIN)) {
+                            vc.get().setTargetValue(pqToPvBus.controllerBus.getGenerators().get(0).getLowTargetV());
+                        }
                     }
                 }
                 controllerBus.setGenerationTargetQ(0);
