@@ -56,4 +56,16 @@ public interface LfGenerator {
     double getSlope();
 
     void setSlope(double slope);
+
+    boolean isStandByAutomaton();
+
+    void setStandByAutomaton(boolean standByAutomaton);
+
+    double getLowTargetV();
+
+    double getHighTargetV();
+
+    double getLowVoltageThreshold();
+
+    double getHighVoltageThreshold();
 }

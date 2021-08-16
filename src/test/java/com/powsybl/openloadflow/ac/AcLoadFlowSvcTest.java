@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -301,5 +302,67 @@ class AcLoadFlowSvcTest {
         assertReactivePowerEquals(-165.413, l1.getTerminal2());
         assertActivePowerEquals(0, svc1.getTerminal());
         assertReactivePowerEquals(115.413, svc1.getTerminal());
+    }
+
+    @Test
+    void testStandByAutomaton() {
+        svc1.setVoltageSetPoint(385)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE); // needed, FIXME?
+        svc1.newExtension(StandbyAutomatonAdder.class)
+                .withHighVoltageThreshold(400)
+                .withLowVoltageThreshold(380)
+                .withLowVoltageSetPoint(385)
+                .withHighVoltageSetPoint(395)
+                .withB0(-0.001)
+                .withStandbyStatus(true)
+                .add();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertReactivePowerEquals(160, svc1.getTerminal());
+        assertVoltageEquals(387.338, bus2);
+    }
+
+    @Test
+    void testStandByAutomaton2() {
+        svc1.setVoltageSetPoint(385)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE); // needed, FIXME?
+        svc1.newExtension(StandbyAutomatonAdder.class)
+                .withHighVoltageThreshold(397)
+                .withLowVoltageThreshold(383)
+                .withLowVoltageSetPoint(384)
+                .withHighVoltageSetPoint(395)
+                .withB0(-0.005)
+                .withStandbyStatus(true)
+                .add();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertReactivePowerEquals(584.132, svc1.getTerminal());
+        assertVoltageEquals(384.0, bus2);
+    }
+
+    @Test
+    void testStandByAutomaton3() {
+        svc1.setVoltageSetPoint(385)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        network.getGenerator("g1").setTargetV(405);
+
+        svc1.newExtension(StandbyAutomatonAdder.class)
+                .withHighVoltageThreshold(397)
+                .withLowVoltageThreshold(383)
+                .withLowVoltageSetPoint(384)
+                .withHighVoltageSetPoint(395)
+                .withB0(-0.005)
+                .withStandbyStatus(true)
+                .add();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertReactivePowerEquals(1132.001, svc1.getTerminal());
+        assertVoltageEquals(395.0, bus2);
     }
 }

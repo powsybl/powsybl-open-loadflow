@@ -355,6 +355,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
+    private static void fixGeneratorsInStandBy(LfNetwork lfNetwork) {
+        for (LfBus bus : lfNetwork.getBuses()) {
+            for (LfGenerator gen : bus.getGenerators()) {
+                if (gen.isStandByAutomaton()) {
+                    bus.setVoltageControllerEnabled(false); //FIXME
+                }
+            }
+        }
+    }
+
     private static void mergeVoltageControls(Set<LfBus> zeroImpedanceConnectedSet, boolean transformerVoltageControl) {
         // Get the list of voltage controls from controlled buses in the zero impedance connected set
         List<VoltageControl> voltageControls = zeroImpedanceConnectedSet.stream().filter(LfBus::isVoltageControlled)
@@ -544,6 +554,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
         // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
         fixAllVoltageControls(lfNetwork, parameters.isMinImpedance(), parameters.isTransformerVoltageControl());
+
+        fixGeneratorsInStandBy(lfNetwork);
 
         if (!parameters.isMinImpedance()) {
             // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph

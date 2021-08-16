@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.StandbyAutomaton;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
 import com.powsybl.openloadflow.network.PerUnit;
 
@@ -25,6 +26,18 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     double nominalV;
 
     private double slope = 0;
+
+    private boolean standby = false;
+
+    private double targetQ0;
+
+    private double highVoltageThreshold;
+
+    private double lowVoltageThreshold;
+
+    private double highTargetV = Double.NaN;
+
+    private double lowTargetV = Double.NaN;
 
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc, AbstractLfBus bus, boolean voltagePerReactivePowerControl, boolean breakers, LfNetworkLoadingReport report) {
         super(0);
@@ -65,6 +78,15 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
             if (voltagePerReactivePowerControl && svc.getExtension(VoltagePerReactivePowerControl.class) != null) {
                 this.slope = svc.getExtension(VoltagePerReactivePowerControl.class).getSlope() * PerUnit.SB / nominalV;
             }
+            StandbyAutomaton standbyAutomaton = svc.getExtension(StandbyAutomaton.class);
+            if (standbyAutomaton != null) {
+                standby = standbyAutomaton.isStandby();
+                targetQ0 = standbyAutomaton.getB0() * nominalV * nominalV;
+                lowTargetV = standbyAutomaton.getLowVoltageSetPoint() / nominalV;
+                highTargetV = standbyAutomaton.getHighVoltageSetPoint() / nominalV;
+                lowVoltageThreshold = standbyAutomaton.getLowVoltageThreshold() / nominalV;
+                highVoltageThreshold = standbyAutomaton.getHighVoltageThreshold() / nominalV;
+            }
         }
     }
 
@@ -80,7 +102,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return -svc.getReactivePowerSetPoint() / PerUnit.SB;
+        return !standby ? -svc.getReactivePowerSetPoint() / PerUnit.SB : targetQ0 / PerUnit.SB;
     }
 
     @Override
@@ -123,5 +145,35 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     @Override
     public void setSlope(double slope) {
         this.slope = slope;
+    }
+
+    @Override
+    public boolean isStandByAutomaton() {
+        return this.standby;
+    }
+
+    @Override
+    public void setStandByAutomaton(boolean standByAutomaton) {
+        this.standby = standByAutomaton;
+    }
+
+    @Override
+    public double getLowTargetV() {
+        return lowTargetV;
+    }
+
+    @Override
+    public double getHighTargetV() {
+        return highTargetV;
+    }
+
+    @Override
+    public double getLowVoltageThreshold() {
+        return lowVoltageThreshold;
+    }
+
+    @Override
+    public double getHighVoltageThreshold() {
+        return highVoltageThreshold;
     }
 }

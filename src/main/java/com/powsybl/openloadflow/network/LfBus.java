@@ -136,4 +136,6 @@ public interface LfBus extends LfElement {
     boolean isParticipating();
 
     BusResults createBusResult();
+
+    boolean hasStandByAutomaton();
 }

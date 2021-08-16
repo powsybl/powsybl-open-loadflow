@@ -75,6 +75,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected Evaluable q = NAN;
 
+    private boolean hasStandByAutomaton = false;
+
     protected AbstractLfBus(LfNetwork network, double v, double angle) {
         super(network);
         this.v = () -> v / getNominalV(); // this will be replaced by an equation term once the equationSystem is created
@@ -238,7 +240,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected void add(LfGenerator generator) {
         generators.add(generator);
         generator.setBus(this);
-        if (!generator.hasVoltageControl() && !Double.isNaN(generator.getTargetQ())) {
+        if ((!generator.hasVoltageControl() || generator.isStandByAutomaton()) && !Double.isNaN(generator.getTargetQ())) {
             generationTargetQ += generator.getTargetQ() * PerUnit.SB;
         }
     }
@@ -253,6 +255,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             add(lfSvc);
             if (lfSvc.getSlope() != 0) {
                 hasGeneratorsWithSlope = true;
+            }
+            if (lfSvc.isStandByAutomaton()) {
+                hasStandByAutomaton = true;
             }
         }
     }
@@ -523,5 +528,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public String toString() {
         return getId();
+    }
+
+    @Override
+    public boolean hasStandByAutomaton() {
+        return hasStandByAutomaton;
     }
 }

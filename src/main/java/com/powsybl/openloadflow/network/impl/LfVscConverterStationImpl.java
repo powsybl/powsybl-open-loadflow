@@ -95,4 +95,34 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     public void setSlope(double slope) {
         // nothing to do
     }
+
+    @Override
+    public boolean isStandByAutomaton() {
+        return false;
+    }
+
+    @Override
+    public void setStandByAutomaton(boolean standByAutomaton) {
+        // nothing to do
+    }
+
+    @Override
+    public double getLowTargetV() {
+        return Double.NaN;
+    }
+
+    @Override
+    public double getHighTargetV() {
+        return Double.NaN;
+    }
+
+    @Override
+    public double getLowVoltageThreshold() {
+        return Double.NaN;
+    }
+
+    @Override
+    public double getHighVoltageThreshold() {
+        return Double.NaN;
+    }
 }

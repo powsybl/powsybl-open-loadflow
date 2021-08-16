@@ -79,7 +79,7 @@ public final class AcEquationSystem {
             createBusWithSlopeEquation(bus, slope, creationParameters, variableSet, equationSystem, vTerm);
             return;
         }
-        equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm);
+        equationSystem.createEquation(bus.getNum(), EquationType.BUS_V).addTerm(vTerm).setActive(bus.isVoltageControllerEnabled());
     }
 
     private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus) {
@@ -94,18 +94,17 @@ public final class AcEquationSystem {
                                                             AcEquationSystemCreationParameters creationParameters) {
         LfBus controlledBus = voltageControl.getControlledBus();
 
-        // create voltage equation at voltage controlled bus
-        EquationTerm vTerm = EquationTerm.createVariableTerm(controlledBus, VariableType.BUS_V, variableSet, controlledBus.getV().eval());
-        Equation vEq = equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V)
-                .addTerm(vTerm);
-        controlledBus.setV(vTerm);
-
         List<LfBus> controllerBuses = voltageControl.getControllerBuses().stream()
                 .filter(LfBus::isVoltageControllerEnabled)
                 .collect(Collectors.toList());
-        if (controllerBuses.isEmpty()) {
-            vEq.setActive(false);
-        } else {
+
+        if (!controllerBuses.isEmpty()) {
+            // create voltage equation at voltage controlled bus
+            EquationTerm vTerm = EquationTerm.createVariableTerm(controlledBus, VariableType.BUS_V, variableSet, controlledBus.getV().eval());
+            equationSystem.createEquation(controlledBus.getNum(), EquationType.BUS_V)
+                    .addTerm(vTerm);
+            controlledBus.setV(vTerm);
+
             // create reactive power distribution equations at voltage controller buses (except one)
             createReactivePowerDistributionEquations(equationSystem, variableSet, creationParameters, controllerBuses);
         }
