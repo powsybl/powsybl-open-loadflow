@@ -85,14 +85,4 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
                 .setP(-targetP)
                 .setQ(Double.isNaN(calculatedQ) ? -station.getReactivePowerSetpoint() : -calculatedQ);
     }
-
-    @Override
-    public double getSlope() {
-        return 0;
-    }
-
-    @Override
-    public void setSlope(double slope) {
-        // nothing to do
-    }
 }
