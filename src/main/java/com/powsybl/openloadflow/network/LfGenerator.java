@@ -41,9 +41,13 @@ public interface LfGenerator {
 
     double getMaxRangeQ();
 
-    boolean isParticipating();
+    default boolean isParticipating() {
+        return false;
+    }
 
-    double getDroop();
+    default double getDroop() {
+        return 0;
+    }
 
     double getCalculatedQ();
 
@@ -53,7 +57,11 @@ public interface LfGenerator {
 
     LfBus getControlledBus(LfNetwork lfNetwork);
 
-    double getSlope();
+    default double getSlope() {
+        return 0;
+    }
 
-    void setSlope(double slope);
+    default void setSlope(double slope) {
+        // nothing to do
+    }
 }
