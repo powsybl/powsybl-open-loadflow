@@ -146,32 +146,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
-    public boolean isStandByAutomaton() {
-        return false;
-    }
-
-    @Override
     public void setStandByAutomaton(boolean standByAutomaton) {
         // nothing to do
-    }
-
-    @Override
-    public double getLowTargetV() {
-        return Double.NaN;
-    }
-
-    @Override
-    public double getHighTargetV() {
-        return Double.NaN;
-    }
-
-    @Override
-    public double getLowVoltageThreshold() {
-        return Double.NaN;
-    }
-
-    @Override
-    public double getHighVoltageThreshold() {
-        return Double.NaN;
     }
 }

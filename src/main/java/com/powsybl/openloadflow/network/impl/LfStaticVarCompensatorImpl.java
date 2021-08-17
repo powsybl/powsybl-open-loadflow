@@ -29,11 +29,11 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     private boolean standby = false;
 
-    private double targetQ0;
+    private double targetQ0 = Double.NaN;
 
-    private double highVoltageThreshold;
+    private double highVoltageThreshold = Double.NaN;
 
-    private double lowVoltageThreshold;
+    private double lowVoltageThreshold = Double.NaN;
 
     private double highTargetV = Double.NaN;
 
@@ -102,7 +102,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return !standby ? -svc.getReactivePowerSetPoint() / PerUnit.SB : targetQ0 / PerUnit.SB;
+        return !standby ? -svc.getReactivePowerSetpoint() / PerUnit.SB : targetQ0 / PerUnit.SB;
     }
 
     @Override

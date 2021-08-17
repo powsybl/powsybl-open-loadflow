@@ -57,15 +57,27 @@ public interface LfGenerator {
 
     void setSlope(double slope);
 
-    boolean isStandByAutomaton();
+    default boolean isStandByAutomaton() {
+        return false;
+    }
 
-    void setStandByAutomaton(boolean standByAutomaton);
+    default void setStandByAutomaton(boolean standByAutomaton) {
+        // nothing to do
+    }
 
-    double getLowTargetV();
+    default double getLowTargetV() {
+        return Double.NaN;
+    }
 
-    double getHighTargetV();
+    default double getHighTargetV() {
+        return Double.NaN;
+    }
 
-    double getLowVoltageThreshold();
+    default double getLowVoltageThreshold() {
+        return Double.NaN;
+    }
 
-    double getHighVoltageThreshold();
+    default double getHighVoltageThreshold() {
+        return Double.NaN;
+    }
 }
