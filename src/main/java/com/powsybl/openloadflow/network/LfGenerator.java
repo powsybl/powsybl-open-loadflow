@@ -41,9 +41,13 @@ public interface LfGenerator {
 
     double getMaxRangeQ();
 
-    boolean isParticipating();
+    default boolean isParticipating() {
+        return false;
+    }
 
-    double getDroop();
+    default double getDroop() {
+        return 0;
+    }
 
     double getCalculatedQ();
 
