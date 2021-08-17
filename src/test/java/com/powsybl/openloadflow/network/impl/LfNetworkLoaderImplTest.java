@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -125,5 +126,30 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         LfBus lfStarBus = mainNetwork.getBusById("3WT_BUS0");
         assertTrue(lfStarBus instanceof LfStarBus);
         assertEquals(voltageLevelLeg1.getId(), lfStarBus.getVoltageLevelId());
+    }
+
+    @Test
+    void defaultMethodsTest() {
+        network = EurostagTutorialExample1Factory.create();
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        LfGenerator generator = mainNetwork.getBusById("VLGEN_0").getGenerators().get(0);
+        assertEquals(0, generator.getSlope(), 10E-3);
+        generator.setSlope(10);
+        assertEquals(0, generator.getSlope(), 10E-3);
+    }
+
+    @Test
+    void defaultMethodsTest2() {
+        network = DanglingLineFactory.create();
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        LfBus lfDanglingLineBus = mainNetwork.getBusById("dl1_BUS");
+        LfGenerator generator = lfDanglingLineBus.getGenerators().get(0);
+        assertEquals(0, generator.getDroop(), 10E-3);
     }
 }
