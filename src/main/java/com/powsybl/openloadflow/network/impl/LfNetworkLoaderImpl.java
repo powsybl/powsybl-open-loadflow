@@ -467,7 +467,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             double targetDeadband;
             DiscretePhaseControl phaseControl = null;
             if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
-                if (controlledBranch == controllerBranch) {
+                if (controlledBranch == controllerBranch && controlledBus != null) {
                     targetValue = ptc.getRegulationValue() / PerUnit.ib(controlledBus.getNominalV());
                     targetDeadband = ptc.getTargetDeadband() / PerUnit.ib(controlledBus.getNominalV());
                     phaseControl = new DiscretePhaseControl(controllerBranch, controlledBranch, controlledSide,

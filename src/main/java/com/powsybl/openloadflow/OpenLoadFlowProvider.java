@@ -12,6 +12,7 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.PhaseTapChanger;
+import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
@@ -126,7 +127,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         if (parameters.isPhaseShifterRegulationOn()) {
             branchesWithCurrent = network.getTwoWindingsTransformerStream()
                     .filter(twt -> twt.getPhaseTapChanger() != null && twt.getPhaseTapChanger().getRegulationMode() == PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
-                    .map(twt -> twt.getId())
+                    .map(TwoWindingsTransformer::getId)
                     .collect(Collectors.toSet());
         }
         return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false, branchesWithCurrent);
