@@ -376,7 +376,7 @@ public final class AcEquationSystem {
         }
         if (q1 != null) {
             Equation sq1 = equationSystem.createEquation(bus1.getNum(), EquationType.BUS_Q);
-            if (sq1.getTerms().isEmpty()) {
+            if (sq1.getTerms().isEmpty() || hasShuntTerms(sq1)) {
                 bus1.setQ(sq1);
             }
             sq1.addTerm(q1);
@@ -395,7 +395,7 @@ public final class AcEquationSystem {
         }
         if (q2 != null) {
             Equation sq2 = equationSystem.createEquation(bus2.getNum(), EquationType.BUS_Q);
-            if (sq2.getTerms().isEmpty()) {
+            if (sq2.getTerms().isEmpty() || hasShuntTerms(sq2)) {
                 bus2.setQ(sq2);
             }
             sq2.addTerm(q2);
@@ -418,6 +418,13 @@ public final class AcEquationSystem {
             i.setUpdateType(EquationSystem.EquationUpdateType.AFTER_NR); // only update those equations after the newton raphson
             branch.setI2(i2);
         }
+    }
+
+    private static boolean hasShuntTerms(Equation equation) {
+        Optional<Boolean> hasTerm =  equation.getTerms().stream()
+                .map(equationTerm -> equationTerm instanceof ShuntCompensatorReactiveFlowEquationTerm)
+                .findAny();
+        return hasTerm.isPresent();
     }
 
     private static void createBranchEquations(LfNetwork network, VariableSet variableSet, AcEquationSystemCreationParameters creationParameters,
