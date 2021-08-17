@@ -68,7 +68,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
         // at second outer loop iteration we switch on phase control for branches that are in limiter mode
         // and a current greater than the limit
         // phase control consists in increasing or decreasing tap position to limit the current
-        List<DiscretePhaseControl> phaseControlsUnstable = context.getNetwork().getBranches().stream()
+        List<DiscretePhaseControl> unstablePhaseControls = context.getNetwork().getBranches().stream()
                 .map(branch -> branch.getDiscretePhaseControl().filter(dpc -> branch.isPhaseControlled()))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
@@ -76,7 +76,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
                 .filter(dpc -> changeTapPositions(context, dpc) == OuterLoopStatus.UNSTABLE)
                 .collect(Collectors.toList());
 
-        return phaseControlsUnstable.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
+        return unstablePhaseControls.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
     }
 
     private void switchOffPhaseControl(DiscretePhaseControl phaseControl) {

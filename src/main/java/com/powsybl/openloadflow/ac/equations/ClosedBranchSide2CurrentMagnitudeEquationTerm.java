@@ -53,7 +53,7 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
         double ph1 = x[ph1Var.getRow()];
         double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
         double a1 = a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1();
-        updateCurrent(v1, v2, ph1, ph2, r1, a1); // FIXME: should be optional
+        updateCurrent(v1, v2, ph1, ph2, r1, a1);
     }
 
     @Override
