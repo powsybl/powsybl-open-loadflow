@@ -47,7 +47,7 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onPhaseControlTapChange(DiscretePhaseControl phaseControl) {
+    public void onPhaseControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition) {
         // empty
     }
 }

@@ -127,16 +127,4 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             }
         }
     }
-
-    @Override
-    public void onPhaseControlTapChange(DiscretePhaseControl phaseControl) {
-        // for limiter mode only, after a tap changes.
-        if (phaseControl.getMode() == DiscretePhaseControl.Mode.LIMITER) {
-            LfBranch controllerBranch = phaseControl.getController();
-            equationSystem.removeEquation(controllerBranch.getNum(), EquationType.BRANCH_ALPHA1);
-
-            equationSystem.createEquation(controllerBranch.getNum(), EquationType.BRANCH_ALPHA1)
-                    .addTerm(EquationTerm.createVariableTerm(controllerBranch, VariableType.BRANCH_ALPHA1, variableSet));
-        }
-    }
 }

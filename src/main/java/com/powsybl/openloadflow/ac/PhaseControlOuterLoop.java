@@ -101,15 +101,10 @@ public class PhaseControlOuterLoop implements OuterLoop {
         boolean success = false;
         if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE && currentLimit < controllerBranch.getI1().eval()) {
             isSensibilityPositive = isSensitivityCurrentPerA1Positive(context.getVariableSet(), controllerBranch, DiscretePhaseControl.ControlledSide.ONE);
-            success = isSensibilityPositive ? piModel.getNewTapPosition(PiModel.Direction.DECREASE) : piModel.getNewTapPosition(PiModel.Direction.INCREASE);
+            success = isSensibilityPositive ? piModel.updateTapPosition(PiModel.Direction.DECREASE) : piModel.updateTapPosition(PiModel.Direction.INCREASE);
         } else if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.TWO && currentLimit < controllerBranch.getI2().eval()) {
             isSensibilityPositive = isSensitivityCurrentPerA1Positive(context.getVariableSet(), controllerBranch, DiscretePhaseControl.ControlledSide.TWO);
-            success = isSensibilityPositive ? piModel.getNewTapPosition(PiModel.Direction.DECREASE) : piModel.getNewTapPosition(PiModel.Direction.INCREASE);
-        }
-        if (success) {
-            for (LfNetworkListener listener : controllerBranch.getNetwork().getListeners()) {
-                listener.onPhaseControlTapChange(phaseControl); // FIXME
-            }
+            success = isSensibilityPositive ? piModel.updateTapPosition(PiModel.Direction.DECREASE) : piModel.updateTapPosition(PiModel.Direction.INCREASE);
         }
         return success ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE;
     }

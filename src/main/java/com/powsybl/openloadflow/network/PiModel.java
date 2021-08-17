@@ -52,5 +52,5 @@ public interface PiModel {
         DECREASE
     }
 
-    boolean getNewTapPosition(Direction direction);
+    boolean updateTapPosition(Direction direction);
 }
