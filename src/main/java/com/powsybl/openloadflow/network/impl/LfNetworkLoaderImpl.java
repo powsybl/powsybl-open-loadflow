@@ -430,6 +430,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     private static void checkVcUniqueTargetV(List<VoltageControl> voltageControls) {
+        // To check uniqueness we take the target value which will be kept as reference.
+        // The kept target value is the highest, it corresponds to the last voltage control in the ordered list.
         VoltageControl vcRef = voltageControls.get(voltageControls.size() - 1);
         boolean uniqueTargetV = voltageControls.stream().noneMatch(vc -> FastMath.abs(vc.getTargetValue() - vcRef.getTargetValue()) > TARGET_V_EPSILON);
         if (!uniqueTargetV) {
@@ -441,6 +443,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     private static void checkDvcUniqueTargetV(List<DiscreteVoltageControl> discreteVoltageControls) {
+        // To check uniqueness we take the target value which will be kept as reference.
+        // The kept target value is the highest, it corresponds to the last discrete voltage control in the ordered list.
         DiscreteVoltageControl dvcRef = discreteVoltageControls.get(discreteVoltageControls.size() - 1);
         boolean uniqueTargetV = discreteVoltageControls.stream().noneMatch(dvc -> FastMath.abs(dvc.getTargetValue() - dvcRef.getTargetValue()) > TARGET_V_EPSILON);
         if (!uniqueTargetV) {
