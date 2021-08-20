@@ -6,10 +6,12 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,7 +52,9 @@ public interface LfBranch extends LfElement {
 
     List<AbstractLfBranch.LfLimit> getLimits1(LimitType type);
 
-    List<AbstractLfBranch.LfLimit> getLimits2(LimitType type);
+    default List<AbstractLfBranch.LfLimit> getLimits2(LimitType type) {
+        return Collections.emptyList();
+    }
 
     boolean hasPhaseControlCapability();
 
@@ -72,7 +76,9 @@ public interface LfBranch extends LfElement {
 
     void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
 
-    BranchResult createBranchResult();
+    default BranchResult createBranchResult() {
+        throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
+    }
 
     boolean isDisabled();
 

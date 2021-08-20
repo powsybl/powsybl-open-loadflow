@@ -65,16 +65,6 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     }
 
     @Override
-    public boolean isParticipating() {
-        return false;
-    }
-
-    @Override
-    public double getDroop() {
-        return 0;
-    }
-
-    @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
         return Optional.of(station.getReactiveLimits());
     }
@@ -84,15 +74,5 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
         station.getTerminal()
                 .setP(-targetP)
                 .setQ(Double.isNaN(calculatedQ) ? -station.getReactivePowerSetpoint() : -calculatedQ);
-    }
-
-    @Override
-    public double getSlope() {
-        return 0;
-    }
-
-    @Override
-    public void setSlope(double slope) {
-        // nothing to do
     }
 }

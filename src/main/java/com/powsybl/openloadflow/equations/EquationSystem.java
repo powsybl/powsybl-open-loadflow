@@ -34,54 +34,66 @@ public class EquationSystem {
 
     private class EquationCache implements EquationSystemListener {
 
-        private boolean invalide = false;
-
         private final NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> sortedEquationsToSolve = new TreeMap<>();
 
-        private final NavigableSet<Variable> sortedVariablesToFind = new TreeSet<>();
+        private final NavigableMap<Variable, Set<Equation>> sortedVariablesToFind = new TreeMap<>();
+
+        private final Set<Equation> equationsToRemove = new HashSet<>();
+
+        private final Set<Equation> equationsToAdd = new HashSet<>();
 
         private void update() {
-            if (!invalide) {
-                return;
+            if (reIndex()) {
+                int columnCount = 0;
+                for (Equation equation : sortedEquationsToSolve.keySet()) {
+                    equation.setColumn(columnCount++);
+                }
+
+                int rowCount = 0;
+                for (Variable variable : sortedVariablesToFind.keySet()) {
+                    variable.setRow(rowCount++);
+                }
+            }
+        }
+
+        private boolean reIndex() {
+            if (equationsToAdd.isEmpty() && equationsToRemove.isEmpty()) {
+                return false;
             }
 
             // index derivatives per variable then per equation
-            reIndex();
 
-            int columnCount = 0;
-            for (Equation equation : sortedEquationsToSolve.keySet()) {
-                equation.setColumn(columnCount++);
+            // equations to remove
+            for (Equation equation : equationsToRemove) {
+                sortedEquationsToSolve.remove(equation);
+                for (EquationTerm equationTerm : equation.getTerms()) {
+                    for (Variable variable : equationTerm.getVariables()) {
+                        Set<Equation> equationsUsingThisVariable = sortedVariablesToFind.get(variable);
+                        if (equationsUsingThisVariable != null) {
+                            equationsUsingThisVariable.remove(equation);
+                            if (equationsUsingThisVariable.isEmpty()) {
+                                sortedVariablesToFind.remove(variable);
+                            }
+                        }
+                    }
+                }
             }
 
-            int rowCount = 0;
-            for (Variable variable : sortedVariablesToFind) {
-                variable.setRow(rowCount++);
-            }
-
-            invalide = false;
-        }
-
-        private void reIndex() {
-            sortedEquationsToSolve.clear();
-            sortedVariablesToFind.clear();
-
-            Set<Variable> variablesToFind = new HashSet<>();
-            for (Equation equation : equations.values()) {
+            // equations to add
+            for (Equation equation : equationsToAdd) {
+                // do not use equations that would be updated only after NR
                 if (equation.isActive() && EquationUpdateType.DEFAULT == equation.getUpdateType()) {
-                    // do not use equations that would be updated only after NR
-                    NavigableMap<Variable, List<EquationTerm>> equationTermsByVariable = null;
                     // check we have at least one equation term active
                     boolean atLeastOneTermIsValid = false;
                     for (EquationTerm equationTerm : equation.getTerms()) {
                         if (equationTerm.isActive()) {
                             atLeastOneTermIsValid = true;
-                            if (equationTermsByVariable == null) {
-                                equationTermsByVariable = sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>());
-                            }
                             for (Variable variable : equationTerm.getVariables()) {
-                                equationTermsByVariable.computeIfAbsent(variable, k -> new ArrayList<>())
+                                sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>())
+                                        .computeIfAbsent(variable, k -> new ArrayList<>())
                                         .add(equationTerm);
-                                variablesToFind.add(variable);
+                                sortedVariablesToFind.computeIfAbsent(variable, k -> new TreeSet<>())
+                                        .add(equation);
                             }
                         }
                     }
@@ -90,21 +102,28 @@ public class EquationSystem {
                     }
                 }
             }
-            sortedVariablesToFind.addAll(variablesToFind);
-        }
 
-        private void invalidate() {
-            invalide = true;
+            equationsToRemove.clear();
+            equationsToAdd.clear();
+
+            return true;
         }
 
         @Override
         public void onEquationChange(Equation equation, EquationEventType eventType) {
             switch (eventType) {
-                case EQUATION_CREATED:
                 case EQUATION_REMOVED:
-                case EQUATION_ACTIVATED:
                 case EQUATION_DEACTIVATED:
-                    invalidate();
+                    if (!sortedEquationsToSolve.isEmpty()) { // not need to remove if not already indexed
+                        equationsToRemove.add(equation);
+                    }
+                    equationsToAdd.remove(equation);
+                    break;
+
+                case EQUATION_CREATED:
+                case EQUATION_ACTIVATED:
+                    // no need to remove first because activated event means it was not already activated
+                    equationsToAdd.add(equation);
                     break;
 
                 default:
@@ -118,7 +137,10 @@ public class EquationSystem {
                 case EQUATION_TERM_ADDED:
                 case EQUATION_TERM_ACTIVATED:
                 case EQUATION_TERM_DEACTIVATED:
-                    invalidate();
+                    if (!sortedEquationsToSolve.isEmpty()) { // not need to remove if not already indexed
+                        equationsToRemove.add(term.getEquation());
+                    }
+                    equationsToAdd.add(term.getEquation());
                     break;
 
                 default:
@@ -138,7 +160,7 @@ public class EquationSystem {
 
         private NavigableSet<Variable> getSortedVariablesToFind() {
             update();
-            return sortedVariablesToFind;
+            return sortedVariablesToFind.navigableKeySet();
         }
     }
 

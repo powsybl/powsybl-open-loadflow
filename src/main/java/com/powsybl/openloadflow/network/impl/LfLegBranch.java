@@ -12,7 +12,6 @@ import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.security.results.BranchResult;
 
 import java.util.*;
 
@@ -105,11 +104,6 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
-    public BranchResult createBranchResult() {
-        throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
-    }
-
-    @Override
     public List<LfLimit> getLimits1(final LimitType type) {
         switch (type) {
             case ACTIVE_POWER:
@@ -122,11 +116,6 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
         }
-    }
-
-    @Override
-    public List<LfLimit> getLimits2(final LimitType type) {
-        return Collections.emptyList();
     }
 
     @Override
