@@ -172,7 +172,8 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 
         loadFlowRunner.run(network, parameters);
 
-        assertEquals(b1.getV(), b2.getV(), DELTA_V);
+        assertEquals(1.01, b1.getV(), DELTA_V);
+        assertEquals(1.01, b2.getV(), DELTA_V);
     }
 
     @Test
