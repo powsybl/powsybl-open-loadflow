@@ -134,6 +134,8 @@ public abstract class AbstractSensitivityAnalysis {
 
         boolean isConnectedToComponent(Set<LfBus> connectedComponent);
 
+        boolean isFunctionElementConnectedToComponent(Set<LfBus> connectedComponent);
+
         SensitivityFactorGroup getGroup();
 
         void setGroup(SensitivityFactorGroup group);
@@ -335,6 +337,11 @@ public abstract class AbstractSensitivityAnalysis {
         public boolean isConnectedToComponent(Set<LfBus> connectedComponent) {
             return isElementConnectedToComponent(variableElement, connectedComponent);
         }
+
+        @Override
+        public boolean isFunctionElementConnectedToComponent(Set<LfBus> connectedComponent) {
+            return isElementConnectedToComponent(functionElement, connectedComponent);
+        }
     }
 
     static class MultiVariablesLfSensitivityFactor extends AbstractLfSensitivityFactor {
@@ -381,6 +388,11 @@ public abstract class AbstractSensitivityAnalysis {
                 }
             }
             return false;
+        }
+
+        @Override
+        public boolean isFunctionElementConnectedToComponent(Set<LfBus> connectedComponent) {
+            return isElementConnectedToComponent(functionElement, connectedComponent);
         }
     }
 
@@ -617,10 +629,12 @@ public abstract class AbstractSensitivityAnalysis {
         return rescaled;
     }
 
-    protected void writeSkippedFactors(Collection<LfSensitivityFactor> lfFactors, SensitivityValueWriter valueWriter) {
+    protected void writeSkippedFactors(Collection<LfSensitivityFactor> lfFactors, SensitivityValueWriter valueWriter, Set<LfBus> connectedComponent) {
         List<LfSensitivityFactor> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.SKIP).collect(Collectors.toList());
-
-        skippedFactors.forEach(factor -> valueWriter.write(factor.getContext(), null, -1, 0, Double.NaN));
+        List<LfSensitivityFactor> skippedConnectedFactors = skippedFactors.stream().filter(factor -> factor.isFunctionElementConnectedToComponent(connectedComponent)).collect(Collectors.toList());
+        List<LfSensitivityFactor> skippedDisconnectedFactors = skippedFactors.stream().filter(factor -> !factor.isFunctionElementConnectedToComponent(connectedComponent)).collect(Collectors.toList());
+        skippedConnectedFactors.forEach(factor -> valueWriter.write(factor.getContext(), null, -1, 0, 0));
+        skippedDisconnectedFactors.forEach(factor -> valueWriter.write(factor.getContext(), null, -1, 0, Double.NaN));
 
         Set<String> skippedVariables = skippedFactors.stream().map(LfSensitivityFactor::getVariableId).collect(Collectors.toSet());
         if (!skippedVariables.isEmpty()) {

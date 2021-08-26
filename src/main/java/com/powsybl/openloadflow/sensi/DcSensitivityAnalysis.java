@@ -690,7 +690,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             dcLoadFlowParameters.isForcePhaseControlOffAndAddAngle1Var(), lfParameters.isDcUseTransformerRatio());
         EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet(), dcEquationSystemCreationParameters);
 
-        writeSkippedFactors(lfFactors, valueWriter);
+        writeSkippedFactors(lfFactors, valueWriter, lfNetwork.getBuses().stream().collect(Collectors.toSet()));
 
         // next we only work with valid factors
         lfFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList());
