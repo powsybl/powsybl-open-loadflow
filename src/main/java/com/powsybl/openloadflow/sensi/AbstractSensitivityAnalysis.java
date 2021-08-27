@@ -633,7 +633,7 @@ public abstract class AbstractSensitivityAnalysis {
         List<LfSensitivityFactor> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.SKIP).collect(Collectors.toList());
         List<LfSensitivityFactor> skippedConnectedFactors = skippedFactors.stream().filter(factor -> factor.isFunctionElementConnectedToComponent(connectedComponent)).collect(Collectors.toList());
         List<LfSensitivityFactor> skippedDisconnectedFactors = skippedFactors.stream().filter(factor -> !factor.isFunctionElementConnectedToComponent(connectedComponent)).collect(Collectors.toList());
-        skippedConnectedFactors.forEach(factor -> valueWriter.write(factor.getContext(), null, -1, 0, 0));
+        skippedConnectedFactors.forEach(factor -> valueWriter.write(factor.getContext(), null, -1, 0, factor.getFunctionReference()));
         skippedDisconnectedFactors.forEach(factor -> valueWriter.write(factor.getContext(), null, -1, 0, Double.NaN));
 
         Set<String> skippedVariables = skippedFactors.stream().map(LfSensitivityFactor::getVariableId).collect(Collectors.toSet());
