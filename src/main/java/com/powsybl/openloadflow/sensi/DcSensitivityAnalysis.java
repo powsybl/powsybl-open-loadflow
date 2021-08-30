@@ -238,9 +238,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                           unscaleSensitivity(factor, sensiValue), unscaleFunction(factor, flowValue));
     }
 
-    private void createBranchOnlyReferenceValue(LfSensitivityFactor factor, DenseMatrix contingenciesStates,
-                                              Collection<ComputedContingencyElement> contingencyElements,
-                                              PropagatedContingency contingency, SensitivityValueWriter valueWriter) {
+    private void createBranchFunctionReferenceValue(LfSensitivityFactor factor, DenseMatrix contingenciesStates,
+                                                    Collection<ComputedContingencyElement> contingencyElements,
+                                                    PropagatedContingency contingency, SensitivityValueWriter valueWriter) {
         double flowValue;
         EquationTerm p1 = factor.getEquationTerm();
         String functionBranchId = factor.getFunctionElement().getId();
@@ -281,12 +281,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.ZERO)
                 .forEach(factor -> valueWriter.write(factor.getContext(), contingency != null ? contingency.getContingency().getId() : null,
                                                      contingency != null ? contingency.getIndex() : -1, 0, Double.NaN));
+
         setAlphas(contingencyElements, flowStates, contingenciesStates, 0, ComputedContingencyElement::setAlphaForFunctionReference);
-        for (LfSensitivityFactor factor : lfFactors) {
-            if (factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE) {
-                createBranchOnlyReferenceValue(factor, contingenciesStates, contingencyElements, contingency, valueWriter);
-            }
-        }
+
+        lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE)
+                .forEach(factor -> createBranchFunctionReferenceValue(factor, contingenciesStates, contingencyElements, contingency, valueWriter));
+
         Map<SensitivityFactorGroup, List<LfSensitivityFactor>> factorsByGroup = lfFactors.stream()
                 .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID)
                 .collect(Collectors.groupingBy(LfSensitivityFactor::getGroup, LinkedHashMap::new, Collectors.toList()));
@@ -724,11 +724,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         writeSkippedFactors(lfFactors, valueWriter);
 
         // next we only work with valid factors for sensitivity values and valid + skip_only_variable factors for reference flow values
-        List<LfSensitivityFactor> lfFactorsForSensi = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList());
-        List<LfSensitivityFactor> lfFactorsForReferenceFlows = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE).collect(Collectors.toList());
+        lfFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE).collect(Collectors.toList());
 
-        // index factors by variable group to compute the minimal number of states
-        List<SensitivityFactorGroup> factorGroups = createFactorGroups(lfFactorsForSensi);
+        // index factors by variable group to compute the minimal number of states.
+        List<SensitivityFactorGroup> factorGroups = createFactorGroups(lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList()));
 
         boolean hasMultiVariables = factorGroups.stream().anyMatch(MultiVariablesFactorGroup.class::isInstance);
 
@@ -768,7 +767,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         try (JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer)) {
 
             // run DC load on pre-contingency network
-            DenseMatrix flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactorsForReferenceFlows, lfParameters, participatingElements, Collections.emptyList(), Collections.emptyList(), reporter);
+            DenseMatrix flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactors, lfParameters, participatingElements, Collections.emptyList(), Collections.emptyList(), reporter);
 
             // compute the pre-contingency sensitivity values + the states with +1 -1 to model the contingencies
             DenseMatrix factorsStates = initFactorsRhs(equationSystem, factorGroups, slackParticipationByBus); // this is the rhs for the moment
@@ -898,7 +897,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                     Collection<PropagatedContingency> propagatedContingencies = entry1.getValue();
                     List<String> contingenciesIds2 = propagatedContingencies.stream().map(c -> c.getContingency().getId()).collect(Collectors.toList());
                     List<LfSensitivityFactor> lfFactorsForContingencies2 = factorHolder.getFactorsForContingencies(contingenciesIds2).stream()
-                            .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID)
+                            .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE)
                             .collect(Collectors.toList());
                     if (!lfFactorsForContingencies2.isEmpty()) {
                         flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactorsForContingencies2, lfParameters, participatingElements, disabledBuses, disabledPhaseTapChangers, reporter);

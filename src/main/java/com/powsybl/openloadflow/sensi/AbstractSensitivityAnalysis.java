@@ -319,11 +319,7 @@ public abstract class AbstractSensitivityAnalysis {
             super(context, variableId, functionElement, functionType, variableType, contingencyContext);
             this.variableElement = variableElement;
             if (variableElement == null) {
-                if (functionElement == null) {
-                    status = Status.SKIP;
-                } else {
-                    status = Status.SKIP_ONLY_VARIABLE;
-                }
+                status = functionElement == null ? Status.SKIP : Status.SKIP_ONLY_VARIABLE;
             }
         }
 
@@ -353,11 +349,7 @@ public abstract class AbstractSensitivityAnalysis {
             super(context, variableId, functionElement, functionType, variableType, contingencyContext);
             this.weightedVariableElements = weightedVariableElements;
             if (weightedVariableElements.isEmpty()) {
-                if (functionElement == null) {
-                    status = Status.SKIP;
-                } else {
-                    status = Status.SKIP_ONLY_VARIABLE;
-                }
+                status = functionElement == null ? Status.SKIP : Status.SKIP_ONLY_VARIABLE;
             }
         }
 
