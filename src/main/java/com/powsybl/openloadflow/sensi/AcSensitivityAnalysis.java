@@ -207,12 +207,11 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             writeSkippedFactors(lfFactors, valueWriter);
 
-            // next we only work with valid factors for sensitivity values and valid + skip_only_variable factors for reference flow values
-            List<LfSensitivityFactor> lfFactorsForSensi = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList());
-            List<LfSensitivityFactor> lfFactorsForReferenceFlows = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE).collect(Collectors.toList());
+            // next we only work with valid and skip only variable factors
+            lfFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE).collect(Collectors.toList());
 
             // index factors by variable group to compute a minimal number of states
-            List<SensitivityFactorGroup> factorGroups = createFactorGroups(lfFactorsForSensi);
+            List<SensitivityFactorGroup> factorGroups = createFactorGroups(lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList()));
 
             // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
             // buses that contain elements participating to slack distribution
@@ -249,7 +248,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 j.solveTransposed(factorsStates);
 
                 // calculate sensitivity values
-                setFunctionReferences(lfFactorsForReferenceFlows);
+                setFunctionReferences(lfFactors);
                 calculateSensitivityValues(factorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, null, -1, valueWriter);
             }
 
