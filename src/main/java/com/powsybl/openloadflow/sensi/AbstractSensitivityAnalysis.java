@@ -97,6 +97,7 @@ public abstract class AbstractSensitivityAnalysis {
         enum Status {
             VALID,
             SKIP,
+            SKIP_ONLY_VARIABLE,
             ZERO
         }
 
@@ -318,7 +319,11 @@ public abstract class AbstractSensitivityAnalysis {
             super(context, variableId, functionElement, functionType, variableType, contingencyContext);
             this.variableElement = variableElement;
             if (variableElement == null) {
-                status = Status.SKIP;
+                if (functionElement == null) {
+                    status = Status.SKIP;
+                } else {
+                    status = Status.SKIP_ONLY_VARIABLE;
+                }
             }
         }
 
@@ -348,7 +353,11 @@ public abstract class AbstractSensitivityAnalysis {
             super(context, variableId, functionElement, functionType, variableType, contingencyContext);
             this.weightedVariableElements = weightedVariableElements;
             if (weightedVariableElements.isEmpty()) {
-                status = Status.SKIP;
+                if (functionElement == null) {
+                    status = Status.SKIP;
+                } else {
+                    status = Status.SKIP_ONLY_VARIABLE;
+                }
             }
         }
 

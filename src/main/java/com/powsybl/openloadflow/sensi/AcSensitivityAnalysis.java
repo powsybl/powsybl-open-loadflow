@@ -47,6 +47,21 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                                             String contingencyId, int contingencyIndex, SensitivityValueWriter valueWriter) {
         Set<LfSensitivityFactor> lfFactorsSet = new HashSet<>(lfFactors);
         lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.ZERO).forEach(factor -> valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, 0, Double.NaN));
+        // Compute reference values for reference function only factors
+        for (LfSensitivityFactor factor : lfFactors) {
+            if (factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE) {
+                if (factor.getPredefinedResult() != null) {
+                    valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, factor.getPredefinedResult(), factor.getPredefinedResult());
+                    continue;
+                }
+                if (!factor.getEquationTerm().isActive()) {
+                    throw new PowsyblException("Found an inactive equation for a factor that has no predefined result");
+                }
+                valueWriter.write(factor.getContext(), contingencyId, contingencyIndex,
+                        0d, unscaleFunction(factor, factor.getFunctionReference()));
+            }
+        }
+
         for (SensitivityFactorGroup factorGroup : factorGroups) {
             for (LfSensitivityFactor factor : factorGroup.getFactors()) {
                 if (!lfFactorsSet.contains(factor)) {
@@ -199,11 +214,12 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
             writeSkippedFactors(lfFactors, valueWriter);
 
-            // next we only work with valid factors
-            lfFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList());
+            // next we only work with valid factors for sensitivity values and valid + skip_only_variable factors for reference flow values
+            List<LfSensitivityFactor> lfFactorsForSensi = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList());
+            List<LfSensitivityFactor> lfFactorsForReferenceFlows = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE).collect(Collectors.toList());
 
             // index factors by variable group to compute a minimal number of states
-            List<SensitivityFactorGroup> factorGroups = createFactorGroups(lfFactors);
+            List<SensitivityFactorGroup> factorGroups = createFactorGroups(lfFactorsForSensi);
 
             // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
             // buses that contain elements participating to slack distribution
@@ -240,7 +256,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 j.solveTransposed(factorsStates);
 
                 // calculate sensitivity values
-                setFunctionReferences(lfFactors);
+                setFunctionReferences(lfFactorsForReferenceFlows);
                 calculateSensitivityValues(factorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, null, -1, valueWriter);
             }
 
