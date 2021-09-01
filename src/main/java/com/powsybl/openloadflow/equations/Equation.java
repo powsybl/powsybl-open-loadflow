@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class Equation<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> implements Evaluable, Comparable<Equation<V, E>> {
+public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements Evaluable, Comparable<Equation<V, E>> {
 
     /**
      * Bus or any other equipment id.

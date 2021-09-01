@@ -13,7 +13,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractEquationTerm<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> implements EquationTerm<V, E> {
+public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTerm<V, E> {
 
     private Equation<V, E> equation;
 

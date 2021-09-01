@@ -18,7 +18,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class TargetVector<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> extends AbstractLfNetworkListener implements EquationSystemListener<V, E> {
+public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfNetworkListener implements EquationSystemListener<V, E> {
 
     private final LfNetwork network;
 
@@ -99,7 +99,7 @@ public class TargetVector<V extends Enum<V> & VariableType, E extends Enum<E> & 
         return array;
     }
 
-    public static <V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> double[] createArray(LfNetwork network, EquationSystem<V, E> equationSystem) {
+    public static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double[] createArray(LfNetwork network, EquationSystem<V, E> equationSystem) {
         NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
         double[] array = new double[sortedEquationsToSolve.size()];
         for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {

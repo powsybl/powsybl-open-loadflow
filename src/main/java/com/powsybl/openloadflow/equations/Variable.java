@@ -13,7 +13,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class Variable<T extends Enum<T> & VariableType> implements Comparable<Variable<T>> {
+public class Variable<T extends Enum<T> & Quantity> implements Comparable<Variable<T>> {
 
     /**
      * Bus or any other equipment num.

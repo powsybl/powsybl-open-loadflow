@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.equations.VariableType;
+import com.powsybl.openloadflow.equations.Quantity;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -34,10 +34,10 @@ class PerUnitTest {
         double zb = 380 * 380 * PerUnit.SB;
 
         VariableSet variableSet = new VariableSet();
-        variableSet.getVariable(0, VariableType.BUS_V).setRow(0);
-        variableSet.getVariable(0, VariableType.BUS_PHI).setRow(1);
-        variableSet.getVariable(1, VariableType.BUS_V).setRow(2);
-        variableSet.getVariable(1, VariableType.BUS_PHI).setRow(3);
+        variableSet.getVariable(0, Quantity.BUS_V).setRow(0);
+        variableSet.getVariable(0, Quantity.BUS_PHI).setRow(1);
+        variableSet.getVariable(1, Quantity.BUS_V).setRow(2);
+        variableSet.getVariable(1, Quantity.BUS_PHI).setRow(3);
 
         LfBranch branch = Mockito.mock(LfBranch.class, new RuntimeExceptionAnswer());
         PiModel piModel = Mockito.mock(PiModel.class, new RuntimeExceptionAnswer());

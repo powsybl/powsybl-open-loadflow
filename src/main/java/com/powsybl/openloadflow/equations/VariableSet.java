@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class VariableSet<V extends Enum<V> & VariableType> {
+public class VariableSet<V extends Enum<V> & Quantity> {
 
     private final Map<Pair<Integer, V>, Variable<V>> variables = new HashMap<>();
 

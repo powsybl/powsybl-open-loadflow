@@ -6,13 +6,13 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
-import com.powsybl.openloadflow.equations.VariableType;
+import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.network.ElementType;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public enum DcVariableType implements VariableType {
+public enum DcVariableType implements Quantity {
     BUS_PHI("\u03C6", ElementType.BUS),
     BRANCH_ALPHA1("\u03B1" + "1", ElementType.BRANCH),
     DUMMY_P("dummy_p", ElementType.BRANCH);

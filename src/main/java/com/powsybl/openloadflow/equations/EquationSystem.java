@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class EquationSystem<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> {
+public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
     private final boolean indexTerms;
 

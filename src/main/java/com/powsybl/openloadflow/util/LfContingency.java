@@ -12,7 +12,7 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.VariableType;
+import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -131,7 +131,7 @@ public class LfContingency {
         return contingencies;
     }
 
-    public static <V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> void deactivateEquations(LfContingency lfContingency, EquationSystem<V, E> equationSystem, List<Equation<V, E>> deactivatedEquations, List<EquationTerm<V, E>> deactivatedEquationTerms) {
+    public static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> void deactivateEquations(LfContingency lfContingency, EquationSystem<V, E> equationSystem, List<Equation<V, E>> deactivatedEquations, List<EquationTerm<V, E>> deactivatedEquationTerms) {
         for (LfBranch branch : lfContingency.getBranches()) {
             LOGGER.trace("Remove equations and equations terms related to branch '{}'", branch.getId());
 
@@ -173,7 +173,7 @@ public class LfContingency {
         }
     }
 
-    public static <V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> void reactivateEquations(List<Equation<V, E>> deactivatedEquations, List<EquationTerm<V, E>> deactivatedEquationTerms) {
+    public static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> void reactivateEquations(List<Equation<V, E>> deactivatedEquations, List<EquationTerm<V, E>> deactivatedEquationTerms) {
         // restore deactivated equations and equations terms from previous contingency
         if (!deactivatedEquations.isEmpty()) {
             for (Equation<V, E> equation : deactivatedEquations) {

@@ -17,9 +17,9 @@ import java.util.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class JacobianMatrix<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> implements EquationSystemListener<V, E>, AutoCloseable {
+public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationSystemListener<V, E>, AutoCloseable {
 
-    static final class PartialDerivative<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> {
+    static final class PartialDerivative<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
         private final EquationTerm<V, E> equationTerm;
 

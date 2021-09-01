@@ -37,7 +37,7 @@ import java.util.stream.Stream;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
-public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> {
+public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractSensitivityAnalysis.class);
 
@@ -86,7 +86,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & VariableTy
         return null;
     }
 
-    interface LfSensitivityFactor<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> {
+    interface LfSensitivityFactor<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
         enum Status {
             VALID,
@@ -133,7 +133,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & VariableTy
         void setGroup(SensitivityFactorGroup<V, E> group);
     }
 
-    abstract static class AbstractLfSensitivityFactor<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> implements LfSensitivityFactor<V, E> {
+    abstract static class AbstractLfSensitivityFactor<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements LfSensitivityFactor<V, E> {
 
         // Wrap factors in specific class to have instant access to their branch and their equation term
         private final Object context;
@@ -301,7 +301,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & VariableTy
         }
     }
 
-    static class SingleVariableLfSensitivityFactor<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> extends AbstractLfSensitivityFactor<V, E> {
+    static class SingleVariableLfSensitivityFactor<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfSensitivityFactor<V, E> {
 
         private final LfElement variableElement;
 
@@ -349,7 +349,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & VariableTy
         }
     }
 
-    static class MultiVariablesLfSensitivityFactor<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> extends AbstractLfSensitivityFactor<V, E> {
+    static class MultiVariablesLfSensitivityFactor<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfSensitivityFactor<V, E> {
 
         private final Map<LfElement, Double> weightedVariableElements;
 
@@ -396,7 +396,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & VariableTy
         }
     }
 
-    interface SensitivityFactorGroup<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> {
+    interface SensitivityFactorGroup<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
         List<LfSensitivityFactor<V, E>> getFactors();
 
@@ -409,7 +409,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & VariableTy
         void fillRhs(EquationSystem<V, E> equationSystem, Matrix rhs, Map<LfBus, Double> participationByBus);
     }
 
-    abstract static class AbstractSensitivityFactorGroup<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> implements SensitivityFactorGroup<V, E> {
+    abstract static class AbstractSensitivityFactorGroup<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements SensitivityFactorGroup<V, E> {
 
         protected final List<LfSensitivityFactor<V, E>> factors = new ArrayList<>();
 
@@ -451,7 +451,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & VariableTy
         }
     }
 
-    static class SingleVariableFactorGroup<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> extends AbstractSensitivityFactorGroup<V, E> {
+    static class SingleVariableFactorGroup<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractSensitivityFactorGroup<V, E> {
 
         private final LfElement variableElement;
 
@@ -492,7 +492,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & VariableTy
         }
     }
 
-    static class MultiVariablesFactorGroup<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> extends AbstractSensitivityFactorGroup<V, E> {
+    static class MultiVariablesFactorGroup<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractSensitivityFactorGroup<V, E> {
 
         Map<LfElement, Double> variableElements;
         Map<LfElement, Double> mainComponentWeights;
@@ -744,7 +744,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & VariableTy
         }
     }
 
-    static class SensitivityFactorHolder<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> {
+    static class SensitivityFactorHolder<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
         private final Map<String, List<LfSensitivityFactor<V, E>>> additionalFactorsPerContingency = new LinkedHashMap<>();
         private final List<LfSensitivityFactor<V, E>> additionalFactorsNoContingency = new ArrayList<>();
@@ -941,7 +941,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & VariableTy
     /**
      * Base value for per-uniting, depending on the function type
      */
-    private static <V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> double getFunctionBaseValue(LfSensitivityFactor<V, E> factor) {
+    private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getFunctionBaseValue(LfSensitivityFactor<V, E> factor) {
         switch (factor.getFunctionType()) {
             case BRANCH_ACTIVE_POWER:
                 return PerUnit.SB;
@@ -959,7 +959,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & VariableTy
     /**
      * Base value for per-uniting, depending on the variable type
      */
-    private static <V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> double getVariableBaseValue(LfSensitivityFactor<V, E> factor) {
+    private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getVariableBaseValue(LfSensitivityFactor<V, E> factor) {
         switch (factor.getVariableType()) {
             case HVDC_LINE_ACTIVE_POWER:
             case INJECTION_ACTIVE_POWER:
@@ -977,14 +977,14 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & VariableTy
     /**
      * Unscales sensitivity value from per-unit, according to its type.
      */
-    protected static <V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> double unscaleSensitivity(LfSensitivityFactor<V, E> factor, double sensitivity) {
+    protected static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double unscaleSensitivity(LfSensitivityFactor<V, E> factor, double sensitivity) {
         return sensitivity * getFunctionBaseValue(factor) / getVariableBaseValue(factor);
     }
 
     /**
      * Unscales function value from per-unit, according to its type.
      */
-    protected static <V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> double unscaleFunction(LfSensitivityFactor<V, E> factor, double value) {
+    protected static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double unscaleFunction(LfSensitivityFactor<V, E> factor, double value) {
         return value * getFunctionBaseValue(factor);
     }
 }

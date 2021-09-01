@@ -22,9 +22,9 @@ import java.util.Objects;
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface EquationTerm<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> extends Evaluable {
+public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends Evaluable {
 
-    class MultiplyByScalarEquationTerm<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> implements EquationTerm<V, E> {
+    class MultiplyByScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTerm<V, E> {
 
         private final EquationTerm<V, E> term;
 
@@ -108,11 +108,11 @@ public interface EquationTerm<V extends Enum<V> & VariableType, E extends Enum<E
         }
     }
 
-    static <V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> EquationTerm<V, E> multiply(EquationTerm<V, E> term, double scalar) {
+    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> EquationTerm<V, E> multiply(EquationTerm<V, E> term, double scalar) {
         return new MultiplyByScalarEquationTerm<>(term, scalar);
     }
 
-    class VariableEquationTerm<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> extends AbstractEquationTerm<V, E> {
+    class VariableEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractEquationTerm<V, E> {
 
         private final int elementNum;
 
@@ -177,11 +177,11 @@ public interface EquationTerm<V extends Enum<V> & VariableType, E extends Enum<E
         }
     }
 
-    static <V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> VariableEquationTerm<V, E> createVariableTerm(LfElement element, V variableType, VariableSet<V> variableSet) {
+    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> VariableEquationTerm<V, E> createVariableTerm(LfElement element, V variableType, VariableSet<V> variableSet) {
         return createVariableTerm(element, variableType, variableSet, Double.NaN);
     }
 
-    static <V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> VariableEquationTerm<V, E> createVariableTerm(LfElement element, V variableType, VariableSet<V> variableSet, double initialValue) {
+    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> VariableEquationTerm<V, E> createVariableTerm(LfElement element, V variableType, VariableSet<V> variableSet, double initialValue) {
         Objects.requireNonNull(element);
         Objects.requireNonNull(variableType);
         Objects.requireNonNull(variableSet);
