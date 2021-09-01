@@ -423,6 +423,9 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, getContingencyValue(result, "l34", "g3", "l45"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, getContingencyValue(result, "l34", "g3", "l46"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, getContingencyValue(result, "l34", "g3", "l56"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-1.662, getFunctionReference(result, "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.066, getContingencyFunctionReference(result, "l12", "l34"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test

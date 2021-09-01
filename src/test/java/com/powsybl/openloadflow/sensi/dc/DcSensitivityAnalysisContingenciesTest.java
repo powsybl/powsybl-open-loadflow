@@ -263,6 +263,9 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(Double.NaN, getContingencyValue(result, "l34", "g6", "l45"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, getContingencyValue(result, "l34", "g6", "l46"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, getContingencyValue(result, "l34", "g6", "l56"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-4d / 3d, getFunctionReference(result, "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-5d / 3d, getContingencyFunctionReference(result, "l12", "l34"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
