@@ -22,26 +22,26 @@ import java.util.Objects;
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface EquationTerm extends Evaluable {
+public interface EquationTerm<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> extends Evaluable {
 
-    class MultiplyByScalarEquationTerm implements EquationTerm {
+    class MultiplyByScalarEquationTerm<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> implements EquationTerm<V, E> {
 
-        private final EquationTerm term;
+        private final EquationTerm<V, E> term;
 
         private final double scalar;
 
-        MultiplyByScalarEquationTerm(EquationTerm term, double scalar) {
+        MultiplyByScalarEquationTerm(EquationTerm<V, E> term, double scalar) {
             this.term = Objects.requireNonNull(term);
             this.scalar = scalar;
         }
 
         @Override
-        public Equation getEquation() {
+        public Equation<V, E> getEquation() {
             return term.getEquation();
         }
 
         @Override
-        public void setEquation(Equation equation) {
+        public void setEquation(Equation<V, E> equation) {
             term.setEquation(equation);
         }
 
@@ -66,7 +66,7 @@ public interface EquationTerm extends Evaluable {
         }
 
         @Override
-        public List<Variable> getVariables() {
+        public List<Variable<V>> getVariables() {
             return term.getVariables();
         }
 
@@ -81,7 +81,7 @@ public interface EquationTerm extends Evaluable {
         }
 
         @Override
-        public double der(Variable variable) {
+        public double der(Variable<V> variable) {
             return scalar * term.der(variable);
         }
 
@@ -108,19 +108,19 @@ public interface EquationTerm extends Evaluable {
         }
     }
 
-    static EquationTerm multiply(EquationTerm term, double scalar) {
-        return new MultiplyByScalarEquationTerm(term, scalar);
+    static <V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> EquationTerm<V, E> multiply(EquationTerm<V, E> term, double scalar) {
+        return new MultiplyByScalarEquationTerm<>(term, scalar);
     }
 
-    class VariableEquationTerm extends AbstractEquationTerm {
+    class VariableEquationTerm<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> extends AbstractEquationTerm<V, E> {
 
         private final int elementNum;
 
-        private final List<Variable> variables;
+        private final List<Variable<V>> variables;
 
         private double value;
 
-        VariableEquationTerm(int elementNum, VariableType variableType, VariableSet variableSet, double initialValue) {
+        VariableEquationTerm(int elementNum, V variableType, VariableSet<V> variableSet, double initialValue) {
             this.elementNum = elementNum;
             this.variables = Collections.singletonList(variableSet.getVariable(elementNum, variableType));
             value = initialValue;
@@ -137,7 +137,7 @@ public interface EquationTerm extends Evaluable {
         }
 
         @Override
-        public List<Variable> getVariables() {
+        public List<Variable<V>> getVariables() {
             return variables;
         }
 
@@ -152,7 +152,7 @@ public interface EquationTerm extends Evaluable {
         }
 
         @Override
-        public double der(Variable variable) {
+        public double der(Variable<V> variable) {
             return 1;
         }
 
@@ -177,11 +177,11 @@ public interface EquationTerm extends Evaluable {
         }
     }
 
-    static VariableEquationTerm createVariableTerm(LfElement element, VariableType variableType, VariableSet variableSet) {
+    static <V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> VariableEquationTerm<V, E> createVariableTerm(LfElement element, V variableType, VariableSet<V> variableSet) {
         return createVariableTerm(element, variableType, variableSet, Double.NaN);
     }
 
-    static VariableEquationTerm createVariableTerm(LfElement element, VariableType variableType, VariableSet variableSet, double initialValue) {
+    static <V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> VariableEquationTerm<V, E> createVariableTerm(LfElement element, V variableType, VariableSet<V> variableSet, double initialValue) {
         Objects.requireNonNull(element);
         Objects.requireNonNull(variableType);
         Objects.requireNonNull(variableSet);
@@ -189,12 +189,12 @@ public interface EquationTerm extends Evaluable {
             throw new IllegalArgumentException("Wrong variable element type: " + variableType.getElementType()
                 + ", expected: " + element.getType());
         }
-        return new VariableEquationTerm(element.getNum(), variableType, variableSet, initialValue);
+        return new VariableEquationTerm<>(element.getNum(), variableType, variableSet, initialValue);
     }
 
-    Equation getEquation();
+    Equation<V, E> getEquation();
 
-    void setEquation(Equation equation);
+    void setEquation(Equation<V, E> equation);
 
     boolean isActive();
 
@@ -208,7 +208,7 @@ public interface EquationTerm extends Evaluable {
      * Get the list of variable this equation term depends on.
      * @return the list of variable this equation term depends on.
      */
-    List<Variable> getVariables();
+    List<Variable<V>> getVariables();
 
     /**
      * Update equation term using {@code x} variable values.
@@ -228,7 +228,7 @@ public interface EquationTerm extends Evaluable {
      * @param variable the variable the partial derivative is with respect to
      * @return value of the partial derivative
      */
-    double der(Variable variable);
+    double der(Variable<V> variable);
 
     /**
      * Check {@link #rhs()} can return a value different from zero.

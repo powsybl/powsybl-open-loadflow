@@ -36,7 +36,7 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
 
     private double dp2dr1;
 
-    public ClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
+    public ClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                    boolean deriveA1, boolean deriveR1) {
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
@@ -76,7 +76,7 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     @Override
-    public double der(Variable variable) {
+    public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
             return dp2dv1;

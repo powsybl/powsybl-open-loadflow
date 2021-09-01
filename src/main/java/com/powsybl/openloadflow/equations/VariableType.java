@@ -11,28 +11,9 @@ import com.powsybl.openloadflow.network.ElementType;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public enum VariableType {
-    BUS_V("v", ElementType.BUS),
-    BUS_PHI("\u03C6", ElementType.BUS),
-    BRANCH_ALPHA1("\u03B1" + "1", ElementType.BRANCH),
-    BRANCH_RHO1("\u03C1" + "1", ElementType.BRANCH),
-    DUMMY_P("dummy_p", ElementType.BRANCH),
-    DUMMY_Q("dummy_q", ElementType.BRANCH);
+public interface VariableType {
 
-    private final String symbol;
+    String getSymbol();
 
-    private final ElementType elementType;
-
-    VariableType(String symbol, ElementType elementType) {
-        this.symbol = symbol;
-        this.elementType = elementType;
-    }
-
-    public String getSymbol() {
-        return symbol;
-    }
-
-    public ElementType getElementType() {
-        return elementType;
-    }
+    ElementType getElementType();
 }

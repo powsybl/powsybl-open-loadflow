@@ -18,11 +18,11 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class TargetVector extends AbstractLfNetworkListener implements EquationSystemListener {
+public class TargetVector<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> extends AbstractLfNetworkListener implements EquationSystemListener<V, E> {
 
     private final LfNetwork network;
 
-    private final EquationSystem equationSystem;
+    private final EquationSystem<V, E> equationSystem;
 
     private double[] array;
 
@@ -34,7 +34,7 @@ public class TargetVector extends AbstractLfNetworkListener implements EquationS
 
     private Status status = Status.VECTOR_INVALID;
 
-    public TargetVector(LfNetwork network, EquationSystem equationSystem) {
+    public TargetVector(LfNetwork network, EquationSystem<V, E> equationSystem) {
         this.network = Objects.requireNonNull(network);
         this.equationSystem = Objects.requireNonNull(equationSystem);
         network.addListener(this);
@@ -68,12 +68,12 @@ public class TargetVector extends AbstractLfNetworkListener implements EquationS
     }
 
     @Override
-    public void onEquationChange(Equation equation, EquationEventType eventType) {
+    public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
         status = Status.VECTOR_INVALID;
     }
 
     @Override
-    public void onEquationTermChange(EquationTerm term, EquationTermEventType eventType) {
+    public void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
         // nothing to do
     }
 
@@ -99,10 +99,10 @@ public class TargetVector extends AbstractLfNetworkListener implements EquationS
         return array;
     }
 
-    public static double[] createArray(LfNetwork network, EquationSystem equationSystem) {
-        NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
+    public static <V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> double[] createArray(LfNetwork network, EquationSystem<V, E> equationSystem) {
+        NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
         double[] array = new double[sortedEquationsToSolve.size()];
-        for (Equation equation : sortedEquationsToSolve.keySet()) {
+        for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
             equation.initTarget(network, array);
         }
         return array;
@@ -114,8 +114,8 @@ public class TargetVector extends AbstractLfNetworkListener implements EquationS
     }
 
     private void updateArray() {
-        NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
-        for (Equation equation : sortedEquationsToSolve.keySet()) {
+        NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
+        for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
             equation.initTarget(network, array);
         }
         status = Status.VALID;

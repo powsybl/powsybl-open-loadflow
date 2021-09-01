@@ -20,12 +20,12 @@ import java.util.List;
  */
 abstract class AbstractOpenSide1BranchAcFlowEquationTerm extends AbstractBranchAcFlowEquationTerm {
 
-    protected final List<Variable> variables;
+    protected final List<Variable<AcVariableType>> variables;
 
     protected double shunt;
 
-    protected AbstractOpenSide1BranchAcFlowEquationTerm(LfBranch branch, VariableType variableType,
-                                                   LfBus bus, VariableSet variableSet,
+    protected AbstractOpenSide1BranchAcFlowEquationTerm(LfBranch branch, AcVariableType variableType,
+                                                   LfBus bus, VariableSet<AcVariableType> variableSet,
                                                    boolean deriveA1, boolean deriveR1) {
         super(branch);
         variables = Collections.singletonList(variableSet.getVariable(bus.getNum(), variableType));
@@ -37,7 +37,7 @@ abstract class AbstractOpenSide1BranchAcFlowEquationTerm extends AbstractBranchA
     }
 
     @Override
-    public List<Variable> getVariables() {
+    public List<Variable<AcVariableType>> getVariables() {
         return variables;
     }
 }

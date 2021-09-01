@@ -12,6 +12,7 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -130,12 +131,12 @@ public class LfContingency {
         return contingencies;
     }
 
-    public static void deactivateEquations(LfContingency lfContingency, EquationSystem equationSystem, List<Equation> deactivatedEquations, List<EquationTerm> deactivatedEquationTerms) {
+    public static <V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> void deactivateEquations(LfContingency lfContingency, EquationSystem<V, E> equationSystem, List<Equation<V, E>> deactivatedEquations, List<EquationTerm<V, E>> deactivatedEquationTerms) {
         for (LfBranch branch : lfContingency.getBranches()) {
             LOGGER.trace("Remove equations and equations terms related to branch '{}'", branch.getId());
 
             // deactivate all equations related to a branch
-            for (Equation equation : equationSystem.getEquations(ElementType.BRANCH, branch.getNum())) {
+            for (Equation<V, E> equation : equationSystem.getEquations(ElementType.BRANCH, branch.getNum())) {
                 if (equation.isActive()) {
                     equation.setActive(false);
                     deactivatedEquations.add(equation);
@@ -143,7 +144,7 @@ public class LfContingency {
             }
 
             // deactivate all equation terms related to a branch
-            for (EquationTerm equationTerm : equationSystem.getEquationTerms(ElementType.BRANCH, branch.getNum())) {
+            for (EquationTerm<V, E> equationTerm : equationSystem.getEquationTerms(ElementType.BRANCH, branch.getNum())) {
                 if (equationTerm.isActive()) {
                     equationTerm.setActive(false);
                     deactivatedEquationTerms.add(equationTerm);
@@ -155,7 +156,7 @@ public class LfContingency {
             LOGGER.trace("Remove equations and equation terms related to bus '{}'", bus.getId());
 
             // deactivate all equations related to a bus
-            for (Equation equation : equationSystem.getEquations(ElementType.BUS, bus.getNum())) {
+            for (Equation<V, E> equation : equationSystem.getEquations(ElementType.BUS, bus.getNum())) {
                 if (equation.isActive()) {
                     equation.setActive(false);
                     deactivatedEquations.add(equation);
@@ -163,7 +164,7 @@ public class LfContingency {
             }
 
             // deactivate all equation terms related to a bus
-            for (EquationTerm equationTerm : equationSystem.getEquationTerms(ElementType.BUS, bus.getNum())) {
+            for (EquationTerm<V, E> equationTerm : equationSystem.getEquationTerms(ElementType.BUS, bus.getNum())) {
                 if (equationTerm.isActive()) {
                     equationTerm.setActive(false);
                     deactivatedEquationTerms.add(equationTerm);
@@ -172,16 +173,16 @@ public class LfContingency {
         }
     }
 
-    public static void reactivateEquations(List<Equation> deactivatedEquations, List<EquationTerm> deactivatedEquationTerms) {
+    public static <V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> void reactivateEquations(List<Equation<V, E>> deactivatedEquations, List<EquationTerm<V, E>> deactivatedEquationTerms) {
         // restore deactivated equations and equations terms from previous contingency
         if (!deactivatedEquations.isEmpty()) {
-            for (Equation equation : deactivatedEquations) {
+            for (Equation<V, E> equation : deactivatedEquations) {
                 equation.setActive(true);
             }
             deactivatedEquations.clear();
         }
         if (!deactivatedEquationTerms.isEmpty()) {
-            for (EquationTerm equationTerm : deactivatedEquationTerms) {
+            for (EquationTerm<V, E> equationTerm : deactivatedEquationTerms) {
                 equationTerm.setActive(true);
             }
             deactivatedEquationTerms.clear();

@@ -18,16 +18,16 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class Equation implements Evaluable, Comparable<Equation> {
+public class Equation<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> implements Evaluable, Comparable<Equation<V, E>> {
 
     /**
      * Bus or any other equipment id.
      */
     private final int num;
 
-    private final EquationType type;
+    private final E type;
 
-    private final EquationSystem equationSystem;
+    private final EquationSystem<V, E> equationSystem;
 
     private int column = -1;
 
@@ -40,13 +40,13 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     private EquationSystem.EquationUpdateType updateType;
 
-    private final List<EquationTerm> terms = new ArrayList<>();
+    private final List<EquationTerm<V, E>> terms = new ArrayList<>();
 
-    Equation(int num, EquationType type, EquationSystem equationSystem) {
+    Equation(int num, E type, EquationSystem<V, E> equationSystem) {
         this(num, type, equationSystem, EquationSystem.EquationUpdateType.DEFAULT);
     }
 
-    Equation(int num, EquationType type, EquationSystem equationSystem, EquationSystem.EquationUpdateType updateType) {
+    Equation(int num, E type, EquationSystem<V, E> equationSystem, EquationSystem.EquationUpdateType updateType) {
         this.num = num;
         this.type = Objects.requireNonNull(type);
         this.equationSystem = Objects.requireNonNull(equationSystem);
@@ -57,11 +57,11 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return num;
     }
 
-    public EquationType getType() {
+    public E getType() {
         return type;
     }
 
-    public EquationSystem getEquationSystem() {
+    public EquationSystem<V, E> getEquationSystem() {
         return equationSystem;
     }
 
@@ -100,7 +100,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return (T) data;
     }
 
-    public Equation addTerm(EquationTerm term) {
+    public Equation<V, E> addTerm(EquationTerm<V, E> term) {
         Objects.requireNonNull(term);
         terms.add(term);
         term.setEquation(this);
@@ -109,15 +109,15 @@ public class Equation implements Evaluable, Comparable<Equation> {
         return this;
     }
 
-    public Equation addTerms(List<EquationTerm> terms) {
+    public Equation<V, E> addTerms(List<EquationTerm<V, E>> terms) {
         Objects.requireNonNull(terms);
-        for (EquationTerm term : terms) {
+        for (EquationTerm<V, E> term : terms) {
             addTerm(term);
         }
         return this;
     }
 
-    public List<EquationTerm> getTerms() {
+    public List<EquationTerm<V, E>> getTerms() {
         return terms;
     }
 
@@ -233,7 +233,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
                 throw new IllegalStateException("Unknown state variable type: "  + type);
         }
 
-        for (EquationTerm term : terms) {
+        for (EquationTerm<V, E> term : terms) {
             if (term.isActive() && term.hasRhs()) {
                 targets[column] -= term.rhs();
             }
@@ -241,7 +241,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
     }
 
     public void update(double[] x) {
-        for (EquationTerm term : terms) {
+        for (EquationTerm<V, E> term : terms) {
             if (term.isActive()) {
                 term.update(x);
             }
@@ -251,7 +251,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
     @Override
     public double eval() {
         double value = 0;
-        for (EquationTerm term : terms) {
+        for (EquationTerm<V, E> term : terms) {
             if (term.isActive()) {
                 value += term.eval();
                 if (term.hasRhs()) {
@@ -279,7 +279,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
     }
 
     @Override
-    public int compareTo(Equation o) {
+    public int compareTo(Equation<V, E> o) {
         if (o == this) {
             return 0;
         }
@@ -294,9 +294,9 @@ public class Equation implements Evaluable, Comparable<Equation> {
         writer.write(type.getSymbol());
         writer.append(Integer.toString(num));
         writer.append(" = ");
-        List<EquationTerm> activeTerms = terms.stream().filter(EquationTerm::isActive).collect(Collectors.toList());
-        for (Iterator<EquationTerm> it = activeTerms.iterator(); it.hasNext();) {
-            EquationTerm term = it.next();
+        List<EquationTerm<V, E>> activeTerms = terms.stream().filter(EquationTerm::isActive).collect(Collectors.toList());
+        for (Iterator<EquationTerm<V, E>> it = activeTerms.iterator(); it.hasNext();) {
+            EquationTerm<V, E> term = it.next();
             term.write(writer);
             if (it.hasNext()) {
                 writer.write(" + ");
@@ -306,31 +306,8 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder("Equation(num=")
-                .append(num);
-        switch (type) {
-            case BUS_P:
-            case BUS_Q:
-            case BUS_V:
-            case BUS_PHI:
-                LfBus bus = equationSystem.getNetwork().getBus(num);
-                builder.append(", busId=").append(bus.getId());
-                break;
-            case BRANCH_P:
-            case BRANCH_I:
-                LfBranch branch = equationSystem.getNetwork().getBranch(num);
-                builder.append(", branchId=").append(branch.getId());
-                break;
-            case ZERO_Q:
-                LfBus controllerBus = equationSystem.getNetwork().getBus(num);
-                builder.append(", controllerBusId=").append(controllerBus.getId());
-                break;
-            case ZERO_V:
-            case ZERO_PHI:
-            default:
-                break;
-        }
-        builder.append(", type=").append(type)
+        StringBuilder builder = new StringBuilder("Equation(num=").append(num)
+                .append(", type=").append(type)
                 .append(", column=").append(column).append(")");
         return builder.toString();
     }

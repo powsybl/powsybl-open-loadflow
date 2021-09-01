@@ -13,7 +13,7 @@ import java.util.Iterator;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractNamedEquationTerm extends AbstractEquationTerm {
+public abstract class AbstractNamedEquationTerm<V extends Enum<V> & VariableType, E extends Enum<E> & VariableType> extends AbstractEquationTerm<V, E> {
 
     protected abstract String getName();
 
@@ -21,8 +21,8 @@ public abstract class AbstractNamedEquationTerm extends AbstractEquationTerm {
     public void write(Writer writer) throws IOException {
         writer.write(getName());
         writer.write("(");
-        for (Iterator<Variable> it = getVariables().iterator(); it.hasNext();) {
-            Variable variable = it.next();
+        for (Iterator<Variable<V>> it = getVariables().iterator(); it.hasNext();) {
+            Variable<V> variable = it.next();
             variable.write(writer);
             if (it.hasNext()) {
                 writer.write(", ");

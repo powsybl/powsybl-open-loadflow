@@ -21,16 +21,16 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
  */
 public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1BranchAcFlowEquationTerm {
 
-    private final Variable v2Var;
+    private final Variable<AcVariableType> v2Var;
 
     private double q2;
 
     private double dq2dv2;
 
-    public OpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, VariableSet variableSet,
+    public OpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                    boolean deriveA1, boolean deriveR1) {
-        super(branch, VariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
-        v2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_V);
+        super(branch, AcVariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
+        v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
     }
 
     @Override
@@ -47,7 +47,7 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
     }
 
     @Override
-    public double der(Variable variable) {
+    public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v2Var)) {
             return dq2dv2;

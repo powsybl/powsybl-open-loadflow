@@ -22,19 +22,19 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
  */
 public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSide1BranchAcFlowEquationTerm {
 
-    private final Variable v2Var;
+    private final Variable<AcVariableType> v2Var;
 
-    private final Variable ph2Var;
+    private final Variable<AcVariableType> ph2Var;
 
     private double i2;
 
     private double di2dv2;
 
-    public OpenBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus2, VariableSet variableSet,
+    public OpenBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                        boolean deriveA1, boolean deriveR1) {
-        super(branch, VariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
-        v2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_V);
-        ph2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_PHI);
+        super(branch, AcVariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
+        v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
+        ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
     }
 
     @Override
@@ -65,7 +65,7 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     @Override
-    public double der(Variable variable) {
+    public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v2Var)) {
             return di2dv2;

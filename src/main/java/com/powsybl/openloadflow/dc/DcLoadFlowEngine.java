@@ -12,8 +12,11 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
+import com.powsybl.openloadflow.dc.equations.DcEquationType;
+import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
@@ -77,7 +80,7 @@ public class DcLoadFlowEngine {
 
     public DcLoadFlowResult run(Reporter reporter, LfNetwork pNetwork) {
         DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(parameters.isUpdateFlows(), false, parameters.isForcePhaseControlOffAndAddAngle1Var(), parameters.isUseTransformerRatio());
-        EquationSystem equationSystem = DcEquationSystem.create(pNetwork, new VariableSet(), creationParameters);
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(pNetwork, new VariableSet<>(), creationParameters);
 
         LoadFlowResult.ComponentResult.Status status = LoadFlowResult.ComponentResult.Status.FAILED;
         try (JacobianMatrix j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory())) {
@@ -89,14 +92,58 @@ public class DcLoadFlowEngine {
         return new DcLoadFlowResult(pNetwork, getActivePowerMismatch(pNetwork.getBuses()), status);
     }
 
-    public LoadFlowResult.ComponentResult.Status run(EquationSystem equationSystem, JacobianMatrix j,
+    public static double[] createStateVector(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, VoltageInitializer initializer) {
+        double[] x = new double[equationSystem.getSortedVariablesToFind().size()];
+        for (Variable<DcVariableType> v : equationSystem.getSortedVariablesToFind()) {
+            switch (v.getType()) {
+                case BUS_PHI:
+                    x[v.getRow()] = Math.toRadians(initializer.getAngle(network.getBus(v.getNum())));
+                    break;
+
+                case BRANCH_ALPHA1:
+                    x[v.getRow()] = network.getBranch(v.getNum()).getPiModel().getA1();
+                    break;
+
+                case DUMMY_P:
+                    x[v.getRow()] = 0;
+                    break;
+
+                default:
+                    throw new IllegalStateException("Unknown variable type "  + v.getType());
+            }
+        }
+        return x;
+    }
+
+    public static void updateNetwork(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, double[] x) {
+        // update state variable
+        for (Variable<DcVariableType> v : equationSystem.getSortedVariablesToFind()) {
+            switch (v.getType()) {
+                case BUS_PHI:
+                    network.getBus(v.getNum()).setAngle(Math.toDegrees(x[v.getRow()]));
+                    break;
+
+                case BRANCH_ALPHA1:
+                    network.getBranch(v.getNum()).getPiModel().setA1(x[v.getRow()]);
+                    break;
+
+                case DUMMY_P:
+                    // nothing to do
+                    break;
+
+                default:
+                    throw new IllegalStateException("Unknown variable type "  + v.getType());
+            }
+        }
+    }
+
+    public LoadFlowResult.ComponentResult.Status run(EquationSystem<DcVariableType, DcEquationType> equationSystem, JacobianMatrix<DcVariableType, DcEquationType> j,
                                                      Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
                                                      Reporter reporter) {
-
-        double[] x = equationSystem.createStateVector(new UniformValueVoltageInitializer());
-
         // only process main (largest) connected component
         LfNetwork network = networks.get(0);
+
+        double[] x = createStateVector(network, equationSystem, new UniformValueVoltageInitializer());
 
         Collection<LfBus> remainingBuses = new LinkedHashSet<>(network.getBuses());
         remainingBuses.removeAll(disabledBuses);
@@ -112,7 +159,7 @@ public class DcLoadFlowEngine {
         if (!disabledBuses.isEmpty()) {
             // set buses injections and transformers to 0
             disabledBuses.stream()
-                .map(lfBus -> equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P))
+                .map(lfBus -> equationSystem.getEquation(lfBus.getNum(), DcEquationType.BUS_P))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .map(Equation::getColumn)
@@ -122,7 +169,7 @@ public class DcLoadFlowEngine {
         if (!disabledBranches.isEmpty()) {
             // set transformer phase shift to 0
             disabledBranches.stream()
-                .map(lfBranch -> equationSystem.getEquation(lfBranch.getNum(), EquationType.BRANCH_ALPHA1))
+                .map(lfBranch -> equationSystem.getEquation(lfBranch.getNum(), DcEquationType.BRANCH_ALPHA1))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .map(Equation::getColumn)
@@ -146,7 +193,7 @@ public class DcLoadFlowEngine {
 
         equationSystem.updateEquations(targetVector);
         equationSystem.updateEquations(targetVector, EquationSystem.EquationUpdateType.AFTER_NR);
-        equationSystem.updateNetwork(targetVector);
+        updateNetwork(network, equationSystem, targetVector);
 
         // set all calculated voltages to NaN
         if (parameters.isSetVToNan()) {

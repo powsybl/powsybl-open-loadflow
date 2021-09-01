@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
@@ -35,13 +37,13 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     private final AcLoadFlowParameters parameters;
 
-    private VariableSet variableSet;
+    private VariableSet<AcVariableType> variableSet;
 
-    private EquationSystem equationSystem;
+    private EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
-    private JacobianMatrix j;
+    private JacobianMatrix<AcVariableType, AcEquationType> j;
 
-    private TargetVector targetVector;
+    private TargetVector<AcVariableType, AcEquationType> targetVector;
 
     public AcloadFlowEngine(LfNetwork network, AcLoadFlowParameters parameters) {
         this.network = Objects.requireNonNull(network);
@@ -73,19 +75,19 @@ public class AcloadFlowEngine implements AutoCloseable {
         return parameters;
     }
 
-    public VariableSet getVariableSet() {
+    public VariableSet<AcVariableType> getVariableSet() {
         return variableSet;
     }
 
-    public EquationSystem getEquationSystem() {
+    public EquationSystem<AcVariableType, AcEquationType> getEquationSystem() {
         return equationSystem;
     }
 
-    private void updatePvBusesReactivePower(NewtonRaphsonResult lastNrResult, LfNetwork network, EquationSystem equationSystem) {
+    private void updatePvBusesReactivePower(NewtonRaphsonResult lastNrResult, LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         if (lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
             for (LfBus bus : network.getBuses()) {
                 if (bus.isVoltageControllerEnabled()) {
-                    Equation q = equationSystem.createEquation(bus.getNum(), EquationType.BUS_Q);
+                    Equation<AcVariableType, AcEquationType> q = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_Q);
                     bus.setCalculatedQ(q.eval());
                 } else {
                     bus.setCalculatedQ(Double.NaN);
@@ -101,7 +103,7 @@ public class AcloadFlowEngine implements AutoCloseable {
         private final Map<String, MutableInt> outerLoopIterationByType = new HashMap<>();
     }
 
-    private void runOuterLoop(OuterLoop outerLoop, LfNetwork network, EquationSystem equationSystem, VariableSet variableSet,
+    private void runOuterLoop(OuterLoop outerLoop, LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet,
                               NewtonRaphson newtonRaphson, NewtonRaphsonParameters nrParameters, RunningContext runningContext,
                               Reporter reporter) {
         Reporter olReporter = reporter.createSubReporter("OuterLoop", "Outer loop ${outerLoopType}", "outerLoopType", outerLoop.getType());
@@ -139,12 +141,12 @@ public class AcloadFlowEngine implements AutoCloseable {
         if (equationSystem == null) {
             LOGGER.info("Start AC loadflow on network {}", network);
 
-            variableSet = new VariableSet();
+            variableSet = new VariableSet<>();
             AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(
                     parameters.isPhaseControl(), parameters.isTransformerVoltageControlOn(), parameters.isForceA1Var(), parameters.getBranchesWithCurrent());
             equationSystem = AcEquationSystem.create(network, variableSet, creationParameters);
-            j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory());
-            targetVector = new TargetVector(network, equationSystem);
+            j = new JacobianMatrix<>(equationSystem, parameters.getMatrixFactory());
+            targetVector = new TargetVector<>(network, equationSystem);
         } else {
             LOGGER.info("Restart AC loadflow on network {}", network);
         }
