@@ -304,6 +304,13 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+    public static Network createLccWithBiggerComponentsAndAdditionalLine() {
+        Network network = createLccWithBiggerComponents();
+
+        createLine(network, network.getBusBreakerView().getBus("additionnalbus_0"), network.getBusBreakerView().getBus("additionnalbus_1"), "additionnalline_01", 0.1f);
+        return network;
+    }
+
     /**
      * <pre>
      * b1 ----------+
