@@ -23,13 +23,13 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
 
         private final EquationTerm equationTerm;
 
-        private final Matrix.Element matrixElement;
+        private final int elementIndex;
 
         private final Variable variable;
 
-        PartialDerivative(EquationTerm equationTerm, Matrix.Element matrixElement, Variable variable) {
+        PartialDerivative(EquationTerm equationTerm, int elementIndex, Variable variable) {
             this.equationTerm = Objects.requireNonNull(equationTerm);
-            this.matrixElement = Objects.requireNonNull(matrixElement);
+            this.elementIndex = elementIndex;
             this.variable = Objects.requireNonNull(variable);
         }
 
@@ -37,8 +37,8 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
             return equationTerm;
         }
 
-        Matrix.Element getMatrixElement() {
-            return matrixElement;
+        public int getElementIndex() {
+            return elementIndex;
         }
 
         Variable getVariable() {
@@ -143,8 +143,8 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
                 int row = var.getRow();
                 for (EquationTerm equationTerm : e2.getValue()) {
                     double value = equationTerm.der(var);
-                    Matrix.Element element = matrix.addAndGetElement(row, column, value);
-                    partialDerivatives.add(new JacobianMatrix.PartialDerivative(equationTerm, element, var));
+                    int elementIndex = matrix.addAndGetIndex(row, column, value);
+                    partialDerivatives.add(new JacobianMatrix.PartialDerivative(equationTerm, elementIndex, var));
                 }
             }
         }
@@ -154,10 +154,10 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
         matrix.reset();
         for (PartialDerivative partialDerivative : partialDerivatives) {
             EquationTerm equationTerm = partialDerivative.getEquationTerm();
-            Matrix.Element element = partialDerivative.getMatrixElement();
+            int elementIndex = partialDerivative.getElementIndex();
             Variable var = partialDerivative.getVariable();
             double value = equationTerm.der(var);
-            element.add(value);
+            matrix.addAtIndex(elementIndex, value);
         }
 
         if (lu != null) {
