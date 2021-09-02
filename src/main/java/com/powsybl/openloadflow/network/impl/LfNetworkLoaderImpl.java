@@ -464,20 +464,20 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             }
             LfBranch controlledBranch = lfNetwork.getBranchById(controlledBranchId);
             if (controlledBranch == null) {
-                LOGGER.warn("Phase controlled branch {} is null: no phase control created", controlledBranchId);
+                LOGGER.warn("Phase controlled branch '{}' is null: no phase control created", controlledBranchId);
                 return;
             }
             if (controlledBranch.getBus1() == null || controlledBranch.getBus2() == null) {
-                LOGGER.warn("Phase controlled branch {} is open: no phase control created", controlledBranch.getId());
+                LOGGER.warn("Phase controlled branch '{}' is open: no phase control created", controlledBranch.getId());
                 return;
             }
             LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
             if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
-                LOGGER.warn("Phase controller branch {} is open: no phase control created", controllerBranch.getId());
+                LOGGER.warn("Phase controller branch '{}' is open: no phase control created", controllerBranch.getId());
                 return;
             }
             if (ptc.getRegulationTerminal().getBusView().getBus() == null) {
-                LOGGER.warn("Regulating terminal of phase controller branch {} is out of voltage: no phase control created", controllerBranch.getId());
+                LOGGER.warn("Regulating terminal of phase controller branch '{}' is out of voltage: no phase control created", controllerBranch.getId());
                 return;
             }
             LfBus controlledBus = getLfBus(ptc.getRegulationTerminal(), lfNetwork, breakers);
@@ -507,23 +507,23 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
         LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId);
         if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
-            LOGGER.warn("Voltage controller branch {} is open: no voltage control created", controllerBranch.getId());
+            LOGGER.warn("Voltage controller branch '{}' is open: no voltage control created", controllerBranch.getId());
             return;
         }
         LfBus controlledBus = getLfBus(rtc.getRegulationTerminal(), lfNetwork, breakers);
         if (controlledBus == null) {
-            LOGGER.warn("Regulating terminal of voltage controller branch {} is out of voltage: no voltage control created", controllerBranch.getId());
+            LOGGER.warn("Regulating terminal of voltage controller branch '{}' is out of voltage: no voltage control created", controllerBranch.getId());
             return;
         }
         if (controlledBus.isVoltageControlled()) {
-            LOGGER.warn("Controlled bus {} has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
+            LOGGER.warn("Controlled bus '{}' has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
             return;
         }
 
         Optional<DiscreteVoltageControl> candidateDiscreteVoltageControl = controlledBus.getDiscreteVoltageControl()
             .filter(dvc -> controlledBus.isDiscreteVoltageControlled());
         if (candidateDiscreteVoltageControl.isPresent()) {
-            LOGGER.trace("Controlled bus {} already has a transformer voltage control: a shared control is created", controlledBus.getId());
+            LOGGER.trace("Controlled bus '{}' already has a transformer voltage control: a shared control is created", controlledBus.getId());
             candidateDiscreteVoltageControl.get().addController(controllerBranch);
             controllerBranch.setDiscreteVoltageControl(candidateDiscreteVoltageControl.get());
         } else {
@@ -628,6 +628,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         if (report.voltageControllerCount == 0) {
             LOGGER.error("Discard network {} because there is no equipment to control voltage", lfNetwork);
             lfNetwork.setValid(false);
+        }
+
+        if (report.generatorsWithInconsistentTargetVoltage > 0) {
+            LOGGER.warn("Network {}: {} generators have an inconsistent target voltage and have been limited to a min/max value",
+                    lfNetwork, report.generatorsWithInconsistentTargetVoltage);
         }
 
         return lfNetwork;

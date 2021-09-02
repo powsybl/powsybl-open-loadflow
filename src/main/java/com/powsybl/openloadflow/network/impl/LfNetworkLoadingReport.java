@@ -30,4 +30,6 @@ class LfNetworkLoadingReport {
     int nonImpedantBranches = 0;
 
     int voltageControllerCount = 0;
+
+    int generatorsWithInconsistentTargetVoltage = 0;
 }
