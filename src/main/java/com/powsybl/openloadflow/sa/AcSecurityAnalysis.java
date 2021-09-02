@@ -54,7 +54,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
-        OpenLoadFlowParameters lfParametersExt = OpenLoadFlowProvider.getParametersExt(securityAnalysisParameters.getLoadFlowParameters());
+        OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
         // in some post-contingency computation, it does not remain elements to participate to slack distribution.
         // in that case, the remaining mismatch is put on the slack bus and no exception is thrown.
         lfParametersExt.setThrowsExceptionInCaseOfSlackDistributionFailure(false);

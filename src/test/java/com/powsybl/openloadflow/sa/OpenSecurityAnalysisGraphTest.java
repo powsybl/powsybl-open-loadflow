@@ -144,7 +144,7 @@ class OpenSecurityAnalysisGraphTest {
             new LimitViolationFilter(), new DenseMatrixFactory(), connectivityProvider, Collections.emptyList());
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
-        OpenLoadFlowParameters lfParametersExt = OpenLoadFlowProvider.getParametersExt(securityAnalysisParameters.getLoadFlowParameters());
+        OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
 
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);

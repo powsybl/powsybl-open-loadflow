@@ -161,6 +161,11 @@ public class AcloadFlowEngine implements AutoCloseable {
         if (runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
             updatePvBusesReactivePower(runningContext.lastNrResult, network, equationSystem);
 
+            // outer loops initialization
+            for (OuterLoop outerLoop : parameters.getOuterLoops()) {
+                outerLoop.initialize(network);
+            }
+
             // re-run all outer loops until Newton-Raphson failed or no more Newton-Raphson iterations are needed
             int oldIterationCount;
             do {
