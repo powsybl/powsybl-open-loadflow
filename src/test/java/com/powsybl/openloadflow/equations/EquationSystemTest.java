@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
+import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
@@ -47,7 +48,7 @@ class EquationSystemTest {
         LfNetwork network = lfNetworks.get(0);
 
         LfBus bus = network.getBus(0);
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(network, true);
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(true);
         equationSystem.addListener(new EquationSystemListener<>() {
             @Override
             public void onEquationChange(Equation<AcVariableType, AcEquationType> equation, EquationEventType eventType) {
@@ -172,7 +173,7 @@ class EquationSystemTest {
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = AcEquationSystem.create(mainNetwork);
         double[] x = NewtonRaphson.createStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
-        double[] targets = TargetVector.createArray(mainNetwork, equationSystem);
+        double[] targets = TargetVector.createArray(mainNetwork, equationSystem, AcloadFlowEngine::initTarget);
         equationSystem.updateEquations(x);
         double[] fx = equationSystem.createEquationVector();
         Vectors.minus(fx, targets);

@@ -290,8 +290,10 @@ public final class AcEquationSystem {
                 // we also create an equation that will be used later to maintain A1 variable constant
                 // this equation is now inactive
                 LfBranch controller = dpc.getController();
+                EquationTerm.VariableEquationTerm<AcVariableType, AcEquationType> a1 = EquationTerm.createVariableTerm(controller, AcVariableType.BRANCH_ALPHA1, variableSet);
+                branch.setA1(a1);
                 equationSystem.createEquation(controller.getNum(), AcEquationType.BRANCH_ALPHA1)
-                        .addTerm(EquationTerm.createVariableTerm(controller, AcVariableType.BRANCH_ALPHA1, variableSet))
+                        .addTerm(a1)
                         .setActive(false);
             });
     }
@@ -426,8 +428,10 @@ public final class AcEquationSystem {
         }
 
         if (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability()) {
+            EquationTerm.VariableEquationTerm<AcVariableType, AcEquationType> a1 = EquationTerm.createVariableTerm(branch, AcVariableType.BRANCH_ALPHA1, variableSet);
+            branch.setA1(a1);
             equationSystem.createEquation(branch.getNum(), AcEquationType.BRANCH_ALPHA1)
-                .addTerm(EquationTerm.createVariableTerm(branch, AcVariableType.BRANCH_ALPHA1, variableSet));
+                .addTerm(a1);
         }
 
         if (i1 != null) {

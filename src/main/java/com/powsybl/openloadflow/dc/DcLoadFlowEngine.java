@@ -12,7 +12,6 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
-import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
@@ -137,6 +136,39 @@ public class DcLoadFlowEngine {
         }
     }
 
+    public static void initTarget(Equation<DcVariableType, DcEquationType> equation, LfNetwork network, double[] targets) {
+        switch (equation.getType()) {
+            case BUS_P:
+                targets[equation.getColumn()] = network.getBus(equation.getNum()).getTargetP();
+                break;
+
+            case BUS_PHI:
+                targets[equation.getColumn()] = 0;
+                break;
+
+            case BRANCH_P:
+                targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getNum()), DiscretePhaseControl.Unit.MW);
+                break;
+
+            case BRANCH_ALPHA1:
+                targets[equation.getColumn()] = network.getBranch(equation.getNum()).getPiModel().getA1();
+                break;
+
+            case ZERO_PHI:
+                targets[equation.getColumn()] = LfBranch.getA(network.getBranch(equation.getNum()));
+                break;
+
+            default:
+                throw new IllegalStateException("Unknown state variable type: "  + equation.getType());
+        }
+
+        for (EquationTerm<DcVariableType, DcEquationType> term : equation.getTerms()) {
+            if (term.isActive() && term.hasRhs()) {
+                targets[equation.getColumn()] -= term.rhs();
+            }
+        }
+    }
+
     public LoadFlowResult.ComponentResult.Status run(EquationSystem<DcVariableType, DcEquationType> equationSystem, JacobianMatrix<DcVariableType, DcEquationType> j,
                                                      Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
                                                      Reporter reporter) {
@@ -154,7 +186,7 @@ public class DcLoadFlowEngine {
 
         equationSystem.updateEquations(x);
 
-        this.targetVector = TargetVector.createArray(network, equationSystem);
+        this.targetVector = TargetVector.createArray(network, equationSystem, DcLoadFlowEngine::initTarget);
 
         if (!disabledBuses.isEmpty()) {
             // set buses injections and transformers to 0

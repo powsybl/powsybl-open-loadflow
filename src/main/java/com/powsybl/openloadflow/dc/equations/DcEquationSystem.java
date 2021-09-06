@@ -89,8 +89,10 @@ public final class DcEquationSystem {
             if (deriveA1) {
                 if (creationParameters.isForcePhaseControlOffAndAddAngle1Var()) {
                     // use for sensitiviy analysis only: with this equation term, we force the a1 variable to be constant.
+                    EquationTerm.VariableEquationTerm<DcVariableType, DcEquationType> a1 = EquationTerm.createVariableTerm(branch, DcVariableType.BRANCH_ALPHA1, variableSet);
+                    branch.setA1(a1);
                     equationSystem.createEquation(branch.getNum(), DcEquationType.BRANCH_ALPHA1)
-                            .addTerm(EquationTerm.createVariableTerm(branch, DcVariableType.BRANCH_ALPHA1, variableSet));
+                            .addTerm(a1);
                 } else {
                     //TODO
                 }

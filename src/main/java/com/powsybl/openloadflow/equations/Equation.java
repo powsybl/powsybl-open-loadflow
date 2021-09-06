@@ -6,13 +6,14 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import com.powsybl.commons.PowsyblException;
-import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -119,125 +120,6 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     public List<EquationTerm<V, E>> getTerms() {
         return terms;
-    }
-
-    private static double getBusTargetV(LfBus bus) {
-        Objects.requireNonNull(bus);
-        return bus.getDiscreteVoltageControl().filter(dvc -> bus.isDiscreteVoltageControlled())
-            .map(DiscreteVoltageControl::getTargetValue)
-            .orElse(getVoltageControlledTargetValue(bus).orElse(Double.NaN));
-    }
-
-    private static Optional<Double> getVoltageControlledTargetValue(LfBus bus) {
-        return bus.getVoltageControl().filter(vc -> bus.isVoltageControlled()).map(vc -> {
-            if (vc.getControllerBuses().stream().noneMatch(LfBus::isVoltageControllerEnabled)) {
-                throw new IllegalStateException("None of the controller buses of bus '" + bus.getId() + "'has voltage control on");
-            }
-            return vc.getTargetValue();
-        });
-    }
-
-    private static double getBranchA(LfBranch branch) {
-        Objects.requireNonNull(branch);
-        PiModel piModel = branch.getPiModel();
-        return PiModel.A2 - piModel.getA1();
-    }
-
-    private static double getBranchTarget(LfBranch branch, DiscretePhaseControl.Unit unit) {
-        Objects.requireNonNull(branch);
-        Optional<DiscretePhaseControl> phaseControl = branch.getDiscretePhaseControl().filter(dpc -> branch.isPhaseControlled());
-        if (phaseControl.isEmpty()) {
-            throw new PowsyblException("Branch '" + branch.getId() + "' is not phase-controlled");
-        }
-        if (phaseControl.get().getUnit() != unit) {
-            throw new PowsyblException("Branch '" + branch.getId() + "' has not a target in " + unit);
-        }
-        return phaseControl.get().getTargetValue();
-    }
-
-    private static double getReactivePowerDistributionTarget(LfNetwork network, int num, DistributionData data) {
-        LfBus controllerBus = network.getBus(num);
-        LfBus firstControllerBus = network.getBus(data.getFirstControllerElementNum());
-        double c = data.getC();
-        return c * (controllerBus.getLoadTargetQ() - controllerBus.getGenerationTargetQ())
-                - firstControllerBus.getLoadTargetQ() - firstControllerBus.getGenerationTargetQ();
-    }
-
-    private static double getRho1DistributionTarget(LfNetwork network, int num, DistributionData data) {
-        LfBranch controllerBranch = network.getBranch(num);
-        LfBranch firstControllerBranch = network.getBranch(data.getFirstControllerElementNum());
-        // as a first and very simple ratio distribution strategy, we keep the gap between the 2 ratios constant
-        return controllerBranch.getPiModel().getR1() - firstControllerBranch.getPiModel().getR1();
-    }
-
-    private static double createBusWithSlopeTarget(LfBus bus, DistributionData data) {
-        double slope = data.getC();
-        return getBusTargetV(bus) - slope * (bus.getLoadTargetQ() - bus.getGenerationTargetQ());
-    }
-
-    void initTarget(LfNetwork network, double[] targets) {
-        switch (type) {
-            case BUS_P:
-                targets[column] = network.getBus(num).getTargetP();
-                break;
-
-            case BUS_Q:
-                targets[column] = network.getBus(num).getTargetQ();
-                break;
-
-            case BUS_V:
-                targets[column] = getBusTargetV(network.getBus(num));
-                break;
-
-            case BUS_V_SLOPE:
-                targets[column] = createBusWithSlopeTarget(network.getBus(num), getData());
-                break;
-
-            case BUS_PHI:
-                targets[column] = 0;
-                break;
-
-            case BRANCH_P:
-                targets[column] = getBranchTarget(network.getBranch(num), DiscretePhaseControl.Unit.MW);
-                break;
-
-            case BRANCH_I:
-                targets[column] = getBranchTarget(network.getBranch(num), DiscretePhaseControl.Unit.A);
-                break;
-
-            case BRANCH_ALPHA1:
-                targets[column] = network.getBranch(num).getPiModel().getA1();
-                break;
-
-            case BRANCH_RHO1:
-                targets[column] = network.getBranch(num).getPiModel().getR1();
-                break;
-
-            case ZERO_Q:
-                targets[column] = getReactivePowerDistributionTarget(network, num, getData());
-                break;
-
-            case ZERO_V:
-                targets[column] = 0;
-                break;
-
-            case ZERO_PHI:
-                targets[column] = getBranchA(network.getBranch(num));
-                break;
-
-            case ZERO_RHO1:
-                targets[column] = getRho1DistributionTarget(network, num, getData());
-                break;
-
-            default:
-                throw new IllegalStateException("Unknown state variable type: "  + type);
-        }
-
-        for (EquationTerm<V, E> term : terms) {
-            if (term.isActive() && term.hasRhs()) {
-                targets[column] -= term.rhs();
-            }
-        }
     }
 
     public void update(double[] x) {

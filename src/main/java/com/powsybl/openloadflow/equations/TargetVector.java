@@ -20,9 +20,17 @@ import java.util.Objects;
  */
 public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfNetworkListener implements EquationSystemListener<V, E> {
 
+    @FunctionalInterface
+    public interface Initializer<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+
+        void initialize(Equation<V, E> equation, LfNetwork network, double[] targets);
+    }
+
     private final LfNetwork network;
 
     private final EquationSystem<V, E> equationSystem;
+
+    private final Initializer<V, E> initializer;
 
     private double[] array;
 
@@ -34,9 +42,10 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
 
     private Status status = Status.VECTOR_INVALID;
 
-    public TargetVector(LfNetwork network, EquationSystem<V, E> equationSystem) {
+    public TargetVector(LfNetwork network, EquationSystem<V, E> equationSystem, Initializer<V, E> initializer) {
         this.network = Objects.requireNonNull(network);
         this.equationSystem = Objects.requireNonNull(equationSystem);
+        this.initializer = Objects.requireNonNull(initializer);
         network.addListener(this);
         equationSystem.addListener(this);
     }
@@ -99,24 +108,27 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         return array;
     }
 
-    public static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double[] createArray(LfNetwork network, EquationSystem<V, E> equationSystem) {
+    public static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double[] createArray(LfNetwork network, EquationSystem<V, E> equationSystem, Initializer<V, E> initializer) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(equationSystem);
+        Objects.requireNonNull(initializer);
         NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
         double[] array = new double[sortedEquationsToSolve.size()];
         for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
-            equation.initTarget(network, array);
+            initializer.initialize(equation, network, array);
         }
         return array;
     }
 
     private void createArray() {
-        array = createArray(network, equationSystem);
+        array = createArray(network, equationSystem, initializer);
         status = Status.VALID;
     }
 
     private void updateArray() {
         NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
         for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
-            equation.initTarget(network, array);
+            initializer.initialize(equation, network, array);
         }
         status = Status.VALID;
     }

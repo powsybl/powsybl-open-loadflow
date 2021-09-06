@@ -14,7 +14,10 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.HvdcConverterStations;
@@ -320,21 +323,16 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             return variableElement;
         }
 
-        public EquationTerm<V, E> getVariableEquationTerm() {
+        public Equation<V, E> getVariableEquation() {
             switch (variableType) {
                 case TRANSFORMER_PHASE:
                     LfBranch lfBranch = (LfBranch) variableElement;
-                    return lfBranch.getPiModel().
-                    Equation<V, E> a1 = equationSystem.getEquation(lfBranch.getNum(), EquationType.BRANCH_ALPHA1).orElseThrow(IllegalStateException::new);
-                    if (!a1.isActive()) {
-                        return;
-                    }
-                    rhs.set(a1.getColumn(), getIndex(), Math.toRadians(1d));
-                    break;
+                    return ((EquationTerm<V, E>) lfBranch.getA1()).getEquation();
                 case BUS_TARGET_VOLTAGE:
-                    return (EquationTerm<V, E>) ((LfBus) variableElement).getV();
-               default:
-                    throw new NotImplementedException("Variable type " + variableType + " is not implemented");
+                    LfBus lfBus = (LfBus) variableElement;
+                    return ((EquationTerm<V, E>) lfBus.getV()).getEquation();
+                default:
+                    return null;
             }
         }
 
@@ -406,7 +404,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         void addFactor(LfSensitivityFactor<V, E> factor);
 
-        void fillRhs(EquationSystem<V, E> equationSystem, Matrix rhs, Map<LfBus, Double> participationByBus);
+        void fillRhs(Matrix rhs, Map<LfBus, Double> participationByBus);
     }
 
     abstract static class AbstractSensitivityFactorGroup<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements SensitivityFactorGroup<V, E> {
@@ -455,21 +453,21 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         private final LfElement variableElement;
 
-        SingleVariableFactorGroup(LfElement variableElement, SensitivityVariableType variableType) {
+        private final Equation<V, E> variableEquation;
+
+        SingleVariableFactorGroup(LfElement variableElement, Equation<V, E> variableEquation, SensitivityVariableType variableType) {
             super(variableType);
-            this.variableElement = variableElement;
+            this.variableElement = Objects.requireNonNull(variableElement);
+            this.variableEquation = variableEquation;
         }
 
         @Override
-        public void fillRhs(EquationSystem<V, E> equationSystem, Matrix rhs, Map<LfBus, Double> participationByBus) {
+        public void fillRhs(Matrix rhs, Map<LfBus, Double> participationByBus) {
             switch (variableType) {
                 case TRANSFORMER_PHASE:
-                    LfBranch lfBranch = (LfBranch) variableElement;
-                    Equation<V, E> a1 = equationSystem.getEquation(lfBranch.getNum(), EquationType.BRANCH_ALPHA1).orElseThrow(IllegalStateException::new);
-                    if (!a1.isActive()) {
-                        return;
+                    if (variableEquation.isActive()) {
+                        rhs.set(variableEquation.getColumn(), getIndex(), Math.toRadians(1d));
                     }
-                    rhs.set(a1.getColumn(), getIndex(), Math.toRadians(1d));
                     break;
                 case INJECTION_ACTIVE_POWER:
                     for (Map.Entry<LfBus, Double> lfBusAndParticipationFactor : participationByBus.entrySet()) {
@@ -480,11 +478,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     addBusInjection(rhs, (LfBus) variableElement, 1d);
                     break;
                 case BUS_TARGET_VOLTAGE:
-                    Equation<V, E> v = equationSystem.getEquation(variableElement.getNum(), EquationType.BUS_V).orElseThrow(IllegalStateException::new);
-                    if (!v.isActive()) {
-                        return;
+                    if (variableEquation.isActive()) {
+                        rhs.set(variableEquation.getColumn(), getIndex(), 1d);
                     }
-                    rhs.set(v.getColumn(), getIndex(), 1d);
                     break;
                 default:
                     throw new NotImplementedException("Variable type " + variableType + " is not implemented");
@@ -508,7 +504,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public void fillRhs(EquationSystem<V, E> equationSystem, Matrix rhs, Map<LfBus, Double> participationByBus) {
+        public void fillRhs(Matrix rhs, Map<LfBus, Double> participationByBus) {
             double weightSum = mainComponentWeights.values().stream().mapToDouble(Math::abs).sum();
             switch (variableType) {
                 case INJECTION_ACTIVE_POWER:
@@ -560,7 +556,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             }
             Pair<SensitivityVariableType, String> id = Pair.of(factor.getVariableType(), factor.getVariableId());
             if (factor instanceof SingleVariableLfSensitivityFactor) {
-                SensitivityFactorGroup<V, E> factorGroup = groupIndexedById.computeIfAbsent(id, k -> new SingleVariableFactorGroup<>(((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement(), factor.getVariableType()));
+                SingleVariableLfSensitivityFactor<V, E> singleVarFactor = (SingleVariableLfSensitivityFactor<V, E>) factor;
+                SensitivityFactorGroup<V, E> factorGroup = groupIndexedById.computeIfAbsent(id, k -> new SingleVariableFactorGroup<>(singleVarFactor.getVariableElement(), singleVarFactor.getVariableEquation(), factor.getVariableType()));
                 factorGroup.addFactor(factor);
                 factor.setGroup(factorGroup);
             } else if (factor instanceof MultiVariablesLfSensitivityFactor) {
@@ -588,14 +585,13 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     protected DenseMatrix initFactorsRhs(EquationSystem<V, E> equationSystem, List<SensitivityFactorGroup<V, E>> factorsGroups, Map<LfBus, Double> participationByBus) {
         DenseMatrix rhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), factorsGroups.size());
-        fillRhsSensitivityVariable(equationSystem, factorsGroups, rhs, participationByBus);
+        fillRhsSensitivityVariable(factorsGroups, rhs, participationByBus);
         return rhs;
     }
 
-    protected void fillRhsSensitivityVariable(EquationSystem<V, E> equationSystem, List<SensitivityFactorGroup<V, E>> factorGroups, Matrix rhs,
-                                              Map<LfBus, Double> participationByBus) {
+    protected void fillRhsSensitivityVariable(List<SensitivityFactorGroup<V, E>> factorGroups, Matrix rhs, Map<LfBus, Double> participationByBus) {
         for (SensitivityFactorGroup<V, E> factorGroup : factorGroups) {
-            factorGroup.fillRhs(equationSystem, rhs, participationByBus);
+            factorGroup.fillRhs(rhs, participationByBus);
         }
     }
 
