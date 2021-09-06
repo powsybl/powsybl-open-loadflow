@@ -370,6 +370,23 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         }
     }
 
+    protected void testGlskAndLineOutsideMainComponent(boolean dc) {
+        Network network = HvdcNetworkFactory.createLccWithBiggerComponents();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(dc, "vl1_0");
+        SensitivityFactorsProvider factorsProvider = n -> {
+            Map<String, Float> glskMap = new HashMap<>();
+            glskMap.put("g6", 1f);
+            glskMap.put("g3", 2f);
+            return Collections.singletonList(new BranchFlowPerLinearGlsk(new BranchFlow("l56", "l56", "l56"),
+                    new LinearGlsk("glsk", "glsk", glskMap)));
+        };
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(Double.NaN, getValue(result, "glsk", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, getFunctionReference(result, network.getBranch("l56").getId()), LoadFlowAssert.DELTA_POWER);
+    }
+
     protected void testGlskPartiallyOutsideMainComponent(boolean dc) {
         Network network = HvdcNetworkFactory.createLccWithBiggerComponents();
 

@@ -621,7 +621,7 @@ public abstract class AbstractSensitivityAnalysis {
     protected void writeSkippedFactors(Collection<LfSensitivityFactor> lfFactors, SensitivityValueWriter valueWriter) {
         List<LfSensitivityFactor> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.SKIP).collect(Collectors.toList());
 
-        skippedFactors.forEach(factor -> valueWriter.write(factor.getContext(), null, -1, 0, Double.NaN));
+        skippedFactors.forEach(factor -> valueWriter.write(factor.getContext(), null, -1, Double.NaN, Double.NaN));
 
         Set<String> skippedVariables = skippedFactors.stream().map(LfSensitivityFactor::getVariableId).collect(Collectors.toSet());
         if (!skippedVariables.isEmpty()) {
