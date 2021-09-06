@@ -1841,4 +1841,25 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(100.050, getFunctionReference(result, network.getBranch("l12").getId()), LoadFlowAssert.DELTA_POWER);
         assertEquals(100.050, getContingencyFunctionReference(result, network.getBranch("l12").getId(), "additionnalline_0"), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testGlskOutsideMainComponentWithContingencyOnWatchedLine() {
+        Network network = HvdcNetworkFactory.createLccWithBiggerComponentsAndAdditionalLine();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0");
+        SensitivityFactorsProvider factorsProvider = n -> {
+            Map<String, Float> glskMap = new HashMap<>();
+            glskMap.put("g6", 1f);
+            glskMap.put("g3", 2f);
+            return Collections.singletonList(new BranchFlowPerLinearGlsk(new BranchFlow("l12", "l12", "l12"),
+                    new LinearGlsk("glsk", "glsk", glskMap)));
+        };
+        List<Contingency> contingencies = List.of(new Contingency("l12", new BranchContingency("l12")));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies, sensiParameters, LocalComputationManager.getDefault()).join();
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(0, getValue(result, "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(100.050, getFunctionReference(result, network.getBranch("l12").getId()), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, getContingencyFunctionReference(result, network.getBranch("l12").getId(), "l12"), LoadFlowAssert.DELTA_POWER);
+    }
 }

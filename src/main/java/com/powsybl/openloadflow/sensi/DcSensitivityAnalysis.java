@@ -244,19 +244,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         double flowValue;
         EquationTerm p1 = factor.getEquationTerm();
         String functionBranchId = factor.getFunctionElement().getId();
-        if (factor.getPredefinedResult() != null) {
-            flowValue = factor.getPredefinedResult();
-        } else {
-            flowValue = factor.getFunctionReference();
-            for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                double contingencySensitivity = p1.calculateSensi(contingenciesStates, contingencyElement.getContingencyIndex());
-                flowValue += contingencyElement.getAlphaForFunctionReference() * contingencySensitivity;
-                if (contingencyElement.getElement().getId().equals(functionBranchId)) {
-                    // the monitored branch is in contingency, the sensitivity value equals to zero and its post-contingency flow
-                    // equals to zero too.
-                    flowValue = 0d;
-                    break;
-                }
+        flowValue = factor.getFunctionReference();
+        for (ComputedContingencyElement contingencyElement : contingencyElements) {
+            double contingencySensitivity = p1.calculateSensi(contingenciesStates, contingencyElement.getContingencyIndex());
+            flowValue += contingencyElement.getAlphaForFunctionReference() * contingencySensitivity;
+            if (contingencyElement.getElement().getId().equals(functionBranchId)) {
+                // the monitored branch is in contingency, its post-contingency flow equals to zero.
+                flowValue = 0d;
+                break;
             }
         }
 
@@ -522,7 +517,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
                 // only compute for factors that have to be computed for this contingency lost
                 List<String> contingenciesIds = contingencyList.stream().map(contingency -> contingency.getContingency().getId()).collect(Collectors.toList());
                 List<LfSensitivityFactor> lfFactors = factorHolder.getFactorsForContingencies(contingenciesIds).stream()
-                        .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID)
+                        .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE)
                         .collect(Collectors.toList());
                 if (!lfFactors.isEmpty()) {
                     connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, branches -> new ConnectivityAnalysisResult(lfFactors, branches, connectivity, lfNetwork)).getContingencies().addAll(contingencyList);
