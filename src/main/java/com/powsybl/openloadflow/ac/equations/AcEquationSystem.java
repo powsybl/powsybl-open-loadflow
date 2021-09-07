@@ -432,7 +432,8 @@ public final class AcEquationSystem {
             EquationTerm.VariableEquationTerm<AcVariableType, AcEquationType> a1 = EquationTerm.createVariableTerm(branch, AcVariableType.BRANCH_ALPHA1, variableSet);
             branch.setA1(a1);
             equationSystem.createEquation(branch.getNum(), AcEquationType.BRANCH_ALPHA1)
-                    .addTerm(a1);        }
+                    .addTerm(a1);
+        }
 
         if (i1 != null) {
             Equation<AcVariableType, AcEquationType> i =  equationSystem.createEquation(bus1.getNum(), AcEquationType.BUS_I).addTerm(i1);
