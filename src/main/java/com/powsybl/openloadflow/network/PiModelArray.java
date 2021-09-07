@@ -24,10 +24,13 @@ public class PiModelArray implements PiModel {
 
     private double r1 = Double.NaN;
 
-    public PiModelArray(List<PiModel> models, int lowTapPosition, int tapPosition) {
+    private final LfNetwork network;
+
+    public PiModelArray(List<PiModel> models, int lowTapPosition, int tapPosition, LfNetwork network) {
         this.models = Objects.requireNonNull(models);
         this.lowTapPosition = lowTapPosition;
         this.tapPosition = tapPosition;
+        this.network = network;
     }
 
     private PiModel getModel() {
@@ -140,5 +143,38 @@ public class PiModelArray implements PiModel {
             }
         }
         r1 = Double.NaN;
+    }
+
+    @Override
+    public boolean updateTapPosition(Direction direction) {
+        this.a1 = getA1();
+        double previousA1 = Double.NaN;
+        double nextA1 = Double.NaN;
+        boolean hasChange = false;
+        int oldTapPosition = tapPosition;
+        if (tapPosition < lowTapPosition + models.size() - 1) {
+            nextA1 = models.get(tapPosition - lowTapPosition + 1).getA1(); // abs?
+        }
+        if (tapPosition > lowTapPosition) {
+            previousA1 = models.get(tapPosition - lowTapPosition - 1).getA1(); // abs?
+        }
+        if (!Double.isNaN(previousA1) &&
+                ((direction == Direction.INCREASE && previousA1 > a1) || (direction == Direction.DECREASE && previousA1 < a1))) {
+            tapPosition = tapPosition - 1;
+            a1 = Double.NaN;
+            hasChange = true;
+        }
+        if (!Double.isNaN(nextA1) &&
+                ((direction == Direction.INCREASE && nextA1 > a1) || (direction == Direction.DECREASE && nextA1 < a1))) {
+            tapPosition = tapPosition + 1;
+            a1 = Double.NaN;
+            hasChange = true;
+        }
+        if (hasChange) {
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onPhaseControlTapPositionChange(this, oldTapPosition, tapPosition);
+            }
+        }
+        return hasChange;
     }
 }
