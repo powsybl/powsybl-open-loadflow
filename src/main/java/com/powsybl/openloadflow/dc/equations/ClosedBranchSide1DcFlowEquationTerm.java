@@ -24,11 +24,11 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
 
     private double rhs;
 
-    private ClosedBranchSide1DcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet, boolean deriveA1, boolean useTransformerRatio) {
+    private ClosedBranchSide1DcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet, boolean deriveA1, boolean useTransformerRatio) {
         super(branch, bus1, bus2, variableSet, deriveA1, useTransformerRatio);
     }
 
-    public static ClosedBranchSide1DcFlowEquationTerm create(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
+    public static ClosedBranchSide1DcFlowEquationTerm create(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
                                                              boolean deriveA1, boolean useTransformerRatio) {
         Objects.requireNonNull(branch);
         Objects.requireNonNull(bus1);
@@ -63,7 +63,7 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public double der(Variable variable) {
+    public double der(Variable<DcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(ph1Var)) {
             return power;

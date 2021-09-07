@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 
@@ -20,12 +19,12 @@ import java.util.List;
  */
 abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractBranchAcFlowEquationTerm {
 
-    protected final List<Variable> variables;
+    protected final List<Variable<AcVariableType>> variables;
 
     protected double shunt;
 
-    protected AbstractOpenSide2BranchAcFlowEquationTerm(LfBranch branch, VariableType variableType,
-                                                        LfBus bus, VariableSet variableSet,
+    protected AbstractOpenSide2BranchAcFlowEquationTerm(LfBranch branch, AcVariableType variableType,
+                                                        LfBus bus, VariableSet<AcVariableType> variableSet,
                                                         boolean deriveA1, boolean deriveR1) {
         super(branch);
         variables = Collections.singletonList(variableSet.getVariable(bus.getNum(), variableType));
@@ -37,7 +36,7 @@ abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractBranchA
     }
 
     @Override
-    public List<Variable> getVariables() {
+    public List<Variable<AcVariableType>> getVariables() {
         return variables;
     }
 }
