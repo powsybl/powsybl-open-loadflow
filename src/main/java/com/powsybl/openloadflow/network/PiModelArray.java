@@ -6,9 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -16,8 +13,6 @@ import java.util.Objects;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class PiModelArray implements PiModel {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(PiModelArray.class);
 
     private final List<PiModel> models;
 
@@ -163,17 +158,15 @@ public class PiModelArray implements PiModel {
         if (tapPosition > lowTapPosition) {
             previousA1 = models.get(tapPosition - lowTapPosition - 1).getA1(); // abs?
         }
-        if (previousA1 != Double.NaN &&
+        if (!Double.isNaN(previousA1) &&
                 ((direction == Direction.INCREASE && previousA1 > a1) || (direction == Direction.DECREASE && previousA1 < a1))) {
             tapPosition = tapPosition - 1;
-            LOGGER.info("New tap position {} ", tapPosition);
             a1 = Double.NaN;
             hasChange = true;
         }
-        if (nextA1 != Double.NaN &&
+        if (!Double.isNaN(nextA1) &&
                 ((direction == Direction.INCREASE && nextA1 > a1) || (direction == Direction.DECREASE && nextA1 < a1))) {
             tapPosition = tapPosition + 1;
-            LOGGER.info("New tap position {} ", tapPosition);
             a1 = Double.NaN;
             hasChange = true;
         }

@@ -39,7 +39,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
             // at first outer loop iteration:
             // branches with active power control are switched off and taps are rounded
             // branches with current limiter control will wait for second iteration
-            return  firstIteration(context);
+            return firstIteration(context);
         } else if (context.getIteration() > 0) {
             // at second outer loop iteration:
             // flow of branches with fixed tap are recomputed
@@ -73,7 +73,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .filter(dpc -> dpc.getMode() == DiscretePhaseControl.Mode.LIMITER)
-                .filter(dpc -> changeTapPositions(context, dpc) == OuterLoopStatus.UNSTABLE)
+                .filter(dpc -> changeTapPositions(dpc) == OuterLoopStatus.UNSTABLE)
                 .collect(Collectors.toList());
 
         return unstablePhaseControls.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
@@ -92,7 +92,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
         LOGGER.info("Round phase shift of '{}': {} -> {}", controllerBranch.getId(), a1Value, roundedA1Value);
     }
 
-    private OuterLoopStatus changeTapPositions(OuterLoopContext context, DiscretePhaseControl phaseControl) {
+    private OuterLoopStatus changeTapPositions(DiscretePhaseControl phaseControl) {
         // only local control supported: controlled branch is controller branch.
         double currentLimit = phaseControl.getTargetValue();
         LfBranch controllerBranch = phaseControl.getController();
@@ -100,23 +100,23 @@ public class PhaseControlOuterLoop implements OuterLoop {
         boolean isSensibilityPositive;
         boolean success = false;
         if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE && currentLimit < controllerBranch.getI1().eval()) {
-            isSensibilityPositive = isSensitivityCurrentPerA1Positive(context.getVariableSet(), controllerBranch, DiscretePhaseControl.ControlledSide.ONE);
+            isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.ONE);
             success = isSensibilityPositive ? piModel.updateTapPosition(PiModel.Direction.DECREASE) : piModel.updateTapPosition(PiModel.Direction.INCREASE);
         } else if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.TWO && currentLimit < controllerBranch.getI2().eval()) {
-            isSensibilityPositive = isSensitivityCurrentPerA1Positive(context.getVariableSet(), controllerBranch, DiscretePhaseControl.ControlledSide.TWO);
+            isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.TWO);
             success = isSensibilityPositive ? piModel.updateTapPosition(PiModel.Direction.DECREASE) : piModel.updateTapPosition(PiModel.Direction.INCREASE);
         }
         return success ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE;
     }
 
-    boolean isSensitivityCurrentPerA1Positive(VariableSet variableSet, LfBranch controllerBranch,
-                                              DiscretePhaseControl.ControlledSide controlledSide) {
-        Variable a1Var = variableSet.getVariable(controllerBranch.getNum(), VariableType.BRANCH_ALPHA1);
+    boolean isSensitivityCurrentPerA1Positive(LfBranch controllerBranch, DiscretePhaseControl.ControlledSide controlledSide) {
         if (controlledSide == DiscretePhaseControl.ControlledSide.ONE) {
             ClosedBranchSide1CurrentMagnitudeEquationTerm i1 = (ClosedBranchSide1CurrentMagnitudeEquationTerm) controllerBranch.getI1();
+            Variable a1Var = i1.getVariables().stream().filter(v -> v.getType() == VariableType.BRANCH_ALPHA1).findFirst().orElseThrow();
             return i1.der(a1Var) > 0;
         } else {
             ClosedBranchSide2CurrentMagnitudeEquationTerm i2 = (ClosedBranchSide2CurrentMagnitudeEquationTerm) controllerBranch.getI2();
+            Variable a1Var = i2.getVariables().stream().filter(v -> v.getType() == VariableType.BRANCH_ALPHA1).findFirst().orElseThrow();
             return i2.der(a1Var) > 0;
         }
     }

@@ -56,34 +56,6 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
         updateCurrent(v1, v2, ph1, ph2, r1, a1);
     }
 
-    @Override
-    public double eval() {
-        return i2;
-    }
-
-    @Override
-    public double der(Variable variable) {
-        Objects.requireNonNull(variable);
-        if (variable.equals(v1Var)) {
-            return di2dv1;
-        } else if (variable.equals(v2Var)) {
-            return di2dv2;
-        } else if (variable.equals(ph1Var)) {
-            return di2dph1;
-        } else if (variable.equals(ph2Var)) {
-            return di2dph2;
-        } else if (variable.equals(a1Var)) {
-            return di2da1;
-        } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
-        }
-    }
-
-    @Override
-    protected String getName() {
-        return "ac_i_closed_2";
-    }
-
     private void updateCurrent(double v1, double v2, double ph1, double ph2, double r1, double a1) {
         double w2 = R2 * v2;
         double w1 = y * r1 * v1;
@@ -120,5 +92,33 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
         if (a1Var != null) {
             di2da1 = -di2dph1;
         }
+    }
+
+    @Override
+    public double eval() {
+        return i2;
+    }
+
+    @Override
+    public double der(Variable variable) {
+        Objects.requireNonNull(variable);
+        if (variable.equals(v1Var)) {
+            return di2dv1;
+        } else if (variable.equals(v2Var)) {
+            return di2dv2;
+        } else if (variable.equals(ph1Var)) {
+            return di2dph1;
+        } else if (variable.equals(ph2Var)) {
+            return di2dph2;
+        } else if (variable.equals(a1Var)) {
+            return di2da1;
+        } else {
+            throw new IllegalStateException("Unknown variable: " + variable);
+        }
+    }
+
+    @Override
+    protected String getName() {
+        return "ac_i_closed_2";
     }
 }
