@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import com.powsybl.openloadflow.network.AbstractLfNetworkListener;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 
 import java.util.List;
 import java.util.NavigableMap;
@@ -64,6 +61,11 @@ public class TargetVector extends AbstractLfNetworkListener implements EquationS
 
     @Override
     public void onGenerationReactivePowerTargetChange(LfBus bus, double oldGenerationTargetQ, double newGenerationTargetQ) {
+        invalidateValues();
+    }
+
+    @Override
+    public void onPhaseControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition) {
         invalidateValues();
     }
 

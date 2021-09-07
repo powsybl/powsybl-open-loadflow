@@ -246,7 +246,7 @@ public class LfNetwork {
                 jsonGenerator.writeFieldName("discretePhaseControl");
                 jsonGenerator.writeStartObject();
                 jsonGenerator.writeStringField("controller", dpc.getController().getId());
-                jsonGenerator.writeStringField("controlled", dpc.getController().getId());
+                jsonGenerator.writeStringField("controlled", dpc.getControlled().getId());
                 jsonGenerator.writeStringField("mode", dpc.getMode().name());
                 jsonGenerator.writeStringField("unit", dpc.getUnit().name());
                 jsonGenerator.writeStringField("controlledSide", dpc.getControlledSide().name());
