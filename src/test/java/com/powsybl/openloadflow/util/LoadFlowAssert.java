@@ -46,6 +46,10 @@ public final class LoadFlowAssert {
         assertEquals(q, terminal.getQ(), DELTA_POWER);
     }
 
+    public static void assertCurrentEquals(double i, Terminal terminal) {
+        assertEquals(i, terminal.getI(), DELTA_I);
+    }
+
     public static void assertUndefinedActivePower(Terminal terminal) {
         assertTrue(Double.isNaN(terminal.getP()));
     }
