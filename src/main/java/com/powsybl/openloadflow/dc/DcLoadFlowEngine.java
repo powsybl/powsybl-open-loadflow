@@ -82,7 +82,7 @@ public class DcLoadFlowEngine {
         EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(pNetwork, new VariableSet<>(), creationParameters);
 
         LoadFlowResult.ComponentResult.Status status = LoadFlowResult.ComponentResult.Status.FAILED;
-        try (JacobianMatrix j = new JacobianMatrix(equationSystem, parameters.getMatrixFactory())) {
+        try (JacobianMatrix<DcVariableType, DcEquationType> j = new JacobianMatrix<>(equationSystem, parameters.getMatrixFactory())) {
 
             status = run(equationSystem, j, Collections.emptyList(), Collections.emptyList(), reporter);
         } catch (Exception e) {

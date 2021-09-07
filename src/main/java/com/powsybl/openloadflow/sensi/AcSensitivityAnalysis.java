@@ -70,7 +70,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     ((SingleVariableLfSensitivityFactor<AcVariableType, AcEquationType>) factor).getVariableElement().equals(factor.getFunctionElement())) {
                     // add nabla_p eta, fr specific cases
                     // the only case currently: if we are computing the sensitivity of a phasetap change on itself
-                    Variable phi1Var = factor.getFunctionEquationTerm().getVariables()
+                    Variable<AcVariableType> phi1Var = factor.getFunctionEquationTerm().getVariables()
                         .stream()
                         .filter(var -> var.getNum() == factor.getFunctionElement().getNum() && var.getType().equals(AcVariableType.BRANCH_ALPHA1))
                         .findAny()

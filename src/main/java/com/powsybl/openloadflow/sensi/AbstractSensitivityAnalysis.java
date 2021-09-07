@@ -161,7 +161,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         protected SensitivityFactorGroup<V, E> group;
 
-        public AbstractLfSensitivityFactor(Object context, String variableId,
+        protected AbstractLfSensitivityFactor(Object context, String variableId,
                                            LfElement functionElement, SensitivityFunctionType functionType,
                                            SensitivityVariableType variableType, ContingencyContext contingencyContext) {
             this.context = context;
