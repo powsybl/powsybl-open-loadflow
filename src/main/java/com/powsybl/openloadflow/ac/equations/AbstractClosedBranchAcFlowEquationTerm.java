@@ -10,7 +10,6 @@ import com.google.common.collect.ImmutableList;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 
@@ -22,38 +21,38 @@ import java.util.Objects;
  */
 public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBranchAcFlowEquationTerm {
 
-    protected final Variable v1Var;
+    protected final Variable<AcVariableType> v1Var;
 
-    protected final Variable v2Var;
+    protected final Variable<AcVariableType> v2Var;
 
-    protected final Variable ph1Var;
+    protected final Variable<AcVariableType> ph1Var;
 
-    protected final Variable ph2Var;
+    protected final Variable<AcVariableType> ph2Var;
 
-    protected Variable a1Var;
+    protected Variable<AcVariableType> a1Var;
 
-    protected Variable r1Var;
+    protected Variable<AcVariableType> r1Var;
 
-    protected final List<Variable> variables;
+    protected final List<Variable<AcVariableType>> variables;
 
-    protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
+    protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                      boolean deriveA1, boolean deriveR1) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);
-        v1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_V);
-        v2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_V);
-        ph1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_PHI);
-        ph2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_PHI);
-        ImmutableList.Builder<Variable> variablesBuilder = ImmutableList.<Variable>builder()
+        v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
+        v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
+        ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
+        ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
+        ImmutableList.Builder<Variable<AcVariableType>> variablesBuilder = ImmutableList.<Variable<AcVariableType>>builder()
                 .add(v1Var, v2Var, ph1Var, ph2Var);
         if (deriveA1) {
-            a1Var = variableSet.getVariable(branch.getNum(), VariableType.BRANCH_ALPHA1);
+            a1Var = variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1);
             variablesBuilder.add(a1Var);
         }
         if (deriveR1) {
-            r1Var = variableSet.getVariable(branch.getNum(), VariableType.BRANCH_RHO1);
+            r1Var = variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1);
             variablesBuilder.add(r1Var);
         }
         variables = variablesBuilder.build();
@@ -82,7 +81,7 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     }
 
     @Override
-    public List<Variable> getVariables() {
+    public List<Variable<AcVariableType>> getVariables() {
         return variables;
     }
 }

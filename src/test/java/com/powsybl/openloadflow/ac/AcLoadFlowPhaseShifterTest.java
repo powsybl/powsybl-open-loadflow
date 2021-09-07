@@ -152,15 +152,55 @@ class AcLoadFlowPhaseShifterTest {
     void currentLimiterT2wtTest() {
         selectNetwork(createNetworkWithT2wt());
         parameters.setPhaseShifterRegulationOn(true);
-        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER) // FIXME: not supported
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
                 .setTargetDeadband(1) // FIXME how to take this into account
-                .setRegulating(true)
+                .setRegulating(false)
                 .setTapPosition(2)
                 .setRegulationTerminal(t2wt.getTerminal1())
                 .setRegulationValue(83); // in A
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
+        assertCurrentEquals(129.436, t2wt.getTerminal1());
+        assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
+
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
+                .setTargetDeadband(1) // FIXME how to take this into account
+                .setRegulating(true)
+                .setTapPosition(2)
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setRegulationValue(83); // in A
+
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertCurrentEquals(48.482, t2wt.getTerminal1());
+        assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
+
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
+                .setTargetDeadband(1) // FIXME how to take this into account
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setRegulationValue(90); // A
+
+        LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
+        assertTrue(result3.isOk());
+        assertCurrentEquals(83.680, line2.getTerminal1());
+        assertEquals(1, t2wt.getPhaseTapChanger().getTapPosition());
+
+        t2wt.getPhaseTapChanger().getStep(0).setAlpha(5.);
+        t2wt.getPhaseTapChanger().getStep(1).setAlpha(0.);
+        t2wt.getPhaseTapChanger().getStep(2).setAlpha(-5.);
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
+                .setTargetDeadband(1) // FIXME how to take this into account
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setRegulationValue(83); // A
+
+        LoadFlowResult result4 = loadFlowRunner.run(network, parameters);
+        assertTrue(result4.isOk());
+        assertCurrentEquals(48.492, line2.getTerminal1());
         assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
     }
 
