@@ -20,4 +20,8 @@ public interface LfElement {
     void setNum(int num);
 
     LfNetwork getNetwork();
+
+    Object getUserObject();
+
+    void setUserObject(Object userObject);
 }

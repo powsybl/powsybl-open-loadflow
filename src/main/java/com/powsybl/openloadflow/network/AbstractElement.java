@@ -17,6 +17,8 @@ public abstract class AbstractElement {
 
     protected int num = -1;
 
+    protected Object userObject;
+
     protected AbstractElement(LfNetwork network) {
         this.network = Objects.requireNonNull(network);
     }
@@ -31,5 +33,13 @@ public abstract class AbstractElement {
 
     public LfNetwork getNetwork() {
         return network;
+    }
+
+    public Object getUserObject() {
+        return userObject;
+    }
+
+    public void setUserObject(Object userObject) {
+        this.userObject = userObject;
     }
 }

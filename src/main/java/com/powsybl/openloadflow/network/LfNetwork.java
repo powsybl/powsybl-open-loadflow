@@ -65,6 +65,8 @@ public class LfNetwork {
 
     private boolean valid = true;
 
+    private Object userObject;
+
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector) {
         this.numCC = numCC;
         this.numSC = numSC;
@@ -514,6 +516,14 @@ public class LfNetwork {
 
     public void setValid(boolean valid) {
         this.valid = valid;
+    }
+
+    public Object getUserObject() {
+        return userObject;
+    }
+
+    public void setUserObject(Object userObject) {
+        this.userObject = userObject;
     }
 
     @Override
