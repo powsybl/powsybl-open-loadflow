@@ -84,16 +84,16 @@ public final class AcEquationSystem {
         equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V).addTerm(vTerm);
     }
 
-    private static void createReactivePowerControlBranchEquation(LfBranch branch, ReactivePowerControl.ControlledSide controlledSide, EquationSystem equationSystem, EquationTerm q) {
+    private static void createReactivePowerControlBranchEquation(LfBranch branch, ReactivePowerControl.ControlledSide controlledSide, EquationSystem<AcVariableType, AcEquationType> equationSystem, EquationTerm q) {
         branch.getReactivePowerControl().ifPresent(reactivePowerControl -> {
             if (reactivePowerControl.getControlledSide() == controlledSide) {
-                Equation equation = equationSystem.createEquation(branch.getNum(), EquationType.BRANCH_Q);
+                Equation equation = equationSystem.createEquation(branch.getNum(), AcEquationType.BRANCH_Q);
                 equation.addTerm(q);
             }
         });
     }
 
-    private static void createShuntEquations(VariableSet variableSet, EquationSystem equationSystem, LfBus bus) {
+    private static void createShuntEquations(VariableSet<AcVariableType> variableSet, EquationSystem<AcVariableType, AcEquationType> equationSystem, LfBus bus) {
         for (LfShunt shunt : bus.getShunts()) {
             ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet);
             equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_Q).addTerm(q);
