@@ -302,4 +302,13 @@ class AcLoadFlowSvcTest {
         assertActivePowerEquals(0, svc1.getTerminal());
         assertReactivePowerEquals(115.413, svc1.getTerminal());
     }
+
+    @Test
+    void testRegulationModeOff() {
+        svc1.setReactivePowerSetpoint(100)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(100, svc1.getTerminal());
+    }
 }
