@@ -11,6 +11,8 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.PhaseTapChanger;
+import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
@@ -45,6 +47,7 @@ import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.Markers;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.tools.PowsyblCoreVersion;
+import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,7 +123,14 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
                                                           OpenLoadFlowParameters parametersExt, boolean breakers) {
-        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false, null);
+        Set<String> branchesWithCurrent = null;
+        if (parameters.isPhaseShifterRegulationOn()) {
+            branchesWithCurrent = network.getTwoWindingsTransformerStream()
+                    .filter(twt -> twt.getPhaseTapChanger() != null && twt.getPhaseTapChanger().getRegulationMode() == PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
+                    .map(TwoWindingsTransformer::getId)
+                    .collect(Collectors.toSet());
+        }
+        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false, branchesWithCurrent);
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
@@ -242,7 +252,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 // to be consistent with low impedance criteria used in DcEquationSystem and AcEquationSystem
                 double nominalV = line.getTerminal1().getVoltageLevel().getNominalV();
                 double zb = nominalV * nominalV / PerUnit.SB;
-                double z = Math.hypot(line.getR(), line.getX());
+                double z = FastMath.hypot(line.getR(), line.getX());
                 return z / zb <= LOW_IMPEDANCE_THRESHOLD;
             }).complete();
         }

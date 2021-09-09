@@ -34,7 +34,7 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
 
     private double di2da1;
 
-    public ClosedBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
+    public ClosedBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                          boolean deriveA1, boolean deriveR1) {
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
@@ -52,33 +52,37 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
         double ph2 = x[ph2Var.getRow()];
         double ph1 = x[ph1Var.getRow()];
         double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
+        double a1 = a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1();
+        updateCurrent(v1, v2, ph1, ph2, r1, a1);
+    }
+
+    private void updateCurrent(double v1, double v2, double ph1, double ph2, double r1, double a1) {
         double w2 = R2 * v2;
         double w1 = y * r1 * v1;
         double cosPh2 = FastMath.cos(ph2);
         double sinPh2 = FastMath.sin(ph2);
         double cosPh2Ksi = FastMath.cos(ph2 + ksi);
         double sinPh2Ksi = FastMath.sin(ph2 + ksi);
-        double theta = ksi + (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1())
-                - A2 + ph1;
+        double theta = ksi + a1 - A2 + ph1;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
 
         double interReI2 = g2 * cosPh2 - b2 * sinPh2 + y * sinPh2Ksi;
         double interImI2 = g2 * sinPh2 + b2 * cosPh2 - y * cosPh2Ksi;
 
-        double reI2 = R2 * (w2 * interReI2 - w1 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
-        double imI2 = R2 * (w2 * interImI2 + w1 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
-        i2 = Math.hypot(reI2, imI2);
+        double reI2 = R2 * (w2 * interReI2 - w1 * sinTheta);
+        double imI2 = R2 * (w2 * interImI2 + w1 * cosTheta);
+        i2 = FastMath.hypot(reI2, imI2);
 
-        double dreI2dv2 = R2 * R2 * interReI2 * CURRENT_NORMALIZATION_FACTOR;
-        double dreI2dv1 = R2 * (-y * r1 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
-        double dreI2dph2 = R2 * w2 * (-g2 * sinPh2 - b2 * cosPh2 + y * cosPh2Ksi) * CURRENT_NORMALIZATION_FACTOR;
-        double dreI2dph1 = R2 * (-w1 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
+        double dreI2dv2 = R2 * R2 * interReI2;
+        double dreI2dv1 = R2 * (-y * r1 * sinTheta);
+        double dreI2dph2 = R2 * w2 * (-g2 * sinPh2 - b2 * cosPh2 + y * cosPh2Ksi);
+        double dreI2dph1 = R2 * (-w1 * cosTheta);
 
-        double dimI2dv2 = R2 * R2 * interImI2 * CURRENT_NORMALIZATION_FACTOR;
-        double dimI2dv1 = R2 * (y * r1 * cosTheta) * CURRENT_NORMALIZATION_FACTOR;
-        double dimI2dph2 = R2 * w2 * interReI2 * CURRENT_NORMALIZATION_FACTOR;
-        double dimI2dph1 = R2 * (-w1 * sinTheta) * CURRENT_NORMALIZATION_FACTOR;
+        double dimI2dv2 = R2 * R2 * interImI2;
+        double dimI2dv1 = R2 * (y * r1 * cosTheta);
+        double dimI2dph2 = R2 * w2 * interReI2;
+        double dimI2dph1 = R2 * (-w1 * sinTheta);
 
         di2dv2 = (reI2 * dreI2dv2 + imI2 * dimI2dv2) / i2;
         di2dv1 = (reI2 * dreI2dv1 + imI2 * dimI2dv1) / i2;
@@ -96,7 +100,7 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     @Override
-    public double der(Variable variable) {
+    public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
             return di2dv1;

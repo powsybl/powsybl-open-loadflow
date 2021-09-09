@@ -22,33 +22,33 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNamedEquationTerm {
+public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNamedEquationTerm<DcVariableType, DcEquationType> {
 
     protected final LfBranch branch;
 
-    protected final Variable ph1Var;
+    protected final Variable<DcVariableType> ph1Var;
 
-    protected final Variable ph2Var;
+    protected final Variable<DcVariableType> ph2Var;
 
-    protected Variable a1Var;
+    protected Variable<DcVariableType> a1Var;
 
-    protected final List<Variable> variables;
+    protected final List<Variable<DcVariableType>> variables;
 
     protected final double power;
 
-    protected AbstractClosedBranchDcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
+    protected AbstractClosedBranchDcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
                                                      boolean deriveA1, boolean useTransformerRatio) {
         this.branch = Objects.requireNonNull(branch);
         PiModel piModel = branch.getPiModel();
         if (piModel.getX() == 0) {
             throw new IllegalArgumentException("Branch '" + branch.getId() + "' has reactance equal to zero");
         }
-        ph1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_PHI);
-        ph2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_PHI);
-        ImmutableList.Builder<Variable> variablesBuilder = ImmutableList.<Variable>builder().add(ph1Var, ph2Var);
+        ph1Var = variableSet.getVariable(bus1.getNum(), DcVariableType.BUS_PHI);
+        ph2Var = variableSet.getVariable(bus2.getNum(), DcVariableType.BUS_PHI);
+        ImmutableList.Builder<Variable<DcVariableType>> variablesBuilder = ImmutableList.<Variable<DcVariableType>>builder().add(ph1Var, ph2Var);
         power =  1 / piModel.getX() * (useTransformerRatio ? piModel.getR1() * R2 : 1);
         if (deriveA1) {
-            a1Var = variableSet.getVariable(branch.getNum(), VariableType.BRANCH_ALPHA1);
+            a1Var = variableSet.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1);
             variablesBuilder.add(a1Var);
         }
         variables = variablesBuilder.build();
@@ -84,7 +84,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
     }
 
     @Override
-    public List<Variable> getVariables() {
+    public List<Variable<DcVariableType>> getVariables() {
         return variables;
     }
 

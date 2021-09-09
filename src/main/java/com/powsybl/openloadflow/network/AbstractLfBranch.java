@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.impl.Transformers;
+import com.powsybl.openloadflow.util.Evaluable;
 import org.apache.commons.math3.util.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,9 +57,9 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private final LfBus bus2;
 
-    private Map<LimitType, List<LfLimit>> limits1 = new EnumMap<>(LimitType.class);
+    private final Map<LimitType, List<LfLimit>> limits1 = new EnumMap<>(LimitType.class);
 
-    private Map<LimitType, List<LfLimit>> limits2 = new EnumMap<>(LimitType.class);
+    private final Map<LimitType, List<LfLimit>> limits2 = new EnumMap<>(LimitType.class);
 
     private final PiModel piModel;
 
@@ -67,6 +68,10 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     protected DiscreteVoltageControl discreteVoltageControl;
 
     protected boolean disabled = false;
+
+    protected boolean spanningTreeEdge = false;
+
+    protected Evaluable a1;
 
     protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
         super(network);
@@ -192,7 +197,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             case APPARENT_POWER:
                 return 1.0 / PerUnit.SB;
             case CURRENT:
-                return bus.getNominalV() / PerUnit.SB;
+                return 1.0 / PerUnit.ib(bus.getNominalV());
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting scale for limit type %s is not supported.", type));
@@ -235,5 +240,25 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         double p = getP2().eval();
         double q = getQ2().eval();
         return FastMath.sqrt(p * p + q * q);
+    }
+
+    @Override
+    public void setSpanningTreeEdge(boolean spanningTreeEdge) {
+        this.spanningTreeEdge = spanningTreeEdge;
+    }
+
+    @Override
+    public boolean isSpanningTreeEdge() {
+        return this.spanningTreeEdge;
+    }
+
+    @Override
+    public Evaluable getA1() {
+        return a1;
+    }
+
+    @Override
+    public void setA1(Evaluable a1) {
+        this.a1 = a1;
     }
 }

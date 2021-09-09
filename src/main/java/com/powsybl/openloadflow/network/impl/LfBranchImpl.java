@@ -41,10 +41,6 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private Evaluable i2 = NAN;
 
-    private static double nominalV1;
-
-    private static double nominalV2;
-
     protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
         super(network, bus1, bus2, piModel);
         this.branch = branch;
@@ -52,8 +48,8 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                            LfNetworkLoadingReport report) {
-        nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
-        nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
+        double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
+        double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
         double r1 = 1;
         if (addRatioToLinesWithDifferentNominalVoltageAtBothEnds && nominalV1 != nominalV2) {
             LOGGER.trace("Line '{}' has a different nominal voltage at both ends ({} and {}): add a ration", line.getId(), nominalV1, nominalV2);
@@ -89,7 +85,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                 Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
                 models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
             }
-            piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
+            piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition(), network);
         }
 
         RatioTapChanger rtc = twt.getRatioTapChanger();
@@ -103,7 +99,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                     Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
                     models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
                 }
-                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
+                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition(), network);
             } else {
                 throw new PowsyblException("Voltage and phase control on same branch '" + twt.getId() + "' is not yet supported");
             }
@@ -207,10 +203,10 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     @Override
     public BranchResult createBranchResult() {
-        double currentScale1 = PerUnit.SB / nominalV1;
-        double currentScale2 = PerUnit.SB / nominalV2;
-        return new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval(), i1.eval() * currentScale1,
-                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, i2.eval() * currentScale2);
+        double currentScale1 = PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
+        double currentScale2 = PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
+        return new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
+                                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval());
     }
 
     @Override
@@ -250,12 +246,12 @@ public class LfBranchImpl extends AbstractLfBranch {
         branch.getTerminal2().setP(p2.eval() * PerUnit.SB);
         branch.getTerminal2().setQ(q2.eval() * PerUnit.SB);
 
-        if (phaseShifterRegulationOn && isPhaseController()  && phaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
+        if (phaseShifterRegulationOn && isPhaseController()  && phaseControl.getMode() != DiscretePhaseControl.Mode.CONTROLLER) {
             // it means there is a regulating phase tap changer located on that branch
             updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
         }
 
-        if (phaseShifterRegulationOn && isPhaseControlled()) {
+        if (phaseShifterRegulationOn && isPhaseControlled() && phaseControl.getMode() != DiscretePhaseControl.Mode.LIMITER) {
             // check if the target value deadband is respected
             checkTargetDeadband(phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE ? p1.eval() : p2.eval());
         }
