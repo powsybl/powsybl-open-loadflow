@@ -4,24 +4,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.network;
+package com.powsybl.openloadflow.equations;
+
+import com.powsybl.openloadflow.network.ElementType;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface LfElement {
+public interface Quantity {
 
-    String getId();
+    String getSymbol();
 
-    ElementType getType();
-
-    int getNum();
-
-    void setNum(int num);
-
-    LfNetwork getNetwork();
-
-    Object getUserObject();
-
-    void setUserObject(Object userObject);
+    ElementType getElementType();
 }

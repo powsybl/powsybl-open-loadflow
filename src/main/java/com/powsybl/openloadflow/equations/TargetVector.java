@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import com.powsybl.openloadflow.network.AbstractLfNetworkListener;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 
 import java.util.List;
 import java.util.NavigableMap;
@@ -18,11 +15,19 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class TargetVector extends AbstractLfNetworkListener implements EquationSystemListener {
+public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfNetworkListener implements EquationSystemListener<V, E> {
+
+    @FunctionalInterface
+    public interface Initializer<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+
+        void initialize(Equation<V, E> equation, LfNetwork network, double[] targets);
+    }
 
     private final LfNetwork network;
 
-    private final EquationSystem equationSystem;
+    private final EquationSystem<V, E> equationSystem;
+
+    private final Initializer<V, E> initializer;
 
     private double[] array;
 
@@ -34,9 +39,10 @@ public class TargetVector extends AbstractLfNetworkListener implements EquationS
 
     private Status status = Status.VECTOR_INVALID;
 
-    public TargetVector(LfNetwork network, EquationSystem equationSystem) {
+    public TargetVector(LfNetwork network, EquationSystem<V, E> equationSystem, Initializer<V, E> initializer) {
         this.network = Objects.requireNonNull(network);
         this.equationSystem = Objects.requireNonNull(equationSystem);
+        this.initializer = Objects.requireNonNull(initializer);
         network.addListener(this);
         equationSystem.addListener(this);
     }
@@ -68,12 +74,17 @@ public class TargetVector extends AbstractLfNetworkListener implements EquationS
     }
 
     @Override
-    public void onEquationChange(Equation equation, EquationEventType eventType) {
+    public void onPhaseControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition) {
+        invalidateValues();
+    }
+
+    @Override
+    public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
         status = Status.VECTOR_INVALID;
     }
 
     @Override
-    public void onEquationTermChange(EquationTerm term, EquationTermEventType eventType) {
+    public void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
         // nothing to do
     }
 
@@ -99,24 +110,27 @@ public class TargetVector extends AbstractLfNetworkListener implements EquationS
         return array;
     }
 
-    public static double[] createArray(LfNetwork network, EquationSystem equationSystem) {
-        NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
+    public static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double[] createArray(LfNetwork network, EquationSystem<V, E> equationSystem, Initializer<V, E> initializer) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(equationSystem);
+        Objects.requireNonNull(initializer);
+        NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
         double[] array = new double[sortedEquationsToSolve.size()];
-        for (Equation equation : sortedEquationsToSolve.keySet()) {
-            equation.initTarget(network, array);
+        for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
+            initializer.initialize(equation, network, array);
         }
         return array;
     }
 
     private void createArray() {
-        array = createArray(network, equationSystem);
+        array = createArray(network, equationSystem, initializer);
         status = Status.VALID;
     }
 
     private void updateArray() {
-        NavigableMap<Equation, NavigableMap<Variable, List<EquationTerm>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
-        for (Equation equation : sortedEquationsToSolve.keySet()) {
-            equation.initTarget(network, array);
+        NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
+        for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
+            initializer.initialize(equation, network, array);
         }
         status = Status.VALID;
     }

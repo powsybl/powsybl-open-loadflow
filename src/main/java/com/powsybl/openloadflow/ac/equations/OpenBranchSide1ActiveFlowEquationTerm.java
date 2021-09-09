@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 
@@ -21,16 +20,16 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
  */
 public class OpenBranchSide1ActiveFlowEquationTerm extends AbstractOpenSide1BranchAcFlowEquationTerm {
 
-    private final Variable v2Var;
+    private final Variable<AcVariableType> v2Var;
 
     private double p2;
 
     private double dp2dv2;
 
-    public OpenBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus2, VariableSet variableSet,
+    public OpenBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                  boolean deriveA1, boolean deriveR1) {
-        super(branch, VariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
-        v2Var = variableSet.getVariable(bus2.getNum(), VariableType.BUS_V);
+        super(branch, AcVariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
+        v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
     }
 
     @Override
