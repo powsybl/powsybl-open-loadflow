@@ -244,11 +244,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
-    private void createBranchFunctionReferenceValue(LfSensitivityFactor factor, DenseMatrix contingenciesStates,
+    private void createBranchFunctionReferenceValue(LfSensitivityFactor<DcVariableType, DcEquationType> factor, DenseMatrix contingenciesStates,
                                                     Collection<ComputedContingencyElement> contingencyElements,
                                                     PropagatedContingency contingency, SensitivityValueWriter valueWriter) {
         double flowValue;
-        EquationTerm p1 = factor.getFunctionEquationTerm();
+        EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
         String functionBranchId = factor.getFunctionElement().getId();
         flowValue = factor.getFunctionReference();
         for (ComputedContingencyElement contingencyElement : contingencyElements) {
