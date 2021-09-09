@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -14,11 +15,12 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
-import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -189,7 +191,7 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
         parameters = new LoadFlowParameters()
                 .setDistributedSlack(false);
         parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector());
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
@@ -201,5 +203,55 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
         assertVoltageEquals(17.032769, b1); // PQ => v != 17
         assertVoltageEquals(21, b2); // PV
         assertVoltageEquals(20, b3); // PV
+    }
+
+    @Test
+    void testWithSlope() {
+        g3.remove();
+        double value = b3.getVoltageLevel().getNominalV() * b3.getVoltageLevel().getNominalV();
+        StaticVarCompensator svc3 = b3.getVoltageLevel()
+                .newStaticVarCompensator()
+                .setId("svc3")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setVoltageSetpoint(20)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setBmax(30 / value)
+                .setBmin(-1000 / value)
+                .add();
+        g3 = b3.getVoltageLevel()
+                .newGenerator()
+                .setId("g3")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(200)
+                .setTargetP(100)
+                .setTargetQ(0)
+                .setVoltageRegulatorOn(false)
+                .add();
+        g3.newMinMaxReactiveLimits()
+                .setMinQ(0)
+                .setMaxQ(0)
+                .add();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        // bus 1 and 3 switch PQ at first outer loop, then at next outer loop bus 3 go back PV
+        assertVoltageEquals(17.032769, b1); // PQ => v != 17
+        assertVoltageEquals(21, b2); // PV
+        assertVoltageEquals(20, b3); // PV
+        System.out.println(b3.getV());
+
+        parametersExt.setVoltagePerReactivePowerControl(true);
+        svc3.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.00001).add();
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        // bus 1 and 3 switch PQ at first outer loop, then at next outer loop bus 3 does not go back PV
+        assertVoltageEquals(17.034003, b1); // PQ => v != 17
+        assertVoltageEquals(21, b2); // PV
+        System.out.println(b3.getV());
+        assertEquals(20.00140, b3.getV(), 10E-3); // remains PQ because of slope
     }
 }

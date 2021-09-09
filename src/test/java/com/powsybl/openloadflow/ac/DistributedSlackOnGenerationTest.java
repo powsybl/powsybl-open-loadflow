@@ -6,9 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.Generator;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
@@ -17,15 +15,18 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.EnumSet;
 import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -51,7 +52,8 @@ class DistributedSlackOnGenerationTest {
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(true);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector());
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setThrowsExceptionInCaseOfSlackDistributionFailure(true);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
@@ -76,10 +78,17 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
-    void testUnsupportedGenerationBalanceType() {
+    void testProportionalToGenerationPBalanceType() {
+        // decrease g1 max limit power, so that distributed slack algo reach the g1 max
+        g1.setMaxP(105);
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
-        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
-                "java.lang.UnsupportedOperationException: Unsupported balance type mode: PROPORTIONAL_TO_GENERATION_P");
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-105, g1.getTerminal());
+        assertActivePowerEquals(-260.526, g2.getTerminal());
+        assertActivePowerEquals(-117.236, g3.getTerminal());
+        assertActivePowerEquals(-117.236, g4.getTerminal());
     }
 
     @Test
@@ -112,21 +121,10 @@ class DistributedSlackOnGenerationTest {
     void zeroParticipatingGeneratorsTest() {
         g1.getExtension(ActivePowerControl.class).setDroop(2);
         g2.getExtension(ActivePowerControl.class).setDroop(-3);
-        g3.getExtension(ActivePowerControl.class).setParticipate(false);
-        g4.getExtension(ActivePowerControl.class).setParticipate(false);
+        g3.getExtension(ActivePowerControl.class).setDroop(0);
+        g4.getExtension(ActivePowerControl.class).setDroop(0);
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
                 "No more generator participating to slack distribution");
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    void zeroDroopAndParticipatingTest() {
-        g1.getExtension(ActivePowerControl.class).setDroop(0);
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
-        LfBus lfB1 = lfNetwork.getBusById("b1_vl_0");
-        LfGenerator lfG1 = lfB1.getGenerators().stream().filter(g -> g.getId().equals("g1")).findFirst().orElseThrow(AssertionError::new);
-        assertTrue(lfG1.isParticipating());
-        assertEquals(50, lfG1.getParticipationFactor());
     }
 
     @Test
@@ -155,5 +153,25 @@ class DistributedSlackOnGenerationTest {
         network.getGenerator("GEN").setMinP(1000);
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
                 "Failed to distribute slack bus active power mismatch, -1.4404045651214226 MW remains");
+    }
+
+    @Test
+    void nonParticipatingBus() {
+
+        //B1 and B2 are located in germany the rest is in france
+        Substation b1s = network.getSubstation("b1_s");
+        b1s.setCountry(Country.GE);
+        Substation b2s = network.getSubstation("b2_s");
+        b2s.setCountry(Country.GE);
+
+        //Only substation located in france are used
+        parameters.setCountriesToBalance(EnumSet.of(Country.FR));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-100, g1.getTerminal());
+        assertActivePowerEquals(-200, g2.getTerminal());
+        assertActivePowerEquals(-150, g3.getTerminal());
+        assertActivePowerEquals(-150, g4.getTerminal());
     }
 }

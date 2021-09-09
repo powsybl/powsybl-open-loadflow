@@ -25,17 +25,20 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final double highVoltageLimit;
 
-    protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle) {
+    private final boolean participating;
+
+    protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, boolean participating) {
         super(network, v, angle);
         this.bus = bus;
         nominalV = bus.getVoltageLevel().getNominalV();
         lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
+        this.participating = participating;
     }
 
-    public static LfBusImpl create(Bus bus, LfNetwork network) {
+    public static LfBusImpl create(Bus bus, LfNetwork network, boolean participating) {
         Objects.requireNonNull(bus);
-        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle());
+        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle(), participating);
     }
 
     @Override
@@ -69,14 +72,19 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
-        bus.setV(v).setAngle(angle);
+    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
+        bus.setV(v.eval() * getNominalV()).setAngle(angle);
 
         // update slack bus
         if (slack && writeSlackBus) {
             SlackTerminal.attach(bus);
         }
 
-        super.updateState(reactiveLimits, writeSlackBus);
+        super.updateState(reactiveLimits, writeSlackBus, distributedOnConformLoad, loadPowerFactorConstant);
+    }
+
+    @Override
+    public boolean isParticipating() {
+        return participating;
     }
 }

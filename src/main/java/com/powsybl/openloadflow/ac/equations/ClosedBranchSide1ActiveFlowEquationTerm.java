@@ -36,12 +36,12 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
 
     private double dp1dr1;
 
-    public ClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
+    public ClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                    boolean deriveA1, boolean deriveR1) {
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
 
-    protected double calculateDer(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
+    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
         return dp1dph1 * dph1 + dp1dph2 * dph2 + dp1dv1 * dv1 + dp1dv2 * dv2;
     }
 
@@ -52,11 +52,11 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         double v2 = x[v2Var.getRow()];
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
-        double theta = ksi - (a1Var != null && a1Var.isActive() ? x[a1Var.getRow()] : branch.getPiModel().getA1())
+        double theta = ksi - (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1())
                 + A2 - ph1 + ph2;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
-        double r1 = r1Var != null && r1Var.isActive() ? x[r1Var.getRow()] : branch.getPiModel().getR1();
+        double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
         p1 = r1 * v1 * (g1 * r1 * v1 + y * r1 * v1 * sinKsi - y * R2 * v2 * sinTheta);
         dp1dv1 = r1 * (2 * g1 * r1 * v1 + 2 * y * r1 * v1 * sinKsi - y * R2 * v2 * sinTheta);
         dp1dv2 = -y * r1 * R2 * v1 * sinTheta;
@@ -76,7 +76,7 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     @Override
-    public double der(Variable variable) {
+    public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
             return dp1dv1;

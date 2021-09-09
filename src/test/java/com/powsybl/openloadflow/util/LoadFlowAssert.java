@@ -6,14 +6,14 @@
  */
 package com.powsybl.openloadflow.util;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowResult;
 
 import java.util.Iterator;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -21,9 +21,11 @@ import java.util.Iterator;
 public final class LoadFlowAssert {
 
     public static final double DELTA_ANGLE = 1E-6d;
-    public static final double DELTA_V = 1E-3d;
+    public static final double DELTA_V = 1E-2d;
     public static final double DELTA_POWER = 1E-3d;
+    public static final double DELTA_I = 1000 * DELTA_POWER / Math.sqrt(3);
     public static final double DELTA_MISMATCH = 1E-4d;
+    public static final double DELTA_SENSITIVITY_VALUE = 1E-4d;
 
     private LoadFlowAssert() {
     }
@@ -42,6 +44,10 @@ public final class LoadFlowAssert {
 
     public static void assertReactivePowerEquals(double q, Terminal terminal) {
         assertEquals(q, terminal.getQ(), DELTA_POWER);
+    }
+
+    public static void assertCurrentEquals(double i, Terminal terminal) {
+        assertEquals(i, terminal.getI(), DELTA_I);
     }
 
     public static void assertUndefinedActivePower(Terminal terminal) {

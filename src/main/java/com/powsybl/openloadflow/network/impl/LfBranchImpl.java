@@ -10,6 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.security.results.BranchResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +36,10 @@ public class LfBranchImpl extends AbstractLfBranch {
     private Evaluable q1 = NAN;
 
     private Evaluable q2 = NAN;
+
+    private Evaluable i1 = NAN;
+
+    private Evaluable i2 = NAN;
 
     protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
         super(network, bus1, bus2, piModel);
@@ -80,7 +85,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                 Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
                 models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
             }
-            piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
+            piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition(), network);
         }
 
         RatioTapChanger rtc = twt.getRatioTapChanger();
@@ -94,7 +99,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                     Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
                     models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
                 }
-                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
+                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition(), network);
             } else {
                 throw new PowsyblException("Voltage and phase control on same branch '" + twt.getId() + "' is not yet supported");
             }
@@ -142,8 +147,8 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public double getP1() {
-        return p1.eval();
+    public Evaluable getP1() {
+        return p1;
     }
 
     @Override
@@ -152,8 +157,8 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public double getP2() {
-        return p2.eval();
+    public Evaluable getP2() {
+        return p2;
     }
 
     @Override
@@ -162,30 +167,76 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
+    public Evaluable getQ1() {
+        return q1;
+    }
+
+    @Override
     public void setQ2(Evaluable q2) {
         this.q2 = Objects.requireNonNull(q2);
     }
 
     @Override
-    public double getI1() {
-        return getBus1() != null ? Math.hypot(p1.eval(), q1.eval())
-            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
+    public Evaluable getQ2() {
+        return q2;
     }
 
     @Override
-    public double getI2() {
-        return getBus2() != null ? Math.hypot(p2.eval(), q2.eval())
-            / (Math.sqrt(3.) * getBus2().getV() / 1000) : Double.NaN;
+    public void setI1(Evaluable i1) {
+        this.i1 = Objects.requireNonNull(i1);
     }
 
     @Override
-    public double getPermanentLimit1() {
-        return branch.getCurrentLimits1() != null ? branch.getCurrentLimits1().getPermanentLimit() * getBus1().getNominalV() / PerUnit.SB : Double.NaN;
+    public Evaluable getI1() {
+        return i1;
     }
 
     @Override
-    public double getPermanentLimit2() {
-        return branch.getCurrentLimits2() != null ? branch.getCurrentLimits2().getPermanentLimit() * getBus2().getNominalV() / PerUnit.SB : Double.NaN;
+    public void setI2(Evaluable i2) {
+        this.i2 = Objects.requireNonNull(i2);
+    }
+
+    @Override
+    public Evaluable getI2() {
+        return i2;
+    }
+
+    @Override
+    public BranchResult createBranchResult() {
+        double currentScale1 = PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
+        double currentScale2 = PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
+        return new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
+                                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval());
+    }
+
+    @Override
+    public List<LfLimit> getLimits1(final LimitType type) {
+        switch (type) {
+            case ACTIVE_POWER:
+                return getLimits1(type, branch.getActivePowerLimits1());
+            case APPARENT_POWER:
+                return getLimits1(type, branch.getApparentPowerLimits1());
+            case CURRENT:
+                return getLimits1(type, branch.getCurrentLimits1());
+            case VOLTAGE:
+            default:
+                throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+        }
+    }
+
+    @Override
+    public List<LfLimit> getLimits2(final LimitType type) {
+        switch (type) {
+            case ACTIVE_POWER:
+                return getLimits2(type, branch.getActivePowerLimits2());
+            case APPARENT_POWER:
+                return getLimits2(type, branch.getApparentPowerLimits2());
+            case CURRENT:
+                return getLimits2(type, branch.getCurrentLimits2());
+            case VOLTAGE:
+            default:
+                throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+        }
     }
 
     @Override
@@ -195,12 +246,12 @@ public class LfBranchImpl extends AbstractLfBranch {
         branch.getTerminal2().setP(p2.eval() * PerUnit.SB);
         branch.getTerminal2().setQ(q2.eval() * PerUnit.SB);
 
-        if (phaseShifterRegulationOn && isPhaseController()  && phaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
+        if (phaseShifterRegulationOn && isPhaseController()  && phaseControl.getMode() != DiscretePhaseControl.Mode.CONTROLLER) {
             // it means there is a regulating phase tap changer located on that branch
             updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
         }
 
-        if (phaseShifterRegulationOn && isPhaseControlled()) {
+        if (phaseShifterRegulationOn && isPhaseControlled() && phaseControl.getMode() != DiscretePhaseControl.Mode.LIMITER) {
             // check if the target value deadband is respected
             checkTargetDeadband(phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE ? p1.eval() : p2.eval());
         }

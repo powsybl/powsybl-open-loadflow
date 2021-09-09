@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,7 +43,8 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void initialTest() {
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        LfNetwork lfNetwork = lfNetworks.get(0);
         LfGenerator lfGenerator = lfNetwork.getBus(0).getGenerators().get(0);
         assertEquals("g", lfGenerator.getId());
         assertTrue(lfGenerator.isParticipating());
@@ -52,7 +54,8 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     void generatorZeroActivePowerTargetTest() {
         // targetP == 0, generator is discarded from active power control
         g.setTargetP(0);
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        LfNetwork lfNetwork = lfNetworks.get(0);
         assertFalse(lfNetwork.getBus(0).getGenerators().get(0).isParticipating());
     }
 
@@ -61,7 +64,8 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         // targetP > maxP, generator is discarded from active power control
         g.setTargetP(10);
         g.setMaxP(5);
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        LfNetwork lfNetwork = lfNetworks.get(0);
         assertFalse(lfNetwork.getBus(0).getGenerators().get(0).isParticipating());
     }
 
@@ -80,8 +84,10 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
                 .setMaxQ(7.00000001)
                 .endPoint()
                 .add();
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
-        assertFalse(lfNetwork.getBus(0).hasVoltageControl());
+
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        assertFalse(lfNetwork.getBus(0).isVoltageControllerEnabled());
     }
 
     @Test
@@ -89,15 +95,9 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         // targetP is zero and minP > 0, meansn generator is not started and cannot control voltage
         g.setTargetP(0);
         g.setMinP(1);
-        LfNetwork lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
-        assertFalse(lfNetwork.getBus(0).hasVoltageControl());
-    }
-
-    @Test
-    void networkWithoutGeneratorTest() {
-        g.remove();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
-        assertTrue(lfNetworks.isEmpty());
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        assertFalse(lfNetwork.getBus(0).isVoltageControllerEnabled());
     }
 
     @Test
@@ -106,7 +106,8 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
-        LfBus lfDanglingLineBus = lfNetworks.get(0).getBusById("DL_BUS");
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        LfBus lfDanglingLineBus = mainNetwork.getBusById("DL_BUS");
         assertTrue(lfDanglingLineBus instanceof LfDanglingLineBus);
         assertEquals("VL", lfDanglingLineBus.getVoltageLevelId());
     }
@@ -121,8 +122,34 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
-        LfBus lfStarBus = lfNetworks.get(0).getBusById("3WT_BUS0");
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        LfBus lfStarBus = mainNetwork.getBusById("3WT_BUS0");
         assertTrue(lfStarBus instanceof LfStarBus);
         assertEquals(voltageLevelLeg1.getId(), lfStarBus.getVoltageLevelId());
+    }
+
+    @Test
+    void defaultMethodsTest() {
+        network = EurostagTutorialExample1Factory.create();
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        LfGenerator generator = mainNetwork.getBusById("VLGEN_0").getGenerators().get(0);
+        assertEquals(0, generator.getSlope(), 10E-3);
+        generator.setSlope(10);
+        assertEquals(0, generator.getSlope(), 10E-3);
+    }
+
+    @Test
+    void defaultMethodsTest2() {
+        network = DanglingLineFactory.create();
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        LfBus lfDanglingLineBus = mainNetwork.getBusById("dl1_BUS");
+        LfGenerator generator = lfDanglingLineBus.getGenerators().get(0);
+        assertEquals(0, generator.getDroop(), 10E-3);
     }
 }

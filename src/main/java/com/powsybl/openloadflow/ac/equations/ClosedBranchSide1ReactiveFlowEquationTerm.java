@@ -36,12 +36,12 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
 
     private double dq1dr1;
 
-    public ClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
+    public ClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                      boolean deriveA1, boolean deriveR1) {
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
 
-    protected double calculateDer(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
+    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
         return dq1dph1 * dph1 + dq1dph2 * dph2 + dq1dv1 * dv1 + dq1dv2 * dv2;
     }
 
@@ -52,11 +52,11 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
         double v2 = x[v2Var.getRow()];
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
-        double theta = ksi - (a1Var != null && a1Var.isActive() ? x[a1Var.getRow()] : branch.getPiModel().getA1())
+        double theta = ksi - (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1())
                 + A2 - ph1 + ph2;
         double cosTheta = FastMath.cos(theta);
         double sinTheta = FastMath.sin(theta);
-        double r1 = r1Var != null && r1Var.isActive() ? x[r1Var.getRow()] : branch.getPiModel().getR1();
+        double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
         q1 = r1 * v1 * (-b1 * r1 * v1 + y * r1 * v1 * cosKsi - y * R2 * v2 * cosTheta);
         dq1dv1 = r1 * (-2 * b1 * r1 * v1 + 2 * y * r1 * v1 * cosKsi - y * R2 * v2 * cosTheta);
         dq1dv2 = -y * r1 * R2 * v1 * cosTheta;
@@ -76,7 +76,7 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public double der(Variable variable) {
+    public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
             return dq1dv1;

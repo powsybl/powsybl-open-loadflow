@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
 
@@ -17,13 +18,13 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquationTerm {
+public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
 
     private final LfShunt shunt;
 
-    private final Variable vVar;
+    private final Variable<AcVariableType> vVar;
 
-    private final List<Variable> variables;
+    private final List<Variable<AcVariableType>> variables;
 
     private final double b;
 
@@ -31,27 +32,27 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
 
     private double dqdv;
 
-    public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet variableSet) {
+    public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet<AcVariableType> variableSet) {
         this.shunt = Objects.requireNonNull(shunt);
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
-        vVar = variableSet.getVariable(bus.getNum(), VariableType.BUS_V);
+        vVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);
         variables = Collections.singletonList(vVar);
         b = shunt.getB();
     }
 
     @Override
-    public SubjectType getSubjectType() {
-        return SubjectType.SHUNT_COMPENSATOR;
+    public ElementType getElementType() {
+        return ElementType.SHUNT_COMPENSATOR;
     }
 
     @Override
-    public int getSubjectNum() {
+    public int getElementNum() {
         return shunt.getNum();
     }
 
     @Override
-    public List<Variable> getVariables() {
+    public List<Variable<AcVariableType>> getVariables() {
         return variables;
     }
 
@@ -69,7 +70,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
     }
 
     @Override
-    public double der(Variable variable) {
+    public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
             return dqdv;

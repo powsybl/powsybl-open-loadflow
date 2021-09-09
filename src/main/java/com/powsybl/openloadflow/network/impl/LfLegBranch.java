@@ -7,30 +7,22 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.Evaluable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
-import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfLegBranch extends AbstractLfBranch {
+public class LfLegBranch extends AbstractFictitiousLfBranch {
 
     private final ThreeWindingsTransformer twt;
 
     private final ThreeWindingsTransformer.Leg leg;
-
-    private Evaluable p = NAN;
-
-    private Evaluable q = NAN;
 
     protected LfLegBranch(LfNetwork network, LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
         super(network, bus1, bus0, piModel);
@@ -61,7 +53,7 @@ public class LfLegBranch extends AbstractLfBranch {
                 Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, leg, rtcPosition, ptcPosition);
                 models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
             }
-            piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
+            piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition(), network);
         }
 
         RatioTapChanger rtc = leg.getRatioTapChanger();
@@ -75,7 +67,7 @@ public class LfLegBranch extends AbstractLfBranch {
                     Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, leg, rtcPosition, ptcPosition);
                     models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
                 }
-                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
+                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition(), network);
             } else {
                 throw new PowsyblException("Unsupported type of branch for voltage and phase controls of branch: " + twt.getId());
             }
@@ -112,54 +104,18 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
-    public void setP1(Evaluable p1) {
-        this.p = Objects.requireNonNull(p1);
-    }
-
-    @Override
-    public double getP1() {
-        return p.eval();
-    }
-
-    @Override
-    public void setP2(Evaluable p2) {
-        // nothing to do
-    }
-
-    @Override
-    public double getP2() {
-        return Double.NaN;
-    }
-
-    @Override
-    public void setQ1(Evaluable q1) {
-        this.q = Objects.requireNonNull(q1);
-    }
-
-    @Override
-    public void setQ2(Evaluable q2) {
-        // nothing to do
-    }
-
-    @Override
-    public double getI1() {
-        return getBus1() != null ? Math.hypot(p.eval(), q.eval())
-            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
-    }
-
-    @Override
-    public double getI2() {
-        return Double.NaN;
-    }
-
-    @Override
-    public double getPermanentLimit1() {
-        return leg.getCurrentLimits() != null ? leg.getCurrentLimits().getPermanentLimit() * getBus1().getNominalV() / PerUnit.SB : Double.NaN;
-    }
-
-    @Override
-    public double getPermanentLimit2() {
-        return Double.NaN;
+    public List<LfLimit> getLimits1(final LimitType type) {
+        switch (type) {
+            case ACTIVE_POWER:
+                return getLimits1(type, leg.getActivePowerLimits());
+            case APPARENT_POWER:
+                return getLimits1(type, leg.getApparentPowerLimits());
+            case CURRENT:
+                return getLimits1(type, leg.getCurrentLimits());
+            case VOLTAGE:
+            default:
+                throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+        }
     }
 
     @Override

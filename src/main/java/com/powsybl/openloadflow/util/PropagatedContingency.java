@@ -6,17 +6,14 @@
  */
 package com.powsybl.openloadflow.util;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.Terminal;
+import com.powsybl.iidm.network.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -24,55 +21,145 @@ import java.util.Set;
  */
 public class PropagatedContingency {
 
-    final Contingency contingency;
+    private static final Logger LOGGER = LoggerFactory.getLogger(PropagatedContingency.class);
 
-    final Set<String> branchIdsToOpen = new HashSet<>();
+    private final Contingency contingency;
+
+    private final int index;
+
+    private final Set<String> branchIdsToOpen;
+
+    private final Set<Switch> switchesToOpen;
+
+    private final Set<String> hvdcIdsToOpen;
+
+    private final Set<String> generatorIdsToLose;
 
     public Contingency getContingency() {
         return contingency;
+    }
+
+    public int getIndex() {
+        return index;
     }
 
     public Set<String> getBranchIdsToOpen() {
         return branchIdsToOpen;
     }
 
-    public PropagatedContingency(Contingency contingency) {
-        this.contingency = contingency;
+    public Set<String> getHvdcIdsToOpen() {
+        return hvdcIdsToOpen;
     }
 
-    public static List<PropagatedContingency> create(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen) {
+    public Set<String> getGeneratorIdsToLose() {
+        return generatorIdsToLose;
+    }
+
+    public PropagatedContingency(Contingency contingency, int index, Set<String> branchIdsToOpen, Set<String> hvdcIdsToOpen,
+                                 Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect, Set<String> generatorIdsToLose) {
+        this.contingency = Objects.requireNonNull(contingency);
+        this.index = index;
+        this.branchIdsToOpen = Objects.requireNonNull(branchIdsToOpen);
+        this.hvdcIdsToOpen = Objects.requireNonNull(hvdcIdsToOpen);
+        this.switchesToOpen = Objects.requireNonNull(switchesToOpen);
+        this.generatorIdsToLose = Objects.requireNonNull(generatorIdsToLose);
+
+        for (Switch sw : switchesToOpen) {
+            branchIdsToOpen.add(sw.getId());
+        }
+
+        for (Terminal terminal : terminalsToDisconnect) {
+            if (terminal.getConnectable() instanceof Branch) {
+                branchIdsToOpen.add(terminal.getConnectable().getId());
+            }
+            if (terminal.getConnectable() instanceof Generator) {
+                generatorIdsToLose.add(terminal.getConnectable().getId());
+            }
+        }
+    }
+
+    public static List<PropagatedContingency> createListForSensitivityAnalysis(Network network, List<Contingency> contingencies) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
-        for (Contingency contingency : contingencies) {
-            PropagatedContingency propagatedContingency = new PropagatedContingency(contingency);
-            propagatedContingencies.add(propagatedContingency);
-
-            Set<Switch> switchesToOpen = new HashSet<>();
-            Set<Terminal> terminalsToDisconnect =  new HashSet<>();
-            for (ContingencyElement element : contingency.getElements()) {
-                switch (element.getType()) {
-                    case BRANCH:
-                        propagatedContingency.getBranchIdsToOpen().add(element.getId());
-                        break;
-                    default:
-                        //TODO: support all kinds of contingencies
-                        throw new UnsupportedOperationException("TODO");
-                }
-                new BranchTripping(element.getId(), null)
-                    .traverse(network, null, switchesToOpen, terminalsToDisconnect);
+        for (int index = 0; index < contingencies.size(); index++) {
+            Contingency contingency = contingencies.get(index);
+            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index);
+            Optional<Switch> coupler = propagatedContingency.switchesToOpen.stream().filter(PropagatedContingency::isCoupler).findFirst();
+            if (coupler.isEmpty()) {
+                propagatedContingencies.add(propagatedContingency);
+            } else {
+                // Sensitivity analysis works in bus view, it cannot deal (yet)  with contingencies whose propagation encounters a coupler
+                LOGGER.warn("Propagated contingency '{}' not processed: coupler '{}' has been encountered while propagating the contingency",
+                    contingency.getId(), coupler.get().getId());
             }
-
-            for (Switch sw : switchesToOpen) {
-                propagatedContingency.getBranchIdsToOpen().add(sw.getId());
-                allSwitchesToOpen.add(sw);
-            }
-
-            for (Terminal terminal : terminalsToDisconnect) {
-                if (terminal.getConnectable() instanceof Branch) {
-                    propagatedContingency.getBranchIdsToOpen().add(terminal.getConnectable().getId());
-                }
-            }
-
         }
         return propagatedContingencies;
+    }
+
+    public static List<PropagatedContingency> createListForSecurityAnalysis(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen) {
+        List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
+        for (int index = 0; index < contingencies.size(); index++) {
+            Contingency contingency = contingencies.get(index);
+            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index);
+            propagatedContingencies.add(propagatedContingency);
+            allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
+        }
+        return propagatedContingencies;
+    }
+
+    private static PropagatedContingency create(Network network, Contingency contingency, int index) {
+        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Terminal> terminalsToDisconnect =  new HashSet<>();
+        Set<String> branchIdsToOpen = new HashSet<>();
+        Set<String> hvdcIdsToOpen = new HashSet<>();
+        Set<String> generatorIdsToLose = new HashSet<>();
+        for (ContingencyElement element : contingency.getElements()) {
+            switch (element.getType()) {
+                case BRANCH:
+                case LINE:
+                case TWO_WINDINGS_TRANSFORMER:
+                    // branch check is done inside tripping
+                    ContingencyTripping.createBranchTripping(network, element.getId())
+                        .traverse(switchesToOpen, terminalsToDisconnect);
+                    branchIdsToOpen.add(element.getId());
+                    break;
+                case HVDC_LINE:
+                    HvdcLine hvdcLine = network.getHvdcLine(element.getId());
+                    if (hvdcLine == null) {
+                        throw new PowsyblException("HVDC line '" + element.getId() + "' not found in the network");
+                    }
+                    hvdcIdsToOpen.add(element.getId());
+                    break;
+                case DANGLING_LINE:
+                    // dangling line check is done inside tripping
+                    ContingencyTripping.createDanglingLineTripping(network, element.getId())
+                        .traverse(switchesToOpen, terminalsToDisconnect);
+                    branchIdsToOpen.add(element.getId());
+                    break;
+                case GENERATOR:
+                    Generator generator = network.getGenerator(element.getId());
+                    if (generator == null) {
+                        throw new PowsyblException("Generator '" + element.getId() + "' not found in the network");
+                    }
+                    generatorIdsToLose.add(element.getId());
+                    break;
+                default:
+                    //TODO: support all kinds of contingencies
+                    throw new UnsupportedOperationException("TODO");
+            }
+        }
+
+        return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen, terminalsToDisconnect, generatorIdsToLose);
+    }
+
+    private static boolean isCoupler(Switch s) {
+        VoltageLevel.NodeBreakerView nbv = s.getVoltageLevel().getNodeBreakerView();
+        Terminal terminal1 = nbv.getTerminal1(s.getId());
+        Terminal terminal2 = nbv.getTerminal2(s.getId());
+        if (terminal1 == null || terminal2 == null) {
+            return false; // FIXME: this can be a coupler, a traverser could be used to detect it
+        }
+        Connectable<?> c1 = terminal1.getConnectable();
+        Connectable<?> c2 = terminal2.getConnectable();
+        return c1 != c2 && c1.getType() == ConnectableType.BUSBAR_SECTION && c2.getType() == ConnectableType.BUSBAR_SECTION;
     }
 }

@@ -10,50 +10,47 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
 public class BusState {
-    private final double v;
     private final double angle;
     private final double loadTargetP;
     private final double loadTargetQ;
     private final Map<String, Double> generatorsTargetP;
     private final boolean disabled;
-    private final boolean hasVoltageControl;
+    private final boolean isVoltageControllerEnabled;
     private final double generationTargetQ;
 
     public BusState(LfBus b) {
-        this.v = b.getV();
         this.angle = b.getAngle();
         this.loadTargetP = b.getLoadTargetP();
         this.loadTargetQ = b.getLoadTargetQ();
         this.generatorsTargetP = b.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
         this.disabled = b.isDisabled();
-        this.hasVoltageControl = b.hasVoltageControl();
+        this.isVoltageControllerEnabled = b.isVoltageControllerEnabled();
         this.generationTargetQ = b.getGenerationTargetQ();
     }
 
     public void restoreBusState(LfBus bus) {
-        restoreDcBusState(bus);
-        bus.setV(v);
+        restoreBusActiveState(bus);
         bus.setLoadTargetQ(loadTargetQ);
         bus.setGenerationTargetQ(generationTargetQ);
-        bus.setVoltageControl(hasVoltageControl);
+        bus.setDisabled(disabled);
+        bus.setVoltageControllerEnabled(isVoltageControllerEnabled);
         bus.setVoltageControlSwitchOffCount(0);
     }
 
-    public void restoreDcBusState(LfBus bus) {
+    public void restoreBusActiveState(LfBus bus) {
         bus.setAngle(angle);
         bus.setLoadTargetP(loadTargetP);
         bus.getGenerators().forEach(g -> {
             g.setTargetP(generatorsTargetP.get(g.getId()));
         });
-        bus.setDisabled(disabled);
     }
 
     /**
@@ -62,7 +59,13 @@ public class BusState {
      * @return the map of the states of given buses, indexed by the bus itself
      */
     public static Map<LfBus, BusState> createBusStates(Collection<LfBus> buses) {
-        return buses.stream().collect(Collectors.toMap(Function.identity(), BusState::new));
+        Map<LfBus, BusState> busStates = new HashMap<>();
+        addBusStates(buses, busStates);
+        return busStates;
+    }
+
+    public static void addBusStates(Collection<LfBus> busesToSave, Map<LfBus, BusState> busStates) {
+        busesToSave.forEach(lfBus -> busStates.put(lfBus, new BusState(lfBus)));
     }
 
     /**
@@ -77,8 +80,8 @@ public class BusState {
      * Set the bus states based on the given map of states
      * @param busStates the map containing the bus states, indexed by buses
      */
-    public static void restoreDcBusStates(Map<LfBus, BusState> busStates) {
-        busStates.forEach((b, state) -> state.restoreDcBusState(b));
+    public static void restoreBusActiveStates(Map<LfBus, BusState> busStates) {
+        busStates.forEach((b, state) -> state.restoreBusActiveState(b));
     }
 }
 

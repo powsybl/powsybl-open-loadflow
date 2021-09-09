@@ -6,24 +6,26 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.math.matrix.DenseMatrix;
+
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractEquationTerm implements EquationTerm {
+public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTerm<V, E> {
 
-    private Equation equation;
+    private Equation<V, E> equation;
 
     private boolean active = true;
 
     @Override
-    public Equation getEquation() {
+    public Equation<V, E> getEquation() {
         return equation;
     }
 
     @Override
-    public void setEquation(Equation equation) {
+    public void setEquation(Equation<V, E> equation) {
         this.equation = Objects.requireNonNull(equation);
     }
 
@@ -39,5 +41,10 @@ public abstract class AbstractEquationTerm implements EquationTerm {
     @Override
     public boolean isActive() {
         return active;
+    }
+
+    @Override
+    public double calculateSensi(DenseMatrix x, int column) {
+        throw new UnsupportedOperationException("Not implemented");
     }
 }

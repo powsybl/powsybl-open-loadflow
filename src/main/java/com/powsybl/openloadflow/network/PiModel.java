@@ -47,5 +47,12 @@ public interface PiModel {
 
     void roundR1ToClosestTap();
 
+    enum Direction {
+        INCREASE,
+        DECREASE
+    }
+
+    boolean updateTapPosition(Direction direction);
+
     boolean setMinZ(double minZ);
 }

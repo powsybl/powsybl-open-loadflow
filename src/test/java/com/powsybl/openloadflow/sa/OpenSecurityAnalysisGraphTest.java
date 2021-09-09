@@ -61,7 +61,7 @@ class OpenSecurityAnalysisGraphTest {
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         lfParameters.addExtension(OpenLoadFlowParameters.class,
-            new OpenLoadFlowParameters().setSlackBusSelector(new FirstSlackBusSelector()));
+            new OpenLoadFlowParameters().setSlackBusSelectionMode(SlackBusSelectionMode.FIRST));
         securityAnalysisParameters = new SecurityAnalysisParameters().setLoadFlowParameters(lfParameters);
     }
 
@@ -140,8 +140,8 @@ class OpenSecurityAnalysisGraphTest {
 
     List<List<LfContingency>> getLoadFlowContingencies(Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
 
-        OpenSecurityAnalysis securityAnalysis = new OpenSecurityAnalysis(network, new DefaultLimitViolationDetector(),
-            new LimitViolationFilter(), new DenseMatrixFactory(), connectivityProvider);
+        AcSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+            new LimitViolationFilter(), new DenseMatrixFactory(), connectivityProvider, Collections.emptyList());
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowProvider.getParametersExt(securityAnalysisParameters.getLoadFlowParameters());
@@ -152,7 +152,7 @@ class OpenSecurityAnalysisGraphTest {
         // try to find all switches impacted by at least one contingency
         long start = System.currentTimeMillis();
         Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.create(network, contingencies, allSwitchesToOpen);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen);
         LOGGER.info("Contingencies contexts calculated from contingencies in {} ms", System.currentTimeMillis() - start);
 
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network,

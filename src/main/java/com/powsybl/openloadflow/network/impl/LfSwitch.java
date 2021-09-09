@@ -6,14 +6,18 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Switch;
-import com.powsybl.openloadflow.network.AbstractLfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.SimplePiModel;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.security.results.BranchResult;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+
+import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -43,8 +47,8 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public double getP1() {
-        return Double.NaN;
+    public Evaluable getP1() {
+        return NAN;
     }
 
     @Override
@@ -53,8 +57,8 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public double getP2() {
-        return Double.NaN;
+    public Evaluable getP2() {
+        return NAN;
     }
 
     @Override
@@ -63,28 +67,52 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
+    public Evaluable getQ1() {
+        return NAN;
+    }
+
+    @Override
     public void setQ2(Evaluable q2) {
         // nothing to do
     }
 
     @Override
-    public double getI1() {
-        return Double.NaN;
+    public Evaluable getQ2() {
+        return NAN;
     }
 
     @Override
-    public double getI2() {
-        return Double.NaN;
+    public void setI1(Evaluable i1) {
+        // nothing to do
     }
 
     @Override
-    public double getPermanentLimit1() {
-        return Double.NaN;
+    public Evaluable getI1() {
+        return NAN;
     }
 
     @Override
-    public double getPermanentLimit2() {
-        return Double.NaN;
+    public void setI2(Evaluable i2) {
+        // nothing to do
+    }
+
+    @Override
+    public Evaluable getI2() {
+        return NAN;
+    }
+
+    @Override
+    public BranchResult createBranchResult() {
+        throw new PowsyblException("Unsupported type of branch for branch result: " + aSwitch.getId());
+    }
+
+    public List<LfLimit> getLimits1(final LimitType type) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<LfLimit> getLimits2(final LimitType type) {
+        return Collections.emptyList();
     }
 
     @Override

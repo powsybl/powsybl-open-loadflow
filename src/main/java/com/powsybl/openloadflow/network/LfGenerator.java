@@ -21,6 +21,8 @@ public interface LfGenerator {
 
     boolean hasVoltageControl();
 
+    double getTargetV();
+
     OptionalDouble getRemoteControlReactiveKey();
 
     double getTargetQ();
@@ -39,13 +41,27 @@ public interface LfGenerator {
 
     double getMaxRangeQ();
 
-    boolean isParticipating();
+    default boolean isParticipating() {
+        return false;
+    }
 
-    double getParticipationFactor();
+    default double getDroop() {
+        return 0;
+    }
 
     double getCalculatedQ();
 
     void setCalculatedQ(double calculatedQ);
 
     void updateState();
+
+    LfBus getControlledBus(LfNetwork lfNetwork);
+
+    default double getSlope() {
+        return 0;
+    }
+
+    default void setSlope(double slope) {
+        // nothing to do
+    }
 }

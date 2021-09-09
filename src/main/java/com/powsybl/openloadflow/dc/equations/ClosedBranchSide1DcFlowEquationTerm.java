@@ -24,11 +24,11 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
 
     private double rhs;
 
-    private ClosedBranchSide1DcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet, boolean deriveA1, boolean useTransformerRatio) {
+    private ClosedBranchSide1DcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet, boolean deriveA1, boolean useTransformerRatio) {
         super(branch, bus1, bus2, variableSet, deriveA1, useTransformerRatio);
     }
 
-    public static ClosedBranchSide1DcFlowEquationTerm create(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
+    public static ClosedBranchSide1DcFlowEquationTerm create(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
                                                              boolean deriveA1, boolean useTransformerRatio) {
         Objects.requireNonNull(branch);
         Objects.requireNonNull(bus1);
@@ -38,7 +38,7 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    protected double calculate(double ph1, double ph2, double a1) {
+    protected double calculateSensi(double ph1, double ph2, double a1) {
         double deltaPhase =  ph2 - ph1 + A2 - a1;
         return -power * deltaPhase;
     }
@@ -49,8 +49,8 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
         double a1 = getA1(x);
-        p1 = calculate(ph1, ph2, a1);
-        if (a1Var != null && a1Var.isActive()) {
+        p1 = calculateSensi(ph1, ph2, a1);
+        if (a1Var != null) {
             rhs = -power * A2;
         } else {
             rhs = -power * (A2 - a1);
@@ -63,7 +63,7 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public double der(Variable variable) {
+    public double der(Variable<DcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(ph1Var)) {
             return power;

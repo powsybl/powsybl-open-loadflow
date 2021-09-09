@@ -6,12 +6,12 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import java.util.Set;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class AcEquationSystemCreationParameters {
-
-    private final boolean voltageRemoteControl;
 
     private final boolean phaseControl;
 
@@ -19,19 +19,21 @@ public class AcEquationSystemCreationParameters {
 
     private final boolean forceA1Var;
 
-    public AcEquationSystemCreationParameters(boolean voltageRemoteControl, boolean phaseControl, boolean transformerVoltageControl) {
-        this(voltageRemoteControl, phaseControl, transformerVoltageControl, false);
+    private final Set<String> branchesWithCurrent;
+
+    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl) {
+        this(phaseControl, transformerVoltageControl, false);
     }
 
-    public AcEquationSystemCreationParameters(boolean voltageRemoteControl, boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var) {
-        this.voltageRemoteControl = voltageRemoteControl;
+    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var) {
+        this(phaseControl, transformerVoltageControl, forceA1Var, null);
+    }
+
+    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var, Set<String> branchesWithCurrent) {
         this.phaseControl = phaseControl;
         this.transformerVoltageControl = transformerVoltageControl;
         this.forceA1Var = forceA1Var;
-    }
-
-    public boolean isVoltageRemoteControl() {
-        return voltageRemoteControl;
+        this.branchesWithCurrent = branchesWithCurrent;
     }
 
     public boolean isPhaseControl() {
@@ -44,5 +46,9 @@ public class AcEquationSystemCreationParameters {
 
     public boolean isForceA1Var() {
         return forceA1Var;
+    }
+
+    public Set<String> getBranchesWithCurrent() {
+        return branchesWithCurrent;
     }
 }
