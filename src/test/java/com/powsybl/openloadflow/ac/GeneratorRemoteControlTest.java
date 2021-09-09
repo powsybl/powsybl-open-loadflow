@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControlAdder;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -513,5 +514,59 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
+    }
+
+    @Test
+    void testRemoteReactivePowerControl2() {
+        Network network = EurostagTutorialExample1Factory.create();
+        VoltageLevel vlload = network.getVoltageLevel("VLLOAD");
+        Bus nload = vlload.getBusBreakerView().getBus("NLOAD");
+        vlload.newGenerator()
+                .setId("GEN2")
+                .setBus(nload.getId())
+                .setConnectableBus(nload.getId())
+                .setMinP(-9999.99D)
+                .setMaxP(9999.99D)
+                .setVoltageRegulatorOn(true)
+                .setTargetV(150D)
+                .setTargetP(0.0D)
+                .setTargetQ(301.0D)
+                .add();
+        Generator generator2 = network.getGenerator("GEN2");
+        generator2.newReactiveCapabilityCurve()
+                .beginPoint()
+                .setP(3.0D)
+                .setMaxQ(5.0D)
+                .setMinQ(4.0D)
+                .endPoint()
+                .beginPoint()
+                .setP(0.0D)
+                .setMaxQ(7.0D)
+                .setMinQ(6.0D)
+                .endPoint()
+                .beginPoint()
+                .setP(1.0D)
+                .setMaxQ(5.0D)
+                .setMinQ(4.0D)
+                .endPoint()
+                .add();
+
+        Generator gen = network.getGenerator("GEN");
+        TwoWindingsTransformer twt = network.getTwoWindingsTransformer("NGEN_NHV1");
+
+        double targetQ = 1.0;
+
+        gen.setTargetQ(0).setVoltageRegulatorOn(false);
+
+        gen.newExtension(RemoteReactivePowerControlAdder.class)
+                .withTargetQ(targetQ)
+                .withRegulatingTerminal(twt.getTerminal(Branch.Side.TWO))
+                .withEnabled(true).add();
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactivePowerRemoteControl(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(targetQ, twt.getTerminal(Branch.Side.TWO));
     }
 }
