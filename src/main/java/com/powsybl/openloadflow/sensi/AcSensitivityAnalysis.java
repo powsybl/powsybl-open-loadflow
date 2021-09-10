@@ -50,13 +50,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                             String contingencyId, int contingencyIndex, SensitivityValueWriter valueWriter) {
         Set<LfSensitivityFactor<AcVariableType, AcEquationType>> lfFactorsSet = new HashSet<>(lfFactors);
         lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.ZERO).forEach(factor -> valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, 0, Double.NaN));
-        lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE).forEach(factor -> {
-            if (factor.getPredefinedResult() != null) {
-                valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, factor.getPredefinedResult(), factor.getPredefinedResult());
-            } else {
-                valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, 0, unscaleFunction(factor, factor.getFunctionReference()));
-            }
-        });
+        lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE).forEach(factor -> valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, 0, unscaleFunction(factor, factor.getFunctionReference())));
 
         for (SensitivityFactorGroup<AcVariableType, AcEquationType> factorGroup : factorGroups) {
             for (LfSensitivityFactor<AcVariableType, AcEquationType> factor : factorGroup.getFactors()) {
