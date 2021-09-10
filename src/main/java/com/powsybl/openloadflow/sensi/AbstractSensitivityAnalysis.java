@@ -112,9 +112,13 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         EquationTerm<V, E> getFunctionEquationTerm();
 
-        Double getPredefinedResult();
+        Double getPredefinedResultSensi();
 
-        void setPredefinedResult(Double predefinedResult);
+        Double getPredefinedResultRef();
+
+        void setPredefinedResultSensi(Double predefinedResult);
+
+        void setPredefinedResultRef(Double predefinedResult);
 
         double getFunctionReference();
 
@@ -131,6 +135,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         boolean areVariableAndFunctionDisconnected(GraphDecrementalConnectivity<LfBus> connectivity);
 
         boolean isConnectedToComponent(Set<LfBus> connectedComponent);
+
+        boolean isReferenceConnectedToComponent(Set<LfBus> connectedComponent);
 
         SensitivityFactorGroup<V, E> getGroup();
 
@@ -152,7 +158,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         protected final ContingencyContext contingencyContext;
 
-        private Double predefinedResult = null;
+        private Double predefinedResultSensi = null;
+
+        private Double predefinedResultRef = null;
 
         private double functionReference = 0d;
 
@@ -221,13 +229,23 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public Double getPredefinedResult() {
-            return predefinedResult;
+        public Double getPredefinedResultSensi() {
+            return predefinedResultSensi;
         }
 
         @Override
-        public void setPredefinedResult(Double predefinedResult) {
-            this.predefinedResult = predefinedResult;
+        public Double getPredefinedResultRef() {
+            return predefinedResultRef;
+        }
+
+        @Override
+        public void setPredefinedResultSensi(Double predefinedResult) {
+            this.predefinedResultSensi = predefinedResult;
+        }
+
+        @Override
+        public void setPredefinedResultRef(Double predefinedResult) {
+            this.predefinedResultRef = predefinedResult;
         }
 
         @Override
@@ -346,6 +364,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         public boolean isConnectedToComponent(Set<LfBus> connectedComponent) {
             return isElementConnectedToComponent(variableElement, connectedComponent);
         }
+
+        @Override
+        public boolean isReferenceConnectedToComponent(Set<LfBus> connectedComponent) {
+            return isElementConnectedToComponent(functionElement, connectedComponent);
+        }
     }
 
     static class MultiVariablesLfSensitivityFactor<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfSensitivityFactor<V, E> {
@@ -392,6 +415,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 }
             }
             return false;
+        }
+
+        @Override
+        public boolean isReferenceConnectedToComponent(Set<LfBus> connectedComponent) {
+            return isElementConnectedToComponent(functionElement, connectedComponent);
         }
     }
 
@@ -605,11 +633,21 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent,
                                         GraphDecrementalConnectivity<LfBus> connectivity) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
-            // check if the factor function and variable are in different connected components
-            if (factor.areVariableAndFunctionDisconnected(connectivity)) {
-                factor.setPredefinedResult(0d);
-            } else if (!factor.isConnectedToComponent(connectedComponent)) {
-                factor.setPredefinedResult(Double.NaN); // works for sensitivity and function reference
+            if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
+                // check if the factor function and variable are in different connected components
+                if (factor.areVariableAndFunctionDisconnected(connectivity)) {
+                    factor.setPredefinedResultSensi(0d);
+                    factor.setPredefinedResultRef(0d);
+                } else if (!factor.isConnectedToComponent(connectedComponent)) {
+                    // works for sensitivity and function reference
+                    factor.setPredefinedResultSensi(Double.NaN);
+                    factor.setPredefinedResultRef(Double.NaN);
+                }
+            } else if (factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE) {
+                factor.setPredefinedResultSensi(0d);
+                if (!factor.isReferenceConnectedToComponent(connectedComponent)) {
+                    factor.setPredefinedResultSensi(Double.NaN);
+                }
             }
         }
     }

@@ -57,8 +57,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 if (!lfFactorsSet.contains(factor)) {
                     continue;
                 }
-                if (factor.getPredefinedResult() != null) {
-                    valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, factor.getPredefinedResult(), factor.getPredefinedResult());
+                if (factor.getPredefinedResultSensi() != null) {
+                    valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, factor.getPredefinedResultSensi(), factor.getPredefinedResultRef());
                     continue;
                 }
 
@@ -264,11 +264,16 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // Contingency not breaking connectivity
             for (LfContingency lfContingency : lfContingencies.stream().filter(lfContingency -> lfContingency.getBuses().isEmpty()).collect(Collectors.toSet())) {
                 List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = factorHolder.getFactorsForContingency(lfContingency.getContingency().getId());
-                contingencyFactors.forEach(lfFactor -> lfFactor.setPredefinedResult(null));
+                contingencyFactors.forEach(lfFactor -> lfFactor.setPredefinedResultSensi(null));
+                contingencyFactors.forEach(lfFactor -> lfFactor.setPredefinedResultRef(null));
                 contingencyFactors.stream()
                     .filter(lfFactor -> lfFactor.getFunctionElement() instanceof LfBranch)
                     .filter(lfFactor ->  lfContingency.getBranches().contains((LfBranch) lfFactor.getFunctionElement()))
-                    .forEach(lfFactor -> lfFactor.setPredefinedResult(0d));
+                    .forEach(lfFactor -> lfFactor.setPredefinedResultSensi(0d));
+                contingencyFactors.stream()
+                        .filter(lfFactor -> lfFactor.getFunctionElement() instanceof LfBranch)
+                        .filter(lfFactor ->  lfContingency.getBranches().contains((LfBranch) lfFactor.getFunctionElement()))
+                        .forEach(lfFactor -> lfFactor.setPredefinedResultRef(0d));
                 calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, engine, factorGroups, slackParticipationByBus, lfParameters,
                         lfParametersExt, lfContingency.getContingency().getId(), lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage);
                 BusState.restoreBusStates(busStates);
@@ -277,7 +282,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // Contingency breaking connectivity
             for (LfContingency lfContingency : lfContingencies.stream().filter(lfContingency -> !lfContingency.getBuses().isEmpty()).collect(Collectors.toSet())) {
                 List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = factorHolder.getFactorsForContingency(lfContingency.getContingency().getId());
-                contingencyFactors.forEach(lfFactor -> lfFactor.setPredefinedResult(null));
+                contingencyFactors.forEach(lfFactor -> lfFactor.setPredefinedResultSensi(null));
+                contingencyFactors.forEach(lfFactor -> lfFactor.setPredefinedResultRef(null));
 
                 cutConnectivity(lfNetwork, connectivity, propagatedContingencyMap.get(lfContingency.getContingency()));
                 Set<LfBus> nonConnectedBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());

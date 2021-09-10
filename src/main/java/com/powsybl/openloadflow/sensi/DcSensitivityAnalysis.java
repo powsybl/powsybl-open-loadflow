@@ -203,9 +203,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         double flowValue;
         EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
         String functionBranchId = factor.getFunctionElement().getId();
-        if (factor.getPredefinedResult() != null) {
-            sensiValue = factor.getPredefinedResult();
-            flowValue = factor.getPredefinedResult();
+        if (factor.getPredefinedResultSensi() != null) {
+            sensiValue = factor.getPredefinedResultSensi();
+            flowValue = factor.getPredefinedResultRef();
         } else {
             sensiValue = factor.getBaseSensitivityValue();
             flowValue = factor.getFunctionReference();
@@ -250,14 +250,22 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         double flowValue;
         EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
         String functionBranchId = factor.getFunctionElement().getId();
-        flowValue = factor.getFunctionReference();
-        for (ComputedContingencyElement contingencyElement : contingencyElements) {
-            double contingencySensitivity = p1.calculateSensi(contingenciesStates, contingencyElement.getContingencyIndex());
-            flowValue += contingencyElement.getAlphaForFunctionReference() * contingencySensitivity;
-            if (contingencyElement.getElement().getId().equals(functionBranchId)) {
-                // the monitored branch is in contingency, its post-contingency flow equals to zero.
+        if (factor.getPredefinedResultRef() != null) {
+            flowValue = factor.getPredefinedResultRef();
+            if (!contingency.getBranchIdsToOpen().stream().filter(Id -> Id.equals(functionBranchId)).collect(Collectors.toList()).isEmpty()) {
+                // the monitored branch is in contingency, its post-contingency flow equals to zero in any case.
                 flowValue = 0d;
-                break;
+            }
+        } else {
+            flowValue = factor.getFunctionReference();
+            for (ComputedContingencyElement contingencyElement : contingencyElements) {
+                double contingencySensitivity = p1.calculateSensi(contingenciesStates, contingencyElement.getContingencyIndex());
+                flowValue += contingencyElement.getAlphaForFunctionReference() * contingencySensitivity;
+                if (!contingency.getBranchIdsToOpen().stream().filter(Id -> Id.equals(functionBranchId)).collect(Collectors.toList()).isEmpty()) {
+                    // the monitored branch is in contingency, its post-contingency flow equals to zero.
+                    flowValue = 0d;
+                    break;
+                }
             }
         }
 
@@ -406,7 +414,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     static class ConnectivityAnalysisResult {
 
-        private Map<LfSensitivityFactor<DcVariableType, DcEquationType>, Double> predefinedResults;
+        private Map<LfSensitivityFactor<DcVariableType, DcEquationType>, Double> predefinedResultsSensi;
+
+        private Map<LfSensitivityFactor<DcVariableType, DcEquationType>, Double> predefinedResultsRef;
 
         private Collection<PropagatedContingency> contingencies = new HashSet<>();
 
@@ -422,19 +432,33 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             disabledBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
             slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
             slackConnectedComponent.removeAll(disabledBuses);
-            predefinedResults = new HashMap<>();
+            predefinedResultsSensi = new HashMap<>();
+            predefinedResultsRef = new HashMap<>();
             for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
-                // check if the factor function and variable are in different connected components
-                if (factor.areVariableAndFunctionDisconnected(connectivity)) {
-                    predefinedResults.put(factor, 0d);
-                } else if (!factor.isConnectedToComponent(slackConnectedComponent)) {
-                    predefinedResults.put(factor, Double.NaN); // works for sensitivity and function reference
+                if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
+                    // check if the factor function and variable are in different connected components
+                    if (factor.areVariableAndFunctionDisconnected(connectivity)) {
+                        predefinedResultsSensi.put(factor, 0d);
+                        predefinedResultsRef.put(factor, 0d);
+                    } else if (!factor.isConnectedToComponent(slackConnectedComponent)) {
+                        predefinedResultsSensi.put(factor, Double.NaN); // works for sensitivity and function reference
+                        predefinedResultsRef.put(factor, Double.NaN);
+                    }
+                } else if (factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE) {
+                    predefinedResultsSensi.put(factor, 0d);
+                    if (!factor.isReferenceConnectedToComponent(slackConnectedComponent)) {
+                        predefinedResultsRef.put(factor, Double.NaN);
+                    }
                 }
             }
         }
 
-        void setPredefinedResults() {
-            predefinedResults.forEach(LfSensitivityFactor::setPredefinedResult);
+        void setPredefinedResultsSensi() {
+            predefinedResultsSensi.forEach(LfSensitivityFactor::setPredefinedResultSensi);
+        }
+
+        void setPredefinedResultsRef() {
+            predefinedResultsRef.forEach(LfSensitivityFactor::setPredefinedResultRef);
         }
 
         public Collection<PropagatedContingency> getContingencies() {
@@ -843,9 +867,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // !!! we need to reset predefined values for factor that need to be calculated for this set of contingency
                 // predefined may have be set by a previous set of contingency with loss of connectivity
-                lfFactorsForContingencies.forEach(factor -> factor.setPredefinedResult(null));
+                lfFactorsForContingencies.forEach(factor -> factor.setPredefinedResultSensi(null));
+                lfFactorsForContingencies.forEach(factor -> factor.setPredefinedResultRef(null));
 
-                connectivityAnalysisResult.setPredefinedResults();
+                connectivityAnalysisResult.setPredefinedResultsSensi();
+
+                connectivityAnalysisResult.setPredefinedResultsRef();
 
                 Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
 
