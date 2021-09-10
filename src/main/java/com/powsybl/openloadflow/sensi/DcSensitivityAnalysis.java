@@ -269,6 +269,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
         }
 
+        // This method is only used for VALID_REFERENCE factors, for which sensitivity is known to value 0.
         valueWriter.write(factor.getContext(), contingency != null ? contingency.getContingency().getId() : null, contingency != null ? contingency.getIndex() : -1,
                 0d, unscaleFunction(factor, flowValue));
     }
@@ -445,8 +446,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         predefinedResultsRef.put(factor, Double.NaN);
                     }
                 } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_REFERENCE) {
+                    // Sensitivity equals 0 for VALID_REFERENCE factors
                     predefinedResultsSensi.put(factor, 0d);
                     if (!factor.isReferenceConnectedToComponent(slackConnectedComponent)) {
+                        // The reference is not in the main componant of the post contingency network.
+                        // Therefore, its value cannot be computed.
                         predefinedResultsRef.put(factor, Double.NaN);
                     }
                 }

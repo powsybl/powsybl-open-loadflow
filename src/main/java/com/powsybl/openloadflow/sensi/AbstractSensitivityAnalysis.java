@@ -667,6 +667,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     protected void writeSkippedFactors(Collection<LfSensitivityFactor<V, E>> lfFactors, SensitivityValueWriter valueWriter) {
         List<LfSensitivityFactor<V, E>> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.SKIP).collect(Collectors.toList());
 
+        // SKIP factors are for factors where both variable and function elements are not in the main connected componant.
+        // Therefore, their sensitivity and reference values are set to NaN.
         skippedFactors.forEach(factor -> valueWriter.write(factor.getContext(), null, -1, Double.NaN, Double.NaN));
 
         Set<String> skippedVariables = skippedFactors.stream().map(LfSensitivityFactor::getVariableId).collect(Collectors.toSet());
