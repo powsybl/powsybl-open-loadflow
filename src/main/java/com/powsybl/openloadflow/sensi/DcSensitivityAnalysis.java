@@ -252,7 +252,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         String functionBranchId = factor.getFunctionElement().getId();
         if (factor.getPredefinedResultRef() != null) {
             flowValue = factor.getPredefinedResultRef();
-            if (!contingency.getBranchIdsToOpen().stream().filter(Id -> Id.equals(functionBranchId)).collect(Collectors.toList()).isEmpty()) {
+            if (!contingency.getBranchIdsToOpen().stream().filter(id -> id.equals(functionBranchId)).collect(Collectors.toList()).isEmpty()) {
                 // the monitored branch is in contingency, its post-contingency flow equals to zero in any case.
                 flowValue = 0d;
             }
@@ -261,7 +261,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             for (ComputedContingencyElement contingencyElement : contingencyElements) {
                 double contingencySensitivity = p1.calculateSensi(contingenciesStates, contingencyElement.getContingencyIndex());
                 flowValue += contingencyElement.getAlphaForFunctionReference() * contingencySensitivity;
-                if (!contingency.getBranchIdsToOpen().stream().filter(Id -> Id.equals(functionBranchId)).collect(Collectors.toList()).isEmpty()) {
+                if (!contingency.getBranchIdsToOpen().stream().filter(id -> id.equals(functionBranchId)).collect(Collectors.toList()).isEmpty()) {
                     // the monitored branch is in contingency, its post-contingency flow equals to zero.
                     flowValue = 0d;
                     break;
@@ -285,7 +285,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         setAlphas(contingencyElements, flowStates, contingenciesStates, 0, ComputedContingencyElement::setAlphaForFunctionReference);
 
-        lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE)
+        lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_REFERENCE)
                 .forEach(factor -> createBranchFunctionReferenceValue(factor, contingenciesStates, contingencyElements, contingency, valueWriter));
 
         Map<SensitivityFactorGroup<DcVariableType, DcEquationType>, List<LfSensitivityFactor<DcVariableType, DcEquationType>>> factorsByGroup = lfFactors.stream()
@@ -444,7 +444,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         predefinedResultsSensi.put(factor, Double.NaN); // works for sensitivity and function reference
                         predefinedResultsRef.put(factor, Double.NaN);
                     }
-                } else if (factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE) {
+                } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_REFERENCE) {
                     predefinedResultsSensi.put(factor, 0d);
                     if (!factor.isReferenceConnectedToComponent(slackConnectedComponent)) {
                         predefinedResultsRef.put(factor, Double.NaN);
@@ -541,7 +541,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 List<LfSensitivityFactor.Status> validFactors = new ArrayList<>();
                 validFactors.add(LfSensitivityFactor.Status.VALID);
-                validFactors.add(LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE);
+                validFactors.add(LfSensitivityFactor.Status.VALID_REFERENCE);
                 List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = factorHolder.getFactorsForContingencies(contingenciesIds).stream()
                         .filter(factor -> validFactors.contains(factor.getStatus()))
                         .collect(Collectors.toList());
@@ -753,7 +753,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // next we only work with valid factors
         List<LfSensitivityFactor.Status> validFactors = new ArrayList<>();
         validFactors.add(LfSensitivityFactor.Status.VALID);
-        validFactors.add(LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE);
+        validFactors.add(LfSensitivityFactor.Status.VALID_REFERENCE);
         lfFactors = lfFactors.stream().filter(factor -> validFactors.contains(factor.getStatus())).collect(Collectors.toList());
 
         // index factors by variable group to compute the minimal number of states

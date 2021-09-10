@@ -94,7 +94,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         enum Status {
             VALID,
             SKIP,
-            SKIP_ONLY_VARIABLE,
+            VALID_REFERENCE,
             ZERO
         }
 
@@ -334,7 +334,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             super(context, variableId, functionElement, functionType, variableType, contingencyContext);
             this.variableElement = variableElement;
             if (variableElement == null) {
-                status = functionElement == null ? Status.SKIP : Status.SKIP_ONLY_VARIABLE;
+                status = functionElement == null ? Status.SKIP : Status.VALID_REFERENCE;
             }
         }
 
@@ -382,7 +382,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             super(context, variableId, functionElement, functionType, variableType, contingencyContext);
             this.weightedVariableElements = weightedVariableElements;
             if (weightedVariableElements.isEmpty()) {
-                status = functionElement == null ? Status.SKIP : Status.SKIP_ONLY_VARIABLE;
+                status = functionElement == null ? Status.SKIP : Status.VALID_REFERENCE;
             }
         }
 
@@ -643,7 +643,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     factor.setPredefinedResultSensi(Double.NaN);
                     factor.setPredefinedResultRef(Double.NaN);
                 }
-            } else if (factor.getStatus() == LfSensitivityFactor.Status.SKIP_ONLY_VARIABLE) {
+            } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_REFERENCE) {
                 factor.setPredefinedResultSensi(0d);
                 if (!factor.isReferenceConnectedToComponent(connectedComponent)) {
                     factor.setPredefinedResultSensi(Double.NaN);
