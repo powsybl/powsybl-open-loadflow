@@ -432,6 +432,10 @@ public class LfNetwork {
         }
     }
 
+    public static List<LfNetwork> load(Object network) {
+        return load(network, new FirstSlackBusSelector());
+    }
+
     public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
         return load(network, new LfNetworkParameters(slackBusSelector), Reporter.NO_OP);
     }

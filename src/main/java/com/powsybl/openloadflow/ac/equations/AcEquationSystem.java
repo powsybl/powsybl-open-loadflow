@@ -475,7 +475,7 @@ public final class AcEquationSystem {
         Objects.requireNonNull(variableSet);
         Objects.requireNonNull(creationParameters);
 
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(true);
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystemImpl<>(true);
 
         createBusEquations(network, variableSet, creationParameters, equationSystem);
         createBranchEquations(network, variableSet, creationParameters, equationSystem);
