@@ -452,7 +452,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     }
                     if (!variableConnected && !functionConnected) {
                         // SKIP status
-                        predefinedResultsSensi.put(factor, Double.NaN);
+                        if (factor.areVariableAndFunctionDisconnected(connectivity)) {
+                            predefinedResultsSensi.put(factor, 0d);
+                        } else {
+                            predefinedResultsSensi.put(factor, Double.NaN);
+                        }
                         predefinedResultsRef.put(factor, Double.NaN);
                     }
                     if (variableConnected && !functionConnected) {

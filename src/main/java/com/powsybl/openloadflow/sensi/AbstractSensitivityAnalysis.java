@@ -643,7 +643,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 }
                 if (!variableConnected && !functionConnected) {
                     // SKIP status
-                    factor.setSensitivityValuePredefinedResult(Double.NaN);
+                    if (factor.areVariableAndFunctionDisconnected(connectivity)) {
+                        factor.setSensitivityValuePredefinedResult(0d);
+                    } else {
+                        factor.setSensitivityValuePredefinedResult(Double.NaN);
+                    }
                     factor.setFunctionPredefinedResult(Double.NaN);
                 }
                 if (variableConnected && !functionConnected) {
