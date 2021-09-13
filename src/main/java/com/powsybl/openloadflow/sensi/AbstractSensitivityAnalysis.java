@@ -657,7 +657,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 }
             } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
                 factor.setSensitivityValuePredefinedResult(0d);
-                if (factor.isFunctionConnectedToSlackComponent(connectedComponent)) {
+                if (!factor.isFunctionConnectedToSlackComponent(connectedComponent)) {
                     factor.setFunctionPredefinedResult(Double.NaN);
                 }
             }

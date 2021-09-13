@@ -761,9 +761,9 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(1d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-1d, getFunctionReference(contingencyResult, "l23"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, getFunctionReference(contingencyResult, "l25"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0d, getFunctionReference(contingencyResult, "l45"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0d, getFunctionReference(contingencyResult, "l46"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0d, getFunctionReference(contingencyResult, "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, getFunctionReference(contingencyResult, "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, getFunctionReference(contingencyResult, "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, getFunctionReference(contingencyResult, "l56"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -826,9 +826,9 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, getFunctionReference(contingencyResult, "l23"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, getFunctionReference(contingencyResult, "l25"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0d, getFunctionReference(contingencyResult, "l45"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0d, getFunctionReference(contingencyResult, "l46"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0d, getFunctionReference(contingencyResult, "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, getFunctionReference(contingencyResult, "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, getFunctionReference(contingencyResult, "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, getFunctionReference(contingencyResult, "l56"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1446,7 +1446,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, getContingencyFunctionReference(result, "l45", "l48+l67"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-4d, getContingencyFunctionReference(result, "l56", "l48+l67"), LoadFlowAssert.DELTA_POWER);
         assertEquals(2d, getContingencyFunctionReference(result, "l57", "l48+l67"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0d, getContingencyFunctionReference(result, "l89", "l48+l67"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, getContingencyFunctionReference(result, "l89", "l48+l67"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, getContingencyFunctionReference(result, "l67", "l48+l67"), LoadFlowAssert.DELTA_POWER);
     }
 
@@ -1487,7 +1487,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, getContingencyFunctionReference(result, "l45", "l48+l67"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-4d, getContingencyFunctionReference(result, "l56", "l48+l67"), LoadFlowAssert.DELTA_POWER);
         assertEquals(2d, getContingencyFunctionReference(result, "l57", "l48+l67"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0d, getContingencyFunctionReference(result, "l89", "l48+l67"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, getContingencyFunctionReference(result, "l89", "l48+l67"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, getContingencyFunctionReference(result, "l67", "l48+l67"), LoadFlowAssert.DELTA_POWER);
     }
 

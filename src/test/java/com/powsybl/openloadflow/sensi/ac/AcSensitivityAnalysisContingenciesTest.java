@@ -602,9 +602,9 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(1d, getFunctionReference(contingencyValue, busIds.get(1)), LoadFlowAssert.DELTA_V);
         assertEquals(0.992d, getFunctionReference(contingencyValue, busIds.get(2)), LoadFlowAssert.DELTA_V);
         assertEquals(0.988d, getFunctionReference(contingencyValue, busIds.get(3)), LoadFlowAssert.DELTA_V);
-        assertEquals(0d, getFunctionReference(contingencyValue, busIds.get(4)), LoadFlowAssert.DELTA_V); // disconnected
-        assertEquals(0d, getFunctionReference(contingencyValue, busIds.get(5)), LoadFlowAssert.DELTA_V); // disconnected
-        assertEquals(0d, getFunctionReference(contingencyValue, busIds.get(6)), LoadFlowAssert.DELTA_V); // disconnected
+        assertEquals(Double.NaN, getFunctionReference(contingencyValue, busIds.get(4)), LoadFlowAssert.DELTA_V); // disconnected
+        assertEquals(Double.NaN, getFunctionReference(contingencyValue, busIds.get(5)), LoadFlowAssert.DELTA_V); // disconnected
+        assertEquals(Double.NaN, getFunctionReference(contingencyValue, busIds.get(6)), LoadFlowAssert.DELTA_V); // disconnected
         assertEquals(0.987d, getFunctionReference(contingencyValue, busIds.get(7)), LoadFlowAssert.DELTA_V);
         assertEquals(0.989d, getFunctionReference(contingencyValue, busIds.get(8)), LoadFlowAssert.DELTA_V);
         assertEquals(1d, getFunctionReference(contingencyValue, busIds.get(9)), LoadFlowAssert.DELTA_V);

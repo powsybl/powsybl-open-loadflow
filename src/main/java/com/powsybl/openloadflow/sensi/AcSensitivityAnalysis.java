@@ -61,31 +61,44 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 if (!lfFactorsSet.contains(factor)) {
                     continue;
                 }
-                if (factor.getSensitivityValuePredefinedResult() != null && factor.getFunctionPredefinedResult() != null) {
-                    valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, factor.getSensitivityValuePredefinedResult(), factor.getFunctionPredefinedResult());
-                    continue;
+                double sensi = 0d;
+                double ref = 0d;
+                boolean predefSensi = false;
+                boolean predefRef = false;
+                if (factor.getSensitivityValuePredefinedResult() != null) {
+                    sensi = factor.getSensitivityValuePredefinedResult();
+                    predefSensi = true;
+                }
+                if (factor.getFunctionPredefinedResult() != null) {
+                    ref = factor.getFunctionPredefinedResult();
+                    predefRef = true;
                 }
 
-                if (!factor.getFunctionEquationTerm().isActive()) {
+                if (!predefRef && !factor.getFunctionEquationTerm().isActive()) {
                     throw new PowsyblException("Found an inactive equation for a factor that has no predefined result");
                 }
-                double sensi = factor.getFunctionEquationTerm().calculateSensi(factorsState, factorGroup.getIndex());
-                if (factor.getFunctionElement() instanceof LfBranch &&
-                    factor instanceof SingleVariableLfSensitivityFactor &&
-                    ((SingleVariableLfSensitivityFactor<AcVariableType, AcEquationType>) factor).getVariableElement() instanceof LfBranch &&
-                    ((SingleVariableLfSensitivityFactor<AcVariableType, AcEquationType>) factor).getVariableElement().equals(factor.getFunctionElement())) {
-                    // add nabla_p eta, fr specific cases
-                    // the only case currently: if we are computing the sensitivity of a phasetap change on itself
-                    Variable<AcVariableType> phi1Var = factor.getFunctionEquationTerm().getVariables()
-                        .stream()
-                        .filter(var -> var.getNum() == factor.getFunctionElement().getNum() && var.getType().equals(AcVariableType.BRANCH_ALPHA1))
-                        .findAny()
-                        .orElseThrow(() -> new PowsyblException("No alpha_1 variable on the function branch"));
-                    sensi += Math.toRadians(factor.getFunctionEquationTerm().der(phi1Var));
+                if (!predefSensi) {
+                    sensi = factor.getFunctionEquationTerm().calculateSensi(factorsState, factorGroup.getIndex());
+                    if (factor.getFunctionElement() instanceof LfBranch &&
+                            factor instanceof SingleVariableLfSensitivityFactor &&
+                            ((SingleVariableLfSensitivityFactor<AcVariableType, AcEquationType>) factor).getVariableElement() instanceof LfBranch &&
+                            ((SingleVariableLfSensitivityFactor<AcVariableType, AcEquationType>) factor).getVariableElement().equals(factor.getFunctionElement())) {
+                        // add nabla_p eta, fr specific cases
+                        // the only case currently: if we are computing the sensitivity of a phasetap change on itself
+                        Variable<AcVariableType> phi1Var = factor.getFunctionEquationTerm().getVariables()
+                                .stream()
+                                .filter(var -> var.getNum() == factor.getFunctionElement().getNum() && var.getType().equals(AcVariableType.BRANCH_ALPHA1))
+                                .findAny()
+                                .orElseThrow(() -> new PowsyblException("No alpha_1 variable on the function branch"));
+                        sensi += Math.toRadians(factor.getFunctionEquationTerm().der(phi1Var));
+                    }
+                }
+                if (!predefRef) {
+                    ref = factor.getFunctionReference();
                 }
 
                 valueWriter.write(factor.getContext(), contingencyId, contingencyIndex,
-                                  unscaleSensitivity(factor, sensi), unscaleFunction(factor, factor.getFunctionReference()));
+                                  unscaleSensitivity(factor, sensi), unscaleFunction(factor, ref));
             }
         }
     }

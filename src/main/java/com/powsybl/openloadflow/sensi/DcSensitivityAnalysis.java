@@ -199,43 +199,58 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     private void createBranchSensitivityValue(LfSensitivityFactor<DcVariableType, DcEquationType> factor, DenseMatrix contingenciesStates,
                                               Collection<ComputedContingencyElement> contingencyElements,
                                               PropagatedContingency contingency, SensitivityValueWriter valueWriter) {
-        double sensiValue;
-        double flowValue;
+        double sensiValue = 0d;
+        double flowValue = 0d;
+        boolean predefSensi = false;
+        boolean predefRef = false;
         EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
         String functionBranchId = factor.getFunctionElement().getId();
-        if (factor.getSensitivityValuePredefinedResult() != null && factor.getFunctionPredefinedResult() != null) {
-            sensiValue = factor.getSensitivityValuePredefinedResult();
-            flowValue = factor.getFunctionPredefinedResult();
-        } else {
-            sensiValue = factor.getBaseSensitivityValue();
-            flowValue = factor.getFunctionReference();
-            boolean zeroSensiValue = false;
-            for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                double contingencySensitivity = p1.calculateSensi(contingenciesStates, contingencyElement.getContingencyIndex());
-                flowValue += contingencyElement.getAlphaForFunctionReference() * contingencySensitivity;
-                sensiValue +=  contingencyElement.getAlphaForSensitivityValue() * contingencySensitivity;
-                if (contingencyElement.getElement().getId().equals(functionBranchId)) {
-                    // the monitored branch is in contingency, the sensitivity value equals to zero and its post-contingency flow
-                    // equals to zero too.
-                    sensiValue = 0d;
-                    flowValue = 0d;
-                    break;
-                }
-                if (contingencyElement.getElement().getId().equals(factor.getVariableId())) {
-                    // the equipment responsible for the variable is indeed in contingency, the sensitivity value equals to zero.
-                    // No assumption about the reference flow on the monitored branch.
-                    zeroSensiValue = true;
-                }
-            }
-            if ((contingency != null && contingency.getHvdcIdsToOpen().contains(factor.getVariableId())) || zeroSensiValue) {
+        if (factor.getSensitivityValuePredefinedResult() != null || factor.getFunctionPredefinedResult() != null) {
+            if (!contingency.getBranchIdsToOpen().stream().filter(id -> id.equals(functionBranchId)).collect(Collectors.toList()).isEmpty()) {
+                // the monitored branch is in contingency, sensitivity and post-contingency flow equals to zero in any case.
+                flowValue = 0d;
                 sensiValue = 0d;
+                predefRef = true;
+                predefSensi = true;
+            }
+            if (factor.getSensitivityValuePredefinedResult() != null && !predefSensi) {
+                sensiValue = factor.getSensitivityValuePredefinedResult();
+                predefSensi = true;
+            }
+            if (factor.getFunctionPredefinedResult() != null && !predefRef) {
+                flowValue = factor.getFunctionPredefinedResult();
+                predefRef = true;
             }
         }
-        if (factor.getSensitivityValuePredefinedResult() != null) {
-            sensiValue = factor.getSensitivityValuePredefinedResult();
+        if (!predefSensi) {
+            sensiValue = factor.getBaseSensitivityValue();
         }
-        if (factor.getFunctionPredefinedResult() != null) {
-            flowValue = factor.getFunctionPredefinedResult();
+        if (!predefRef) {
+            flowValue = factor.getFunctionReference();
+        }
+        boolean zeroSensiValue = false;
+        for (ComputedContingencyElement contingencyElement : contingencyElements) {
+            double contingencySensitivity = p1.calculateSensi(contingenciesStates, contingencyElement.getContingencyIndex());
+            if (!predefRef) {
+                flowValue += contingencyElement.getAlphaForFunctionReference() * contingencySensitivity;
+            }
+            if (!predefSensi) {
+                sensiValue += contingencyElement.getAlphaForSensitivityValue() * contingencySensitivity;
+            }
+            if (contingencyElement.getElement().getId().equals(functionBranchId)) {
+                // the monitored branch is in contingency, sensitivity and post-contingency flow equals to zero in any case.
+                flowValue = 0d;
+                sensiValue = 0d;
+                break;
+            }
+            if (contingencyElement.getElement().getId().equals(factor.getVariableId())) {
+                // the equipment responsible for the variable is indeed in contingency, the sensitivity value equals to zero.
+                // No assumption about the reference flow on the monitored branch.
+                zeroSensiValue = true;
+            }
+        }
+        if ((contingency != null && contingency.getHvdcIdsToOpen().contains(factor.getVariableId())) || zeroSensiValue) {
+            sensiValue = 0d;
         }
 
         valueWriter.write(factor.getContext(), contingency != null ? contingency.getContingency().getId() : null, contingency != null ? contingency.getIndex() : -1,
