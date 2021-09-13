@@ -110,7 +110,7 @@ class ContingencyTrippingTest {
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         lbt1.traverse(switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BL", "BJ");
-        checkTerminalIds(terminalsToDisconnect, "D", "CI", "P", "CJ");
+        checkTerminalIds(terminalsToDisconnect, "D", "CE", "CF", "CG", "CH", "CI", "P", "CJ");
 
         // Then with the opened disconnector
         network.getSwitch("AH").setOpen(true);
@@ -118,7 +118,7 @@ class ContingencyTrippingTest {
         terminalsToDisconnect.clear();
         lbt1.traverse(switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BL");
-        checkTerminalIds(terminalsToDisconnect, "D", "CI", "P", "CJ");
+        checkTerminalIds(terminalsToDisconnect, "D", "CE", "CF", "CG", "CH", "CI", "P", "CJ");
     }
 
     @Test
@@ -142,7 +142,7 @@ class ContingencyTrippingTest {
         // Close switches to traverse the voltage level until encountering generator/loads
         network.getSwitch("BB").setOpen(false); // BB fictitious breaker
         network.getSwitch("AZ").setOpen(false); // AZ disconnector to BBS1
-        network.getSwitch("AV").setOpen(false); // AR disconnector to generator CD
+        network.getSwitch("AV").setOpen(false); // AV disconnector to generator CD
 
         // Adding breakers between two loads to simulate the case of a branching of two switches at an end node
         network.getVoltageLevel("N").getNodeBreakerView().newSwitch()
@@ -171,7 +171,7 @@ class ContingencyTrippingTest {
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         lbt1.traverse(switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BJ", "BL", "BV", "BX");
-        checkTerminalIds(terminalsToDisconnect, "D", "CI", "P", "O", "CJ");
+        checkTerminalIds(terminalsToDisconnect, "D", "CD", "CE", "CH", "CI", "P", "O", "CJ");
 
         // Adding an internal connection and open the ZW switch
         network.getSwitch("ZY").setOpen(true);
@@ -183,7 +183,7 @@ class ContingencyTrippingTest {
         terminalsToDisconnect.clear();
         lbt1.traverse(switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BJ", "BL", "BV", "BX");
-        checkTerminalIds(terminalsToDisconnect, "D", "CI", "P", "O", "CJ");
+        checkTerminalIds(terminalsToDisconnect, "D", "CD", "CE", "CH", "CI", "P", "O", "CJ");
     }
 
     @Test
@@ -204,7 +204,7 @@ class ContingencyTrippingTest {
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         ContingencyTripping.createBranchTripping(network, "CJ").traverse(switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BL");
-        checkTerminalIds(terminalsToDisconnect, "D", "CI", "CJ");
+        checkTerminalIds(terminalsToDisconnect, "D", "CE", "CI", "CJ");
     }
 
     @Test
