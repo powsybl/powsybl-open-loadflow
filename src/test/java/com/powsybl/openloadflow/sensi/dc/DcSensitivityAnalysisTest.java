@@ -13,10 +13,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.network.DanglingLineFactory;
-import com.powsybl.openloadflow.network.FourBusNetworkFactory;
-import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sensi.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PropagatedContingency;
@@ -784,5 +781,19 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies);
         assertEquals(1, propagatedContingencies.size());
+    }
+
+    @Test
+    void testTieLineSensi() {
+        Network network = TieLineFactory.create();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0");
+        List<SensitivityFactor2> factors = List.of(new SensitivityFactor2(SensitivityFunctionType.BRANCH_ACTIVE_POWER, "l1",
+                SensitivityVariableType.INJECTION_ACTIVE_POWER, "tl1",
+                false, ContingencyContext.all()));
+
+        SensitivityAnalysisResult2 result = sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, factors);
+        assertEquals(-0.43d, result.getValue(null, "l1", "tl1").getValue(), LoadFlowAssert.DELTA_POWER);
     }
 }

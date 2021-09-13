@@ -22,6 +22,7 @@ import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.HvdcConverterStations;
 import com.powsybl.openloadflow.network.impl.LfDanglingLineBus;
+import com.powsybl.openloadflow.network.impl.LfTieLineBus;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.PropagatedContingency;
@@ -683,25 +684,29 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         if (injection == null) {
             injection = network.getVscConverterStation(injectionId);
         }
-
-        if (injection == null) {
-            throw new PowsyblException("Injection '" + injectionId + "' not found");
-        }
-
         return injection;
     }
 
     protected static String getInjectionBusId(Network network, String injectionId) {
         Injection<?> injection = getInjection(network, injectionId);
-        Bus bus = injection.getTerminal().getBusView().getBus();
-        if (bus == null) {
-            return null;
-        }
-        if (injection instanceof DanglingLine) {
-            return LfDanglingLineBus.getId((DanglingLine) injection);
+        if (injection != null) {
+            Bus bus = injection.getTerminal().getBusView().getBus();
+            if (bus == null) {
+                return null;
+            }
+            if (injection instanceof DanglingLine) {
+                return LfDanglingLineBus.getId((DanglingLine) injection);
+            } else {
+                return bus.getId();
+            }
         } else {
-            return bus.getId();
+            // could be the middle tie line injection
+            Line line = network.getLine(injectionId);
+            if (line != null && line.isTieLine()) {
+                return LfTieLineBus.getId((TieLine) line);
+            }
         }
+        throw new PowsyblException("Injection '" + injectionId + "' not found");
     }
 
     private static void checkBranch(Network network, String branchId) {

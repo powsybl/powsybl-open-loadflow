@@ -45,6 +45,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
         private final List<DanglingLine> danglingLines = new ArrayList<>();
 
+        private final Set<TieLine> tieLines = new LinkedHashSet<>();
+
         private final Set<ThreeWindingsTransformer> t3wtSet = new LinkedHashSet<>();
     }
 
@@ -181,7 +183,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
             @Override
             public void visitLine(Line line, Branch.Side side) {
-                visitBranch(line);
+                if (line.isTieLine()) {
+                    loadingContext.tieLines.add((TieLine) line);
+                } else {
+                    visitBranch(line);
+                }
             }
 
             @Override
@@ -283,6 +289,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             lfBuses.add(lfBus2);
             LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
             addBranch(lfNetwork, LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2), report);
+        }
+
+        for (TieLine tieLine : loadingContext.tieLines) {
+            LfTieLineBus lfBoundaryBus = new LfTieLineBus(lfNetwork, tieLine);
+            lfNetwork.addBus(lfBoundaryBus);
+            lfBuses.add(lfBoundaryBus);
+            LfBus lfBus1 = getLfBus(tieLine.getTerminal1(), lfNetwork, parameters.isBreakers());
+            LfBus lfBus2 = getLfBus(tieLine.getTerminal2(), lfNetwork, parameters.isBreakers());
+            addBranch(lfNetwork, LfTieLineBranch.create(tieLine, Branch.Side.ONE, lfNetwork, lfBus1, lfBoundaryBus), report);
+            addBranch(lfNetwork, LfTieLineBranch.create(tieLine, Branch.Side.TWO, lfNetwork, lfBus2, lfBoundaryBus), report);
         }
 
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
