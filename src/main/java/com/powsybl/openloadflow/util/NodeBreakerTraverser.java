@@ -80,8 +80,6 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traver
             boolean endNodeAfter = connectableAfter == ConnectableType.GENERATOR
                 || connectableAfter == ConnectableType.LOAD
                 || connectableAfter == ConnectableType.DANGLING_LINE
-                || connectableAfter == ConnectableType.TWO_WINDINGS_TRANSFORMER
-                || connectableAfter == ConnectableType.LINE
                 || connectableAfter == ConnectableType.STATIC_VAR_COMPENSATOR
                 || connectableAfter == ConnectableType.SHUNT_COMPENSATOR;
 
