@@ -700,7 +700,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 return bus.getId();
             }
         } else {
-            // could be the middle tie line injection
+            // could be the tie line boundary bus "injection"
             Line line = network.getLine(injectionId);
             if (line != null && line.isTieLine()) {
                 return LfTieLineBus.getId((TieLine) line);
