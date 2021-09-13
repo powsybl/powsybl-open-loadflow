@@ -33,7 +33,7 @@ public class LfTieLineBranch extends AbstractFictitiousLfBranch {
         Objects.requireNonNull(tieLine);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
-        double nominalV = tieLine.getTerminal1().getVoltageLevel().getNominalV();
+        double nominalV = tieLine.getTerminal(side).getVoltageLevel().getNominalV();
         double zb = nominalV * nominalV / PerUnit.SB;
         TieLine.HalfLine halfLine = tieLine.getHalf(side);
         PiModel piModel = new SimplePiModel()
