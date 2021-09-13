@@ -54,15 +54,15 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.ZERO).forEach(factor -> valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, 0, Double.NaN));
         // VALID_REFERENCE status is for factors where variable element is not in the main connected componant but reference element is.
         // Therefore, the sensitivity is known to value 0 and the reference value can be computed.
-        lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_REFERENCE).forEach(factor -> valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, 0, unscaleFunction(factor, factor.getFunctionReference())));
+        lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION).forEach(factor -> valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, 0, unscaleFunction(factor, factor.getFunctionReference())));
 
         for (SensitivityFactorGroup<AcVariableType, AcEquationType> factorGroup : factorGroups) {
             for (LfSensitivityFactor<AcVariableType, AcEquationType> factor : factorGroup.getFactors()) {
                 if (!lfFactorsSet.contains(factor)) {
                     continue;
                 }
-                if (factor.getPredefinedResultSensi() != null) {
-                    valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, factor.getPredefinedResultSensi(), factor.getPredefinedResultRef());
+                if (factor.getSensitivityValuePredefinedResult() != null) {
+                    valueWriter.write(factor.getContext(), contingencyId, contingencyIndex, factor.getSensitivityValuePredefinedResult(), factor.getFunctionPredefinedResult());
                     continue;
                 }
 
@@ -215,7 +215,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             writeSkippedFactors(lfFactors, valueWriter);
 
             // next we only work with valid and skip only variable factors
-            lfFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.VALID_REFERENCE).collect(Collectors.toList());
+            lfFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION).collect(Collectors.toList());
 
             // index factors by variable group to compute a minimal number of states
             List<SensitivityFactorGroup<AcVariableType, AcEquationType>> factorGroups = createFactorGroups(lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList()));
@@ -268,16 +268,16 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // Contingency not breaking connectivity
             for (LfContingency lfContingency : lfContingencies.stream().filter(lfContingency -> lfContingency.getBuses().isEmpty()).collect(Collectors.toSet())) {
                 List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = factorHolder.getFactorsForContingency(lfContingency.getContingency().getId());
-                contingencyFactors.forEach(lfFactor -> lfFactor.setPredefinedResultSensi(null));
-                contingencyFactors.forEach(lfFactor -> lfFactor.setPredefinedResultRef(null));
+                contingencyFactors.forEach(lfFactor -> lfFactor.setSensitivityValuePredefinedResult(null));
+                contingencyFactors.forEach(lfFactor -> lfFactor.setFunctionPredefinedResult(null));
                 contingencyFactors.stream()
                     .filter(lfFactor -> lfFactor.getFunctionElement() instanceof LfBranch)
                     .filter(lfFactor ->  lfContingency.getBranches().contains((LfBranch) lfFactor.getFunctionElement()))
-                    .forEach(lfFactor -> lfFactor.setPredefinedResultSensi(0d));
+                    .forEach(lfFactor -> lfFactor.setSensitivityValuePredefinedResult(0d));
                 contingencyFactors.stream()
                         .filter(lfFactor -> lfFactor.getFunctionElement() instanceof LfBranch)
                         .filter(lfFactor ->  lfContingency.getBranches().contains(lfFactor.getFunctionElement()))
-                        .forEach(lfFactor -> lfFactor.setPredefinedResultRef(0d));
+                        .forEach(lfFactor -> lfFactor.setFunctionPredefinedResult(0d));
                 calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, engine, factorGroups, slackParticipationByBus, lfParameters,
                         lfParametersExt, lfContingency.getContingency().getId(), lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage);
                 BusState.restoreBusStates(busStates);
@@ -286,8 +286,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // Contingency breaking connectivity
             for (LfContingency lfContingency : lfContingencies.stream().filter(lfContingency -> !lfContingency.getBuses().isEmpty()).collect(Collectors.toSet())) {
                 List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = factorHolder.getFactorsForContingency(lfContingency.getContingency().getId());
-                contingencyFactors.forEach(lfFactor -> lfFactor.setPredefinedResultSensi(null));
-                contingencyFactors.forEach(lfFactor -> lfFactor.setPredefinedResultRef(null));
+                contingencyFactors.forEach(lfFactor -> lfFactor.setSensitivityValuePredefinedResult(null));
+                contingencyFactors.forEach(lfFactor -> lfFactor.setFunctionPredefinedResult(null));
 
                 cutConnectivity(lfNetwork, connectivity, propagatedContingencyMap.get(lfContingency.getContingency()));
                 Set<LfBus> nonConnectedBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());

@@ -203,9 +203,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         double flowValue;
         EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
         String functionBranchId = factor.getFunctionElement().getId();
-        if (factor.getPredefinedResultSensi() != null) {
-            sensiValue = factor.getPredefinedResultSensi();
-            flowValue = factor.getPredefinedResultRef();
+        if (factor.getSensitivityValuePredefinedResult() != null) {
+            sensiValue = factor.getSensitivityValuePredefinedResult();
+            flowValue = factor.getFunctionPredefinedResult();
         } else {
             sensiValue = factor.getBaseSensitivityValue();
             flowValue = factor.getFunctionReference();
@@ -250,8 +250,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         double flowValue;
         EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
         String functionBranchId = factor.getFunctionElement().getId();
-        if (factor.getPredefinedResultRef() != null) {
-            flowValue = factor.getPredefinedResultRef();
+        if (factor.getFunctionPredefinedResult() != null) {
+            flowValue = factor.getFunctionPredefinedResult();
             if (!contingency.getBranchIdsToOpen().stream().filter(id -> id.equals(functionBranchId)).collect(Collectors.toList()).isEmpty()) {
                 // the monitored branch is in contingency, its post-contingency flow equals to zero in any case.
                 flowValue = 0d;
@@ -286,7 +286,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         setAlphas(contingencyElements, flowStates, contingenciesStates, 0, ComputedContingencyElement::setAlphaForFunctionReference);
 
-        lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_REFERENCE)
+        lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
                 .forEach(factor -> createBranchFunctionReferenceValue(factor, contingenciesStates, contingencyElements, contingency, valueWriter));
 
         Map<SensitivityFactorGroup<DcVariableType, DcEquationType>, List<LfSensitivityFactor<DcVariableType, DcEquationType>>> factorsByGroup = lfFactors.stream()
@@ -445,10 +445,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         predefinedResultsSensi.put(factor, Double.NaN); // works for sensitivity and function reference
                         predefinedResultsRef.put(factor, Double.NaN);
                     }
-                } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_REFERENCE) {
+                } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
                     // Sensitivity equals 0 for VALID_REFERENCE factors
                     predefinedResultsSensi.put(factor, 0d);
-                    if (!factor.isReferenceConnectedToComponent(slackConnectedComponent)) {
+                    if (!factor.isFunctionConnectedToComponent(slackConnectedComponent)) {
                         // The reference is not in the main componant of the post contingency network.
                         // Therefore, its value cannot be computed.
                         predefinedResultsRef.put(factor, Double.NaN);
@@ -458,11 +458,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
 
         void setPredefinedResultsSensi() {
-            predefinedResultsSensi.forEach(LfSensitivityFactor::setPredefinedResultSensi);
+            predefinedResultsSensi.forEach(LfSensitivityFactor::setSensitivityValuePredefinedResult);
         }
 
         void setPredefinedResultsRef() {
-            predefinedResultsRef.forEach(LfSensitivityFactor::setPredefinedResultRef);
+            predefinedResultsRef.forEach(LfSensitivityFactor::setFunctionPredefinedResult);
         }
 
         public Collection<PropagatedContingency> getContingencies() {
@@ -545,7 +545,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 List<LfSensitivityFactor.Status> validFactors = new ArrayList<>();
                 validFactors.add(LfSensitivityFactor.Status.VALID);
-                validFactors.add(LfSensitivityFactor.Status.VALID_REFERENCE);
+                validFactors.add(LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION);
                 List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = factorHolder.getFactorsForContingencies(contingenciesIds).stream()
                         .filter(factor -> validFactors.contains(factor.getStatus()))
                         .collect(Collectors.toList());
@@ -757,7 +757,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // next we only work with valid factors
         List<LfSensitivityFactor.Status> validFactors = new ArrayList<>();
         validFactors.add(LfSensitivityFactor.Status.VALID);
-        validFactors.add(LfSensitivityFactor.Status.VALID_REFERENCE);
+        validFactors.add(LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION);
         lfFactors = lfFactors.stream().filter(factor -> validFactors.contains(factor.getStatus())).collect(Collectors.toList());
 
         // index factors by variable group to compute the minimal number of states
@@ -871,8 +871,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // !!! we need to reset predefined values for factor that need to be calculated for this set of contingency
                 // predefined may have be set by a previous set of contingency with loss of connectivity
-                lfFactorsForContingencies.forEach(factor -> factor.setPredefinedResultSensi(null));
-                lfFactorsForContingencies.forEach(factor -> factor.setPredefinedResultRef(null));
+                lfFactorsForContingencies.forEach(factor -> factor.setSensitivityValuePredefinedResult(null));
+                lfFactorsForContingencies.forEach(factor -> factor.setFunctionPredefinedResult(null));
 
                 connectivityAnalysisResult.setPredefinedResultsSensi();
 
