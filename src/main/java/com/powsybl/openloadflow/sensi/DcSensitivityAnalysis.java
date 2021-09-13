@@ -476,11 +476,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
         }
 
-        void setPredefinedResultsSensi() {
+        void setSensitivityValuePredefinedResults() {
             predefinedResultsSensi.forEach(LfSensitivityFactor::setSensitivityValuePredefinedResult);
         }
 
-        void setPredefinedResultsRef() {
+        void setFunctionPredefinedResults() {
             predefinedResultsRef.forEach(LfSensitivityFactor::setFunctionPredefinedResult);
         }
 
@@ -882,14 +882,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
                         .collect(Collectors.toList());
 
-                // !!! we need to reset predefined values for factor that need to be calculated for this set of contingency
+                // we need to reset predefined values for factor that need to be calculated for this set of contingency
                 // predefined may have be set by a previous set of contingency with loss of connectivity
                 lfFactorsForContingencies.forEach(factor -> factor.setSensitivityValuePredefinedResult(null));
                 lfFactorsForContingencies.forEach(factor -> factor.setFunctionPredefinedResult(null));
-
-                connectivityAnalysisResult.setPredefinedResultsSensi();
-
-                connectivityAnalysisResult.setPredefinedResultsRef();
+                connectivityAnalysisResult.setSensitivityValuePredefinedResults();
+                connectivityAnalysisResult.setFunctionPredefinedResults();
 
                 Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
 
