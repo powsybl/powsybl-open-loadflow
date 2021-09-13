@@ -203,7 +203,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         double flowValue;
         EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
         String functionBranchId = factor.getFunctionElement().getId();
-        if (factor.getSensitivityValuePredefinedResult() != null) {
+        if (factor.getSensitivityValuePredefinedResult() != null && factor.getFunctionPredefinedResult() != null) {
             sensiValue = factor.getSensitivityValuePredefinedResult();
             flowValue = factor.getFunctionPredefinedResult();
         } else {
@@ -230,6 +230,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             if ((contingency != null && contingency.getHvdcIdsToOpen().contains(factor.getVariableId())) || zeroSensiValue) {
                 sensiValue = 0d;
             }
+        }
+        if (factor.getSensitivityValuePredefinedResult() != null) {
+            sensiValue = factor.getSensitivityValuePredefinedResult();
+        }
+        if (factor.getFunctionPredefinedResult() != null) {
+            flowValue = factor.getFunctionPredefinedResult();
         }
 
         valueWriter.write(factor.getContext(), contingency != null ? contingency.getContingency().getId() : null, contingency != null ? contingency.getIndex() : -1,
@@ -269,7 +275,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
         }
 
-        // This method is only used for VALID_REFERENCE factors, for which sensitivity is known to value 0.
+        // This method is only used for VALID_ONLY_FOR_FUNCTION factors, for which sensitivity is known to value 0.
         valueWriter.write(factor.getContext(), contingency != null ? contingency.getContingency().getId() : null, contingency != null ? contingency.getIndex() : -1,
                 0d, unscaleFunction(factor, flowValue));
     }
@@ -437,18 +443,27 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             predefinedResultsRef = new HashMap<>();
             for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
                 if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
-                    // check if the factor function and variable are in different connected components
-                    if (factor.areVariableAndFunctionDisconnected(connectivity)) {
+                    // after a contingency, we check if the factor function and the variable are in different connected components
+                    boolean variableConnected = factor.isVariableConnectedToSlackComponent(slackConnectedComponent);
+                    boolean functionConnected = factor.isFunctionConnectedToSlackComponent(slackConnectedComponent);
+                    if (!variableConnected && functionConnected) {
+                        // VALID_ONLY_FOR_FUNCTION status
                         predefinedResultsSensi.put(factor, 0d);
-                        predefinedResultsRef.put(factor, 0d);
-                    } else if (!factor.isConnectedToComponent(slackConnectedComponent)) {
-                        predefinedResultsSensi.put(factor, Double.NaN); // works for sensitivity and function reference
+                    }
+                    if (!variableConnected && !functionConnected) {
+                        // SKIP status
+                        predefinedResultsSensi.put(factor, Double.NaN);
+                        predefinedResultsRef.put(factor, Double.NaN);
+                    }
+                    if (variableConnected && !functionConnected) {
+                        // ZERO status
+                        predefinedResultsSensi.put(factor, 0d);
                         predefinedResultsRef.put(factor, Double.NaN);
                     }
                 } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
                     // Sensitivity equals 0 for VALID_REFERENCE factors
                     predefinedResultsSensi.put(factor, 0d);
-                    if (!factor.isFunctionConnectedToComponent(slackConnectedComponent)) {
+                    if (!factor.isFunctionConnectedToSlackComponent(slackConnectedComponent)) {
                         // The reference is not in the main componant of the post contingency network.
                         // Therefore, its value cannot be computed.
                         predefinedResultsRef.put(factor, Double.NaN);
@@ -543,11 +558,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 // only compute for factors that have to be computed for this contingency lost
                 List<String> contingenciesIds = contingencyList.stream().map(contingency -> contingency.getContingency().getId()).collect(Collectors.toList());
 
-                List<LfSensitivityFactor.Status> validFactors = new ArrayList<>();
-                validFactors.add(LfSensitivityFactor.Status.VALID);
-                validFactors.add(LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION);
                 List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = factorHolder.getFactorsForContingencies(contingenciesIds).stream()
-                        .filter(factor -> validFactors.contains(factor.getStatus()))
+                        .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
                         .collect(Collectors.toList());
                 if (!lfFactors.isEmpty()) {
                     connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, branches -> new ConnectivityAnalysisResult(lfFactors, branches, connectivity, lfNetwork)).getContingencies().addAll(contingencyList);
@@ -755,10 +767,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         writeSkippedFactors(lfFactors, valueWriter);
 
         // next we only work with valid factors
-        List<LfSensitivityFactor.Status> validFactors = new ArrayList<>();
-        validFactors.add(LfSensitivityFactor.Status.VALID);
-        validFactors.add(LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION);
-        lfFactors = lfFactors.stream().filter(factor -> validFactors.contains(factor.getStatus())).collect(Collectors.toList());
+        lfFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION).collect(Collectors.toList());
 
         // index factors by variable group to compute the minimal number of states
         List<SensitivityFactorGroup<DcVariableType, DcEquationType>> factorGroups = createFactorGroups(lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList()));
@@ -845,7 +854,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 Collection<PropagatedContingency> propagatedContingencies = entry.getValue();
                 List<String> contingenciesIds = propagatedContingencies.stream().map(c -> c.getContingency().getId()).collect(Collectors.toList());
                 List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactorsForContingencies = factorHolder.getFactorsForContingencies(contingenciesIds).stream()
-                        .filter(factor -> validFactors.contains(factor.getStatus()))
+                        .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
                         .collect(Collectors.toList());
                 if (!lfFactorsForContingencies.isEmpty()) {
                     flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactorsForContingencies, lfParameters, participatingElements, Collections.emptyList(), removedPhaseTapChangers, reporter);
@@ -866,7 +875,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             for (ConnectivityAnalysisResult connectivityAnalysisResult : connectivityAnalysisResults.values()) {
                 List<String> contingenciesIds = connectivityAnalysisResult.getContingencies().stream().map(c -> c.getContingency().getId()).collect(Collectors.toList());
                 List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactorsForContingencies = factorHolder.getFactorsForContingencies(contingenciesIds).stream()
-                        .filter(factor -> validFactors.contains(factor.getStatus()))
+                        .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
                         .collect(Collectors.toList());
 
                 // !!! we need to reset predefined values for factor that need to be calculated for this set of contingency
@@ -934,7 +943,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     Collection<PropagatedContingency> propagatedContingencies = entry1.getValue();
                     List<String> contingenciesIds2 = propagatedContingencies.stream().map(c -> c.getContingency().getId()).collect(Collectors.toList());
                     List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactorsForContingencies2 = factorHolder.getFactorsForContingencies(contingenciesIds2).stream()
-                            .filter(factor -> validFactors.contains(factor.getStatus()))
+                            .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
                             .collect(Collectors.toList());
                     if (!lfFactorsForContingencies2.isEmpty()) {
                         flowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, j, lfFactorsForContingencies2, lfParameters, participatingElements, disabledBuses, disabledPhaseTapChangers, reporter);

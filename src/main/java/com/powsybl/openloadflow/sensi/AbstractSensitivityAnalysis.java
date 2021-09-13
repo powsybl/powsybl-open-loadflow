@@ -134,9 +134,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         boolean areVariableAndFunctionDisconnected(GraphDecrementalConnectivity<LfBus> connectivity);
 
-        boolean isConnectedToComponent(Set<LfBus> connectedComponent);
+        boolean isVariableConnectedToSlackComponent(Set<LfBus> connectedComponent);
 
-        boolean isFunctionConnectedToComponent(Set<LfBus> connectedComponent);
+        boolean isFunctionConnectedToSlackComponent(Set<LfBus> connectedComponent);
 
         SensitivityFactorGroup<V, E> getGroup();
 
@@ -361,12 +361,12 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public boolean isConnectedToComponent(Set<LfBus> connectedComponent) {
+        public boolean isVariableConnectedToSlackComponent(Set<LfBus> connectedComponent) {
             return isElementConnectedToComponent(variableElement, connectedComponent);
         }
 
         @Override
-        public boolean isFunctionConnectedToComponent(Set<LfBus> connectedComponent) {
+        public boolean isFunctionConnectedToSlackComponent(Set<LfBus> connectedComponent) {
             return isElementConnectedToComponent(functionElement, connectedComponent);
         }
     }
@@ -405,7 +405,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public boolean isConnectedToComponent(Set<LfBus> connectedComponent) {
+        public boolean isVariableConnectedToSlackComponent(Set<LfBus> connectedComponent) {
             if (!isElementConnectedToComponent(functionElement, connectedComponent)) {
                 return false;
             }
@@ -418,7 +418,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public boolean isFunctionConnectedToComponent(Set<LfBus> connectedComponent) {
+        public boolean isFunctionConnectedToSlackComponent(Set<LfBus> connectedComponent) {
             return isElementConnectedToComponent(functionElement, connectedComponent);
         }
     }
@@ -634,19 +634,27 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                                         GraphDecrementalConnectivity<LfBus> connectivity) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
             if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
-                // check if the factor function and variable are in different connected components
-                if (factor.areVariableAndFunctionDisconnected(connectivity)) {
+                // after a contingency, we check if the factor function and the variable are in different connected components
+                boolean variableConnected = factor.isVariableConnectedToSlackComponent(connectedComponent);
+                boolean functionConnected = factor.isFunctionConnectedToSlackComponent(connectedComponent);
+                if (!variableConnected && functionConnected) {
+                    // VALID_ONLY_FOR_FUNCTION status
                     factor.setSensitivityValuePredefinedResult(0d);
-                    factor.setFunctionPredefinedResult(0d);
-                } else if (!factor.isConnectedToComponent(connectedComponent)) {
-                    // works for sensitivity and function reference
+                }
+                if (!variableConnected && !functionConnected) {
+                    // SKIP status
                     factor.setSensitivityValuePredefinedResult(Double.NaN);
+                    factor.setFunctionPredefinedResult(Double.NaN);
+                }
+                if (variableConnected && !functionConnected) {
+                    // ZERO status
+                    factor.setSensitivityValuePredefinedResult(0d);
                     factor.setFunctionPredefinedResult(Double.NaN);
                 }
             } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
                 factor.setSensitivityValuePredefinedResult(0d);
-                if (!factor.isFunctionConnectedToComponent(connectedComponent)) {
-                    factor.setSensitivityValuePredefinedResult(Double.NaN);
+                if (factor.isFunctionConnectedToSlackComponent(connectedComponent)) {
+                    factor.setFunctionPredefinedResult(Double.NaN);
                 }
             }
         }
