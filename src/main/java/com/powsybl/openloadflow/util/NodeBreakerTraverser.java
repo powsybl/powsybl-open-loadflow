@@ -57,9 +57,7 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traver
                     return true;
                 }
                 if (isEquivalentToStopAfterSwitch(sw, nodeAfter)) {
-                    // Retaining the switch is equivalent to stop at the node after
-                    // - if the node after the switch is an end node (e.g. load or generator)
-                    // - if the node after the switch is a line
+                    // Retaining the switch is equivalent to stop at the node after if the node after the switch is an end node (e.g. load or generator)
                     sw.getVoltageLevel().getNodeBreakerView().getOptionalTerminal(nodeAfter).ifPresent(traversedTerminals::add);
                     return false;
                 }
