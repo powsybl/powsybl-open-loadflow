@@ -206,6 +206,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         double sensiValue = predefSensiValue ? factor.getSensitivityValuePredefinedResult() : factor.getBaseSensitivityValue();
         double flowValue = predefFlowValue ? factor.getFunctionPredefinedResult() : factor.getFunctionReference();
 
+        if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
+            sensiValue = 0d;
+            predefSensiValue = true;
+        }
+
         if (contingency != null && !contingency.getBranchIdsToOpen().stream().filter(id -> id.equals(functionBranchId)).collect(Collectors.toList()).isEmpty()) {
             // the monitored branch is in contingency, sensitivity and post-contingency flow equals to zero in any case.
             flowValue = 0d;
@@ -254,36 +259,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
-    private void createBranchFunctionReferenceValue(LfSensitivityFactor<DcVariableType, DcEquationType> factor, DenseMatrix contingenciesStates,
-                                                    Collection<ComputedContingencyElement> contingencyElements,
-                                                    PropagatedContingency contingency, SensitivityValueWriter valueWriter) {
-        double flowValue;
-        EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
-        String functionBranchId = factor.getFunctionElement().getId();
-        if (factor.getFunctionPredefinedResult() != null) {
-            flowValue = factor.getFunctionPredefinedResult();
-            if (!contingency.getBranchIdsToOpen().stream().filter(id -> id.equals(functionBranchId)).collect(Collectors.toList()).isEmpty()) {
-                // the monitored branch is in contingency, its post-contingency flow equals to zero in any case.
-                flowValue = 0d;
-            }
-        } else {
-            flowValue = factor.getFunctionReference();
-            for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                double contingencySensitivity = p1.calculateSensi(contingenciesStates, contingencyElement.getContingencyIndex());
-                flowValue += contingencyElement.getAlphaForFunctionReference() * contingencySensitivity;
-                if (!contingency.getBranchIdsToOpen().stream().filter(id -> id.equals(functionBranchId)).collect(Collectors.toList()).isEmpty()) {
-                    // the monitored branch is in contingency, its post-contingency flow equals to zero.
-                    flowValue = 0d;
-                    break;
-                }
-            }
-        }
-
-        // This method is only used for VALID_ONLY_FOR_FUNCTION factors, for which sensitivity is known to value 0.
-        valueWriter.write(factor.getContext(), contingency != null ? contingency.getContingency().getId() : null, contingency != null ? contingency.getIndex() : -1,
-                0d, unscaleFunction(factor, flowValue));
-    }
-
     protected void calculateSensitivityValues(List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors, DenseMatrix factorStates,
                                               DenseMatrix contingenciesStates, DenseMatrix flowStates, Collection<ComputedContingencyElement> contingencyElements,
                                               PropagatedContingency contingency, SensitivityValueWriter valueWriter) {
@@ -297,7 +272,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         setAlphas(contingencyElements, flowStates, contingenciesStates, 0, ComputedContingencyElement::setAlphaForFunctionReference);
 
         lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
-                .forEach(factor -> createBranchFunctionReferenceValue(factor, contingenciesStates, contingencyElements, contingency, valueWriter));
+                .forEach(factor -> createBranchSensitivityValue(factor, contingenciesStates, contingencyElements, contingency, valueWriter));
 
         Map<SensitivityFactorGroup<DcVariableType, DcEquationType>, List<LfSensitivityFactor<DcVariableType, DcEquationType>>> factorsByGroup = lfFactors.stream()
                 .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID)
