@@ -613,9 +613,14 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
     }
 
-    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent,
-                                        GraphDecrementalConnectivity<LfBus> connectivity) {
+    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent, Collection<String> branchIdsToOpen) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
+            String functionBranchId = factor.getFunctionElement().getId();
+            if (!branchIdsToOpen.stream().filter(id -> id.equals(functionBranchId)).collect(Collectors.toList()).isEmpty()) {
+                factor.setSensitivityValuePredefinedResult(0d);
+                factor.setFunctionPredefinedResult(Double.NaN);
+                continue;
+            }
             if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
                 // after a contingency, we check if the factor function and the variable are in different connected components
                 boolean variableConnected = factor.isVariableConnectedToSlackComponent(connectedComponent);
@@ -623,13 +628,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 if (!variableConnected && functionConnected) {
                     // VALID_ONLY_FOR_FUNCTION status
                     factor.setSensitivityValuePredefinedResult(0d);
-                }
-                if (!variableConnected && !functionConnected) {
+                } else if (!variableConnected && !functionConnected) {
                     // SKIP status
                     factor.setSensitivityValuePredefinedResult(Double.NaN);
                     factor.setFunctionPredefinedResult(Double.NaN);
-                }
-                if (variableConnected && !functionConnected) {
+                } else if (variableConnected && !functionConnected) {
                     // ZERO status
                     factor.setSensitivityValuePredefinedResult(0d);
                     factor.setFunctionPredefinedResult(Double.NaN);
