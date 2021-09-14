@@ -61,8 +61,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 if (!lfFactorsSet.contains(factor)) {
                     continue;
                 }
-                double sensi = 0d;
-                double ref = 0d;
+                double sensi;
+                double ref;
                 if (factor.getSensitivityValuePredefinedResult() != null) {
                     sensi = factor.getSensitivityValuePredefinedResult();
                 } else {
