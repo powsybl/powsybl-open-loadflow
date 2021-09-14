@@ -63,21 +63,12 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 }
                 double sensi = 0d;
                 double ref = 0d;
-                boolean predefSensi = false;
-                boolean predefRef = false;
                 if (factor.getSensitivityValuePredefinedResult() != null) {
                     sensi = factor.getSensitivityValuePredefinedResult();
-                    predefSensi = true;
-                }
-                if (factor.getFunctionPredefinedResult() != null) {
-                    ref = factor.getFunctionPredefinedResult();
-                    predefRef = true;
-                }
-
-                if (!predefRef && !factor.getFunctionEquationTerm().isActive()) {
-                    throw new PowsyblException("Found an inactive equation for a factor that has no predefined result");
-                }
-                if (!predefSensi) {
+                } else {
+                    if (!factor.getFunctionEquationTerm().isActive()) {
+                        throw new PowsyblException("Found an inactive equation for a factor that has no predefined result");
+                    }
                     sensi = factor.getFunctionEquationTerm().calculateSensi(factorsState, factorGroup.getIndex());
                     if (factor.getFunctionElement() instanceof LfBranch &&
                             factor instanceof SingleVariableLfSensitivityFactor &&
@@ -93,7 +84,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         sensi += Math.toRadians(factor.getFunctionEquationTerm().der(phi1Var));
                     }
                 }
-                if (!predefRef) {
+                if (factor.getFunctionPredefinedResult() != null) {
+                    ref = factor.getFunctionPredefinedResult();
+                } else {
                     ref = factor.getFunctionReference();
                 }
 
