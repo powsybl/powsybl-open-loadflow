@@ -618,7 +618,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             String functionBranchId = factor.getFunctionElement().getId();
             if (!branchIdsToOpen.stream().filter(id -> id.equals(functionBranchId)).collect(Collectors.toList()).isEmpty()) {
                 factor.setSensitivityValuePredefinedResult(0d);
-                factor.setFunctionPredefinedResult(Double.NaN);
+                factor.setFunctionPredefinedResult(0d);
                 continue;
             }
             if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
