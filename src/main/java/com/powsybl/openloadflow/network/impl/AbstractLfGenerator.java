@@ -227,11 +227,11 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     @Override
     public ReactivePowerControl.ControlledSide getControlledBranchSide() {
-        return this.controlledBranchSide;
+        return controlledBranchSide;
     }
 
     @Override
     public double getRemoteTargetQ() {
-        return this.remoteTargetQ;
+        return remoteTargetQ;
     }
 }

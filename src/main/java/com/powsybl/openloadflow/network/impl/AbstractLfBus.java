@@ -141,8 +141,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public void setReactivePowerControl(ReactivePowerControl reactivePowerControl) {
-        Objects.requireNonNull(reactivePowerControl);
-        this.reactivePowerControl = reactivePowerControl;
+        this.reactivePowerControl = Objects.requireNonNull(reactivePowerControl);
     }
 
     @Override

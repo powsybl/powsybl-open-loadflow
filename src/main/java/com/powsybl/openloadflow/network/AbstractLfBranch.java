@@ -270,7 +270,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     @Override
     public void setReactivePowerControl(ReactivePowerControl pReactivePowerControl) {
-        Objects.requireNonNull(pReactivePowerControl);
-        this.reactivePowerControl = pReactivePowerControl;
+        this.reactivePowerControl = Objects.requireNonNull(pReactivePowerControl);
     }
 }
