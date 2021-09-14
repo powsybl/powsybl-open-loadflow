@@ -218,4 +218,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         }
     }
 
+    public static OpenLoadFlowParameters get(LoadFlowParameters parameters) {
+        OpenLoadFlowParameters parametersExt = parameters.getExtension(OpenLoadFlowParameters.class);
+        if (parametersExt == null) {
+            parametersExt = OpenLoadFlowParameters.load();
+        }
+        return parametersExt;
+    }
 }
