@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.util;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.math.graph.TraverseResult;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -30,21 +31,21 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traver
     }
 
     @Override
-    public boolean traverse(int nodeBefore, Switch sw, int nodeAfter) {
+    public TraverseResult traverse(int nodeBefore, Switch sw, int nodeAfter) {
         if (sw != null) {
             if (sw.isOpen()) {
-                return false;
+                return TraverseResult.TERMINATE;
             }
 
             if (nodeBefore == initNode && traverserStopsAtOtherStartEdges(sw, initNode)) {
                 // Switch is just after contingency and traverser stops at other start edges
                 if (isOpenable(sw)) {
                     // The traverser can stop now and no need to retain current switch
-                    return false;
+                    return TraverseResult.TERMINATE;
                 }
                 if (traverserWouldStopAfter(sw, nodeAfter)) {
                     // As the traverser would stop just after, it can stop now (without retaining current switch)
-                    return false;
+                    return TraverseResult.TERMINATE;
                 }
             }
 
@@ -54,21 +55,21 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traver
                 if (traverserWouldStopAfter(sw, nodeAfter)) {
                     // Continuing traversing might lead in some cases to more retained switches, but in practice the
                     // switches after are often opened and sometimes followed by an end node
-                    return true;
+                    return TraverseResult.CONTINUE;
                 }
                 if (isEquivalentToStopAfterSwitch(sw, nodeAfter)) {
                     // Retaining the switch is equivalent to stop at the node after if the node after the switch is an end node (e.g. load or generator)
                     sw.getVoltageLevel().getNodeBreakerView().getOptionalTerminal(nodeAfter).ifPresent(traversedTerminals::add);
-                    return false;
+                    return TraverseResult.TERMINATE;
                 }
                 switchesToOpen.add(sw);
-                return false;
+                return TraverseResult.TERMINATE;
             }
         }
 
         // The traverser continues, hence nodeAfter is traversed
         nodeBreakerView.getOptionalTerminal(nodeAfter).ifPresent(traversedTerminals::add);
-        return true;
+        return TraverseResult.CONTINUE;
     }
 
     private static boolean isEquivalentToStopAfterSwitch(Switch sw, int nodeAfter) {
