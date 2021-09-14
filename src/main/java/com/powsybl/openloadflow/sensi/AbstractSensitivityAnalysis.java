@@ -132,8 +132,6 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         void setStatus(Status status);
 
-        boolean areVariableAndFunctionDisconnected(GraphDecrementalConnectivity<LfBus> connectivity);
-
         boolean isVariableConnectedToSlackComponent(Set<LfBus> connectedComponent);
 
         boolean isFunctionConnectedToSlackComponent(Set<LfBus> connectedComponent);
@@ -356,11 +354,6 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public boolean areVariableAndFunctionDisconnected(GraphDecrementalConnectivity<LfBus> connectivity) {
-            return areElementsDisconnected(functionElement, variableElement, connectivity);
-        }
-
-        @Override
         public boolean isVariableConnectedToSlackComponent(Set<LfBus> connectedComponent) {
             return isElementConnectedToComponent(variableElement, connectedComponent);
         }
@@ -392,16 +385,6 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         public Collection<LfElement> getVariableElements() {
             return weightedVariableElements.keySet();
-        }
-
-        @Override
-        public boolean areVariableAndFunctionDisconnected(GraphDecrementalConnectivity<LfBus> connectivity) {
-            for (LfElement variableElement : getVariableElements()) {
-                if (!areElementsDisconnected(functionElement, variableElement, connectivity)) {
-                    return false;
-                }
-            }
-            return true;
         }
 
         @Override
