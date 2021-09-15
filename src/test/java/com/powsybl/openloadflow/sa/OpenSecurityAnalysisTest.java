@@ -480,17 +480,17 @@ class OpenSecurityAnalysisTest {
         assertAlmostEquals(expectedBus, busResults.get(0), 0.1);
 
         assertEquals(2, preContingencyResult.getPreContingencyBranchResults().size());
-        assertAlmostEquals(new BranchResult("NHV1_NHV2_1", 302, 99, 457, -300, -137.2, 489, Double.NaN),
+        assertAlmostEquals(new BranchResult("NHV1_NHV2_1", 302, 99, 457, -300, -137.2, 489),
                            preContingencyResult.getPreContingencyBranchResult("NHV1_NHV2_1"), 1);
-        assertAlmostEquals(new BranchResult("NGEN_NHV1", 606, 225, 15226, -605, -198, 914, Double.NaN),
+        assertAlmostEquals(new BranchResult("NGEN_NHV1", 606, 225, 15226, -605, -198, 914),
                            preContingencyResult.getPreContingencyBranchResult("NGEN_NHV1"), 1);
 
         //No result when the branch itself is disconnected
         assertNull(result.getPostContingencyResults().get(0).getBranchResult("NHV1_NHV2_1"));
 
-        assertAlmostEquals(new BranchResult("NHV1_NHV2_1", 611, 334, 1009, -601, -285, 1048, Double.NaN),
+        assertAlmostEquals(new BranchResult("NHV1_NHV2_1", 611, 334, 1009, -601, -285, 1048),
                 result.getPostContingencyResults().get(1).getBranchResult("NHV1_NHV2_1"), 1);
-        assertAlmostEquals(new BranchResult("NGEN_NHV1", 611, 368, 16815, -611, -334, 1009, Double.NaN),
+        assertAlmostEquals(new BranchResult("NGEN_NHV1", 611, 368, 16815, -611, -334, 1009),
                            result.getPostContingencyResults().get(1).getBranchResult("NGEN_NHV1"), 1);
     }
 
@@ -522,7 +522,7 @@ class OpenSecurityAnalysisTest {
 
         assertEquals(new BusResults("b1_vl", "b1", 400, 0.003581299841270782), result.getPreContingencyResult().getPreContingencyBusResults().get(0));
         assertEquals(1, result.getPreContingencyResult().getPreContingencyBusResults().size());
-        assertEquals(new BranchResult("l24", NaN, NaN, NaN, 0.0, -0.0, 0.0, Double.NaN),
+        assertEquals(new BranchResult("l24", NaN, NaN, NaN, 0.0, -0.0, 0.0),
                      result.getPreContingencyResult().getPreContingencyBranchResults().get(0));
 
         network = DistributedSlackNetworkFactory.create();
