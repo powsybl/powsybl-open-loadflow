@@ -19,10 +19,9 @@ import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.concurrent.CompletionException;
-
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -171,8 +170,10 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b3, "l23", 0.05);
         createLine(network, b3, b4, "l34", 0.05);
 
-        CompletionException exception = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("Non impedant branch 'l12' is connected to PV buses 'b1_vl_0' and 'b2_vl_0' with inconsistent target voltages: 1.0 and 1.01", exception.getCause().getMessage());
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(1.01, b1.getV(), DELTA_V);
+        assertEquals(1.01, b2.getV(), DELTA_V);
     }
 
     @Test
@@ -226,5 +227,81 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         parameters.setDc(true);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
+    }
+
+    @Test
+    void twoLinkedPVBusesTest() {
+        Network network = Network.create("TwoPVBusesWithNonImpLine", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        createGenerator(b1, "g1", 2, 1);
+        createGenerator(b2, "g2", 2, 1);
+        Line l12 = createLine(network, b1, b2, "l12", 0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(1, b1);
+        assertVoltageEquals(1, b2);
+        assertAngleEquals(0, b1);
+        assertAngleEquals(0, b2);
+        assertActivePowerEquals(0, l12.getTerminal1());
+        assertActivePowerEquals(0, l12.getTerminal2());
+        assertReactivePowerEquals(0, l12.getTerminal1());
+        assertReactivePowerEquals(0, l12.getTerminal2());
+    }
+
+    @Test
+    void nonImpedentNetworkWithTwoPVBusesTest() {
+        Network network = Network.create("TwoPVBusesInNonImpNet", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 2, 1);
+        createGenerator(b3, "g3", 2, 1);
+        createLoad(b2, "l2", 4, 2);
+        Line l12 = createLine(network, b1, b2, "l12", 0);
+        Line l23 = createLine(network, b2, b3, "l23", 0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertVoltageEquals(1, b1);
+        assertVoltageEquals(1, b2);
+        assertVoltageEquals(1, b3);
+        assertAngleEquals(0, b1);
+        assertAngleEquals(0, b2);
+        assertAngleEquals(0, b3);
+        assertActivePowerEquals(2, l12.getTerminal1());
+        assertActivePowerEquals(-2, l12.getTerminal2());
+        assertActivePowerEquals(-2, l23.getTerminal1());
+        assertActivePowerEquals(2, l23.getTerminal2());
+        assertReactivePowerEquals(1, l12.getTerminal1());
+        assertReactivePowerEquals(-1, l12.getTerminal2());
+        assertReactivePowerEquals(-1, l23.getTerminal1());
+        assertReactivePowerEquals(1, l23.getTerminal2());
+    }
+
+    @Test
+    void nonImpedentNetworkWithCycleTest() {
+        Network network = Network.create("ThreeBusesNetworkWithCycle", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 2, 1);
+        createGenerator(b3, "g3", 2, 1);
+        createLoad(b2, "l2", 4, 2);
+        createLine(network, b1, b2, "l12", 0);
+        createLine(network, b2, b3, "l23", 0);
+        createLine(network, b3, b1, "l31", 0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertVoltageEquals(1, b1);
+        assertVoltageEquals(1, b2);
+        assertVoltageEquals(1, b3);
+        assertAngleEquals(0, b1);
+        assertAngleEquals(0, b2);
+        assertAngleEquals(0, b3);
     }
 }

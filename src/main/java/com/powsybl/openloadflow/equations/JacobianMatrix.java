@@ -17,23 +17,23 @@ import java.util.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
+public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationSystemListener<V, E>, AutoCloseable {
 
-    static final class PartialDerivative {
+    static final class PartialDerivative<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
-        private final EquationTerm equationTerm;
+        private final EquationTerm<V, E> equationTerm;
 
         private final Matrix.Element matrixElement;
 
-        private final Variable variable;
+        private final Variable<V> variable;
 
-        PartialDerivative(EquationTerm equationTerm, Matrix.Element matrixElement, Variable variable) {
+        PartialDerivative(EquationTerm<V, E> equationTerm, Matrix.Element matrixElement, Variable<V> variable) {
             this.equationTerm = Objects.requireNonNull(equationTerm);
             this.matrixElement = Objects.requireNonNull(matrixElement);
             this.variable = Objects.requireNonNull(variable);
         }
 
-        EquationTerm getEquationTerm() {
+        EquationTerm<V, E> getEquationTerm() {
             return equationTerm;
         }
 
@@ -41,18 +41,18 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
             return matrixElement;
         }
 
-        Variable getVariable() {
+        Variable<V> getVariable() {
             return variable;
         }
     }
 
-    private final EquationSystem equationSystem;
+    private final EquationSystem<V, E> equationSystem;
 
     private final MatrixFactory matrixFactory;
 
     private Matrix matrix;
 
-    private List<PartialDerivative> partialDerivatives;
+    private List<PartialDerivative<V, E>> partialDerivatives;
 
     private LUDecomposition lu;
 
@@ -64,14 +64,14 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
 
     private Status status = Status.MATRIX_INVALID;
 
-    public JacobianMatrix(EquationSystem equationSystem, MatrixFactory matrixFactory) {
+    public JacobianMatrix(EquationSystem<V, E> equationSystem, MatrixFactory matrixFactory) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         equationSystem.addListener(this);
     }
 
     @Override
-    public void onEquationChange(Equation equation, EquationEventType eventType) {
+    public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
         switch (eventType) {
             case EQUATION_CREATED:
             case EQUATION_REMOVED:
@@ -86,7 +86,7 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
     }
 
     @Override
-    public void onEquationTermChange(EquationTerm term, EquationTermEventType eventType) {
+    public void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
         switch (eventType) {
             case EQUATION_TERM_ADDED:
             case EQUATION_TERM_ACTIVATED:
@@ -135,16 +135,16 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
         partialDerivatives = new ArrayList<>(estimatedNonZeroValueCount);
 
-        for (Map.Entry<Equation, NavigableMap<Variable, List<EquationTerm>>> e : equationSystem.getSortedEquationsToSolve().entrySet()) {
-            Equation eq = e.getKey();
+        for (Map.Entry<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> e : equationSystem.getSortedEquationsToSolve().entrySet()) {
+            Equation<V, E> eq = e.getKey();
             int column = eq.getColumn();
-            for (Map.Entry<Variable, List<EquationTerm>> e2 : e.getValue().entrySet()) {
-                Variable var = e2.getKey();
+            for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e2 : e.getValue().entrySet()) {
+                Variable<V> var = e2.getKey();
                 int row = var.getRow();
-                for (EquationTerm equationTerm : e2.getValue()) {
+                for (EquationTerm<V, E> equationTerm : e2.getValue()) {
                     double value = equationTerm.der(var);
                     Matrix.Element element = matrix.addAndGetElement(row, column, value);
-                    partialDerivatives.add(new JacobianMatrix.PartialDerivative(equationTerm, element, var));
+                    partialDerivatives.add(new JacobianMatrix.PartialDerivative<>(equationTerm, element, var));
                 }
             }
         }
@@ -152,10 +152,10 @@ public class JacobianMatrix implements EquationSystemListener, AutoCloseable {
 
     private void updateValues() {
         matrix.reset();
-        for (PartialDerivative partialDerivative : partialDerivatives) {
-            EquationTerm equationTerm = partialDerivative.getEquationTerm();
+        for (PartialDerivative<V, E> partialDerivative : partialDerivatives) {
+            EquationTerm<V, E> equationTerm = partialDerivative.getEquationTerm();
             Matrix.Element element = partialDerivative.getMatrixElement();
-            Variable var = partialDerivative.getVariable();
+            Variable<V> var = partialDerivative.getVariable();
             double value = equationTerm.der(var);
             element.add(value);
         }

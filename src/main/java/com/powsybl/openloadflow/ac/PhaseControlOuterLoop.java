@@ -7,12 +7,14 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1CurrentMagnitudeEquationTerm;
+import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2CurrentMagnitudeEquationTerm;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.DiscretePhaseControl;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +40,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
             // at first outer loop iteration:
             // branches with active power control are switched off and taps are rounded
             // branches with current limiter control will wait for second iteration
-            return  firstIteration(context);
+            return firstIteration(context);
         } else if (context.getIteration() > 0) {
             // at second outer loop iteration:
             // flow of branches with fixed tap are recomputed
@@ -57,7 +59,6 @@ public class PhaseControlOuterLoop implements OuterLoop {
             .collect(Collectors.toList());
 
         // all branches with active power control are switched off
-        // TODO: only done for controller mode so far, phase shifter in limiter mode not yet implemented
         phaseControlsOn.stream().filter(dpc -> dpc.getMode() == DiscretePhaseControl.Mode.CONTROLLER).forEach(this::switchOffPhaseControl);
 
         // if at least one phase shifter has been switched off we need to continue
@@ -67,12 +68,16 @@ public class PhaseControlOuterLoop implements OuterLoop {
     private OuterLoopStatus nextIteration(OuterLoopContext context) {
         // at second outer loop iteration we switch on phase control for branches that are in limiter mode
         // and a current greater than the limit
-        for (LfBranch branch : context.getNetwork().getBranches()) {
-            branch.getDiscretePhaseControl()
-                .filter(dpc -> branch.isPhaseControlled() && dpc.getMode() == DiscretePhaseControl.Mode.LIMITER)
-                .ifPresent(discretePhaseControl -> LOGGER.warn("Phase shifter in limiter mode not yet implemented")); // TODO
-        }
-        return OuterLoopStatus.STABLE;
+        // phase control consists in increasing or decreasing tap position to limit the current
+        List<DiscretePhaseControl> unstablePhaseControls = context.getNetwork().getBranches().stream()
+                .map(branch -> branch.getDiscretePhaseControl().filter(dpc -> branch.isPhaseControlled()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .filter(dpc -> dpc.getMode() == DiscretePhaseControl.Mode.LIMITER)
+                .filter(dpc -> changeTapPositions(dpc) == OuterLoopStatus.UNSTABLE)
+                .collect(Collectors.toList());
+
+        return unstablePhaseControls.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
     }
 
     private void switchOffPhaseControl(DiscretePhaseControl phaseControl) {
@@ -86,5 +91,34 @@ public class PhaseControlOuterLoop implements OuterLoop {
         piModel.roundA1ToClosestTap();
         double roundedA1Value = piModel.getA1();
         LOGGER.info("Round phase shift of '{}': {} -> {}", controllerBranch.getId(), a1Value, roundedA1Value);
+    }
+
+    private OuterLoopStatus changeTapPositions(DiscretePhaseControl phaseControl) {
+        // only local control supported: controlled branch is controller branch.
+        double currentLimit = phaseControl.getTargetValue();
+        LfBranch controllerBranch = phaseControl.getController();
+        PiModel piModel = controllerBranch.getPiModel();
+        boolean isSensibilityPositive;
+        boolean success = false;
+        if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE && currentLimit < controllerBranch.getI1().eval()) {
+            isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.ONE);
+            success = isSensibilityPositive ? piModel.updateTapPosition(PiModel.Direction.DECREASE) : piModel.updateTapPosition(PiModel.Direction.INCREASE);
+        } else if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.TWO && currentLimit < controllerBranch.getI2().eval()) {
+            isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.TWO);
+            success = isSensibilityPositive ? piModel.updateTapPosition(PiModel.Direction.DECREASE) : piModel.updateTapPosition(PiModel.Direction.INCREASE);
+        }
+        return success ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE;
+    }
+
+    boolean isSensitivityCurrentPerA1Positive(LfBranch controllerBranch, DiscretePhaseControl.ControlledSide controlledSide) {
+        if (controlledSide == DiscretePhaseControl.ControlledSide.ONE) {
+            ClosedBranchSide1CurrentMagnitudeEquationTerm i1 = (ClosedBranchSide1CurrentMagnitudeEquationTerm) controllerBranch.getI1();
+            Variable<AcVariableType> a1Var = i1.getVariables().stream().filter(v -> v.getType() == AcVariableType.BRANCH_ALPHA1).findFirst().orElseThrow();
+            return i1.der(a1Var) > 0;
+        } else {
+            ClosedBranchSide2CurrentMagnitudeEquationTerm i2 = (ClosedBranchSide2CurrentMagnitudeEquationTerm) controllerBranch.getI2();
+            Variable<AcVariableType> a1Var = i2.getVariables().stream().filter(v -> v.getType() == AcVariableType.BRANCH_ALPHA1).findFirst().orElseThrow();
+            return i2.der(a1Var) > 0;
+        }
     }
 }

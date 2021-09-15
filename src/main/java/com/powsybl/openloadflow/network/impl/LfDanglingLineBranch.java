@@ -12,7 +12,6 @@ import com.powsybl.iidm.network.LimitType;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.security.results.BranchResult;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -72,11 +71,6 @@ public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
         }
-    }
-
-    @Override
-    public List<LfLimit> getLimits2(final LimitType type) {
-        return Collections.emptyList();
     }
 
     @Override

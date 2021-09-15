@@ -85,7 +85,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                 Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
                 models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
             }
-            piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
+            piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition(), network);
         }
 
         RatioTapChanger rtc = twt.getRatioTapChanger();
@@ -99,7 +99,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                     Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
                     models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
                 }
-                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
+                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition(), network);
             } else {
                 throw new PowsyblException("Voltage and phase control on same branch '" + twt.getId() + "' is not yet supported");
             }
@@ -250,12 +250,12 @@ public class LfBranchImpl extends AbstractLfBranch {
         branch.getTerminal2().setP(p2.eval() * PerUnit.SB);
         branch.getTerminal2().setQ(q2.eval() * PerUnit.SB);
 
-        if (phaseShifterRegulationOn && isPhaseController()  && phaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
+        if (phaseShifterRegulationOn && isPhaseController()  && phaseControl.getMode() != DiscretePhaseControl.Mode.CONTROLLER) {
             // it means there is a regulating phase tap changer located on that branch
             updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
         }
 
-        if (phaseShifterRegulationOn && isPhaseControlled()) {
+        if (phaseShifterRegulationOn && isPhaseControlled() && phaseControl.getMode() != DiscretePhaseControl.Mode.LIMITER) {
             // check if the target value deadband is respected
             checkTargetDeadband(phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE ? p1.eval() : p2.eval());
         }

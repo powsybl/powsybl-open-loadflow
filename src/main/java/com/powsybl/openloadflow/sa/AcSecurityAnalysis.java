@@ -13,6 +13,8 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
@@ -54,7 +56,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
-        OpenLoadFlowParameters lfParametersExt = OpenLoadFlowProvider.getParametersExt(securityAnalysisParameters.getLoadFlowParameters());
+        OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
         // in some post-contingency computation, it does not remain elements to participate to slack distribution.
         // in that case, the remaining mismatch is put on the slack bus and no exception is thrown.
         lfParametersExt.setThrowsExceptionInCaseOfSlackDistributionFailure(false);
@@ -175,8 +177,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        List<Equation> deactivatedEquations = new ArrayList<>();
-        List<EquationTerm> deactivatedEquationTerms = new ArrayList<>();
+        List<Equation<AcVariableType, AcEquationType>> deactivatedEquations = new ArrayList<>();
+        List<EquationTerm<AcVariableType, AcEquationType>> deactivatedEquationTerms = new ArrayList<>();
         List<BranchResult> branchResults = new ArrayList<>();
         List<BusResults> busResults = new ArrayList<>();
         List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
