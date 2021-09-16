@@ -188,7 +188,7 @@ public abstract class AbstractSecurityAnalysis {
     protected void detectBusViolations(LfBus bus, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
         // detect violation limits on a bus
         double scale = bus.getNominalV();
-        Double busV = bus.getV().eval();
+        double busV = bus.getV().eval();
         if (!Double.isNaN(bus.getHighVoltageLimit()) && busV > bus.getHighVoltageLimit()) {
             LimitViolation limitViolation1 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit() * scale,
                     (float) 1., busV * scale);
@@ -233,10 +233,22 @@ public abstract class AbstractSecurityAnalysis {
     }
 
     protected void addMonitorInfo(LfNetwork network, StateMonitor monitor, Collection<BranchResult> branchResultConsumer,
-                                Collection<BusResults> busResultsConsumer, Collection<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer) {
+                                  Collection<BusResults> busResultsConsumer, Collection<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer,
+                                  Map<String, BranchResult> preContingencyBranchResults, String contingencyId) {
         network.getBranches().stream().filter(lfBranch -> monitor.getBranchIds().contains(lfBranch.getId()))
                 .filter(lfBranch -> !lfBranch.isDisabled())
-                .forEach(lfBranch -> branchResultConsumer.add(lfBranch.createBranchResult()));
+                .forEach(lfBranch -> {
+                    BranchResult branchResult;
+                    if (contingencyId == null) {
+                        branchResult = lfBranch.createBranchResult(Double.NaN, Double.NaN);
+                        preContingencyBranchResults.put(lfBranch.getId(), branchResult);
+                    } else {
+                        double preContingencyP1 = preContingencyBranchResults.get(lfBranch.getId()) != null ? preContingencyBranchResults.get(lfBranch.getId()).getP1() : Double.NaN;
+                        double branchInContingencyP1 = preContingencyBranchResults.get(contingencyId) != null ? preContingencyBranchResults.get(contingencyId).getP1() : Double.NaN;
+                        branchResult = lfBranch.createBranchResult(preContingencyP1, branchInContingencyP1);
+                    }
+                    branchResultConsumer.add(branchResult);
+                });
         network.getBuses().stream().filter(lfBus -> monitor.getVoltageLevelIds().contains(lfBus.getVoltageLevelId()))
                 .filter(lfBus -> !lfBus.isDisabled())
                 .forEach(lfBus -> busResultsConsumer.add(lfBus.createBusResult()));

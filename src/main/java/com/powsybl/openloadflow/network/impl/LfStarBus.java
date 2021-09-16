@@ -45,25 +45,10 @@ public class LfStarBus extends AbstractLfBus {
     }
 
     @Override
-    public double getLowVoltageLimit() {
-        return Double.NaN;
-    }
-
-    @Override
-    public double getHighVoltageLimit() {
-        return Double.NaN;
-    }
-
-    @Override
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         Networks.setPropertyV(t3wt, v.eval() * getNominalV());
         Networks.setPropertyAngle(t3wt, angle);
 
         super.updateState(reactiveLimits, writeSlackBus, false, false);
-    }
-
-    @Override
-    public boolean isParticipating() {
-        return false;
     }
 }

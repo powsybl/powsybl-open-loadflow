@@ -99,9 +99,13 @@ public interface LfBus extends LfElement {
      */
     double getNominalV();
 
-    double getLowVoltageLimit();
+    default double getLowVoltageLimit() {
+        return Double.NaN;
+    }
 
-    double getHighVoltageLimit();
+    default double getHighVoltageLimit() {
+        return Double.NaN;
+    }
 
     List<LfGenerator> getGenerators();
 
@@ -133,7 +137,9 @@ public interface LfBus extends LfElement {
 
     Evaluable getQ();
 
-    boolean isParticipating();
+    default boolean isParticipating() {
+        return false;
+    }
 
     BusResults createBusResult();
 }

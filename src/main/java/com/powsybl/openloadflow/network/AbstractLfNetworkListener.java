@@ -45,4 +45,9 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     public void onGenerationReactivePowerTargetChange(LfBus bus, double oldGenerationTargetQ, double newGenerationTargetQ) {
         // empty
     }
+
+    @Override
+    public void onPhaseControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition) {
+        // empty
+    }
 }
