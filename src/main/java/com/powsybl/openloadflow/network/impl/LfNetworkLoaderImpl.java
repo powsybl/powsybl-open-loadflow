@@ -191,7 +191,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
                     } else {
                         createRemoteReactivePowerControl(lfGenerator.getControlledBranch(lfNetwork), lfGenerator.getControlledBranchSide(), controllerBus, lfGenerator.getRemoteTargetQ());
                     }
-                } else if (generators.size() > 1) {
+                } else { // generators.size() > 1 (as > 0 and not equal to 1)
                     LOGGER.warn("Bus {} has more than one generator controlling reactive power remotely: not yet supported", controllerBus.getId());
                 }
             }
