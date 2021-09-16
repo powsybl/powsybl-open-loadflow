@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.TieLine;
 import com.powsybl.openloadflow.network.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -58,31 +59,45 @@ public class LfTieLineBranch extends AbstractFictitiousLfBranch {
 
     @Override
     public List<LfLimit> getLimits1(LimitType type) {
-        switch (type) {
-            case ACTIVE_POWER:
-                return getLimits1(type, tieLine.getActivePowerLimits1());
-            case APPARENT_POWER:
-                return getLimits1(type, tieLine.getApparentPowerLimits1());
-            case CURRENT:
-                return getLimits1(type, tieLine.getCurrentLimits1());
-            case VOLTAGE:
-            default:
-                throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+        if (side == Branch.Side.ONE) {
+            // half line at side 1 has limits at its terminal 1 only.
+            switch (type) {
+                case ACTIVE_POWER:
+                    return getLimits1(type, tieLine.getActivePowerLimits1());
+                case APPARENT_POWER:
+                    return getLimits1(type, tieLine.getApparentPowerLimits1());
+                case CURRENT:
+                    return getLimits1(type, tieLine.getCurrentLimits1());
+                case VOLTAGE:
+                default:
+                    throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+            }
+        } else if (side == Branch.Side.TWO) {
+            return Collections.emptyList();
+        } else {
+            throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
         }
     }
 
     @Override
     public List<LfLimit> getLimits2(LimitType type) {
-        switch (type) {
-            case ACTIVE_POWER:
-                return getLimits2(type, tieLine.getActivePowerLimits2());
-            case APPARENT_POWER:
-                return getLimits2(type, tieLine.getApparentPowerLimits2());
-            case CURRENT:
-                return getLimits2(type, tieLine.getCurrentLimits2());
-            case VOLTAGE:
-            default:
-                throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+        if (side == Branch.Side.TWO) {
+            // half line at side 2 has limits at its terminal 2 only.
+            switch (type) {
+                case ACTIVE_POWER:
+                    return getLimits2(type, tieLine.getActivePowerLimits2());
+                case APPARENT_POWER:
+                    return getLimits2(type, tieLine.getApparentPowerLimits2());
+                case CURRENT:
+                    return getLimits2(type, tieLine.getCurrentLimits2());
+                case VOLTAGE:
+                default:
+                    throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+            }
+        } else if (side == Branch.Side.ONE) {
+            return Collections.emptyList();
+        } else {
+            throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
         }
     }
 

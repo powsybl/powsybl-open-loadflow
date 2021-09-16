@@ -297,8 +297,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             lfBuses.add(lfBoundaryBus);
             LfBus lfBus1 = getLfBus(tieLine.getTerminal1(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(tieLine.getTerminal2(), lfNetwork, parameters.isBreakers());
+            // the half line at side 1 has its network terminal at terminal 1.
             addBranch(lfNetwork, LfTieLineBranch.create(tieLine, Branch.Side.ONE, lfNetwork, lfBus1, lfBoundaryBus), report);
-            addBranch(lfNetwork, LfTieLineBranch.create(tieLine, Branch.Side.TWO, lfNetwork, lfBus2, lfBoundaryBus), report);
+            // the half line at side 2 has its network terminal at terminal 2.
+            addBranch(lfNetwork, LfTieLineBranch.create(tieLine, Branch.Side.TWO, lfNetwork, lfBoundaryBus, lfBus2), report);
         }
 
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
