@@ -37,7 +37,7 @@ public final class AcEquationSystem {
                 equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_P).setActive(false);
             }
 
-            bus.getVoltageControl().ifPresent(vc -> createVoltageControlEquations(vc, bus, variableSet, equationSystem, creationParameters));
+            createGeneratorControlEquations(bus, variableSet, equationSystem, creationParameters);
 
             createShuntEquations(variableSet, equationSystem, bus);
 
@@ -45,9 +45,6 @@ public final class AcEquationSystem {
                 createDiscreteVoltageControlEquation(bus, variableSet, equationSystem);
             }
             Equation<AcVariableType, AcEquationType> v = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V);
-            if (creationParameters.isReactivePowerControl()) {
-                bus.getReactivePowerControl().ifPresent(vc -> equationSystem.createEquation(vc.getControllerBus().getNum(), AcEquationType.BUS_Q).setActive(false));
-            }
             if (v.getTerms().isEmpty()) {
                 v.setActive(false);
                 EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, variableSet, bus.getV().eval());
@@ -58,17 +55,27 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createVoltageControlEquations(VoltageControl voltageControl, LfBus bus, VariableSet<AcVariableType> variableSet,
-                                                      EquationSystem<AcVariableType, AcEquationType> equationSystem, AcEquationSystemCreationParameters creationParameters) {
-        if (voltageControl.isVoltageControlLocal()) {
-            createLocalVoltageControlEquation(bus, variableSet, equationSystem, creationParameters);
-        } else if (bus.isVoltageControlled()) {
-            // remote controlled: set voltage equation on this controlled bus
-            createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet, creationParameters);
-        }
+    private static void createGeneratorControlEquations(LfBus bus, VariableSet<AcVariableType> variableSet,
+                                                        EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                        AcEquationSystemCreationParameters creationParameters) {
+        Optional<VoltageControl> optVoltageControl = bus.getVoltageControl();
+        if (optVoltageControl.isPresent()) {
+            VoltageControl voltageControl = optVoltageControl.get();
+            if (voltageControl.isVoltageControlLocal()) {
+                createLocalVoltageControlEquation(bus, variableSet, equationSystem, creationParameters);
+            } else if (bus.isVoltageControlled()) {
+                // remote controlled: set voltage equation on this controlled bus
+                createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet, creationParameters);
+            }
 
-        if (bus.isVoltageControllerEnabled()) {
-            equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_Q).setActive(false);
+            if (bus.isVoltageControllerEnabled()) {
+                equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_Q).setActive(false);
+            }
+        } else { // If bus has both voltage and remote reactive power controls, then only voltage control has been kept
+            if (creationParameters.isReactivePowerControl()) {
+                bus.getReactivePowerControl()
+                    .ifPresent(rpc -> equationSystem.createEquation(rpc.getControllerBus().getNum(), AcEquationType.BUS_Q).setActive(false));
+            }
         }
     }
 
