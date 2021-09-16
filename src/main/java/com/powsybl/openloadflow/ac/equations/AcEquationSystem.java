@@ -91,11 +91,11 @@ public final class AcEquationSystem {
         equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V).addTerm(vTerm);
     }
 
-    private static void createReactivePowerControlBranchEquation(LfBranch branch, ReactivePowerControl.ControlledSide controlledSide, EquationSystem<AcVariableType, AcEquationType> equationSystem, EquationTerm q) {
+    private static void createReactivePowerControlBranchEquation(LfBranch branch, ReactivePowerControl.ControlledSide controlledSide,
+                                                                 EquationSystem<AcVariableType, AcEquationType> equationSystem, EquationTerm<AcVariableType, AcEquationType> q) {
         branch.getReactivePowerControl().ifPresent(reactivePowerControl -> {
             if (reactivePowerControl.getControlledSide() == controlledSide) {
-                Equation equation = equationSystem.createEquation(branch.getNum(), AcEquationType.BRANCH_Q);
-                equation.addTerm(q);
+                equationSystem.createEquation(branch.getNum(), AcEquationType.BRANCH_Q).addTerm(q);
             }
         });
     }

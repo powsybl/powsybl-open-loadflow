@@ -198,7 +198,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     }
 
     protected void setReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
-        Connectable connectable = regulatingTerminal.getConnectable();
+        Connectable<?> connectable = regulatingTerminal.getConnectable();
         if (connectable instanceof Line) {
             Line l = (Line) connectable;
             this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
