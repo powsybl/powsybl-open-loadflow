@@ -175,12 +175,8 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     private static double getReactivePowerControlTarget(LfBranch branch) {
         Objects.requireNonNull(branch);
-        Optional<ReactivePowerControl> control = branch.getReactivePowerControl();
-        if (control.isPresent()) {
-            return control.get().getTargetValue();
-        } else {
-            throw new PowsyblException("Branch '" + branch.getId() + "' has no target in for reactive remote control");
-        }
+        return branch.getReactivePowerControl().map(ReactivePowerControl::getTargetValue)
+            .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no target in for reactive remote control"));
     }
 
     public static void initTarget(Equation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
