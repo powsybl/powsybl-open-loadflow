@@ -67,11 +67,11 @@ class AcLoadFlowVscTest {
 
     @Test
     public void testRegulatingTerminal() {
-        Network network = HvdcNetworkFactory.createNetworkWithGenerators2();
-        VscConverterStation vscConverterStation = network.getVscConverterStation("cs4");
-        vscConverterStation.setRegulatingTerminal(network.getGenerator("g5")
-                .getTerminal()).setVoltageSetpoint(1.2);
-        vscConverterStation.setVoltageRegulatorOn(true);
+        Network network = HvdcNetworkFactory.createVsc();
+        network.getGenerator("g1").setTargetQ(50).setVoltageRegulatorOn(false);
+        VscConverterStation vscConverterStation = network.getVscConverterStation("cs2");
+        vscConverterStation.setRegulatingTerminal(network.getGenerator("g1").getTerminal()).setVoltageSetpoint(390);
+        vscConverterStation.setVoltageRegulatorOn(true); //FIXME
 
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
@@ -82,31 +82,7 @@ class AcLoadFlowVscTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
-        Bus bus1 = network.getBusView().getBus("b1_vl_0");
-        assertVoltageEquals(1.0, bus1);
-
-        Bus bus2 = network.getBusView().getBus("b2_vl_0");
-        assertVoltageEquals(1.0, bus2);
-
-        Bus bus3 = network.getBusView().getBus("b3_vl_0");
-        assertVoltageEquals(1.2, bus3);
-
-        Bus bus4 = network.getBusView().getBus("b4_vl_0");
-        assertVoltageEquals(1.26, bus4);
-
-        Bus bus5 = network.getBusView().getBus("b5_vl_0");
-        assertVoltageEquals(1.2, bus5);
-
-        Bus bus6 = network.getBusView().getBus("b6_vl_0");
-        assertVoltageEquals(1.0, bus6);
-
-        VscConverterStation cs3 = network.getVscConverterStation("cs3");
-        assertActivePowerEquals(-1.978, cs3.getTerminal());
-        assertReactivePowerEquals(-4.928, cs3.getTerminal());
-        Line l12 = network.getLine("l12");
-        assertActivePowerEquals(1.244, l12.getTerminal1());
-        assertReactivePowerEquals(0.078, l12.getTerminal1());
-        assertActivePowerEquals(-1.244, l12.getTerminal2());
-        assertReactivePowerEquals(0.078, l12.getTerminal2());
+        Bus bus1 = network.getBusView().getBus("vl1_0");
+        assertVoltageEquals(390.0, bus1);
     }
 }

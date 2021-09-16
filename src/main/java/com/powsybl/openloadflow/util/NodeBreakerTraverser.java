@@ -34,18 +34,18 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traver
     public TraverseResult traverse(int nodeBefore, Switch sw, int nodeAfter) {
         if (sw != null) {
             if (sw.isOpen()) {
-                return TraverseResult.TERMINATE;
+                return TraverseResult.TERMINATE_PATH;
             }
 
             if (nodeBefore == initNode && traverserStopsAtOtherStartEdges(sw, initNode)) {
                 // Switch is just after contingency and traverser stops at other start edges
                 if (isOpenable(sw)) {
                     // The traverser can stop now and no need to retain current switch
-                    return TraverseResult.TERMINATE;
+                    return TraverseResult.TERMINATE_PATH;
                 }
                 if (traverserWouldStopAfter(sw, nodeAfter)) {
                     // As the traverser would stop just after, it can stop now (without retaining current switch)
-                    return TraverseResult.TERMINATE;
+                    return TraverseResult.TERMINATE_PATH;
                 }
             }
 
@@ -60,10 +60,10 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traver
                 if (isEquivalentToStopAfterSwitch(sw, nodeAfter)) {
                     // Retaining the switch is equivalent to stop at the node after if the node after the switch is an end node (e.g. load or generator)
                     sw.getVoltageLevel().getNodeBreakerView().getOptionalTerminal(nodeAfter).ifPresent(traversedTerminals::add);
-                    return TraverseResult.TERMINATE;
+                    return TraverseResult.TERMINATE_PATH;
                 }
                 switchesToOpen.add(sw);
-                return TraverseResult.TERMINATE;
+                return TraverseResult.TERMINATE_PATH;
             }
         }
 
