@@ -21,22 +21,19 @@ public class AcEquationSystemCreationParameters {
 
     private final Set<String> branchesWithCurrent;
 
-    private final boolean reactivePowerControl;
-
     public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl) {
-        this(phaseControl, transformerVoltageControl, false, null, false);
+        this(phaseControl, transformerVoltageControl, false);
     }
 
     public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var) {
-        this(phaseControl, transformerVoltageControl, forceA1Var, null, false);
+        this(phaseControl, transformerVoltageControl, forceA1Var, null);
     }
 
-    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var, Set<String> branchesWithCurrent, boolean reactivePowerControl) {
+    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var, Set<String> branchesWithCurrent) {
         this.phaseControl = phaseControl;
         this.transformerVoltageControl = transformerVoltageControl;
         this.forceA1Var = forceA1Var;
         this.branchesWithCurrent = branchesWithCurrent;
-        this.reactivePowerControl = reactivePowerControl;
     }
 
     public boolean isPhaseControl() {
@@ -53,9 +50,5 @@ public class AcEquationSystemCreationParameters {
 
     public Set<String> getBranchesWithCurrent() {
         return branchesWithCurrent;
-    }
-
-    public boolean isReactivePowerControl() {
-        return reactivePowerControl;
     }
 }

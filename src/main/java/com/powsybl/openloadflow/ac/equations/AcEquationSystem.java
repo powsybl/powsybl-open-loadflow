@@ -72,10 +72,8 @@ public final class AcEquationSystem {
                 equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_Q).setActive(false);
             }
         } else { // If bus has both voltage and remote reactive power controls, then only voltage control has been kept
-            if (creationParameters.isReactivePowerControl()) {
-                bus.getReactivePowerControl()
-                    .ifPresent(rpc -> equationSystem.createEquation(rpc.getControllerBus().getNum(), AcEquationType.BUS_Q).setActive(false));
-            }
+            bus.getReactivePowerControl()
+                .ifPresent(rpc -> equationSystem.createEquation(rpc.getControllerBus().getNum(), AcEquationType.BUS_Q).setActive(false));
         }
     }
 
@@ -425,9 +423,7 @@ public final class AcEquationSystem {
             }
             sq1.addTerm(q1);
             branch.setQ1(q1);
-            if (creationParameters.isReactivePowerControl()) {
-                createReactivePowerControlBranchEquation(branch, ReactivePowerControl.ControlledSide.ONE, equationSystem, q1);
-            }
+            createReactivePowerControlBranchEquation(branch, ReactivePowerControl.ControlledSide.ONE, equationSystem, q1);
         }
         if (p2 != null) {
             Equation<AcVariableType, AcEquationType> sp2 = equationSystem.createEquation(bus2.getNum(), AcEquationType.BUS_P);
@@ -447,9 +443,7 @@ public final class AcEquationSystem {
             }
             sq2.addTerm(q2);
             branch.setQ2(q2);
-            if (creationParameters.isReactivePowerControl()) {
-                createReactivePowerControlBranchEquation(branch, ReactivePowerControl.ControlledSide.TWO, equationSystem, q2);
-            }
+            createReactivePowerControlBranchEquation(branch, ReactivePowerControl.ControlledSide.TWO, equationSystem, q2);
         }
 
         if ((creationParameters.isForceA1Var() && branch.hasPhaseControlCapability()) || (creationParameters.isPhaseControl() && branch.isPhaseController()
