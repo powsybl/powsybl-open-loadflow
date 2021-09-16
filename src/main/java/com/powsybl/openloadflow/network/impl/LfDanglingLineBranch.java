@@ -6,9 +6,11 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.security.results.BranchResult;
 
 import java.util.List;
 import java.util.Objects;
@@ -49,6 +51,11 @@ public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
     @Override
     public boolean hasPhaseControlCapability() {
         return false;
+    }
+
+    @Override
+    public BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1) {
+        throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
     }
 
     @Override
