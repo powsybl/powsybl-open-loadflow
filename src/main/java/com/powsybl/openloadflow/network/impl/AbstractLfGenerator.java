@@ -31,7 +31,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     private double targetV = Double.NaN;
 
-    protected GeneratorControlType generatorControlType = GeneratorControlType.NONE;
+    protected GeneratorType generatorType = GeneratorType.NONE;
 
     protected String controlledBusId;
 
@@ -77,12 +77,12 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     @Override
     public boolean hasVoltageControl() {
-        return generatorControlType == GeneratorControlType.VOLTAGE_CONTROL;
+        return generatorType == GeneratorType.VOLTAGE_CONTROL;
     }
 
     @Override
     public boolean hasReactivePowerControl() {
-        return generatorControlType == GeneratorControlType.REACTIVE_POWER_CONTROL;
+        return generatorType == GeneratorType.REACTIVE_POWER_CONTROL;
     }
 
     @Override
@@ -163,7 +163,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         }
         this.controlledBusId = controlledBus.getId();
         setTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV());
-        this.generatorControlType = GeneratorControlType.VOLTAGE_CONTROL;
+        this.generatorType = GeneratorType.VOLTAGE_CONTROL;
     }
 
     protected boolean checkVoltageControlConsistency(LfNetworkLoadingReport report) {
@@ -214,7 +214,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
                     getId(), connectable.getClass());
             return;
         }
-        this.generatorControlType = GeneratorControlType.REACTIVE_POWER_CONTROL;
+        this.generatorType = GeneratorType.REACTIVE_POWER_CONTROL;
         this.remoteTargetQ = targetQ / PerUnit.SB;
     }
 
@@ -233,7 +233,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         return remoteTargetQ;
     }
 
-    protected enum GeneratorControlType {
+    protected enum GeneratorType {
         NONE, REACTIVE_POWER_CONTROL, VOLTAGE_CONTROL
     }
 }
