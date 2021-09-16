@@ -66,7 +66,7 @@ class AcLoadFlowVscTest {
     }
 
     @Test
-    public void testRegulatingTerminal() {
+    void testRegulatingTerminal() {
         Network network = HvdcNetworkFactory.createVsc();
         network.getGenerator("g1").setTargetQ(50).setVoltageRegulatorOn(false);
         VscConverterStation vscConverterStation = network.getVscConverterStation("cs2");
