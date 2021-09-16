@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.security.results.BranchResult;
 
 import java.util.*;
 
@@ -101,6 +102,11 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
     @Override
     public boolean hasPhaseControlCapability() {
         return leg.getPhaseTapChanger() != null;
+    }
+
+    @Override
+    public BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1) {
+        throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
     }
 
     @Override
