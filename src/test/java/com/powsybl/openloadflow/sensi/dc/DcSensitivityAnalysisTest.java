@@ -27,15 +27,6 @@ import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityAnalysisResult;
 import com.powsybl.sensitivity.SensitivityFactor;
-import com.powsybl.sensitivity.SensitivityFactorsProvider;
-import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
-import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
-import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
-import com.powsybl.sensitivity.factors.BranchIntensityPerPSTAngle;
-import com.powsybl.sensitivity.factors.functions.BranchFlow;
-import com.powsybl.sensitivity.factors.variables.InjectionIncrease;
-import com.powsybl.sensitivity.factors.variables.LinearGlsk;
-import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
@@ -56,9 +47,9 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getLineStream().collect(Collectors.toList()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
         assertEquals(2, result.getValues().size());
@@ -76,9 +67,9 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         }
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0");
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
 
@@ -116,9 +107,9 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runDcLf(network);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
 
@@ -148,9 +139,9 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runDcLf(network);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
 
@@ -181,9 +172,9 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runDcLf(network);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
+        List<SensitivityFactor> factors = createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
 
@@ -208,9 +199,9 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runDcLf(network);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
+        List<SensitivityFactor> factors = createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
 
@@ -229,9 +220,9 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runDcLf(network);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
 
@@ -262,9 +253,9 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runDcLf(network);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
+        List<SensitivityFactor> factors = createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
 
@@ -289,9 +280,9 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runDcLf(network);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().filter(gen -> gen.getId().equals("g1")).collect(Collectors.toList()),
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().filter(gen -> gen.getId().equals("g1")).collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
 
@@ -310,9 +301,9 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runDcLf(network);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
+        List<SensitivityFactor> factors = createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
 
@@ -336,9 +327,9 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runDcLf(network);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
 
@@ -375,8 +366,8 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         variables.add(new WeightedSensitivityVariable("g1", 10f));
         List<SensitivityVariableSet> variableSets = Collections.singletonList(new SensitivityVariableSet("glsk", variables));
 
-        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk")).collect(Collectors.toList());
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), variableSets,
+        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk")).collect(Collectors.toList());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), variableSets,
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
 
@@ -402,8 +393,8 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         variables.add(new WeightedSensitivityVariable("g1", 10f));
         List<SensitivityVariableSet> variableSets = Collections.singletonList(new SensitivityVariableSet("glsk", variables));
 
-        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk")).collect(Collectors.toList());
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), variableSets,
+        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk")).collect(Collectors.toList());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), variableSets,
                 sensiParameters, LocalComputationManager.getDefault())
                 .join();
 
@@ -421,10 +412,10 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Network network = FourBusNetworkFactory.createBaseNetwork();
         runDcLf(network);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b2_vl_0", false);
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
+        List<SensitivityFactor> factors = createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()));
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
-                factorsProvider, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
+                factors, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
         assertEquals(0.0d, getValue(result, "d2", "l13"), LoadFlowAssert.DELTA_POWER);
     }
 
@@ -434,11 +425,11 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Network network = HvdcNetworkFactory.createVsc();
         runDcLf(network);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0", false);
-        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream()
+        List<SensitivityFactor> factors = network.getBranchStream()
                 .map(branch -> createBranchFlowPerInjectionIncrease(branch.getId(), network.getVscConverterStation("cs2").getId()))
                 .collect(Collectors.toList());
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
-                factorsProvider, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
+                factors, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
         assertEquals(-1d, getValue(result, "cs2", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
@@ -448,11 +439,11 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Network network = HvdcNetworkFactory.createLcc();
         runDcLf(network);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0", false);
-        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream()
+        List<SensitivityFactor> factors = network.getBranchStream()
                 .map(branch -> createBranchFlowPerInjectionIncrease(branch.getId(), network.getLccConverterStation("cs2").getId()))
                 .collect(Collectors.toList());
         SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
-                factorsProvider, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
+                factors, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
         assertEquals(-1d, getValue(result, "cs2", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
@@ -588,10 +579,10 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runDcLf(network);
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
+        List<SensitivityFactor> factors =  createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()));
         CompletionException exception = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
-                factorsProvider, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join());
+                factors, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join());
         assertTrue(exception.getCause() instanceof UnsupportedOperationException);
         assertEquals("Unsupported balance type mode: PROPORTIONAL_TO_CONFORM_LOAD", exception.getCause().getMessage());
     }
@@ -604,9 +595,8 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL2_0");
         Branch<?> l1 = network.getBranch("L1");
         TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
-        SensitivityFactorsProvider factorsProvider
-            = n -> Collections.singletonList(createBranchFlowPerPSTAngle(l1.getId(), ps1.getId()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+        List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerPSTAngle(l1.getId(), ps1.getId()));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
             sensiParameters, LocalComputationManager.getDefault())
             .join();
         assertEquals(-6.3d, getValue(result, "PS1", "L1"), LoadFlowAssert.DELTA_POWER);
@@ -623,18 +613,11 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         }
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        SensitivityFactorsProvider factorsProvider = new SensitivityFactorsProvider() {
-            @Override
-            public List<SensitivityFactor> getCommonFactors(Network network) {
-                return Collections.singletonList(createBranchFlowPerInjectionIncrease("l12", "g1"));
-            }
 
-            @Override
-            public List<SensitivityFactor> getAdditionalFactors(Network network) {
-                return Collections.singletonList(createBranchFlowPerInjectionIncrease("l13", "g2"));
-            }
-        };
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+        List<SensitivityFactor> factors = new ArrayList<>();
+        factors.add(createBranchFlowPerInjectionIncrease("l12", "g1"));
+        factors.add(createBranchFlowPerInjectionIncrease("l13", "g2"));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
             sensiParameters, LocalComputationManager.getDefault())
             .join();
 
@@ -656,9 +639,9 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream()
+        List<SensitivityFactor> factors = network.getBranchStream()
             .map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23")).collect(Collectors.toList());
-        CompletableFuture<SensitivityAnalysisResult> result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), Collections.emptyList(),
+        CompletableFuture<SensitivityAnalysisResult> result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
             sensiParameters, LocalComputationManager.getDefault());
 
         CompletionException e = assertThrows(CompletionException.class, result::join);

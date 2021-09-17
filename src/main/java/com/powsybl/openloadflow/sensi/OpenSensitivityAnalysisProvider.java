@@ -98,8 +98,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     }
 
     @Override
-    public CompletableFuture<SensitivityAnalysisResult> run(Network network, String workingStateId,
-                                                            SensitivityFactorsProvider sensitivityFactorsProvider,
+    public CompletableFuture<Void> run(Network network, String workingStateId,
+                                                            SensitivityFactorReader factorReader,
+                                                            SensitivityValueWriter valueWriter,
                                                             List<Contingency> contingencies,
                                                             List<SensitivityVariableSet> variableSets,
                                                             SensitivityAnalysisParameters sensitivityAnalysisParameters,
@@ -108,21 +109,45 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
         Reporter sensiReporter = reporter.createSubReporter("sensitivityAnalysis",
                 "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
-        return CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.runAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
             // FIXME : check following 2 lines
-            List<SensitivityFactor> factors = new ArrayList<>(sensitivityFactorsProvider.getCommonFactors(network));
+            /*List<SensitivityFactor> factors = new ArrayList<>(sensitivityFactorsProvider.getCommonFactors(network));
             factors.addAll(sensitivityFactorsProvider.getAdditionalFactors(network));
             contingencies.forEach(c -> factors.addAll(sensitivityFactorsProvider.getAdditionalFactors(network, c.getId())));
 
             SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
+            SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();*/
+            run(network, contingencies, variableSets, sensitivityAnalysisParameters, factorReader, valueWriter, sensiReporter);
+
+            /*boolean ok = true;
+            Map<String, String> metrics = new HashMap<>();
+            String logs = "";
+            return new SensitivityAnalysisResult(ok, metrics, logs, valueWriter.getValues());*/
+            return;
+        });
+    }
+
+    @Override
+    public CompletableFuture<SensitivityAnalysisResult> run(Network network, String workingStateId,
+                                       List<SensitivityFactor> factors,
+                                       List<Contingency> contingencies,
+                                       List<SensitivityVariableSet> variableSets,
+                                       SensitivityAnalysisParameters sensitivityAnalysisParameters,
+                                       ComputationManager computationManager,
+                                       Reporter reporter) {
+
+        Reporter sensiReporter = reporter.createSubReporter("sensitivityAnalysis",
+                "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
+        return CompletableFuture.supplyAsync(() -> {
+            network.getVariantManager().setWorkingVariant(workingStateId);
+            SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
             SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();
             run(network, contingencies, variableSets, sensitivityAnalysisParameters, factorReader, valueWriter, sensiReporter);
 
-            boolean ok = true;
             Map<String, String> metrics = new HashMap<>();
             String logs = "";
-            return new SensitivityAnalysisResult(ok, metrics, logs, valueWriter.getValues());
+            return new SensitivityAnalysisResult(metrics, logs, valueWriter.getValues());
         });
     }
 
@@ -148,10 +173,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                                        SensitivityAnalysisParameters sensitivityAnalysisParameters, List<SensitivityFactor> factors) {
         SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();
         run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors, valueWriter, Reporter.NO_OP);
-        boolean ok = true;
         Map<String, String> metrics = new HashMap<>();
         String logs = "";
-        return new SensitivityAnalysisResult(ok, metrics, logs, valueWriter.getValues());
+        return new SensitivityAnalysisResult(metrics, logs, valueWriter.getValues());
     }
 
     private static ObjectMapper createObjectMapper() {
