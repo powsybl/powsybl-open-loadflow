@@ -8,8 +8,8 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Branch;
+import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -117,7 +117,7 @@ public abstract class AbstractSecurityAnalysis {
             branch.getLimits1(LimitType.CURRENT).stream()
                 .filter(temporaryLimit1 -> branch.getI1().eval() > temporaryLimit1.getValue())
                 .findFirst()
-                .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.CURRENT, PerUnit.SB / branch.getBus1().getNominalV(), branch.getI1().eval()))
+                .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.CURRENT, PerUnit.ib(branch.getBus1().getNominalV()), branch.getI1().eval()))
                 .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
 
             branch.getLimits1(LimitType.ACTIVE_POWER).stream()
@@ -141,7 +141,7 @@ public abstract class AbstractSecurityAnalysis {
             branch.getLimits2(LimitType.CURRENT).stream()
                 .filter(temporaryLimit2 -> branch.getI2().eval() > temporaryLimit2.getValue())
                 .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
-                .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.CURRENT, PerUnit.SB / branch.getBus2().getNominalV(), branch.getI2().eval()))
+                .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.CURRENT, PerUnit.ib(branch.getBus2().getNominalV()), branch.getI2().eval()))
                 .ifPresent(limitViolation -> violations.put(getSubjectSideId(limitViolation), limitViolation));
 
             branch.getLimits2(LimitType.ACTIVE_POWER).stream()
@@ -188,14 +188,14 @@ public abstract class AbstractSecurityAnalysis {
     protected void detectBusViolations(LfBus bus, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
         // detect violation limits on a bus
         double scale = bus.getNominalV();
-        Double busV = bus.getV().eval();
+        double busV = bus.getV().eval();
         if (!Double.isNaN(bus.getHighVoltageLimit()) && busV > bus.getHighVoltageLimit()) {
             LimitViolation limitViolation1 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit() * scale,
                     (float) 1., busV * scale);
             violations.put(getSubjectSideId(limitViolation1), limitViolation1);
         }
         if (!Double.isNaN(bus.getLowVoltageLimit()) && busV < bus.getLowVoltageLimit()) {
-            LimitViolation limitViolation2 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.LOW_VOLTAGE, bus.getHighVoltageLimit() * scale,
+            LimitViolation limitViolation2 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.LOW_VOLTAGE, bus.getLowVoltageLimit() * scale,
                     (float) 1., busV * scale);
             violations.put(getSubjectSideId(limitViolation2), limitViolation2);
         }
@@ -233,10 +233,22 @@ public abstract class AbstractSecurityAnalysis {
     }
 
     protected void addMonitorInfo(LfNetwork network, StateMonitor monitor, Collection<BranchResult> branchResultConsumer,
-                                Collection<BusResults> busResultsConsumer, Collection<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer) {
+                                  Collection<BusResults> busResultsConsumer, Collection<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer,
+                                  Map<String, BranchResult> preContingencyBranchResults, String contingencyId) {
         network.getBranches().stream().filter(lfBranch -> monitor.getBranchIds().contains(lfBranch.getId()))
                 .filter(lfBranch -> !lfBranch.isDisabled())
-                .forEach(lfBranch -> branchResultConsumer.add(lfBranch.createBranchResult()));
+                .forEach(lfBranch -> {
+                    BranchResult branchResult;
+                    if (contingencyId == null) {
+                        branchResult = lfBranch.createBranchResult(Double.NaN, Double.NaN);
+                        preContingencyBranchResults.put(lfBranch.getId(), branchResult);
+                    } else {
+                        double preContingencyP1 = preContingencyBranchResults.get(lfBranch.getId()) != null ? preContingencyBranchResults.get(lfBranch.getId()).getP1() : Double.NaN;
+                        double branchInContingencyP1 = preContingencyBranchResults.get(contingencyId) != null ? preContingencyBranchResults.get(contingencyId).getP1() : Double.NaN;
+                        branchResult = lfBranch.createBranchResult(preContingencyP1, branchInContingencyP1);
+                    }
+                    branchResultConsumer.add(branchResult);
+                });
         network.getBuses().stream().filter(lfBus -> monitor.getVoltageLevelIds().contains(lfBus.getVoltageLevelId()))
                 .filter(lfBus -> !lfBus.isDisabled())
                 .forEach(lfBus -> busResultsConsumer.add(lfBus.createBusResult()));
@@ -248,8 +260,12 @@ public abstract class AbstractSecurityAnalysis {
         LfBranch leg1 = network.getBranchById(threeWindingsTransformerId + "_leg_1");
         LfBranch leg2 = network.getBranchById(threeWindingsTransformerId + "_leg_2");
         LfBranch leg3 = network.getBranchById(threeWindingsTransformerId + "_leg_3");
-        return new ThreeWindingsTransformerResult(threeWindingsTransformerId, leg1.getP1().eval(), leg1.getQ1().eval(), leg1.getI1().eval(),
-                leg2.getP1().eval(), leg2.getQ1().eval(), leg2.getI1().eval(),
-                leg3.getP1().eval(), leg3.getQ1().eval(), leg3.getI1().eval());
+        double i1Base = PerUnit.ib(leg1.getBus1().getNominalV());
+        double i2Base = PerUnit.ib(leg2.getBus1().getNominalV());
+        double i3Base = PerUnit.ib(leg3.getBus1().getNominalV());
+        return new ThreeWindingsTransformerResult(threeWindingsTransformerId,
+                leg1.getP1().eval() * PerUnit.SB, leg1.getQ1().eval() * PerUnit.SB, leg1.getI1().eval() * i1Base,
+                leg2.getP1().eval() * PerUnit.SB, leg2.getQ1().eval() * PerUnit.SB, leg2.getI1().eval() * i2Base,
+                leg3.getP1().eval() * PerUnit.SB, leg3.getQ1().eval() * PerUnit.SB, leg3.getI1().eval() * i3Base);
     }
 }

@@ -32,6 +32,12 @@ public interface LfBus extends LfElement {
 
     boolean isVoltageControlled();
 
+    List<LfGenerator> getGeneratorsControllingVoltageWithSlope();
+
+    boolean hasGeneratorsWithSlope();
+
+    void removeGeneratorSlopes();
+
     /**
      * Get the number of time, voltage control status has be set from true to false.
      *
@@ -44,6 +50,8 @@ public interface LfBus extends LfElement {
     void setVoltageControllerEnabled(boolean voltageControl);
 
     Optional<VoltageControl> getVoltageControl();
+
+    void removeVoltageControl();
 
     void setVoltageControl(VoltageControl voltageControl);
 
@@ -91,9 +99,13 @@ public interface LfBus extends LfElement {
      */
     double getNominalV();
 
-    double getLowVoltageLimit();
+    default double getLowVoltageLimit() {
+        return Double.NaN;
+    }
 
-    double getHighVoltageLimit();
+    default double getHighVoltageLimit() {
+        return Double.NaN;
+    }
 
     List<LfGenerator> getGenerators();
 
@@ -125,7 +137,9 @@ public interface LfBus extends LfElement {
 
     Evaluable getQ();
 
-    boolean isParticipating();
+    default boolean isParticipating() {
+        return false;
+    }
 
     BusResults createBusResult();
 }

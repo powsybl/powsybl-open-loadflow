@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 
@@ -19,16 +18,16 @@ import java.util.Objects;
  */
 public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2BranchAcFlowEquationTerm {
 
-    private final Variable v1Var;
+    private final Variable<AcVariableType> v1Var;
 
     private double p1;
 
     private double dp1dv1;
 
-    public OpenBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, VariableSet variableSet,
+    public OpenBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, VariableSet<AcVariableType> variableSet,
                                                  boolean deriveA1, boolean deriveR1) {
-        super(branch, VariableType.BUS_V, bus1, variableSet, deriveA1, deriveR1);
-        v1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_V);
+        super(branch, AcVariableType.BUS_V, bus1, variableSet, deriveA1, deriveR1);
+        v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
     }
 
     @Override
@@ -46,7 +45,7 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
     }
 
     @Override
-    public double der(Variable variable) {
+    public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
             return dp1dv1;

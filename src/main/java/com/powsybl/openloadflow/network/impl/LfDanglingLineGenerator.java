@@ -60,16 +60,6 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
     }
 
     @Override
-    public boolean isParticipating() {
-        return false;
-    }
-
-    @Override
-    public double getDroop() {
-        return 0;
-    }
-
-    @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
         return Optional.ofNullable(danglingLine.getGeneration().getReactiveLimits());
     }

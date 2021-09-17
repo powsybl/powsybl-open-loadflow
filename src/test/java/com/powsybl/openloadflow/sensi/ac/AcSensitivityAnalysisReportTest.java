@@ -13,6 +13,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityFactorsProvider;
@@ -38,7 +39,7 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testEsgTuto() throws IOException {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         ReporterModel reporter = new ReporterModel("testEsgTutoReport", "Test ESG tutorial report");
         runAcLf(network, reporter);
 

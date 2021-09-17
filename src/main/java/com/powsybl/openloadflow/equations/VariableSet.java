@@ -14,11 +14,11 @@ import java.util.Map;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class VariableSet {
+public class VariableSet<V extends Enum<V> & Quantity> {
 
-    private final Map<Pair<Integer, VariableType>, Variable> variables = new HashMap<>();
+    private final Map<Pair<Integer, V>, Variable<V>> variables = new HashMap<>();
 
-    public Variable getVariable(int num, VariableType type) {
-        return variables.computeIfAbsent(Pair.of(num, type), p -> new Variable(p.getLeft(), p.getRight()));
+    public Variable<V> getVariable(int num, V type) {
+        return variables.computeIfAbsent(Pair.of(num, type), p -> new Variable<>(p.getLeft(), p.getRight()));
     }
 }

@@ -427,7 +427,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testBusVoltagePerTargetVFunctionRef() {
-        Network network = EurostagTutorialExample1Factory.create();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLGEN_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
@@ -596,6 +596,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         ContingencyContext contingencyContext = ContingencyContext.all();
         List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER, List.of("l12", "l13", "l23"),
                                                                            SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"), false, contingencyContext);
+
         SensitivityAnalysisResult result = sensiProvider.run(HvdcNetworkFactory.createNetworkWithGenerators(), Collections.emptyList(), Collections.emptyList(),
                 sensiParameters, factors);
 

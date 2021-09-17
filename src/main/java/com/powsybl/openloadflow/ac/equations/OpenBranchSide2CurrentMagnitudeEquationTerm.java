@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.equations.VariableType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
@@ -20,23 +19,23 @@ import java.util.Objects;
  */
 public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSide2BranchAcFlowEquationTerm {
 
-    private final Variable v1Var;
+    private final Variable<AcVariableType> v1Var;
 
-    private final Variable ph1Var;
+    private final Variable<AcVariableType> ph1Var;
 
-    private Variable r1Var;
+    private Variable<AcVariableType> r1Var;
 
     private double i1;
 
     private double di1dv1;
 
-    public OpenBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, VariableSet variableSet,
+    public OpenBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, VariableSet<AcVariableType> variableSet,
                                                        boolean deriveA1, boolean deriveR1) {
-        super(branch, VariableType.BUS_V, bus1, variableSet, deriveA1, deriveR1);
-        v1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_V);
-        ph1Var = variableSet.getVariable(bus1.getNum(), VariableType.BUS_PHI);
+        super(branch, AcVariableType.BUS_V, bus1, variableSet, deriveA1, deriveR1);
+        v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
+        ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
         if (deriveR1) {
-            r1Var = variableSet.getVariable(bus1.getNum(), VariableType.BRANCH_RHO1);
+            r1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BRANCH_RHO1);
         }
     }
 
@@ -53,13 +52,13 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
         double gres = g1 + (y * y * g2 + (b2 * b2 + g2 * g2) * y * sinKsi) / shunt;
         double bres = b1 + (y * y * b2 - (b2 * b2 + g2 * g2) * y * cosKsi) / shunt;
 
-        double reI1 = r1 * w1 * (gres * cosPh1 - bres * sinPh1) * CURRENT_NORMALIZATION_FACTOR;
-        double imI1 = r1 * w1 * (gres * sinPh1 + bres * cosPh1) * CURRENT_NORMALIZATION_FACTOR;
-        i1 = Math.hypot(reI1, imI1);
+        double reI1 = r1 * w1 * (gres * cosPh1 - bres * sinPh1);
+        double imI1 = r1 * w1 * (gres * sinPh1 + bres * cosPh1);
+        i1 = FastMath.hypot(reI1, imI1);
 
-        double dreI1dv1 = r1 * r1 * (gres * cosPh1 - bres * sinPh1) * CURRENT_NORMALIZATION_FACTOR;
+        double dreI1dv1 = r1 * r1 * (gres * cosPh1 - bres * sinPh1);
 
-        double dimI1dv1 = r1 * r1 * (gres * sinPh1 + bres * cosPh1) * CURRENT_NORMALIZATION_FACTOR;
+        double dimI1dv1 = r1 * r1 * (gres * sinPh1 + bres * cosPh1);
         di1dv1 = (reI1 * dreI1dv1 + imI1 * dimI1dv1) / i1;
     }
 
@@ -69,7 +68,7 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     @Override
-    public double der(Variable variable) {
+    public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
             return di1dv1;
