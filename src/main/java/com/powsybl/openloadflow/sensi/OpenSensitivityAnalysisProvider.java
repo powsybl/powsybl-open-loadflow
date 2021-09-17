@@ -111,19 +111,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
         return CompletableFuture.runAsync(() -> {
             network.getVariantManager().setWorkingVariant(workingStateId);
-            // FIXME : check following 2 lines
-            /*List<SensitivityFactor> factors = new ArrayList<>(sensitivityFactorsProvider.getCommonFactors(network));
-            factors.addAll(sensitivityFactorsProvider.getAdditionalFactors(network));
-            contingencies.forEach(c -> factors.addAll(sensitivityFactorsProvider.getAdditionalFactors(network, c.getId())));
-
-            SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
-            SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();*/
             run(network, contingencies, variableSets, sensitivityAnalysisParameters, factorReader, valueWriter, sensiReporter);
-
-            /*boolean ok = true;
-            Map<String, String> metrics = new HashMap<>();
-            String logs = "";
-            return new SensitivityAnalysisResult(ok, metrics, logs, valueWriter.getValues());*/
             return;
         });
     }
