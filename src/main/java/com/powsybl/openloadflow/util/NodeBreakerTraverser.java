@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.util;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.math.graph.TraverseResult;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -30,21 +31,21 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traver
     }
 
     @Override
-    public boolean traverse(int nodeBefore, Switch sw, int nodeAfter) {
+    public TraverseResult traverse(int nodeBefore, Switch sw, int nodeAfter) {
         if (sw != null) {
             if (sw.isOpen()) {
-                return false;
+                return TraverseResult.TERMINATE_PATH;
             }
 
             if (nodeBefore == initNode && traverserStopsAtOtherStartEdges(sw, initNode)) {
                 // Switch is just after contingency and traverser stops at other start edges
                 if (isOpenable(sw)) {
                     // The traverser can stop now and no need to retain current switch
-                    return false;
+                    return TraverseResult.TERMINATE_PATH;
                 }
                 if (traverserWouldStopAfter(sw, nodeAfter)) {
                     // As the traverser would stop just after, it can stop now (without retaining current switch)
-                    return false;
+                    return TraverseResult.TERMINATE_PATH;
                 }
             }
 
@@ -54,21 +55,21 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traver
                 if (traverserWouldStopAfter(sw, nodeAfter)) {
                     // Continuing traversing might lead in some cases to more retained switches, but in practice the
                     // switches after are often opened and sometimes followed by an end node
-                    return true;
+                    return TraverseResult.CONTINUE;
                 }
                 if (isEquivalentToStopAfterSwitch(sw, nodeAfter)) {
                     // Retaining the switch is equivalent to stop at the node after if the node after the switch is an end node (e.g. load or generator)
                     sw.getVoltageLevel().getNodeBreakerView().getOptionalTerminal(nodeAfter).ifPresent(traversedTerminals::add);
-                    return false;
+                    return TraverseResult.TERMINATE_PATH;
                 }
                 switchesToOpen.add(sw);
-                return false;
+                return TraverseResult.TERMINATE_PATH;
             }
         }
 
         // The traverser continues, hence nodeAfter is traversed
         nodeBreakerView.getOptionalTerminal(nodeAfter).ifPresent(traversedTerminals::add);
-        return true;
+        return TraverseResult.CONTINUE;
     }
 
     private static boolean isEquivalentToStopAfterSwitch(Switch sw, int nodeAfter) {
@@ -84,7 +85,7 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traver
             if (endNodeAfter) { // check that there isn't another (closed) switch or internal connection at node after
                 VoltageLevel.NodeBreakerView nbv = sw.getVoltageLevel().getNodeBreakerView();
                 return noInternalConnectionAtNode(nodeAfter, nbv)
-                    && nbv.getSwitchStream().noneMatch(s -> s != sw && switchAtNode(s, nodeAfter, nbv)  && !s.isOpen());
+                    && nbv.getSwitchStream(nodeAfter).noneMatch(s -> s != sw  && !s.isOpen());
             }
         }
         return false;
@@ -111,15 +112,11 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traver
     }
 
     private static boolean allOtherSwitchesOpenOrOpenable(Switch aSwitch, int node, VoltageLevel.NodeBreakerView nbv) {
-        return nbv.getSwitchStream().filter(s -> s != aSwitch && switchAtNode(s, node, nbv)).allMatch(NodeBreakerTraverser::isOpenOrOpenable);
+        return nbv.getSwitchStream(node).filter(s -> s != aSwitch).allMatch(NodeBreakerTraverser::isOpenOrOpenable);
     }
 
     private static boolean noInternalConnectionAtNode(int node, VoltageLevel.NodeBreakerView nbv) {
-        return nbv.getInternalConnectionStream().noneMatch(ic -> ic.getNode1() == node || ic.getNode2() == node);
-    }
-
-    private static boolean switchAtNode(Switch s, int nodeAfter, VoltageLevel.NodeBreakerView nbv) {
-        return s != null && (nbv.getNode1(s.getId()) == nodeAfter || nbv.getNode2(s.getId()) == nodeAfter);
+        return nbv.getNodeInternalConnectedToStream(node).findFirst().isEmpty();
     }
 
     private static boolean isOpenable(Switch aSwitch) {
