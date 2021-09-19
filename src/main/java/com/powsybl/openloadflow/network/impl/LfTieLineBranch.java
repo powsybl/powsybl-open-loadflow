@@ -6,10 +6,12 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.TieLine;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.security.results.BranchResult;
 
 import java.util.List;
 import java.util.Objects;
@@ -84,6 +86,11 @@ public class LfTieLineBranch extends AbstractFictitiousLfBranch {
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
         }
+    }
+
+    @Override
+    public BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1) {
+        throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
     }
 
     @Override
