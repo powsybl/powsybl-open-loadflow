@@ -160,6 +160,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Slack bus Pmax mismatch: {}", parametersExt.getSlackBusPMaxMismatch());
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
         LOGGER.info("Voltage per reactive power control: {}", parametersExt.isVoltagePerReactivePowerControl());
+        LOGGER.info("Reactive Power Remote control: {}", parametersExt.hasReactivePowerRemoteControl());
 
         OuterLoopConfig outerLoopConfig = findOuterLoopConfig();
         List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
@@ -184,7 +185,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                         parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
                                         parameters.getCountriesToBalance(),
                                         parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                                        parametersExt.isVoltagePerReactivePowerControl());
+                                        parametersExt.isVoltagePerReactivePowerControl(),
+                                        parametersExt.hasReactivePowerRemoteControl());
     }
 
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
