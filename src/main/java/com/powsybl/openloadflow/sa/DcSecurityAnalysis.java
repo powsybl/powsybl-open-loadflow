@@ -13,12 +13,14 @@ import com.powsybl.openloadflow.sensi.*;
 import com.powsybl.security.*;
 import com.powsybl.security.detectors.LoadingLimitType;
 import com.powsybl.security.monitor.StateMonitor;
+import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
@@ -55,11 +57,15 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         DefaultLimitViolationDetector detector = new DefaultLimitViolationDetector(1.0f, EnumSet.allOf(LoadingLimitType.class));
 
+        StateMonitor monitor = monitorIndex.getAllStateMonitor();
+        Map<String, BranchResult> preContingencyBranchResults = new HashMap<>();
+
         List<LimitViolation> preContingencyLimitViolations = new ArrayList<>();
         for (SensitivityValue2 sensValue : res.getValues(null)) {
             SensitivityFactor2 factor = (SensitivityFactor2) sensValue.getFactorContext();
             String branchId = factor.getFunctionId();
             Branch<?> branch = network.getBranch(branchId);
+            preContingencyBranchResults.put(branchId, new BranchResult(branchId, sensValue.getFunctionReference(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN));
             detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(sensValue.getFunctionReference()), preContingencyLimitViolations::add);
         }
 
@@ -67,19 +73,28 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         List<PostContingencyResult> postContingencyResults = new ArrayList<>();
         for (Contingency contingency : contingencies) {
+            Map<String, BranchResult> postContingencyBranchResults = new HashMap<>();
             List<SensitivityValue2> values = res.getValues(contingency.getId());
             List<LimitViolation> violations = new ArrayList<>();
+            double branchInContingencyP1 = preContingencyBranchResults.get(contingency.getId()).getP1();
 
             for (SensitivityValue2 v : values) {
                 SensitivityFactor2 factor = (SensitivityFactor2) v.getFactorContext();
                 String branchId = factor.getFunctionId();
                 Branch<?> branch = network.getBranch(branchId);
+
+                if (monitor.getBranchIds().contains(branchId)) {
+                    BranchResult preContingencyBranchResult = preContingencyBranchResults.get(branchId);
+                    double flowTransfer = (v.getFunctionReference() - preContingencyBranchResult.getP1()) / branchInContingencyP1;
+                    postContingencyBranchResults.put(branchId, new BranchResult(branchId, v.getFunctionReference(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, flowTransfer));
+                }
+
                 detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(v.getFunctionReference()), violations::add);
             }
 
-            postContingencyResults.add(new PostContingencyResult(contingency, true, violations));
+            postContingencyResults.add(new PostContingencyResult(contingency, true, violations, postContingencyBranchResults, Collections.emptyMap(), Collections.emptyMap()));
         }
 
-        return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, postContingencyResults));
+        return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, postContingencyResults, preContingencyBranchResults.values().stream().collect(Collectors.toList()), Collections.emptyList(), Collections.emptyList()));
     }
 }
