@@ -21,6 +21,8 @@ public interface LfGenerator {
 
     boolean hasVoltageControl();
 
+    boolean hasReactivePowerControl();
+
     double getTargetV();
 
     OptionalDouble getRemoteControlReactiveKey();
@@ -64,4 +66,10 @@ public interface LfGenerator {
     default void setSlope(double slope) {
         // nothing to do
     }
+
+    LfBranch getControlledBranch(LfNetwork lfNetwork);
+
+    ReactivePowerControl.ControlledSide getControlledBranchSide();
+
+    double getRemoteTargetQ();
 }

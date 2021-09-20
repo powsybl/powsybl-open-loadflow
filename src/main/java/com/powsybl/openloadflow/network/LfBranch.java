@@ -77,9 +77,7 @@ public interface LfBranch extends LfElement {
 
     void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
 
-    default BranchResult createBranchResult() {
-        throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
-    }
+    BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1);
 
     boolean isDisabled();
 
@@ -115,4 +113,8 @@ public interface LfBranch extends LfElement {
         }
         return phaseControl.get().getTargetValue();
     }
+
+    Optional<ReactivePowerControl> getReactivePowerControl();
+
+    void setReactivePowerControl(ReactivePowerControl reactivePowerControl);
 }
