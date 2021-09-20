@@ -37,7 +37,7 @@ public final class AcEquationSystem {
                 equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_P).setActive(false);
             }
 
-            bus.getVoltageControl().ifPresent(vc -> createVoltageControlEquations(vc, bus, variableSet, equationSystem, creationParameters));
+            createGeneratorControlEquations(bus, variableSet, equationSystem, creationParameters);
 
             createShuntEquations(variableSet, equationSystem, bus);
 
@@ -55,17 +55,25 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createVoltageControlEquations(VoltageControl voltageControl, LfBus bus, VariableSet<AcVariableType> variableSet,
-                                                      EquationSystem<AcVariableType, AcEquationType> equationSystem, AcEquationSystemCreationParameters creationParameters) {
-        if (voltageControl.isVoltageControlLocal()) {
-            createLocalVoltageControlEquation(bus, variableSet, equationSystem, creationParameters);
-        } else if (bus.isVoltageControlled()) {
-            // remote controlled: set voltage equation on this controlled bus
-            createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet, creationParameters);
-        }
+    private static void createGeneratorControlEquations(LfBus bus, VariableSet<AcVariableType> variableSet,
+                                                        EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                        AcEquationSystemCreationParameters creationParameters) {
+        Optional<VoltageControl> optVoltageControl = bus.getVoltageControl();
+        if (optVoltageControl.isPresent()) {
+            VoltageControl voltageControl = optVoltageControl.get();
+            if (voltageControl.isVoltageControlLocal()) {
+                createLocalVoltageControlEquation(bus, variableSet, equationSystem, creationParameters);
+            } else if (bus.isVoltageControlled()) {
+                // remote controlled: set voltage equation on this controlled bus
+                createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet, creationParameters);
+            }
 
-        if (bus.isVoltageControllerEnabled()) {
-            equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_Q).setActive(false);
+            if (bus.isVoltageControllerEnabled()) {
+                equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_Q).setActive(false);
+            }
+        } else { // If bus has both voltage and remote reactive power controls, then only voltage control has been kept
+            bus.getReactivePowerControl()
+                .ifPresent(rpc -> equationSystem.createEquation(rpc.getControllerBus().getNum(), AcEquationType.BUS_Q).setActive(false));
         }
     }
 
@@ -79,6 +87,15 @@ public final class AcEquationSystem {
             return;
         }
         equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V).addTerm(vTerm);
+    }
+
+    private static void createReactivePowerControlBranchEquation(LfBranch branch, ReactivePowerControl.ControlledSide controlledSide,
+                                                                 EquationSystem<AcVariableType, AcEquationType> equationSystem, EquationTerm<AcVariableType, AcEquationType> q) {
+        branch.getReactivePowerControl().ifPresent(reactivePowerControl -> {
+            if (reactivePowerControl.getControlledSide() == controlledSide) {
+                equationSystem.createEquation(branch.getNum(), AcEquationType.BRANCH_Q).addTerm(q);
+            }
+        });
     }
 
     private static void createShuntEquations(VariableSet<AcVariableType> variableSet, EquationSystem<AcVariableType, AcEquationType> equationSystem, LfBus bus) {
@@ -406,6 +423,7 @@ public final class AcEquationSystem {
             }
             sq1.addTerm(q1);
             branch.setQ1(q1);
+            createReactivePowerControlBranchEquation(branch, ReactivePowerControl.ControlledSide.ONE, equationSystem, q1);
         }
         if (p2 != null) {
             Equation<AcVariableType, AcEquationType> sp2 = equationSystem.createEquation(bus2.getNum(), AcEquationType.BUS_P);
@@ -425,6 +443,7 @@ public final class AcEquationSystem {
             }
             sq2.addTerm(q2);
             branch.setQ2(q2);
+            createReactivePowerControlBranchEquation(branch, ReactivePowerControl.ControlledSide.TWO, equationSystem, q2);
         }
 
         if ((creationParameters.isForceA1Var() && branch.hasPhaseControlCapability()) || (creationParameters.isPhaseControl() && branch.isPhaseController()

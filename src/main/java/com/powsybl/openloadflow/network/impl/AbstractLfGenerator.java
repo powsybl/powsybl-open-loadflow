@@ -31,9 +31,15 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     private double targetV = Double.NaN;
 
-    protected boolean hasVoltageControl = false;
+    protected GeneratorControlType generatorControlType = GeneratorControlType.OFF;
 
     protected String controlledBusId;
+
+    protected String controlledBranchId;
+
+    protected ReactivePowerControl.ControlledSide controlledBranchSide;
+
+    protected double remoteTargetQ = Double.NaN;
 
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
@@ -71,7 +77,12 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     @Override
     public boolean hasVoltageControl() {
-        return hasVoltageControl;
+        return generatorControlType == GeneratorControlType.VOLTAGE;
+    }
+
+    @Override
+    public boolean hasReactivePowerControl() {
+        return generatorControlType == GeneratorControlType.REACTIVE_POWER;
     }
 
     @Override
@@ -152,7 +163,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         }
         this.controlledBusId = controlledBus.getId();
         setTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV());
-        this.hasVoltageControl = true;
+        this.generatorControlType = GeneratorControlType.VOLTAGE;
     }
 
     protected boolean checkVoltageControlConsistency(LfNetworkLoadingReport report) {
@@ -186,4 +197,43 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         this.targetV = newTargetV;
     }
 
+    protected void setReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
+        Connectable<?> connectable = regulatingTerminal.getConnectable();
+        if (connectable instanceof Line) {
+            Line l = (Line) connectable;
+            this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
+                    ReactivePowerControl.ControlledSide.ONE : ReactivePowerControl.ControlledSide.TWO;
+            this.controlledBranchId = l.getId();
+        } else if (connectable instanceof TwoWindingsTransformer) {
+            TwoWindingsTransformer l = (TwoWindingsTransformer) connectable;
+            this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
+                    ReactivePowerControl.ControlledSide.ONE : ReactivePowerControl.ControlledSide.TWO;
+            this.controlledBranchId = l.getId();
+        } else {
+            LOGGER.error("Generator '{}' is controlled by an instance of {}: not supported",
+                    getId(), connectable.getClass());
+            return;
+        }
+        this.generatorControlType = GeneratorControlType.REACTIVE_POWER;
+        this.remoteTargetQ = targetQ / PerUnit.SB;
+    }
+
+    @Override
+    public LfBranch getControlledBranch(LfNetwork lfNetwork) {
+        return lfNetwork.getBranchById(controlledBranchId);
+    }
+
+    @Override
+    public ReactivePowerControl.ControlledSide getControlledBranchSide() {
+        return controlledBranchSide;
+    }
+
+    @Override
+    public double getRemoteTargetQ() {
+        return remoteTargetQ;
+    }
+
+    protected enum GeneratorControlType {
+        OFF, REACTIVE_POWER, VOLTAGE
+    }
 }

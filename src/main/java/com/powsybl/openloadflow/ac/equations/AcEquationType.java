@@ -21,6 +21,7 @@ public enum AcEquationType implements Quantity {
     BUS_PHI("\u03C6", ElementType.BUS),
     BRANCH_P("t", ElementType.BRANCH),
     BRANCH_I("i", ElementType.BRANCH),
+    BRANCH_Q("q", ElementType.BRANCH),
     BRANCH_ALPHA1("\u03B1" + "1", ElementType.BRANCH),
     BRANCH_RHO1("\u03C1" + "1", ElementType.BRANCH),
     ZERO_Q("z_q", ElementType.BUS),
