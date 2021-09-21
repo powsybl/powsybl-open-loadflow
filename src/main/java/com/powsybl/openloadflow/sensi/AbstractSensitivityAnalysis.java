@@ -276,31 +276,6 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             this.status = status;
         }
 
-        protected boolean areElementsDisconnected(LfElement functionElement, LfElement variableElement, GraphDecrementalConnectivity<LfBus> connectivity) {
-            if (functionElement.getType() == ElementType.BUS && variableElement.getType() == ElementType.BUS) {
-                return areBusAndBusDisconnected(connectivity, (LfBus) functionElement, (LfBus) variableElement);
-            } else if (functionElement.getType() == ElementType.BRANCH && variableElement.getType() == ElementType.BUS) {
-                return areBranchAndBusDisconnected(connectivity, (LfBranch) functionElement, (LfBus) variableElement);
-            } else if (functionElement.getType() == ElementType.BRANCH && variableElement.getType() == ElementType.BRANCH) {
-                return areBranchAndBranchDisconnected(connectivity, (LfBranch) functionElement, (LfBranch) variableElement);
-            }
-            throw new PowsyblException("Combination of function type and variable type is not implemented.");
-        }
-
-        static boolean areBranchAndBranchDisconnected(GraphDecrementalConnectivity<LfBus> connectivity, LfBranch functionBranch, LfBranch variableBranch) {
-            return connectivity.getComponentNumber(variableBranch.getBus1()) != connectivity.getComponentNumber(functionBranch.getBus1())
-                    || connectivity.getComponentNumber(variableBranch.getBus1()) != connectivity.getComponentNumber(functionBranch.getBus2());
-        }
-
-        static boolean areBranchAndBusDisconnected(GraphDecrementalConnectivity<LfBus> connectivity, LfBranch functionBranch, LfBus variableBus) {
-            return connectivity.getComponentNumber(functionBranch.getBus1()) != connectivity.getComponentNumber(variableBus)
-                    || connectivity.getComponentNumber(functionBranch.getBus2()) != connectivity.getComponentNumber(variableBus);
-        }
-
-        static boolean areBusAndBusDisconnected(GraphDecrementalConnectivity<LfBus> connectivity, LfBus functionBus, LfBus variableBus) {
-            return connectivity.getComponentNumber(functionBus) != connectivity.getComponentNumber(variableBus);
-        }
-
         protected boolean isElementConnectedToComponent(LfElement element, Set<LfBus> component) {
             if (element instanceof LfBus) {
                 return component.contains(element);
