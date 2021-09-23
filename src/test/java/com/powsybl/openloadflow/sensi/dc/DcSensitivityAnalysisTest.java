@@ -695,6 +695,11 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testGlskAndLineOutsideMainComponent() {
+        testGlskAndLineOutsideMainComponent(true);
+    }
+
+    @Test
     void testGlskPartiallyOutsideMainComponent() {
         testGlskPartiallyOutsideMainComponent(true);
     }
