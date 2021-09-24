@@ -689,6 +689,25 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
                     .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
                     .collect(Collectors.toList());
+                // modify newParticipatingElements, decreasing participation factors of lfBuses losing some loads
+                for (ParticipatingElement parcitipatingElement : newParticipatingElements) {
+                    if (parcitipatingElement.getElement().getClass().getTypeName() == "LfBus") {
+                        LfLoads loads = ((LfBus) parcitipatingElement.getElement()).getLfLoads();
+                        double precontingencyLoad = 0;
+                        double postcontingencyLoad = 0;
+                        for (Load load : loads.getLoads()) {
+                            if (participatingLoadsToRemove.contains(load)) {
+                                postcontingencyLoad += load.getP0();
+                            }
+                            precontingencyLoad += load.getP0();
+                        }
+                        if (postcontingencyLoad == 0) {
+                            newParticipatingElements.remove(parcitipatingElement);
+                        } else {
+                            parcitipatingElement.setFactor(parcitipatingElement.getFactor() * postcontingencyLoad / precontingencyLoad);
+                        }
+                    }
+                }
                 String elementType = isDistributedSlackOnLoads(lfParameters) ? "LfBus" : "LfGenerators";
                 normalizeParticipationFactors(newParticipatingElements, elementType);
                 newFactorStates = calculateStates(j, equationSystem, factorGroups, newParticipatingElements);

@@ -863,6 +863,37 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
+    void testContingencyOnLoad() {
+        Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedByTwoLines();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1", true);
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters();
+        loadFlowParameters.setDc(true);
+        loadFlowParameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        sensiParameters.setLoadFlowParameters(loadFlowParameters);
+        SensitivityFactorsProvider factorsProvider = n -> {
+            return createFactorMatrix(List.of("g2").stream().map(network::getGenerator).collect(Collectors.toList()),
+                    List.of("l12", "l13", "l23").stream().map(network::getBranch).collect(Collectors.toList()));
+        };
+
+        List<Contingency> contingencies = List.of(new Contingency("d5", new LoadContingency("d5")));
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, contingencies,
+                        sensiParameters, LocalComputationManager.getDefault())
+                .join();
+
+        assertEquals(1, result.getSensitivityValuesContingencies().size());
+        List<SensitivityValue> contingencyResult = result.getSensitivityValuesContingencies().get("d5");
+        assertEquals(3, contingencyResult.size());
+        assertEquals(0, getValue(contingencyResult, "d5", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, getValue(contingencyResult, "d5", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, getValue(contingencyResult, "d5", "l23"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-4d / 3d, getFunctionReference(contingencyResult, "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 3d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(5d / 3d, getFunctionReference(contingencyResult, "l23"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testContingencyMultipleLinesBreaksOneContingency() {
         Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedByTwoLines();
         runDcLf(network);

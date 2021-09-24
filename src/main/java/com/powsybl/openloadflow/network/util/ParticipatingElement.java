@@ -34,6 +34,10 @@ public class ParticipatingElement {
         return factor;
     }
 
+    public void setFactor(double factor) {
+        this.factor = factor;
+    }
+
     public static void normalizeParticipationFactors(List<ParticipatingElement> participatingElements, String elementType) {
         double factorSum = participatingElements.stream()
                 .mapToDouble(participatingGenerator -> participatingGenerator.factor)
