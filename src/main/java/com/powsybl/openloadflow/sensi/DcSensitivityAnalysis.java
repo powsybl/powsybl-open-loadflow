@@ -24,9 +24,7 @@ import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.AbstractLfBus;
-import com.powsybl.openloadflow.network.impl.LfGeneratorImpl;
-import com.powsybl.openloadflow.network.impl.LfVscConverterStationImpl;
+import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.BranchState;
 import com.powsybl.openloadflow.util.BusState;
@@ -576,10 +574,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     private void applyInjectionContingencies(Network network, LfNetwork lfNetwork, PropagatedContingency contingency,
-                                             Set<LfGenerator> participatingGeneratorsToRemove, Map<LfBus, BusState> busStates,
-                                             LoadFlowParameters lfParameters) {
+                                             Set<LfGenerator> participatingGeneratorsToRemove, Set<Load> participatingLoadsToRemove,
+                                             Map<LfBus, BusState> busStates, LoadFlowParameters lfParameters) {
         // it applies on the network the loss of DC lines contained in the contingency.
         // it applies on the network the loss of generators contained in the contingency.
+        // it applies on the network the loss of loads contained in the contingency.
         // Buses state are stored.
 
         // DC lines.
@@ -598,10 +597,20 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             processGenerator(lfNetwork, generator, generators);
         }
 
+        // loads.
+        Collection<Load> loads = new HashSet<>();
+        for (String loadId : contingency.getLoadIdsToLose()) {
+            Load load = network.getLoad(loadId);
+            loads.add(load);
+        }
+
         Collection<LfBus> busesToSave = new HashSet<>();
         lccs.stream().map(Pair::getKey).forEach(busesToSave::add);
         vscs.stream().map(LfGenerator::getBus).forEach(busesToSave::add);
         generators.stream().map(LfGenerator::getBus).forEach(busesToSave::add);
+        for (Load load : loads) {
+            busesToSave.add((AbstractLfBus) load.getTerminal().getBusView().getBus());
+        }
 
         BusState.addBusStates(busesToSave, busStates);
 
@@ -621,6 +630,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             generator.setTargetP(0); // we don't change the slack distribution participation here.
             if (distributedSlackOnGenerators && generator.isParticipating()) {
                 participatingGeneratorsToRemove.add(generator);
+            }
+        }
+
+        boolean distributedSlackOnLoads = isDistributedSlackOnLoads(lfParameters);
+        for (Load load : loads) {
+            LfBus bus = (LfBus) load.getTerminal().getBusView().getBus();
+            bus.setLoadTargetP(bus.getLoadTargetP() - load.getP0()); // we don't change the slack distribution participation here.
+            boolean isBusParticipating = ((LfBus) load.getTerminal().getBusView().getBus()).isParticipating();
+            if (distributedSlackOnLoads && isBusParticipating) {
+                participatingLoadsToRemove.add(load);
             }
         }
 
@@ -647,22 +666,23 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                       DcLoadFlowEngine dcLoadFlowEngine, SensitivityFactorHolder<DcVariableType, DcEquationType> factorHolder, List<ParticipatingElement> participatingElements,
                                                       Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches, Reporter reporter) {
         List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors = factorHolder.getFactorsForContingency(contingency.getContingency().getId());
-        if (contingency.getHvdcIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty()) {
+        if (contingency.getHvdcIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLose().isEmpty()) {
             calculateSensitivityValues(factors, factorStates, contingenciesStates, flowStates, contingencyElements,
                     contingency, valueWriter);
         } else {
-            // if we have a contingency including the loss of a DC line or a generator
-            // if we have a contingency including the loss of a generator
+            // if we have a contingency including the loss of a DC line or a generator or a load
 
             Map<LfBus, BusState> busStates = new HashMap<>();
             Set<LfGenerator> participatingGeneratorsToRemove = new HashSet<>();
-            applyInjectionContingencies(network, lfNetwork, contingency, participatingGeneratorsToRemove, busStates, lfParameters);
+            Set<Load> participatingLoadsToRemove = new HashSet<>();
+            applyInjectionContingencies(network, lfNetwork, contingency, participatingGeneratorsToRemove, participatingLoadsToRemove, busStates, lfParameters);
 
             List<ParticipatingElement> newParticipatingElements = participatingElements;
             DenseMatrix newFactorStates = factorStates;
             boolean participatingElementsChanged = !participatingGeneratorsToRemove.isEmpty()
+                || !participatingLoadsToRemove.isEmpty()
                 || (isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty())
-                || (isDistributedSlackOnLoads(lfParameters) && !contingency.getHvdcIdsToOpen().isEmpty());
+                || (isDistributedSlackOnLoads(lfParameters) && (!contingency.getHvdcIdsToOpen().isEmpty() || !contingency.getLoadIdsToLose().isEmpty()));
             if (participatingElementsChanged) {
                 // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
                 newParticipatingElements = participatingElements.stream()
