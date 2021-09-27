@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.LimitType;
@@ -76,20 +77,21 @@ public abstract class AbstractSecurityAnalysis {
     }
 
     public CompletableFuture<SecurityAnalysisReport> run(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters,
-                                                         ContingenciesProvider contingenciesProvider) {
+                                                         ContingenciesProvider contingenciesProvider, ComputationManager computationManager) {
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(securityAnalysisParameters);
         Objects.requireNonNull(contingenciesProvider);
         return CompletableFuture.supplyAsync(() -> {
             String oldWorkingVariantId = network.getVariantManager().getWorkingVariantId();
             network.getVariantManager().setWorkingVariant(workingVariantId);
-            SecurityAnalysisReport result = runSync(securityAnalysisParameters, contingenciesProvider);
+            SecurityAnalysisReport result = runSync(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager);
             network.getVariantManager().setWorkingVariant(oldWorkingVariantId);
             return result;
         });
     }
 
-    abstract SecurityAnalysisReport runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider);
+    abstract SecurityAnalysisReport runSync(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
+                                            ComputationManager computationManager);
 
     /**
      * Detect violations on branches and on buses

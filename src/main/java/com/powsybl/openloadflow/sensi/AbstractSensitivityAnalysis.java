@@ -99,11 +99,13 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             ZERO
         }
 
-        Object getContext();
+        int getIndex();
 
         String getVariableId();
 
         SensitivityVariableType getVariableType();
+
+        String getFunctionId();
 
         LfElement getFunctionElement();
 
@@ -144,10 +146,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     abstract static class AbstractLfSensitivityFactor<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements LfSensitivityFactor<V, E> {
 
-        // Wrap factors in specific class to have instant access to their branch and their equation term
-        private final Object context;
+        private final int index;
 
         private final String variableId;
+
+        private final String functionId;
 
         protected final LfElement functionElement;
 
@@ -169,11 +172,12 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         protected SensitivityFactorGroup<V, E> group;
 
-        protected AbstractLfSensitivityFactor(Object context, String variableId,
+        protected AbstractLfSensitivityFactor(int index, String variableId, String functionId,
                                            LfElement functionElement, SensitivityFunctionType functionType,
                                            SensitivityVariableType variableType, ContingencyContext contingencyContext) {
-            this.context = context;
+            this.index = index;
             this.variableId = Objects.requireNonNull(variableId);
+            this.functionId = Objects.requireNonNull(functionId);
             this.functionElement = functionElement;
             this.functionType = Objects.requireNonNull(functionType);
             this.variableType = Objects.requireNonNull(variableType);
@@ -184,8 +188,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public Object getContext() {
-            return context;
+        public int getIndex() {
+            return index;
         }
 
         @Override
@@ -196,6 +200,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         @Override
         public SensitivityVariableType getVariableType() {
             return variableType;
+        }
+
+        @Override
+        public String getFunctionId() {
+            return functionId;
         }
 
         @Override
@@ -301,11 +310,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         private final LfElement variableElement;
 
-        SingleVariableLfSensitivityFactor(Object context, String variableId,
+        SingleVariableLfSensitivityFactor(int index, String variableId, String functionId,
                                           LfElement functionElement, SensitivityFunctionType functionType,
                                           LfElement variableElement, SensitivityVariableType variableType,
                                           ContingencyContext contingencyContext) {
-            super(context, variableId, functionElement, functionType, variableType, contingencyContext);
+            super(index, variableId, functionId, functionElement, functionType, variableType, contingencyContext);
             this.variableElement = variableElement;
             if (variableElement == null) {
                 status = functionElement == null ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
@@ -344,11 +353,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         private final Map<LfElement, Double> weightedVariableElements;
 
-        MultiVariablesLfSensitivityFactor(Object context, String variableId,
+        MultiVariablesLfSensitivityFactor(int index, String variableId, String functionId,
                                           LfElement functionElement, SensitivityFunctionType functionType,
                                           Map<LfElement, Double> weightedVariableElements, SensitivityVariableType variableType,
                                           ContingencyContext contingencyContext) {
-            super(context, variableId, functionElement, functionType, variableType, contingencyContext);
+            super(index, variableId, functionId, functionElement, functionType, variableType, contingencyContext);
             this.weightedVariableElements = weightedVariableElements;
             if (weightedVariableElements.isEmpty()) {
                 status = functionElement == null ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
@@ -639,7 +648,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         // SKIP factors are for factors where both variable and function elements are not in the main connected componant.
         // Therefore, their sensitivity and reference values are set to NaN.
-        skippedFactors.forEach(factor -> valueWriter.write(factor.getContext(), null, -1, Double.NaN, Double.NaN));
+        skippedFactors.forEach(factor -> valueWriter.write(null, factor.getVariableId(), factor.getFunctionId(),
+                factor.getIndex(), -1, Double.NaN, Double.NaN));
 
         Set<String> skippedVariables = skippedFactors.stream().map(LfSensitivityFactor::getVariableId).collect(Collectors.toSet());
         if (!skippedVariables.isEmpty()) {
@@ -801,7 +811,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         final Map<String, Map<LfElement, Double>> injectionBusesByVariableId = new LinkedHashMap<>();
         final Map<String, Bus> busCache = new HashMap<>();
-        factorReader.read((factorContext, functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
+        int[] factorIndex = new int[1];
+        factorReader.read((functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
             if (variableSet) {
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER) {
                     checkBranch(network, functionId);
@@ -831,8 +842,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                                 }
                             }
                         }
-                        factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorContext, variableId,
-                                    functionElement, functionType,
+                        factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorIndex[0], variableId,
+                                    functionId, functionElement, functionType,
                                     injectionLfBuses, variableType, contingencyContext));
                     } else {
                         throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
@@ -869,8 +880,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                                 * HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation2()));
                     }
 
-                    factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorContext, variableId,
-                            functionElement, functionType, injectionLfBuses, variableType, contingencyContext));
+                    factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorIndex[0], variableId,
+                            functionId, functionElement, functionType, injectionLfBuses, variableType, contingencyContext));
                 } else {
                     LfElement functionElement;
                     LfElement variableElement;
@@ -912,17 +923,18 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     } else {
                         throw new PowsyblException("Function type " + functionType + " not supported");
                     }
-                    factorHolder.addFactor(new SingleVariableLfSensitivityFactor<>(factorContext, variableId,
-                            functionElement, functionType, variableElement, variableType, contingencyContext));
+                    factorHolder.addFactor(new SingleVariableLfSensitivityFactor<>(factorIndex[0], variableId,
+                            functionId, functionElement, functionType, variableElement, variableType, contingencyContext));
                 }
             }
+            factorIndex[0]++;
         });
         return factorHolder;
     }
 
     public boolean hasTransformerBusTargetVoltage(SensitivityFactorReader factorReader, Network network) {
         AtomicBoolean hasTransformerBusTargetVoltage = new AtomicBoolean();
-        factorReader.read((factorContext, functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
+        factorReader.read((functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
             if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
                 Identifiable<?> equipment = network.getIdentifiable(variableId);
                 if (equipment instanceof TwoWindingsTransformer || equipment instanceof ThreeWindingsTransformer) {

@@ -41,6 +41,8 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
     protected final OpenSensitivityAnalysisProvider sensiProvider = new OpenSensitivityAnalysisProvider(matrixFactory);
 
+    protected final SensitivityAnalysis.Runner sensiRunner = new SensitivityAnalysis.Runner(sensiProvider);
+
     protected static SensitivityAnalysisParameters createParameters(boolean dc, String slackBusId, boolean distributedSlack) {
         SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
         LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
@@ -89,11 +91,15 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
     }
 
     protected static SensitivityFactor createBranchFlowPerLinearGlsk(String functionId, String variableId, String contingencyId) {
-        return new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER, functionId, SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, true, Objects.isNull(contingencyId) ? ContingencyContext.all() : ContingencyContext.specificContingency(contingencyId));
+        return createBranchFlowPerLinearGlsk(functionId, variableId, Objects.isNull(contingencyId) ? ContingencyContext.all() : ContingencyContext.specificContingency(contingencyId));
+    }
+
+    protected static SensitivityFactor createBranchFlowPerLinearGlsk(String functionId, String variableId, ContingencyContext contingencyContext) {
+        return new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER, functionId, SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, true, contingencyContext);
     }
 
     protected static SensitivityFactor createBranchFlowPerLinearGlsk(String functionId, String variableId) {
-        return createBranchFlowPerLinearGlsk(functionId, variableId, null);
+        return createBranchFlowPerLinearGlsk(functionId, variableId, (String) null);
     }
 
     protected static SensitivityFactor createBranchFlowPerPSTAngle(String functionId, String variableId, String contingencyId) {
@@ -206,7 +212,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerInjectionIncrease(network.getBranch("NHV1_NHV2_1").getId(), "a"));
-        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiRunner.runAsync(network, VariantManagerConstants.INITIAL_VARIANT_ID,
                 factors, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP);
         CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
         assertTrue(e.getCause() instanceof PowsyblException);
@@ -219,7 +225,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
         Branch branch = network.getBranch("NHV1_NHV2_1");
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerInjectionIncrease(branch.getId(), "a"));
-        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiRunner.runAsync(network, VariantManagerConstants.INITIAL_VARIANT_ID,
                 factors, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP);
         CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
         assertTrue(e.getCause() instanceof PowsyblException);
@@ -234,7 +240,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         Branch branch = network.getBranch("NHV1_NHV2_1");
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerInjectionIncrease(branch.getId(), "a"));
 
-        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiRunner.runAsync(network, VariantManagerConstants.INITIAL_VARIANT_ID,
                 factors, Collections.singletonList(new Contingency("a", new BranchContingency("NHV1_NHV2_2"))), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP);
         CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
         assertTrue(e.getCause() instanceof PowsyblException);
@@ -250,7 +256,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         Branch branch = network.getBranch("NHV1_NHV2_1");
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerLinearGlsk(branch.getId(), "glsk"));
         List<SensitivityVariableSet> variableSets = Collections.singletonList(new SensitivityVariableSet("glsk", Collections.singletonList(new WeightedSensitivityVariable("a", 10f))));
-        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiRunner.runAsync(network, VariantManagerConstants.INITIAL_VARIANT_ID,
                 factors, Collections.emptyList(), variableSets, sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP);
         CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
         assertTrue(e.getCause() instanceof PowsyblException);
@@ -262,8 +268,9 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
         List<SensitivityFactor> factors = List.of(createHvdcInjection("l12", "nop"));
 
-        PowsyblException e = assertThrows(PowsyblException.class, () -> sensiProvider.run(network, Collections.emptyList(), Collections.emptyList(), sensiParameters, factors));
-        assertEquals("HVDC line 'nop' cannot be found in the network.", e.getMessage());
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("HVDC line 'nop' cannot be found in the network.", e.getCause().getMessage());
     }
 
     protected void testBranchNotFound(boolean dc) {
@@ -274,7 +281,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
         Generator gen = network.getGenerator("GEN");
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerInjectionIncrease("b", gen.getId()));
-        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+        CompletableFuture<SensitivityAnalysisResult> sensiResult = sensiRunner.runAsync(network, VariantManagerConstants.INITIAL_VARIANT_ID,
                 factors, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP);
         CompletionException e = assertThrows(CompletionException.class, () -> sensiResult.join());
         assertTrue(e.getCause() instanceof PowsyblException);
@@ -287,7 +294,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
         List<SensitivityFactor> factors = Collections.emptyList();
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP).join();
+        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
         assertTrue(result.getValues().isEmpty());
     }
 
@@ -298,7 +305,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
         Generator gen = network.getGenerator("g1");
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerInjectionIncrease("l56", gen.getId()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP).join();
+        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
         assertEquals(1, result.getValues().size());
         assertEquals(0d, result.getValues().iterator().next().getValue());
     }
@@ -309,7 +316,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "vl1_0");
         Generator gen = network.getGenerator("g3");
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerInjectionIncrease("l12", gen.getId()));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP).join();
+        SensitivityAnalysisResult result = sensiRunner.runAsync(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP).join();
         assertEquals(1, result.getValues().size());
         assertEquals(0f, getValue(result, "g3", "l12"), LoadFlowAssert.DELTA_POWER);
     }
@@ -319,7 +326,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "vl1_0");
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerPSTAngle("l12", "l45"));
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP).join();
+        SensitivityAnalysisResult result = sensiRunner.runAsync(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP).join();
         assertEquals(1, result.getValues().size());
         assertEquals(0d, getValue(result, "l45", "l12"), LoadFlowAssert.DELTA_POWER);
 
@@ -335,12 +342,10 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "vl1_0");
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerLinearGlsk("l12", "glsk"));
-        List<WeightedSensitivityVariable> variables = new ArrayList<>();
-        variables.add(new WeightedSensitivityVariable("g6", 1f));
-        variables.add(new WeightedSensitivityVariable("g3", 2f));
-        List<SensitivityVariableSet> variableSets = Collections.singletonList(new SensitivityVariableSet("glsk", variables));
+        List<SensitivityVariableSet> variableSets = Collections.singletonList(new SensitivityVariableSet("glsk",
+                List.of(new WeightedSensitivityVariable("g6", 1f), new WeightedSensitivityVariable("g3", 2f))));
 
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), variableSets, sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP).join();
+        SensitivityAnalysisResult result = sensiRunner.runAsync(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), variableSets, sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP).join();
         assertEquals(1, result.getValues().size());
         assertEquals(0, getValue(result, "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
         if (dc) {
@@ -354,15 +359,11 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         Network network = HvdcNetworkFactory.createLccWithBiggerComponents();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "vl1_0");
-        SensitivityFactorsProvider factorsProvider = n -> {
-            Map<String, Float> glskMap = new HashMap<>();
-            glskMap.put("g6", 1f);
-            glskMap.put("g3", 2f);
-            return Collections.singletonList(new BranchFlowPerLinearGlsk(new BranchFlow("l56", "l56", "l56"),
-                    new LinearGlsk("glsk", "glsk", glskMap)));
-        };
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
-        assertEquals(1, result.getSensitivityValues().size());
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerLinearGlsk("l56",  "glsk"));
+        List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk",
+                List.of(new WeightedSensitivityVariable("g6", 1f), new WeightedSensitivityVariable("g3", 2f))));
+        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), variableSets, sensiParameters);
+        assertEquals(1, result.getValues().size());
         assertEquals(Double.NaN, getValue(result, "glsk", "l56"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, getFunctionReference(result, network.getBranch("l56").getId()), LoadFlowAssert.DELTA_POWER);
     }
@@ -372,17 +373,15 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "vl1_0");
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerLinearGlsk("l12", "glsk"));
-        List<WeightedSensitivityVariable> variables = new ArrayList<>();
-        variables.add(new WeightedSensitivityVariable("ld2", 1f));
-        variables.add(new WeightedSensitivityVariable("g3", 2f));
-        List<SensitivityVariableSet> variableSets = Collections.singletonList(new SensitivityVariableSet("glsk", variables));
+        List<SensitivityVariableSet> variableSets = Collections.singletonList(new SensitivityVariableSet("glsk",
+                List.of(new WeightedSensitivityVariable("ld2", 1f), new WeightedSensitivityVariable("g3", 2f))));
 
-        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), variableSets, sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP).join();
+        SensitivityAnalysisResult result = sensiRunner.runAsync(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), variableSets, sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP).join();
         assertEquals(1, result.getValues().size());
 
         List<SensitivityFactor> factorsInjection = Collections.singletonList(createBranchFlowPerInjectionIncrease("l12", "ld2"));
 
-        SensitivityAnalysisResult resultInjection = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsInjection, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP).join();
+        SensitivityAnalysisResult resultInjection = sensiRunner.runAsync(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsInjection, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP).join();
         assertEquals(resultInjection.getValues().iterator().next().getValue(), result.getValues().iterator().next().getValue(), LoadFlowAssert.DELTA_POWER);
     }
 }

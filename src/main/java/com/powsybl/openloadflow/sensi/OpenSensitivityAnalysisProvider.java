@@ -11,12 +11,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.auto.service.AutoService;
 import com.powsybl.commons.config.PlatformConfig;
-import com.powsybl.commons.json.JsonUtil;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.json.ContingencyJsonModule;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.xml.NetworkXml;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
@@ -28,7 +29,6 @@ import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.*;
-import com.powsybl.sensitivity.json.SensitivityAnalysisParametersJsonModule;
 import com.powsybl.sensitivity.json.SensitivityJsonModule;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.joda.time.DateTime;
@@ -40,8 +40,10 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -97,86 +99,22 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return lfParametersExt;
     }
 
-    @Override
-    public CompletableFuture<Void> run(Network network, String workingStateId,
-                                                            SensitivityFactorReader factorReader,
-                                                            SensitivityValueWriter valueWriter,
-                                                            List<Contingency> contingencies,
-                                                            List<SensitivityVariableSet> variableSets,
-                                                            SensitivityAnalysisParameters sensitivityAnalysisParameters,
-                                                            ComputationManager computationManager,
-                                                            Reporter reporter) {
-
-        Reporter sensiReporter = reporter.createSubReporter("sensitivityAnalysis",
-                "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
-        return CompletableFuture.runAsync(() -> {
-            network.getVariantManager().setWorkingVariant(workingStateId);
-            run(network, contingencies, variableSets, sensitivityAnalysisParameters, factorReader, valueWriter, sensiReporter);
-            return;
-        });
+    private static ObjectMapper createObjectMapper() {
+        return new ObjectMapper()
+                .registerModule(new ContingencyJsonModule())
+                .registerModule(new LoadFlowParametersJsonModule())
+                .registerModule(new SensitivityJsonModule());
     }
 
-    @Override
-    public CompletableFuture<SensitivityAnalysisResult> run(Network network, String workingStateId,
-                                       List<SensitivityFactor> factors,
+    public CompletableFuture<Void> run(Network network,
+                                       String workingStateId,
+                                       SensitivityFactorReader factorReader,
+                                       SensitivityValueWriter valueWriter,
                                        List<Contingency> contingencies,
                                        List<SensitivityVariableSet> variableSets,
                                        SensitivityAnalysisParameters sensitivityAnalysisParameters,
                                        ComputationManager computationManager,
                                        Reporter reporter) {
-
-        Reporter sensiReporter = reporter.createSubReporter("sensitivityAnalysis",
-                "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
-        return CompletableFuture.supplyAsync(() -> {
-            network.getVariantManager().setWorkingVariant(workingStateId);
-            SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
-            SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();
-            run(network, contingencies, variableSets, sensitivityAnalysisParameters, factorReader, valueWriter, sensiReporter);
-
-            Map<String, String> metrics = new HashMap<>();
-            String logs = "";
-            return new SensitivityAnalysisResult(metrics, logs, valueWriter.getValues());
-        });
-    }
-
-    public void run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
-                    SensitivityAnalysisParameters sensitivityAnalysisParameters, SensitivityFactorReader factorReader,
-                    SensitivityValueWriter valueWriter) {
-        run(network, contingencies, variableSets, sensitivityAnalysisParameters, factorReader, valueWriter, Reporter.NO_OP);
-    }
-
-    public void run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
-                    SensitivityAnalysisParameters sensitivityAnalysisParameters, List<SensitivityFactor> factors,
-                    SensitivityValueWriter valueWriter, Reporter reporter) {
-        run(network, contingencies, variableSets, sensitivityAnalysisParameters, new SensitivityFactorModelReader(factors, network), valueWriter, reporter);
-    }
-
-    public void run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
-                    SensitivityAnalysisParameters sensitivityAnalysisParameters, List<SensitivityFactor> factors,
-                    SensitivityValueWriter valueWriter) {
-        run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors, valueWriter, Reporter.NO_OP);
-    }
-
-    public SensitivityAnalysisResult run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
-                                       SensitivityAnalysisParameters sensitivityAnalysisParameters, List<SensitivityFactor> factors) {
-        SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();
-        run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors, valueWriter, Reporter.NO_OP);
-        Map<String, String> metrics = new HashMap<>();
-        String logs = "";
-        return new SensitivityAnalysisResult(metrics, logs, valueWriter.getValues());
-    }
-
-    private static ObjectMapper createObjectMapper() {
-        return new ObjectMapper()
-                .registerModule(new ContingencyJsonModule())
-                .registerModule(new LoadFlowParametersJsonModule())
-                .registerModule(new SensitivityAnalysisParametersJsonModule())
-                .registerModule(new SensitivityJsonModule());
-    }
-
-    public void run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
-                    SensitivityAnalysisParameters sensitivityAnalysisParameters, SensitivityFactorReader factorReader,
-                    SensitivityValueWriter valueWriter, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(variableSets);
@@ -226,17 +164,19 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         } else {
             acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, valueWriter, reporter);
         }
+
+        return null;
     }
 
-    public void replay(DateTime date, Path debugDir, SensitivityValueWriter valueWriter, Reporter reporter) {
+    public <T extends SensitivityValueWriter> T replay(DateTime date, Path debugDir, Function<List<SensitivityFactor>, T> valueWriterProvider, Reporter reporter) {
         Objects.requireNonNull(date);
         Objects.requireNonNull(debugDir);
-        Objects.requireNonNull(valueWriter);
+        Objects.requireNonNull(valueWriterProvider);
         Objects.requireNonNull(reporter);
 
         String dateStr = date.toString(DATE_TIME_FORMAT);
 
-        List<SensitivityFactor> factors = JsonUtil.parseJson(debugDir.resolve("factors-" + dateStr + ".json"), SensitivityFactor::parseMultipleJson);
+        List<SensitivityFactor> factors = SensitivityFactor.readJson(debugDir.resolve("factors-" + dateStr + ".json"));
 
         ObjectMapper objectMapper = createObjectMapper();
         List<Contingency> contingencies;
@@ -267,16 +207,19 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
         Network network = NetworkXml.read(debugDir.resolve("network-" + dateStr + ".xiidm"));
 
-        run(network, contingencies, variableSets, sensitivityAnalysisParameters, new SensitivityFactorModelReader(factors, network), valueWriter, reporter);
+        T valueWriter = valueWriterProvider.apply(factors);
+        run(network, VariantManagerConstants.INITIAL_VARIANT_ID, new SensitivityFactorModelReader(factors, network), valueWriter,
+                contingencies, variableSets, sensitivityAnalysisParameters, LocalComputationManager.getDefault(), reporter);
+
+        return valueWriter;
     }
 
-    public void replay(DateTime date, Path debugDir, SensitivityValueWriter valueWriter) {
-        replay(date, debugDir, valueWriter, Reporter.NO_OP);
+    public <T extends SensitivityValueWriter> T replay(DateTime date, Path debugDir, Function<List<SensitivityFactor>, T> valueWriterProvider) {
+        return replay(date, debugDir, valueWriterProvider, Reporter.NO_OP);
     }
 
     public List<SensitivityValue> replay(DateTime date, Path debugDir) {
-        SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();
-        replay(date, debugDir, valueWriter);
+        SensitivityValueModelWriter valueWriter = replay(date, debugDir, SensitivityValueModelWriter::new);
         return valueWriter.getValues();
     }
 }

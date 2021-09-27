@@ -48,9 +48,8 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
         sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
             network.getLineStream().collect(Collectors.toList()));
-        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
-            sensiParameters, LocalComputationManager.getDefault(), reporter)
-            .join();
+        sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault(), reporter);
 
         StringWriter sw = new StringWriter();
         reporter.export(sw);
