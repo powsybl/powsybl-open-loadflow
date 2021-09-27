@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.impl.Transformers;
+import com.powsybl.openloadflow.util.Evaluable;
 import org.apache.commons.math3.util.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,9 +57,9 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private final LfBus bus2;
 
-    private Map<LimitType, List<LfLimit>> limits1 = new EnumMap<>(LimitType.class);
+    private final Map<LimitType, List<LfLimit>> limits1 = new EnumMap<>(LimitType.class);
 
-    private Map<LimitType, List<LfLimit>> limits2 = new EnumMap<>(LimitType.class);
+    private final Map<LimitType, List<LfLimit>> limits2 = new EnumMap<>(LimitType.class);
 
     private final PiModel piModel;
 
@@ -69,6 +70,10 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     protected boolean disabled = false;
 
     protected boolean spanningTreeEdge = false;
+
+    protected Evaluable a1;
+
+    private ReactivePowerControl reactivePowerControl;
 
     protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
         super(network);
@@ -247,5 +252,24 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public boolean isSpanningTreeEdge() {
         return this.spanningTreeEdge;
+    }
+
+    @Override
+    public Evaluable getA1() {
+        return a1;
+    }
+
+    @Override
+    public void setA1(Evaluable a1) {
+        this.a1 = a1;
+    }
+
+    public Optional<ReactivePowerControl> getReactivePowerControl() {
+        return Optional.ofNullable(reactivePowerControl);
+    }
+
+    @Override
+    public void setReactivePowerControl(ReactivePowerControl pReactivePowerControl) {
+        this.reactivePowerControl = Objects.requireNonNull(pReactivePowerControl);
     }
 }

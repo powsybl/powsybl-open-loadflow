@@ -13,6 +13,7 @@ import com.powsybl.security.results.BranchResult;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -76,9 +77,7 @@ public interface LfBranch extends LfElement {
 
     void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
 
-    default BranchResult createBranchResult() {
-        throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
-    }
+    BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1);
 
     boolean isDisabled();
 
@@ -91,4 +90,31 @@ public interface LfBranch extends LfElement {
     void setSpanningTreeEdge(boolean spanningTreeEdge);
 
     boolean isSpanningTreeEdge();
+
+    Evaluable getA1();
+
+    void setA1(Evaluable a1);
+
+    static double getA(LfBranch branch) {
+        Objects.requireNonNull(branch);
+        PiModel piModel = branch.getPiModel();
+        return PiModel.A2 - piModel.getA1();
+    }
+
+    static double getDiscretePhaseControlTarget(LfBranch branch, DiscretePhaseControl.Unit unit) {
+        Objects.requireNonNull(branch);
+        Objects.requireNonNull(unit);
+        Optional<DiscretePhaseControl> phaseControl = branch.getDiscretePhaseControl().filter(dpc -> branch.isPhaseControlled());
+        if (phaseControl.isEmpty()) {
+            throw new PowsyblException("Branch '" + branch.getId() + "' is not phase-controlled");
+        }
+        if (phaseControl.get().getUnit() != unit) {
+            throw new PowsyblException("Branch '" + branch.getId() + "' has not a target in " + unit);
+        }
+        return phaseControl.get().getTargetValue();
+    }
+
+    Optional<ReactivePowerControl> getReactivePowerControl();
+
+    void setReactivePowerControl(ReactivePowerControl reactivePowerControl);
 }

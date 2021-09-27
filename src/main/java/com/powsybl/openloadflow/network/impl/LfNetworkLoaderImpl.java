@@ -165,6 +165,39 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         }
     }
 
+    private static void createRemoteReactivePowerControl(LfBranch controlledBranch, ReactivePowerControl.ControlledSide side, LfBus controllerBus,
+                                                         double targetQ) {
+        ReactivePowerControl control = new ReactivePowerControl(controlledBranch, side, controllerBus, targetQ);
+        controllerBus.setReactivePowerControl(control);
+        controlledBranch.setReactivePowerControl(control);
+    }
+
+    private static void createReactivePowerControls(LfNetwork lfNetwork, List<LfBus> lfBuses) {
+        for (LfBus controllerBus : lfBuses) {
+            List<LfGenerator> generators = controllerBus.getGenerators().stream()
+                    .filter(LfGenerator::hasReactivePowerControl).collect(Collectors.toList());
+            if (!generators.isEmpty()) {
+                Optional<VoltageControl> voltageControl = controllerBus.getVoltageControl();
+                if (voltageControl.isPresent()) {
+                    LOGGER.warn("Bus {} has both voltage and remote reactive power controls: only voltage control is kept", controllerBus.getId());
+                    continue;
+                }
+                if (generators.size() == 1) {
+                    LfGenerator lfGenerator = generators.get(0);
+                    LfBranch controlledBranch = lfGenerator.getControlledBranch(lfNetwork);
+                    Optional<ReactivePowerControl> control = controlledBranch.getReactivePowerControl();
+                    if (control.isPresent()) {
+                        LOGGER.warn("Branch {} is remotely controlled by a generator: no new remote reactive control created", controlledBranch.getId());
+                    } else {
+                        createRemoteReactivePowerControl(lfGenerator.getControlledBranch(lfNetwork), lfGenerator.getControlledBranchSide(), controllerBus, lfGenerator.getRemoteTargetQ());
+                    }
+                } else { // generators.size() > 1 (as > 0 and not equal to 1)
+                    LOGGER.warn("Bus {} has more than one generator controlling reactive power remotely: not yet supported", controllerBus.getId());
+                }
+            }
+        }
+    }
+
     private static Bus getBus(Terminal terminal, boolean breakers) {
         return breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
     }
@@ -486,13 +519,21 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
             if (controlledBranch instanceof LfLegBranch && controlledBus == controlledBranch.getBus2()) {
                 throw new IllegalStateException("Leg " + controlledBranch.getId() + " has a non supported control at star bus side");
             }
-            double targetValue = ptc.getRegulationValue() / PerUnit.SB;
-            double targetDeadband = ptc.getTargetDeadband() / PerUnit.SB;
+            double targetValue;
+            double targetDeadband;
             DiscretePhaseControl phaseControl = null;
             if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
-                phaseControl = new DiscretePhaseControl(controllerBranch, controlledBranch, controlledSide,
-                        DiscretePhaseControl.Mode.LIMITER, targetValue, targetDeadband, DiscretePhaseControl.Unit.A);
+                if (controlledBranch == controllerBranch && controlledBus != null) {
+                    targetValue = ptc.getRegulationValue() / PerUnit.ib(controlledBus.getNominalV());
+                    targetDeadband = ptc.getTargetDeadband() / PerUnit.ib(controlledBus.getNominalV());
+                    phaseControl = new DiscretePhaseControl(controllerBranch, controlledBranch, controlledSide,
+                            DiscretePhaseControl.Mode.LIMITER, targetValue, targetDeadband, DiscretePhaseControl.Unit.A);
+                } else {
+                    LOGGER.warn("Branch {} limits current limiter on remote branch {}: not supported yet", controllerBranch.getId(), controlledBranch.getId());
+                }
             } else if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
+                targetValue = ptc.getRegulationValue() / PerUnit.SB;
+                targetDeadband = ptc.getTargetDeadband() / PerUnit.SB;
                 phaseControl = new DiscretePhaseControl(controllerBranch, controlledBranch, controlledSide,
                         DiscretePhaseControl.Mode.CONTROLLER, targetValue, targetDeadband, DiscretePhaseControl.Unit.MW);
             }
@@ -555,6 +596,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report);
         createBranches(lfBuses, lfNetwork, loadingContext, report, parameters);
         createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isVoltagePerReactivePowerControl());
+
+        if (parameters.isReactivePowerRemoteControl()) {
+            createReactivePowerControls(lfNetwork, lfBuses);
+        }
 
         if (parameters.isTransformerVoltageControl()) {
             // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)
@@ -689,7 +734,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
 
     static boolean participateToSlackDistribution(LfNetworkParameters parameters, Bus b) {
         return parameters.getCountriesToBalance().isEmpty()
-               || b.getVoltageLevel().getSubstation().getCountry()
+               || b.getVoltageLevel().getSubstation().flatMap(Substation::getCountry)
                    .map(country -> parameters.getCountriesToBalance().contains(country))
                    .orElse(false);
     }

@@ -1,17 +1,18 @@
 /**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+ * Copyright (c) 2021, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.equations;
+package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.network.ElementType;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public enum EquationType {
+public enum AcEquationType implements Quantity {
     BUS_P("p", ElementType.BUS),
     BUS_I("b_i", ElementType.BUS),
     BUS_Q("q", ElementType.BUS),
@@ -19,8 +20,8 @@ public enum EquationType {
     BUS_V_SLOPE("v_slope", ElementType.BUS),
     BUS_PHI("\u03C6", ElementType.BUS),
     BRANCH_P("t", ElementType.BRANCH),
-    BRANCH_Q("b_q", ElementType.BRANCH),
     BRANCH_I("i", ElementType.BRANCH),
+    BRANCH_Q("q", ElementType.BRANCH),
     BRANCH_ALPHA1("\u03B1" + "1", ElementType.BRANCH),
     BRANCH_RHO1("\u03C1" + "1", ElementType.BRANCH),
     ZERO_Q("z_q", ElementType.BUS),
@@ -32,15 +33,17 @@ public enum EquationType {
 
     private final ElementType elementType;
 
-    EquationType(String symbol, ElementType elementType) {
+    AcEquationType(String symbol, ElementType elementType) {
         this.symbol = symbol;
         this.elementType = elementType;
     }
 
+    @Override
     public String getSymbol() {
         return symbol;
     }
 
+    @Override
     public ElementType getElementType() {
         return elementType;
     }
