@@ -34,6 +34,7 @@ import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.equations.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.VoltageInitializer;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.NetworkSlackBusSelector;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.SlackBusSelector;
@@ -168,25 +169,27 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info("Outer loops: {}", outerLoops.stream().map(OuterLoop::getType).collect(Collectors.toList()));
         }
 
-        return new AcLoadFlowParameters(slackBusSelector,
+        LfNetworkParameters networkParameters = new LfNetworkParameters(slackBusSelector,
+                                                                        parametersExt.hasVoltageRemoteControl(),
+                                                                        parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
+                                                                        parameters.isTwtSplitShuntAdmittance(),
+                                                                        breakers,
+                                                                        parametersExt.getPlausibleActivePowerLimit(),
+                                                                        parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
+                                                                        parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
+                                                                        parameters.getCountriesToBalance(),
+                                                                        parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                                                                        parameters.isPhaseShifterRegulationOn(),
+                                                                        parameters.isTransformerVoltageControlOn(),
+                                                                        parametersExt.isVoltagePerReactivePowerControl(),
+                                                                        parametersExt.hasReactivePowerRemoteControl());
+
+        return new AcLoadFlowParameters(networkParameters,
                                         voltageInitializer,
                                         stoppingCriteria,
                                         outerLoops, matrixFactory,
-                                        parametersExt.hasVoltageRemoteControl(),
-                                        parameters.isPhaseShifterRegulationOn(),
-                                        parameters.isTransformerVoltageControlOn(),
-                                        parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
-                                        parameters.isTwtSplitShuntAdmittance(),
-                                        breakers,
-                                        parametersExt.getPlausibleActivePowerLimit(),
                                         forceA1Var,
-                                        parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
-                                        branchesWithCurrent,
-                                        parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
-                                        parameters.getCountriesToBalance(),
-                                        parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                                        parametersExt.isVoltagePerReactivePowerControl(),
-                                        parametersExt.hasReactivePowerRemoteControl());
+                                        branchesWithCurrent);
     }
 
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
@@ -262,18 +265,29 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
 
-        DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector,
+        LfNetworkParameters networkParameters = new LfNetworkParameters(slackBusSelector,
+                                                                        false,
+                                                                        false,
+                                                                        false,
+                                                                        false,
+                                                                        parametersExt.getPlausibleActivePowerLimit(),
+                                                                        false,
+                                                                        parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
+                                                                        parameters.getCountriesToBalance(),
+                                                                        parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                                                                        false,
+                                                                        false,
+                                                                        false,
+                                                                        false);
+
+        DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(networkParameters,
                                                                      matrixFactory,
                                                                      true,
                                                                      parameters.isDcUseTransformerRatio(),
                                                                      parameters.isDistributedSlack(),
                                                                      parameters.getBalanceType(),
                                                                      forcePhaseControlOffAndAddAngle1Var,
-                                                                     parametersExt.getPlausibleActivePowerLimit(),
-                                                                     parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
-                                                                     true,
-                                                                     parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
-                                                                     parameters.getCountriesToBalance());
+                                                                     true);
 
         List<DcLoadFlowResult> results = new DcLoadFlowEngine(network, dcParameters, reporter)
                 .run(reporter);

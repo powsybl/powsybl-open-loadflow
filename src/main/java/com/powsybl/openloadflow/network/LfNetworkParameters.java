@@ -35,7 +35,7 @@ public class LfNetworkParameters {
 
     private final Set<Country> countriesToBalance;
 
-    private boolean distributedOnConformLoad;
+    private final boolean distributedOnConformLoad;
 
     private final boolean phaseControl;
 

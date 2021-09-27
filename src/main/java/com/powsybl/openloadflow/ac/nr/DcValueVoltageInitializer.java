@@ -8,12 +8,17 @@ package com.powsybl.openloadflow.ac.nr;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
+import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.equations.VoltageInitializer;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
+
+import java.util.List;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -21,8 +26,17 @@ import com.powsybl.openloadflow.network.LfNetwork;
 public class DcValueVoltageInitializer implements VoltageInitializer {
 
     @Override
-    public void prepare(LfNetwork network, MatrixFactory matrixFactory, Reporter reporter) {
-        if (new DcLoadFlowEngine(network, matrixFactory, false).run(reporter, network).getStatus() != LoadFlowResult.ComponentResult.Status.CONVERGED) {
+    public void prepare(LfNetwork network, LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
+        DcLoadFlowParameters parameters = new DcLoadFlowParameters(networkParameters,
+                                                                   matrixFactory,
+                                                                   false,
+                                                                   true,
+                                                                   false,
+                                                                   LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
+                                                                   false,
+                                                                   false);
+        DcLoadFlowEngine engine = new DcLoadFlowEngine(List.of(network), parameters);
+        if (engine.run(reporter, network).getStatus() != LoadFlowResult.ComponentResult.Status.CONVERGED) {
             throw new PowsyblException("DC loadflow failed, impossible to initialize voltage angle from DC values");
         }
     }

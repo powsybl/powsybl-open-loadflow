@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +28,8 @@ public class NewtonRaphson {
 
     private final LfNetwork network;
 
+    private final LfNetworkParameters networkParameters;
+
     private final MatrixFactory matrixFactory;
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
@@ -39,9 +42,11 @@ public class NewtonRaphson {
 
     private final TargetVector<AcVariableType, AcEquationType> targetVector;
 
-    public NewtonRaphson(LfNetwork network, MatrixFactory matrixFactory, EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j,
+    public NewtonRaphson(LfNetwork network, LfNetworkParameters networkParameters, MatrixFactory matrixFactory,
+                         EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j,
                          TargetVector<AcVariableType, AcEquationType> targetVector, NewtonRaphsonStoppingCriteria stoppingCriteria) {
         this.network = Objects.requireNonNull(network);
+        this.networkParameters = Objects.requireNonNull(networkParameters);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.j = Objects.requireNonNull(j);
@@ -171,7 +176,7 @@ public class NewtonRaphson {
         VoltageInitializer voltageInitializer = iteration == 0 ? parameters.getVoltageInitializer()
                                                                : new PreviousValueVoltageInitializer();
 
-        voltageInitializer.prepare(network, matrixFactory, reporter);
+        voltageInitializer.prepare(network, networkParameters, matrixFactory, reporter);
 
         double[] x = createStateVector(network, equationSystem, voltageInitializer);
 

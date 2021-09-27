@@ -733,9 +733,30 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         LOGGER.info("Running DC sensitivity analysis with {} factors and {} contingencies",  lfFactors.size(), contingencies.size());
 
         // create DC load flow engine for setting the function reference
-        DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(slackBusSelector, matrixFactory,
-            true, lfParameters.isDcUseTransformerRatio(), lfParameters.isDistributedSlack(), lfParameters.getBalanceType(), true,
-            lfParametersExt.getPlausibleActivePowerLimit(), lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(), true, true, lfParameters.getCountriesToBalance());
+        LfNetworkParameters networkParameters = new LfNetworkParameters(slackBusSelector,
+                                                                        false,
+                                                                        false,
+                                                                        false,
+                                                                        false,
+                                                                        lfParametersExt.getPlausibleActivePowerLimit(),
+                                                                        lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
+                                                                        true,
+                                                                        lfParameters.getCountriesToBalance(),
+                                                                        lfParameters.isDistributedSlack() && lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                                                                        false,
+                                                                        false,
+                                                                        false,
+                                                                        false);
+
+        DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(networkParameters,
+                                                                             matrixFactory,
+                                                                             true,
+                                                                             lfParameters.isDcUseTransformerRatio(),
+                                                                             lfParameters.isDistributedSlack(),
+                                                                             lfParameters.getBalanceType(),
+                                                                             true,
+                                                                             true);
+
         DcLoadFlowEngine dcLoadFlowEngine = new DcLoadFlowEngine(lfNetworks, dcLoadFlowParameters);
 
         // create DC equation system for sensitivity analysis

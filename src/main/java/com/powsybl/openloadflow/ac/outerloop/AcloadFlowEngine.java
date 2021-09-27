@@ -50,21 +50,7 @@ public class AcloadFlowEngine implements AutoCloseable {
     }
 
     public static List<LfNetwork> createNetworks(Object network, AcLoadFlowParameters parameters, Reporter reporter) {
-        LfNetworkParameters networkParameters = new LfNetworkParameters(parameters.getSlackBusSelector(),
-                                                                        parameters.isVoltageRemoteControl(),
-                                                                        parameters.isMinImpedance(),
-                                                                        parameters.isTwtSplitShuntAdmittance(),
-                                                                        parameters.isBreakers(),
-                                                                        parameters.getPlausibleActivePowerLimit(),
-                                                                        parameters.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
-                                                                        parameters.isComputeMainConnectedComponentOnly(),
-                                                                        parameters.getCountriesToBalance(),
-                                                                        parameters.isDistributedOnConformLoad(),
-                                                                        parameters.isPhaseControl(),
-                                                                        parameters.isVoltageRemoteControl(),
-                                                                        parameters.isVoltagePerReactivePowerControl(),
-                                                                        parameters.isReactivePowerRemoteControl());
-        return LfNetwork.load(network, networkParameters, reporter);
+        return LfNetwork.load(network, parameters.getNetworkParameters(), reporter);
     }
 
     public LfNetwork getNetwork() {
@@ -254,8 +240,8 @@ public class AcloadFlowEngine implements AutoCloseable {
 
             variableSet = new VariableSet<>();
             AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(
-                    parameters.isPhaseControl(), parameters.isTransformerVoltageControlOn(), parameters.isForceA1Var(),
-                    parameters.getBranchesWithCurrent());
+                    parameters.getNetworkParameters().isPhaseControl(), parameters.getNetworkParameters().isTransformerVoltageControl(),
+                    parameters.isForceA1Var(), parameters.getBranchesWithCurrent());
             equationSystem = AcEquationSystem.create(network, variableSet, creationParameters);
             j = new JacobianMatrix<>(equationSystem, parameters.getMatrixFactory());
             targetVector = new TargetVector<>(network, equationSystem, AcloadFlowEngine::initTarget);
@@ -264,7 +250,7 @@ public class AcloadFlowEngine implements AutoCloseable {
         }
 
         RunningContext runningContext = new RunningContext();
-        NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getMatrixFactory(), equationSystem, j, targetVector, parameters.getStoppingCriteria());
+        NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getNetworkParameters(), parameters.getMatrixFactory(), equationSystem, j, targetVector, parameters.getStoppingCriteria());
 
         NewtonRaphsonParameters nrParameters = new NewtonRaphsonParameters().setVoltageInitializer(parameters.getVoltageInitializer());
 
