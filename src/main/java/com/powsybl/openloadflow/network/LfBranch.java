@@ -113,4 +113,8 @@ public interface LfBranch extends LfElement {
         }
         return phaseControl.get().getTargetValue();
     }
+
+    Optional<ReactivePowerControl> getReactivePowerControl();
+
+    void setReactivePowerControl(ReactivePowerControl reactivePowerControl);
 }

@@ -701,6 +701,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testGlskAndLineOutsideMainComponent() {
+        testGlskAndLineOutsideMainComponent(false);
+    }
+
+    @Test
     void testGlskPartiallyOutsideMainComponent() {
         testGlskPartiallyOutsideMainComponent(false);
     }
