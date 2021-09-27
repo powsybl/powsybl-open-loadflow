@@ -94,6 +94,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         enum Status {
             VALID,
             SKIP,
+            VALID_ONLY_FOR_FUNCTION,
             ZERO
         }
 
@@ -111,9 +112,13 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         EquationTerm<V, E> getFunctionEquationTerm();
 
-        Double getPredefinedResult();
+        Double getSensitivityValuePredefinedResult();
 
-        void setPredefinedResult(Double predefinedResult);
+        Double getFunctionPredefinedResult();
+
+        void setSensitivityValuePredefinedResult(Double predefinedResult);
+
+        void setFunctionPredefinedResult(Double predefinedResult);
 
         double getFunctionReference();
 
@@ -127,9 +132,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         void setStatus(Status status);
 
-        boolean areVariableAndFunctionDisconnected(GraphDecrementalConnectivity<LfBus> connectivity);
+        boolean isVariableConnectedToSlackComponent(Set<LfBus> connectedComponent);
 
-        boolean isConnectedToComponent(Set<LfBus> connectedComponent);
+        boolean isFunctionConnectedToSlackComponent(Set<LfBus> connectedComponent);
 
         SensitivityFactorGroup<V, E> getGroup();
 
@@ -151,7 +156,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         protected final ContingencyContext contingencyContext;
 
-        private Double predefinedResult = null;
+        private Double sensitivityValuePredefinedResult = null;
+
+        private Double functionPredefinedResult = null;
 
         private double functionReference = 0d;
 
@@ -220,13 +227,23 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public Double getPredefinedResult() {
-            return predefinedResult;
+        public Double getSensitivityValuePredefinedResult() {
+            return sensitivityValuePredefinedResult;
         }
 
         @Override
-        public void setPredefinedResult(Double predefinedResult) {
-            this.predefinedResult = predefinedResult;
+        public Double getFunctionPredefinedResult() {
+            return functionPredefinedResult;
+        }
+
+        @Override
+        public void setSensitivityValuePredefinedResult(Double predefinedResult) {
+            this.sensitivityValuePredefinedResult = predefinedResult;
+        }
+
+        @Override
+        public void setFunctionPredefinedResult(Double predefinedResult) {
+            this.functionPredefinedResult = predefinedResult;
         }
 
         @Override
@@ -257,31 +274,6 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         @Override
         public void setStatus(Status status) {
             this.status = status;
-        }
-
-        protected boolean areElementsDisconnected(LfElement functionElement, LfElement variableElement, GraphDecrementalConnectivity<LfBus> connectivity) {
-            if (functionElement.getType() == ElementType.BUS && variableElement.getType() == ElementType.BUS) {
-                return areBusAndBusDisconnected(connectivity, (LfBus) functionElement, (LfBus) variableElement);
-            } else if (functionElement.getType() == ElementType.BRANCH && variableElement.getType() == ElementType.BUS) {
-                return areBranchAndBusDisconnected(connectivity, (LfBranch) functionElement, (LfBus) variableElement);
-            } else if (functionElement.getType() == ElementType.BRANCH && variableElement.getType() == ElementType.BRANCH) {
-                return areBranchAndBranchDisconnected(connectivity, (LfBranch) functionElement, (LfBranch) variableElement);
-            }
-            throw new PowsyblException("Combination of function type and variable type is not implemented.");
-        }
-
-        static boolean areBranchAndBranchDisconnected(GraphDecrementalConnectivity<LfBus> connectivity, LfBranch functionBranch, LfBranch variableBranch) {
-            return connectivity.getComponentNumber(variableBranch.getBus1()) != connectivity.getComponentNumber(functionBranch.getBus1())
-                    || connectivity.getComponentNumber(variableBranch.getBus1()) != connectivity.getComponentNumber(functionBranch.getBus2());
-        }
-
-        static boolean areBranchAndBusDisconnected(GraphDecrementalConnectivity<LfBus> connectivity, LfBranch functionBranch, LfBus variableBus) {
-            return connectivity.getComponentNumber(functionBranch.getBus1()) != connectivity.getComponentNumber(variableBus)
-                    || connectivity.getComponentNumber(functionBranch.getBus2()) != connectivity.getComponentNumber(variableBus);
-        }
-
-        static boolean areBusAndBusDisconnected(GraphDecrementalConnectivity<LfBus> connectivity, LfBus functionBus, LfBus variableBus) {
-            return connectivity.getComponentNumber(functionBus) != connectivity.getComponentNumber(variableBus);
         }
 
         protected boolean isElementConnectedToComponent(LfElement element, Set<LfBus> component) {
@@ -315,7 +307,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             super(context, variableId, functionElement, functionType, variableType, contingencyContext);
             this.variableElement = variableElement;
             if (variableElement == null) {
-                status = Status.SKIP;
+                status = functionElement == null ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
             }
         }
 
@@ -337,13 +329,13 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public boolean areVariableAndFunctionDisconnected(GraphDecrementalConnectivity<LfBus> connectivity) {
-            return areElementsDisconnected(functionElement, variableElement, connectivity);
+        public boolean isVariableConnectedToSlackComponent(Set<LfBus> connectedComponent) {
+            return isElementConnectedToComponent(variableElement, connectedComponent);
         }
 
         @Override
-        public boolean isConnectedToComponent(Set<LfBus> connectedComponent) {
-            return isElementConnectedToComponent(variableElement, connectedComponent);
+        public boolean isFunctionConnectedToSlackComponent(Set<LfBus> connectedComponent) {
+            return isElementConnectedToComponent(functionElement, connectedComponent);
         }
     }
 
@@ -358,7 +350,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             super(context, variableId, functionElement, functionType, variableType, contingencyContext);
             this.weightedVariableElements = weightedVariableElements;
             if (weightedVariableElements.isEmpty()) {
-                status = Status.SKIP;
+                status = functionElement == null ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
             }
         }
 
@@ -371,17 +363,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public boolean areVariableAndFunctionDisconnected(GraphDecrementalConnectivity<LfBus> connectivity) {
-            for (LfElement variableElement : getVariableElements()) {
-                if (!areElementsDisconnected(functionElement, variableElement, connectivity)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        @Override
-        public boolean isConnectedToComponent(Set<LfBus> connectedComponent) {
+        public boolean isVariableConnectedToSlackComponent(Set<LfBus> connectedComponent) {
             if (!isElementConnectedToComponent(functionElement, connectedComponent)) {
                 return false;
             }
@@ -391,6 +373,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 }
             }
             return false;
+        }
+
+        @Override
+        public boolean isFunctionConnectedToSlackComponent(Set<LfBus> connectedComponent) {
+            return isElementConnectedToComponent(functionElement, connectedComponent);
         }
     }
 
@@ -601,14 +588,35 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
     }
 
-    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent,
-                                        GraphDecrementalConnectivity<LfBus> connectivity) {
+    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent, Collection<String> branchIdsToOpen) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
-            // check if the factor function and variable are in different connected components
-            if (factor.areVariableAndFunctionDisconnected(connectivity)) {
-                factor.setPredefinedResult(0d);
-            } else if (!factor.isConnectedToComponent(connectedComponent)) {
-                factor.setPredefinedResult(Double.NaN); // works for sensitivity and function reference
+            String functionBranchId = factor.getFunctionElement().getId();
+            if (!branchIdsToOpen.stream().filter(id -> id.equals(functionBranchId)).collect(Collectors.toList()).isEmpty()) {
+                factor.setSensitivityValuePredefinedResult(0d);
+                factor.setFunctionPredefinedResult(0d);
+                continue;
+            }
+            if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
+                // after a contingency, we check if the factor function and the variable are in different connected components
+                boolean variableConnected = factor.isVariableConnectedToSlackComponent(connectedComponent);
+                boolean functionConnected = factor.isFunctionConnectedToSlackComponent(connectedComponent);
+                if (!variableConnected && functionConnected) {
+                    // VALID_ONLY_FOR_FUNCTION status
+                    factor.setSensitivityValuePredefinedResult(0d);
+                } else if (!variableConnected && !functionConnected) {
+                    // SKIP status
+                    factor.setSensitivityValuePredefinedResult(Double.NaN);
+                    factor.setFunctionPredefinedResult(Double.NaN);
+                } else if (variableConnected && !functionConnected) {
+                    // ZERO status
+                    factor.setSensitivityValuePredefinedResult(0d);
+                    factor.setFunctionPredefinedResult(Double.NaN);
+                }
+            } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
+                factor.setSensitivityValuePredefinedResult(0d);
+                if (!factor.isFunctionConnectedToSlackComponent(connectedComponent)) {
+                    factor.setFunctionPredefinedResult(Double.NaN);
+                }
             }
         }
     }
@@ -628,7 +636,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     protected void writeSkippedFactors(Collection<LfSensitivityFactor<V, E>> lfFactors, SensitivityValueWriter valueWriter) {
         List<LfSensitivityFactor<V, E>> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.SKIP).collect(Collectors.toList());
 
-        skippedFactors.forEach(factor -> valueWriter.write(factor.getContext(), null, -1, 0, Double.NaN));
+        // SKIP factors are for factors where both variable and function elements are not in the main connected componant.
+        // Therefore, their sensitivity and reference values are set to NaN.
+        skippedFactors.forEach(factor -> valueWriter.write(factor.getContext(), null, -1, Double.NaN, Double.NaN));
 
         Set<String> skippedVariables = skippedFactors.stream().map(LfSensitivityFactor::getVariableId).collect(Collectors.toSet());
         if (!skippedVariables.isEmpty()) {

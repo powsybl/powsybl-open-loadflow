@@ -19,6 +19,7 @@ public enum EquationType {
     BUS_V_SLOPE("v_slope", ElementType.BUS),
     BUS_PHI("\u03C6", ElementType.BUS),
     BRANCH_P("t", ElementType.BRANCH),
+    BRANCH_Q("b_q", ElementType.BRANCH),
     BRANCH_I("i", ElementType.BRANCH),
     BRANCH_ALPHA1("\u03B1" + "1", ElementType.BRANCH),
     BRANCH_RHO1("\u03C1" + "1", ElementType.BRANCH),

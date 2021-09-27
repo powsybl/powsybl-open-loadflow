@@ -8,6 +8,7 @@ package com.powsybl.openloadflow;
 
 import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.iidm.network.Network;
@@ -21,18 +22,12 @@ import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.loadflow.resultscompletion.z0flows.Z0FlowsCompletion;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.ac.DistributedSlackOuterLoop;
-import com.powsybl.openloadflow.ac.PhaseControlOuterLoop;
-import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
-import com.powsybl.openloadflow.ac.TransformerVoltageControlOuterLoop;
+import com.powsybl.openloadflow.ac.DefaultOuterLoopConfig;
 import com.powsybl.openloadflow.ac.nr.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStoppingCriteria;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.*;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
@@ -43,11 +38,11 @@ import com.powsybl.openloadflow.network.NetworkSlackBusSelector;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.Markers;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.tools.PowsyblCoreVersion;
 import net.jafama.FastMath;
+import org.apache.commons.compress.utils.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,18 +102,24 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
     }
 
-    public static OpenLoadFlowParameters getParametersExt(LoadFlowParameters parameters) {
-        OpenLoadFlowParameters parametersExt = parameters.getExtension(OpenLoadFlowParameters.class);
-        if (parametersExt == null) {
-            parametersExt = OpenLoadFlowParameters.load();
-        }
-        return parametersExt;
-    }
-
     private static SlackBusSelector getSlackBusSelector(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusId());
         return parameters.isReadSlackBus() ? new NetworkSlackBusSelector(network, slackBusSelector)
                                            : slackBusSelector;
+    }
+
+    private static OuterLoopConfig findOuterLoopConfig() {
+        OuterLoopConfig outerLoopConfig;
+        List<OuterLoopConfig> outerLoopConfigs = Lists.newArrayList(ServiceLoader.load(OuterLoopConfig.class, OuterLoopConfig.class.getClassLoader()).iterator());
+        if (outerLoopConfigs.isEmpty()) {
+            outerLoopConfig = new DefaultOuterLoopConfig();
+        } else {
+            if (outerLoopConfigs.size() > 1) {
+                throw new PowsyblException("Only one outer loop config is expected on class path");
+            }
+            outerLoopConfig = outerLoopConfigs.get(0);
+        }
+        return outerLoopConfig;
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
@@ -159,21 +160,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Slack bus Pmax mismatch: {}", parametersExt.getSlackBusPMaxMismatch());
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
         LOGGER.info("Voltage per reactive power control: {}", parametersExt.isVoltagePerReactivePowerControl());
+        LOGGER.info("Reactive Power Remote control: {}", parametersExt.hasReactivePowerRemoteControl());
 
-        List<OuterLoop> outerLoops = new ArrayList<>();
-        if (parameters.isDistributedSlack()) {
-            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant());
-            outerLoops.add(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), parametersExt.getSlackBusPMaxMismatch()));
-        }
-        if (parameters.isPhaseShifterRegulationOn()) {
-            outerLoops.add(new PhaseControlOuterLoop());
-        }
-        if (!parameters.isNoGeneratorReactiveLimits()) {
-            outerLoops.add(new ReactiveLimitsOuterLoop());
-        }
-        if (parameters.isTransformerVoltageControlOn()) {
-            outerLoops.add(new TransformerVoltageControlOuterLoop());
-        }
+        OuterLoopConfig outerLoopConfig = findOuterLoopConfig();
+        List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("Outer loops: {}", outerLoops.stream().map(OuterLoop::getType).collect(Collectors.toList()));
         }
@@ -195,7 +185,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                         parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
                                         parameters.getCountriesToBalance(),
                                         parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                                        parametersExt.isVoltagePerReactivePowerControl());
+                                        parametersExt.isVoltagePerReactivePowerControl(),
+                                        parametersExt.hasReactivePowerRemoteControl());
     }
 
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
@@ -329,7 +320,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
 
-        OpenLoadFlowParameters parametersExt = getParametersExt(parameters);
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
 
         Reporter lfReporter = reporter.createSubReporter("loadFlow", "Load flow on network ${networkId}",
             "networkId", network.getId());

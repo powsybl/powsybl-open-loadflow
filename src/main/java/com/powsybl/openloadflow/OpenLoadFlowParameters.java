@@ -46,6 +46,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean voltagePerReactivePowerControl = VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE;
 
+    private boolean reactivePowerRemoteControl = REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE;
+
     @Override
     public String getName() {
         return "open-load-flow-parameters";
@@ -144,6 +146,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean hasReactivePowerRemoteControl() {
+        return reactivePowerRemoteControl;
+    }
+
+    public OpenLoadFlowParameters setReactivePowerRemoteControl(boolean reactivePowerRemoteControl) {
+        this.reactivePowerRemoteControl = reactivePowerRemoteControl;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return new OpenLoadFlowConfigLoader().load(PlatformConfig.defaultConfig());
     }
@@ -161,6 +172,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", addRatioToLinesWithDifferentNominalVoltageAtBothEnds=" + addRatioToLinesWithDifferentNominalVoltageAtBothEnds +
                 ", slackBusPMaxMismatch=" + slackBusPMaxMismatch +
                 ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
+                ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
                 ')';
     }
 
@@ -185,6 +197,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                         .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(config.getBooleanProperty(ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME, ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE))
                         .setSlackBusPMaxMismatch(config.getDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_NAME, SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE))
                         .setVoltagePerReactivePowerControl(VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE)
+                        .setReactivePowerRemoteControl(config.getBooleanProperty(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE))
                 );
             return parameters;
         }
@@ -205,4 +218,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         }
     }
 
+    public static OpenLoadFlowParameters get(LoadFlowParameters parameters) {
+        OpenLoadFlowParameters parametersExt = parameters.getExtension(OpenLoadFlowParameters.class);
+        if (parametersExt == null) {
+            parametersExt = OpenLoadFlowParameters.load();
+        }
+        return parametersExt;
+    }
 }

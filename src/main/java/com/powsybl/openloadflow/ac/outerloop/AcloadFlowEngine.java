@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
@@ -61,7 +62,8 @@ public class AcloadFlowEngine implements AutoCloseable {
                                                                         parameters.isDistributedOnConformLoad(),
                                                                         parameters.isPhaseControl(),
                                                                         parameters.isVoltageRemoteControl(),
-                                                                        parameters.isVoltagePerReactivePowerControl());
+                                                                        parameters.isVoltagePerReactivePowerControl(),
+                                                                        parameters.isReactivePowerRemoteControl());
         return LfNetwork.load(network, networkParameters, reporter);
     }
 
@@ -171,6 +173,12 @@ public class AcloadFlowEngine implements AutoCloseable {
         return getBusTargetV(bus) - slope * (bus.getLoadTargetQ() - bus.getGenerationTargetQ());
     }
 
+    private static double getReactivePowerControlTarget(LfBranch branch) {
+        Objects.requireNonNull(branch);
+        return branch.getReactivePowerControl().map(ReactivePowerControl::getTargetValue)
+            .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no target in for reactive remote control"));
+    }
+
     public static void initTarget(Equation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
             case BUS_P:
@@ -199,6 +207,10 @@ public class AcloadFlowEngine implements AutoCloseable {
 
             case BRANCH_I:
                 targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getNum()), DiscretePhaseControl.Unit.A);
+                break;
+
+            case BRANCH_Q:
+                targets[equation.getColumn()] = getReactivePowerControlTarget(network.getBranch(equation.getNum()));
                 break;
 
             case BRANCH_ALPHA1:
@@ -242,7 +254,8 @@ public class AcloadFlowEngine implements AutoCloseable {
 
             variableSet = new VariableSet<>();
             AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(
-                    parameters.isPhaseControl(), parameters.isTransformerVoltageControlOn(), parameters.isForceA1Var(), parameters.getBranchesWithCurrent());
+                    parameters.isPhaseControl(), parameters.isTransformerVoltageControlOn(), parameters.isForceA1Var(),
+                    parameters.getBranchesWithCurrent());
             equationSystem = AcEquationSystem.create(network, variableSet, creationParameters);
             j = new JacobianMatrix<>(equationSystem, parameters.getMatrixFactory());
             targetVector = new TargetVector<>(network, equationSystem, AcloadFlowEngine::initTarget);
@@ -261,6 +274,11 @@ public class AcloadFlowEngine implements AutoCloseable {
         // continue with outer loops only if initial Newton-Raphson succeed
         if (runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
             updatePvBusesReactivePower(runningContext.lastNrResult, network, equationSystem);
+
+            // outer loops initialization
+            for (OuterLoop outerLoop : parameters.getOuterLoops()) {
+                outerLoop.initialize(network);
+            }
 
             // re-run all outer loops until Newton-Raphson failed or no more Newton-Raphson iterations are needed
             int oldIterationCount;
