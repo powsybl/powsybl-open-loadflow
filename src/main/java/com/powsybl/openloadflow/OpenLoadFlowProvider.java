@@ -32,6 +32,7 @@ import com.powsybl.openloadflow.ac.outerloop.*;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.equations.VoltageInitializer;
@@ -267,29 +268,32 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
 
-        LfNetworkParameters networkParameters = new LfNetworkParameters(slackBusSelector,
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        parametersExt.getPlausibleActivePowerLimit(),
-                                                                        false,
-                                                                        parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
-                                                                        parameters.getCountriesToBalance(),
-                                                                        parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        false);
+        var networkParameters = new LfNetworkParameters(slackBusSelector,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        parametersExt.getPlausibleActivePowerLimit(),
+                                                        false,
+                                                        parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
+                                                        parameters.getCountriesToBalance(),
+                                                        parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        false);
 
-        DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(networkParameters,
-                                                                     matrixFactory,
-                                                                     true,
-                                                                     parameters.isDcUseTransformerRatio(),
-                                                                     parameters.isDistributedSlack(),
-                                                                     parameters.getBalanceType(),
-                                                                     forcePhaseControlOffAndAddAngle1Var,
-                                                                     true);
+        var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
+                                                                                      false,
+                                                                                      forcePhaseControlOffAndAddAngle1Var,
+                                                                                      parameters.isDcUseTransformerRatio());
+
+        var dcParameters = new DcLoadFlowParameters(networkParameters,
+                                                    equationSystemCreationParameters,
+                                                    matrixFactory,
+                                                    parameters.isDistributedSlack(),
+                                                    parameters.getBalanceType(),
+                                                    true);
 
         List<DcLoadFlowResult> results = new DcLoadFlowEngine(network, dcParameters, reporter)
                 .run(reporter);

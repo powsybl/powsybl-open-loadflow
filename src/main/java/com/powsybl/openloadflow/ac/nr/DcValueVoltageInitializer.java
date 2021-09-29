@@ -13,6 +13,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.equations.VoltageInitializer;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -28,12 +29,10 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
     @Override
     public void prepare(LfNetwork network, LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
         DcLoadFlowParameters parameters = new DcLoadFlowParameters(networkParameters,
+                                                                   new DcEquationSystemCreationParameters(false, false, false, true),
                                                                    matrixFactory,
                                                                    false,
-                                                                   true,
-                                                                   false,
                                                                    LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
-                                                                   false,
                                                                    false);
         DcLoadFlowEngine engine = new DcLoadFlowEngine(List.of(network), parameters);
         if (engine.run(reporter, network).getStatus() != LoadFlowResult.ComponentResult.Status.CONVERGED) {
