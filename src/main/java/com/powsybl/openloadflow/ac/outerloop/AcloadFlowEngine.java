@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
-import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
@@ -239,10 +238,7 @@ public class AcloadFlowEngine implements AutoCloseable {
             LOGGER.info("Start AC loadflow on network {}", network);
 
             variableSet = new VariableSet<>();
-            AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters(
-                    parameters.getNetworkParameters().isPhaseControl(), parameters.getNetworkParameters().isTransformerVoltageControl(),
-                    parameters.isForceA1Var(), parameters.getBranchesWithCurrent());
-            equationSystem = AcEquationSystem.create(network, variableSet, creationParameters);
+            equationSystem = AcEquationSystem.create(network, variableSet, parameters.getNetworkParameters(), parameters.getEquationSystemCreationParameters());
             j = new JacobianMatrix<>(equationSystem, parameters.getMatrixFactory());
             targetVector = new TargetVector<>(network, equationSystem, AcloadFlowEngine::initTarget);
         } else {

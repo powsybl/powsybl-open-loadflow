@@ -45,6 +45,10 @@ public class LfNetworkParameters {
 
     private final boolean reactivePowerRemoteControl;
 
+    public LfNetworkParameters() {
+        this(new FirstSlackBusSelector());
+    }
+
     public LfNetworkParameters(SlackBusSelector slackBusSelector) {
         this(slackBusSelector, false, false, false, false,
                 ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
