@@ -25,6 +25,7 @@ import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.ac.DefaultOuterLoopConfig;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.DcValueVoltageInitializer;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.*;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
@@ -184,9 +185,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var, branchesWithCurrent);
 
+        var newtonRaphsonParameters = new NewtonRaphsonParameters()
+                .setVoltageInitializer(voltageInitializer);
+
         return new AcLoadFlowParameters(networkParameters,
                                         equationSystemCreationParameters,
-                                        voltageInitializer,
+                                        newtonRaphsonParameters,
                                         outerLoops, matrixFactory);
     }
 

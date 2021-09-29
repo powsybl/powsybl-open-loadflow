@@ -122,7 +122,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
         LfContingency.deactivateEquations(lfContingency, engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
 
-        engine.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+        engine.getParameters().getNewtonRaphsonParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
         engine.run(reporter);
 
         // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation

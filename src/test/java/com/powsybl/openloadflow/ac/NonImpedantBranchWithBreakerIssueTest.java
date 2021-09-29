@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
@@ -40,10 +41,12 @@ class NonImpedantBranchWithBreakerIssueTest {
                                                                         ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
                                                                         true, Collections.emptySet(), false, false, false, false, false);
         AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false, Collections.emptySet());
+        NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters()
+                .setVoltageInitializer(new UniformValueVoltageInitializer());
         LfNetwork lfNetwork = LfNetwork.load(network, networkParameters).get(0);
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(networkParameters, equationSystemCreationParameters,
-                                                                             new UniformValueVoltageInitializer(),
-                                                                             Collections.emptyList(), new DenseMatrixFactory());
+                                                                             newtonRaphsonParameters, Collections.emptyList(),
+                                                                             new DenseMatrixFactory());
         new AcloadFlowEngine(lfNetwork, acLoadFlowParameters)
                 .run();
         lfNetwork.updateState(false, false, false, false, false, false);
@@ -65,9 +68,11 @@ class NonImpedantBranchWithBreakerIssueTest {
                 true, Collections.emptySet(), false, false, false, false, false);
         LfNetwork lfNetwork = LfNetwork.load(network, networkParameters).get(0);
         AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false, Collections.emptySet());
+        NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters()
+                .setVoltageInitializer(new UniformValueVoltageInitializer());
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(networkParameters, equationSystemCreationParameters,
-                                                                             new UniformValueVoltageInitializer(),
-                                                                             Collections.emptyList(), new DenseMatrixFactory());
+                                                                             newtonRaphsonParameters, Collections.emptyList(),
+                                                                             new DenseMatrixFactory());
         new AcloadFlowEngine(lfNetwork, acLoadFlowParameters)
                 .run();
         lfNetwork.updateState(false, false, false, false, false, false);
