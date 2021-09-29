@@ -25,9 +25,7 @@ import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.ac.DefaultOuterLoopConfig;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.DcValueVoltageInitializer;
-import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.ac.outerloop.*;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
@@ -145,8 +143,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         VoltageInitializer voltageInitializer = getVoltageInitializer(parameters);
 
-        NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
-
         LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
         LOGGER.info("Voltage level initializer: {}", voltageInitializer.getClass().getSimpleName());
         LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
@@ -191,7 +187,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new AcLoadFlowParameters(networkParameters,
                                         equationSystemCreationParameters,
                                         voltageInitializer,
-                                        stoppingCriteria,
                                         outerLoops, matrixFactory);
     }
 

@@ -10,7 +10,6 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
@@ -43,7 +42,7 @@ class NonImpedantBranchWithBreakerIssueTest {
         AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false, Collections.emptySet());
         LfNetwork lfNetwork = LfNetwork.load(network, networkParameters).get(0);
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(networkParameters, equationSystemCreationParameters,
-                                                                             new UniformValueVoltageInitializer(), new DefaultNewtonRaphsonStoppingCriteria(),
+                                                                             new UniformValueVoltageInitializer(),
                                                                              Collections.emptyList(), new DenseMatrixFactory());
         new AcloadFlowEngine(lfNetwork, acLoadFlowParameters)
                 .run();
@@ -67,7 +66,7 @@ class NonImpedantBranchWithBreakerIssueTest {
         LfNetwork lfNetwork = LfNetwork.load(network, networkParameters).get(0);
         AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false, Collections.emptySet());
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(networkParameters, equationSystemCreationParameters,
-                                                                             new UniformValueVoltageInitializer(), new DefaultNewtonRaphsonStoppingCriteria(),
+                                                                             new UniformValueVoltageInitializer(),
                                                                              Collections.emptyList(), new DenseMatrixFactory());
         new AcloadFlowEngine(lfNetwork, acLoadFlowParameters)
                 .run();
