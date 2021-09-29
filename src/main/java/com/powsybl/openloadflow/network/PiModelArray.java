@@ -177,4 +177,13 @@ public class PiModelArray implements PiModel {
         }
         return hasChange;
     }
+
+    @Override
+    public boolean setMinZ(double minZ) {
+        boolean done = false;
+        for (PiModel model : models) {
+            done |= model.setMinZ(minZ);
+        }
+        return done;
+    }
 }
