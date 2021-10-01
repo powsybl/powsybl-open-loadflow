@@ -884,19 +884,14 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(1, result.getSensitivityValuesContingencies().size());
         List<SensitivityValue> contingencyResult = result.getSensitivityValuesContingencies().get("d5");
         assertEquals(3, contingencyResult.size());
-        // To fix
-        //assertEquals(-1d / 3d, getValue(contingencyResult, "g2", "l12"), LoadFlowAssert.DELTA_POWER);
-        //assertEquals(0d, getValue(contingencyResult, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
-        //assertEquals(1d / 3d, getValue(contingencyResult, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-1d / 3d, getValue(contingencyResult, "g2", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, getValue(contingencyResult, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 3d, getValue(contingencyResult, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
 
         //assertEquals(-14d / 10d, getFunctionReference(contingencyResult, "l12"), LoadFlowAssert.DELTA_POWER);
         //assertEquals(-8d / 30d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
         //assertEquals(34d / 30d, getFunctionReference(contingencyResult, "l23"), LoadFlowAssert.DELTA_POWER);
-    }
-
-        assertEquals(-14d / 10d, getFunctionReference(contingencyResult, "l12"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-8d / 30d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(34d / 30d, getFunctionReference(contingencyResult, "l23"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
