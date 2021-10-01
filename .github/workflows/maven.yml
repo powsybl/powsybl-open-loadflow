@@ -11,6 +11,12 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
+      - name: Checkout powsybl-core sources
+          uses: actions/checkout@v1
+          with:
+            repository: powsybl/powsybl-core
+            ref: refs/heads/master
+
       - name: Checkout sources
         uses: actions/checkout@v1
 
