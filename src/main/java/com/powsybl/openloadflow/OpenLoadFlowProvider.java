@@ -256,7 +256,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
-    private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
+    private static DcLoadFlowParameters createDcParameters(Network network, MatrixFactory matrixFactory,
+                                                           LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                           boolean forcePhaseControlOffAndAddAngle1Var) {
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
         LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
@@ -287,12 +289,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                                       forcePhaseControlOffAndAddAngle1Var,
                                                                                       parameters.isDcUseTransformerRatio());
 
-        var dcParameters = new DcLoadFlowParameters(networkParameters,
-                                                    equationSystemCreationParameters,
-                                                    matrixFactory,
-                                                    parameters.isDistributedSlack(),
-                                                    parameters.getBalanceType(),
-                                                    true);
+        return new DcLoadFlowParameters(networkParameters,
+                                        equationSystemCreationParameters,
+                                        matrixFactory,
+                                        parameters.isDistributedSlack(),
+                                        parameters.getBalanceType(),
+                                        true);
+    }
+
+    private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
+
+        var dcParameters = createDcParameters(network, matrixFactory, parameters, parametersExt, forcePhaseControlOffAndAddAngle1Var);
 
         List<DcLoadFlowResult> results = new DcLoadFlowEngine(network, dcParameters, reporter)
                 .run(reporter);
