@@ -609,7 +609,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         vscs.stream().map(LfGenerator::getBus).forEach(busesToSave::add);
         generators.stream().map(LfGenerator::getBus).forEach(busesToSave::add);
         for (Load load : loads) {
-            busesToSave.add((AbstractLfBus) load.getTerminal().getBusView().getBus());
+            busesToSave.add(lfNetwork.getBusById(load.getTerminal().getBusView().getBus().getId()));
         }
 
         BusState.addBusStates(busesToSave, busStates);
@@ -635,9 +635,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         boolean distributedSlackOnLoads = isDistributedSlackOnLoads(lfParameters);
         for (Load load : loads) {
-            LfBus bus = (LfBus) load.getTerminal().getBusView().getBus();
+            LfBus bus = lfNetwork.getBusById(load.getTerminal().getBusView().getBus().getId());
             bus.setLoadTargetP(bus.getLoadTargetP() - load.getP0()); // we don't change the slack distribution participation here.
-            boolean isBusParticipating = ((LfBus) load.getTerminal().getBusView().getBus()).isParticipating();
+            boolean isBusParticipating = bus.isParticipating();
             if (distributedSlackOnLoads && isBusParticipating) {
                 participatingLoadsToRemove.add(load);
             }
@@ -690,24 +690,26 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
                     .collect(Collectors.toList());
                 // modify newParticipatingElements, decreasing participation factors of lfBuses losing some loads
+                Set<ParticipatingElement> participatingElementsToRemoveLoad = new HashSet<>();
                 for (ParticipatingElement parcitipatingElement : newParticipatingElements) {
-                    if (parcitipatingElement.getElement().getClass().getTypeName() == "LfBus") {
+                    if (LfBus.class.isInstance(parcitipatingElement.getElement())) {
                         LfLoads loads = ((LfBus) parcitipatingElement.getElement()).getLfLoads();
                         double precontingencyLoad = 0;
                         double postcontingencyLoad = 0;
                         for (Load load : loads.getLoads()) {
-                            if (participatingLoadsToRemove.contains(load)) {
+                            if (!participatingLoadsToRemove.contains(load)) {
                                 postcontingencyLoad += load.getP0();
                             }
                             precontingencyLoad += load.getP0();
                         }
                         if (postcontingencyLoad == 0) {
-                            newParticipatingElements.remove(parcitipatingElement);
+                            participatingElementsToRemoveLoad.add(parcitipatingElement);
                         } else {
                             parcitipatingElement.setFactor(parcitipatingElement.getFactor() * postcontingencyLoad / precontingencyLoad);
                         }
                     }
                 }
+                newParticipatingElements.removeAll(participatingElementsToRemoveLoad);
                 String elementType = isDistributedSlackOnLoads(lfParameters) ? "LfBus" : "LfGenerators";
                 normalizeParticipationFactors(newParticipatingElements, elementType);
                 newFactorStates = calculateStates(j, equationSystem, factorGroups, newParticipatingElements);
