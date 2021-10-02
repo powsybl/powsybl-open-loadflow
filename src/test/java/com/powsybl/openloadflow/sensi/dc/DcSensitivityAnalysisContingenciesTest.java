@@ -1734,7 +1734,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
             compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-variable-sets.json")), is);
         }
 
-        String dateStr = contingenciesFile.getFileName().toString().substring(14, 37);
+        String dateStr = contingenciesFile.getFileName().toString().substring(14, 38);
         DateTime date = DateTime.parse(dateStr, DateTimeFormat.forPattern(OpenSensitivityAnalysisProvider.DATE_TIME_FORMAT));
 
         List<SensitivityValue2> values2 = sensiProvider.replay(date, fileSystem.getPath(debugDir));
