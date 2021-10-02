@@ -19,6 +19,8 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
