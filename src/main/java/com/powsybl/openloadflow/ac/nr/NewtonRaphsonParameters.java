@@ -26,6 +26,8 @@ public class NewtonRaphsonParameters {
         return maxIteration;
     }
 
+    private final NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
+
     public NewtonRaphsonParameters setMaxIteration(int maxIteration) {
         if (maxIteration < 1) {
             throw new IllegalArgumentException("Invalid max iteration value: " + maxIteration);
@@ -41,5 +43,9 @@ public class NewtonRaphsonParameters {
     public NewtonRaphsonParameters setVoltageInitializer(VoltageInitializer voltageInitializer) {
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         return this;
+    }
+
+    public NewtonRaphsonStoppingCriteria getStoppingCriteria() {
+        return stoppingCriteria;
     }
 }
