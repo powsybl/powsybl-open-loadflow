@@ -56,6 +56,10 @@ public class LfContingency {
         this.activePowerLoss = lose;
     }
 
+    public String getId() {
+        return contingency.getId();
+    }
+
     public Contingency getContingency() {
         return contingency;
     }

@@ -173,7 +173,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcloadFlowEngine engine, LfContingency lfContingency,
                                                                Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations,
                                                                Map<String, BranchResult> preContingencyBranchResults) {
-        LOGGER.info("Start post contingency '{}' simulation", lfContingency.getContingency().getId());
+        LOGGER.info("Start post contingency '{}' simulation", lfContingency.getId());
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
@@ -195,11 +195,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     network.getBuses().stream().filter(b -> !b.isDisabled()),
                     postContingencyLimitViolations);
 
-            addMonitorInfo(network, monitorIndex.getAllStateMonitor(), branchResults, busResults, threeWindingsTransformerResults, preContingencyBranchResults, lfContingency.getContingency().getId());
+            addMonitorInfo(network, monitorIndex.getAllStateMonitor(), branchResults, busResults, threeWindingsTransformerResults, preContingencyBranchResults, lfContingency.getId());
 
-            StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(lfContingency.getContingency().getId());
+            StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(lfContingency.getId());
             if (stateMonitor != null) {
-                addMonitorInfo(network, stateMonitor, branchResults, busResults, threeWindingsTransformerResults, preContingencyBranchResults, lfContingency.getContingency().getId());
+                addMonitorInfo(network, stateMonitor, branchResults, busResults, threeWindingsTransformerResults, preContingencyBranchResults, lfContingency.getId());
             }
         }
 
@@ -213,7 +213,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         LfContingency.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
 
         stopwatch.stop();
-        LOGGER.info("Post contingency '{}' simulation done in {} ms", lfContingency.getContingency().getId(),
+        LOGGER.info("Post contingency '{}' simulation done in {} ms", lfContingency.getId(),
                 stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
         return new PostContingencyResult(lfContingency.getContingency(), postContingencyComputationOk, new ArrayList<>(postContingencyLimitViolations.values()),
