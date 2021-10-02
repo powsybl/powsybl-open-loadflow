@@ -28,8 +28,8 @@ import com.powsybl.openloadflow.network.impl.AbstractLfBus;
 import com.powsybl.openloadflow.network.impl.LfGeneratorImpl;
 import com.powsybl.openloadflow.network.impl.LfVscConverterStationImpl;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
-import com.powsybl.openloadflow.util.BranchState;
-import com.powsybl.openloadflow.util.BusState;
+import com.powsybl.openloadflow.network.BranchState;
+import com.powsybl.openloadflow.network.BusState;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import org.apache.commons.lang3.tuple.Pair;
 

@@ -26,7 +26,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.DiscreteVoltageControl.Mode;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
-import com.powsybl.openloadflow.util.BusState;
+import com.powsybl.openloadflow.network.BusState;
 import com.powsybl.openloadflow.util.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import org.apache.commons.lang3.NotImplementedException;
