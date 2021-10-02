@@ -6,8 +6,8 @@
  */
 package com.powsybl.openloadflow.ac.nr;
 
-import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
-import com.powsybl.openloadflow.equations.VoltageInitializer;
+import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
 import java.util.Objects;
 

@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
