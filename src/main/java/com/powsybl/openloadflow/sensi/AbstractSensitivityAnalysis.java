@@ -651,6 +651,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     public void checkContingencies(Network network, LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
         for (PropagatedContingency contingency : contingencies) {
+            // check ID unicity because, later contingency are indexed by their IDs
+            // FIXME
+
             // Elements have already been checked and found in PropagatedContingency, so there is no need to
             // check them again
             Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches

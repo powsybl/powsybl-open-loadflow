@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.EquationUtil;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -28,7 +29,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.BranchState;
 import com.powsybl.openloadflow.network.BusState;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
-import com.powsybl.openloadflow.util.LfContingency;
+import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.monitor.StateMonitor;
@@ -106,8 +107,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
                                                   LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
-        // create a contingency list that impact the network
-        List<LfContingency> contingencies = createContingencies(propagatedContingencies, network);
         List<BranchResult> preContingencyBranchResults = new ArrayList<>();
         List<BusResults> preContingencyBusResults = new ArrayList<>();
         List<ThreeWindingsTransformerResult> preContingencyThreeWindingsTransformerResults = new ArrayList<>();
@@ -138,9 +137,16 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 }
 
                 // start a simulation for each of the contingency
-                Iterator<LfContingency> contingencyIt = contingencies.iterator();
+                Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
                 while (contingencyIt.hasNext()) {
-                    LfContingency lfContingency = contingencyIt.next();
+                    PropagatedContingency propagatedContingency = contingencyIt.next();
+                    LfContingency lfContingency = LfContingency.create(propagatedContingency, network, network.createDecrementalConnectivity(connectivityProvider), true)
+                            .orElse(null);
+
+                    // only process contingencies that impact the network
+                    if (lfContingency == null) {
+                        continue;
+                    }
 
                     for (LfBus bus : lfContingency.getBuses()) {
                         bus.setDisabled(true);
@@ -151,7 +157,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
                     distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
-                    PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, lfContingency, preContingencyLimitViolations, results);
+                    PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, propagatedContingency.getContingency(), lfContingency, preContingencyLimitViolations, results);
                     postContingencyResults.add(postContingencyResult);
 
                     if (contingencyIt.hasNext()) {
@@ -170,7 +176,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         }
     }
 
-    private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcloadFlowEngine engine, LfContingency lfContingency,
+    private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcloadFlowEngine engine, Contingency contingency, LfContingency lfContingency,
                                                                Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations,
                                                                Map<String, BranchResult> preContingencyBranchResults) {
         LOGGER.info("Start post contingency '{}' simulation", lfContingency.getId());
@@ -182,7 +188,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         List<BranchResult> branchResults = new ArrayList<>();
         List<BusResults> busResults = new ArrayList<>();
         List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
-        LfContingency.deactivateEquations(lfContingency, engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
+        EquationUtil.deactivateEquations(lfContingency, engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
 
         // restart LF on post contingency equation system
         engine.getParameters().getNewtonRaphsonParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
@@ -210,13 +216,13 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             }
         });
 
-        LfContingency.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
+        EquationUtil.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
 
         stopwatch.stop();
         LOGGER.info("Post contingency '{}' simulation done in {} ms", lfContingency.getId(),
                 stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-        return new PostContingencyResult(lfContingency.getContingency(), postContingencyComputationOk, new ArrayList<>(postContingencyLimitViolations.values()),
+        return new PostContingencyResult(contingency, postContingencyComputationOk, new ArrayList<>(postContingencyLimitViolations.values()),
                 branchResults.stream().collect(Collectors.toMap(BranchResult::getBranchId, Function.identity())),
                 busResults.stream().collect(Collectors.toMap(BusResults::getVoltageLevelId, Function.identity())),
                 threeWindingsTransformerResults.stream().collect(Collectors.toMap(ThreeWindingsTransformerResult::getThreeWindingsTransformerId,
