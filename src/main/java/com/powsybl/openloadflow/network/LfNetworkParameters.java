@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Country;
-import com.powsybl.openloadflow.util.ParameterConstants;
 
 import java.util.Collections;
 import java.util.Set;
@@ -16,6 +15,8 @@ import java.util.Set;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class LfNetworkParameters {
+
+    public static final double PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE = 5000;
 
     private final SlackBusSelector slackBusSelector;
 
@@ -51,7 +52,7 @@ public class LfNetworkParameters {
 
     public LfNetworkParameters(SlackBusSelector slackBusSelector) {
         this(slackBusSelector, false, false, false, false,
-                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
+                PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
                 true, Collections.emptySet(), false, false, false, false, false);
     }
 

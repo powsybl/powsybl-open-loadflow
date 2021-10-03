@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.ParameterConstants;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -201,7 +200,7 @@ class GeneratorTargetVoltageInconsistencyTest {
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false,
-                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
+                LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
                 true, Collections.emptySet(), false, false, false, false, false);
 
         Generator g = network.getGenerator("g2");
@@ -312,7 +311,7 @@ class GeneratorTargetVoltageInconsistencyTest {
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false,
-                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
+                LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
                 true, Collections.emptySet(), false, false, false, false, false);
 
         assertEquals(412, network.getGenerator("g1").getTargetV());
