@@ -26,6 +26,9 @@ import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
+import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.BranchState;
 import com.powsybl.openloadflow.util.BusState;
 import com.powsybl.openloadflow.util.PropagatedContingency;
@@ -733,6 +736,36 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         return new JacobianMatrix<>(equationSystem, matrixFactory);
     }
 
+    private static DcLoadFlowParameters createDcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory,
+                                                                   LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
+        var networkParameters = new LfNetworkParameters(slackBusSelector,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        lfParametersExt.getPlausibleActivePowerLimit(),
+                                                        lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
+                                                        true,
+                                                        lfParameters.getCountriesToBalance(),
+                                                        lfParameters.isDistributedSlack() && lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        false);
+
+        var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
+                                                                                      true,
+                                                                                      true,
+                                                                                      lfParameters.isDcUseTransformerRatio());
+
+        return new DcLoadFlowParameters(networkParameters,
+                                        equationSystemCreationParameters,
+                                        matrixFactory,
+                                        lfParameters.isDistributedSlack(),
+                                        lfParameters.getBalanceType(),
+                                        true);
+    }
+
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityFactorReader factorReader,
                         SensitivityValueWriter valueWriter, Reporter reporter) {
@@ -773,16 +806,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         LOGGER.info("Running DC sensitivity analysis with {} factors and {} contingencies",  lfFactors.size(), contingencies.size());
 
-        // create DC load flow engine for setting the function reference
-        DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(slackBusSelector, matrixFactory,
-            true, lfParameters.isDcUseTransformerRatio(), lfParameters.isDistributedSlack(), lfParameters.getBalanceType(), true,
-            lfParametersExt.getPlausibleActivePowerLimit(), lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(), true, true, lfParameters.getCountriesToBalance());
+        var dcLoadFlowParameters = createDcLoadFlowParameters(slackBusSelector, matrixFactory, lfParameters, lfParametersExt);
+
         DcLoadFlowEngine dcLoadFlowEngine = new DcLoadFlowEngine(lfNetworks, dcLoadFlowParameters);
 
         // create DC equation system for sensitivity analysis
-        DcEquationSystemCreationParameters dcEquationSystemCreationParameters = new DcEquationSystemCreationParameters(dcLoadFlowParameters.isUpdateFlows(), true,
-            dcLoadFlowParameters.isForcePhaseControlOffAndAddAngle1Var(), lfParameters.isDcUseTransformerRatio());
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet<>(), dcEquationSystemCreationParameters);
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet<>(), dcLoadFlowParameters.getEquationSystemCreationParameters());
 
         writeSkippedFactors(lfFactors, valueWriter);
 

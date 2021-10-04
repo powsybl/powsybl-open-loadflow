@@ -35,7 +35,7 @@ public class LfNetworkParameters {
 
     private final Set<Country> countriesToBalance;
 
-    private boolean distributedOnConformLoad;
+    private final boolean distributedOnConformLoad;
 
     private final boolean phaseControl;
 
@@ -44,6 +44,10 @@ public class LfNetworkParameters {
     private final boolean voltagePerReactivePowerControl;
 
     private final boolean reactivePowerRemoteControl;
+
+    public LfNetworkParameters() {
+        this(new FirstSlackBusSelector());
+    }
 
     public LfNetworkParameters(SlackBusSelector slackBusSelector) {
         this(slackBusSelector, false, false, false, false,

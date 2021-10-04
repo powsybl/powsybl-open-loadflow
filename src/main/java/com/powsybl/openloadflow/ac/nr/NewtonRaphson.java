@@ -13,6 +13,9 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,11 +30,13 @@ public class NewtonRaphson {
 
     private final LfNetwork network;
 
+    private final LfNetworkParameters networkParameters;
+
+    private final NewtonRaphsonParameters parameters;
+
     private final MatrixFactory matrixFactory;
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
-
-    private final NewtonRaphsonStoppingCriteria stoppingCriteria;
 
     private int iteration = 0;
 
@@ -39,14 +44,16 @@ public class NewtonRaphson {
 
     private final TargetVector<AcVariableType, AcEquationType> targetVector;
 
-    public NewtonRaphson(LfNetwork network, MatrixFactory matrixFactory, EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j,
-                         TargetVector<AcVariableType, AcEquationType> targetVector, NewtonRaphsonStoppingCriteria stoppingCriteria) {
+    public NewtonRaphson(LfNetwork network, LfNetworkParameters networkParameters, NewtonRaphsonParameters parameters, MatrixFactory matrixFactory,
+                         EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j,
+                         TargetVector<AcVariableType, AcEquationType> targetVector) {
         this.network = Objects.requireNonNull(network);
+        this.networkParameters = Objects.requireNonNull(networkParameters);
+        this.parameters = Objects.requireNonNull(parameters);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.j = Objects.requireNonNull(j);
         this.targetVector = Objects.requireNonNull(targetVector);
-        this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
     }
 
     private NewtonRaphsonStatus runIteration(double[] fx, double[] x) {
@@ -78,7 +85,7 @@ public class NewtonRaphson {
             }
 
             // test stopping criteria and log norm(fx)
-            NewtonRaphsonStoppingCriteria.TestResult testResult = stoppingCriteria.test(fx);
+            NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(fx);
 
             LOGGER.debug("|f(x)|={}", testResult.getNorm());
 
@@ -164,14 +171,14 @@ public class NewtonRaphson {
         }
     }
 
-    public NewtonRaphsonResult run(NewtonRaphsonParameters parameters, Reporter reporter) {
-        Objects.requireNonNull(parameters);
+    public NewtonRaphsonResult run(Reporter reporter) {
+        Objects.requireNonNull(reporter);
 
         // initialize state vector
         VoltageInitializer voltageInitializer = iteration == 0 ? parameters.getVoltageInitializer()
                                                                : new PreviousValueVoltageInitializer();
 
-        voltageInitializer.prepare(network, matrixFactory, reporter);
+        voltageInitializer.prepare(network, networkParameters, matrixFactory, reporter);
 
         double[] x = createStateVector(network, equationSystem, voltageInitializer);
 
