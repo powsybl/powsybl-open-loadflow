@@ -35,7 +35,6 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
 
     @Override
     public void update(double[] x, BranchVector branchVector) {
-        Objects.requireNonNull(x);
         double v2 = x[v2Var.getRow()];
         double shunt = getShunt(branchVector);
         q2 = -R2 * R2 * v2 * v2 * (branchVector.b2[branchNum] + branchVector.y[branchNum] * branchVector.y[branchNum] * branchVector.b1[branchNum] / shunt - (branchVector.b1[branchNum] * branchVector.b1[branchNum] + branchVector.g1[branchNum] * branchVector.g1[branchNum]) * branchVector.y[branchNum] * branchVector.cosKsi[branchNum] / shunt);
@@ -49,7 +48,6 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
 
     @Override
     public double der(Variable<AcVariableType> variable) {
-        Objects.requireNonNull(variable);
         if (variable.equals(v2Var)) {
             return dq2dv2;
         } else {

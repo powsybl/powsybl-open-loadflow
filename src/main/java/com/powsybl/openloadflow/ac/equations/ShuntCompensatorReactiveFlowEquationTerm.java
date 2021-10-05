@@ -58,7 +58,6 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
 
     @Override
     public void update(double[] x, BranchVector branchVector) {
-        Objects.requireNonNull(x);
         double v = x[vVar.getRow()];
         q = -b * v * v;
         dqdv = -2 * b * v;
@@ -71,7 +70,6 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
 
     @Override
     public double der(Variable<AcVariableType> variable) {
-        Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
             return dqdv;
         } else {

@@ -33,7 +33,6 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
 
     @Override
     public void update(double[] x, BranchVector branchVector) {
-        Objects.requireNonNull(x);
         double v1 = x[v1Var.getRow()];
         double r1 = branch.getPiModel().getR1();
         double shunt = getShunt(branchVector);
@@ -48,7 +47,6 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
 
     @Override
     public double der(Variable<AcVariableType> variable) {
-        Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
             return dp1dv1;
         } else {

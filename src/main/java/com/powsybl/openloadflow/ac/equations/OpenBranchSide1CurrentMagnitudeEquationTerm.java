@@ -39,7 +39,6 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     @Override
     public void update(double[] x, BranchVector branchVector) {
-        Objects.requireNonNull(x);
         double v2 = x[v2Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
         double w2 = R2 * v2;
@@ -67,7 +66,6 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     @Override
     public double der(Variable<AcVariableType> variable) {
-        Objects.requireNonNull(variable);
         if (variable.equals(v2Var)) {
             return di2dv2;
         } else {

@@ -47,7 +47,6 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
 
     @Override
     public void update(double[] x, BranchVector branchVector) {
-        Objects.requireNonNull(x);
         double v1 = x[v1Var.getRow()];
         double v2 = x[v2Var.getRow()];
         double ph1 = x[ph1Var.getRow()];
@@ -102,7 +101,6 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
 
     @Override
     public double der(Variable<AcVariableType> variable) {
-        Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
             return di1dv1;
         } else if (variable.equals(v2Var)) {
