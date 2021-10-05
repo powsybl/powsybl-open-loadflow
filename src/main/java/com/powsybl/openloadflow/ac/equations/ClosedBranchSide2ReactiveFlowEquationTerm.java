@@ -50,21 +50,21 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
         double v2 = x[v2Var.getRow()];
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
-        double theta = vec.ksi[branchNum] + (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1())
+        double theta = vec.ksi[num] + (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1())
                 - A2 + ph1 - ph2;
         double cosTheta = FastMath.cos(theta);
         double sinTheta = FastMath.sin(theta);
         double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
-        q2 = R2 * v2 * (-vec.b2[branchNum] * R2 * v2 - vec.y[branchNum] * r1 * v1 * cosTheta + vec.y[branchNum] * R2 * v2 * vec.cosKsi[branchNum]);
-        dq2dv1 = -vec.y[branchNum] * r1 * R2 * v2 * cosTheta;
-        dq2dv2 = R2 * (-2 * vec.b2[branchNum] * R2 * v2 - vec.y[branchNum] * r1 * v1 * cosTheta + 2 * vec.y[branchNum] * R2 * v2 * vec.cosKsi[branchNum]);
-        dq2dph1 = vec.y[branchNum] * r1 * R2 * v1 * v2 * sinTheta;
+        q2 = R2 * v2 * (-vec.b2[num] * R2 * v2 - vec.y[num] * r1 * v1 * cosTheta + vec.y[num] * R2 * v2 * vec.cosKsi[num]);
+        dq2dv1 = -vec.y[num] * r1 * R2 * v2 * cosTheta;
+        dq2dv2 = R2 * (-2 * vec.b2[num] * R2 * v2 - vec.y[num] * r1 * v1 * cosTheta + 2 * vec.y[num] * R2 * v2 * vec.cosKsi[num]);
+        dq2dph1 = vec.y[num] * r1 * R2 * v1 * v2 * sinTheta;
         dq2dph2 = -dq2dph1;
         if (a1Var != null) {
             dq2da1 = dq2dph1;
         }
         if (r1Var != null) {
-            dq2dr1 = -vec.y[branchNum] * R2 * v1 * v2 * cosTheta;
+            dq2dr1 = -vec.y[num] * R2 * v1 * v2 * cosTheta;
         }
     }
 

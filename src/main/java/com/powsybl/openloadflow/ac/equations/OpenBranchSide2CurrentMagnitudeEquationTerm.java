@@ -48,8 +48,8 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
         double sinPh1 = FastMath.sin(ph1);
 
         double shunt = getShunt(vec);
-        double gres = vec.g1[branchNum] + (vec.y[branchNum] * vec.y[branchNum] * vec.g2[branchNum] + (vec.b2[branchNum] * vec.b2[branchNum] + vec.g2[branchNum] * vec.g2[branchNum]) * vec.y[branchNum] * vec.sinKsi[branchNum]) / shunt;
-        double bres = vec.b1[branchNum] + (vec.y[branchNum] * vec.y[branchNum] * vec.b2[branchNum] - (vec.b2[branchNum] * vec.b2[branchNum] + vec.g2[branchNum] * vec.g2[branchNum]) * vec.y[branchNum] * vec.cosKsi[branchNum]) / shunt;
+        double gres = vec.g1[num] + (vec.y[num] * vec.y[num] * vec.g2[num] + (vec.b2[num] * vec.b2[num] + vec.g2[num] * vec.g2[num]) * vec.y[num] * vec.sinKsi[num]) / shunt;
+        double bres = vec.b1[num] + (vec.y[num] * vec.y[num] * vec.b2[num] - (vec.b2[num] * vec.b2[num] + vec.g2[num] * vec.g2[num]) * vec.y[num] * vec.cosKsi[num]) / shunt;
 
         double reI1 = r1 * w1 * (gres * cosPh1 - bres * sinPh1);
         double imI1 = r1 * w1 * (gres * sinPh1 + bres * cosPh1);

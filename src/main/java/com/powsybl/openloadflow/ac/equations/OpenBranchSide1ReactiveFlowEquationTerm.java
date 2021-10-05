@@ -35,8 +35,8 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
     public void update(double[] x, BranchVector vec) {
         double v2 = x[v2Var.getRow()];
         double shunt = getShunt(vec);
-        q2 = -R2 * R2 * v2 * v2 * (vec.b2[branchNum] + vec.y[branchNum] * vec.y[branchNum] * vec.b1[branchNum] / shunt - (vec.b1[branchNum] * vec.b1[branchNum] + vec.g1[branchNum] * vec.g1[branchNum]) * vec.y[branchNum] * vec.cosKsi[branchNum] / shunt);
-        dq2dv2 = -2 * v2 * R2 * R2 * (vec.b2[branchNum] + vec.y[branchNum] * vec.y[branchNum] * vec.b1[branchNum] / shunt - (vec.b1[branchNum] * vec.b1[branchNum] + vec.g1[branchNum] * vec.g1[branchNum]) * vec.y[branchNum] * vec.cosKsi[branchNum] / shunt);
+        q2 = -R2 * R2 * v2 * v2 * (vec.b2[num] + vec.y[num] * vec.y[num] * vec.b1[num] / shunt - (vec.b1[num] * vec.b1[num] + vec.g1[num] * vec.g1[num]) * vec.y[num] * vec.cosKsi[num] / shunt);
+        dq2dv2 = -2 * v2 * R2 * R2 * (vec.b2[num] + vec.y[num] * vec.y[num] * vec.b1[num] / shunt - (vec.b1[num] * vec.b1[num] + vec.g1[num] * vec.g1[num]) * vec.y[num] * vec.cosKsi[num] / shunt);
     }
 
     @Override

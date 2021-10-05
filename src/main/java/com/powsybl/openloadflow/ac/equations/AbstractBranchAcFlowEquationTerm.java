@@ -19,11 +19,11 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractNamedEquationTer
 
     protected final LfBranch branch;
 
-    protected final int branchNum;
+    protected final int num;
 
     protected AbstractBranchAcFlowEquationTerm(LfBranch branch) {
         this.branch = Objects.requireNonNull(branch);
-        branchNum = branch.getNum();
+        num = branch.getNum();
     }
 
     @Override

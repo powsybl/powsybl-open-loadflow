@@ -34,8 +34,8 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
         double v1 = x[v1Var.getRow()];
         double r1 = branch.getPiModel().getR1();
         double shunt = getShunt(vec);
-        p1 = r1 * r1 * v1 * v1 * (vec.g1[branchNum] + vec.y[branchNum] * vec.y[branchNum] * vec.g2[branchNum] / shunt + (vec.b2[branchNum] * vec.b2[branchNum] + vec.g2[branchNum] * vec.g2[branchNum]) * vec.y[branchNum] * vec.sinKsi[branchNum] / shunt);
-        dp1dv1 = 2 * r1 * r1 * v1 * (vec.g1[branchNum] + vec.y[branchNum] * vec.y[branchNum] * vec.g2[branchNum] / shunt + (vec.b2[branchNum] * vec.b2[branchNum] + vec.g2[branchNum] * vec.g2[branchNum]) * vec.y[branchNum] * vec.sinKsi[branchNum] / shunt);
+        p1 = r1 * r1 * v1 * v1 * (vec.g1[num] + vec.y[num] * vec.y[num] * vec.g2[num] / shunt + (vec.b2[num] * vec.b2[num] + vec.g2[num] * vec.g2[num]) * vec.y[num] * vec.sinKsi[num] / shunt);
+        dp1dv1 = 2 * r1 * r1 * v1 * (vec.g1[num] + vec.y[num] * vec.y[num] * vec.g2[num] / shunt + (vec.b2[num] * vec.b2[num] + vec.g2[num] * vec.g2[num]) * vec.y[num] * vec.sinKsi[num] / shunt);
     }
 
     @Override

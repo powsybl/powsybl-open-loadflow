@@ -56,29 +56,29 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
 
     private void updateCurrent(double v1, double v2, double ph1, double ph2, double r1, double a1, BranchVector vec) {
         double w1 = r1 * v1;
-        double w2 = vec.y[branchNum] * R2 * v2;
+        double w2 = vec.y[num] * R2 * v2;
         double cosPh1 = FastMath.cos(ph1);
         double sinPh1 = FastMath.sin(ph1);
-        double cosPh1Ksi = FastMath.cos(ph1 + vec.ksi[branchNum]);
-        double sinPh1Ksi = FastMath.sin(ph1 + vec.ksi[branchNum]);
-        double theta = vec.ksi[branchNum] - a1 + A2 + ph2;
+        double cosPh1Ksi = FastMath.cos(ph1 + vec.ksi[num]);
+        double sinPh1Ksi = FastMath.sin(ph1 + vec.ksi[num]);
+        double theta = vec.ksi[num] - a1 + A2 + ph2;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
 
-        double interReI1 = vec.g1[branchNum] * cosPh1 - vec.b1[branchNum] * sinPh1 + vec.y[branchNum] * sinPh1Ksi;
-        double interImI1 = vec.g1[branchNum] * sinPh1 + vec.b1[branchNum] * cosPh1 - vec.y[branchNum] * cosPh1Ksi;
+        double interReI1 = vec.g1[num] * cosPh1 - vec.b1[num] * sinPh1 + vec.y[num] * sinPh1Ksi;
+        double interImI1 = vec.g1[num] * sinPh1 + vec.b1[num] * cosPh1 - vec.y[num] * cosPh1Ksi;
 
         double reI1 = r1 * (w1 * interReI1 - w2 * sinTheta);
         double imI1 = r1 * (w1 * interImI1 + w2 * cosTheta);
         i1 = FastMath.hypot(reI1, imI1);
 
         double dreI1dv1 = r1 * r1 * interReI1;
-        double dreI1dv2 = r1 * (-vec.y[branchNum] * R2 * sinTheta);
-        double dreI1dph1 = r1 * w1 * (-vec.g1[branchNum] * sinPh1 - vec.b1[branchNum] * cosPh1 + vec.y[branchNum] * cosPh1Ksi);
+        double dreI1dv2 = r1 * (-vec.y[num] * R2 * sinTheta);
+        double dreI1dph1 = r1 * w1 * (-vec.g1[num] * sinPh1 - vec.b1[num] * cosPh1 + vec.y[num] * cosPh1Ksi);
         double dreI1dph2 = r1 * (-w2 * cosTheta);
 
         double dimI1dv1 = r1 * r1 * interImI1;
-        double dimI1dv2 = r1 * (vec.y[branchNum] * R2 * cosTheta);
+        double dimI1dv2 = r1 * (vec.y[num] * R2 * cosTheta);
         double dimI1dph1 = r1 * w1 * interReI1;
         double dimI1dph2 = r1 * (-w2 * sinTheta);
 

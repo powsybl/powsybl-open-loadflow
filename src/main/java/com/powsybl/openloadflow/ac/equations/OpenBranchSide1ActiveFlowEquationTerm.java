@@ -35,8 +35,8 @@ public class OpenBranchSide1ActiveFlowEquationTerm extends AbstractOpenSide1Bran
     public void update(double[] x, BranchVector vec) {
         double v2 = x[v2Var.getRow()];
         double shunt = getShunt(vec);
-        p2 = R2 * R2 * v2 * v2 * (vec.g2[branchNum] + vec.y[branchNum] * vec.y[branchNum] * vec.g1[branchNum] / shunt + (vec.b1[branchNum] * vec.b1[branchNum] + vec.g1[branchNum] * vec.g1[branchNum]) * vec.y[branchNum] * vec.sinKsi[branchNum] / shunt);
-        dp2dv2 = 2 * R2 * R2 * v2 * (vec.g2[branchNum] + vec.y[branchNum] * vec.y[branchNum] * vec.g1[branchNum] / shunt + (vec.b1[branchNum] * vec.b1[branchNum] + vec.g1[branchNum] * vec.g1[branchNum]) * vec.y[branchNum] * vec.sinKsi[branchNum] / shunt);
+        p2 = R2 * R2 * v2 * v2 * (vec.g2[num] + vec.y[num] * vec.y[num] * vec.g1[num] / shunt + (vec.b1[num] * vec.b1[num] + vec.g1[num] * vec.g1[num]) * vec.y[num] * vec.sinKsi[num] / shunt);
+        dp2dv2 = 2 * R2 * R2 * v2 * (vec.g2[num] + vec.y[num] * vec.y[num] * vec.g1[num] / shunt + (vec.b1[num] * vec.b1[num] + vec.g1[num] * vec.g1[num]) * vec.y[num] * vec.sinKsi[num] / shunt);
     }
 
     @Override
