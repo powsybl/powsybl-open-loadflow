@@ -44,14 +44,14 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     @Override
-    public void update(double[] x, BranchVector branchVector) {
+    public void update(double[] x, BranchVector vec) {
         double v2 = x[v2Var.getRow()];
         double v1 = x[v1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
         double ph1 = x[ph1Var.getRow()];
-        double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
-        double a1 = a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1();
-        updateCurrent(v1, v2, ph1, ph2, r1, a1, branchVector);
+        double r1 = r1Var != null ? x[r1Var.getRow()] : vec.r1[num];
+        double a1 = a1Var != null ? x[a1Var.getRow()] : vec.a1[num];
+        updateCurrent(v1, v2, ph1, ph2, r1, a1, vec);
     }
 
     private void updateCurrent(double v1, double v2, double ph1, double ph2, double r1, double a1, BranchVector vec) {

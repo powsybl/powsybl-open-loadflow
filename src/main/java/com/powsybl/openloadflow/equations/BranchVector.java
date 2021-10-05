@@ -15,7 +15,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class BranchVector {
+public class BranchVector extends AbstractLfNetworkListener {
 
     private final LfNetwork network;
 
@@ -27,6 +27,8 @@ public class BranchVector {
     public double[] ksi;
     public double[] sinKsi;
     public double[] cosKsi;
+    public double[] a1;
+    public double[] r1;
 
     public BranchVector(LfNetwork network) {
         this.network = Objects.requireNonNull(network);
@@ -44,6 +46,8 @@ public class BranchVector {
         ksi = new double[branchCount];
         sinKsi = new double[branchCount];
         cosKsi = new double[branchCount];
+        a1 = new double[branchCount];
+        r1 = new double[branchCount];
         for (int i = 0; i < branchCount; i++) {
             LfBranch branch = branches.get(i);
             PiModel piModel = branch.getPiModel();
@@ -58,6 +62,24 @@ public class BranchVector {
             ksi[i] = piModel.getKsi();
             cosKsi[i] = FastMath.cos(ksi[i]);
             sinKsi[i] = FastMath.sin(ksi[i]);
+            a1[i] = piModel.getA1();
+            r1[i] = piModel.getR1();
+        }
+    }
+
+    @Override
+    public void onPhaseControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition) {
+        List<LfBranch> branches = network.getBranches();
+        for (int i = 0; i < branches.size(); i++) {
+            a1[i] = branches.get(i).getPiModel().getA1();
+        }
+    }
+
+    @Override
+    public void onVoltageControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition) {
+        List<LfBranch> branches = network.getBranches();
+        for (int i = 0; i < branches.size(); i++) {
+            r1[i] = branches.get(i).getPiModel().getR1();
         }
     }
 }

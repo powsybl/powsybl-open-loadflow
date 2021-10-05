@@ -32,7 +32,7 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
     @Override
     public void update(double[] x, BranchVector vec) {
         double v1 = x[v1Var.getRow()];
-        double r1 = branch.getPiModel().getR1();
+        double r1 = vec.r1[num];
         double shunt = getShunt(vec);
         p1 = r1 * r1 * v1 * v1 * (vec.g1[num] + vec.y[num] * vec.y[num] * vec.g2[num] / shunt + (vec.b2[num] * vec.b2[num] + vec.g2[num] * vec.g2[num]) * vec.y[num] * vec.sinKsi[num] / shunt);
         dp1dv1 = 2 * r1 * r1 * v1 * (vec.g1[num] + vec.y[num] * vec.y[num] * vec.g2[num] / shunt + (vec.b2[num] * vec.b2[num] + vec.g2[num] * vec.g2[num]) * vec.y[num] * vec.sinKsi[num] / shunt);

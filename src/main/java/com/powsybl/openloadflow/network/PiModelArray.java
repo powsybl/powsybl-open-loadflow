@@ -116,6 +116,7 @@ public class PiModelArray implements PiModel {
         }
 
         // find tap position with the closest a1 value
+        int oldTapPosition = tapPosition;
         double smallestDistance = Math.abs(a1 - getModel().getA1());
         for (int p = 0; p < models.size(); p++) {
             double distance = Math.abs(a1 - models.get(p).getA1());
@@ -125,6 +126,11 @@ public class PiModelArray implements PiModel {
             }
         }
         a1 = Double.NaN;
+        if (tapPosition != oldTapPosition) {
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onPhaseControlTapPositionChange(this, oldTapPosition, tapPosition);
+            }
+        }
     }
 
     @Override
@@ -134,6 +140,7 @@ public class PiModelArray implements PiModel {
         }
 
         // find tap position with the closest r1 value
+        int oldTapPosition = tapPosition;
         double smallestDistance = Math.abs(r1 - getModel().getR1());
         for (int p = 0; p < models.size(); p++) {
             double distance = Math.abs(r1 - models.get(p).getR1());
@@ -143,10 +150,15 @@ public class PiModelArray implements PiModel {
             }
         }
         r1 = Double.NaN;
+        if (tapPosition != oldTapPosition) {
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onVoltageControlTapPositionChange(this, oldTapPosition, tapPosition);
+            }
+        }
     }
 
     @Override
-    public boolean updateTapPosition(Direction direction) {
+    public boolean updatePhaseControlTapPosition(Direction direction) {
         this.a1 = getA1();
         double previousA1 = Double.NaN;
         double nextA1 = Double.NaN;

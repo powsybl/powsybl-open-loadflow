@@ -52,7 +52,7 @@ public interface PiModel {
         DECREASE
     }
 
-    boolean updateTapPosition(Direction direction);
+    boolean updatePhaseControlTapPosition(Direction direction);
 
     boolean setMinZ(double minZ);
 }

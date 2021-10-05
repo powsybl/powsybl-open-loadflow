@@ -42,7 +42,7 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     public void update(double[] x, BranchVector vec) {
         double v1 = x[v1Var.getRow()];
         double ph1 = x[ph1Var.getRow()];
-        double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
+        double r1 = r1Var != null ? x[r1Var.getRow()] : vec.r1[num];
         double w1 = r1 * v1;
         double cosPh1 = FastMath.cos(ph1);
         double sinPh1 = FastMath.sin(ph1);
