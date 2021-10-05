@@ -73,7 +73,11 @@ public interface LfGenerator {
 
     double getRemoteTargetQ();
 
-    boolean isDisabled();
+    enum GeneratorControlType {
+        OFF, REACTIVE_POWER, VOLTAGE, MONITORING_VOLTAGE
+    }
 
-    void setDisabled(boolean disabled);
+    GeneratorControlType getGeneratorControlType();
+
+    void setGeneratorControlType(GeneratorControlType generatorControlType);
 }

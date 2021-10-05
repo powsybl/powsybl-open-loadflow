@@ -41,8 +41,6 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     protected double remoteTargetQ = Double.NaN;
 
-    protected boolean disabled = false;
-
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
     }
@@ -235,15 +233,11 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         return remoteTargetQ;
     }
 
-    protected enum GeneratorControlType {
-        OFF, REACTIVE_POWER, VOLTAGE
+    public GeneratorControlType getGeneratorControlType() {
+        return this.generatorControlType;
     }
 
-    public void setDisabled(boolean disabled) {
-        this.disabled = disabled;
-    }
-
-    public boolean isDisabled() {
-        return this.disabled;
+    public void setGeneratorControlType(GeneratorControlType generatorControlType) {
+        this.generatorControlType = generatorControlType;
     }
 }
