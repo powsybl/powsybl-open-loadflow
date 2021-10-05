@@ -88,7 +88,7 @@ public final class AcEquationSystem {
             createBusWithSlopeEquation(bus, slope, networkParameters, creationParameters, variableSet, equationSystem, vTerm);
             return;
         }
-        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V).addTerm(vTerm);
+        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V).addTerm(vTerm).setActive(bus.isVoltageControllerEnabled());
     }
 
     private static void createReactivePowerControlBranchEquation(LfBranch branch, ReactivePowerControl.ControlledSide controlledSide,
@@ -112,18 +112,15 @@ public final class AcEquationSystem {
                                                             LfNetworkParameters networkParameters, AcEquationSystemCreationParameters creationParameters) {
         LfBus controlledBus = voltageControl.getControlledBus();
 
-        // create voltage equation at voltage controlled bus
-        EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(controlledBus, AcVariableType.BUS_V, variableSet, controlledBus.getV().eval());
-        Equation<AcVariableType, AcEquationType> vEq = equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_V)
-                .addTerm(vTerm);
-        controlledBus.setV(vTerm);
-
         List<LfBus> controllerBuses = voltageControl.getControllerBuses().stream()
                 .filter(LfBus::isVoltageControllerEnabled)
                 .collect(Collectors.toList());
-        if (controllerBuses.isEmpty()) {
-            vEq.setActive(false);
-        } else {
+        if (!controllerBuses.isEmpty()) {
+            // create voltage equation at voltage controlled bus
+            EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(controlledBus, AcVariableType.BUS_V, variableSet, controlledBus.getV().eval());
+            equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_V)
+                    .addTerm(vTerm);
+            controlledBus.setV(vTerm);
             // create reactive power distribution equations at voltage controller buses (except one)
             createReactivePowerDistributionEquations(equationSystem, variableSet, networkParameters, creationParameters, controllerBuses);
         }

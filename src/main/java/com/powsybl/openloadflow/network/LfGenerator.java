@@ -72,4 +72,8 @@ public interface LfGenerator {
     ReactivePowerControl.ControlledSide getControlledBranchSide();
 
     double getRemoteTargetQ();
+
+    boolean isDisabled();
+
+    void setDisabled(boolean disabled);
 }
