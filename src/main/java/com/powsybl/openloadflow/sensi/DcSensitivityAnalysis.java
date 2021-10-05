@@ -639,7 +639,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         boolean distributedSlackOnLoads = isDistributedSlackOnLoads(lfParameters);
         for (Load load : loads) {
             LfBus bus = lfNetwork.getBusById(load.getTerminal().getBusView().getBus().getId());
-            bus.setLoadTargetP(bus.getLoadTargetP() - load.getP0()); // we don't change the slack distribution participation here.
+            bus.setLoadTargetP(bus.getLoadTargetP() - load.getP0() / PerUnit.SB); // we don't change the slack distribution participation here.
             boolean isBusParticipating = bus.isParticipating();
             if (distributedSlackOnLoads && isBusParticipating) {
                 participatingLoadsToRemove.add(load);
@@ -713,6 +713,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     }
                 }
                 newParticipatingElements.removeAll(participatingElementsToRemoveLoad);
+                for (ParticipatingElement element : participatingElementsToRemoveLoad) {
+                    ((LfBus) element.getElement()).setDisabled(true);
+                }
                 String elementType = isDistributedSlackOnLoads(lfParameters) ? "LfBus" : "LfGenerators";
                 normalizeParticipationFactors(newParticipatingElements, elementType);
                 newFactorStates = calculateStates(j, equationSystem, factorGroups, newParticipatingElements);
