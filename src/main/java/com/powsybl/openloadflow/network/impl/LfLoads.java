@@ -101,8 +101,4 @@ public class LfLoads extends AbstractElement {
         return load.getP0() != 0 ? load.getQ0() / load.getP0() : 1;
     }
 
-    public List<Load> getLoads() {
-        return loads;
-    }
-
 }

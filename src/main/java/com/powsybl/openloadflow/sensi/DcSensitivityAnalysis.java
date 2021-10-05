@@ -696,19 +696,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 Set<ParticipatingElement> participatingElementsToRemoveLoad = new HashSet<>();
                 for (ParticipatingElement parcitipatingElement : newParticipatingElements) {
                     if (LfBus.class.isInstance(parcitipatingElement.getElement())) {
-                        LfLoads loads = ((LfBus) parcitipatingElement.getElement()).getLfLoads();
-                        double precontingencyLoad = 0;
-                        double postcontingencyLoad = 0;
-                        for (Load load : loads.getLoads()) {
-                            if (!participatingLoadsToRemove.contains(load)) {
-                                postcontingencyLoad += load.getP0();
-                            }
-                            precontingencyLoad += load.getP0();
-                        }
-                        if (postcontingencyLoad == 0) {
+                        LfBus bus = (LfBus) parcitipatingElement.getElement();
+                        double targetP = bus.getLoadTargetP();
+                        double initTargetP = bus.getInitialLoadTargetP();
+                        if (targetP == 0) {
                             participatingElementsToRemoveLoad.add(parcitipatingElement);
                         } else {
-                            parcitipatingElement.setFactor(parcitipatingElement.getFactor() * postcontingencyLoad / precontingencyLoad);
+                            parcitipatingElement.setFactor(parcitipatingElement.getFactor() * targetP / initTargetP);
                         }
                     }
                 }
