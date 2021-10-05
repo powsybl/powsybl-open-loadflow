@@ -857,9 +857,9 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0, getValue(contingencyResult, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0, getValue(contingencyResult, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
 
-        assertEquals(-4d / 3d, getFunctionReference(contingencyResult, "l12"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(1d / 3d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(5d / 3d, getFunctionReference(contingencyResult, "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.0667d, getFunctionReference(contingencyResult, "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0667d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.1333d, getFunctionReference(contingencyResult, "l23"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1615,8 +1615,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .join();
 
         // different sensitivity for (g2, l46) on base case and after contingency l45
-        assertEquals(0.133d, getValue(result, "g2", "l46"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.4d, getContingencyValue(result, "l45", "g2", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0667d, getValue(result, "g2", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.1429d, getContingencyValue(result, "l45", "g2", "l46"), LoadFlowAssert.DELTA_POWER);
 
         // we open l45 at both sides
         Line l45 = network.getLine("l45");
@@ -1630,8 +1630,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         // we now have as expected the sensitivity for (g2, l46) on base case and after contingency l45
         // because l45 is already open on base case
-        assertEquals(0.4d, getValue(result, "g2", "l46"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.4d, getContingencyValue(result, "l45", "g2", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.1429d, getValue(result, "g2", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.1429d, getContingencyValue(result, "l45", "g2", "l46"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
