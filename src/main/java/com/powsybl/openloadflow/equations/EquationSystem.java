@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -22,7 +24,11 @@ import java.util.stream.Collectors;
  */
 public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
+    private final LfNetwork network;
+
     private final boolean indexTerms;
+
+    private final BranchVector branchVector;
 
     private final Map<Pair<Integer, E>, Equation<V, E>> equations = new HashMap<>();
 
@@ -172,12 +178,14 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         NEVER
     }
 
-    public EquationSystem() {
-        this(false);
+    public EquationSystem(LfNetwork network) {
+        this(network, false);
     }
 
-    public EquationSystem(boolean indexTerms) {
+    public EquationSystem(LfNetwork network, boolean indexTerms) {
+        this.network = network;
         this.indexTerms = indexTerms;
+        branchVector = new BranchVector(network);
         addListener(equationCache);
     }
 
@@ -284,10 +292,14 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         if (fx.length != equationCache.getSortedEquationsToSolve().size()) {
             throw new IllegalArgumentException("Bad equation vector length: " + fx.length);
         }
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         Arrays.fill(fx, 0);
         for (Equation<V, E> equation : equationCache.getSortedEquationsToSolve().keySet()) {
             fx[equation.getColumn()] = equation.eval();
         }
+
+        System.out.println("Update equation vector done in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms");
     }
 
     public void updateEquations(double[] x) {
@@ -297,11 +309,16 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     public void updateEquations(double[] x, EquationUpdateType updateType) {
         Objects.requireNonNull(x);
         Objects.requireNonNull(updateType);
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         for (Equation<V, E> equation : equations.values()) {
             if (updateType == equation.getUpdateType()) {
-                equation.update(x);
+                equation.update(x, branchVector);
             }
         }
+
+        System.out.println("Update equations done in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms");
+
         listeners.forEach(listener -> listener.onStateUpdate(x));
     }
 

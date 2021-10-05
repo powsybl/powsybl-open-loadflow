@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.equations.BranchVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -21,18 +22,19 @@ abstract class AbstractOpenSide1BranchAcFlowEquationTerm extends AbstractBranchA
 
     protected final List<Variable<AcVariableType>> variables;
 
-    protected double shunt;
-
     protected AbstractOpenSide1BranchAcFlowEquationTerm(LfBranch branch, AcVariableType variableType,
                                                    LfBus bus, VariableSet<AcVariableType> variableSet,
                                                    boolean deriveA1, boolean deriveR1) {
         super(branch);
         variables = Collections.singletonList(variableSet.getVariable(bus.getNum(), variableType));
-        shunt = (g1 + y * sinKsi) * (g1 + y * sinKsi) + (-b1 + y * cosKsi) * (-b1 + y * cosKsi);
 
         if (deriveA1 || deriveR1) {
             throw new IllegalArgumentException("Variable A1 or R1 on open branch not supported: " + branch.getId());
         }
+    }
+
+    protected double getShunt(BranchVector branchVector) {
+        return  (branchVector.g1[branchNum] + branchVector.y[branchNum] * branchVector.sinKsi[branchNum]) * (branchVector.g1[branchNum] + branchVector.y[branchNum] * branchVector.sinKsi[branchNum]) + (-branchVector.b1[branchNum] + branchVector.y[branchNum] * branchVector.cosKsi[branchNum]) * (-branchVector.b1[branchNum] + branchVector.y[branchNum] * branchVector.cosKsi[branchNum]);
     }
 
     @Override

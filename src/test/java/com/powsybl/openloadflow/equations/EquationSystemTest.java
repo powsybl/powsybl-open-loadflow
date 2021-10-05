@@ -49,7 +49,7 @@ class EquationSystemTest {
         LfNetwork network = lfNetworks.get(0);
 
         LfBus bus = network.getBus(0);
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(true);
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(network, true);
         equationSystem.addListener(new EquationSystemListener<>() {
             @Override
             public void onEquationChange(Equation<AcVariableType, AcEquationType> equation, EquationEventType eventType) {

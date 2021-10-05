@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.equations.BranchVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -40,7 +41,7 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     @Override
-    public void update(double[] x) {
+    public void update(double[] x, BranchVector branchVector) {
         Objects.requireNonNull(x);
         double v1 = x[v1Var.getRow()];
         double ph1 = x[ph1Var.getRow()];
@@ -49,8 +50,9 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
         double cosPh1 = FastMath.cos(ph1);
         double sinPh1 = FastMath.sin(ph1);
 
-        double gres = g1 + (y * y * g2 + (b2 * b2 + g2 * g2) * y * sinKsi) / shunt;
-        double bres = b1 + (y * y * b2 - (b2 * b2 + g2 * g2) * y * cosKsi) / shunt;
+        double shunt = getShunt(branchVector);
+        double gres = branchVector.g1[branchNum] + (branchVector.y[branchNum] * branchVector.y[branchNum] * branchVector.g2[branchNum] + (branchVector.b2[branchNum] * branchVector.b2[branchNum] + branchVector.g2[branchNum] * branchVector.g2[branchNum]) * branchVector.y[branchNum] * branchVector.sinKsi[branchNum]) / shunt;
+        double bres = branchVector.b1[branchNum] + (branchVector.y[branchNum] * branchVector.y[branchNum] * branchVector.b2[branchNum] - (branchVector.b2[branchNum] * branchVector.b2[branchNum] + branchVector.g2[branchNum] * branchVector.g2[branchNum]) * branchVector.y[branchNum] * branchVector.cosKsi[branchNum]) / shunt;
 
         double reI1 = r1 * w1 * (gres * cosPh1 - bres * sinPh1);
         double imI1 = r1 * w1 * (gres * sinPh1 + bres * cosPh1);

@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.equations.BranchVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -46,27 +47,27 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public void update(double[] x) {
+    public void update(double[] x, BranchVector branchVector) {
         Objects.requireNonNull(x);
         double v1 = x[v1Var.getRow()];
         double v2 = x[v2Var.getRow()];
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
-        double theta = ksi - (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1())
+        double theta = branchVector.ksi[branchNum] - (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1())
                 + A2 - ph1 + ph2;
         double cosTheta = FastMath.cos(theta);
         double sinTheta = FastMath.sin(theta);
         double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
-        q1 = r1 * v1 * (-b1 * r1 * v1 + y * r1 * v1 * cosKsi - y * R2 * v2 * cosTheta);
-        dq1dv1 = r1 * (-2 * b1 * r1 * v1 + 2 * y * r1 * v1 * cosKsi - y * R2 * v2 * cosTheta);
-        dq1dv2 = -y * r1 * R2 * v1 * cosTheta;
-        dq1dph1 = -y * r1 * R2 * v1 * v2 * sinTheta;
+        q1 = r1 * v1 * (-branchVector.b1[branchNum] * r1 * v1 + branchVector.y[branchNum] * r1 * v1 * branchVector.cosKsi[branchNum] - branchVector.y[branchNum] * R2 * v2 * cosTheta);
+        dq1dv1 = r1 * (-2 * branchVector.b1[branchNum] * r1 * v1 + 2 * branchVector.y[branchNum] * r1 * v1 * branchVector.cosKsi[branchNum] - branchVector.y[branchNum] * R2 * v2 * cosTheta);
+        dq1dv2 = -branchVector.y[branchNum] * r1 * R2 * v1 * cosTheta;
+        dq1dph1 = -branchVector.y[branchNum] * r1 * R2 * v1 * v2 * sinTheta;
         dq1dph2 = -dq1dph1;
         if (a1Var != null) {
             dq1da1 = dq1dph1;
         }
         if (r1Var != null) {
-            dq1dr1 = v1 * (2 * r1 * v1 * (-b1 + y * cosKsi) - y * R2 * v2 * cosTheta);
+            dq1dr1 = v1 * (2 * r1 * v1 * (-branchVector.b1[branchNum] + branchVector.y[branchNum] * branchVector.cosKsi[branchNum]) - branchVector.y[branchNum] * R2 * v2 * cosTheta);
         }
     }
 

@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
@@ -13,6 +14,7 @@ import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -124,6 +126,8 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     private void initMatrix() {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         int rowCount = equationSystem.getSortedEquationsToSolve().size();
         int columnCount = equationSystem.getSortedVariablesToFind().size();
         if (rowCount != columnCount) {
@@ -148,9 +152,13 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 }
             }
         }
+
+        System.out.println("Init jac done in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms");
     }
 
     private void updateValues() {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         matrix.reset();
         for (PartialDerivative<V, E> partialDerivative : partialDerivatives) {
             EquationTerm<V, E> equationTerm = partialDerivative.getEquationTerm();
@@ -159,6 +167,8 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             double value = equationTerm.der(var);
             matrix.addAtIndex(elementIndex, value);
         }
+
+        System.out.println("Update jac done in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms");
 
         if (lu != null) {
             lu.update();

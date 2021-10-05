@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.equations.BranchVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -31,12 +32,13 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
     }
 
     @Override
-    public void update(double[] x) {
+    public void update(double[] x, BranchVector branchVector) {
         Objects.requireNonNull(x);
         double v1 = x[v1Var.getRow()];
         double r1 = branch.getPiModel().getR1();
-        p1 = r1 * r1 * v1 * v1 * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * sinKsi / shunt);
-        dp1dv1 = 2 * r1 * r1 * v1 * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * sinKsi / shunt);
+        double shunt = getShunt(branchVector);
+        p1 = r1 * r1 * v1 * v1 * (branchVector.g1[branchNum] + branchVector.y[branchNum] * branchVector.y[branchNum] * branchVector.g2[branchNum] / shunt + (branchVector.b2[branchNum] * branchVector.b2[branchNum] + branchVector.g2[branchNum] * branchVector.g2[branchNum]) * branchVector.y[branchNum] * branchVector.sinKsi[branchNum] / shunt);
+        dp1dv1 = 2 * r1 * r1 * v1 * (branchVector.g1[branchNum] + branchVector.y[branchNum] * branchVector.y[branchNum] * branchVector.g2[branchNum] / shunt + (branchVector.b2[branchNum] * branchVector.b2[branchNum] + branchVector.g2[branchNum] * branchVector.g2[branchNum]) * branchVector.y[branchNum] * branchVector.sinKsi[branchNum] / shunt);
     }
 
     @Override

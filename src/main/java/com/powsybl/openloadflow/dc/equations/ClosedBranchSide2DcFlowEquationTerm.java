@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
+import com.powsybl.openloadflow.equations.BranchVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -45,7 +46,7 @@ public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public void update(double[] x) {
+    public void update(double[] x, BranchVector branchVector) {
         Objects.requireNonNull(x);
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];

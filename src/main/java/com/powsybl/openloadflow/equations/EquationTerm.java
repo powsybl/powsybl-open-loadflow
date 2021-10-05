@@ -71,8 +71,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public void update(double[] x) {
-            term.update(x);
+        public void update(double[] x, BranchVector branchVector) {
+            term.update(x, branchVector);
         }
 
         @Override
@@ -142,7 +142,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public void update(double[] x) {
+        public void update(double[] x, BranchVector branchVector) {
             value = x[variables.get(0).getRow()];
         }
 
@@ -214,7 +214,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      * Update equation term using {@code x} variable values.
      * @param x variables values vector
      */
-    void update(double[] x);
+    void update(double[] x, BranchVector branchVector);
 
     /**
      * Evaluate equation term.

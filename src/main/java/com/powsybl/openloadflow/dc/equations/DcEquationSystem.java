@@ -146,7 +146,7 @@ public final class DcEquationSystem {
     }
 
     public static EquationSystem<DcVariableType, DcEquationType> create(LfNetwork network, VariableSet<DcVariableType> variableSet, DcEquationSystemCreationParameters creationParameters) {
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = new EquationSystem<>(creationParameters.isIndexTerms());
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = new EquationSystem<>(network, creationParameters.isIndexTerms());
 
         createBuses(network, variableSet, equationSystem);
         createBranches(network, variableSet, equationSystem, creationParameters);
