@@ -13,8 +13,6 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
-import java.util.Objects;
-
 import static com.powsybl.openloadflow.network.PiModel.A2;
 import static com.powsybl.openloadflow.network.PiModel.R2;
 
@@ -46,41 +44,41 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     @Override
-    public void update(double[] x, BranchVector branchVector) {
+    public void update(double[] x, BranchVector vec) {
         double v1 = x[v1Var.getRow()];
         double v2 = x[v2Var.getRow()];
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
         double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
         double a1 = a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1();
-        updateCurrent(branchVector, v1, v2, ph1, ph2, r1, a1);
+        updateCurrent(v1, v2, ph1, ph2, r1, a1, vec);
     }
 
-    private void updateCurrent(BranchVector branchVector, double v1, double v2, double ph1, double ph2, double r1, double a1) {
+    private void updateCurrent(double v1, double v2, double ph1, double ph2, double r1, double a1, BranchVector vec) {
         double w1 = r1 * v1;
-        double w2 = branchVector.y[branchNum] * R2 * v2;
+        double w2 = vec.y[branchNum] * R2 * v2;
         double cosPh1 = FastMath.cos(ph1);
         double sinPh1 = FastMath.sin(ph1);
-        double cosPh1Ksi = FastMath.cos(ph1 + branchVector.ksi[branchNum]);
-        double sinPh1Ksi = FastMath.sin(ph1 + branchVector.ksi[branchNum]);
-        double theta = branchVector.ksi[branchNum] - a1 + A2 + ph2;
+        double cosPh1Ksi = FastMath.cos(ph1 + vec.ksi[branchNum]);
+        double sinPh1Ksi = FastMath.sin(ph1 + vec.ksi[branchNum]);
+        double theta = vec.ksi[branchNum] - a1 + A2 + ph2;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
 
-        double interReI1 = branchVector.g1[branchNum] * cosPh1 - branchVector.b1[branchNum] * sinPh1 + branchVector.y[branchNum] * sinPh1Ksi;
-        double interImI1 = branchVector.g1[branchNum] * sinPh1 + branchVector.b1[branchNum] * cosPh1 - branchVector.y[branchNum] * cosPh1Ksi;
+        double interReI1 = vec.g1[branchNum] * cosPh1 - vec.b1[branchNum] * sinPh1 + vec.y[branchNum] * sinPh1Ksi;
+        double interImI1 = vec.g1[branchNum] * sinPh1 + vec.b1[branchNum] * cosPh1 - vec.y[branchNum] * cosPh1Ksi;
 
         double reI1 = r1 * (w1 * interReI1 - w2 * sinTheta);
         double imI1 = r1 * (w1 * interImI1 + w2 * cosTheta);
         i1 = FastMath.hypot(reI1, imI1);
 
         double dreI1dv1 = r1 * r1 * interReI1;
-        double dreI1dv2 = r1 * (-branchVector.y[branchNum] * R2 * sinTheta);
-        double dreI1dph1 = r1 * w1 * (-branchVector.g1[branchNum] * sinPh1 - branchVector.b1[branchNum] * cosPh1 + branchVector.y[branchNum] * cosPh1Ksi);
+        double dreI1dv2 = r1 * (-vec.y[branchNum] * R2 * sinTheta);
+        double dreI1dph1 = r1 * w1 * (-vec.g1[branchNum] * sinPh1 - vec.b1[branchNum] * cosPh1 + vec.y[branchNum] * cosPh1Ksi);
         double dreI1dph2 = r1 * (-w2 * cosTheta);
 
         double dimI1dv1 = r1 * r1 * interImI1;
-        double dimI1dv2 = r1 * (branchVector.y[branchNum] * R2 * cosTheta);
+        double dimI1dv2 = r1 * (vec.y[branchNum] * R2 * cosTheta);
         double dimI1dph1 = r1 * w1 * interReI1;
         double dimI1dph2 = r1 * (-w2 * sinTheta);
 

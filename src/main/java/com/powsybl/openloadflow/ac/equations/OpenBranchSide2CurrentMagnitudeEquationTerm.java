@@ -13,8 +13,6 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
-import java.util.Objects;
-
 /**
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
@@ -41,7 +39,7 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     @Override
-    public void update(double[] x, BranchVector branchVector) {
+    public void update(double[] x, BranchVector vec) {
         double v1 = x[v1Var.getRow()];
         double ph1 = x[ph1Var.getRow()];
         double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
@@ -49,9 +47,9 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
         double cosPh1 = FastMath.cos(ph1);
         double sinPh1 = FastMath.sin(ph1);
 
-        double shunt = getShunt(branchVector);
-        double gres = branchVector.g1[branchNum] + (branchVector.y[branchNum] * branchVector.y[branchNum] * branchVector.g2[branchNum] + (branchVector.b2[branchNum] * branchVector.b2[branchNum] + branchVector.g2[branchNum] * branchVector.g2[branchNum]) * branchVector.y[branchNum] * branchVector.sinKsi[branchNum]) / shunt;
-        double bres = branchVector.b1[branchNum] + (branchVector.y[branchNum] * branchVector.y[branchNum] * branchVector.b2[branchNum] - (branchVector.b2[branchNum] * branchVector.b2[branchNum] + branchVector.g2[branchNum] * branchVector.g2[branchNum]) * branchVector.y[branchNum] * branchVector.cosKsi[branchNum]) / shunt;
+        double shunt = getShunt(vec);
+        double gres = vec.g1[branchNum] + (vec.y[branchNum] * vec.y[branchNum] * vec.g2[branchNum] + (vec.b2[branchNum] * vec.b2[branchNum] + vec.g2[branchNum] * vec.g2[branchNum]) * vec.y[branchNum] * vec.sinKsi[branchNum]) / shunt;
+        double bres = vec.b1[branchNum] + (vec.y[branchNum] * vec.y[branchNum] * vec.b2[branchNum] - (vec.b2[branchNum] * vec.b2[branchNum] + vec.g2[branchNum] * vec.g2[branchNum]) * vec.y[branchNum] * vec.cosKsi[branchNum]) / shunt;
 
         double reI1 = r1 * w1 * (gres * cosPh1 - bres * sinPh1);
         double imI1 = r1 * w1 * (gres * sinPh1 + bres * cosPh1);

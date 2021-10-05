@@ -13,8 +13,6 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
-import java.util.Objects;
-
 import static com.powsybl.openloadflow.network.PiModel.A2;
 import static com.powsybl.openloadflow.network.PiModel.R2;
 
@@ -47,26 +45,26 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     @Override
-    public void update(double[] x, BranchVector branchVector) {
+    public void update(double[] x, BranchVector vec) {
         double v1 = x[v1Var.getRow()];
         double v2 = x[v2Var.getRow()];
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
-        double theta = branchVector.ksi[branchNum] + (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1())
+        double theta = vec.ksi[branchNum] + (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1())
                 - A2 + ph1 - ph2;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
         double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
-        p2 = R2 * v2 * (branchVector.g2[branchNum] * R2 * v2 - branchVector.y[branchNum] * r1 * v1 * sinTheta + branchVector.y[branchNum] * R2 * v2 * branchVector.sinKsi[branchNum]);
-        dp2dv1 = -branchVector.y[branchNum] * r1 * R2 * v2 * sinTheta;
-        dp2dv2 = R2 * (2 * branchVector.g2[branchNum] * R2 * v2 - branchVector.y[branchNum] * r1 * v1 * sinTheta + 2 * branchVector.y[branchNum] * R2 * v2 * branchVector.sinKsi[branchNum]);
-        dp2dph1 = -branchVector.y[branchNum] * r1 * R2 * v1 * v2 * cosTheta;
+        p2 = R2 * v2 * (vec.g2[branchNum] * R2 * v2 - vec.y[branchNum] * r1 * v1 * sinTheta + vec.y[branchNum] * R2 * v2 * vec.sinKsi[branchNum]);
+        dp2dv1 = -vec.y[branchNum] * r1 * R2 * v2 * sinTheta;
+        dp2dv2 = R2 * (2 * vec.g2[branchNum] * R2 * v2 - vec.y[branchNum] * r1 * v1 * sinTheta + 2 * vec.y[branchNum] * R2 * v2 * vec.sinKsi[branchNum]);
+        dp2dph1 = -vec.y[branchNum] * r1 * R2 * v1 * v2 * cosTheta;
         dp2dph2 = -dp2dph1;
         if (a1Var != null) {
             dp2da1 = dp2dph1;
         }
         if (r1Var != null) {
-            dp2dr1 = -branchVector.y[branchNum] * R2 * v1 * v2 * sinTheta;
+            dp2dr1 = -vec.y[branchNum] * R2 * v1 * v2 * sinTheta;
         }
     }
 

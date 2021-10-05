@@ -12,8 +12,6 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 
-import java.util.Objects;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -32,12 +30,12 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
     }
 
     @Override
-    public void update(double[] x, BranchVector branchVector) {
+    public void update(double[] x, BranchVector vec) {
         double v1 = x[v1Var.getRow()];
         double r1 = branch.getPiModel().getR1();
-        double shunt = getShunt(branchVector);
-        p1 = r1 * r1 * v1 * v1 * (branchVector.g1[branchNum] + branchVector.y[branchNum] * branchVector.y[branchNum] * branchVector.g2[branchNum] / shunt + (branchVector.b2[branchNum] * branchVector.b2[branchNum] + branchVector.g2[branchNum] * branchVector.g2[branchNum]) * branchVector.y[branchNum] * branchVector.sinKsi[branchNum] / shunt);
-        dp1dv1 = 2 * r1 * r1 * v1 * (branchVector.g1[branchNum] + branchVector.y[branchNum] * branchVector.y[branchNum] * branchVector.g2[branchNum] / shunt + (branchVector.b2[branchNum] * branchVector.b2[branchNum] + branchVector.g2[branchNum] * branchVector.g2[branchNum]) * branchVector.y[branchNum] * branchVector.sinKsi[branchNum] / shunt);
+        double shunt = getShunt(vec);
+        p1 = r1 * r1 * v1 * v1 * (vec.g1[branchNum] + vec.y[branchNum] * vec.y[branchNum] * vec.g2[branchNum] / shunt + (vec.b2[branchNum] * vec.b2[branchNum] + vec.g2[branchNum] * vec.g2[branchNum]) * vec.y[branchNum] * vec.sinKsi[branchNum] / shunt);
+        dp1dv1 = 2 * r1 * r1 * v1 * (vec.g1[branchNum] + vec.y[branchNum] * vec.y[branchNum] * vec.g2[branchNum] / shunt + (vec.b2[branchNum] * vec.b2[branchNum] + vec.g2[branchNum] * vec.g2[branchNum]) * vec.y[branchNum] * vec.sinKsi[branchNum] / shunt);
     }
 
     @Override
