@@ -32,10 +32,10 @@ public class BranchVector extends AbstractLfNetworkListener {
 
     public BranchVector(LfNetwork network) {
         this.network = Objects.requireNonNull(network);
-        update();
+        init();
     }
 
-    private void update() {
+    private void init() {
         List<LfBranch> branches = network.getBranches();
         int branchCount = branches.size();
         b1 = new double[branchCount];
@@ -70,6 +70,7 @@ public class BranchVector extends AbstractLfNetworkListener {
     @Override
     public void onPhaseControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition) {
         List<LfBranch> branches = network.getBranches();
+        a1 = new double[branches.size()];
         for (int i = 0; i < branches.size(); i++) {
             a1[i] = branches.get(i).getPiModel().getA1();
         }
@@ -78,6 +79,7 @@ public class BranchVector extends AbstractLfNetworkListener {
     @Override
     public void onVoltageControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition) {
         List<LfBranch> branches = network.getBranches();
+        r1 = new double[branches.size()];
         for (int i = 0; i < branches.size(); i++) {
             r1[i] = branches.get(i).getPiModel().getR1();
         }
