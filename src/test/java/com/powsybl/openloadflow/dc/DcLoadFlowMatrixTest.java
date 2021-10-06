@@ -20,6 +20,7 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.junit.jupiter.api.Test;
@@ -54,7 +55,7 @@ class DcLoadFlowMatrixTest {
 
         logNetwork(network);
 
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 
         VariableSet<DcVariableType> variableSet = new VariableSet<>();
@@ -106,7 +107,7 @@ class DcLoadFlowMatrixTest {
         network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
         network.getLine("NHV1_NHV2_1").getTerminal2().disconnect();
 
-        lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector());
         mainNetwork = lfNetworks.get(0);
 
         equationSystem = DcEquationSystem.create(mainNetwork, variableSet, creationParameters);

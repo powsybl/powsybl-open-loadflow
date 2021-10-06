@@ -47,10 +47,6 @@ public class AcloadFlowEngine implements AutoCloseable {
         this.parameters = Objects.requireNonNull(parameters);
     }
 
-    public static List<LfNetwork> createNetworks(Object network, AcLoadFlowParameters parameters, Reporter reporter) {
-        return LfNetwork.load(network, parameters.getNetworkParameters(), reporter);
-    }
-
     public LfNetwork getNetwork() {
         return network;
     }
@@ -295,8 +291,8 @@ public class AcloadFlowEngine implements AutoCloseable {
         }
     }
 
-    public static List<AcLoadFlowResult> run(Object network, AcLoadFlowParameters parameters, Reporter reporter) {
-        return createNetworks(network, parameters, reporter)
+    public static <T> List<AcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, AcLoadFlowParameters parameters, Reporter reporter) {
+        return LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reporter)
                 .stream()
                 .map(n -> {
                     if (n.isValid()) {

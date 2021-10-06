@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.SlackTerminalAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -39,7 +40,7 @@ class NetworkSlackBusSelectorTest {
 
     @Test
     void noExtensionTest() {
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new NetworkSlackBusSelector(network, selectorMock));
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), new NetworkSlackBusSelector(network, selectorMock));
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertEquals("VLHV1_0", lfNetwork.getSlackBus().getId());
         assertEquals(4, fallbackBusCount);
@@ -52,7 +53,7 @@ class NetworkSlackBusSelectorTest {
         vlload.newExtension(SlackTerminalAdder.class)
                 .withTerminal(load.getTerminal())
                 .add();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new NetworkSlackBusSelector(network, selectorMock));
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), new NetworkSlackBusSelector(network, selectorMock));
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertEquals("VLLOAD_0", lfNetwork.getSlackBus().getId());
         assertEquals(-1, fallbackBusCount);
@@ -70,7 +71,7 @@ class NetworkSlackBusSelectorTest {
         vlgen.newExtension(SlackTerminalAdder.class)
                 .withTerminal(gen.getTerminal())
                 .add();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new NetworkSlackBusSelector(network, selectorMock));
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), new NetworkSlackBusSelector(network, selectorMock));
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertEquals("VLLOAD_0", lfNetwork.getSlackBus().getId());
         assertEquals(2, fallbackBusCount);

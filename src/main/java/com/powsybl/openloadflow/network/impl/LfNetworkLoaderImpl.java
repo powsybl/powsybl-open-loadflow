@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Report;
@@ -32,8 +31,7 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-@AutoService(LfNetworkLoader.class)
-public class LfNetworkLoaderImpl implements LfNetworkLoader {
+public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetworkLoaderImpl.class);
 
@@ -679,57 +677,53 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader {
     }
 
     @Override
-    public Optional<List<LfNetwork>> load(Object network, LfNetworkParameters parameters, Reporter reporter) {
+    public List<LfNetwork> load(Network network, LfNetworkParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
-        if (network instanceof Network) {
-            Stopwatch stopwatch = Stopwatch.createStarted();
+        Stopwatch stopwatch = Stopwatch.createStarted();
 
-            Map<Pair<Integer, Integer>, List<Bus>> busesByCc = new TreeMap<>();
-            Iterable<Bus> buses = parameters.isBreakers() ? ((Network) network).getBusBreakerView().getBuses()
-                                                          : ((Network) network).getBusView().getBuses();
-            for (Bus bus : buses) {
-                Component cc = bus.getConnectedComponent();
-                Component sc = bus.getSynchronousComponent();
-                if (cc != null && sc != null) {
-                    busesByCc.computeIfAbsent(Pair.of(cc.getNum(), sc.getNum()), k -> new ArrayList<>()).add(bus);
-                }
+        Map<Pair<Integer, Integer>, List<Bus>> busesByCc = new TreeMap<>();
+        Iterable<Bus> buses = parameters.isBreakers() ? network.getBusBreakerView().getBuses()
+                                                      : network.getBusView().getBuses();
+        for (Bus bus : buses) {
+            Component cc = bus.getConnectedComponent();
+            Component sc = bus.getSynchronousComponent();
+            if (cc != null && sc != null) {
+                busesByCc.computeIfAbsent(Pair.of(cc.getNum(), sc.getNum()), k -> new ArrayList<>()).add(bus);
             }
+        }
 
-            Map<Pair<Integer, Integer>, List<Switch>> switchesByCc = new HashMap<>();
-            if (parameters.isBreakers()) {
-                for (VoltageLevel vl : ((Network) network).getVoltageLevels()) {
-                    for (Switch sw : vl.getBusBreakerView().getSwitches()) {
-                        if (!sw.isOpen()) { // only create closed switches as in security analysis we can only open switches
-                            Bus bus1 = vl.getBusBreakerView().getBus1(sw.getId());
-                            Component cc = bus1.getConnectedComponent();
-                            Component sc = bus1.getSynchronousComponent();
-                            if (cc != null && sc != null) {
-                                switchesByCc.computeIfAbsent(Pair.of(cc.getNum(), sc.getNum()), k -> new ArrayList<>()).add(sw);
-                            }
+        Map<Pair<Integer, Integer>, List<Switch>> switchesByCc = new HashMap<>();
+        if (parameters.isBreakers()) {
+            for (VoltageLevel vl : network.getVoltageLevels()) {
+                for (Switch sw : vl.getBusBreakerView().getSwitches()) {
+                    if (!sw.isOpen()) { // only create closed switches as in security analysis we can only open switches
+                        Bus bus1 = vl.getBusBreakerView().getBus1(sw.getId());
+                        Component cc = bus1.getConnectedComponent();
+                        Component sc = bus1.getSynchronousComponent();
+                        if (cc != null && sc != null) {
+                            switchesByCc.computeIfAbsent(Pair.of(cc.getNum(), sc.getNum()), k -> new ArrayList<>()).add(sw);
                         }
                     }
                 }
             }
-
-            Stream<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filteredBusesByCcStream = parameters.isComputeMainConnectedComponentOnly()
-                ? busesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
-                : busesByCc.entrySet().stream();
-
-            List<LfNetwork> lfNetworks = filteredBusesByCcStream
-                    .map(e -> create(e.getKey().getLeft(), e.getKey().getRight(), e.getValue(), switchesByCc.get(e.getKey()), parameters,
-                        reporter.createSubReporter("createLfNetwork", "Create network ${networkNum}", "networkNum", e.getKey().getLeft())))
-                    .collect(Collectors.toList());
-
-            stopwatch.stop();
-
-            LOGGER.debug(PERFORMANCE_MARKER, "LF networks created in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
-
-            return Optional.of(lfNetworks);
         }
 
-        return Optional.empty();
+        Stream<Map.Entry<Pair<Integer, Integer>, List<Bus>>> filteredBusesByCcStream = parameters.isComputeMainConnectedComponentOnly()
+            ? busesByCc.entrySet().stream().filter(e -> e.getKey().getLeft() == ComponentConstants.MAIN_NUM)
+            : busesByCc.entrySet().stream();
+
+        List<LfNetwork> lfNetworks = filteredBusesByCcStream
+                .map(e -> create(e.getKey().getLeft(), e.getKey().getRight(), e.getValue(), switchesByCc.get(e.getKey()), parameters,
+                    reporter.createSubReporter("createLfNetwork", "Create network ${networkNum}", "networkNum", e.getKey().getLeft())))
+                .collect(Collectors.toList());
+
+        stopwatch.stop();
+
+        LOGGER.debug(PERFORMANCE_MARKER, "LF networks created in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+
+        return lfNetworks;
     }
 
     static boolean participateToSlackDistribution(LfNetworkParameters parameters, Bus b) {

@@ -18,7 +18,6 @@ import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1CurrentMagnitudeEq
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ActiveFlowEquationTerm;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2CurrentMagnitudeEquationTerm;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -49,7 +48,7 @@ class LfSwitchTest {
         network = NodeBreakerNetworkFactory.create();
         acLoadFlowParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), new LoadFlowParameters(),
                 new OpenLoadFlowParameters(), true);
-        List<LfNetwork> lfNetworks = AcloadFlowEngine.createNetworks(network, acLoadFlowParameters, Reporter.NO_OP);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), acLoadFlowParameters.getNetworkParameters(), Reporter.NO_OP);
         assertEquals(1, lfNetworks.size());
         lfNetwork = lfNetworks.get(0);
         lfSwitch = (LfSwitch) lfNetwork.getBranchById("B3");

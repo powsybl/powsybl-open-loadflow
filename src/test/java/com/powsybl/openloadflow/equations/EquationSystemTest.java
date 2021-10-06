@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
@@ -45,7 +46,7 @@ class EquationSystemTest {
 
     @Test
     void test() {
-        List<LfNetwork> lfNetworks = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = LfNetwork.load(EurostagTutorialExample1Factory.create(), new LfNetworkLoaderImpl(), new FirstSlackBusSelector());
         LfNetwork network = lfNetworks.get(0);
 
         LfBus bus = network.getBus(0);
@@ -126,7 +127,7 @@ class EquationSystemTest {
 
     @Test
     void writeAcSystemTest() throws IOException {
-        List<LfNetwork> lfNetworks = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = LfNetwork.load(EurostagTutorialExample1Factory.create(), new LfNetworkLoaderImpl(), new FirstSlackBusSelector());
         LfNetwork network = lfNetworks.get(0);
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = AcEquationSystem.create(network);
@@ -149,7 +150,7 @@ class EquationSystemTest {
 
     @Test
     void writeDcSystemTest() throws IOException {
-        List<LfNetwork> lfNetworks = LfNetwork.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = LfNetwork.load(EurostagTutorialExample1Factory.create(), new LfNetworkLoaderImpl(), new FirstSlackBusSelector());
         LfNetwork network = lfNetworks.get(0);
 
         EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(network, new DcEquationSystemCreationParameters(true, false, false, true));
@@ -169,7 +170,7 @@ class EquationSystemTest {
     @Test
     void findLargestMismatchesTest() {
         Network network = EurostagTutorialExample1Factory.create();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = AcEquationSystem.create(mainNetwork);
@@ -188,7 +189,7 @@ class EquationSystemTest {
     @Test
     void currentMagnitudeTest() {
         Network network = EurostagTutorialExample1Factory.create();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
@@ -218,7 +219,7 @@ class EquationSystemTest {
         Line line1 = network.getLine("NHV1_NHV2_1");
         line1.getTerminal2().disconnect();
 
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
@@ -238,7 +239,7 @@ class EquationSystemTest {
         Network network = EurostagTutorialExample1Factory.create();
         Line line1 = network.getLine("NHV1_NHV2_1");
         line1.getTerminal1().disconnect();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
