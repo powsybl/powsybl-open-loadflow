@@ -21,7 +21,7 @@ import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.LfContingency;
+import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisParameters;
@@ -112,7 +112,7 @@ class OpenSecurityAnalysisGraphTest {
             for (int iContingency = 0; iContingency < result.get(iNetwork).size(); iContingency++) {
                 LfContingency contingencyReference = reference.get(iNetwork).get(iContingency);
                 LfContingency contingencyResult = result.get(iNetwork).get(iContingency);
-                assertEquals(contingencyReference.getContingency().getId(), contingencyResult.getContingency().getId());
+                assertEquals(contingencyReference.getId(), contingencyResult.getId());
 
                 Set<LfBranch> branchesReference = contingencyReference.getBranches();
                 Set<LfBranch> branchesResult = contingencyResult.getBranches();
@@ -131,7 +131,7 @@ class OpenSecurityAnalysisGraphTest {
         for (List<LfContingency> networkResult : result) {
             for (LfContingency contingency : networkResult) {
                 LOGGER.info("Contingency {} containing {} branches - {} buses (branches: {}, buses: {})",
-                    contingency.getContingency().getId(), contingency.getBranches().size(), contingency.getBuses().size(),
+                    contingency.getId(), contingency.getBranches().size(), contingency.getBuses().size(),
                     contingency.getBranches().stream().map(LfBranch::getId).collect(Collectors.joining(",")),
                     contingency.getBuses().stream().map(LfBus::getId).collect(Collectors.joining(",")));
             }
@@ -165,7 +165,9 @@ class OpenSecurityAnalysisGraphTest {
         start = System.currentTimeMillis();
         List<List<LfContingency>> listLfContingencies = new ArrayList<>();
         for (LfNetwork lfNetwork : lfNetworks) {
-            listLfContingencies.add(securityAnalysis.createContingencies(propagatedContingencies, lfNetwork));
+            listLfContingencies.add(propagatedContingencies.stream()
+                    .flatMap(propagatedContingency -> LfContingency.create(propagatedContingency, lfNetwork, lfNetwork.createDecrementalConnectivity(connectivityProvider), true).stream())
+                    .collect(Collectors.toList()));
         }
         LOGGER.info("LoadFlow contingencies calculated from contingency contexts in {} ms", System.currentTimeMillis() - start);
 
