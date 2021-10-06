@@ -120,7 +120,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         List<Equation<AcVariableType, AcEquationType>> deactivatedEquations = new ArrayList<>();
         List<EquationTerm<AcVariableType, AcEquationType>> deactivatedEquationTerms = new ArrayList<>();
 
-        EquationUtil.deactivateEquations(lfContingency, engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
+        EquationUtil.deactivateEquations(lfContingency.getBranches(), lfContingency.getBuses(), engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
 
         engine.getParameters().getNewtonRaphsonParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
         engine.run(reporter);

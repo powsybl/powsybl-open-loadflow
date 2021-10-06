@@ -23,13 +23,8 @@ import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.EquationUtil;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.BranchState;
-import com.powsybl.openloadflow.network.BusState;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
-import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.monitor.StateMonitor;
@@ -140,33 +135,28 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
                 while (contingencyIt.hasNext()) {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
-                    LfContingency lfContingency = LfContingency.create(propagatedContingency, network, network.createDecrementalConnectivity(connectivityProvider), true)
-                            .orElse(null);
+                    LfContingency.create(propagatedContingency, network, network.createDecrementalConnectivity(connectivityProvider), true)
+                            .ifPresent(lfContingency -> { // only process contingencies that impact the network
+                                for (LfBus bus : lfContingency.getBuses()) {
+                                    bus.setDisabled(true);
+                                }
+                                for (LfBranch branch : lfContingency.getBranches()) {
+                                    branch.setDisabled(true);
+                                }
 
-                    // only process contingencies that impact the network
-                    if (lfContingency == null) {
-                        continue;
-                    }
+                                distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
-                    for (LfBus bus : lfContingency.getBuses()) {
-                        bus.setDisabled(true);
-                    }
-                    for (LfBranch branch : lfContingency.getBranches()) {
-                        branch.setDisabled(true);
-                    }
+                                PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, propagatedContingency.getContingency(), lfContingency, preContingencyLimitViolations, results);
+                                postContingencyResults.add(postContingencyResult);
 
-                    distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
+                                if (contingencyIt.hasNext()) {
+                                    LOGGER.info("Restore pre-contingency state");
 
-                    PostContingencyResult postContingencyResult = runPostContingencySimulation(network, engine, propagatedContingency.getContingency(), lfContingency, preContingencyLimitViolations, results);
-                    postContingencyResults.add(postContingencyResult);
-
-                    if (contingencyIt.hasNext()) {
-                        LOGGER.info("Restore pre-contingency state");
-
-                        // restore base state
-                        BusState.restoreBusStates(busStates);
-                        BranchState.restoreBranchStates(branchStates);
-                    }
+                                    // restore base state
+                                    BusState.restoreBusStates(busStates);
+                                    BranchState.restoreBranchStates(branchStates);
+                                }
+                            });
                 }
             }
 
@@ -188,7 +178,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         List<BranchResult> branchResults = new ArrayList<>();
         List<BusResults> busResults = new ArrayList<>();
         List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
-        EquationUtil.deactivateEquations(lfContingency, engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
+        EquationUtil.deactivateEquations(lfContingency.getBranches(), lfContingency.getBuses(), engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
 
         // restart LF on post contingency equation system
         engine.getParameters().getNewtonRaphsonParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
