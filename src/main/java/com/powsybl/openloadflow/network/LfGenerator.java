@@ -80,4 +80,6 @@ public interface LfGenerator {
     GeneratorControlType getGeneratorControlType();
 
     void setGeneratorControlType(GeneratorControlType generatorControlType);
+
+    void setTargetQ(double targetQ);
 }

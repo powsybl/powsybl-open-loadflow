@@ -36,6 +36,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double droop;
 
+    private double targetQ;
+
     private LfGeneratorImpl(Generator generator, boolean breakers, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
         super(generator.getTargetP());
         this.generator = generator;
@@ -82,6 +84,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         if (reactivePowerControl != null && reactivePowerControl.isEnabled() && !generator.isVoltageRegulatorOn()) {
             setReactivePowerControl(reactivePowerControl.getRegulatingTerminal(), reactivePowerControl.getTargetQ());
         }
+
+        targetQ = generator.getTargetQ() / PerUnit.SB;
     }
 
     public static LfGeneratorImpl create(Generator generator, boolean breakers, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
@@ -106,7 +110,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return generator.getTargetQ() / PerUnit.SB;
+        return targetQ;
     }
 
     @Override
@@ -139,5 +143,10 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         generator.getTerminal()
                 .setP(-targetP)
                 .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ);
+    }
+
+    @Override
+    public void setTargetQ(double targetQ) {
+        this.targetQ = targetQ;
     }
 }

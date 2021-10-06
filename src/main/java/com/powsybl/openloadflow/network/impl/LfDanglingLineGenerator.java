@@ -21,6 +21,8 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     private final DanglingLine danglingLine;
 
+    private double targetQ;
+
     public LfDanglingLineGenerator(DanglingLine danglingLine, String controlledLfBusId, LfNetworkLoadingReport report) {
         super(danglingLine.getGeneration().getTargetP());
         this.danglingLine = danglingLine;
@@ -32,6 +34,8 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
             setTargetV(danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV());
             this.generatorControlType = GeneratorControlType.VOLTAGE;
         }
+
+        targetQ = danglingLine.getGeneration().getTargetQ() / PerUnit.SB;
     }
 
     @Override
@@ -46,7 +50,7 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return danglingLine.getGeneration().getTargetQ() / PerUnit.SB;
+        return targetQ;
     }
 
     @Override
@@ -67,5 +71,10 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
     @Override
     public void updateState() {
         // nothing to update
+    }
+
+    @Override
+    public void setTargetQ(double targetQ) {
+        this.targetQ = targetQ;
     }
 }

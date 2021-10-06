@@ -19,6 +19,8 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
 
     private final VscConverterStation station;
 
+    private double targetQ;
+
     private LfVscConverterStationImpl(VscConverterStation station, boolean breakers, LfNetworkLoadingReport report) {
         super(getHvdcLineTargetP(station));
         this.station = station;
@@ -27,6 +29,8 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
         if (station.isVoltageRegulatorOn()) {
             setVoltageControl(station.getVoltageSetpoint(), station.getRegulatingTerminal(), breakers, report);
         }
+
+        targetQ = station.getReactivePowerSetpoint() / PerUnit.SB;
     }
 
     public static LfVscConverterStationImpl create(VscConverterStation station, boolean breakers, LfNetworkLoadingReport report) {
@@ -51,7 +55,7 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return station.getReactivePowerSetpoint() / PerUnit.SB;
+        return targetQ;
     }
 
     @Override
@@ -74,5 +78,10 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
         station.getTerminal()
                 .setP(-targetP)
                 .setQ(Double.isNaN(calculatedQ) ? -station.getReactivePowerSetpoint() : -calculatedQ);
+    }
+
+    @Override
+    public void setTargetQ(double targetQ) {
+        this.targetQ = targetQ;
     }
 }

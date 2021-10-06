@@ -26,6 +26,8 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     private double slope = 0;
 
+    private double targetQ;
+
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc, AbstractLfBus bus, boolean voltagePerReactivePowerControl, boolean breakers, LfNetworkLoadingReport report) {
         super(0);
         this.svc = svc;
@@ -66,6 +68,8 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
                 this.slope = svc.getExtension(VoltagePerReactivePowerControl.class).getSlope() * PerUnit.SB / nominalV;
             }
         }
+
+        targetQ = -svc.getReactivePowerSetPoint() / PerUnit.SB;
     }
 
     public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, AbstractLfBus bus, boolean voltagePerReactivePowerControl, boolean breakers, LfNetworkLoadingReport report) {
@@ -80,7 +84,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return -svc.getReactivePowerSetPoint() / PerUnit.SB;
+        return targetQ;
     }
 
     @Override
@@ -113,5 +117,10 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     @Override
     public void setSlope(double slope) {
         this.slope = slope;
+    }
+
+    @Override
+    public void setTargetQ(double targetQ) {
+        this.targetQ = targetQ;
     }
 }
