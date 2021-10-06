@@ -691,11 +691,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                             .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
                             .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
                             .collect(Collectors.toList());
+                    normalizeParticipationFactors(newParticipatingElements, "LfGenerators");
                 } else { // slack distribution on loads.
                     newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters, lfParametersExt);
                 }
-                String elementType = isDistributedSlackOnLoads(lfParameters) ? "LfBus" : "LfGenerators";
-                normalizeParticipationFactors(newParticipatingElements, elementType);
                 newFactorStates = calculateStates(j, equationSystem, factorGroups, newParticipatingElements);
             }
 
