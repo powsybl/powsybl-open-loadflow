@@ -18,7 +18,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.network.LfContingency;
-import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
@@ -60,7 +60,7 @@ class LfContingencyTest extends AbstractConverterTest {
     @Test
     void test() throws IOException {
         Network network = FourSubstationsNodeBreakerFactory.create();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), new MostMeshedSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(2, lfNetworks.size());
 

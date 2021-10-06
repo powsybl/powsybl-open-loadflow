@@ -51,7 +51,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                                     LoadingContext loadingContext, LfNetworkLoadingReport report, List<LfNetworkLoaderPostProcessor> postProcessors) {
         for (Bus bus : buses) {
             LfBusImpl lfBus = createBus(bus, parameters, lfNetwork, loadingContext, report, postProcessors);
-            postProcessors.forEach(pp -> pp.busAdded(bus, lfBus));
+            postProcessors.forEach(pp -> pp.onBusAdded(bus, lfBus));
             lfNetwork.addBus(lfBus);
             lfBuses.add(lfBus);
         }
@@ -233,19 +233,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 if (generator.isVoltageRegulatorOn()) {
                     report.voltageControllerCount++;
                 }
-                postProcessors.forEach(pp -> pp.injectionAdded(generator, lfBus));
+                postProcessors.forEach(pp -> pp.onInjectionAdded(generator, lfBus));
             }
 
             @Override
             public void visitLoad(Load load) {
                 lfBus.addLoad(load, parameters.isDistributedOnConformLoad());
-                postProcessors.forEach(pp -> pp.injectionAdded(load, lfBus));
+                postProcessors.forEach(pp -> pp.onInjectionAdded(load, lfBus));
             }
 
             @Override
             public void visitShuntCompensator(ShuntCompensator sc) {
                 lfBus.addShuntCompensator(sc);
-                postProcessors.forEach(pp -> pp.injectionAdded(sc, lfBus));
+                postProcessors.forEach(pp -> pp.onInjectionAdded(sc, lfBus));
             }
 
             @Override
@@ -255,7 +255,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 if (generation != null && generation.isVoltageRegulationOn()) {
                     report.voltageControllerCount++;
                 }
-                postProcessors.forEach(pp -> pp.injectionAdded(danglingLine, lfBus));
+                postProcessors.forEach(pp -> pp.onInjectionAdded(danglingLine, lfBus));
             }
 
             @Override
@@ -264,13 +264,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 if (staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
                     report.voltageControllerCount++;
                 }
-                postProcessors.forEach(pp -> pp.injectionAdded(staticVarCompensator, lfBus));
+                postProcessors.forEach(pp -> pp.onInjectionAdded(staticVarCompensator, lfBus));
             }
 
             @Override
             public void visitBattery(Battery battery) {
                 lfBus.addBattery(battery);
-                postProcessors.forEach(pp -> pp.injectionAdded(battery, lfBus));
+                postProcessors.forEach(pp -> pp.onInjectionAdded(battery, lfBus));
             }
 
             @Override
@@ -289,7 +289,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     default:
                         throw new IllegalStateException("Unknown HVDC converter station type: " + converterStation.getHvdcType());
                 }
-                postProcessors.forEach(pp -> pp.injectionAdded(converterStation, lfBus));
+                postProcessors.forEach(pp -> pp.onInjectionAdded(converterStation, lfBus));
             }
         });
 
@@ -317,7 +317,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork, parameters.isBreakers());
             LfBranchImpl lfBranch = LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, parameters.isTwtSplitShuntAdmittance(), parameters.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(), report);
             addBranch(lfNetwork, lfBranch, report);
-            postProcessors.forEach(pp -> pp.branchAdded(branch, lfBranch));
+            postProcessors.forEach(pp -> pp.onBranchAdded(branch, lfBranch));
         }
 
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
@@ -328,8 +328,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2);
             addBranch(lfNetwork, lfBranch, report);
             postProcessors.forEach(pp -> {
-                pp.busAdded(danglingLine, lfBus2);
-                pp.branchAdded(danglingLine, lfBranch);
+                pp.onBusAdded(danglingLine, lfBus2);
+                pp.onBranchAdded(danglingLine, lfBranch);
             });
         }
 
@@ -346,10 +346,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             addBranch(lfNetwork, lfBranch2, report);
             addBranch(lfNetwork, lfBranch3, report);
             postProcessors.forEach(pp -> {
-                pp.busAdded(t3wt, lfBus0);
-                pp.branchAdded(t3wt, lfBranch1);
-                pp.branchAdded(t3wt, lfBranch2);
-                pp.branchAdded(t3wt, lfBranch3);
+                pp.onBusAdded(t3wt, lfBus0);
+                pp.onBranchAdded(t3wt, lfBranch1);
+                pp.onBranchAdded(t3wt, lfBranch2);
+                pp.onBranchAdded(t3wt, lfBranch3);
             });
         }
 
@@ -400,7 +400,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 LfBus lfBus2 = lfNetwork.getBusById(bus2.getId());
                 LfSwitch lfSwitch = new LfSwitch(lfNetwork, lfBus1, lfBus2, sw);
                 lfNetwork.addBranch(lfSwitch);
-                postProcessors.forEach(pp -> pp.branchAdded(sw, lfSwitch));
+                postProcessors.forEach(pp -> pp.onBranchAdded(sw, lfSwitch));
             }
         }
     }

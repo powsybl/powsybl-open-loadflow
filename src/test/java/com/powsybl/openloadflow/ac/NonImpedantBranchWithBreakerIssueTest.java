@@ -17,7 +17,7 @@ import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
-import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.junit.jupiter.api.Test;
 
@@ -43,7 +43,7 @@ class NonImpedantBranchWithBreakerIssueTest {
         AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false, Collections.emptySet());
         NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters()
                 .setVoltageInitializer(new UniformValueVoltageInitializer());
-        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters).get(0);
+        LfNetwork lfNetwork = Networks.load(network, networkParameters).get(0);
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(networkParameters, equationSystemCreationParameters,
                                                                              newtonRaphsonParameters, Collections.emptyList(),
                                                                              new DenseMatrixFactory());
@@ -66,7 +66,7 @@ class NonImpedantBranchWithBreakerIssueTest {
         LfNetworkParameters networkParameters = new LfNetworkParameters(slackBusSelector, false, false, false, breakers,
                 LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
                 true, Collections.emptySet(), false, false, false, false, false);
-        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters).get(0);
+        LfNetwork lfNetwork = Networks.load(network, networkParameters).get(0);
         AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false, Collections.emptySet());
         NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters()
                 .setVoltageInitializer(new UniformValueVoltageInitializer());

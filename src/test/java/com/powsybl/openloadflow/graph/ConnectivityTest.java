@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.graph;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -32,7 +32,7 @@ class ConnectivityTest {
     @BeforeEach
     void setup() {
         Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         lfNetwork = lfNetworks.get(0);
     }
 

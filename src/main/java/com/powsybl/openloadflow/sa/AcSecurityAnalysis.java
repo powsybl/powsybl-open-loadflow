@@ -24,7 +24,7 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.EquationUtil;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
@@ -94,7 +94,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             network.getSwitchStream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                    .forEach(sw -> sw.setRetained(false));
             allSwitchesToOpen.forEach(sw -> sw.setRetained(true));
-            lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters, Reporter.NO_OP);
+            lfNetworks = Networks.load(network, networkParameters, Reporter.NO_OP);
         } finally {
             network.getVariantManager().removeVariant(tmpVariantId);
         }

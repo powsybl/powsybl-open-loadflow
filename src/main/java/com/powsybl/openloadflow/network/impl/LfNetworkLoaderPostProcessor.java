@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.Identifiable;
-import com.powsybl.iidm.network.Injection;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 
@@ -16,9 +14,9 @@ import com.powsybl.openloadflow.network.LfBus;
  */
 public interface LfNetworkLoaderPostProcessor {
 
-    void busAdded(Identifiable identifiable, LfBus lfBus);
+    void onBusAdded(Object element, LfBus lfBus);
 
-    void branchAdded(Identifiable identifiable, LfBranch lfBranch);
+    void onBranchAdded(Object element, LfBranch lfBranch);
 
-    void injectionAdded(Injection injection, LfBus lfBus);
+    void onInjectionAdded(Object element, LfBus lfBus);
 }

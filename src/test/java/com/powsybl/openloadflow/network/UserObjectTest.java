@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -23,7 +23,7 @@ class UserObjectTest {
     @Test
     void test() {
         Network network = EurostagTutorialExample1Factory.create();
-        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+        LfNetwork lfNetwork = Networks.load(network, new FirstSlackBusSelector()).get(0);
         assertNull(lfNetwork.getUserObject());
         lfNetwork.setUserObject("test");
         assertEquals("test", lfNetwork.getUserObject());
