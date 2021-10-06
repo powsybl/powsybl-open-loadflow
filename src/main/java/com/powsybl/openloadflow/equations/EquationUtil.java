@@ -9,10 +9,10 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfContingency;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -25,8 +25,8 @@ public final class EquationUtil {
     private EquationUtil() {
     }
 
-    public static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> void deactivateEquations(LfContingency lfContingency, EquationSystem<V, E> equationSystem, List<Equation<V, E>> deactivatedEquations, List<EquationTerm<V, E>> deactivatedEquationTerms) {
-        for (LfBranch branch : lfContingency.getBranches()) {
+    public static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> void deactivateEquations(Collection<LfBranch> branches, Collection<LfBus> buses, EquationSystem<V, E> equationSystem, List<Equation<V, E>> deactivatedEquations, List<EquationTerm<V, E>> deactivatedEquationTerms) {
+        for (LfBranch branch : branches) {
             LOGGER.trace("Remove equations and equations terms related to branch '{}'", branch.getId());
 
             // deactivate all equations related to a branch
@@ -46,7 +46,7 @@ public final class EquationUtil {
             }
         }
 
-        for (LfBus bus : lfContingency.getBuses()) {
+        for (LfBus bus : buses) {
             LOGGER.trace("Remove equations and equation terms related to bus '{}'", bus.getId());
 
             // deactivate all equations related to a bus

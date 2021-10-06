@@ -188,7 +188,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         List<BranchResult> branchResults = new ArrayList<>();
         List<BusResults> busResults = new ArrayList<>();
         List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
-        EquationUtil.deactivateEquations(lfContingency, engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
+        EquationUtil.deactivateEquations(lfContingency.getBranches(), lfContingency.getBuses(), engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
 
         // restart LF on post contingency equation system
         engine.getParameters().getNewtonRaphsonParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
