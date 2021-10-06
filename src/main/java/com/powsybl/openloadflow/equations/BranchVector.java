@@ -15,9 +15,11 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class BranchVector extends AbstractLfNetworkListener {
+public class BranchVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfNetworkListener implements EquationSystemListener<V, E> {
 
     private final LfNetwork network;
+
+    private final EquationSystem<V, E> equationSystem;
 
     public double[] b1;
     public double[] b2;
@@ -30,8 +32,11 @@ public class BranchVector extends AbstractLfNetworkListener {
     public double[] a1;
     public double[] r1;
 
-    public BranchVector(LfNetwork network) {
+    public BranchVector(LfNetwork network, EquationSystem<V, E> equationSystem) {
         this.network = Objects.requireNonNull(network);
+        this.equationSystem = Objects.requireNonNull(equationSystem);
+        this.network.addListener(this);
+        this.equationSystem.addListener(this);
         init();
     }
 
@@ -83,5 +88,25 @@ public class BranchVector extends AbstractLfNetworkListener {
         for (int i = 0; i < branches.size(); i++) {
             r1[i] = branches.get(i).getPiModel().getR1();
         }
+    }
+
+    @Override
+    public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
+        // nothing to do
+    }
+
+    @Override
+    public void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
+        // nothing to do
+    }
+
+    @Override
+    public void onStateUpdate(double[] x) {
+        // nothing to do
+    }
+
+    @Override
+    public void onIndexUpdate() {
+
     }
 }

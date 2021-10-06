@@ -57,7 +57,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
     }
 
     @Override
-    public void update(double[] x, BranchVector vec) {
+    public void update(double[] x, BranchVector<AcVariableType, AcEquationType> vec) {
         double v = x[vVar.getRow()];
         q = -b * v * v;
         dqdv = -2 * b * v;

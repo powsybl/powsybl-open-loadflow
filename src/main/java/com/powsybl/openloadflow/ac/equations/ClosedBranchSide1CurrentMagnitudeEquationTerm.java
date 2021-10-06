@@ -44,7 +44,7 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     @Override
-    public void update(double[] x, BranchVector vec) {
+    public void update(double[] x, BranchVector<AcVariableType, AcEquationType> vec) {
         double v1 = x[v1Var.getRow()];
         double v2 = x[v2Var.getRow()];
         double ph1 = x[ph1Var.getRow()];
@@ -54,7 +54,7 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
         updateCurrent(v1, v2, ph1, ph2, r1, a1, vec);
     }
 
-    private void updateCurrent(double v1, double v2, double ph1, double ph2, double r1, double a1, BranchVector vec) {
+    private void updateCurrent(double v1, double v2, double ph1, double ph2, double r1, double a1, BranchVector<AcVariableType, AcEquationType> vec) {
         double w1 = r1 * v1;
         double w2 = vec.y[num] * R2 * v2;
         double cosPh1 = FastMath.cos(ph1);

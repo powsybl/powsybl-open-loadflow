@@ -45,7 +45,7 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public void update(double[] x, BranchVector vec) {
+    public void update(double[] x, BranchVector<AcVariableType, AcEquationType> vec) {
         double v1 = x[v1Var.getRow()];
         double v2 = x[v2Var.getRow()];
         double ph1 = x[ph1Var.getRow()];

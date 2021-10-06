@@ -68,7 +68,7 @@ class PerUnitTest {
         x[1] = 0.045;
         x[2] = 404 / vb;
         x[3] = 0.0297;
-        p1.update(x, new BranchVector(network));
+        p1.update(x, new BranchVector<>(network, null));
         assertEquals(856.4176570806668, p1.eval() / PerUnit.SB, 0d);
     }
 

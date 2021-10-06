@@ -30,7 +30,7 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
     }
 
     @Override
-    public void update(double[] x, BranchVector vec) {
+    public void update(double[] x, BranchVector<AcVariableType, AcEquationType> vec) {
         double v1 = x[v1Var.getRow()];
         double r1 = vec.r1[num];
         double shunt = getShunt(vec);

@@ -214,7 +214,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      * Update equation term using {@code x} variable values.
      * @param x variables values vector
      */
-    void update(double[] x, BranchVector branchVector);
+    void update(double[] x, BranchVector<V, E> branchVector);
 
     /**
      * Evaluate equation term.

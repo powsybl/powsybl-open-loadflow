@@ -32,7 +32,7 @@ public class OpenBranchSide1ActiveFlowEquationTerm extends AbstractOpenSide1Bran
     }
 
     @Override
-    public void update(double[] x, BranchVector vec) {
+    public void update(double[] x, BranchVector<AcVariableType, AcEquationType> vec) {
         double v2 = x[v2Var.getRow()];
         double shunt = getShunt(vec);
         p2 = R2 * R2 * v2 * v2 * (vec.g2[num] + vec.y[num] * vec.y[num] * vec.g1[num] / shunt + (vec.b1[num] * vec.b1[num] + vec.g1[num] * vec.g1[num]) * vec.y[num] * vec.sinKsi[num] / shunt);
@@ -45,7 +45,7 @@ public class OpenBranchSide1ActiveFlowEquationTerm extends AbstractOpenSide1Bran
     }
 
     @Override
-    public double der(Variable variable) {
+    public double der(Variable<AcVariableType> variable) {
         if (variable.equals(v2Var)) {
             return dp2dv2;
         } else {

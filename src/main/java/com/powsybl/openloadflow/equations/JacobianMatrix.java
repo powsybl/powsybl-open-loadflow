@@ -116,6 +116,11 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
+    @Override
+    public void onIndexUpdate() {
+        // nothing to do
+    }
+
     private void clear() {
         matrix = null;
         partialDerivatives = null;

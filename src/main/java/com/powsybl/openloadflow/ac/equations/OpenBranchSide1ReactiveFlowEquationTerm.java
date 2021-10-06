@@ -32,7 +32,7 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
     }
 
     @Override
-    public void update(double[] x, BranchVector vec) {
+    public void update(double[] x, BranchVector<AcVariableType, AcEquationType> vec) {
         double v2 = x[v2Var.getRow()];
         double shunt = getShunt(vec);
         q2 = -R2 * R2 * v2 * v2 * (vec.b2[num] + vec.y[num] * vec.y[num] * vec.b1[num] / shunt - (vec.b1[num] * vec.b1[num] + vec.g1[num] * vec.g1[num]) * vec.y[num] * vec.cosKsi[num] / shunt);

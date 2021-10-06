@@ -16,4 +16,6 @@ public interface EquationSystemListener<V extends Enum<V> & Quantity, E extends 
     void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType);
 
     void onStateUpdate(double[] x);
+
+    void onIndexUpdate();
 }

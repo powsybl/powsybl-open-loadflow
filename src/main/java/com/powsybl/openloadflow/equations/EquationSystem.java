@@ -28,7 +28,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private final boolean indexTerms;
 
-    private final BranchVector branchVector;
+    private final BranchVector<V, E> branchVector;
 
     private final Map<Pair<Integer, E>, Equation<V, E>> equations = new HashMap<>();
 
@@ -157,6 +157,11 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             // nothing to do
         }
 
+        @Override
+        public void onIndexUpdate() {
+            // nothing to do
+        }
+
         private NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> getSortedEquationsToSolve() {
             update();
             return sortedEquationsToSolve;
@@ -185,7 +190,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     public EquationSystem(LfNetwork network, boolean indexTerms) {
         this.network = network;
         this.indexTerms = indexTerms;
-        branchVector = new BranchVector(network);
+        branchVector = new BranchVector<>(network, this);
         addListener(equationCache);
     }
 

@@ -66,6 +66,11 @@ class EquationSystemTest {
             public void onStateUpdate(double[] x) {
                 // nothing to do
             }
+
+            @Override
+            public void onIndexUpdate() {
+                // nothing to do
+            }
         });
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         assertTrue(equations.isEmpty());
