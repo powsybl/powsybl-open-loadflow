@@ -25,6 +25,7 @@ public class BusState {
     private final boolean disabled;
     private final boolean isVoltageControllerEnabled;
     private final double generationTargetQ;
+    private final double absVariableLoadTargetP;
 
     public BusState(LfBus b) {
         this.angle = b.getAngle();
@@ -34,6 +35,7 @@ public class BusState {
         this.disabled = b.isDisabled();
         this.isVoltageControllerEnabled = b.isVoltageControllerEnabled();
         this.generationTargetQ = b.getGenerationTargetQ();
+        this.absVariableLoadTargetP = b.getLfLoads().getAbsVariableLoadTargetP();
     }
 
     public void restoreBusState(LfBus bus) {
@@ -43,6 +45,7 @@ public class BusState {
         bus.setDisabled(disabled);
         bus.setVoltageControllerEnabled(isVoltageControllerEnabled);
         bus.setVoltageControlSwitchOffCount(0);
+        bus.getLfLoads().setAbsVariableLoadTargetP(absVariableLoadTargetP);
     }
 
     public void restoreBusActiveState(LfBus bus) {
@@ -51,6 +54,7 @@ public class BusState {
         bus.getGenerators().forEach(g -> {
             g.setTargetP(generatorsTargetP.get(g.getId()));
         });
+        bus.getLfLoads().setAbsVariableLoadTargetP(absVariableLoadTargetP);
     }
 
     /**
