@@ -13,6 +13,7 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import net.jafama.FastMath;
+import org.apache.commons.compress.utils.Lists;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
@@ -47,9 +48,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void createBuses(List<Bus> buses, LfNetworkParameters parameters, LfNetwork lfNetwork, List<LfBus> lfBuses,
-                                    LoadingContext loadingContext, LfNetworkLoadingReport report) {
+                                    LoadingContext loadingContext, LfNetworkLoadingReport report, List<LfNetworkLoaderPostProcessor> postProcessors) {
         for (Bus bus : buses) {
-            LfBusImpl lfBus = createBus(bus, parameters, lfNetwork, loadingContext, report);
+            LfBusImpl lfBus = createBus(bus, parameters, lfNetwork, loadingContext, report, postProcessors);
+            postProcessors.forEach(pp -> pp.busAdded(bus, lfBus));
             lfNetwork.addBus(lfBus);
             lfBuses.add(lfBus);
         }
@@ -201,7 +203,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static LfBusImpl createBus(Bus bus, LfNetworkParameters parameters, LfNetwork lfNetwork, LoadingContext loadingContext,
-                                       LfNetworkLoadingReport report) {
+                                       LfNetworkLoadingReport report, List<LfNetworkLoaderPostProcessor> postProcessors) {
         LfBusImpl lfBus = LfBusImpl.create(bus, lfNetwork, participateToSlackDistribution(parameters, bus));
 
         bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
@@ -231,16 +233,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 if (generator.isVoltageRegulatorOn()) {
                     report.voltageControllerCount++;
                 }
+                postProcessors.forEach(pp -> pp.injectionAdded(generator, lfBus));
             }
 
             @Override
             public void visitLoad(Load load) {
                 lfBus.addLoad(load, parameters.isDistributedOnConformLoad());
+                postProcessors.forEach(pp -> pp.injectionAdded(load, lfBus));
             }
 
             @Override
             public void visitShuntCompensator(ShuntCompensator sc) {
                 lfBus.addShuntCompensator(sc);
+                postProcessors.forEach(pp -> pp.injectionAdded(sc, lfBus));
             }
 
             @Override
@@ -250,6 +255,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 if (generation != null && generation.isVoltageRegulationOn()) {
                     report.voltageControllerCount++;
                 }
+                postProcessors.forEach(pp -> pp.injectionAdded(danglingLine, lfBus));
             }
 
             @Override
@@ -258,11 +264,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 if (staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
                     report.voltageControllerCount++;
                 }
+                postProcessors.forEach(pp -> pp.injectionAdded(staticVarCompensator, lfBus));
             }
 
             @Override
             public void visitBattery(Battery battery) {
                 lfBus.addBattery(battery);
+                postProcessors.forEach(pp -> pp.injectionAdded(battery, lfBus));
             }
 
             @Override
@@ -281,6 +289,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     default:
                         throw new IllegalStateException("Unknown HVDC converter station type: " + converterStation.getHvdcType());
                 }
+                postProcessors.forEach(pp -> pp.injectionAdded(converterStation, lfBus));
             }
         });
 
@@ -301,11 +310,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createBranches(List<LfBus> lfBuses, LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkLoadingReport report, LfNetworkParameters parameters) {
+    private static void createBranches(List<LfBus> lfBuses, LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkLoadingReport report,
+                                       LfNetworkParameters parameters, List<LfNetworkLoaderPostProcessor> postProcessors) {
         for (Branch<?> branch : loadingContext.branchSet) {
             LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork, parameters.isBreakers());
-            addBranch(lfNetwork, LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, parameters.isTwtSplitShuntAdmittance(), parameters.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(), report), report);
+            LfBranchImpl lfBranch = LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, parameters.isTwtSplitShuntAdmittance(), parameters.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(), report);
+            addBranch(lfNetwork, lfBranch, report);
+            postProcessors.forEach(pp -> pp.branchAdded(branch, lfBranch));
         }
 
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
@@ -313,7 +325,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             lfNetwork.addBus(lfBus2);
             lfBuses.add(lfBus2);
             LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
-            addBranch(lfNetwork, LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2), report);
+            LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2);
+            addBranch(lfNetwork, lfBranch, report);
+            postProcessors.forEach(pp -> {
+                pp.busAdded(danglingLine, lfBus2);
+                pp.branchAdded(danglingLine, lfBranch);
+            });
         }
 
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
@@ -322,9 +339,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork, parameters.isBreakers());
-            addBranch(lfNetwork, LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), parameters.isTwtSplitShuntAdmittance()), report);
-            addBranch(lfNetwork, LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(), parameters.isTwtSplitShuntAdmittance()), report);
-            addBranch(lfNetwork, LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(), parameters.isTwtSplitShuntAdmittance()), report);
+            LfLegBranch lfBranch1 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), parameters.isTwtSplitShuntAdmittance());
+            LfLegBranch lfBranch2 = LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(), parameters.isTwtSplitShuntAdmittance());
+            LfLegBranch lfBranch3 = LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(), parameters.isTwtSplitShuntAdmittance());
+            addBranch(lfNetwork, lfBranch1, report);
+            addBranch(lfNetwork, lfBranch2, report);
+            addBranch(lfNetwork, lfBranch3, report);
+            postProcessors.forEach(pp -> {
+                pp.busAdded(t3wt, lfBus0);
+                pp.branchAdded(t3wt, lfBranch1);
+                pp.branchAdded(t3wt, lfBranch2);
+                pp.branchAdded(t3wt, lfBranch3);
+            });
         }
 
         if (parameters.isPhaseControl()) {
@@ -364,7 +390,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createSwitches(List<Switch> switches, LfNetwork lfNetwork) {
+    private static void createSwitches(List<Switch> switches, LfNetwork lfNetwork, List<LfNetworkLoaderPostProcessor> postProcessors) {
         if (switches != null) {
             for (Switch sw : switches) {
                 VoltageLevel vl = sw.getVoltageLevel();
@@ -372,7 +398,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 Bus bus2 = vl.getBusBreakerView().getBus2(sw.getId());
                 LfBus lfBus1 = lfNetwork.getBusById(bus1.getId());
                 LfBus lfBus2 = lfNetwork.getBusById(bus2.getId());
-                lfNetwork.addBranch(new LfSwitch(lfNetwork, lfBus1, lfBus2, sw));
+                LfSwitch lfSwitch = new LfSwitch(lfNetwork, lfBus1, lfBus2, sw);
+                lfNetwork.addBranch(lfSwitch);
+                postProcessors.forEach(pp -> pp.branchAdded(sw, lfSwitch));
             }
         }
     }
@@ -589,10 +617,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
+        List<LfNetworkLoaderPostProcessor> postProcessors = Lists.newArrayList(ServiceLoader.load(LfNetworkLoaderPostProcessor.class, LfNetworkLoaderImpl.class.getClassLoader()).iterator());
 
         List<LfBus> lfBuses = new ArrayList<>();
-        createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report);
-        createBranches(lfBuses, lfNetwork, loadingContext, report, parameters);
+        createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report, postProcessors);
+        createBranches(lfBuses, lfNetwork, loadingContext, report, parameters, postProcessors);
         createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isVoltagePerReactivePowerControl());
 
         if (parameters.isReactivePowerRemoteControl()) {
@@ -605,7 +634,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         if (parameters.isBreakers()) {
-            createSwitches(switches, lfNetwork);
+            createSwitches(switches, lfNetwork, postProcessors);
         }
 
         // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
