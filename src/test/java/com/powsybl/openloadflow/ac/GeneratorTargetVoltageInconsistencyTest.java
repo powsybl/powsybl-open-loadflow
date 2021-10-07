@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -90,7 +91,7 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setB2(0)
                 .add();
 
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
         LfNetwork lfNetwork = lfNetworks.get(0);
@@ -206,7 +207,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         Generator g = network.getGenerator("g2");
         assertEquals(0.5625, g.getTargetV() / g.getTerminal().getVoltageLevel().getNominalV());
 
-        List<LfNetwork> networkList = LfNetwork.load(network, parameters);
+        List<LfNetwork> networkList = Networks.load(network, parameters);
         LfNetwork mainNetwork = networkList.get(0);
         LfGenerator generator = mainNetwork.getBusById("vl2_0").getGenerators().get(0);
         assertEquals("g2", generator.getId());
@@ -317,7 +318,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         assertEquals(412, network.getGenerator("g1").getTargetV());
         assertEquals(413, g2.getTargetV());
 
-        List<LfNetwork> networkList = LfNetwork.load(network, parameters);
+        List<LfNetwork> networkList = Networks.load(network, parameters);
         LfNetwork mainNetwork = networkList.get(0);
         Optional<VoltageControl> sharedVoltageControl = mainNetwork.getBusById("vl2_0").getVoltageControl();
         assertTrue(sharedVoltageControl.isPresent());

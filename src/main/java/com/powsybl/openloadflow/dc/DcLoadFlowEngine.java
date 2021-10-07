@@ -14,10 +14,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
-import com.powsybl.openloadflow.network.DiscretePhaseControl;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -42,8 +39,8 @@ public class DcLoadFlowEngine {
 
     private double[] targetVector;
 
-    public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters, Reporter reporter) {
-        this.networks = LfNetwork.load(network, parameters.getNetworkParameters(), reporter);
+    public <T> DcLoadFlowEngine(T network, LfNetworkLoader<T> networkLoader, DcLoadFlowParameters parameters, Reporter reporter) {
+        this.networks = LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reporter);
         this.parameters = Objects.requireNonNull(parameters);
     }
 

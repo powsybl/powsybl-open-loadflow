@@ -431,37 +431,33 @@ public class LfNetwork {
         }
     }
 
-    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
-        return load(network, new LfNetworkParameters(slackBusSelector), Reporter.NO_OP);
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector) {
+        return load(network, networkLoader, new LfNetworkParameters(slackBusSelector), Reporter.NO_OP);
     }
 
-    public static List<LfNetwork> load(Object network, LfNetworkParameters parameters) {
-        return load(network, parameters, Reporter.NO_OP);
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters) {
+        return load(network, networkLoader, parameters, Reporter.NO_OP);
     }
 
-    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, Reporter reporter) {
-        return load(network, new LfNetworkParameters(slackBusSelector), reporter);
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector, Reporter reporter) {
+        return load(network, networkLoader, new LfNetworkParameters(slackBusSelector), reporter);
     }
 
-    public static List<LfNetwork> load(Object network, LfNetworkParameters parameters, Reporter reporter) {
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
+        Objects.requireNonNull(networkLoader);
         Objects.requireNonNull(parameters);
-        for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class, LfNetwork.class.getClassLoader())) {
-            List<LfNetwork> lfNetworks = importer.load(network, parameters, reporter).orElse(null);
-            if (lfNetworks != null) {
-                for (LfNetwork lfNetwork : lfNetworks) {
-                    Reporter reporterNetwork = reporter.createSubReporter("postLoading", "Post loading process on network CC${numNetworkCc} SC${numNetworkSc}",
-                        Map.of("numNetworkCc", new TypedValue(lfNetwork.getNumCC(), TypedValue.UNTYPED),
-                            "numNetworkSc", new TypedValue(lfNetwork.getNumSC(), TypedValue.UNTYPED)));
-                    fix(lfNetwork, parameters.isMinImpedance());
-                    validate(lfNetwork, parameters.isMinImpedance());
-                    lfNetwork.reportSize(reporterNetwork);
-                    lfNetwork.reportBalance(reporterNetwork);
-                }
-                return lfNetworks;
-            }
+        List<LfNetwork> lfNetworks = networkLoader.load(network, parameters, reporter);
+        for (LfNetwork lfNetwork : lfNetworks) {
+            Reporter reporterNetwork = reporter.createSubReporter("postLoading", "Post loading process on network CC${numNetworkCc} SC${numNetworkSc}",
+                Map.of("numNetworkCc", new TypedValue(lfNetwork.getNumCC(), TypedValue.UNTYPED),
+                    "numNetworkSc", new TypedValue(lfNetwork.getNumSC(), TypedValue.UNTYPED)));
+            fix(lfNetwork, parameters.isMinImpedance());
+            validate(lfNetwork, parameters.isMinImpedance());
+            lfNetwork.reportSize(reporterNetwork);
+            lfNetwork.reportBalance(reporterNetwork);
         }
-        throw new PowsyblException("Cannot import network of type: " + network.getClass().getName());
+        return lfNetworks;
     }
 
     /**

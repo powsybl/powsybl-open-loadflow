@@ -24,6 +24,7 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.EquationUtil;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
@@ -67,7 +68,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters, lfParametersExt, true);
 
         // create networks including all necessary switches
-        List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters);
+        List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters.getNetworkParameters());
 
         // run simulation on largest network
         if (lfNetworks.isEmpty()) {
@@ -85,7 +86,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         return new SecurityAnalysisReport(result);
     }
 
-    List<LfNetwork> createNetworks(Set<Switch> allSwitchesToOpen, AcLoadFlowParameters acParameters) {
+    List<LfNetwork> createNetworks(Set<Switch> allSwitchesToOpen, LfNetworkParameters networkParameters) {
         List<LfNetwork> lfNetworks;
         String tmpVariantId = "olf-tmp-" + UUID.randomUUID().toString();
         network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
@@ -93,7 +94,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             network.getSwitchStream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                    .forEach(sw -> sw.setRetained(false));
             allSwitchesToOpen.forEach(sw -> sw.setRetained(true));
-            lfNetworks = AcloadFlowEngine.createNetworks(network, acParameters, Reporter.NO_OP);
+            lfNetworks = Networks.load(network, networkParameters, Reporter.NO_OP);
         } finally {
             network.getVariantManager().removeVariant(tmpVariantId);
         }

@@ -54,7 +54,7 @@ class DcLoadFlowMatrixTest {
 
         logNetwork(network);
 
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 
         VariableSet<DcVariableType> variableSet = new VariableSet<>();
@@ -106,7 +106,7 @@ class DcLoadFlowMatrixTest {
         network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
         network.getLine("NHV1_NHV2_1").getTerminal2().disconnect();
 
-        lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         mainNetwork = lfNetworks.get(0);
 
         equationSystem = DcEquationSystem.create(mainNetwork, variableSet, creationParameters);
