@@ -26,7 +26,7 @@ abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractBranchA
                                                         LfBus bus, VariableSet<AcVariableType> variableSet,
                                                         boolean deriveA1, boolean deriveR1) {
         super(branch);
-        variables = Collections.singletonList(variableSet.getVariable(bus.getNum(), variableType));
+        variables = Collections.singletonList(variableSet.create(bus.getNum(), variableType));
 
         if (deriveA1 || deriveR1) {
             throw new IllegalArgumentException("Variable A1 or R1 on open branch not supported: " + branch.getId());

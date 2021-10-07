@@ -43,12 +43,12 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
         if (piModel.getX() == 0) {
             throw new IllegalArgumentException("Branch '" + branch.getId() + "' has reactance equal to zero");
         }
-        ph1Var = variableSet.getVariable(bus1.getNum(), DcVariableType.BUS_PHI);
-        ph2Var = variableSet.getVariable(bus2.getNum(), DcVariableType.BUS_PHI);
+        ph1Var = variableSet.create(bus1.getNum(), DcVariableType.BUS_PHI);
+        ph2Var = variableSet.create(bus2.getNum(), DcVariableType.BUS_PHI);
         ImmutableList.Builder<Variable<DcVariableType>> variablesBuilder = ImmutableList.<Variable<DcVariableType>>builder().add(ph1Var, ph2Var);
         power =  1 / piModel.getX() * (useTransformerRatio ? piModel.getR1() * R2 : 1);
         if (deriveA1) {
-            a1Var = variableSet.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1);
+            a1Var = variableSet.create(branch.getNum(), DcVariableType.BRANCH_ALPHA1);
             variablesBuilder.add(a1Var);
         }
         variables = variablesBuilder.build();

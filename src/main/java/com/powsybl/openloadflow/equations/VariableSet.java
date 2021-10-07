@@ -18,7 +18,11 @@ public class VariableSet<V extends Enum<V> & Quantity> {
 
     private final Map<Pair<Integer, V>, Variable<V>> variables = new HashMap<>();
 
-    public Variable<V> getVariable(int num, V type) {
+    public Variable<V> create(int num, V type) {
         return variables.computeIfAbsent(Pair.of(num, type), p -> new Variable<>(p.getLeft(), p.getRight()));
+    }
+
+    public Variable<V> get(int num, V type) {
+        return variables.get(Pair.of(num, type));
     }
 }

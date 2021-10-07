@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac.nr;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.ac.equations.AcBranchVector;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
@@ -44,9 +45,11 @@ public class NewtonRaphson {
 
     private final TargetVector<AcVariableType, AcEquationType> targetVector;
 
+    private final AcBranchVector branchVector;
+
     public NewtonRaphson(LfNetwork network, LfNetworkParameters networkParameters, NewtonRaphsonParameters parameters, MatrixFactory matrixFactory,
                          EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j,
-                         TargetVector<AcVariableType, AcEquationType> targetVector) {
+                         TargetVector<AcVariableType, AcEquationType> targetVector, AcBranchVector branchVector) {
         this.network = Objects.requireNonNull(network);
         this.networkParameters = Objects.requireNonNull(networkParameters);
         this.parameters = Objects.requireNonNull(parameters);
@@ -54,6 +57,7 @@ public class NewtonRaphson {
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.j = Objects.requireNonNull(j);
         this.targetVector = Objects.requireNonNull(targetVector);
+        this.branchVector = Objects.requireNonNull(branchVector);
     }
 
     private NewtonRaphsonStatus runIteration(double[] fx, double[] x) {
@@ -72,7 +76,7 @@ public class NewtonRaphson {
             Vectors.minus(x, fx);
 
             // evaluate equation terms with new x
-            equationSystem.updateEquations(x);
+            equationSystem.updateEquations(x, branchVector);
 
             // recalculate f(x) with new x
             equationSystem.updateEquationVector(fx);
@@ -182,7 +186,7 @@ public class NewtonRaphson {
 
         double[] x = createStateVector(network, equationSystem, voltageInitializer);
 
-        equationSystem.updateEquations(x);
+        equationSystem.updateEquations(x, branchVector);
 
         // initialize mismatch vector (difference between equation values and targets)
         double[] fx = equationSystem.createEquationVector();
@@ -207,7 +211,7 @@ public class NewtonRaphson {
 
         // update network state variable
         if (status == NewtonRaphsonStatus.CONVERGED) {
-            equationSystem.updateEquations(x, EquationSystem.EquationUpdateType.AFTER_NR);
+            equationSystem.updateEquations(x, EquationSystem.EquationUpdateType.AFTER_NR, branchVector);
             updateNetwork(x);
         }
 

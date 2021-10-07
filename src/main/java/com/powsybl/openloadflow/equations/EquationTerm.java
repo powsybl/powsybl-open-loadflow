@@ -122,7 +122,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         VariableEquationTerm(int elementNum, V variableType, VariableSet<V> variableSet, double initialValue) {
             this.elementNum = elementNum;
-            this.variables = Collections.singletonList(variableSet.getVariable(elementNum, variableType));
+            this.variables = Collections.singletonList(variableSet.create(elementNum, variableType));
             value = initialValue;
         }
 

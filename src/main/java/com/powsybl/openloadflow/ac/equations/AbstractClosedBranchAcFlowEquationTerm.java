@@ -41,18 +41,18 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);
-        v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
-        v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
-        ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
-        ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
+        v1Var = variableSet.create(bus1.getNum(), AcVariableType.BUS_V);
+        v2Var = variableSet.create(bus2.getNum(), AcVariableType.BUS_V);
+        ph1Var = variableSet.create(bus1.getNum(), AcVariableType.BUS_PHI);
+        ph2Var = variableSet.create(bus2.getNum(), AcVariableType.BUS_PHI);
         ImmutableList.Builder<Variable<AcVariableType>> variablesBuilder = ImmutableList.<Variable<AcVariableType>>builder()
                 .add(v1Var, v2Var, ph1Var, ph2Var);
         if (deriveA1) {
-            a1Var = variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1);
+            a1Var = variableSet.create(branch.getNum(), AcVariableType.BRANCH_ALPHA1);
             variablesBuilder.add(a1Var);
         }
         if (deriveR1) {
-            r1Var = variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1);
+            r1Var = variableSet.create(branch.getNum(), AcVariableType.BRANCH_RHO1);
             variablesBuilder.add(r1Var);
         }
         variables = variablesBuilder.build();

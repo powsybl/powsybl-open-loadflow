@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.openloadflow.ac.equations.AcBranchVector;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
@@ -41,6 +42,8 @@ public class AcloadFlowEngine implements AutoCloseable {
     private JacobianMatrix<AcVariableType, AcEquationType> j;
 
     private TargetVector<AcVariableType, AcEquationType> targetVector;
+
+    private AcBranchVector branchVector;
 
     public AcloadFlowEngine(LfNetwork network, AcLoadFlowParameters parameters) {
         this.network = Objects.requireNonNull(network);
@@ -235,13 +238,14 @@ public class AcloadFlowEngine implements AutoCloseable {
             equationSystem = AcEquationSystem.create(network, variableSet, parameters.getNetworkParameters(), parameters.getEquationSystemCreationParameters());
             j = new JacobianMatrix<>(equationSystem, parameters.getMatrixFactory());
             targetVector = new TargetVector<>(network, equationSystem, AcloadFlowEngine::initTarget);
+            branchVector = new AcBranchVector(network, equationSystem, variableSet);
         } else {
             LOGGER.info("Restart AC loadflow on network {}", network);
         }
 
         RunningContext runningContext = new RunningContext();
         NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getNetworkParameters(), parameters.getNewtonRaphsonParameters(),
-                                                        parameters.getMatrixFactory(), equationSystem, j, targetVector);
+                                                        parameters.getMatrixFactory(), equationSystem, j, targetVector, branchVector);
 
         // run initial Newton-Raphson
         runningContext.lastNrResult = newtonRaphson.run(reporter);

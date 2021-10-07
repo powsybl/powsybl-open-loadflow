@@ -68,12 +68,13 @@ public class DcLoadFlowEngine {
     }
 
     public DcLoadFlowResult run(Reporter reporter, LfNetwork pNetwork) {
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(pNetwork, new VariableSet<>(), parameters.getEquationSystemCreationParameters());
+        VariableSet<DcVariableType> variableSet = new VariableSet<>();
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(pNetwork, variableSet, parameters.getEquationSystemCreationParameters());
 
         LoadFlowResult.ComponentResult.Status status = LoadFlowResult.ComponentResult.Status.FAILED;
         try (JacobianMatrix<DcVariableType, DcEquationType> j = new JacobianMatrix<>(equationSystem, parameters.getMatrixFactory())) {
 
-            status = run(equationSystem, j, Collections.emptyList(), Collections.emptyList(), reporter);
+            status = run(equationSystem, variableSet, j, Collections.emptyList(), Collections.emptyList(), reporter);
         } catch (Exception e) {
             LOGGER.error("Failed to solve linear system for DC load flow", e);
         }
@@ -158,11 +159,14 @@ public class DcLoadFlowEngine {
         }
     }
 
-    public LoadFlowResult.ComponentResult.Status run(EquationSystem<DcVariableType, DcEquationType> equationSystem, JacobianMatrix<DcVariableType, DcEquationType> j,
+    public LoadFlowResult.ComponentResult.Status run(EquationSystem<DcVariableType, DcEquationType> equationSystem, VariableSet<DcVariableType> variableSet,
+                                                     JacobianMatrix<DcVariableType, DcEquationType> j,
                                                      Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
                                                      Reporter reporter) {
         // only process main (largest) connected component
         LfNetwork network = networks.get(0);
+
+        BranchVector<DcVariableType, DcEquationType> branchVector = new BranchVector<>(network, equationSystem, variableSet);
 
         double[] x = createStateVector(network, equationSystem, new UniformValueVoltageInitializer());
 
@@ -173,7 +177,7 @@ public class DcLoadFlowEngine {
             distributeSlack(remainingBuses);
         }
 
-        equationSystem.updateEquations(x);
+        equationSystem.updateEquations(x, branchVector);
 
         this.targetVector = TargetVector.createArray(network, equationSystem, DcLoadFlowEngine::initTarget);
 
@@ -212,8 +216,8 @@ public class DcLoadFlowEngine {
             LOGGER.error("Failed to solve linear system for DC load flow", e);
         }
 
-        equationSystem.updateEquations(targetVector);
-        equationSystem.updateEquations(targetVector, EquationSystem.EquationUpdateType.AFTER_NR);
+        equationSystem.updateEquations(targetVector, branchVector);
+        equationSystem.updateEquations(targetVector, EquationSystem.EquationUpdateType.AFTER_NR, branchVector);
         updateNetwork(network, equationSystem, targetVector);
 
         // set all calculated voltages to NaN

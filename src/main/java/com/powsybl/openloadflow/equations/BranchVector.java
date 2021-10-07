@@ -6,7 +6,10 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.AbstractLfNetworkListener;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.PiModel;
 import net.jafama.FastMath;
 
 import java.util.List;
@@ -17,9 +20,11 @@ import java.util.Objects;
  */
 public class BranchVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfNetworkListener implements EquationSystemListener<V, E> {
 
-    private final LfNetwork network;
+    protected final LfNetwork network;
 
-    private final EquationSystem<V, E> equationSystem;
+    protected final EquationSystem<V, E> equationSystem;
+
+    protected final VariableSet<V> variableSet;
 
     public double[] b1;
     public double[] b2;
@@ -32,12 +37,17 @@ public class BranchVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
     public double[] a1;
     public double[] r1;
 
-    public BranchVector(LfNetwork network, EquationSystem<V, E> equationSystem) {
+    public BranchVector(LfNetwork network, EquationSystem<V, E> equationSystem, VariableSet<V> variableSet) {
         this.network = Objects.requireNonNull(network);
         this.equationSystem = Objects.requireNonNull(equationSystem);
+        this.variableSet = Objects.requireNonNull(variableSet);
         this.network.addListener(this);
         this.equationSystem.addListener(this);
         init();
+    }
+
+    public LfNetwork getNetwork() {
+        return network;
     }
 
     private void init() {

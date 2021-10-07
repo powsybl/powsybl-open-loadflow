@@ -24,11 +24,7 @@ import java.util.stream.Collectors;
  */
 public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
-    private final LfNetwork network;
-
     private final boolean indexTerms;
-
-    private final BranchVector<V, E> branchVector;
 
     private final Map<Pair<Integer, E>, Equation<V, E>> equations = new HashMap<>();
 
@@ -183,14 +179,12 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         NEVER
     }
 
-    public EquationSystem(LfNetwork network) {
-        this(network, false);
+    public EquationSystem() {
+        this(false);
     }
 
-    public EquationSystem(LfNetwork network, boolean indexTerms) {
-        this.network = network;
+    public EquationSystem(boolean indexTerms) {
         this.indexTerms = indexTerms;
-        branchVector = new BranchVector<>(network, this);
         addListener(equationCache);
     }
 
@@ -307,11 +301,11 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         System.out.println("Update equation vector done in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms");
     }
 
-    public void updateEquations(double[] x) {
-        updateEquations(x, EquationUpdateType.DEFAULT);
+    public void updateEquations(double[] x, BranchVector<V, E> branchVector) {
+        updateEquations(x, EquationUpdateType.DEFAULT, branchVector);
     }
 
-    public void updateEquations(double[] x, EquationUpdateType updateType) {
+    public void updateEquations(double[] x, EquationUpdateType updateType, BranchVector<V, E> branchVector) {
         Objects.requireNonNull(x);
         Objects.requireNonNull(updateType);
         Stopwatch stopwatch = Stopwatch.createStarted();
