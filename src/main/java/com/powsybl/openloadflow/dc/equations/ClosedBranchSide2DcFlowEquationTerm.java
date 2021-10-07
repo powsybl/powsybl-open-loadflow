@@ -46,7 +46,7 @@ public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public void update(double[] x, BranchVector branchVector) {
+    public void update(double[] x, BranchVector<DcVariableType, DcEquationType> vec) {
         Objects.requireNonNull(x);
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];

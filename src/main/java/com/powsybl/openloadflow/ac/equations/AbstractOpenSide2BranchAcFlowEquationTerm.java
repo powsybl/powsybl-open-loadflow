@@ -33,8 +33,8 @@ abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractBranchA
         }
     }
 
-    protected double getShunt(BranchVector<AcVariableType, AcEquationType> branchVector) {
-        return (branchVector.g2[num] + branchVector.y[num] * branchVector.sinKsi[num]) * (branchVector.g2[num] + branchVector.y[num] * branchVector.sinKsi[num]) + (-branchVector.b2[num] + branchVector.y[num] * branchVector.cosKsi[num]) * (-branchVector.b2[num] + branchVector.y[num] * branchVector.cosKsi[num]);
+    protected double getShunt(BranchVector<AcVariableType, AcEquationType> vec) {
+        return (vec.g2[num] + vec.y[num] * vec.sinKsi[num]) * (vec.g2[num] + vec.y[num] * vec.sinKsi[num]) + (-vec.b2[num] + vec.y[num] * vec.cosKsi[num]) * (-vec.b2[num] + vec.y[num] * vec.cosKsi[num]);
     }
 
     @Override
