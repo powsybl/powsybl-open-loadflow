@@ -43,7 +43,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void initialTest() {
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
         LfGenerator lfGenerator = lfNetwork.getBus(0).getGenerators().get(0);
         assertEquals("g", lfGenerator.getId());
@@ -54,7 +54,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     void generatorZeroActivePowerTargetTest() {
         // targetP == 0, generator is discarded from active power control
         g.setTargetP(0);
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertFalse(lfNetwork.getBus(0).getGenerators().get(0).isParticipating());
     }
@@ -64,7 +64,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         // targetP > maxP, generator is discarded from active power control
         g.setTargetP(10);
         g.setMaxP(5);
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertFalse(lfNetwork.getBus(0).getGenerators().get(0).isParticipating());
     }
@@ -85,7 +85,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
                 .endPoint()
                 .add();
 
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertFalse(lfNetwork.getBus(0).isVoltageControllerEnabled());
     }
@@ -95,7 +95,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         // targetP is zero and minP > 0, meansn generator is not started and cannot control voltage
         g.setTargetP(0);
         g.setMinP(1);
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertFalse(lfNetwork.getBus(0).isVoltageControllerEnabled());
     }
@@ -103,7 +103,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     @Test
     void networkWithDanglingLineTest() {
         network = DanglingLineNetworkFactory.create();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
         LfNetwork mainNetwork = lfNetworks.get(0);
@@ -119,7 +119,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         assertNotNull(transformer);
         VoltageLevel voltageLevelLeg1 = transformer.getLeg1().getTerminal().getVoltageLevel();
 
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
         LfNetwork mainNetwork = lfNetworks.get(0);
@@ -131,7 +131,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     @Test
     void defaultMethodsTest() {
         network = EurostagTutorialExample1Factory.create();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
         LfNetwork mainNetwork = lfNetworks.get(0);
@@ -144,7 +144,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     @Test
     void defaultMethodsTest2() {
         network = DanglingLineFactory.create();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
         LfNetwork mainNetwork = lfNetworks.get(0);

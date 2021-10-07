@@ -6,8 +6,13 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.SlackBusSelector;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -66,5 +71,21 @@ public final class Networks {
 
     public static void setPropertyAngle(Identifiable identifiable, double angle) {
         setDoubleProperty(identifiable, PROPERTY_ANGLE, angle);
+    }
+
+    public static List<LfNetwork> load(Network network, SlackBusSelector slackBusSelector) {
+        return LfNetwork.load(network, new LfNetworkLoaderImpl(), slackBusSelector);
+    }
+
+    public static List<LfNetwork> load(Network network, LfNetworkParameters parameters) {
+        return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters);
+    }
+
+    public static List<LfNetwork> load(Network network, SlackBusSelector slackBusSelector, Reporter reporter) {
+        return LfNetwork.load(network, new LfNetworkLoaderImpl(), slackBusSelector, reporter);
+    }
+
+    public static List<LfNetwork> load(Network network, LfNetworkParameters parameters, Reporter reporter) {
+        return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters, reporter);
     }
 }

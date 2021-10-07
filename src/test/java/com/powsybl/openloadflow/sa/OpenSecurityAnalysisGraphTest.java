@@ -159,7 +159,7 @@ class OpenSecurityAnalysisGraphTest {
             new DenseMatrixFactory(), lfParameters, lfParametersExt, true);
 
         // create networks including all necessary switches
-        List<LfNetwork> lfNetworks = securityAnalysis.createNetworks(allSwitchesToOpen, acParameters);
+        List<LfNetwork> lfNetworks = securityAnalysis.createNetworks(allSwitchesToOpen, acParameters.getNetworkParameters());
 
         // run simulation on each network
         start = System.currentTimeMillis();
