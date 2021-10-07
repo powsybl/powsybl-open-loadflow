@@ -41,6 +41,8 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     protected double remoteTargetQ = Double.NaN;
 
+    private Object userObject;
+
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
     }
@@ -239,5 +241,15 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     public void setGeneratorControlType(GeneratorControlType generatorControlType) {
         this.generatorControlType = generatorControlType;
+    }
+
+    @Override
+    public Object getUserObject() {
+        return userObject;
+    }
+
+    @Override
+    public void setUserObject(Object userObject) {
+        this.userObject = userObject;
     }
 }
