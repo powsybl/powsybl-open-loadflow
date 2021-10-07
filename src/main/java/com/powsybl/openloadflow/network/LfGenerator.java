@@ -72,4 +72,8 @@ public interface LfGenerator {
     ReactivePowerControl.ControlledSide getControlledBranchSide();
 
     double getRemoteTargetQ();
+
+    Object getUserObject();
+
+    void setUserObject(Object userObject);
 }
