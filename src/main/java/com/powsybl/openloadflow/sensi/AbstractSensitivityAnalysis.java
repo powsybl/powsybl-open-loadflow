@@ -649,8 +649,16 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    public void checkContingencies(Network network, LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+    public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+        Set<String> contingenciesIds = new HashSet<>();
         for (PropagatedContingency contingency : contingencies) {
+            // check ID are unique because, later contingency are indexed by their IDs
+            String contingencyId = contingency.getContingency().getId();
+            if (contingenciesIds.contains(contingencyId)) {
+                throw new PowsyblException("Contingency '" + contingencyId + "' already exists");
+            }
+            contingenciesIds.add(contingencyId);
+
             // Elements have already been checked and found in PropagatedContingency, so there is no need to
             // check them again
             Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
