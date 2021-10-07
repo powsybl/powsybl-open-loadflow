@@ -41,6 +41,8 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     protected double remoteTargetQ = Double.NaN;
 
+    private Object userObject;
+
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
     }
@@ -235,5 +237,15 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     protected enum GeneratorControlType {
         OFF, REACTIVE_POWER, VOLTAGE
+    }
+
+    @Override
+    public Object getUserObject() {
+        return userObject;
+    }
+
+    @Override
+    public void setUserObject(Object userObject) {
+        this.userObject = userObject;
     }
 }
