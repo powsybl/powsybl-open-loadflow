@@ -37,8 +37,9 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     @Override
     public void update(double[] x, BranchVector<AcVariableType, AcEquationType> vec) {
-        double v2 = x[v2Var.getRow()];
-        double ph2 = x[ph2Var.getRow()];
+        AcBranchVector acVec = (AcBranchVector) vec;
+        double v2 = x[acVec.v2Row[num]];
+        double ph2 = x[acVec.ph2Row[num]];
         double w2 = R2 * v2;
         double cosPh2 = FastMath.cos(ph2);
         double sinPh2 = FastMath.sin(ph2);

@@ -51,10 +51,11 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         double v2 = x[acVec.v2Row[num]];
         double ph1 = x[acVec.ph1Row[num]];
         double ph2 = x[acVec.ph2Row[num]];
-        double theta = vec.ksi[num] - (acVec.a1Row[num] != -1 ? x[acVec.a1Row[num]] : vec.a1[num]) + A2 - ph1 + ph2;
+        double r1 = acVec.r1Row[num] != -1 ? x[acVec.r1Row[num]] : vec.r1[num];
+        double a1 = acVec.a1Row[num] != -1 ? x[acVec.a1Row[num]] : vec.a1[num];
+        double theta = vec.ksi[num] - a1 + A2 - ph1 + ph2;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
-        double r1 = acVec.r1Row[num] != -1 ? x[acVec.r1Row[num]] : vec.r1[num];
         p1 = r1 * v1 * (vec.g1[num] * r1 * v1 + vec.y[num] * r1 * v1 * vec.sinKsi[num] - vec.y[num] * R2 * v2 * sinTheta);
         dp1dv1 = r1 * (2 * vec.g1[num] * r1 * v1 + 2 * vec.y[num] * r1 * v1 * vec.sinKsi[num] - vec.y[num] * R2 * v2 * sinTheta);
         dp1dv2 = -vec.y[num] * r1 * R2 * v1 * sinTheta;

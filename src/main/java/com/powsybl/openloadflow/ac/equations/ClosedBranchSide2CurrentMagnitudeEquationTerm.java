@@ -45,12 +45,13 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
 
     @Override
     public void update(double[] x, BranchVector<AcVariableType, AcEquationType> vec) {
-        double v2 = x[v2Var.getRow()];
-        double v1 = x[v1Var.getRow()];
-        double ph2 = x[ph2Var.getRow()];
-        double ph1 = x[ph1Var.getRow()];
-        double r1 = r1Var != null ? x[r1Var.getRow()] : vec.r1[num];
-        double a1 = a1Var != null ? x[a1Var.getRow()] : vec.a1[num];
+        AcBranchVector acVec = (AcBranchVector) vec;
+        double v1 = x[acVec.v1Row[num]];
+        double v2 = x[acVec.v2Row[num]];
+        double ph1 = x[acVec.ph1Row[num]];
+        double ph2 = x[acVec.ph2Row[num]];
+        double r1 = acVec.r1Row[num] != -1 ? x[acVec.r1Row[num]] : vec.r1[num];
+        double a1 = acVec.a1Row[num] != -1 ? x[acVec.a1Row[num]] : vec.a1[num];
         updateCurrent(v1, v2, ph1, ph2, r1, a1, vec);
     }
 
