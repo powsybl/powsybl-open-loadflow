@@ -76,7 +76,7 @@ class DcLoadFlowMatrixTest {
         BranchVector<DcVariableType, DcEquationType> branchVector = new BranchVector<>(mainNetwork, equationSystem, variableSet);
         equationSystem.updateEquations(x, branchVector);
 
-        Matrix j = new JacobianMatrix<>(equationSystem, matrixFactory).getMatrix();
+        Matrix j = new JacobianMatrix<>(equationSystem, matrixFactory).getMatrix(branchVector);
         try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
             ps.println("J=");
             j.print(ps, equationSystem.getRowNames(mainNetwork), equationSystem.getColumnNames(mainNetwork));
@@ -112,7 +112,7 @@ class DcLoadFlowMatrixTest {
 
         equationSystem = DcEquationSystem.create(mainNetwork, variableSet, creationParameters);
 
-        j = new JacobianMatrix<>(equationSystem, matrixFactory).getMatrix();
+        j = new JacobianMatrix<>(equationSystem, matrixFactory).getMatrix(branchVector);
 
         dx = Arrays.copyOf(targets, targets.length);
         try (LUDecomposition lu = j.decomposeLU()) {

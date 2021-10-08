@@ -44,7 +44,7 @@ public class OpenBranchSide2ReactiveFlowEquationTerm extends AbstractOpenSide2Br
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable) {
+    public double der(Variable<AcVariableType> variable, BranchVector<AcVariableType, AcEquationType> vec) {
         if (variable.equals(v1Var)) {
             return dq1dv1;
         } else {

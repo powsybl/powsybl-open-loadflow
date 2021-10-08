@@ -203,7 +203,7 @@ public class DcLoadFlowEngine {
 
         LoadFlowResult.ComponentResult.Status status;
         try {
-            j.solveTransposed(targetVector);
+            j.solveTransposed(targetVector, branchVector);
             status = LoadFlowResult.ComponentResult.Status.CONVERGED;
         } catch (Exception e) {
             status = LoadFlowResult.ComponentResult.Status.FAILED;

@@ -66,7 +66,7 @@ public class NewtonRaphson {
         try {
             // solve f(x) = j * dx
             try {
-                j.solveTransposed(fx);
+                j.solveTransposed(fx, branchVector);
             } catch (Exception e) {
                 LOGGER.error(e.toString(), e);
                 return NewtonRaphsonStatus.SOLVER_FAILED;

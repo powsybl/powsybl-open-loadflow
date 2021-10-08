@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
+import com.powsybl.openloadflow.ac.equations.AcBranchVector;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
 import com.powsybl.openloadflow.network.LfNetwork;
 
@@ -20,11 +21,14 @@ public class OuterLoopContext {
 
     private final LfNetwork network;
 
+    private final AcBranchVector branchVector;
+
     private final NewtonRaphsonResult lastNewtonRaphsonResult;
 
-    OuterLoopContext(int iteration, LfNetwork network, NewtonRaphsonResult lastNewtonRaphsonResult) {
+    OuterLoopContext(int iteration, LfNetwork network, AcBranchVector branchVector, NewtonRaphsonResult lastNewtonRaphsonResult) {
         this.iteration = iteration;
         this.network = Objects.requireNonNull(network);
+        this.branchVector = Objects.requireNonNull(branchVector);
         this.lastNewtonRaphsonResult = Objects.requireNonNull(lastNewtonRaphsonResult);
     }
 
@@ -34,6 +38,10 @@ public class OuterLoopContext {
 
     public LfNetwork getNetwork() {
         return network;
+    }
+
+    public AcBranchVector getBranchVector() {
+        return branchVector;
     }
 
     public NewtonRaphsonResult getLastNewtonRaphsonResult() {

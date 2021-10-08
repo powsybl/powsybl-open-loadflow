@@ -74,7 +74,7 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable) {
+    public double der(Variable<AcVariableType> variable, BranchVector<AcVariableType, AcEquationType> vec) {
         if (variable.equals(v1Var)) {
             return dq1dv1;
         } else if (variable.equals(v2Var)) {

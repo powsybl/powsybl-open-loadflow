@@ -81,8 +81,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public double der(Variable<V> variable) {
-            return scalar * term.der(variable);
+        public double der(Variable<V> variable, BranchVector<V, E> vec) {
+            return scalar * term.der(variable, vec);
         }
 
         @Override
@@ -152,7 +152,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public double der(Variable<V> variable) {
+        public double der(Variable<V> variable, BranchVector<V, E> vec) {
             return 1;
         }
 
@@ -228,7 +228,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      * @param variable the variable the partial derivative is with respect to
      * @return value of the partial derivative
      */
-    double der(Variable<V> variable);
+    double der(Variable<V> variable, BranchVector<V, E> vec);
 
     /**
      * Check {@link #rhs()} can return a value different from zero.

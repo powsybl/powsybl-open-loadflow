@@ -130,7 +130,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         lu = null;
     }
 
-    private void initMatrix() {
+    private void initMatrix(BranchVector<V, E> branchVector) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         int rowCount = equationSystem.getSortedEquationsToSolve().size();
@@ -151,7 +151,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 Variable<V> var = e2.getKey();
                 int row = var.getRow();
                 for (EquationTerm<V, E> equationTerm : e2.getValue()) {
-                    double value = equationTerm.der(var);
+                    double value = equationTerm.der(var, branchVector);
                     int elementIndex = matrix.addAndGetIndex(row, column, value);
                     partialDerivatives.add(new JacobianMatrix.PartialDerivative<>(equationTerm, elementIndex, var));
                 }
@@ -161,7 +161,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         System.out.println("Init jac done in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms");
     }
 
-    private void updateValues() {
+    private void updateValues(BranchVector<V, E> branchVector) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         matrix.reset();
@@ -169,7 +169,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             EquationTerm<V, E> equationTerm = partialDerivative.getEquationTerm();
             int elementIndex = partialDerivative.getElementIndex();
             Variable<V> var = partialDerivative.getVariable();
-            double value = equationTerm.der(var);
+            double value = equationTerm.der(var, branchVector);
             matrix.addAtIndex(elementIndex, value);
         }
 
@@ -180,16 +180,16 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
-    public Matrix getMatrix() {
+    public Matrix getMatrix(BranchVector<V, E> branchVector) {
         if (status != Status.VALID) {
             switch (status) {
                 case MATRIX_INVALID:
                     clear();
-                    initMatrix();
+                    initMatrix(branchVector);
                     break;
 
                 case VALUES_INVALID:
-                    updateValues();
+                    updateValues(branchVector);
                     break;
 
                 default:
@@ -200,28 +200,28 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return matrix;
     }
 
-    private LUDecomposition getLUDecomposition() {
-        Matrix matrix = getMatrix();
+    private LUDecomposition getLUDecomposition(BranchVector<V, E> branchVector) {
+        Matrix matrix = getMatrix(branchVector);
         if (lu == null) {
             lu = matrix.decomposeLU();
         }
         return lu;
     }
 
-    public void solve(double[] b) {
-        getLUDecomposition().solve(b);
+    public void solve(double[] b, BranchVector<V, E> branchVector) {
+        getLUDecomposition(branchVector).solve(b);
     }
 
-    public void solveTransposed(double[] b) {
-        getLUDecomposition().solveTransposed(b);
+    public void solveTransposed(double[] b, BranchVector<V, E> branchVector) {
+        getLUDecomposition(branchVector).solveTransposed(b);
     }
 
-    public void solve(DenseMatrix b) {
-        getLUDecomposition().solve(b);
+    public void solve(DenseMatrix b, BranchVector<V, E> branchVector) {
+        getLUDecomposition(branchVector).solve(b);
     }
 
-    public void solveTransposed(DenseMatrix b) {
-        getLUDecomposition().solveTransposed(b);
+    public void solveTransposed(DenseMatrix b, BranchVector<V, E> branchVector) {
+        getLUDecomposition(branchVector).solveTransposed(b);
     }
 
     @Override

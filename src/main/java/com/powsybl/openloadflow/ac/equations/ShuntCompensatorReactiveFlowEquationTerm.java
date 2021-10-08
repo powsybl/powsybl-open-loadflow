@@ -69,7 +69,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable) {
+    public double der(Variable<AcVariableType> variable, BranchVector<AcVariableType, AcEquationType> vec) {
         if (variable.equals(vVar)) {
             return dqdv;
         } else {

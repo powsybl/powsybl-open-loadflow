@@ -310,6 +310,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     public void updateEquations(double[] x, EquationUpdateType updateType, BranchVector<V, E> branchVector) {
         Objects.requireNonNull(x);
         Objects.requireNonNull(updateType);
+        Objects.requireNonNull(branchVector);
+
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         for (Equation<V, E> equation : equations.values()) {

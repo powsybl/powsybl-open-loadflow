@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.openloadflow.ac.equations.AcBranchVector;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1CurrentMagnitudeEquationTerm;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2CurrentMagnitudeEquationTerm;
@@ -74,7 +75,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .filter(dpc -> dpc.getMode() == DiscretePhaseControl.Mode.LIMITER)
-                .filter(dpc -> changeTapPositions(dpc) == OuterLoopStatus.UNSTABLE)
+                .filter(dpc -> changeTapPositions(dpc, context.getBranchVector()) == OuterLoopStatus.UNSTABLE)
                 .collect(Collectors.toList());
 
         return unstablePhaseControls.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
@@ -93,7 +94,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
         LOGGER.info("Round phase shift of '{}': {} -> {}", controllerBranch.getId(), a1Value, roundedA1Value);
     }
 
-    private OuterLoopStatus changeTapPositions(DiscretePhaseControl phaseControl) {
+    private OuterLoopStatus changeTapPositions(DiscretePhaseControl phaseControl, AcBranchVector branchVector) {
         // only local control supported: controlled branch is controller branch.
         double currentLimit = phaseControl.getTargetValue();
         LfBranch controllerBranch = phaseControl.getController();
@@ -101,24 +102,25 @@ public class PhaseControlOuterLoop implements OuterLoop {
         boolean isSensibilityPositive;
         boolean success = false;
         if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE && currentLimit < controllerBranch.getI1().eval()) {
-            isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.ONE);
+            isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.ONE, branchVector);
             success = isSensibilityPositive ? piModel.updatePhaseControlTapPosition(PiModel.Direction.DECREASE) : piModel.updatePhaseControlTapPosition(PiModel.Direction.INCREASE);
         } else if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.TWO && currentLimit < controllerBranch.getI2().eval()) {
-            isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.TWO);
+            isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.TWO, branchVector);
             success = isSensibilityPositive ? piModel.updatePhaseControlTapPosition(PiModel.Direction.DECREASE) : piModel.updatePhaseControlTapPosition(PiModel.Direction.INCREASE);
         }
         return success ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE;
     }
 
-    boolean isSensitivityCurrentPerA1Positive(LfBranch controllerBranch, DiscretePhaseControl.ControlledSide controlledSide) {
+    boolean isSensitivityCurrentPerA1Positive(LfBranch controllerBranch, DiscretePhaseControl.ControlledSide controlledSide,
+                                              AcBranchVector branchVector) {
         if (controlledSide == DiscretePhaseControl.ControlledSide.ONE) {
             ClosedBranchSide1CurrentMagnitudeEquationTerm i1 = (ClosedBranchSide1CurrentMagnitudeEquationTerm) controllerBranch.getI1();
             Variable<AcVariableType> a1Var = i1.getVariables().stream().filter(v -> v.getType() == AcVariableType.BRANCH_ALPHA1).findFirst().orElseThrow();
-            return i1.der(a1Var) > 0;
+            return i1.der(a1Var, branchVector) > 0;
         } else {
             ClosedBranchSide2CurrentMagnitudeEquationTerm i2 = (ClosedBranchSide2CurrentMagnitudeEquationTerm) controllerBranch.getI2();
             Variable<AcVariableType> a1Var = i2.getVariables().stream().filter(v -> v.getType() == AcVariableType.BRANCH_ALPHA1).findFirst().orElseThrow();
-            return i2.der(a1Var) > 0;
+            return i2.der(a1Var, branchVector) > 0;
         }
     }
 }

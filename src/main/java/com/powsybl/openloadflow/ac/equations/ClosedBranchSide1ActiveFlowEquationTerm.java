@@ -51,20 +51,19 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         double v2 = x[acVec.v2Row[num]];
         double ph1 = x[acVec.ph1Row[num]];
         double ph2 = x[acVec.ph2Row[num]];
-        double theta = vec.ksi[num] - (a1Var != null ? x[a1Var.getRow()] : vec.a1[num])
-                + A2 - ph1 + ph2;
+        double theta = vec.ksi[num] - (acVec.a1Row[num] != -1 ? x[acVec.a1Row[num]] : vec.a1[num]) + A2 - ph1 + ph2;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
-        double r1 = r1Var != null ? x[r1Var.getRow()] : vec.r1[num];
+        double r1 = acVec.r1Row[num] != -1 ? x[acVec.r1Row[num]] : vec.r1[num];
         p1 = r1 * v1 * (vec.g1[num] * r1 * v1 + vec.y[num] * r1 * v1 * vec.sinKsi[num] - vec.y[num] * R2 * v2 * sinTheta);
         dp1dv1 = r1 * (2 * vec.g1[num] * r1 * v1 + 2 * vec.y[num] * r1 * v1 * vec.sinKsi[num] - vec.y[num] * R2 * v2 * sinTheta);
         dp1dv2 = -vec.y[num] * r1 * R2 * v1 * sinTheta;
         dp1dph1 = vec.y[num] * r1 * R2 * v1 * v2 * cosTheta;
         dp1dph2 = -dp1dph1;
-        if (a1Var != null) {
+        if (acVec.a1Row[num] != -1) {
             dp1da1 = dp1dph1;
         }
-        if (r1Var != null) {
+        if (acVec.r1Row[num] != -1) {
             dp1dr1 = v1 * (2 * r1 * v1 * (vec.g1[num] + vec.y[num] * vec.sinKsi[num]) - vec.y[num] * R2 * v2 * sinTheta);
         }
     }
@@ -75,22 +74,35 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable) {
-        if (variable.equals(v1Var)) {
-            return dp1dv1;
-        } else if (variable.equals(v2Var)) {
-            return dp1dv2;
-        } else if (variable.equals(ph1Var)) {
-            return dp1dph1;
-        } else if (variable.equals(ph2Var)) {
-            return dp1dph2;
-        } else if (variable.equals(a1Var)) {
-            return dp1da1;
-        } else if (variable.equals(r1Var)) {
-            return dp1dr1;
-        } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
+    public double der(Variable<AcVariableType> variable, BranchVector<AcVariableType, AcEquationType> vec) {
+        AcBranchVector acVec = (AcBranchVector) vec;
+        switch (variable.getType()) {
+            case BUS_V:
+                if (variable.getRow() == acVec.v1Row[num]) {
+                    return dp1dv1;
+                } else if (variable.getRow() == acVec.v2Row[num]) {
+                    return dp1dv2;
+                }
+                break;
+            case BUS_PHI:
+                if (variable.getRow() == acVec.ph1Row[num]) {
+                    return dp1dph1;
+                } else if (variable.getRow() == acVec.ph2Row[num]) {
+                    return dp1dph2;
+                }
+                break;
+            case BRANCH_ALPHA1:
+                if (variable.getRow() == acVec.a1Row[num]) {
+                    return dp1da1;
+                }
+                break;
+            case BRANCH_RHO1:
+                if (variable.getRow() == acVec.r1Row[num]) {
+                    return dp1dr1;
+                }
+                break;
         }
+        throw new IllegalStateException("Unknown variable: " + variable);
     }
 
     @Override

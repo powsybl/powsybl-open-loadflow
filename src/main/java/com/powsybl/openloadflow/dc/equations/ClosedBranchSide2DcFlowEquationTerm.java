@@ -65,7 +65,7 @@ public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public double der(Variable<DcVariableType> variable) {
+    public double der(Variable<DcVariableType> variable, BranchVector<DcVariableType, DcEquationType> vec) {
         Objects.requireNonNull(variable);
         if (variable.equals(ph1Var)) {
             return -power;

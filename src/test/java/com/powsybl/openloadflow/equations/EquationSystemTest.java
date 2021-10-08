@@ -211,14 +211,14 @@ class EquationSystemTest {
         Variable<AcVariableType> v2var = variableSet.create(branch.getBus2().getNum(), AcVariableType.BUS_V);
         Variable<AcVariableType> ph1var = variableSet.create(branch.getBus1().getNum(), AcVariableType.BUS_PHI);
         Variable<AcVariableType> ph2var = variableSet.create(branch.getBus2().getNum(), AcVariableType.BUS_PHI);
-        assertEquals(-43.120215, i1.der(v1var), 10E-6);
-        assertEquals(43.398907, i1.der(v2var), 10E-6);
-        assertEquals(3.945355, i1.der(ph1var), 10E-6);
-        assertEquals(-3.945355, i1.der(ph2var), 10E-6);
-        assertEquals(43.398907, i2.der(v1var), 10E-6);
-        assertEquals(-43.120215, i2.der(v2var), 10E-6);
-        assertEquals(-3.945355, i2.der(ph1var), 10E-6);
-        assertEquals(3.945355, i2.der(ph2var), 10E-6);
+        assertEquals(-43.120215, i1.der(v1var, branchVector), 10E-6);
+        assertEquals(43.398907, i1.der(v2var, branchVector), 10E-6);
+        assertEquals(3.945355, i1.der(ph1var, branchVector), 10E-6);
+        assertEquals(-3.945355, i1.der(ph2var, branchVector), 10E-6);
+        assertEquals(43.398907, i2.der(v1var, branchVector), 10E-6);
+        assertEquals(-43.120215, i2.der(v2var, branchVector), 10E-6);
+        assertEquals(-3.945355, i2.der(ph1var, branchVector), 10E-6);
+        assertEquals(3.945355, i2.der(ph2var, branchVector), 10E-6);
     }
 
     @Test
@@ -239,8 +239,8 @@ class EquationSystemTest {
         EquationTerm<AcVariableType, AcEquationType> i1 = equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_I).orElse(null).getTerms().stream().filter(OpenBranchSide2CurrentMagnitudeEquationTerm.class::isInstance).findAny().get();
         Variable<AcVariableType> v1var = variableSet.create(branch.getBus1().getNum(), AcVariableType.BUS_V);
         Variable<AcVariableType> ph1var = variableSet.create(branch.getBus1().getNum(), AcVariableType.BUS_PHI);
-        assertEquals(0.559170, i1.der(v1var), 10E-6);
-        assertThrows(IllegalStateException.class, () -> i1.der(ph1var));
+        assertEquals(0.559170, i1.der(v1var, branchVector), 10E-6);
+        assertThrows(IllegalStateException.class, () -> i1.der(ph1var, branchVector));
     }
 
     @Test
@@ -260,7 +260,7 @@ class EquationSystemTest {
         EquationTerm<AcVariableType, AcEquationType> i2 = equationSystem.getEquation(branch.getBus2().getNum(), AcEquationType.BUS_I).orElse(null).getTerms().stream().filter(OpenBranchSide1CurrentMagnitudeEquationTerm.class::isInstance).findAny().get();
         Variable<AcVariableType> v2var = variableSet.create(branch.getBus2().getNum(), AcVariableType.BUS_V);
         Variable<AcVariableType> ph2var = variableSet.create(branch.getBus2().getNum(), AcVariableType.BUS_PHI);
-        assertEquals(0.55917, i2.der(v2var), 10E-6);
-        assertThrows(IllegalStateException.class, () -> i2.der(ph2var));
+        assertEquals(0.55917, i2.der(v2var, branchVector), 10E-6);
+        assertThrows(IllegalStateException.class, () -> i2.der(ph2var, branchVector));
     }
 }
