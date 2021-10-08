@@ -61,10 +61,10 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         dp2dv2 = R2 * (2 * vec.g2[num] * R2 * v2 - vec.y[num] * r1 * v1 * sinTheta + 2 * vec.y[num] * R2 * v2 * vec.sinKsi[num]);
         dp2dph1 = -vec.y[num] * r1 * R2 * v1 * v2 * cosTheta;
         dp2dph2 = -dp2dph1;
-        if (a1Var != null) {
+        if (acVec.a1Row[num] != -1) {
             dp2da1 = dp2dph1;
         }
-        if (r1Var != null) {
+        if (acVec.r1Row[num] != -1) {
             dp2dr1 = -vec.y[num] * R2 * v1 * v2 * sinTheta;
         }
     }

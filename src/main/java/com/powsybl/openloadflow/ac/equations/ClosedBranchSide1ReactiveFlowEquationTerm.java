@@ -61,10 +61,10 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
         dq1dv2 = -vec.y[num] * r1 * R2 * v1 * cosTheta;
         dq1dph1 = -vec.y[num] * r1 * R2 * v1 * v2 * sinTheta;
         dq1dph2 = -dq1dph1;
-        if (a1Var != null) {
+        if (acVec.a1Row[num] != -1) {
             dq1da1 = dq1dph1;
         }
-        if (r1Var != null) {
+        if (acVec.r1Row[num] != -1) {
             dq1dr1 = v1 * (2 * r1 * v1 * (-vec.b1[num] + vec.y[num] * vec.cosKsi[num]) - vec.y[num] * R2 * v2 * cosTheta);
         }
     }

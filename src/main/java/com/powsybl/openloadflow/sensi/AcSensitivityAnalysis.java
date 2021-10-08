@@ -71,7 +71,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     if (!factor.getFunctionEquationTerm().isActive()) {
                         throw new PowsyblException("Found an inactive equation for a factor that has no predefined result");
                     }
-                    sensi = factor.getFunctionEquationTerm().calculateSensi(factorsState, factorGroup.getIndex());
+                    sensi = factor.getFunctionEquationTerm().calculateSensi(factorsState, factorGroup.getIndex(), branchVector);
                     if (factor.getFunctionElement() instanceof LfBranch &&
                             factor instanceof SingleVariableLfSensitivityFactor &&
                             ((SingleVariableLfSensitivityFactor<AcVariableType, AcEquationType>) factor).getVariableElement() instanceof LfBranch &&

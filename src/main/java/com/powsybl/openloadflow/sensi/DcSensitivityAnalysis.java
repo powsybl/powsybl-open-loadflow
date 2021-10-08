@@ -201,7 +201,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     private void createBranchSensitivityValue(LfSensitivityFactor<DcVariableType, DcEquationType> factor, DenseMatrix contingenciesStates,
                                               Collection<ComputedContingencyElement> contingencyElements,
-                                              PropagatedContingency contingency, SensitivityValueWriter valueWriter) {
+                                              PropagatedContingency contingency, SensitivityValueWriter valueWriter,
+                                              BranchVector<DcVariableType, DcEquationType> branchVector) {
         boolean predefSensiValue = factor.getSensitivityValuePredefinedResult() != null;
         boolean predefFlowValue = factor.getFunctionPredefinedResult() != null;
         EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
@@ -225,7 +226,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         boolean zeroSensiValue = false;
         if (!(predefFlowValue && predefSensiValue)) {
             for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                double contingencySensitivity = p1.calculateSensi(contingenciesStates, contingencyElement.getContingencyIndex());
+                double contingencySensitivity = p1.calculateSensi(contingenciesStates, contingencyElement.getContingencyIndex(), branchVector);
                 if (!predefFlowValue) {
                     flowValue += contingencyElement.getAlphaForFunctionReference() * contingencySensitivity;
                 }
@@ -254,17 +255,18 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                           unscaleSensitivity(factor, sensiValue), unscaleFunction(factor, flowValue));
     }
 
-    protected void setBaseCaseSensitivityValues(List<SensitivityFactorGroup<DcVariableType, DcEquationType>> factorGroups, DenseMatrix factorsState) {
+    protected void setBaseCaseSensitivityValues(List<SensitivityFactorGroup<DcVariableType, DcEquationType>> factorGroups, DenseMatrix factorsState,
+                                                BranchVector<DcVariableType, DcEquationType> branchVector) {
         for (SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup : factorGroups) {
             for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factorGroup.getFactors()) {
-                factor.setBaseCaseSensitivityValue(factor.getFunctionEquationTerm().calculateSensi(factorsState, factorGroup.getIndex()));
+                factor.setBaseCaseSensitivityValue(factor.getFunctionEquationTerm().calculateSensi(factorsState, factorGroup.getIndex(), branchVector));
             }
         }
     }
 
     protected void calculateSensitivityValues(List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors, DenseMatrix factorStates,
                                               DenseMatrix contingenciesStates, DenseMatrix flowStates, Collection<ComputedContingencyElement> contingencyElements,
-                                              PropagatedContingency contingency, SensitivityValueWriter valueWriter) {
+                                              PropagatedContingency contingency, SensitivityValueWriter valueWriter, BranchVector<DcVariableType, DcEquationType> branchVector) {
         if (lfFactors.isEmpty()) {
             return;
         }
@@ -275,7 +277,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         setAlphas(contingencyElements, flowStates, contingenciesStates, 0, ComputedContingencyElement::setAlphaForFunctionReference);
 
         lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
-                .forEach(factor -> createBranchSensitivityValue(factor, contingenciesStates, contingencyElements, contingency, valueWriter));
+                .forEach(factor -> createBranchSensitivityValue(factor, contingenciesStates, contingencyElements, contingency, valueWriter, branchVector));
 
         Map<SensitivityFactorGroup<DcVariableType, DcEquationType>, List<LfSensitivityFactor<DcVariableType, DcEquationType>>> factorsByGroup = lfFactors.stream()
                 .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID)
@@ -285,7 +287,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             List<LfSensitivityFactor<DcVariableType, DcEquationType>> factorsForThisGroup = e.getValue();
             setAlphas(contingencyElements, factorStates, contingenciesStates, factorGroup.getIndex(), ComputedContingencyElement::setAlphaForSensitivityValue);
             for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factorsForThisGroup) {
-                createBranchSensitivityValue(factor, contingenciesStates, contingencyElements, contingency, valueWriter);
+                createBranchSensitivityValue(factor, contingenciesStates, contingencyElements, contingency, valueWriter, branchVector);
             }
         }
     }
@@ -330,7 +332,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     private Set<ComputedContingencyElement> getGroupOfElementsBreakingConnectivity(LfNetwork lfNetwork, DenseMatrix contingenciesStates,
                                                                                    Collection<ComputedContingencyElement> contingencyElements,
-                                                                                   EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+                                                                                   EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                                                                   BranchVector<DcVariableType, DcEquationType> branchVector) {
         // use a sensitivity-criterion to detect the loss of connectivity after a contingency
         // we consider a +1 -1 on a line, and we observe the sensitivity of these injections on the other contingency elements
         // if the sum of the sensitivities (in absolute value) is 1, it means that all the flow is going through the lines with a non-zero sensitivity
@@ -342,7 +345,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             for (ComputedContingencyElement element2 : contingencyElements) {
                 LfBranch branch = lfNetwork.getBranchById(element2.getElement().getId());
                 ClosedBranchSide1DcFlowEquationTerm p = equationSystem.getEquationTerm(ElementType.BRANCH, branch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-                double value = Math.abs(p.calculateSensi(contingenciesStates, element.getContingencyIndex()));
+                double value = Math.abs(p.calculateSensi(contingenciesStates, element.getContingencyIndex(), branchVector));
                 if (value > CONNECTIVITY_LOSS_THRESHOLD) {
                     responsibleElements.add(element2);
                 }
@@ -388,11 +391,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     private void detectPotentialConnectivityLoss(LfNetwork lfNetwork, DenseMatrix states, List<PropagatedContingency> contingencies,
                                                  Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                 EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<PropagatedContingency> nonLosingConnectivityContingencies,
+                                                 EquationSystem<DcVariableType, DcEquationType> equationSystem, BranchVector<DcVariableType, DcEquationType> branchVector,
+                                                 Collection<PropagatedContingency> nonLosingConnectivityContingencies,
                                                  Map<Set<ComputedContingencyElement>, List<PropagatedContingency>> contingenciesByGroupOfElementsBreakingConnectivity) {
         for (PropagatedContingency contingency : contingencies) {
             Set<ComputedContingencyElement> groupOfElementsBreakingConnectivity = getGroupOfElementsBreakingConnectivity(lfNetwork, states,
-                    contingency.getBranchIdsToOpen().stream().map(contingencyElementByBranch::get).collect(Collectors.toList()), equationSystem);
+                    contingency.getBranchIdsToOpen().stream().map(contingencyElementByBranch::get).collect(Collectors.toList()), equationSystem, branchVector);
             if (groupOfElementsBreakingConnectivity.isEmpty()) { // connectivity not broken
                 nonLosingConnectivityContingencies.add(contingency);
             } else {
@@ -640,7 +644,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         ));
         DenseMatrix states = initFactorsRhs(equationSystem, factorGroups, slackParticipationByBus);
         j.solveTransposed(states, branchVector);
-        setBaseCaseSensitivityValues(factorGroups, states);
+        setBaseCaseSensitivityValues(factorGroups, states, branchVector);
         return states;
     }
 
@@ -652,7 +656,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors = factorHolder.getFactorsForContingency(contingency.getContingency().getId());
         if (contingency.getHvdcIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty()) {
             calculateSensitivityValues(factors, factorStates, contingenciesStates, flowStates, contingencyElements,
-                    contingency, valueWriter);
+                    contingency, valueWriter, branchVector);
         } else {
             // if we have a contingency including the loss of a DC line or a generator
             // if we have a contingency including the loss of a generator
@@ -680,11 +684,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             DenseMatrix newFlowStates = setReferenceActivePowerFlows(dcLoadFlowEngine, equationSystem, variableSet, j, factors, lfParameters,
                 newParticipatingElements, disabledBuses, disabledBranches, reporter);
 
-            calculateSensitivityValues(factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements, contingency, valueWriter);
+            calculateSensitivityValues(factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements, contingency, valueWriter, branchVector);
 
             BusState.restoreBusStates(busStates);
             if (participatingElementsChanged) {
-                setBaseCaseSensitivityValues(factorGroups, factorStates);
+                setBaseCaseSensitivityValues(factorGroups, factorStates, branchVector);
             }
         }
     }
@@ -830,9 +834,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             j.solveTransposed(contingenciesStates, branchVector); // states for the +1 -1 of contingencies
 
             // sensitivity values for pre-contingency network
-            setBaseCaseSensitivityValues(factorGroups, factorsStates);
+            setBaseCaseSensitivityValues(factorGroups, factorsStates, branchVector);
             calculateSensitivityValues(factorHolder.getFactorsForBaseNetwork(), factorsStates, contingenciesStates, flowStates,
-                    Collections.emptyList(), null, valueWriter);
+                    Collections.emptyList(), null, valueWriter, branchVector);
 
             // connectivity analysis by contingency
             // we have to compute sensitivities and reference functions in a different way depending on either or not the contingency breaks connectivity
@@ -843,7 +847,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             Collection<PropagatedContingency> nonLosingConnectivityContingencies = new LinkedList<>();
             Map<Set<ComputedContingencyElement>, List<PropagatedContingency>> contingenciesByGroupOfElementsBreakingConnectivity = new LinkedHashMap<>();
 
-            detectPotentialConnectivityLoss(lfNetwork, contingenciesStates, contingencies, contingencyElementByBranch, equationSystem,
+            detectPotentialConnectivityLoss(lfNetwork, contingenciesStates, contingencies, contingencyElementByBranch, equationSystem, branchVector,
                     nonLosingConnectivityContingencies, contingenciesByGroupOfElementsBreakingConnectivity);
 
             // process connectivity data for all contingencies that potentially lose connectivity
@@ -927,7 +931,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                     factorStateForThisConnectivity = initFactorsRhs(equationSystem, factorGroups, slackParticipationByBusForThisConnectivity);
                     j.solveTransposed(factorStateForThisConnectivity, branchVector); // get the states for the new connectivity
-                    setBaseCaseSensitivityValues(factorGroups, factorStateForThisConnectivity); // use this state to compute the base sensitivity (without +1-1)
+                    setBaseCaseSensitivityValues(factorGroups, factorStateForThisConnectivity, branchVector); // use this state to compute the base sensitivity (without +1-1)
                 }
 
                 Set<String> elementsToReconnect = connectivityAnalysisResult.getElementsToReconnect();
@@ -966,7 +970,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 }
 
                 if (rhsChanged) {
-                    setBaseCaseSensitivityValues(factorGroups, factorsStates); // we modified the rhs, we need to restore previous state
+                    setBaseCaseSensitivityValues(factorGroups, factorsStates, branchVector); // we modified the rhs, we need to restore previous state
                 }
             }
         }

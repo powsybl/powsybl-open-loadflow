@@ -96,8 +96,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public double calculateSensi(DenseMatrix x, int column) {
-            return scalar * term.calculateSensi(x, column);
+        public double calculateSensi(DenseMatrix x, int column, BranchVector<V, E> branchVector) {
+            return scalar * term.calculateSensi(x, column, branchVector);
         }
 
         @Override
@@ -167,7 +167,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public double calculateSensi(DenseMatrix x, int column) {
+        public double calculateSensi(DenseMatrix x, int column, BranchVector<V, E> branchVector) {
             return x.get(variables.get(0).getRow(), column);
         }
 
@@ -243,7 +243,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      */
     double rhs();
 
-    double calculateSensi(DenseMatrix x, int column);
+    double calculateSensi(DenseMatrix x, int column, BranchVector<V, E> branchVector);
 
     void write(Writer writer) throws IOException;
 }

@@ -52,10 +52,10 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
         double ph2 = x[acVec.ph2Row[num]];
         double r1 = acVec.r1Row[num] != -1 ? x[acVec.r1Row[num]] : vec.r1[num];
         double a1 = acVec.a1Row[num] != -1 ? x[acVec.a1Row[num]] : vec.a1[num];
-        updateCurrent(v1, v2, ph1, ph2, r1, a1, vec);
+        updateCurrent(v1, v2, ph1, ph2, r1, a1, acVec);
     }
 
-    private void updateCurrent(double v1, double v2, double ph1, double ph2, double r1, double a1, BranchVector<AcVariableType, AcEquationType> vec) {
+    private void updateCurrent(double v1, double v2, double ph1, double ph2, double r1, double a1, AcBranchVector vec) {
         double w1 = r1 * v1;
         double w2 = vec.y[num] * R2 * v2;
         double cosPh1 = FastMath.cos(ph1);
@@ -88,7 +88,7 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
         di1dph1 = (reI1 * dreI1dph1 + imI1 * dimI1dph1) / i1;
         di1dph2 = (reI1 * dreI1dph2 + imI1 * dimI1dph2) / i1;
 
-        if (a1Var != null) {
+        if (vec.a1Row[num] != -1) {
             di1da1 = -di1dph2;
         }
     }

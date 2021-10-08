@@ -55,7 +55,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
     }
 
     @Override
-    public double calculateSensi(DenseMatrix x, int column) {
+    public double calculateSensi(DenseMatrix x, int column, BranchVector<DcVariableType, DcEquationType> vec) {
         Objects.requireNonNull(x);
         double ph1 = x.get(ph1Var.getRow(), column);
         double ph2 = x.get(ph2Var.getRow(), column);
