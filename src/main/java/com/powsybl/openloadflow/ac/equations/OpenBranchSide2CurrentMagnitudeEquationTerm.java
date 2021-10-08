@@ -69,7 +69,8 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     @Override
     public double der(Variable<AcVariableType> variable, BranchVector<AcVariableType, AcEquationType> vec) {
-        if (variable.equals(v1Var)) {
+        AcBranchVector acVec = (AcBranchVector) vec;
+        if (variable.getType() == AcVariableType.BUS_V && variable.getRow() == acVec.v1Row[num]) {
             return di1dv1;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);

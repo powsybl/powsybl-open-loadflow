@@ -100,19 +100,29 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
 
     @Override
     public double der(Variable<AcVariableType> variable, BranchVector<AcVariableType, AcEquationType> vec) {
-        if (variable.equals(v1Var)) {
-            return di2dv1;
-        } else if (variable.equals(v2Var)) {
-            return di2dv2;
-        } else if (variable.equals(ph1Var)) {
-            return di2dph1;
-        } else if (variable.equals(ph2Var)) {
-            return di2dph2;
-        } else if (variable.equals(a1Var)) {
-            return di2da1;
-        } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
+        AcBranchVector acVec = (AcBranchVector) vec;
+        switch (variable.getType()) {
+            case BUS_V:
+                if (variable.getRow() == acVec.v1Row[num]) {
+                    return di2dv1;
+                } else if (variable.getRow() == acVec.v2Row[num]) {
+                    return di2dv2;
+                }
+                break;
+            case BUS_PHI:
+                if (variable.getRow() == acVec.ph1Row[num]) {
+                    return di2dph1;
+                } else if (variable.getRow() == acVec.ph2Row[num]) {
+                    return di2dph2;
+                }
+                break;
+            case BRANCH_ALPHA1:
+                if (variable.getRow() == acVec.a1Row[num]) {
+                    return di2da1;
+                }
+                break;
         }
+        throw new IllegalStateException("Unknown variable: " + variable);
     }
 
     @Override
