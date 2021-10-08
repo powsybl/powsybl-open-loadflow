@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.BranchVector;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -20,35 +21,54 @@ import java.util.List;
  */
 public class AcBranchVector extends BranchVector<AcVariableType, AcEquationType> {
 
-    public double[] v1Row;
-    public double[] v2Row;
-    public double[] ph1Row;
-    public double[] ph2Row;
-    public double[] a1Row;
-    public double[] r1Row;
+    public int[] v1Row;
+    public int[] v2Row;
+    public int[] ph1Row;
+    public int[] ph2Row;
+    public int[] a1Row;
+    public int[] r1Row;
 
     public AcBranchVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet) {
         super(network, equationSystem, variableSet);
+        init();
     }
 
     private void init() {
         List<LfBranch> branches = network.getBranches();
         int branchCount = branches.size();
-        v1Row = new double[branchCount];
-        v2Row = new double[branchCount];
-        ph1Row = new double[branchCount];
-        ph2Row = new double[branchCount];
-        a1Row = new double[branchCount];
-        r1Row = new double[branchCount];
+        v1Row = new int[branchCount];
+        v2Row = new int[branchCount];
+        ph1Row = new int[branchCount];
+        ph2Row = new int[branchCount];
+        a1Row = new int[branchCount];
+        r1Row = new int[branchCount];
         for (int i = 0; i < branchCount; i++) {
             LfBranch branch = branches.get(i);
             LfBus bus1 = branch.getBus1();
+            if (bus1 !=  null) {
+                v1Row[i] = variableSet.get(bus1.getNum(), AcVariableType.BUS_V).getRow();
+                ph1Row[i] = variableSet.get(bus1.getNum(), AcVariableType.BUS_PHI).getRow();
+            } else {
+                v1Row[i] = -1;
+                ph1Row[i] = -1;
+            }
             LfBus bus2 = branch.getBus2();
-//            v1Var = variableSet.create(bus1.getNum(), AcVariableType.BUS_V);
-//            v2Var = variableSet.create(bus2.getNum(), AcVariableType.BUS_V);
-//            ph1Var = variableSet.create(bus1.getNum(), AcVariableType.BUS_PHI);
-//            ph2Var = variableSet.create(bus2.getNum(), AcVariableType.BUS_PHI);
-
+            if (bus2 != null) {
+                v2Row[i] = variableSet.get(bus2.getNum(), AcVariableType.BUS_V).getRow();
+                ph2Row[i] = variableSet.get(bus2.getNum(), AcVariableType.BUS_PHI).getRow();
+            } else {
+                v2Row[i] = -1;
+                ph2Row[i] = -1;
+            }
+            Variable<AcVariableType> a1Var = variableSet.get(branch.getNum(), AcVariableType.BRANCH_ALPHA1);
+            a1Row[i] = a1Var != null ? a1Var.getRow() : -1;
+            Variable<AcVariableType> r1Var = variableSet.get(branch.getNum(), AcVariableType.BRANCH_RHO1);
+            r1Row[i] = r1Var != null ? r1Var.getRow() : -1;
         }
+    }
+
+    @Override
+    public void onIndexUpdate() {
+        init();
     }
 }

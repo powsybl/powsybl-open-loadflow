@@ -53,6 +53,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 for (Variable<V> variable : sortedVariablesToFind.keySet()) {
                     variable.setRow(rowCount++);
                 }
+
+                listeners.forEach(EquationSystemListener::onIndexUpdate);
             }
         }
 

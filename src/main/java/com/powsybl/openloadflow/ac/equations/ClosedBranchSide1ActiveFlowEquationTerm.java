@@ -46,10 +46,11 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
 
     @Override
     public void update(double[] x, BranchVector<AcVariableType, AcEquationType> vec) {
-        double v1 = x[v1Var.getRow()];
-        double v2 = x[v2Var.getRow()];
-        double ph1 = x[ph1Var.getRow()];
-        double ph2 = x[ph2Var.getRow()];
+        AcBranchVector acVec = (AcBranchVector) vec;
+        double v1 = x[acVec.v1Row[num]];
+        double v2 = x[acVec.v2Row[num]];
+        double ph1 = x[acVec.ph1Row[num]];
+        double ph2 = x[acVec.ph2Row[num]];
         double theta = vec.ksi[num] - (a1Var != null ? x[a1Var.getRow()] : vec.a1[num])
                 + A2 - ph1 + ph2;
         double sinTheta = FastMath.sin(theta);
