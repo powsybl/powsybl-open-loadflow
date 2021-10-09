@@ -52,21 +52,21 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     @Override
     public double calculateSensi(DenseMatrix x, int column, NetworkBuffer<AcVariableType, AcEquationType> buf) {
         AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
-        double ph1 = x.get(acBuf.ph1Row[num], column);
-        double ph2 = x.get(acBuf.ph2Row[num], column);
-        double v1 = x.get(acBuf.v1Row[num], column);
-        double v2 = x.get(acBuf.v2Row[num], column);
+        double ph1 = x.get(acBuf.ph1Row(num), column);
+        double ph2 = x.get(acBuf.ph2Row(num), column);
+        double v1 = x.get(acBuf.v1Row(num), column);
+        double v2 = x.get(acBuf.v2Row(num), column);
         double a1 = getA1(x, column, acBuf);
         double r1 = getR1(x, column, acBuf);
         return calculateSensi(ph1, ph2, v1, v2, a1, r1);
     }
 
     protected double getA1(DenseMatrix x, int column, AcNetworkBuffer buf) {
-        return buf.a1Row[num] != -1 ? x.get(buf.a1Row[num], column) : buf.a1[num];
+        return buf.a1Row(num) != -1 ? x.get(buf.a1Row(num), column) : buf.a1(num);
     }
 
     protected double getR1(DenseMatrix x, int column, AcNetworkBuffer buf) {
-        return buf.r1Row[num] != -1 ? x.get(buf.r1Row[num], column) : buf.r1[num];
+        return buf.r1Row(num) != -1 ? x.get(buf.r1Row(num), column) : buf.r1(num);
     }
 
     @Override

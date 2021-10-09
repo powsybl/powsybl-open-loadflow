@@ -38,15 +38,15 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
     @Override
     public void update(double[] x, NetworkBuffer<AcVariableType, AcEquationType> buf) {
         AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
-        double v2 = x[acBuf.v2Row[num]];
-        double ph2 = x[acBuf.ph2Row[num]];
+        double v2 = x[acBuf.v2Row(num)];
+        double ph2 = x[acBuf.ph2Row(num)];
         double w2 = R2 * v2;
         double cosPh2 = FastMath.cos(ph2);
         double sinPh2 = FastMath.sin(ph2);
 
         double shunt = getShunt(buf);
-        double gres = buf.g2[num] + (buf.y[num] * buf.y[num] * buf.g1[num] + (buf.b1[num] * buf.b1[num] + buf.g1[num] * buf.g1[num]) * buf.y[num] * buf.sinKsi[num]) / shunt;
-        double bres = buf.b2[num] + (buf.y[num] * buf.y[num] * buf.b1[num] - (buf.b1[num] * buf.b1[num] + buf.g1[num] * buf.g1[num]) * buf.y[num] * buf.cosKsi[num]) / shunt;
+        double gres = buf.g2(num) + (buf.y(num) * buf.y(num) * buf.g1(num) + (buf.b1(num) * buf.b1(num) + buf.g1(num) * buf.g1(num)) * buf.y(num) * buf.sinKsi(num)) / shunt;
+        double bres = buf.b2(num) + (buf.y(num) * buf.y(num) * buf.b1(num) - (buf.b1(num) * buf.b1(num) + buf.g1(num) * buf.g1(num)) * buf.y(num) * buf.cosKsi(num)) / shunt;
 
         double reI2 = R2 * w2 * (gres * cosPh2 - bres * sinPh2);
         double imI2 = R2 * w2 * (gres * sinPh2 + bres * cosPh2);
@@ -66,7 +66,7 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
     @Override
     public double der(Variable<AcVariableType> variable, NetworkBuffer<AcVariableType, AcEquationType> buf) {
         AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
-        if (variable.getType() == AcVariableType.BUS_V && variable.getRow() == acBuf.v2Row[num]) {
+        if (variable.getType() == AcVariableType.BUS_V && variable.getRow() == acBuf.v2Row(num)) {
             return di2dv2;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);

@@ -47,25 +47,25 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
     @Override
     public void update(double[] x, NetworkBuffer<AcVariableType, AcEquationType> buf) {
         AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
-        double v1 = x[acBuf.v1Row[num]];
-        double v2 = x[acBuf.v2Row[num]];
-        double ph1 = x[acBuf.ph1Row[num]];
-        double ph2 = x[acBuf.ph2Row[num]];
-        double r1 = acBuf.r1Row[num] != -1 ? x[acBuf.r1Row[num]] : buf.r1[num];
-        double a1 = acBuf.a1Row[num] != -1 ? x[acBuf.a1Row[num]] : buf.a1[num];
-        double theta = buf.ksi[num] + a1 - A2 + ph1 - ph2;
+        double v1 = x[acBuf.v1Row(num)];
+        double v2 = x[acBuf.v2Row(num)];
+        double ph1 = x[acBuf.ph1Row(num)];
+        double ph2 = x[acBuf.ph2Row(num)];
+        double r1 = acBuf.r1Row(num) != -1 ? x[acBuf.r1Row(num)] : buf.r1(num);
+        double a1 = acBuf.a1Row(num) != -1 ? x[acBuf.a1Row(num)] : buf.a1(num);
+        double theta = buf.ksi(num) + a1 - A2 + ph1 - ph2;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
-        p2 = R2 * v2 * (buf.g2[num] * R2 * v2 - buf.y[num] * r1 * v1 * sinTheta + buf.y[num] * R2 * v2 * buf.sinKsi[num]);
-        dp2dv1 = -buf.y[num] * r1 * R2 * v2 * sinTheta;
-        dp2dv2 = R2 * (2 * buf.g2[num] * R2 * v2 - buf.y[num] * r1 * v1 * sinTheta + 2 * buf.y[num] * R2 * v2 * buf.sinKsi[num]);
-        dp2dph1 = -buf.y[num] * r1 * R2 * v1 * v2 * cosTheta;
+        p2 = R2 * v2 * (buf.g2(num) * R2 * v2 - buf.y(num) * r1 * v1 * sinTheta + buf.y(num) * R2 * v2 * buf.sinKsi(num));
+        dp2dv1 = -buf.y(num) * r1 * R2 * v2 * sinTheta;
+        dp2dv2 = R2 * (2 * buf.g2(num) * R2 * v2 - buf.y(num) * r1 * v1 * sinTheta + 2 * buf.y(num) * R2 * v2 * buf.sinKsi(num));
+        dp2dph1 = -buf.y(num) * r1 * R2 * v1 * v2 * cosTheta;
         dp2dph2 = -dp2dph1;
-        if (acBuf.a1Row[num] != -1) {
+        if (acBuf.a1Row(num) != -1) {
             dp2da1 = dp2dph1;
         }
-        if (acBuf.r1Row[num] != -1) {
-            dp2dr1 = -buf.y[num] * R2 * v1 * v2 * sinTheta;
+        if (acBuf.r1Row(num) != -1) {
+            dp2dr1 = -buf.y(num) * R2 * v1 * v2 * sinTheta;
         }
     }
 
@@ -79,26 +79,26 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
         switch (variable.getType()) {
             case BUS_V:
-                if (variable.getRow() == acBuf.v1Row[num]) {
+                if (variable.getRow() == acBuf.v1Row(num)) {
                     return dp2dv1;
-                } else if (variable.getRow() == acBuf.v2Row[num]) {
+                } else if (variable.getRow() == acBuf.v2Row(num)) {
                     return dp2dv2;
                 }
                 break;
             case BUS_PHI:
-                if (variable.getRow() == acBuf.ph1Row[num]) {
+                if (variable.getRow() == acBuf.ph1Row(num)) {
                     return dp2dph1;
-                } else if (variable.getRow() == acBuf.ph2Row[num]) {
+                } else if (variable.getRow() == acBuf.ph2Row(num)) {
                     return dp2dph2;
                 }
                 break;
             case BRANCH_ALPHA1:
-                if (variable.getRow() == acBuf.a1Row[num]) {
+                if (variable.getRow() == acBuf.a1Row(num)) {
                     return dp2da1;
                 }
                 break;
             case BRANCH_RHO1:
-                if (variable.getRow() == acBuf.r1Row[num]) {
+                if (variable.getRow() == acBuf.r1Row(num)) {
                     return dp2dr1;
                 }
                 break;

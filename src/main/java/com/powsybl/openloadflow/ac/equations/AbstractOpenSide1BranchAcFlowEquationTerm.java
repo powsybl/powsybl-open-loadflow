@@ -34,7 +34,7 @@ abstract class AbstractOpenSide1BranchAcFlowEquationTerm extends AbstractBranchA
     }
 
     protected double getShunt(NetworkBuffer<AcVariableType, AcEquationType> buf) {
-        return  (buf.g1[num] + buf.y[num] * buf.sinKsi[num]) * (buf.g1[num] + buf.y[num] * buf.sinKsi[num]) + (-buf.b1[num] + buf.y[num] * buf.cosKsi[num]) * (-buf.b1[num] + buf.y[num] * buf.cosKsi[num]);
+        return  (buf.g1(num) + buf.y(num) * buf.sinKsi(num)) * (buf.g1(num) + buf.y(num) * buf.sinKsi(num)) + (-buf.b1(num) + buf.y(num) * buf.cosKsi(num)) * (-buf.b1(num) + buf.y(num) * buf.cosKsi(num));
     }
 
     @Override

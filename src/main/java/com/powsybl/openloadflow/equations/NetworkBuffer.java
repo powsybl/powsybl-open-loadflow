@@ -26,16 +26,16 @@ public class NetworkBuffer<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     protected final VariableSet<V> variableSet;
 
-    public double[] b1;
-    public double[] b2;
-    public double[] g1;
-    public double[] g2;
-    public double[] y;
-    public double[] ksi;
-    public double[] sinKsi;
-    public double[] cosKsi;
-    public double[] a1;
-    public double[] r1;
+    protected double[] b1;
+    protected double[] b2;
+    protected double[] g1;
+    protected double[] g2;
+    protected double[] y;
+    protected double[] ksi;
+    protected double[] sinKsi;
+    protected double[] cosKsi;
+    protected double[] a1;
+    protected double[] r1;
 
     public NetworkBuffer(LfNetwork network, EquationSystem<V, E> equationSystem, VariableSet<V> variableSet) {
         this.network = Objects.requireNonNull(network);
@@ -48,6 +48,46 @@ public class NetworkBuffer<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     public LfNetwork getNetwork() {
         return network;
+    }
+
+    public double b1(int num) {
+        return b1[num];
+    }
+
+    public double b2(int num) {
+        return b2[num];
+    }
+
+    public double g1(int num) {
+        return g1[num];
+    }
+
+    public double g2(int num) {
+        return g2[num];
+    }
+
+    public double y(int num) {
+        return y[num];
+    }
+
+    public double ksi(int num) {
+        return ksi[num];
+    }
+
+    public double sinKsi(int num) {
+        return sinKsi[num];
+    }
+
+    public double cosKsi(int num) {
+        return cosKsi[num];
+    }
+
+    public double a1(int num) {
+        return a1[num];
+    }
+
+    public double r1(int num) {
+        return r1[num];
     }
 
     private void init() {

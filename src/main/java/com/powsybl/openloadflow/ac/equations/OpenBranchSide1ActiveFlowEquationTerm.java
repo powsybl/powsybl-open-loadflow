@@ -34,10 +34,10 @@ public class OpenBranchSide1ActiveFlowEquationTerm extends AbstractOpenSide1Bran
     @Override
     public void update(double[] x, NetworkBuffer<AcVariableType, AcEquationType> buf) {
         AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
-        double v2 = x[acBuf.v2Row[num]];
+        double v2 = x[acBuf.v2Row(num)];
         double shunt = getShunt(buf);
-        p2 = R2 * R2 * v2 * v2 * (buf.g2[num] + buf.y[num] * buf.y[num] * buf.g1[num] / shunt + (buf.b1[num] * buf.b1[num] + buf.g1[num] * buf.g1[num]) * buf.y[num] * buf.sinKsi[num] / shunt);
-        dp2dv2 = 2 * R2 * R2 * v2 * (buf.g2[num] + buf.y[num] * buf.y[num] * buf.g1[num] / shunt + (buf.b1[num] * buf.b1[num] + buf.g1[num] * buf.g1[num]) * buf.y[num] * buf.sinKsi[num] / shunt);
+        p2 = R2 * R2 * v2 * v2 * (buf.g2(num) + buf.y(num) * buf.y(num) * buf.g1(num) / shunt + (buf.b1(num) * buf.b1(num) + buf.g1(num) * buf.g1(num)) * buf.y(num) * buf.sinKsi(num) / shunt);
+        dp2dv2 = 2 * R2 * R2 * v2 * (buf.g2(num) + buf.y(num) * buf.y(num) * buf.g1(num) / shunt + (buf.b1(num) * buf.b1(num) + buf.g1(num) * buf.g1(num)) * buf.y(num) * buf.sinKsi(num) / shunt);
     }
 
     @Override
@@ -48,7 +48,7 @@ public class OpenBranchSide1ActiveFlowEquationTerm extends AbstractOpenSide1Bran
     @Override
     public double der(Variable<AcVariableType> variable, NetworkBuffer<AcVariableType, AcEquationType> buf) {
         AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
-        if (variable.getType() == AcVariableType.BUS_V && variable.getRow() == acBuf.v2Row[num]) {
+        if (variable.getType() == AcVariableType.BUS_V && variable.getRow() == acBuf.v2Row(num)) {
             return dp2dv2;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);

@@ -41,16 +41,16 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     @Override
     public void update(double[] x, NetworkBuffer<AcVariableType, AcEquationType> buf) {
         AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
-        double v1 = x[acBuf.v1Row[num]];
-        double ph1 = x[acBuf.ph1Row[num]];
-        double r1 = acBuf.r1Row[num] != -1 ? x[acBuf.r1Row[num]] : buf.r1[num];
+        double v1 = x[acBuf.v1Row(num)];
+        double ph1 = x[acBuf.ph1Row(num)];
+        double r1 = acBuf.r1Row(num) != -1 ? x[acBuf.r1Row(num)] : buf.r1(num);
         double w1 = r1 * v1;
         double cosPh1 = FastMath.cos(ph1);
         double sinPh1 = FastMath.sin(ph1);
 
         double shunt = getShunt(buf);
-        double gres = buf.g1[num] + (buf.y[num] * buf.y[num] * buf.g2[num] + (buf.b2[num] * buf.b2[num] + buf.g2[num] * buf.g2[num]) * buf.y[num] * buf.sinKsi[num]) / shunt;
-        double bres = buf.b1[num] + (buf.y[num] * buf.y[num] * buf.b2[num] - (buf.b2[num] * buf.b2[num] + buf.g2[num] * buf.g2[num]) * buf.y[num] * buf.cosKsi[num]) / shunt;
+        double gres = buf.g1(num) + (buf.y(num) * buf.y(num) * buf.g2(num) + (buf.b2(num) * buf.b2(num) + buf.g2(num) * buf.g2(num)) * buf.y(num) * buf.sinKsi(num)) / shunt;
+        double bres = buf.b1(num) + (buf.y(num) * buf.y(num) * buf.b2(num) - (buf.b2(num) * buf.b2(num) + buf.g2(num) * buf.g2(num)) * buf.y(num) * buf.cosKsi(num)) / shunt;
 
         double reI1 = r1 * w1 * (gres * cosPh1 - bres * sinPh1);
         double imI1 = r1 * w1 * (gres * sinPh1 + bres * cosPh1);
@@ -70,7 +70,7 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     @Override
     public double der(Variable<AcVariableType> variable, NetworkBuffer<AcVariableType, AcEquationType> buf) {
         AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
-        if (variable.getType() == AcVariableType.BUS_V && variable.getRow() == acBuf.v1Row[num]) {
+        if (variable.getType() == AcVariableType.BUS_V && variable.getRow() == acBuf.v1Row(num)) {
             return di1dv1;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);

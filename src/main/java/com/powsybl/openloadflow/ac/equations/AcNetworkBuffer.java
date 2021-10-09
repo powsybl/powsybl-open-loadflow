@@ -21,12 +21,12 @@ import java.util.List;
  */
 public class AcNetworkBuffer extends NetworkBuffer<AcVariableType, AcEquationType> {
 
-    public int[] v1Row;
-    public int[] v2Row;
-    public int[] ph1Row;
-    public int[] ph2Row;
-    public int[] a1Row;
-    public int[] r1Row;
+    private int[] v1Row;
+    private int[] v2Row;
+    private int[] ph1Row;
+    private int[] ph2Row;
+    private int[] a1Row;
+    private int[] r1Row;
 
     public AcNetworkBuffer(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet) {
         super(network, equationSystem, variableSet);
@@ -34,6 +34,7 @@ public class AcNetworkBuffer extends NetworkBuffer<AcVariableType, AcEquationTyp
     }
 
     private void init() {
+        System.out.println("BUFFER INIT");
         List<LfBranch> branches = network.getBranches();
         int branchCount = branches.size();
         v1Row = new int[branchCount];
@@ -65,6 +66,30 @@ public class AcNetworkBuffer extends NetworkBuffer<AcVariableType, AcEquationTyp
             Variable<AcVariableType> r1Var = variableSet.get(branch.getNum(), AcVariableType.BRANCH_RHO1);
             r1Row[i] = r1Var != null ? r1Var.getRow() : -1;
         }
+    }
+
+    public int v1Row(int num) {
+        return v1Row[num];
+    }
+
+    public int v2Row(int num) {
+        return v2Row[num];
+    }
+
+    public int ph1Row(int num) {
+        return ph1Row[num];
+    }
+
+    public int ph2Row(int num) {
+        return ph2Row[num];
+    }
+
+    public int a1Row(int num) {
+        return a1Row[num];
+    }
+
+    public int r1Row(int num) {
+        return r1Row[num];
     }
 
     @Override
