@@ -14,7 +14,7 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ac.equations.AcBranchVector;
+import com.powsybl.openloadflow.ac.equations.AcNetworkBuffer;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
@@ -49,7 +49,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     }
 
     private void calculateSensitivityValues(List<LfSensitivityFactor<AcVariableType, AcEquationType>> lfFactors, List<SensitivityFactorGroup<AcVariableType, AcEquationType>> factorGroups, DenseMatrix factorsState,
-                                            String contingencyId, int contingencyIndex, SensitivityValueWriter valueWriter, AcBranchVector branchVector) {
+                                            String contingencyId, int contingencyIndex, SensitivityValueWriter valueWriter, AcNetworkBuffer networkBuffer) {
         Set<LfSensitivityFactor<AcVariableType, AcEquationType>> lfFactorsSet = new HashSet<>(lfFactors);
         // ZERO status is for factors where variable element is in the main connected component and reference element is not.
         // Therefore, the sensitivity is known to value 0, but the reference cannot be known and is set to NaN.
@@ -71,7 +71,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     if (!factor.getFunctionEquationTerm().isActive()) {
                         throw new PowsyblException("Found an inactive equation for a factor that has no predefined result");
                     }
-                    sensi = factor.getFunctionEquationTerm().calculateSensi(factorsState, factorGroup.getIndex(), branchVector);
+                    sensi = factor.getFunctionEquationTerm().calculateSensi(factorsState, factorGroup.getIndex(), networkBuffer);
                     if (factor.getFunctionElement() instanceof LfBranch &&
                             factor instanceof SingleVariableLfSensitivityFactor &&
                             ((SingleVariableLfSensitivityFactor<AcVariableType, AcEquationType>) factor).getVariableElement() instanceof LfBranch &&
@@ -83,7 +83,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                 .filter(var -> var.getNum() == factor.getFunctionElement().getNum() && var.getType().equals(AcVariableType.BRANCH_ALPHA1))
                                 .findAny()
                                 .orElseThrow(() -> new PowsyblException("No alpha_1 variable on the function branch"));
-                        sensi += Math.toRadians(factor.getFunctionEquationTerm().der(phi1Var, branchVector));
+                        sensi += Math.toRadians(factor.getFunctionEquationTerm().der(phi1Var, networkBuffer));
                     }
                 }
                 if (factor.getFunctionPredefinedResult() != null) {
@@ -137,14 +137,14 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         }
 
         // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
-        try (JacobianMatrix<AcVariableType, AcEquationType> j = createJacobianMatrix(lfNetwork, engine.getEquationSystem(), engine.getBranchVector(), new PreviousValueVoltageInitializer())) {
+        try (JacobianMatrix<AcVariableType, AcEquationType> j = createJacobianMatrix(lfNetwork, engine.getEquationSystem(), engine.getNetworkBuffer(), new PreviousValueVoltageInitializer())) {
             // solve system
             DenseMatrix factorsStates = initFactorsRhs(engine.getEquationSystem(), factorGroups, participationByBus); // this is the rhs for the moment
-            j.solveTransposed(factorsStates, engine.getBranchVector());
+            j.solveTransposed(factorsStates, engine.getNetworkBuffer());
             setFunctionReferences(lfFactors);
 
             // calculate sensitivity values
-            calculateSensitivityValues(lfFactors, factorGroups, factorsStates, contingencyId, contingencyIndex, valueWriter, engine.getBranchVector());
+            calculateSensitivityValues(lfFactors, factorGroups, factorsStates, contingencyId, contingencyIndex, valueWriter, engine.getNetworkBuffer());
         }
 
         EquationUtil.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
@@ -162,9 +162,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     }
 
     private JacobianMatrix<AcVariableType, AcEquationType> createJacobianMatrix(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                                                AcBranchVector branchVector, VoltageInitializer voltageInitializer) {
+                                                                                AcNetworkBuffer networkBuffer, VoltageInitializer voltageInitializer) {
         double[] x = NewtonRaphson.createStateVector(network, equationSystem, voltageInitializer);
-        equationSystem.updateEquations(x, branchVector);
+        equationSystem.updateEquations(x, networkBuffer);
         return new JacobianMatrix<>(equationSystem, matrixFactory);
     }
 
@@ -254,19 +254,19 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             }
 
             // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
-            try (JacobianMatrix<AcVariableType, AcEquationType> j = createJacobianMatrix(lfNetwork, engine.getEquationSystem(), engine.getBranchVector(), new PreviousValueVoltageInitializer())) {
+            try (JacobianMatrix<AcVariableType, AcEquationType> j = createJacobianMatrix(lfNetwork, engine.getEquationSystem(), engine.getNetworkBuffer(), new PreviousValueVoltageInitializer())) {
                 // otherwise, defining the rhs matrix will result in integer overflow
                 assert Integer.MAX_VALUE / (engine.getEquationSystem().getSortedEquationsToSolve().size() * Double.BYTES) > factorGroups.size();
                 // initialize right hand side from valid factors
                 DenseMatrix factorsStates = initFactorsRhs(engine.getEquationSystem(), factorGroups, slackParticipationByBus); // this is the rhs for the moment
 
                 // solve system
-                j.solveTransposed(factorsStates, engine.getBranchVector());
+                j.solveTransposed(factorsStates, engine.getNetworkBuffer());
 
                 // calculate sensitivity values
                 setFunctionReferences(lfFactors);
                 calculateSensitivityValues(factorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, null, -1, valueWriter,
-                        engine.getBranchVector());
+                        engine.getNetworkBuffer());
             }
 
             GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.createDecrementalConnectivity(connectivityProvider);

@@ -122,10 +122,10 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return terms;
     }
 
-    public void update(double[] x, BranchVector<V, E> vec) {
+    public void update(double[] x, NetworkBuffer<V, E> buf) {
         for (EquationTerm<V, E> term : terms) {
             if (term.isActive()) {
-                term.update(x, vec);
+                term.update(x, buf);
             }
         }
     }

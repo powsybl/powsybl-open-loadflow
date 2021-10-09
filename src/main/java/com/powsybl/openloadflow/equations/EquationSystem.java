@@ -303,20 +303,20 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         System.out.println("Update equation vector done in " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " ms");
     }
 
-    public void updateEquations(double[] x, BranchVector<V, E> branchVector) {
-        updateEquations(x, EquationUpdateType.DEFAULT, branchVector);
+    public void updateEquations(double[] x, NetworkBuffer<V, E> networkBuffer) {
+        updateEquations(x, EquationUpdateType.DEFAULT, networkBuffer);
     }
 
-    public void updateEquations(double[] x, EquationUpdateType updateType, BranchVector<V, E> branchVector) {
+    public void updateEquations(double[] x, EquationUpdateType updateType, NetworkBuffer<V, E> networkBuffer) {
         Objects.requireNonNull(x);
         Objects.requireNonNull(updateType);
-        Objects.requireNonNull(branchVector);
+        Objects.requireNonNull(networkBuffer);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         for (Equation<V, E> equation : equations.values()) {
             if (updateType == equation.getUpdateType()) {
-                equation.update(x, branchVector);
+                equation.update(x, networkBuffer);
             }
         }
 

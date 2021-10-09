@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.BranchVector;
+import com.powsybl.openloadflow.equations.NetworkBuffer;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -32,12 +32,12 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
     }
 
     @Override
-    public void update(double[] x, BranchVector<AcVariableType, AcEquationType> vec) {
-        AcBranchVector acVec = (AcBranchVector) vec;
-        double v2 = x[acVec.v2Row[num]];
-        double shunt = getShunt(vec);
-        q2 = -R2 * R2 * v2 * v2 * (vec.b2[num] + vec.y[num] * vec.y[num] * vec.b1[num] / shunt - (vec.b1[num] * vec.b1[num] + vec.g1[num] * vec.g1[num]) * vec.y[num] * vec.cosKsi[num] / shunt);
-        dq2dv2 = -2 * v2 * R2 * R2 * (vec.b2[num] + vec.y[num] * vec.y[num] * vec.b1[num] / shunt - (vec.b1[num] * vec.b1[num] + vec.g1[num] * vec.g1[num]) * vec.y[num] * vec.cosKsi[num] / shunt);
+    public void update(double[] x, NetworkBuffer<AcVariableType, AcEquationType> buf) {
+        AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
+        double v2 = x[acBuf.v2Row[num]];
+        double shunt = getShunt(buf);
+        q2 = -R2 * R2 * v2 * v2 * (buf.b2[num] + buf.y[num] * buf.y[num] * buf.b1[num] / shunt - (buf.b1[num] * buf.b1[num] + buf.g1[num] * buf.g1[num]) * buf.y[num] * buf.cosKsi[num] / shunt);
+        dq2dv2 = -2 * v2 * R2 * R2 * (buf.b2[num] + buf.y[num] * buf.y[num] * buf.b1[num] / shunt - (buf.b1[num] * buf.b1[num] + buf.g1[num] * buf.g1[num]) * buf.y[num] * buf.cosKsi[num] / shunt);
     }
 
     @Override
@@ -46,9 +46,9 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable, BranchVector<AcVariableType, AcEquationType> vec) {
-        AcBranchVector acVec = (AcBranchVector) vec;
-        if (variable.getType() == AcVariableType.BUS_V && variable.getRow() == acVec.v2Row[num]) {
+    public double der(Variable<AcVariableType> variable, NetworkBuffer<AcVariableType, AcEquationType> buf) {
+        AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
+        if (variable.getType() == AcVariableType.BUS_V && variable.getRow() == acBuf.v2Row[num]) {
             return dq2dv2;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);

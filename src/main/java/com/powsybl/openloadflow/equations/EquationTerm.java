@@ -71,8 +71,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public void update(double[] x, BranchVector<V, E> vec) {
-            term.update(x, vec);
+        public void update(double[] x, NetworkBuffer<V, E> buf) {
+            term.update(x, buf);
         }
 
         @Override
@@ -81,8 +81,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public double der(Variable<V> variable, BranchVector<V, E> vec) {
-            return scalar * term.der(variable, vec);
+        public double der(Variable<V> variable, NetworkBuffer<V, E> buf) {
+            return scalar * term.der(variable, buf);
         }
 
         @Override
@@ -96,8 +96,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public double calculateSensi(DenseMatrix x, int column, BranchVector<V, E> branchVector) {
-            return scalar * term.calculateSensi(x, column, branchVector);
+        public double calculateSensi(DenseMatrix x, int column, NetworkBuffer<V, E> networkBuffer) {
+            return scalar * term.calculateSensi(x, column, networkBuffer);
         }
 
         @Override
@@ -142,7 +142,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public void update(double[] x, BranchVector<V, E> vec) {
+        public void update(double[] x, NetworkBuffer<V, E> buf) {
             value = x[variables.get(0).getRow()];
         }
 
@@ -152,7 +152,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public double der(Variable<V> variable, BranchVector<V, E> vec) {
+        public double der(Variable<V> variable, NetworkBuffer<V, E> buf) {
             return 1;
         }
 
@@ -167,7 +167,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public double calculateSensi(DenseMatrix x, int column, BranchVector<V, E> branchVector) {
+        public double calculateSensi(DenseMatrix x, int column, NetworkBuffer<V, E> networkBuffer) {
             return x.get(variables.get(0).getRow(), column);
         }
 
@@ -214,7 +214,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      * Update equation term using {@code x} variable values.
      * @param x variables values vector
      */
-    void update(double[] x, BranchVector<V, E> vec);
+    void update(double[] x, NetworkBuffer<V, E> buf);
 
     /**
      * Evaluate equation term.
@@ -228,7 +228,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      * @param variable the variable the partial derivative is with respect to
      * @return value of the partial derivative
      */
-    double der(Variable<V> variable, BranchVector<V, E> vec);
+    double der(Variable<V> variable, NetworkBuffer<V, E> buf);
 
     /**
      * Check {@link #rhs()} can return a value different from zero.
@@ -243,7 +243,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      */
     double rhs();
 
-    double calculateSensi(DenseMatrix x, int column, BranchVector<V, E> branchVector);
+    double calculateSensi(DenseMatrix x, int column, NetworkBuffer<V, E> networkBuffer);
 
     void write(Writer writer) throws IOException;
 }

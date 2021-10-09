@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.BranchVector;
+import com.powsybl.openloadflow.equations.NetworkBuffer;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -44,42 +44,42 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     @Override
-    public void update(double[] x, BranchVector<AcVariableType, AcEquationType> vec) {
-        AcBranchVector acVec = (AcBranchVector) vec;
-        double v1 = x[acVec.v1Row[num]];
-        double v2 = x[acVec.v2Row[num]];
-        double ph1 = x[acVec.ph1Row[num]];
-        double ph2 = x[acVec.ph2Row[num]];
-        double r1 = acVec.r1Row[num] != -1 ? x[acVec.r1Row[num]] : vec.r1[num];
-        double a1 = acVec.a1Row[num] != -1 ? x[acVec.a1Row[num]] : vec.a1[num];
-        updateCurrent(v1, v2, ph1, ph2, r1, a1, acVec);
+    public void update(double[] x, NetworkBuffer<AcVariableType, AcEquationType> buf) {
+        AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
+        double v1 = x[acBuf.v1Row[num]];
+        double v2 = x[acBuf.v2Row[num]];
+        double ph1 = x[acBuf.ph1Row[num]];
+        double ph2 = x[acBuf.ph2Row[num]];
+        double r1 = acBuf.r1Row[num] != -1 ? x[acBuf.r1Row[num]] : buf.r1[num];
+        double a1 = acBuf.a1Row[num] != -1 ? x[acBuf.a1Row[num]] : buf.a1[num];
+        updateCurrent(v1, v2, ph1, ph2, r1, a1, acBuf);
     }
 
-    private void updateCurrent(double v1, double v2, double ph1, double ph2, double r1, double a1, AcBranchVector vec) {
+    private void updateCurrent(double v1, double v2, double ph1, double ph2, double r1, double a1, AcNetworkBuffer buf) {
         double w2 = R2 * v2;
-        double w1 = vec.y[num] * r1 * v1;
+        double w1 = buf.y[num] * r1 * v1;
         double cosPh2 = FastMath.cos(ph2);
         double sinPh2 = FastMath.sin(ph2);
-        double cosPh2Ksi = FastMath.cos(ph2 + vec.ksi[num]);
-        double sinPh2Ksi = FastMath.sin(ph2 + vec.ksi[num]);
-        double theta = vec.ksi[num] + a1 - A2 + ph1;
+        double cosPh2Ksi = FastMath.cos(ph2 + buf.ksi[num]);
+        double sinPh2Ksi = FastMath.sin(ph2 + buf.ksi[num]);
+        double theta = buf.ksi[num] + a1 - A2 + ph1;
         double sinTheta = FastMath.sin(theta);
         double cosTheta = FastMath.cos(theta);
 
-        double interReI2 = vec.g2[num] * cosPh2 - vec.b2[num] * sinPh2 + vec.y[num] * sinPh2Ksi;
-        double interImI2 = vec.g2[num] * sinPh2 + vec.b2[num] * cosPh2 - vec.y[num] * cosPh2Ksi;
+        double interReI2 = buf.g2[num] * cosPh2 - buf.b2[num] * sinPh2 + buf.y[num] * sinPh2Ksi;
+        double interImI2 = buf.g2[num] * sinPh2 + buf.b2[num] * cosPh2 - buf.y[num] * cosPh2Ksi;
 
         double reI2 = R2 * (w2 * interReI2 - w1 * sinTheta);
         double imI2 = R2 * (w2 * interImI2 + w1 * cosTheta);
         i2 = FastMath.hypot(reI2, imI2);
 
         double dreI2dv2 = R2 * R2 * interReI2;
-        double dreI2dv1 = R2 * (-vec.y[num] * r1 * sinTheta);
-        double dreI2dph2 = R2 * w2 * (-vec.g2[num] * sinPh2 - vec.b2[num] * cosPh2 + vec.y[num] * cosPh2Ksi);
+        double dreI2dv1 = R2 * (-buf.y[num] * r1 * sinTheta);
+        double dreI2dph2 = R2 * w2 * (-buf.g2[num] * sinPh2 - buf.b2[num] * cosPh2 + buf.y[num] * cosPh2Ksi);
         double dreI2dph1 = R2 * (-w1 * cosTheta);
 
         double dimI2dv2 = R2 * R2 * interImI2;
-        double dimI2dv1 = R2 * (vec.y[num] * r1 * cosTheta);
+        double dimI2dv1 = R2 * (buf.y[num] * r1 * cosTheta);
         double dimI2dph2 = R2 * w2 * interReI2;
         double dimI2dph1 = R2 * (-w1 * sinTheta);
 
@@ -88,7 +88,7 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
         di2dph2 = (reI2 * dreI2dph2 + imI2 * dimI2dph2) / i2;
         di2dph1 = (reI2 * dreI2dph1 + imI2 * dimI2dph1) / i2;
 
-        if (vec.a1Row[num] != -1) {
+        if (buf.a1Row[num] != -1) {
             di2da1 = -di2dph1;
         }
     }
@@ -99,25 +99,25 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable, BranchVector<AcVariableType, AcEquationType> vec) {
-        AcBranchVector acVec = (AcBranchVector) vec;
+    public double der(Variable<AcVariableType> variable, NetworkBuffer<AcVariableType, AcEquationType> buf) {
+        AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
         switch (variable.getType()) {
             case BUS_V:
-                if (variable.getRow() == acVec.v1Row[num]) {
+                if (variable.getRow() == acBuf.v1Row[num]) {
                     return di2dv1;
-                } else if (variable.getRow() == acVec.v2Row[num]) {
+                } else if (variable.getRow() == acBuf.v2Row[num]) {
                     return di2dv2;
                 }
                 break;
             case BUS_PHI:
-                if (variable.getRow() == acVec.ph1Row[num]) {
+                if (variable.getRow() == acBuf.ph1Row[num]) {
                     return di2dph1;
-                } else if (variable.getRow() == acVec.ph2Row[num]) {
+                } else if (variable.getRow() == acBuf.ph2Row[num]) {
                     return di2dph2;
                 }
                 break;
             case BRANCH_ALPHA1:
-                if (variable.getRow() == acVec.a1Row[num]) {
+                if (variable.getRow() == acBuf.a1Row[num]) {
                     return di2da1;
                 }
                 break;

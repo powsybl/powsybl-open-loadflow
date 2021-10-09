@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
-import com.powsybl.openloadflow.equations.BranchVector;
+import com.powsybl.openloadflow.equations.NetworkBuffer;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -45,8 +45,7 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public void update(double[] x, BranchVector<DcVariableType, DcEquationType> vec) {
-        Objects.requireNonNull(x);
+    public void update(double[] x, NetworkBuffer<DcVariableType, DcEquationType> buf) {
         double ph1 = x[ph1Var.getRow()];
         double ph2 = x[ph2Var.getRow()];
         double a1 = getA1(x);
@@ -64,8 +63,7 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public double der(Variable<DcVariableType> variable, BranchVector<DcVariableType, DcEquationType> vec) {
-        Objects.requireNonNull(variable);
+    public double der(Variable<DcVariableType> variable, NetworkBuffer<DcVariableType, DcEquationType> buf) {
         if (variable.equals(ph1Var)) {
             return power;
         } else if (variable.equals(ph2Var)) {

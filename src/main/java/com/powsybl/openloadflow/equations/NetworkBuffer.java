@@ -18,7 +18,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class BranchVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfNetworkListener implements EquationSystemListener<V, E> {
+public class NetworkBuffer<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfNetworkListener implements EquationSystemListener<V, E> {
 
     protected final LfNetwork network;
 
@@ -37,7 +37,7 @@ public class BranchVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
     public double[] a1;
     public double[] r1;
 
-    public BranchVector(LfNetwork network, EquationSystem<V, E> equationSystem, VariableSet<V> variableSet) {
+    public NetworkBuffer(LfNetwork network, EquationSystem<V, E> equationSystem, VariableSet<V> variableSet) {
         this.network = Objects.requireNonNull(network);
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.variableSet = Objects.requireNonNull(variableSet);

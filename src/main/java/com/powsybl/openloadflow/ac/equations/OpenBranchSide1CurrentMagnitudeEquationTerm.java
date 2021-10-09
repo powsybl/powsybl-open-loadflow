@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.BranchVector;
+import com.powsybl.openloadflow.equations.NetworkBuffer;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -36,17 +36,17 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     @Override
-    public void update(double[] x, BranchVector<AcVariableType, AcEquationType> vec) {
-        AcBranchVector acVec = (AcBranchVector) vec;
-        double v2 = x[acVec.v2Row[num]];
-        double ph2 = x[acVec.ph2Row[num]];
+    public void update(double[] x, NetworkBuffer<AcVariableType, AcEquationType> buf) {
+        AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
+        double v2 = x[acBuf.v2Row[num]];
+        double ph2 = x[acBuf.ph2Row[num]];
         double w2 = R2 * v2;
         double cosPh2 = FastMath.cos(ph2);
         double sinPh2 = FastMath.sin(ph2);
 
-        double shunt = getShunt(vec);
-        double gres = vec.g2[num] + (vec.y[num] * vec.y[num] * vec.g1[num] + (vec.b1[num] * vec.b1[num] + vec.g1[num] * vec.g1[num]) * vec.y[num] * vec.sinKsi[num]) / shunt;
-        double bres = vec.b2[num] + (vec.y[num] * vec.y[num] * vec.b1[num] - (vec.b1[num] * vec.b1[num] + vec.g1[num] * vec.g1[num]) * vec.y[num] * vec.cosKsi[num]) / shunt;
+        double shunt = getShunt(buf);
+        double gres = buf.g2[num] + (buf.y[num] * buf.y[num] * buf.g1[num] + (buf.b1[num] * buf.b1[num] + buf.g1[num] * buf.g1[num]) * buf.y[num] * buf.sinKsi[num]) / shunt;
+        double bres = buf.b2[num] + (buf.y[num] * buf.y[num] * buf.b1[num] - (buf.b1[num] * buf.b1[num] + buf.g1[num] * buf.g1[num]) * buf.y[num] * buf.cosKsi[num]) / shunt;
 
         double reI2 = R2 * w2 * (gres * cosPh2 - bres * sinPh2);
         double imI2 = R2 * w2 * (gres * sinPh2 + bres * cosPh2);
@@ -64,9 +64,9 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable, BranchVector<AcVariableType, AcEquationType> vec) {
-        AcBranchVector acVec = (AcBranchVector) vec;
-        if (variable.getType() == AcVariableType.BUS_V && variable.getRow() == acVec.v2Row[num]) {
+    public double der(Variable<AcVariableType> variable, NetworkBuffer<AcVariableType, AcEquationType> buf) {
+        AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
+        if (variable.getType() == AcVariableType.BUS_V && variable.getRow() == acBuf.v2Row[num]) {
             return di2dv2;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);

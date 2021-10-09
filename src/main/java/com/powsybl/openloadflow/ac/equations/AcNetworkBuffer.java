@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.BranchVector;
+import com.powsybl.openloadflow.equations.NetworkBuffer;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcBranchVector extends BranchVector<AcVariableType, AcEquationType> {
+public class AcNetworkBuffer extends NetworkBuffer<AcVariableType, AcEquationType> {
 
     public int[] v1Row;
     public int[] v2Row;
@@ -28,7 +28,7 @@ public class AcBranchVector extends BranchVector<AcVariableType, AcEquationType>
     public int[] a1Row;
     public int[] r1Row;
 
-    public AcBranchVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet) {
+    public AcNetworkBuffer(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet) {
         super(network, equationSystem, variableSet);
         init();
     }

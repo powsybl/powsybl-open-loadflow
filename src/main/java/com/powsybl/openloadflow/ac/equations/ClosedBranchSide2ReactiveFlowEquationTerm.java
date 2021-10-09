@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.BranchVector;
+import com.powsybl.openloadflow.equations.NetworkBuffer;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -45,27 +45,27 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public void update(double[] x, BranchVector<AcVariableType, AcEquationType> vec) {
-        AcBranchVector acVec = (AcBranchVector) vec;
-        double v1 = x[acVec.v1Row[num]];
-        double v2 = x[acVec.v2Row[num]];
-        double ph1 = x[acVec.ph1Row[num]];
-        double ph2 = x[acVec.ph2Row[num]];
-        double r1 = acVec.r1Row[num] != -1 ? x[acVec.r1Row[num]] : vec.r1[num];
-        double a1 = acVec.a1Row[num] != -1 ? x[acVec.a1Row[num]] : vec.a1[num];
-        double theta = vec.ksi[num] + a1 - A2 + ph1 - ph2;
+    public void update(double[] x, NetworkBuffer<AcVariableType, AcEquationType> buf) {
+        AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
+        double v1 = x[acBuf.v1Row[num]];
+        double v2 = x[acBuf.v2Row[num]];
+        double ph1 = x[acBuf.ph1Row[num]];
+        double ph2 = x[acBuf.ph2Row[num]];
+        double r1 = acBuf.r1Row[num] != -1 ? x[acBuf.r1Row[num]] : buf.r1[num];
+        double a1 = acBuf.a1Row[num] != -1 ? x[acBuf.a1Row[num]] : buf.a1[num];
+        double theta = buf.ksi[num] + a1 - A2 + ph1 - ph2;
         double cosTheta = FastMath.cos(theta);
         double sinTheta = FastMath.sin(theta);
-        q2 = R2 * v2 * (-vec.b2[num] * R2 * v2 - vec.y[num] * r1 * v1 * cosTheta + vec.y[num] * R2 * v2 * vec.cosKsi[num]);
-        dq2dv1 = -vec.y[num] * r1 * R2 * v2 * cosTheta;
-        dq2dv2 = R2 * (-2 * vec.b2[num] * R2 * v2 - vec.y[num] * r1 * v1 * cosTheta + 2 * vec.y[num] * R2 * v2 * vec.cosKsi[num]);
-        dq2dph1 = vec.y[num] * r1 * R2 * v1 * v2 * sinTheta;
+        q2 = R2 * v2 * (-buf.b2[num] * R2 * v2 - buf.y[num] * r1 * v1 * cosTheta + buf.y[num] * R2 * v2 * buf.cosKsi[num]);
+        dq2dv1 = -buf.y[num] * r1 * R2 * v2 * cosTheta;
+        dq2dv2 = R2 * (-2 * buf.b2[num] * R2 * v2 - buf.y[num] * r1 * v1 * cosTheta + 2 * buf.y[num] * R2 * v2 * buf.cosKsi[num]);
+        dq2dph1 = buf.y[num] * r1 * R2 * v1 * v2 * sinTheta;
         dq2dph2 = -dq2dph1;
-        if (acVec.a1Row[num] != -1) {
+        if (acBuf.a1Row[num] != -1) {
             dq2da1 = dq2dph1;
         }
-        if (acVec.r1Row[num] != -1) {
-            dq2dr1 = -vec.y[num] * R2 * v1 * v2 * cosTheta;
+        if (acBuf.r1Row[num] != -1) {
+            dq2dr1 = -buf.y[num] * R2 * v1 * v2 * cosTheta;
         }
     }
 
@@ -75,30 +75,30 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable, BranchVector<AcVariableType, AcEquationType> vec) {
-        AcBranchVector acVec = (AcBranchVector) vec;
+    public double der(Variable<AcVariableType> variable, NetworkBuffer<AcVariableType, AcEquationType> buf) {
+        AcNetworkBuffer acBuf = (AcNetworkBuffer) buf;
         switch (variable.getType()) {
             case BUS_V:
-                if (variable.getRow() == acVec.v1Row[num]) {
+                if (variable.getRow() == acBuf.v1Row[num]) {
                     return dq2dv1;
-                } else if (variable.getRow() == acVec.v2Row[num]) {
+                } else if (variable.getRow() == acBuf.v2Row[num]) {
                     return dq2dv2;
                 }
                 break;
             case BUS_PHI:
-                if (variable.getRow() == acVec.ph1Row[num]) {
+                if (variable.getRow() == acBuf.ph1Row[num]) {
                     return dq2dph1;
-                } else if (variable.getRow() == acVec.ph2Row[num]) {
+                } else if (variable.getRow() == acBuf.ph2Row[num]) {
                     return dq2dph2;
                 }
                 break;
             case BRANCH_ALPHA1:
-                if (variable.getRow() == acVec.a1Row[num]) {
+                if (variable.getRow() == acBuf.a1Row[num]) {
                     return dq2da1;
                 }
                 break;
             case BRANCH_RHO1:
-                if (variable.getRow() == acVec.r1Row[num]) {
+                if (variable.getRow() == acBuf.r1Row[num]) {
                     return dq2dr1;
                 }
                 break;

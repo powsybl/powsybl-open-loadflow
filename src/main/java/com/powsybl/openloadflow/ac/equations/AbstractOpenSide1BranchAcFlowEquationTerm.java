@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.BranchVector;
+import com.powsybl.openloadflow.equations.NetworkBuffer;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -33,8 +33,8 @@ abstract class AbstractOpenSide1BranchAcFlowEquationTerm extends AbstractBranchA
         }
     }
 
-    protected double getShunt(BranchVector<AcVariableType, AcEquationType> vec) {
-        return  (vec.g1[num] + vec.y[num] * vec.sinKsi[num]) * (vec.g1[num] + vec.y[num] * vec.sinKsi[num]) + (-vec.b1[num] + vec.y[num] * vec.cosKsi[num]) * (-vec.b1[num] + vec.y[num] * vec.cosKsi[num]);
+    protected double getShunt(NetworkBuffer<AcVariableType, AcEquationType> buf) {
+        return  (buf.g1[num] + buf.y[num] * buf.sinKsi[num]) * (buf.g1[num] + buf.y[num] * buf.sinKsi[num]) + (-buf.b1[num] + buf.y[num] * buf.cosKsi[num]) * (-buf.b1[num] + buf.y[num] * buf.cosKsi[num]);
     }
 
     @Override
