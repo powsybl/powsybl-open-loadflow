@@ -8,22 +8,16 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.AbstractNamedEquationTerm;
 import com.powsybl.openloadflow.network.ElementType;
-import com.powsybl.openloadflow.network.LfBranch;
-
-import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 abstract class AbstractBranchAcFlowEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
 
-    protected final LfBranch branch;
-
     protected final int num;
 
-    protected AbstractBranchAcFlowEquationTerm(LfBranch branch) {
-        this.branch = Objects.requireNonNull(branch);
-        num = branch.getNum();
+    protected AbstractBranchAcFlowEquationTerm(int num) {
+        this.num = num;
     }
 
     @Override
@@ -33,7 +27,7 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractNamedEquationTer
 
     @Override
     public int getElementNum() {
-        return branch.getNum();
+        return num;
     }
 
     @Override

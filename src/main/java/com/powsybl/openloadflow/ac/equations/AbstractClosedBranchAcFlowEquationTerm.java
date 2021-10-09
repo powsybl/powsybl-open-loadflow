@@ -26,7 +26,7 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                      boolean deriveA1, boolean deriveR1) {
-        super(branch);
+        super(branch.getNum());
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);
@@ -62,11 +62,11 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     }
 
     protected double getA1(DenseMatrix x, int column, AcNetworkBuffer buf) {
-        return buf.a1Row[num] != -1 ? x.get(buf.a1Row[num], column) : branch.getPiModel().getA1();
+        return buf.a1Row[num] != -1 ? x.get(buf.a1Row[num], column) : buf.a1[num];
     }
 
     protected double getR1(DenseMatrix x, int column, AcNetworkBuffer buf) {
-        return buf.r1Row[num] != -1 ? x.get(buf.r1Row[num], column) : branch.getPiModel().getR1();
+        return buf.r1Row[num] != -1 ? x.get(buf.r1Row[num], column) : buf.r1[num];
     }
 
     @Override
