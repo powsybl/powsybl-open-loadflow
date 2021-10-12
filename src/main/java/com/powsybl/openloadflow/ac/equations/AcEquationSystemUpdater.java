@@ -58,7 +58,6 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             // clean reactive power distribution equations
             controllerBuses.forEach(b -> equationSystem.removeEquation(b.getNum(), AcEquationType.ZERO_Q));
             // is there one static var compensator with a non-zero slope
-            // EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(controlledBus, AcVariableType.BUS_V, variableSet, controlledBus.getV().eval());
             equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
             // create reactive power equations on controller buses that have voltage control on
             if (!controllerBusesWithVoltageControlOn.isEmpty()) {
