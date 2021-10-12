@@ -152,8 +152,8 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         LfGenerator generator = lfDanglingLineBus.getGenerators().get(0);
         assertEquals(0, generator.getDroop(), 10E-3);
         assertEquals(0, generator.getTargetQ(), 10E-3);
-        generator.setTargetQ(10.);
-        assertEquals(10., generator.getTargetQ(), 10E-3);
+        generator.setTargetQ(1.);
+        assertEquals(1., generator.getTargetQ(), 10E-3);
     }
 
     @Test
@@ -167,6 +167,9 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(3.01, generator.getTargetQ(), 10E-3);
         generator.setTargetQ(10.);
         assertEquals(10., generator.getTargetQ(), 10E-3);
+        assertEquals(LfGenerator.GeneratorControlType.VOLTAGE, generator.getGeneratorControlType());
+        generator.setGeneratorControlType(LfGenerator.GeneratorControlType.MONITORING_VOLTAGE);
+        assertEquals(LfGenerator.GeneratorControlType.MONITORING_VOLTAGE, generator.getGeneratorControlType());
     }
 
     @Test
@@ -183,5 +186,18 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
             assertEquals(1.7, voltageControl.getTargetValue(), 10E-3);
 
         }
+    }
+
+    @Test
+    void defaultMethodsTest5() {
+        network = HvdcNetworkFactory.createVsc();
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        assertEquals(2, lfNetworks.size());
+
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        LfGenerator generator = mainNetwork.getBusById("vl2_0").getGenerators().get(0);
+        assertEquals(1.0, generator.getTargetQ(), 10E-3);
+        generator.setTargetQ(1.5);
+        assertEquals(1.5, generator.getTargetQ(), 10E-3);
     }
 }
