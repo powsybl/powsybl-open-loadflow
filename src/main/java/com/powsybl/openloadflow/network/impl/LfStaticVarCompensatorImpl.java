@@ -69,7 +69,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
             }
         }
 
-        targetQ = -svc.getReactivePowerSetPoint() / PerUnit.SB;
+        targetQ = -svc.getReactivePowerSetpoint() / PerUnit.SB;
     }
 
     public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, AbstractLfBus bus, boolean voltagePerReactivePowerControl, boolean breakers, LfNetworkLoadingReport report) {
