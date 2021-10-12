@@ -79,7 +79,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     @Override
     public boolean hasVoltageControl() {
-        return generatorControlType == GeneratorControlType.VOLTAGE;
+        return generatorControlType == GeneratorControlType.VOLTAGE || generatorControlType == GeneratorControlType.MONITORING_VOLTAGE;
     }
 
     @Override
