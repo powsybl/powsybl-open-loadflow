@@ -151,6 +151,9 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         LfBus lfDanglingLineBus = mainNetwork.getBusById("dl1_BUS");
         LfGenerator generator = lfDanglingLineBus.getGenerators().get(0);
         assertEquals(0, generator.getDroop(), 10E-3);
+        assertEquals(0, generator.getTargetQ(), 10E-3);
+        generator.setTargetQ(10.);
+        assertEquals(10., generator.getTargetQ(), 10E-3);
     }
 
     @Test
