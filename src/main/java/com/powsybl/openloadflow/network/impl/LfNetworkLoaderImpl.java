@@ -359,7 +359,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     // Create phase controls which link controller -> controlled
                     TwoWindingsTransformer t2wt = (TwoWindingsTransformer) branch;
                     PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
-                    createPhaseControl(lfNetwork, ptc, t2wt.getId(), "", parameters.isBreakers());
+                    createPhaseControl(lfNetwork, ptc, branch.getTerminal1(), t2wt.getId(), "", parameters.isBreakers());
                 }
             }
             for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
@@ -367,7 +367,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 List<ThreeWindingsTransformer.Leg> legs = t3wt.getLegs();
                 for (int legNumber = 0; legNumber < legs.size(); legNumber++) {
                     PhaseTapChanger ptc = legs.get(legNumber).getPhaseTapChanger();
-                    createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + (legNumber + 1), parameters.isBreakers());
+                    createPhaseControl(lfNetwork, ptc, legs.get(legNumber).getTerminal(), t3wt.getId(), "_leg_" + (legNumber + 1), parameters.isBreakers());
                 }
             }
         }
@@ -378,14 +378,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         for (Branch<?> branch : loadingContext.branchSet) {
             if (branch instanceof TwoWindingsTransformer) {
                 RatioTapChanger rtc = ((TwoWindingsTransformer) branch).getRatioTapChanger();
-                createDiscreteVoltageControl(lfNetwork, rtc, branch.getId(), breakers);
+                createDiscreteVoltageControl(lfNetwork, rtc, branch.getTerminal1(), branch.getId(), breakers);
             }
         }
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
             List<ThreeWindingsTransformer.Leg> legs = t3wt.getLegs();
             for (int legNumber = 0; legNumber < legs.size(); legNumber++) {
                 RatioTapChanger rtc = legs.get(legNumber).getRatioTapChanger();
-                createDiscreteVoltageControl(lfNetwork, rtc, t3wt.getId() + "_leg_" + (legNumber + 1), breakers);
+                createDiscreteVoltageControl(lfNetwork, rtc, legs.get(legNumber).getTerminal(), t3wt.getId() + "_leg_" + (legNumber + 1), breakers);
             }
         }
     }
@@ -514,7 +514,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createPhaseControl(LfNetwork lfNetwork, PhaseTapChanger ptc, String controllerBranchId, String legId, boolean breakers) {
+    private static void createPhaseControl(LfNetwork lfNetwork, PhaseTapChanger ptc, Terminal terminal, String controllerBranchId, String legId, boolean breakers) {
         if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
             String controlledBranchId = ptc.getRegulationTerminal().getConnectable().getId();
             if (controlledBranchId.equals(controllerBranchId)) {
@@ -537,6 +537,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             if (ptc.getRegulationTerminal().getBusView().getBus() == null) {
                 LOGGER.warn("Regulating terminal of phase controller branch {} is out of voltage: no phase control created", controllerBranch.getId());
+                return;
+            }
+            boolean inSameSynchronousComponent = breakers ? ptc.getRegulationTerminal().getBusBreakerView().getBus().getSynchronousComponent().equals(terminal.getBusBreakerView().getBus().getSynchronousComponent())
+                    : ptc.getRegulationTerminal().getBusView().getBus().getSynchronousComponent().equals(terminal.getBusView().getBus().getSynchronousComponent());
+            if (!inSameSynchronousComponent) {
+                LOGGER.warn("Regulating terminal of controller branch {} is not in the same synchronous component: phase control discarded", controllerBranchId);
                 return;
             }
             LfBus controlledBus = getLfBus(ptc.getRegulationTerminal(), lfNetwork, breakers);
@@ -568,7 +574,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createDiscreteVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId, boolean breakers) {
+    private static void createDiscreteVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, Terminal terminal, String controllerBranchId, boolean breakers) {
         if (rtc == null || !rtc.isRegulating() || !rtc.hasLoadTapChangingCapabilities()) {
             return;
         }
@@ -584,6 +590,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
         if (controlledBus.isVoltageControlled()) {
             LOGGER.warn("Controlled bus {} has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
+            return;
+        }
+        boolean inSameSynchronousComponent = breakers ? rtc.getRegulationTerminal().getBusBreakerView().getBus().getSynchronousComponent().equals(terminal.getBusBreakerView().getBus().getSynchronousComponent())
+                : rtc.getRegulationTerminal().getBusView().getBus().getSynchronousComponent().equals(terminal.getBusView().getBus().getSynchronousComponent());
+        if (!inSameSynchronousComponent) {
+            LOGGER.warn("Regulating terminal of controller branch {} is not in the same synchronous component: voltage control discarded", controllerBranchId);
             return;
         }
 
