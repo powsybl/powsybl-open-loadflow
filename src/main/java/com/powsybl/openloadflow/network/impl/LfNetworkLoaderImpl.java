@@ -539,9 +539,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 LOGGER.warn("Regulating terminal of phase controller branch {} is out of voltage: no phase control created", controllerBranch.getId());
                 return;
             }
-            boolean inSameSynchronousComponent = breakers ? ptc.getRegulationTerminal().getBusBreakerView().getBus().getSynchronousComponent().equals(terminal.getBusBreakerView().getBus().getSynchronousComponent())
-                    : ptc.getRegulationTerminal().getBusView().getBus().getSynchronousComponent().equals(terminal.getBusView().getBus().getSynchronousComponent());
-            if (!inSameSynchronousComponent) {
+            if (!isInSameSynchronousComponent(ptc.getRegulationTerminal(), terminal, breakers)) {
                 LOGGER.warn("Regulating terminal of controller branch {} is not in the same synchronous component: phase control discarded", controllerBranchId);
                 return;
             }
@@ -592,9 +590,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.warn("Controlled bus {} has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
             return;
         }
-        boolean inSameSynchronousComponent = breakers ? rtc.getRegulationTerminal().getBusBreakerView().getBus().getSynchronousComponent().equals(terminal.getBusBreakerView().getBus().getSynchronousComponent())
-                : rtc.getRegulationTerminal().getBusView().getBus().getSynchronousComponent().equals(terminal.getBusView().getBus().getSynchronousComponent());
-        if (!inSameSynchronousComponent) {
+        if (!isInSameSynchronousComponent(rtc.getRegulationTerminal(), terminal, breakers)) {
             LOGGER.warn("Regulating terminal of controller branch {} is not in the same synchronous component: voltage control discarded", controllerBranchId);
             return;
         }
@@ -772,5 +768,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                || b.getVoltageLevel().getSubstation().flatMap(Substation::getCountry)
                    .map(country -> parameters.getCountriesToBalance().contains(country))
                    .orElse(false);
+    }
+
+    static boolean isInSameSynchronousComponent(Terminal regulatingTerminal, Terminal terminal, boolean breakers) {
+        return breakers ? regulatingTerminal.getBusBreakerView().getBus().getSynchronousComponent().equals(terminal.getBusBreakerView().getBus().getSynchronousComponent())
+                : regulatingTerminal.getBusView().getBus().getSynchronousComponent().equals(terminal.getBusView().getBus().getSynchronousComponent());
     }
 }
