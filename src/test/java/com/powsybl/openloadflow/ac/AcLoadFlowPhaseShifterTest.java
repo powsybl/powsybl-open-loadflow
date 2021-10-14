@@ -414,6 +414,23 @@ class AcLoadFlowPhaseShifterTest {
         assertActivePowerEquals(100.1307, network.getLine("l12").getTerminal1());
     }
 
+    @Test
+    void nonSupportedPhaseControl2() {
+        selectNetwork(createNetworkWithT2wt());
+        parameters.setPhaseShifterRegulationOn(true);
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1) // FIXME how to take this into account
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(line1.getTerminal1())
+                .setRegulationValue(83);
+        t2wt.getTerminal1().disconnect();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(1, t2wt.getPhaseTapChanger().getTapPosition());
+    }
+
     /**
      * A very small network to test a phase shifter on a T2wt.
      *
