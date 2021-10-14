@@ -523,7 +523,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             LfBranch controlledBranch = lfNetwork.getBranchById(controlledBranchId);
             if (controlledBranch == null) {
-                LOGGER.warn("Phase controlled branch {} is null: no phase control created", controlledBranchId);
+                LOGGER.warn("Phase controlled branch {} is out of voltage or in a different synchronous component: no phase control created", controlledBranchId);
                 return;
             }
             if (controlledBranch.getBus1() == null || controlledBranch.getBus2() == null) {
@@ -537,10 +537,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             if (ptc.getRegulationTerminal().getBusView().getBus() == null) {
                 LOGGER.warn("Regulating terminal of phase controller branch {} is out of voltage: no phase control created", controllerBranch.getId());
-                return;
-            }
-            if (!isInSameSynchronousComponent(ptc.getRegulationTerminal(), terminal, breakers)) {
-                LOGGER.warn("Regulating terminal of controller branch {} is not in the same synchronous component: phase control discarded", controllerBranchId);
                 return;
             }
             LfBus controlledBus = getLfBus(ptc.getRegulationTerminal(), lfNetwork, breakers);
@@ -583,15 +579,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
         LfBus controlledBus = getLfBus(rtc.getRegulationTerminal(), lfNetwork, breakers);
         if (controlledBus == null) {
-            LOGGER.warn("Regulating terminal of voltage controller branch {} is out of voltage: no voltage control created", controllerBranch.getId());
+            LOGGER.warn("Regulating terminal of voltage controller branch {} is out of voltage or in a different synchronous component: no voltage control created", controllerBranch.getId());
             return;
         }
         if (controlledBus.isVoltageControlled()) {
             LOGGER.warn("Controlled bus {} has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
-            return;
-        }
-        if (!isInSameSynchronousComponent(rtc.getRegulationTerminal(), terminal, breakers)) {
-            LOGGER.warn("Regulating terminal of controller branch {} is not in the same synchronous component: voltage control discarded", controllerBranchId);
             return;
         }
 
@@ -768,10 +760,5 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                || b.getVoltageLevel().getSubstation().flatMap(Substation::getCountry)
                    .map(country -> parameters.getCountriesToBalance().contains(country))
                    .orElse(false);
-    }
-
-    static boolean isInSameSynchronousComponent(Terminal regulatingTerminal, Terminal terminal, boolean breakers) {
-        return breakers ? regulatingTerminal.getBusBreakerView().getBus().getSynchronousComponent().equals(terminal.getBusBreakerView().getBus().getSynchronousComponent())
-                : regulatingTerminal.getBusView().getBus().getSynchronousComponent().equals(terminal.getBusView().getBus().getSynchronousComponent());
     }
 }
