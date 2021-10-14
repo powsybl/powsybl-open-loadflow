@@ -523,20 +523,20 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             LfBranch controlledBranch = lfNetwork.getBranchById(controlledBranchId);
             if (controlledBranch == null) {
-                LOGGER.warn("Phase controlled branch {} is null: no phase control created", controlledBranchId);
+                LOGGER.warn("Phase controlled branch {} is out of voltage or in a different synchronous component: phase control discarded", controlledBranchId);
                 return;
             }
             if (controlledBranch.getBus1() == null || controlledBranch.getBus2() == null) {
-                LOGGER.warn("Phase controlled branch {} is open: no phase control created", controlledBranch.getId());
+                LOGGER.warn("Phase controlled branch {} is open: phase control discarded", controlledBranch.getId());
                 return;
             }
             LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
             if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
-                LOGGER.warn("Phase controller branch {} is open: no phase control created", controllerBranch.getId());
+                LOGGER.warn("Phase controller branch {} is open: phase control discarded", controllerBranch.getId());
                 return;
             }
             if (ptc.getRegulationTerminal().getBusView().getBus() == null) {
-                LOGGER.warn("Regulating terminal of phase controller branch {} is out of voltage: no phase control created", controllerBranch.getId());
+                LOGGER.warn("Regulating terminal of phase controller branch {} is out of voltage: phase control discarded", controllerBranch.getId());
                 return;
             }
             LfBus controlledBus = getLfBus(ptc.getRegulationTerminal(), lfNetwork, breakers);
@@ -574,12 +574,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
         LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId);
         if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
-            LOGGER.warn("Voltage controller branch {} is open: no voltage control created", controllerBranch.getId());
+            LOGGER.warn("Voltage controller branch {} is open: voltage control discarded", controllerBranch.getId());
             return;
         }
         LfBus controlledBus = getLfBus(rtc.getRegulationTerminal(), lfNetwork, breakers);
         if (controlledBus == null) {
-            LOGGER.warn("Regulating terminal of voltage controller branch {} is out of voltage: no voltage control created", controllerBranch.getId());
+            LOGGER.warn("Regulating terminal of voltage controller branch {} is out of voltage or in a different synchronous component: voltage control discarded", controllerBranch.getId());
             return;
         }
         if (controlledBus.isVoltageControlled()) {
