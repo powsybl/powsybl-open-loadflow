@@ -14,6 +14,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -176,6 +177,27 @@ class AcLoadFlowTransformerControlTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(135.0, bus1);
+    }
+
+    @Test
+    void nonSupportedVoltageControlT2wtTest2() {
+        Network network = HvdcNetworkFactory.createLccWithBiggerComponents();
+        TwoWindingsTransformer twt = network.getTwoWindingsTransformer("l45");
+        parameters.setTransformerVoltageControlOn(true);
+        twt.getPhaseTapChanger().remove();
+        twt.newRatioTapChanger().setTapPosition(0)
+                .beginStep()
+                .setR(0)
+                .setX(0.1f)
+                .setG(0)
+                .setB(0)
+                .setRho(1)
+                .endStep()
+                .add();
+        twt.getRatioTapChanger().setRegulationTerminal(network.getGenerator("g1").getTerminal()).setTargetV(400).setTargetDeadband(1).setLoadTapChangingCapabilities(true).setRegulating(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(390, network.getGenerator("g1").getTerminal().getBusView().getBus());
     }
 
     @Test

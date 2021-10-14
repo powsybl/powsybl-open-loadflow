@@ -154,13 +154,19 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         return lfNetwork.getBusById(controlledBusId);
     }
 
-    protected void setVoltageControl(double targetV, Terminal regulatingTerminal, boolean breakers, LfNetworkLoadingReport report) {
+    protected void setVoltageControl(double targetV, Terminal terminal, Terminal regulatingTerminal, boolean breakers, LfNetworkLoadingReport report) {
         if (!checkVoltageControlConsistency(report)) {
             return;
         }
         Bus controlledBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
         if (controlledBus == null) {
             LOGGER.warn("Regulating terminal of LfGenerator {} is out of voltage: voltage control discarded", getId());
+            return;
+        }
+        boolean inSameSynchronousComponent = breakers ? regulatingTerminal.getBusBreakerView().getBus().getSynchronousComponent().equals(terminal.getBusBreakerView().getBus().getSynchronousComponent())
+                : regulatingTerminal.getBusView().getBus().getSynchronousComponent().equals(terminal.getBusView().getBus().getSynchronousComponent());
+        if (!inSameSynchronousComponent) {
+            LOGGER.warn("Regulating terminal of LfGenerator {} is not in the same synchronous component: voltage control discarded", getId());
             return;
         }
         this.controlledBusId = controlledBus.getId();

@@ -27,7 +27,7 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
 
         // local control only
         if (station.isVoltageRegulatorOn()) {
-            setVoltageControl(station.getVoltageSetpoint(), station.getRegulatingTerminal(), breakers, report);
+            setVoltageControl(station.getVoltageSetpoint(), station.getTerminal(), station.getRegulatingTerminal(), breakers, report);
         }
 
         targetQ = station.getReactivePowerSetpoint() / PerUnit.SB;
