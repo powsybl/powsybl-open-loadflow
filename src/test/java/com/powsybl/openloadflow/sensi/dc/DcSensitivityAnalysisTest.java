@@ -811,10 +811,9 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testMonitoredBranchNotFound() {
+    void testOpenMonitoredBranch2() {
         Network network = EurostagTutorialExample1Factory.create();
         runDcLf(network);
-        network.getLine("NHV1_NHV2_1").getTerminal2().disconnect();
         network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
         SensitivityFactorsProvider factorsProvider = n -> {
