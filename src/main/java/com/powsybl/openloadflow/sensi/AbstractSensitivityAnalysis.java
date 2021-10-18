@@ -812,7 +812,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             if (variableSet) {
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER) {
                     checkBranch(network, functionId);
-                    LfBranch functionElement = lfNetwork.getBranchById(functionId);
+                    LfBranch branch = lfNetwork.getBranchById(functionId);
+                    LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                     if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
                         Map<LfElement, Double> injectionLfBuses = injectionBusesByVariableId.get(variableId);
                         if (injectionLfBuses == null) {
