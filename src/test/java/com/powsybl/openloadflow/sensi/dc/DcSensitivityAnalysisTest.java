@@ -790,4 +790,42 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies);
         assertEquals(1, propagatedContingencies.size());
     }
+
+    @Test
+    void testOpenMonitoredBranch() {
+        Network network = EurostagTutorialExample1Factory.create();
+        runDcLf(network);
+        network.getLine("NHV1_NHV2_1").getTerminal2().disconnect();
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+        SensitivityFactorsProvider factorsProvider = n -> {
+            Branch branch = n.getBranch("NHV1_NHV2_1");
+            return Collections.singletonList(new BranchFlowPerLinearGlsk(
+                    createBranchFlow(branch),
+                    new LinearGlsk("glsk", "glsk", Collections.singletonMap("LOAD", 10f))
+            ));
+        };
+        SensitivityAnalysisResult sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+                factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
+        assertEquals(0., getValue(sensiResult, "glsk", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, getFunctionReference(sensiResult, "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testOpenMonitoredBranch2() {
+        Network network = EurostagTutorialExample1Factory.create();
+        runDcLf(network);
+        network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+        SensitivityFactorsProvider factorsProvider = n -> {
+            Branch branch = n.getBranch("NHV1_NHV2_1");
+            return Collections.singletonList(new BranchFlowPerLinearGlsk(
+                    createBranchFlow(branch),
+                    new LinearGlsk("glsk", "glsk", Collections.singletonMap("LOAD", 10f))
+            ));
+        };
+        SensitivityAnalysisResult sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+                factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
+        assertEquals(0., getValue(sensiResult, "glsk", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, getFunctionReference(sensiResult, "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+    }
 }
