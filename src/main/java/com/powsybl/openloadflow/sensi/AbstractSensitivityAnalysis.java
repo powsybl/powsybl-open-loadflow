@@ -891,7 +891,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                         } else if (variableType == SensitivityVariableType.TRANSFORMER_PHASE) {
                             checkPhaseShifter(network, variableId);
-                            variableElement = lfNetwork.getBranchById(variableId);
+                            LfBranch twt = lfNetwork.getBranchById(variableId);
+                            variableElement = twt != null && twt.getBus1() != null && twt.getBus2() != null ? twt : null;
                         } else {
                             throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
                         }
@@ -901,7 +902,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                         if (variableType == SensitivityVariableType.TRANSFORMER_PHASE) {
                             checkPhaseShifter(network, variableId);
-                            variableElement = lfNetwork.getBranchById(variableId);
+                            LfBranch twt = lfNetwork.getBranchById(variableId);
+                            variableElement = twt != null && twt.getBus1() != null && twt.getBus2() != null ? twt : null;
                         } else {
                             throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
                         }
