@@ -206,6 +206,10 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         List<LfSensitivityFactor<AcVariableType, AcEquationType>> lfFactors = factorHolder.getAllFactors();
         LOGGER.info("Running AC sensitivity analysis with {} factors and {} contingencies",  lfFactors.size(), contingencies.size());
 
+        writeSkippedFactors(lfFactors, valueWriter);
+        // next we only work with valid and valid only for function factors
+        lfFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION).collect(Collectors.toList());
+
         Set<String> branchesWithMeasuredCurrent = lfFactors.stream()
                 .filter(lfFactor -> lfFactor.getFunctionType() == SensitivityFunctionType.BRANCH_CURRENT)
                 .map(lfFactor -> lfFactor.getFunctionElement().getId())
@@ -218,11 +222,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         try (AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters)) {
 
             engine.run(reporter);
-
-            writeSkippedFactors(lfFactors, valueWriter);
-
-            // next we only work with valid and valid only for function factors
-            lfFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION).collect(Collectors.toList());
 
             // index factors by variable group to compute a minimal number of states
             List<SensitivityFactorGroup<AcVariableType, AcEquationType>> factorGroups = createFactorGroups(lfFactors.stream()
