@@ -125,7 +125,7 @@ public final class AcEquationSystem {
             vEq.setActive(false);
         } else {
             // create reactive power distribution equations at voltage controller buses (except one)
-            createReactivePowerDistributionEquations(equationSystem, variableSet, networkParameters, creationParameters, controllerBuses);
+            createReactivePowerDistributionEquations(equationSystem, variableSet, networkParameters, controllerBuses);
         }
     }
 
@@ -167,8 +167,7 @@ public final class AcEquationSystem {
     }
 
     public static void createReactivePowerDistributionEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet,
-                                                                LfNetworkParameters networkParameters, AcEquationSystemCreationParameters creationParameters,
-                                                                List<LfBus> controllerBuses) {
+                                                                LfNetworkParameters networkParameters, List<LfBus> controllerBuses) {
         double[] qKeys = createReactiveKeys(controllerBuses);
 
         // we choose first controller bus as reference for reactive power

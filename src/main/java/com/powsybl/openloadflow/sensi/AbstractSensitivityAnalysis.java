@@ -808,6 +808,10 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return new PowsyblException("Function type " + functionType + " not supported");
     }
 
+    private static PowsyblException createVariableTypeNotSupportedWithFunctionTypeException(SensitivityVariableType variableType, SensitivityFunctionType functionType) {
+        return new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
+    }
+
     public SensitivityFactorHolder<V, E> readAndCheckFactors(Network network, Map<String, SensitivityVariableSet> variableSetsById,
                                                        SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
         final SensitivityFactorHolder<V, E> factorHolder = new SensitivityFactorHolder<>();
@@ -847,7 +851,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                                     functionElement, functionType,
                                     injectionLfBuses, variableType, contingencyContext));
                     } else {
-                        throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
+                        throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                     }
                 } else {
                     throw createFunctionTypeNotSupportedException(functionType);
@@ -897,7 +901,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             checkPhaseShifter(network, variableId);
                             variableElement = lfNetwork.getBranchById(variableId);
                         } else {
-                            throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
+                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
                     } else if (functionType == SensitivityFunctionType.BRANCH_CURRENT) {
                         checkBranch(network, functionId);
@@ -907,7 +911,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             checkPhaseShifter(network, variableId);
                             variableElement = lfNetwork.getBranchById(variableId);
                         } else {
-                            throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
+                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
                     } else if (functionType == SensitivityFunctionType.BUS_VOLTAGE) {
                         checkBus(network, functionId, busCache);
@@ -919,7 +923,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             Bus regulatedBus = regulatingTerminal.getBusView().getBus();
                             variableElement = regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
                         } else {
-                            throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
+                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
                     } else {
                         throw createFunctionTypeNotSupportedException(functionType);
