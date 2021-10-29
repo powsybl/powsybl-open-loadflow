@@ -30,15 +30,14 @@ public final class AcEquationSystem {
     }
 
     private static void createBusEquations(LfNetwork network, VariableSet<AcVariableType> variableSet,
-                                           LfNetworkParameters networkParameters, AcEquationSystemCreationParameters creationParameters,
-                                           EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+                                           LfNetworkParameters networkParameters, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         for (LfBus bus : network.getBuses()) {
             if (bus.isSlack()) {
                 equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_PHI).addTerm(EquationTerm.createVariableTerm(bus, AcVariableType.BUS_PHI, variableSet));
                 equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_P).setActive(false);
             }
 
-            createGeneratorControlEquations(bus, variableSet, equationSystem, networkParameters, creationParameters);
+            createGeneratorControlEquations(bus, variableSet, equationSystem, networkParameters);
 
             createShuntEquations(variableSet, equationSystem, bus);
 
@@ -58,15 +57,15 @@ public final class AcEquationSystem {
 
     private static void createGeneratorControlEquations(LfBus bus, VariableSet<AcVariableType> variableSet,
                                                         EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                        LfNetworkParameters networkParameters, AcEquationSystemCreationParameters creationParameters) {
+                                                        LfNetworkParameters networkParameters) {
         Optional<VoltageControl> optVoltageControl = bus.getVoltageControl();
         if (optVoltageControl.isPresent()) {
             VoltageControl voltageControl = optVoltageControl.get();
             if (voltageControl.isVoltageControlLocal()) {
-                createLocalVoltageControlEquation(bus, variableSet, equationSystem, networkParameters, creationParameters);
+                createLocalVoltageControlEquation(bus, variableSet, equationSystem, networkParameters);
             } else if (bus.isVoltageControlled()) {
                 // remote controlled: set voltage equation on this controlled bus
-                createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet, networkParameters, creationParameters);
+                createVoltageControlledBusEquations(voltageControl, equationSystem, variableSet, networkParameters);
             }
 
             if (bus.isVoltageControllerEnabled()) {
@@ -79,13 +78,13 @@ public final class AcEquationSystem {
     }
 
     private static void createLocalVoltageControlEquation(LfBus bus, VariableSet<AcVariableType> variableSet, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                          LfNetworkParameters networkParameters, AcEquationSystemCreationParameters creationParameters) {
+                                                          LfNetworkParameters networkParameters) {
         EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, variableSet, bus.getV().eval());
         bus.setV(vTerm);
         if (bus.hasGeneratorsWithSlope()) {
             // take first generator with slope: network loading ensures that there's only one generator with slope
             double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
-            createBusWithSlopeEquation(bus, slope, networkParameters, creationParameters, variableSet, equationSystem, vTerm);
+            createBusWithSlopeEquation(bus, slope, networkParameters, variableSet, equationSystem, vTerm);
             return;
         }
         equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V).addTerm(vTerm);
@@ -109,7 +108,7 @@ public final class AcEquationSystem {
     }
 
     private static void createVoltageControlledBusEquations(VoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet,
-                                                            LfNetworkParameters networkParameters, AcEquationSystemCreationParameters creationParameters) {
+                                                            LfNetworkParameters networkParameters) {
         LfBus controlledBus = voltageControl.getControlledBus();
 
         // create voltage equation at voltage controlled bus
@@ -125,12 +124,12 @@ public final class AcEquationSystem {
             vEq.setActive(false);
         } else {
             // create reactive power distribution equations at voltage controller buses (except one)
-            createReactivePowerDistributionEquations(equationSystem, variableSet, networkParameters, creationParameters, controllerBuses);
+            createReactivePowerDistributionEquations(equationSystem, variableSet, networkParameters, controllerBuses);
         }
     }
 
     private static List<EquationTerm<AcVariableType, AcEquationType>> createReactiveTerms(LfBus controllerBus, VariableSet<AcVariableType> variableSet,
-                                                                                          LfNetworkParameters networkParameters, AcEquationSystemCreationParameters creationParameters) {
+                                                                                          LfNetworkParameters networkParameters) {
         List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm<AcVariableType, AcEquationType> q;
@@ -167,13 +166,12 @@ public final class AcEquationSystem {
     }
 
     public static void createReactivePowerDistributionEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet,
-                                                                LfNetworkParameters networkParameters, AcEquationSystemCreationParameters creationParameters,
-                                                                List<LfBus> controllerBuses) {
+                                                                LfNetworkParameters networkParameters, List<LfBus> controllerBuses) {
         double[] qKeys = createReactiveKeys(controllerBuses);
 
         // we choose first controller bus as reference for reactive power
         LfBus firstControllerBus = controllerBuses.get(0);
-        List<EquationTerm<AcVariableType, AcEquationType>> firstControllerBusReactiveTerms = createReactiveTerms(firstControllerBus, variableSet, networkParameters, creationParameters);
+        List<EquationTerm<AcVariableType, AcEquationType>> firstControllerBusReactiveTerms = createReactiveTerms(firstControllerBus, variableSet, networkParameters);
 
         // create a reactive power distribution equation for all the other controller buses
         for (int i = 1; i < controllerBuses.size(); i++) {
@@ -184,7 +182,7 @@ public final class AcEquationSystem {
             Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.ZERO_Q);
             zero.setData(new DistributionData(firstControllerBus.getNum(), c)); // for later use
             zero.addTerms(firstControllerBusReactiveTerms);
-            zero.addTerms(createReactiveTerms(controllerBus, variableSet, networkParameters, creationParameters).stream().map(term -> EquationTerm.multiply(term, -c)).collect(Collectors.toList()));
+            zero.addTerms(createReactiveTerms(controllerBus, variableSet, networkParameters).stream().map(term -> EquationTerm.multiply(term, -c)).collect(Collectors.toList()));
         }
     }
 
@@ -340,14 +338,14 @@ public final class AcEquationSystem {
             });
     }
 
-    private static void createBusWithSlopeEquation(LfBus bus, double slope, LfNetworkParameters networkParameters, AcEquationSystemCreationParameters creationParameters, VariableSet<AcVariableType> variableSet,
+    private static void createBusWithSlopeEquation(LfBus bus, double slope, LfNetworkParameters networkParameters, VariableSet<AcVariableType> variableSet,
                                                    EquationSystem<AcVariableType, AcEquationType> equationSystem, EquationTerm<AcVariableType, AcEquationType> vTerm) {
         // we only support one generator controlling voltage with a non zero slope at a bus.
         // equation is: V + slope * qSVC = targetV
         // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
         Equation<AcVariableType, AcEquationType> eq = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V_SLOPE);
         eq.addTerm(vTerm);
-        List<EquationTerm<AcVariableType, AcEquationType>> controllerBusReactiveTerms = createReactiveTerms(bus, variableSet, networkParameters, creationParameters);
+        List<EquationTerm<AcVariableType, AcEquationType>> controllerBusReactiveTerms = createReactiveTerms(bus, variableSet, networkParameters);
         eq.setData(new DistributionData(bus.getNum(), slope)); // for later use
         for (EquationTerm<AcVariableType, AcEquationType> eqTerm : controllerBusReactiveTerms) {
             eq.addTerm(EquationTerm.multiply(eqTerm, slope));
@@ -509,10 +507,10 @@ public final class AcEquationSystem {
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(true);
 
-        createBusEquations(network, variableSet, networkParameters, creationParameters, equationSystem);
+        createBusEquations(network, variableSet, networkParameters, equationSystem);
         createBranchEquations(network, variableSet, networkParameters, creationParameters, equationSystem);
 
-        network.addListener(new AcEquationSystemUpdater(equationSystem, variableSet, networkParameters, creationParameters));
+        network.addListener(new AcEquationSystemUpdater(equationSystem, variableSet, networkParameters));
 
         return equationSystem;
     }

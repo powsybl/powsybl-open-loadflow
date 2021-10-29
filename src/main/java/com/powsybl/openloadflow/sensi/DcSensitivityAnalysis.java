@@ -37,8 +37,8 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.ObjDoubleConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -290,7 +290,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     private void setAlphas(Collection<ComputedContingencyElement> contingencyElements, DenseMatrix states,
-                           DenseMatrix contingenciesStates, int columnState, BiConsumer<ComputedContingencyElement, Double> setValue) {
+                           DenseMatrix contingenciesStates, int columnState, ObjDoubleConsumer<ComputedContingencyElement> setValue) {
         if (contingencyElements.size() == 1) {
             ComputedContingencyElement element = contingencyElements.iterator().next();
             LfBranch lfBranch = element.getLfBranch();

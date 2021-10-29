@@ -45,9 +45,7 @@ public class BusState {
     public void restoreBusActiveState(LfBus bus) {
         bus.setAngle(angle);
         bus.setLoadTargetP(loadTargetP);
-        bus.getGenerators().forEach(g -> {
-            g.setTargetP(generatorsTargetP.get(g.getId()));
-        });
+        bus.getGenerators().forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
     }
 
     /**
