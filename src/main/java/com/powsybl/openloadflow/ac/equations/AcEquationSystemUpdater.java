@@ -28,14 +28,11 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
     private final LfNetworkParameters networkParameters;
 
-    private final AcEquationSystemCreationParameters creationParameters;
-
     public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet,
-                                   LfNetworkParameters networkParameters, AcEquationSystemCreationParameters creationParameters) {
+                                   LfNetworkParameters networkParameters) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.variableSet = Objects.requireNonNull(variableSet);
         this.networkParameters = Objects.requireNonNull(networkParameters);
-        this.creationParameters = Objects.requireNonNull(creationParameters);
     }
 
     private void updateControlledBus(VoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet) {

@@ -85,7 +85,7 @@ public final class AcEquationSystem {
         if (bus.hasGeneratorsWithSlope()) {
             // take first generator with slope: network loading ensures that there's only one generator with slope
             double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
-            createBusWithSlopeEquation(bus, slope, networkParameters, creationParameters, variableSet, equationSystem, vTerm);
+            createBusWithSlopeEquation(bus, slope, networkParameters, variableSet, equationSystem, vTerm);
             return;
         }
         equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V).addTerm(vTerm);
@@ -339,7 +339,7 @@ public final class AcEquationSystem {
             });
     }
 
-    private static void createBusWithSlopeEquation(LfBus bus, double slope, LfNetworkParameters networkParameters, AcEquationSystemCreationParameters creationParameters, VariableSet<AcVariableType> variableSet,
+    private static void createBusWithSlopeEquation(LfBus bus, double slope, LfNetworkParameters networkParameters, VariableSet<AcVariableType> variableSet,
                                                    EquationSystem<AcVariableType, AcEquationType> equationSystem, EquationTerm<AcVariableType, AcEquationType> vTerm) {
         // we only support one generator controlling voltage with a non zero slope at a bus.
         // equation is: V + slope * qSVC = targetV
@@ -511,7 +511,7 @@ public final class AcEquationSystem {
         createBusEquations(network, variableSet, networkParameters, creationParameters, equationSystem);
         createBranchEquations(network, variableSet, networkParameters, creationParameters, equationSystem);
 
-        network.addListener(new AcEquationSystemUpdater(equationSystem, variableSet, networkParameters, creationParameters));
+        network.addListener(new AcEquationSystemUpdater(equationSystem, variableSet, networkParameters));
 
         return equationSystem;
     }
