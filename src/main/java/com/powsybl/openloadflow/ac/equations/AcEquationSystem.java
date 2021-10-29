@@ -130,7 +130,7 @@ public final class AcEquationSystem {
     }
 
     private static List<EquationTerm<AcVariableType, AcEquationType>> createReactiveTerms(LfBus controllerBus, VariableSet<AcVariableType> variableSet,
-                                                                                          LfNetworkParameters networkParameters, AcEquationSystemCreationParameters creationParameters) {
+                                                                                          LfNetworkParameters networkParameters) {
         List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm<AcVariableType, AcEquationType> q;
@@ -173,7 +173,7 @@ public final class AcEquationSystem {
 
         // we choose first controller bus as reference for reactive power
         LfBus firstControllerBus = controllerBuses.get(0);
-        List<EquationTerm<AcVariableType, AcEquationType>> firstControllerBusReactiveTerms = createReactiveTerms(firstControllerBus, variableSet, networkParameters, creationParameters);
+        List<EquationTerm<AcVariableType, AcEquationType>> firstControllerBusReactiveTerms = createReactiveTerms(firstControllerBus, variableSet, networkParameters);
 
         // create a reactive power distribution equation for all the other controller buses
         for (int i = 1; i < controllerBuses.size(); i++) {
@@ -184,7 +184,7 @@ public final class AcEquationSystem {
             Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.ZERO_Q);
             zero.setData(new DistributionData(firstControllerBus.getNum(), c)); // for later use
             zero.addTerms(firstControllerBusReactiveTerms);
-            zero.addTerms(createReactiveTerms(controllerBus, variableSet, networkParameters, creationParameters).stream().map(term -> EquationTerm.multiply(term, -c)).collect(Collectors.toList()));
+            zero.addTerms(createReactiveTerms(controllerBus, variableSet, networkParameters).stream().map(term -> EquationTerm.multiply(term, -c)).collect(Collectors.toList()));
         }
     }
 
@@ -347,7 +347,7 @@ public final class AcEquationSystem {
         // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
         Equation<AcVariableType, AcEquationType> eq = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V_SLOPE);
         eq.addTerm(vTerm);
-        List<EquationTerm<AcVariableType, AcEquationType>> controllerBusReactiveTerms = createReactiveTerms(bus, variableSet, networkParameters, creationParameters);
+        List<EquationTerm<AcVariableType, AcEquationType>> controllerBusReactiveTerms = createReactiveTerms(bus, variableSet, networkParameters);
         eq.setData(new DistributionData(bus.getNum(), slope)); // for later use
         for (EquationTerm<AcVariableType, AcEquationType> eqTerm : controllerBusReactiveTerms) {
             eq.addTerm(EquationTerm.multiply(eqTerm, slope));

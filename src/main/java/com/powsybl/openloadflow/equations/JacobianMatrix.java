@@ -186,9 +186,9 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     private LUDecomposition getLUDecomposition() {
-        Matrix matrix = getMatrix();
+        Matrix m = getMatrix();
         if (lu == null) {
-            lu = matrix.decomposeLU();
+            lu = m.decomposeLU();
         }
         return lu;
     }

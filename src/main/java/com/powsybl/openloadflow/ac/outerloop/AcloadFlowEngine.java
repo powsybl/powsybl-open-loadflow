@@ -83,7 +83,7 @@ public class AcloadFlowEngine implements AutoCloseable {
         private final Map<String, MutableInt> outerLoopIterationByType = new HashMap<>();
     }
 
-    private void runOuterLoop(OuterLoop outerLoop, LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet,
+    private void runOuterLoop(OuterLoop outerLoop, LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                               NewtonRaphson newtonRaphson, RunningContext runningContext, Reporter reporter) {
         Reporter olReporter = reporter.createSubReporter("OuterLoop", "Outer loop ${outerLoopType}", "outerLoopType", outerLoop.getType());
 
@@ -262,7 +262,7 @@ public class AcloadFlowEngine implements AutoCloseable {
 
                 // outer loops are nested: inner most loop first in the list, outer most loop last
                 for (OuterLoop outerLoop : parameters.getOuterLoops()) {
-                    runOuterLoop(outerLoop, network, equationSystem, variableSet, newtonRaphson, runningContext, reporter);
+                    runOuterLoop(outerLoop, network, equationSystem, newtonRaphson, runningContext, reporter);
 
                     // continue with next outer loop only if last Newton-Raphson succeed
                     if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED) {

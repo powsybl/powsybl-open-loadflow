@@ -23,12 +23,9 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoadActivePowerDistributionStep.class);
 
-    private final boolean distributedOnConformLoad;
-
     private final boolean loadPowerFactorConstant;
 
-    public LoadActivePowerDistributionStep(boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
-        this.distributedOnConformLoad = distributedOnConformLoad;
+    public LoadActivePowerDistributionStep(boolean loadPowerFactorConstant) {
         this.loadPowerFactorConstant = loadPowerFactorConstant;
     }
 

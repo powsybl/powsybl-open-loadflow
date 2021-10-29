@@ -208,7 +208,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         // note that batteries are out of the slack distribution.
         batteries.add(battery);
         loadTargetP += battery.getP0();
-        // initialLoadTargetP += battery.getP0();
         loadTargetQ += battery.getQ0();
     }
 
@@ -415,7 +414,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         branches.add(Objects.requireNonNull(branch));
     }
 
-    private double dispatchQ(List<LfGenerator> generatorsThatControlVoltage, boolean reactiveLimits, double qToDispatch) {
+    private static double dispatchQ(List<LfGenerator> generatorsThatControlVoltage, boolean reactiveLimits, double qToDispatch) {
         double residueQ = 0;
         double calculatedQ = qToDispatch / generatorsThatControlVoltage.size();
         Iterator<LfGenerator> itG = generatorsThatControlVoltage.iterator();
