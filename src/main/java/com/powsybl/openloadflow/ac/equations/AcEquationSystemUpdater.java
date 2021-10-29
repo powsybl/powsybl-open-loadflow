@@ -61,7 +61,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
             // create reactive power equations on controller buses that have voltage control on
             if (!controllerBusesWithVoltageControlOn.isEmpty()) {
-                AcEquationSystem.createReactivePowerDistributionEquations(equationSystem, variableSet, networkParameters, creationParameters, controllerBusesWithVoltageControlOn);
+                AcEquationSystem.createReactivePowerDistributionEquations(equationSystem, variableSet, networkParameters, controllerBusesWithVoltageControlOn);
             }
         }
     }
