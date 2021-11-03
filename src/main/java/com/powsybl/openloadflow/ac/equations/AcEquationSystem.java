@@ -510,6 +510,8 @@ public final class AcEquationSystem {
         createBusEquations(network, variableSet, networkParameters, equationSystem);
         createBranchEquations(network, variableSet, networkParameters, creationParameters, equationSystem);
 
+        EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem, variableSet));
+
         network.addListener(new AcEquationSystemUpdater(equationSystem, variableSet, networkParameters));
 
         return equationSystem;
