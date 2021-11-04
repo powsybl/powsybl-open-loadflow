@@ -137,7 +137,7 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     @Override
     public boolean hasPhaseControlCapability() {
-        return branch.getType() == ConnectableType.TWO_WINDINGS_TRANSFORMER
+        return branch.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER
                 && ((TwoWindingsTransformer) branch).getPhaseTapChanger() != null;
     }
 

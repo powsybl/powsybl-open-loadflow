@@ -128,9 +128,9 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(302.444, branch1.getP1().eval() * PerUnit.SB, 10E-3);
         LfBranch branch2 = lfNetwork.getBranchById("NHV1_NHV2_2");
         assertEquals(-300.434, branch2.getP2().eval() * PerUnit.SB, 10E-3);
-        assertEquals(11, getLimitValueFromAcceptableDuration(branch1, 600, Branch.Side.ONE, LimitType.ACTIVE_POWER), DELTA);
-        assertEquals(12, getLimitValueFromAcceptableDuration(branch1, 60, Branch.Side.ONE, LimitType.ACTIVE_POWER), DELTA);
-        assertEquals(15, getLimitValueFromAcceptableDuration(branch1, 0, Branch.Side.ONE, LimitType.ACTIVE_POWER), DELTA);
+        assertEquals(11, getLimitValueFromAcceptableDuration(branch1, 600, Branch.Side.TWO, LimitType.ACTIVE_POWER), DELTA);
+        assertEquals(12, getLimitValueFromAcceptableDuration(branch1, 60, Branch.Side.TWO, LimitType.ACTIVE_POWER), DELTA);
+        assertEquals(15, getLimitValueFromAcceptableDuration(branch1, 0, Branch.Side.TWO, LimitType.ACTIVE_POWER), DELTA);
     }
 
     @Test
@@ -146,9 +146,9 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(302.444, branch1.getP1().eval() * PerUnit.SB, 10E-3);
         LfBranch branch2 = lfNetwork.getBranchById("NHV1_NHV2_2");
         assertEquals(-300.434, branch2.getP2().eval() * PerUnit.SB, 10E-3);
-        assertEquals(11, getLimitValueFromAcceptableDuration(branch1, 600, Branch.Side.ONE, LimitType.APPARENT_POWER), DELTA);
-        assertEquals(12, getLimitValueFromAcceptableDuration(branch1, 60, Branch.Side.ONE, LimitType.APPARENT_POWER), DELTA);
-        assertEquals(15, getLimitValueFromAcceptableDuration(branch1, 0, Branch.Side.ONE, LimitType.APPARENT_POWER), DELTA);
+        assertEquals(11, getLimitValueFromAcceptableDuration(branch1, 600, Branch.Side.TWO, LimitType.APPARENT_POWER), DELTA);
+        assertEquals(12, getLimitValueFromAcceptableDuration(branch1, 60, Branch.Side.TWO, LimitType.APPARENT_POWER), DELTA);
+        assertEquals(15, getLimitValueFromAcceptableDuration(branch1, 0, Branch.Side.TWO, LimitType.APPARENT_POWER), DELTA);
     }
 
     @Test
