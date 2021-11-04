@@ -4,10 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.util;
-
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfGenerator;
+package com.powsybl.openloadflow.network;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -48,9 +45,7 @@ public class BusState {
     public void restoreBusActiveState(LfBus bus) {
         bus.setAngle(angle);
         bus.setLoadTargetP(loadTargetP);
-        bus.getGenerators().forEach(g -> {
-            g.setTargetP(generatorsTargetP.get(g.getId()));
-        });
+        bus.getGenerators().forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
     }
 
     /**

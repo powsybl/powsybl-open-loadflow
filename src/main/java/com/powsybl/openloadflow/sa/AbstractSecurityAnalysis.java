@@ -17,8 +17,6 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
-import com.powsybl.openloadflow.util.LfContingency;
-import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import com.powsybl.security.monitor.StateMonitor;
@@ -228,10 +226,6 @@ public abstract class AbstractSecurityAnalysis {
             }
         }
         return false;
-    }
-
-    List<LfContingency> createContingencies(List<PropagatedContingency> propagatedContingencies, LfNetwork network) {
-        return LfContingency.createContingencies(propagatedContingencies, network, network.createDecrementalConnectivity(connectivityProvider), true);
     }
 
     protected void addMonitorInfo(LfNetwork network, StateMonitor monitor, Collection<BranchResult> branchResultConsumer,

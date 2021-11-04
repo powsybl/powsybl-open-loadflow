@@ -91,10 +91,8 @@ public final class ActivePowerDistribution {
         Step step;
         switch (balanceType) {
             case PROPORTIONAL_TO_LOAD:
-                step = new LoadActivePowerDistributionStep(false, loadPowerFactorConstant);
-                break;
             case PROPORTIONAL_TO_CONFORM_LOAD:
-                step = new LoadActivePowerDistributionStep(true, loadPowerFactorConstant);
+                step = new LoadActivePowerDistributionStep(loadPowerFactorConstant);
                 break;
             case PROPORTIONAL_TO_GENERATION_P_MAX:
                 step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.MAX);

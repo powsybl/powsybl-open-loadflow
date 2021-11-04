@@ -85,4 +85,25 @@ class AcLoadFlowVscTest {
         Bus bus1 = network.getBusView().getBus("vl1_0");
         assertVoltageEquals(390.0, bus1);
     }
+
+    @Test
+    void testRegulatingTerminal2() {
+        Network network = HvdcNetworkFactory.createVsc();
+        network.getGenerator("g1").setTargetV(390);
+        VscConverterStation vscConverterStation = network.getVscConverterStation("cs2");
+        vscConverterStation.setRegulatingTerminal(network.getVscConverterStation("cs3").getTerminal()).setVoltageSetpoint(400); // will be discarded.
+        vscConverterStation.setVoltageRegulatorOn(true); //FIXME
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        Bus bus1 = network.getBusView().getBus("vl1_0");
+        assertVoltageEquals(390.0, bus1);
+    }
 }

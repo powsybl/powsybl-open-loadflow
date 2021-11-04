@@ -15,6 +15,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.BeforeEach;
@@ -396,6 +397,38 @@ class AcLoadFlowPhaseShifterTest {
         assertReactivePowerEquals(-4.922, t2wt.getTerminal1());
         assertActivePowerEquals(-76.738, t2wt.getTerminal2());
         assertReactivePowerEquals(9.495, t2wt.getTerminal2());
+    }
+
+    @Test
+    void nonSupportedPhaseControl() {
+        Network network = HvdcNetworkFactory.createLccWithBiggerComponents();
+        TwoWindingsTransformer twt = network.getTwoWindingsTransformer("l45");
+        parameters.setPhaseShifterRegulationOn(true);
+        twt.getPhaseTapChanger().setRegulationTerminal(network.getLine("l12").getTerminal1())
+                .setRegulationValue(0)
+                .setTargetDeadband(1)
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setRegulating(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(100.1307, network.getLine("l12").getTerminal1());
+    }
+
+    @Test
+    void nonSupportedPhaseControl2() {
+        selectNetwork(createNetworkWithT2wt());
+        parameters.setPhaseShifterRegulationOn(true);
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1) // FIXME how to take this into account
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(line1.getTerminal1())
+                .setRegulationValue(83);
+        t2wt.getTerminal1().disconnect();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(1, t2wt.getPhaseTapChanger().getTapPosition());
     }
 
     /**

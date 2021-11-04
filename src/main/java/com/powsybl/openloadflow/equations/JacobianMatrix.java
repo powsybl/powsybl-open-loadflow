@@ -23,13 +23,13 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
         private final EquationTerm<V, E> equationTerm;
 
-        private final Matrix.Element matrixElement;
+        private final int elementIndex;
 
         private final Variable<V> variable;
 
-        PartialDerivative(EquationTerm<V, E> equationTerm, Matrix.Element matrixElement, Variable<V> variable) {
+        PartialDerivative(EquationTerm<V, E> equationTerm, int elementIndex, Variable<V> variable) {
             this.equationTerm = Objects.requireNonNull(equationTerm);
-            this.matrixElement = Objects.requireNonNull(matrixElement);
+            this.elementIndex = elementIndex;
             this.variable = Objects.requireNonNull(variable);
         }
 
@@ -37,8 +37,8 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             return equationTerm;
         }
 
-        Matrix.Element getMatrixElement() {
-            return matrixElement;
+        public int getElementIndex() {
+            return elementIndex;
         }
 
         Variable<V> getVariable() {
@@ -143,8 +143,8 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 int row = var.getRow();
                 for (EquationTerm<V, E> equationTerm : e2.getValue()) {
                     double value = equationTerm.der(var);
-                    Matrix.Element element = matrix.addAndGetElement(row, column, value);
-                    partialDerivatives.add(new JacobianMatrix.PartialDerivative<>(equationTerm, element, var));
+                    int elementIndex = matrix.addAndGetIndex(row, column, value);
+                    partialDerivatives.add(new JacobianMatrix.PartialDerivative<>(equationTerm, elementIndex, var));
                 }
             }
         }
@@ -154,10 +154,10 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         matrix.reset();
         for (PartialDerivative<V, E> partialDerivative : partialDerivatives) {
             EquationTerm<V, E> equationTerm = partialDerivative.getEquationTerm();
-            Matrix.Element element = partialDerivative.getMatrixElement();
+            int elementIndex = partialDerivative.getElementIndex();
             Variable<V> var = partialDerivative.getVariable();
             double value = equationTerm.der(var);
-            element.add(value);
+            matrix.addAtIndex(elementIndex, value);
         }
 
         if (lu != null) {
@@ -186,9 +186,9 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     private LUDecomposition getLUDecomposition() {
-        Matrix matrix = getMatrix();
+        Matrix m = getMatrix();
         if (lu == null) {
-            lu = matrix.decomposeLU();
+            lu = m.decomposeLU();
         }
         return lu;
     }

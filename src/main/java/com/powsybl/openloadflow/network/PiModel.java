@@ -53,4 +53,6 @@ public interface PiModel {
     }
 
     boolean updateTapPosition(Direction direction);
+
+    boolean setMinZ(double minZ);
 }
