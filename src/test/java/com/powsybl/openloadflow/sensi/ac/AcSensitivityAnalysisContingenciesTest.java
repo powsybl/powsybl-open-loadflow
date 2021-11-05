@@ -47,7 +47,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()), "l23");
         List<Contingency> contingencyList = Collections.singletonList(new Contingency("l23", new BranchContingency("l23")));
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencyList, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencyList, Collections.emptyList(), sensiParameters);
 
         assertEquals(15, result.getValues().size());
         assertEquals(-0.5409d, result.getSensitivityValue("l23", "g4", "l14"), LoadFlowAssert.DELTA_POWER);
@@ -80,7 +80,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 network.getBranchStream().collect(Collectors.toList()));
         List<Contingency> contingencyList = Collections.singletonList(new Contingency("l23", new BranchContingency("l23")));
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencyList, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencyList, Collections.emptyList(), sensiParameters);
 
         assertEquals(15, result.getValues("l23").size());
 
@@ -113,7 +113,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()));
         List<Contingency> contingencyList = Collections.singletonList(new Contingency("l23", new BranchContingency("l23")));
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencyList, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencyList, Collections.emptyList(), sensiParameters);
 
         assertEquals(0.6761d, result.getFunctionReferenceValue("l23", "l14"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-1.0d, result.getFunctionReferenceValue("l23", "l12"), LoadFlowAssert.DELTA_POWER);
@@ -132,7 +132,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()), "l23");
         List<Contingency> contingencyList = Collections.singletonList(new Contingency("l23", new BranchContingency("l23")));
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencyList, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencyList, Collections.emptyList(), sensiParameters);
         assertEquals(15, result.getValues().size());
         assertEquals(-0.5409d, result.getSensitivityValue("l23", "g4", "l14"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.400d, result.getSensitivityValue("l23", "g4", "l12"), LoadFlowAssert.DELTA_POWER);
@@ -163,7 +163,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()), "l23");
         List<Contingency> contingencyList = Collections.singletonList(new Contingency("l23", new BranchContingency("l23")));
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencyList, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencyList, Collections.emptyList(), sensiParameters);
         assertEquals(15, result.getValues().size());
         assertEquals(0.6761d, result.getFunctionReferenceValue("l23", "l14"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-1.0d, result.getFunctionReferenceValue("l23", "l12"), LoadFlowAssert.DELTA_POWER);
@@ -184,7 +184,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         List<Contingency> contingencyList = Collections.singletonList(new Contingency("l34", new BranchContingency("l34")));
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencyList, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencyList, Collections.emptyList(), sensiParameters);
 
         assertEquals(5, result.getValues().size());
         assertEquals(0d, result.getSensitivityValue("l34", "l23", "l14"), LoadFlowAssert.DELTA_POWER);
@@ -205,7 +205,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                                                  .map(branch -> createBranchFlowPerPSTAngle(branch.getId(), "l23", "l34")).collect(Collectors.toList());
         List<Contingency> contingencyList = Collections.singletonList(new Contingency("l34", new BranchContingency("l34")));
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencyList, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencyList, Collections.emptyList(), sensiParameters);
 
         assertEquals(5, result.getValues().size());
         assertEquals(-1.0d, result.getFunctionReferenceValue("l34", "l14"), LoadFlowAssert.DELTA_POWER);
@@ -227,7 +227,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         List<Contingency> contingencyList = Collections.singletonList(new Contingency("l34", new BranchContingency("l34")));
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencyList, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencyList, Collections.emptyList(), sensiParameters);
 
         assertEquals(5, result.getValues("l34").size());
         assertEquals(-1.0d, result.getFunctionReferenceValue("l34", "l14"), LoadFlowAssert.DELTA_POWER);
@@ -248,7 +248,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 network.getBranchStream().collect(Collectors.toList()));
         List<Contingency> contingencyList = List.of(new Contingency("l23", new BranchContingency("l23")), new Contingency("l34", new BranchContingency("l34")));
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencyList, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencyList, Collections.emptyList(), sensiParameters);
 
         assertEquals(0.1352d, result.getSensitivityValue("l23", "g2", "l14"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.600d, result.getSensitivityValue("l23", "g2", "l12"), LoadFlowAssert.DELTA_POWER);
@@ -280,7 +280,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         List<Contingency> contingencyList = List.of(new Contingency("l23", new BranchContingency("l23")), new Contingency("l34", new BranchContingency("l34")));
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencyList, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencyList, Collections.emptyList(), sensiParameters);
 
         List<SensitivityValue> l34values = result.getValues("l34");
         List<SensitivityValue> l23values = result.getValues("l23");
@@ -308,7 +308,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 network.getBranchStream().collect(Collectors.toList()));
         List<Contingency> contingencyList = List.of(new Contingency("l23+l34", new BranchContingency("l23"),  new BranchContingency("l34")));
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencyList, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencyList, Collections.emptyList(), sensiParameters);
 
         assertEquals(0.2d, result.getSensitivityValue("l23+l34", "g2", "l14"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.600d, result.getSensitivityValue("l23+l34", "g2", "l12"), LoadFlowAssert.DELTA_POWER);
@@ -325,7 +325,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<Contingency> contingencies = List.of(new Contingency("l34", new BranchContingency("l34")));
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()));
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencies, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
         assertEquals(14, result.getValues("l34").size());
         assertEquals(-0.1324d, result.getSensitivityValue("l34", "g2", "l12"), LoadFlowAssert.DELTA_POWER);
@@ -356,7 +356,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<Contingency> contingencies = List.of(new Contingency("l24+l35", new BranchContingency("l24"), new BranchContingency("l35")));
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()), "l24+l35");
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencies, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
         assertEquals(24, result.getValues("l24+l35").size());
         assertEquals(-0.1331d, result.getSensitivityValue("l24+l35", "g2", "l12"), LoadFlowAssert.DELTA_POWER);
@@ -401,7 +401,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<SensitivityFactor> factors = network.getBranchStream()
                                                  .map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk", "l34"))
                                                  .collect(Collectors.toList());
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencies, variableSets, sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters);
 
         assertEquals(7, result.getValues("l34").size());
         assertEquals(-0.5d, result.getSensitivityValue("l34", "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
@@ -429,7 +429,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                                                  .map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk", "l34"))
                                                  .collect(Collectors.toList());
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencies, variableSets, sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters);
 
         assertEquals(7, result.getValues("l34").size());
         assertEquals(-0.5d, result.getSensitivityValue("l34", "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
@@ -460,7 +460,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                                                 .map(bus -> createBusVoltagePerTargetV(bus, "g2"))
                                                 .collect(Collectors.toList());
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencies, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
         List<SensitivityValue> contingencyValue = result.getValues("l45");
         assertEquals(0.916d, result.getSensitivityValue("l45", "g2", busIds.get(0)), LoadFlowAssert.DELTA_V); // 0 on the slack
@@ -490,7 +490,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                                                 .map(bus -> createBusVoltagePerTargetV(bus, "g2"))
                                                 .collect(Collectors.toList());
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencies, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
         assertEquals(0.993d, result.getFunctionReferenceValue("l45", busIds.get(0)), LoadFlowAssert.DELTA_V);
         assertEquals(1d, result.getFunctionReferenceValue("l45", busIds.get(1)), LoadFlowAssert.DELTA_V);
@@ -536,7 +536,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class)
                        .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
                        .setSlackBusId("b1_vl_0"); // the most meshed bus selected in the loadflow
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.singletonList(new Contingency("l25", new BranchContingency("l25"))), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.singletonList(new Contingency("l25", new BranchContingency("l25"))), Collections.emptyList(), sensiParameters);
 
         // FIXME
 //        assertEquals(loadFlowDiff.get("l12"), hvdcWriter.getSensitivityValue(Pair.of("hvdc34", "l12"), "l25"), LoadFlowAssert.DELTA_POWER);
@@ -573,7 +573,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getBranchStream().collect(Collectors.toList()), "L2");
         List<Contingency> contingencyList = Collections.singletonList(new Contingency("L2", new BranchContingency("L2")));
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencyList, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencyList, Collections.emptyList(), sensiParameters);
 
         //Flow is around 200 on all lines
         result.getValues()
@@ -590,7 +590,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "g1"));
         List<Contingency> contingencies = List.of(new Contingency("dl1", new DanglingLineContingency("dl1")));
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencies, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
         assertEquals(1, result.getPreContingencyValues().size());
         assertEquals(0.3697, result.getSensitivityValue("g1", "l1"), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
         assertEquals(75.272, result.getFunctionReferenceValue("l1"), LoadFlowAssert.DELTA_POWER);
@@ -618,7 +618,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "load3"));
         List<Contingency> contingencies = List.of(new Contingency("dl1", new DanglingLineContingency("dl1")));
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencies, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
         assertEquals(1, result.getPreContingencyValues().size());
         assertEquals(-0.3704, result.getSensitivityValue("load3", "l1"), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
         assertEquals(75.336, result.getFunctionReferenceValue("l1"), LoadFlowAssert.DELTA_POWER);
@@ -651,7 +651,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         List<Contingency> contingencies = List.of(new Contingency("NHV1_NHV2_2", new BranchContingency("NHV1_NHV2_2")));
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencies, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
         assertEquals(4, result.getPreContingencyValues().size());
         assertEquals(0d, result.getSensitivityValue("NHV2_NLOAD", "NGEN"), LoadFlowAssert.DELTA_V);
         assertEquals(0.035205d, result.getSensitivityValue("NHV2_NLOAD", "NHV1"), LoadFlowAssert.DELTA_V);
@@ -673,7 +673,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk",
                 List.of(new WeightedSensitivityVariable("g6", 1f), new WeightedSensitivityVariable("g3", 2f))));
         List<Contingency> contingencies = List.of(new Contingency("additionnalline_0", new BranchContingency("additionnalline_0")));
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencies, variableSets, sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters);
         assertEquals(2, result.getValues().size());
         assertEquals(0, result.getSensitivityValue("glsk", "l12"), LoadFlowAssert.DELTA_POWER);
 

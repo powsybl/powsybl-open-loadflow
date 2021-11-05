@@ -228,7 +228,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
         List<SensitivityFactor> factors = List.of(createHvdcInjection("l12", "nop"));
 
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("HVDC line 'nop' cannot be found in the network.", e.getCause().getMessage());
     }
@@ -254,7 +254,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "VLLOAD_0");
         List<SensitivityFactor> factors = Collections.emptyList();
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
         assertTrue(result.getValues().isEmpty());
     }
 
@@ -265,7 +265,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
         Generator gen = network.getGenerator("g1");
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerInjectionIncrease("l56", gen.getId()));
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
         assertEquals(1, result.getValues().size());
         assertEquals(0d, result.getValues().iterator().next().getValue());
     }
@@ -322,7 +322,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         List<SensitivityFactor> factors = List.of(createBranchFlowPerLinearGlsk("l56",  "glsk"));
         List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk",
                 List.of(new WeightedSensitivityVariable("g6", 1f), new WeightedSensitivityVariable("g3", 2f))));
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), variableSets, sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
         assertEquals(1, result.getValues().size());
         assertEquals(Double.NaN, result.getSensitivityValue("glsk", "l56"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getFunctionReferenceValue("l56"), LoadFlowAssert.DELTA_POWER);
