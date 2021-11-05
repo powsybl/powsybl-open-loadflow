@@ -229,7 +229,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencyList, Collections.emptyList(), sensiParameters);
 
-        assertEquals(5, result.getValues("l34"));
+        assertEquals(5, result.getValues("l34").size());
         assertEquals(-1.0d, result.getFunctionReferenceValue("l34", "l14"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.7319d, result.getFunctionReferenceValue("l34", "l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getFunctionReferenceValue("l34", "l34"), LoadFlowAssert.DELTA_POWER);
@@ -324,7 +324,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         List<Contingency> contingencies = List.of(new Contingency("l34", new BranchContingency("l34")));
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
-                network.getBranchStream().collect(Collectors.toList()), "l34");
+                network.getBranchStream().collect(Collectors.toList()));
         SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencies, Collections.emptyList(), sensiParameters);
 
         assertEquals(14, result.getValues("l34").size());
@@ -674,7 +674,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 List.of(new WeightedSensitivityVariable("g6", 1f), new WeightedSensitivityVariable("g3", 2f))));
         List<Contingency> contingencies = List.of(new Contingency("additionnalline_0", new BranchContingency("additionnalline_0")));
         SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencies, variableSets, sensiParameters);
-        assertEquals(1, result.getValues().size());
+        assertEquals(2, result.getValues().size());
         assertEquals(0, result.getSensitivityValue("glsk", "l12"), LoadFlowAssert.DELTA_POWER);
 
         assertEquals(100.131, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);

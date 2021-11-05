@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.io.table.AsciiTableFormatterFactory;
 import com.powsybl.commons.io.table.TableFormatterConfig;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
@@ -603,7 +604,7 @@ class OpenSecurityAnalysisTest {
 
         OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
         CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(fourBusNetwork, fourBusNetwork.getVariantManager().getWorkingVariantId(),
-                new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
+                new DefaultLimitViolationDetector(), new LimitViolationFilter(), LocalComputationManager.getDefault(), saParameters,
                 contingenciesProvider, Collections.emptyList(), monitors);
         SecurityAnalysisResult result = futureResult.join().getResult();
 

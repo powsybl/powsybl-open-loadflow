@@ -987,9 +987,10 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER, List.of("l12", "l13", "l23", "l25", "l45", "l46", "l56"),
                                                                            SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"), false, contingencyContext);
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.singletonList(new Contingency("hvdc34", new HvdcLineContingency("hvdc34"))), Collections.emptyList(),
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
+        SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, contingencies, Collections.emptyList(),
                 sensiParameters);
-
+        System.out.println(result.getValues());
         assertEquals(0d, result.getSensitivityValue("hvdc34", "l12", "hvdc34"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getSensitivityValue("hvdc34", "l13", "hvdc34"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getSensitivityValue("hvdc34", "l23", "hvdc34"), LoadFlowAssert.DELTA_POWER);
