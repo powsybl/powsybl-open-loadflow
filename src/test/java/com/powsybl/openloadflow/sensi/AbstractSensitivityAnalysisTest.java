@@ -37,6 +37,8 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterTest {
 
+    protected static final double SENSI_CHANGE = 10e-4;
+
     protected final DenseMatrixFactory matrixFactory = new DenseMatrixFactory();
 
     protected final OpenSensitivityAnalysisProvider sensiProvider = new OpenSensitivityAnalysisProvider(matrixFactory);

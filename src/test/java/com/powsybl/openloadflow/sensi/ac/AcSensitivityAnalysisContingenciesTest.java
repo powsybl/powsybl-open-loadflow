@@ -462,7 +462,6 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
-        List<SensitivityValue> contingencyValue = result.getValues("l45");
         assertEquals(0.916d, result.getSensitivityValue("l45", "g2", busIds.get(0)), LoadFlowAssert.DELTA_V); // 0 on the slack
         assertEquals(1d, result.getSensitivityValue("l45", "g2", busIds.get(1)), LoadFlowAssert.DELTA_V); // 1 on itself
         assertEquals(0.8133d, result.getSensitivityValue("l45", "g2", busIds.get(2)), LoadFlowAssert.DELTA_V);
@@ -506,7 +505,6 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
     @Test
     void testHvdcSensiRescale() {
-        double sensiChange = 10e-4;
         // test injection increase on loads
         Network network = HvdcNetworkFactory.createNetworkWithGenerators();
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
@@ -519,7 +517,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         network1.getLine("l25").getTerminal2().disconnect();
         runLf(network1, sensiParameters.getLoadFlowParameters());
         Network network2 = HvdcNetworkFactory.createNetworkWithGenerators();
-        network2.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + sensiChange);
+        network2.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + SENSI_CHANGE);
         network2.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         network2.getLine("l25").getTerminal1().disconnect();
         network2.getLine("l25").getTerminal2().disconnect();
@@ -527,7 +525,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         Map<String, Double> loadFlowDiff = network.getLineStream().map(line -> line.getId())
                                                   .collect(Collectors.toMap(
                                                       lineId -> lineId,
-                                                      line -> (network1.getLine(line).getTerminal1().getP() - network2.getLine(line).getTerminal1().getP()) / sensiChange
+                                                      line -> (network1.getLine(line).getTerminal1().getP() - network2.getLine(line).getTerminal1().getP()) / SENSI_CHANGE
                                                   ));
 
         ContingencyContext contingencyContext = ContingencyContext.all();
@@ -576,8 +574,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencyList, Collections.emptyList(), sensiParameters);
 
         //Flow is around 200 on all lines
-        result.getValues()
-              .forEach(v -> assertEquals(200, v.getFunctionReference(), 5));
+        result.getValues().forEach(v -> assertEquals(200, v.getFunctionReference(), 5));
 
         // Propagating contingency on L2 encounters a coupler, which is not (yet) supported in sensitivity analysis
         assertTrue(result.getValues("L2").isEmpty());

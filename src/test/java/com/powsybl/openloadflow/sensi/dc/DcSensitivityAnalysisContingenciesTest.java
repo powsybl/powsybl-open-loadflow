@@ -1027,8 +1027,6 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
     @Test
     void testHvdcSensiRescale() {
-        double sensiChange = 10e-4;
-
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
 
         Network network1 = HvdcNetworkFactory.createNetworkWithGenerators();
@@ -1038,7 +1036,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         runLf(network1, sensiParameters.getLoadFlowParameters());
 
         Network network2 = HvdcNetworkFactory.createNetworkWithGenerators();
-        network2.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + sensiChange);
+        network2.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + SENSI_CHANGE);
         network2.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         network2.getLine("l25").getTerminal1().disconnect();
         network2.getLine("l25").getTerminal2().disconnect();
@@ -1049,7 +1047,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         Map<String, Double> loadFlowDiff = network.getLineStream()
                 .map(Identifiable::getId)
-                .collect(Collectors.toMap(Function.identity(), line -> (network1.getLine(line).getTerminal1().getP() - network2.getLine(line).getTerminal1().getP()) / sensiChange));
+                .collect(Collectors.toMap(Function.identity(), line -> (network1.getLine(line).getTerminal1().getP() - network2.getLine(line).getTerminal1().getP()) / SENSI_CHANGE));
 
         List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER, List.of("l12", "l13", "l23", "l25", "l45", "l46", "l56"),
                                                                          SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
