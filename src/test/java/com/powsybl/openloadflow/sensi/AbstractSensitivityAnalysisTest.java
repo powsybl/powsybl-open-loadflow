@@ -77,8 +77,6 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
     }
 
     protected static <T extends Injection<T>> List<SensitivityFactor> createFactorMatrix(List<T> injections, List<Branch> branches) {
-        Objects.requireNonNull(injections);
-        Objects.requireNonNull(branches);
         return createFactorMatrix(injections, branches, null);
     }
 
