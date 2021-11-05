@@ -604,7 +604,10 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors =  createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
                                                               network.getBranchStream().collect(Collectors.toList()));
 
-        CompletionException exception = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
+        List<Contingency> contingencies = Collections.emptyList();
+        List<SensitivityVariableSet> variableSets = Collections.emptyList();
+
+        CompletionException exception = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
         assertTrue(exception.getCause() instanceof UnsupportedOperationException);
         assertEquals("Unsupported balance type mode: PROPORTIONAL_TO_CONFORM_LOAD", exception.getCause().getMessage());
     }
@@ -664,7 +667,10 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23")).collect(Collectors.toList());
 
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
+        List<Contingency> contingencies = Collections.emptyList();
+        List<SensitivityVariableSet> variableSets = Collections.emptyList();
+
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Only variables of type TRANSFORMER_PHASE or INJECTION_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER are yet supported in DC", e.getCause().getMessage());
     }

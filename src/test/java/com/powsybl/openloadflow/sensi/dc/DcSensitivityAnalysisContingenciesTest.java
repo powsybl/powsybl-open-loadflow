@@ -1409,7 +1409,9 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("wrong")));
 
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters));
+        List<SensitivityVariableSet> variableSets = Collections.emptyList();
+
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("HVDC line 'wrong' not found in the network", e.getCause().getMessage());
     }
