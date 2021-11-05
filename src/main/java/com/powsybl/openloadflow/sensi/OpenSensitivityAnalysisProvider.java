@@ -122,6 +122,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         Objects.requireNonNull(valueWriter);
         Objects.requireNonNull(reporter);
 
+        Reporter sensiReporter = reporter.createSubReporter("sensitivityAnalysis",
+                "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
+
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies);
 
         LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
@@ -159,9 +162,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }
 
         if (lfParameters.isDc()) {
-            dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, valueWriter, reporter);
+            dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, valueWriter, sensiReporter);
         } else {
-            acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, valueWriter, reporter);
+            acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, valueWriter, sensiReporter);
         }
 
         return null;
