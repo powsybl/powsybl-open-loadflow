@@ -43,7 +43,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -168,10 +167,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return null;
     }
 
-    public <T extends SensitivityValueWriter> T replay(DateTime date, Path debugDir, Function<List<SensitivityFactor>, T> valueWriterProvider, Reporter reporter) {
+    public <T extends SensitivityValueWriter> T replay(DateTime date, Path debugDir, T valueWriter, Reporter reporter) {
         Objects.requireNonNull(date);
         Objects.requireNonNull(debugDir);
-        Objects.requireNonNull(valueWriterProvider);
+        Objects.requireNonNull(valueWriter);
         Objects.requireNonNull(reporter);
 
         String dateStr = date.toString(DATE_TIME_FORMAT);
@@ -207,19 +206,18 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
         Network network = NetworkXml.read(debugDir.resolve("network-" + dateStr + ".xiidm"));
 
-        T valueWriter = valueWriterProvider.apply(factors);
         run(network, VariantManagerConstants.INITIAL_VARIANT_ID, new SensitivityFactorModelReader(factors, network), valueWriter,
                 contingencies, variableSets, sensitivityAnalysisParameters, LocalComputationManager.getDefault(), reporter);
 
         return valueWriter;
     }
 
-    public <T extends SensitivityValueWriter> T replay(DateTime date, Path debugDir, Function<List<SensitivityFactor>, T> valueWriterProvider) {
-        return replay(date, debugDir, valueWriterProvider, Reporter.NO_OP);
+    public <T extends SensitivityValueWriter> T replay(DateTime date, Path debugDir, T valueWriter) {
+        return replay(date, debugDir, valueWriter, Reporter.NO_OP);
     }
 
     public List<SensitivityValue> replay(DateTime date, Path debugDir) {
-        SensitivityValueModelWriter valueWriter = replay(date, debugDir, SensitivityValueModelWriter::new);
+        SensitivityValueModelWriter valueWriter = replay(date, debugDir, new SensitivityValueModelWriter());
         return valueWriter.getValues();
     }
 }

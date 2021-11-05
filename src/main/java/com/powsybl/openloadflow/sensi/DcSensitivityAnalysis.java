@@ -250,8 +250,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             sensiValue = 0d;
         }
 
-        valueWriter.write(contingency != null ? contingency.getContingency().getId() : null, factor.getVariableId(), factor.getFunctionId(),
-                factor.getIndex(), contingency != null ? contingency.getIndex() : -1, unscaleSensitivity(factor, sensiValue), unscaleFunction(factor, flowValue));
+        valueWriter.write(factor.getIndex(), contingency != null ? contingency.getIndex() : -1, unscaleSensitivity(factor, sensiValue), unscaleFunction(factor, flowValue));
     }
 
     protected void setBaseCaseSensitivityValues(List<SensitivityFactorGroup<DcVariableType, DcEquationType>> factorGroups, DenseMatrix factorsState) {
@@ -269,8 +268,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             return;
         }
         lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.ZERO)
-                .forEach(factor -> valueWriter.write(contingency != null ? contingency.getContingency().getId() : null, factor.getVariableId(), factor.getFunctionId(),
-                                                     factor.getIndex(), contingency != null ? contingency.getIndex() : -1, 0, Double.NaN));
+                .forEach(factor -> valueWriter.write(factor.getIndex(), contingency != null ? contingency.getIndex() : -1, 0, Double.NaN));
 
         setAlphas(contingencyElements, flowStates, contingenciesStates, 0, ComputedContingencyElement::setAlphaForFunctionReference);
 

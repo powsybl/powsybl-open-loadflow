@@ -66,7 +66,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         List<LimitViolation> preContingencyLimitViolations = new ArrayList<>();
         for (SensitivityValue sensValue : res.getValues(null)) {
-            SensitivityFactor factor = sensValue.getFactor();
+            SensitivityFactor factor = factors.get(sensValue.getFactorIndex());
             String branchId = factor.getFunctionId();
             Branch<?> branch = network.getBranch(branchId);
             preContingencyBranchResults.put(branchId, new BranchResult(branchId, sensValue.getFunctionReference(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN));
@@ -83,7 +83,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             double branchInContingencyP1 = preContingencyBranchResults.get(contingency.getId()).getP1();
 
             for (SensitivityValue v : values) {
-                SensitivityFactor factor = v.getFactor();
+                SensitivityFactor factor = factors.get(v.getFactorIndex());
                 String branchId = factor.getFunctionId();
                 Branch<?> branch = network.getBranch(branchId);
 

@@ -126,46 +126,6 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         return new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER, functionId, SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, variableId, false, ContingencyContext.all());
     }
 
-    protected static double getValue(SensitivityAnalysisResult result, String variableId, String functionId) {
-        return getValue(result.getValues(), variableId, functionId);
-    }
-
-    protected static double getValue(Collection<SensitivityValue> result, String variableId, String functionId) {
-        return result.stream().filter(value -> value.getFactor().getVariableId().equals(variableId) && value.getFactor().getFunctionId().equals(functionId))
-            .findFirst()
-            .map(SensitivityValue::getValue)
-            .orElseThrow();
-    }
-
-    protected static double getContingencyValue(SensitivityAnalysisResult result, String contingencyId, String variableId, String functionId) {
-        return result.getValues(contingencyId).stream().filter(value -> value.getFactor().getVariableId().equals(variableId) && value.getFactor().getFunctionId().equals(functionId))
-                     .findFirst()
-                     .map(SensitivityValue::getValue)
-                     .orElseThrow();
-    }
-
-    protected static double getContingencyValue(List<SensitivityValue> result, String variableId, String functionId) {
-        return result.stream().filter(value -> value.getFactor().getVariableId().equals(variableId) && value.getFactor().getFunctionId().equals(functionId))
-                     .findFirst()
-                     .map(SensitivityValue::getValue)
-                     .orElseThrow();
-    }
-
-    protected static double getFunctionReference(SensitivityAnalysisResult result, String functionId) {
-        return getFunctionReference(result.getValues(), functionId);
-    }
-
-    protected static double getContingencyFunctionReference(SensitivityAnalysisResult result, String functionId, String contingencyId) {
-        return getFunctionReference(result.getValues(contingencyId), functionId);
-    }
-
-    protected static double getFunctionReference(Collection<SensitivityValue> result, String functionId) {
-        return result.stream().filter(value -> value.getFactor().getFunctionId().equals(functionId))
-            .findFirst()
-            .map(SensitivityValue::getFunctionReference)
-            .orElseThrow();
-    }
-
     protected void runAcLf(Network network) {
         runAcLf(network, Reporter.NO_OP);
     }
@@ -318,7 +278,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerInjectionIncrease("l12", gen.getId()));
         SensitivityAnalysisResult result = sensiRunner.runAsync(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP).join();
         assertEquals(1, result.getValues().size());
-        assertEquals(0f, getValue(result, "g3", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0f, result.getSensitivityValue("g3", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
     protected void testPhaseShifterOutsideMainComponent(boolean dc) {
@@ -328,12 +288,12 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         List<SensitivityFactor> factors = Collections.singletonList(createBranchFlowPerPSTAngle("l12", "l45"));
         SensitivityAnalysisResult result = sensiRunner.runAsync(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP).join();
         assertEquals(1, result.getValues().size());
-        assertEquals(0d, getValue(result, "l45", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, result.getSensitivityValue("l45", "l12"), LoadFlowAssert.DELTA_POWER);
 
         if (dc) {
-            assertEquals(100.050, getFunctionReference(result, network.getBranch("l12").getId()), LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.050, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         } else {
-            assertEquals(100.131, getFunctionReference(result, network.getBranch("l12").getId()), LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.131, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         }
     }
 
@@ -347,11 +307,11 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
         SensitivityAnalysisResult result = sensiRunner.runAsync(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), variableSets, sensiParameters, LocalComputationManager.getDefault(), Reporter.NO_OP).join();
         assertEquals(1, result.getValues().size());
-        assertEquals(0, getValue(result, "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, result.getSensitivityValue("glsk", "l12"), LoadFlowAssert.DELTA_POWER);
         if (dc) {
-            assertEquals(100.050, getFunctionReference(result, network.getBranch("l12").getId()), LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.050, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         } else {
-            assertEquals(100.131, getFunctionReference(result, network.getBranch("l12").getId()), LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.131, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         }
     }
 
@@ -364,8 +324,8 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
                 List.of(new WeightedSensitivityVariable("g6", 1f), new WeightedSensitivityVariable("g3", 2f))));
         SensitivityAnalysisResult result = sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), variableSets, sensiParameters);
         assertEquals(1, result.getValues().size());
-        assertEquals(Double.NaN, getValue(result, "glsk", "l56"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, getFunctionReference(result, network.getBranch("l56").getId()), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getSensitivityValue("glsk", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getFunctionReferenceValue("l56"), LoadFlowAssert.DELTA_POWER);
     }
 
     protected void testGlskPartiallyOutsideMainComponent(boolean dc) {

@@ -15,7 +15,7 @@ import java.util.Set;
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traverser {
+public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.TopologyTraverser {
 
     private final Set<Switch> switchesToOpen;
     private final Set<Terminal> traversedTerminals;
@@ -75,12 +75,12 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Traver
     private static boolean isEquivalentToStopAfterSwitch(Switch sw, int nodeAfter) {
         Terminal terminal2 = sw.getVoltageLevel().getNodeBreakerView().getTerminal(nodeAfter);
         if (terminal2 != null) {
-            ConnectableType connectableAfter = terminal2.getConnectable().getType();
-            boolean endNodeAfter = connectableAfter == ConnectableType.GENERATOR
-                || connectableAfter == ConnectableType.LOAD
-                || connectableAfter == ConnectableType.DANGLING_LINE
-                || connectableAfter == ConnectableType.STATIC_VAR_COMPENSATOR
-                || connectableAfter == ConnectableType.SHUNT_COMPENSATOR;
+            IdentifiableType connectableAfter = terminal2.getConnectable().getType();
+            boolean endNodeAfter = connectableAfter == IdentifiableType.GENERATOR
+                || connectableAfter == IdentifiableType.LOAD
+                || connectableAfter == IdentifiableType.DANGLING_LINE
+                || connectableAfter == IdentifiableType.STATIC_VAR_COMPENSATOR
+                || connectableAfter == IdentifiableType.SHUNT_COMPENSATOR;
 
             if (endNodeAfter) { // check that there isn't another (closed) switch or internal connection at node after
                 VoltageLevel.NodeBreakerView nbv = sw.getVoltageLevel().getNodeBreakerView();

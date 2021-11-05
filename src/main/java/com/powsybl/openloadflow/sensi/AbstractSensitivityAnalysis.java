@@ -652,8 +652,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         // SKIP factors are for factors where both variable and function elements are not in the main connected componant.
         // Therefore, their sensitivity and reference values are set to NaN.
-        skippedFactors.forEach(factor -> valueWriter.write(null, factor.getVariableId(), factor.getFunctionId(),
-                factor.getIndex(), -1, Double.NaN, Double.NaN));
+        skippedFactors.forEach(factor -> valueWriter.write(factor.getIndex(), -1, Double.NaN, Double.NaN));
 
         Set<String> skippedVariables = skippedFactors.stream().map(LfSensitivityFactor::getVariableId).collect(Collectors.toSet());
         if (!skippedVariables.isEmpty() && LOGGER.isWarnEnabled()) {
