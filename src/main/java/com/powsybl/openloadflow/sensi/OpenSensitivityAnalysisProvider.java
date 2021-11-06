@@ -178,13 +178,16 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
         String dateStr = date.toString(DATE_TIME_FORMAT);
 
-        List<SensitivityFactor> factors = SensitivityFactor.readJson(debugDir.resolve("factors-" + dateStr + ".json"));
-
         ObjectMapper objectMapper = createObjectMapper();
+        List<SensitivityFactor> factors;
         List<Contingency> contingencies;
         List<SensitivityVariableSet> variableSets;
         SensitivityAnalysisParameters sensitivityAnalysisParameters;
         try {
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("factors-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                factors = objectMapper.readValue(reader, new TypeReference<>() {
+                });
+            }
             try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
                 contingencies = objectMapper.readValue(reader, new TypeReference<>() {
                 });
