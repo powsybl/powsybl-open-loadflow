@@ -15,6 +15,8 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyList;
+import com.powsybl.contingency.DefaultContingencyList;
 import com.powsybl.contingency.json.ContingencyJsonModule;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
@@ -144,7 +146,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                     .writerWithDefaultPrettyPrinter();
             try {
                 try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
-                    objectWriter.writeValue(writer, contingencies);
+                    ContingencyList contingencyList = new DefaultContingencyList("default", contingencies);
+                    objectWriter.writeValue(writer, contingencyList);
                 }
 
                 try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("variable-sets-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
@@ -178,6 +181,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
         String dateStr = date.toString(DATE_TIME_FORMAT);
 
+        Network network = NetworkXml.read(debugDir.resolve("network-" + dateStr + ".xiidm"));
+
         ObjectMapper objectMapper = createObjectMapper();
         List<SensitivityFactor> factors;
         List<Contingency> contingencies;
@@ -189,8 +194,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 });
             }
             try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
-                contingencies = objectMapper.readValue(reader, new TypeReference<>() {
-                });
+                ContingencyList contingencyList = objectMapper.readValue(reader, DefaultContingencyList.class);
+                contingencies = contingencyList.getContingencies(network);
             }
             try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("variable-sets-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
                 variableSets = objectMapper.readValue(reader, new TypeReference<>() {
@@ -209,8 +214,6 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         if (sensiParametersExt != null) {
             sensiParametersExt.setDebugDir(null);
         }
-
-        Network network = NetworkXml.read(debugDir.resolve("network-" + dateStr + ".xiidm"));
 
         run(network, VariantManagerConstants.INITIAL_VARIANT_ID, new SensitivityFactorModelReader(factors, network), valueWriter,
                 contingencies, variableSets, sensitivityAnalysisParameters, LocalComputationManager.getDefault(), reporter);
