@@ -232,7 +232,7 @@ public class AcloadFlowEngine implements AutoCloseable {
             LOGGER.info("Start AC loadflow on network {}", network);
 
             variableSet = new VariableSet<>();
-            equationSystem = AcEquationSystem.create(network, variableSet, parameters.getNetworkParameters(), parameters.getEquationSystemCreationParameters());
+            equationSystem = AcEquationSystem.create(network, parameters.getNetworkParameters(), variableSet, parameters.getEquationSystemCreationParameters());
             j = new JacobianMatrix<>(equationSystem, parameters.getMatrixFactory());
             targetVector = new TargetVector<>(network, equationSystem, AcloadFlowEngine::initTarget);
         } else {
