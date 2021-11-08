@@ -47,9 +47,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-/**
- *
- */
 public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     protected AcSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
