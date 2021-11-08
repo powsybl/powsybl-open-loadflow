@@ -67,8 +67,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected DiscreteVoltageControl discreteVoltageControl;
 
-    protected boolean disabled = false;
-
     protected boolean spanningTreeEdge = false;
 
     protected Evaluable a1;
@@ -219,16 +217,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl) {
         this.discreteVoltageControl = discreteVoltageControl;
-    }
-
-    @Override
-    public boolean isDisabled() {
-        return disabled;
-    }
-
-    @Override
-    public void setDisabled(boolean disabled) {
-        this.disabled = disabled;
     }
 
     public double computeApparentPower1() {

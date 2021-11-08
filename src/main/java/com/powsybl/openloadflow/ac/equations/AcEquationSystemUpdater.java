@@ -133,4 +133,18 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             }
         }
     }
+
+    @Override
+    public void onDisableChange(LfElement element, boolean disabled) {
+        switch (element.getType()) {
+            case BUS:
+                // TODO
+                break;
+            case BRANCH:
+                // TODO
+                break;
+            case SHUNT_COMPENSATOR:
+                throw new IllegalStateException("Shunt compensator disabling is not implemented");
+        }
+    }
 }

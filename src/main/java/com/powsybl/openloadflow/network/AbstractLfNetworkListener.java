@@ -50,4 +50,9 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     public void onPhaseControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition) {
         // empty
     }
+
+    @Override
+    public void onDisableChange(LfElement element, boolean disabled) {
+        // empty
+    }
 }

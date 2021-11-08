@@ -55,7 +55,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfShunt> shunts = new ArrayList<>();
 
-    protected LfLoads lfLoads = new LfLoads(network);
+    protected final LfLoads lfLoads = new LfLoads();
 
     protected boolean ensurePowerFactorConstantByLoad = false;
 
@@ -70,8 +70,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     private ReactivePowerControl reactivePowerControl;
 
     protected DiscreteVoltageControl discreteVoltageControl;
-
-    protected boolean disabled = false;
 
     protected Evaluable p = NAN;
 
