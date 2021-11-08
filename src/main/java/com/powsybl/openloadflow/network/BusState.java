@@ -7,14 +7,18 @@
 package com.powsybl.openloadflow.network;
 
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
 public class BusState {
+
+    private final LfBus bus;
+
     private final double angle;
     private final double loadTargetP;
     private final double loadTargetQ;
@@ -23,18 +27,21 @@ public class BusState {
     private final boolean isVoltageControllerEnabled;
     private final double generationTargetQ;
 
-    public BusState(LfBus b) {
-        this.angle = b.getAngle();
-        this.loadTargetP = b.getLoadTargetP();
-        this.loadTargetQ = b.getLoadTargetQ();
-        this.generatorsTargetP = b.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
-        this.disabled = b.isDisabled();
-        this.isVoltageControllerEnabled = b.isVoltageControllerEnabled();
-        this.generationTargetQ = b.getGenerationTargetQ();
+    public BusState(LfBus bus) {
+        this.bus = Objects.requireNonNull(bus);
+        this.angle = bus.getAngle();
+        this.loadTargetP = bus.getLoadTargetP();
+        this.loadTargetQ = bus.getLoadTargetQ();
+        this.generatorsTargetP = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
+        this.disabled = bus.isDisabled();
+        this.isVoltageControllerEnabled = bus.isVoltageControllerEnabled();
+        this.generationTargetQ = bus.getGenerationTargetQ();
     }
 
-    public void restoreBusState(LfBus bus) {
-        restoreBusActiveState(bus);
+    public void restore() {
+        bus.setAngle(angle);
+        bus.setLoadTargetP(loadTargetP);
+        bus.getGenerators().forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
         bus.setLoadTargetQ(loadTargetQ);
         bus.setGenerationTargetQ(generationTargetQ);
         bus.setDisabled(disabled);
@@ -42,41 +49,15 @@ public class BusState {
         bus.setVoltageControlSwitchOffCount(0);
     }
 
-    public void restoreBusActiveState(LfBus bus) {
-        bus.setAngle(angle);
-        bus.setLoadTargetP(loadTargetP);
-        bus.getGenerators().forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
+    public static BusState save(LfBus bus) {
+        return new BusState(bus);
     }
 
-    /**
-     * Get the map of the states of given buses, indexed by the bus itself
-     * @param buses the bus for which the state is returned
-     * @return the map of the states of given buses, indexed by the bus itself
-     */
-    public static Map<LfBus, BusState> createBusStates(Collection<LfBus> buses) {
-        Map<LfBus, BusState> busStates = new HashMap<>();
-        addBusStates(buses, busStates);
-        return busStates;
+    public static List<BusState> save(Collection<LfBus> buses) {
+        return buses.stream().map(BusState::save).collect(Collectors.toList());
     }
 
-    public static void addBusStates(Collection<LfBus> busesToSave, Map<LfBus, BusState> busStates) {
-        busesToSave.forEach(lfBus -> busStates.put(lfBus, new BusState(lfBus)));
-    }
-
-    /**
-     * Set the bus states based on the given map of states
-     * @param busStates the map containing the bus states, indexed by buses
-     */
-    public static void restoreBusStates(Map<LfBus, BusState> busStates) {
-        busStates.forEach((b, state) -> state.restoreBusState(b));
-    }
-
-    /**
-     * Set the bus states based on the given map of states
-     * @param busStates the map containing the bus states, indexed by buses
-     */
-    public static void restoreBusActiveStates(Map<LfBus, BusState> busStates) {
-        busStates.forEach((b, state) -> state.restoreBusActiveState(b));
+    public static void restore(Collection<BusState> busStates) {
+        busStates.forEach(BusState::restore);
     }
 }
-

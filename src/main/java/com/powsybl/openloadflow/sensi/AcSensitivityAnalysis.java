@@ -272,7 +272,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     .flatMap(contingency -> LfContingency.create(contingency, lfNetwork, connectivity, false).stream())
                     .collect(Collectors.toList());
 
-            Map<LfBus, BusState> busStates = BusState.createBusStates(lfNetwork.getBuses());
+            List<BusState> busStates = BusState.save(lfNetwork.getBuses());
 
             // Contingency not breaking connectivity
             for (LfContingency lfContingency : lfContingencies.stream().filter(lfContingency -> lfContingency.getBuses().isEmpty()).collect(Collectors.toSet())) {
@@ -290,7 +290,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         });
                 calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, engine, factorGroups, slackParticipationByBus, lfParameters,
                         lfParametersExt, lfContingency.getId(), lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage);
-                BusState.restoreBusStates(busStates);
+                BusState.restore(busStates);
             }
 
             // Contingency breaking connectivity
@@ -327,7 +327,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                 calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, engine, factorGroups, slackParticipationByBusForThisConnectivity,
                     lfParameters, lfParametersExt, lfContingency.getId(), lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage);
-                BusState.restoreBusStates(busStates);
+                BusState.restore(busStates);
 
                 connectivity.reset();
             }
