@@ -88,7 +88,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     @Override
-    public void onPhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode) {
+    public void onDiscretePhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode) {
         boolean on = newMode != DiscretePhaseControl.Mode.OFF;
 
         // activate/de-activate phase control equation
@@ -101,7 +101,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     @Override
-    public void onVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode) {
+    public void onDiscreteVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode) {
         LfBus bus = voltageControl.getControlled();
         if (newMode == DiscreteVoltageControl.Mode.OFF) {
 

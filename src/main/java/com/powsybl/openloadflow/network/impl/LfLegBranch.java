@@ -94,9 +94,13 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
         }
     }
 
+    public static String getId(String twtId, int legNum) {
+        return twtId + "_leg_" + legNum;
+    }
+
     @Override
     public String getId() {
-        return twt.getId() + "_leg_" + getLegNum();
+        return getId(twt.getId(), getLegNum());
     }
 
     @Override
