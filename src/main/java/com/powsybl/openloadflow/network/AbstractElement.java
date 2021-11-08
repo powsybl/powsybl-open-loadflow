@@ -17,6 +17,8 @@ public abstract class AbstractElement {
 
     protected int num = -1;
 
+    protected boolean disabled = false;
+
     protected Object userObject;
 
     protected AbstractElement(LfNetwork network) {
@@ -29,6 +31,14 @@ public abstract class AbstractElement {
 
     public void setNum(int num) {
         this.num = num;
+    }
+
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    public void setDisabled(boolean disabled) {
+        this.disabled = disabled;
     }
 
     public LfNetwork getNetwork() {

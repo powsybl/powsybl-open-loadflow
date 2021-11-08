@@ -129,10 +129,6 @@ public interface LfBus extends LfElement {
 
     void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
 
-    boolean isDisabled();
-
-    void setDisabled(boolean disabled);
-
     void setP(Evaluable p);
 
     Evaluable getP();
