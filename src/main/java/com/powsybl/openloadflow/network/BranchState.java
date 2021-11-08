@@ -20,6 +20,8 @@ public class BranchState {
 
     private final double a1;
     private final double r1;
+    private final DiscretePhaseControl.Mode discretePhaseControlMode;
+    private final DiscreteVoltageControl.Mode discreteVoltageControlMode;
     private final boolean disabled;
 
     public BranchState(LfBranch branch) {
@@ -27,6 +29,8 @@ public class BranchState {
         PiModel piModel = branch.getPiModel();
         a1 = piModel.getA1();
         r1 = piModel.getR1();
+        discretePhaseControlMode = branch.getDiscretePhaseControl().map(DiscretePhaseControl::getMode).orElse(null);
+        discreteVoltageControlMode = branch.getDiscreteVoltageControl().map(DiscreteVoltageControl::getMode).orElse(null);
         disabled = branch.isDisabled();
     }
 
@@ -34,6 +38,12 @@ public class BranchState {
         PiModel piModel = branch.getPiModel();
         piModel.setA1(a1);
         piModel.setR1(r1);
+        if (discretePhaseControlMode != null) {
+            branch.getDiscretePhaseControl().ifPresent(control -> control.setMode(discretePhaseControlMode));
+        }
+        if (discreteVoltageControlMode != null) {
+            branch.getDiscreteVoltageControl().ifPresent(control -> control.setMode(discreteVoltageControlMode));
+        }
         branch.setDisabled(disabled);
     }
 

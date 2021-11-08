@@ -23,9 +23,9 @@ public class BusState {
     private final double loadTargetP;
     private final double loadTargetQ;
     private final Map<String, Double> generatorsTargetP;
-    private final boolean disabled;
-    private final boolean isVoltageControllerEnabled;
     private final double generationTargetQ;
+    private final boolean isVoltageControllerEnabled;
+    private final boolean disabled;
 
     public BusState(LfBus bus) {
         this.bus = Objects.requireNonNull(bus);
@@ -33,20 +33,20 @@ public class BusState {
         this.loadTargetP = bus.getLoadTargetP();
         this.loadTargetQ = bus.getLoadTargetQ();
         this.generatorsTargetP = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
-        this.disabled = bus.isDisabled();
-        this.isVoltageControllerEnabled = bus.isVoltageControllerEnabled();
         this.generationTargetQ = bus.getGenerationTargetQ();
+        this.isVoltageControllerEnabled = bus.isVoltageControllerEnabled();
+        this.disabled = bus.isDisabled();
     }
 
     public void restore() {
         bus.setAngle(angle);
         bus.setLoadTargetP(loadTargetP);
-        bus.getGenerators().forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
         bus.setLoadTargetQ(loadTargetQ);
+        bus.getGenerators().forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
         bus.setGenerationTargetQ(generationTargetQ);
-        bus.setDisabled(disabled);
         bus.setVoltageControllerEnabled(isVoltageControllerEnabled);
         bus.setVoltageControlSwitchOffCount(0);
+        bus.setDisabled(disabled);
     }
 
     public static BusState save(LfBus bus) {
