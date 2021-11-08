@@ -491,6 +491,7 @@ public final class AcEquationSystem {
     private static void createBranchEquations(LfBranch branch, LfNetworkParameters networkParameters,
                                                 EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet,
                                                 AcEquationSystemCreationParameters creationParameters) {
+        // create zero and non zero impedance branch equations
         if (LfNetwork.isZeroImpedanceBranch(branch)) {
             if (branch.isSpanningTreeEdge()) {
                 createNonImpedantBranch(branch, branch.getBus1(), branch.getBus2(), equationSystem, variableSet);
