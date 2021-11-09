@@ -494,16 +494,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public boolean isDisabled() {
-        return disabled;
-    }
-
-    @Override
-    public void setDisabled(boolean disabled) {
-        this.disabled = disabled;
-    }
-
-    @Override
     public void setP(Evaluable p) {
         this.p = Objects.requireNonNull(p);
     }
