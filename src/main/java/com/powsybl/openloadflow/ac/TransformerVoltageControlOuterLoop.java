@@ -16,6 +16,9 @@ import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
@@ -32,10 +35,15 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
 
         if (context.getIteration() == 0) {
-            context.getNetwork().getBuses().stream()
+            List<DiscreteVoltageControl> discreteVoltageControls = context.getNetwork().getBuses().stream()
                 .flatMap(bus -> bus.getDiscreteVoltageControl().filter(dvc -> bus.isDiscreteVoltageControlled()).stream())
-                .forEach(this::switchOffVoltageControl);
-            return OuterLoopStatus.UNSTABLE;
+                .collect(Collectors.toList());
+
+            // switch off regulating transformers
+            discreteVoltageControls.forEach(this::switchOffVoltageControl);
+
+            // if at least one transformer has been switched off wee need to continue
+            return discreteVoltageControls.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
         }
 
         return OuterLoopStatus.STABLE;
