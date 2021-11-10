@@ -10,13 +10,11 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.DiscreteVoltageControl;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -34,17 +32,10 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
 
         if (context.getIteration() == 0) {
-            List<DiscreteVoltageControl> voltageControlsOn = context.getNetwork().getBuses().stream()
-                .map(bus -> bus.getDiscreteVoltageControl().filter(dvc -> bus.isDiscreteVoltageControlled()))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toList());
-
-            // switch off regulating transformers
-            voltageControlsOn.forEach(this::switchOffVoltageControl);
-
-            // if at least one transformer has been switched off wee need to continue
-            return voltageControlsOn.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
+            context.getNetwork().getBuses().stream()
+                .flatMap(bus -> bus.getDiscreteVoltageControl().filter(dvc -> bus.isDiscreteVoltageControlled()).stream())
+                .forEach(this::switchOffVoltageControl);
+            return OuterLoopStatus.UNSTABLE;
         }
 
         return OuterLoopStatus.STABLE;
