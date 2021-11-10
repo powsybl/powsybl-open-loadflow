@@ -66,15 +66,14 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     private void updateVoltageControl(LfBus controllerBus, boolean newVoltageControllerEnabled) {
+        Equation<AcVariableType, AcEquationType> qEq = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.BUS_Q);
         if (newVoltageControllerEnabled) { // switch PQ/PV
-            Equation<AcVariableType, AcEquationType> qEq = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.BUS_Q);
             qEq.setActive(false);
 
             controllerBus.getVoltageControl()
                     .filter(bus -> controllerBus.isVoltageControllerEnabled())
                     .ifPresent(this::updateVoltageControl);
         } else { // switch PV/PQ
-            Equation<AcVariableType, AcEquationType> qEq = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.BUS_Q);
             qEq.setActive(true);
 
             controllerBus.getVoltageControl()
@@ -153,7 +152,8 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                 // TODO
                 break;
             case SHUNT_COMPENSATOR:
-                throw new IllegalStateException("Shunt compensator disabling is not implemented");
+                // TODO
+                break;
         }
     }
 }

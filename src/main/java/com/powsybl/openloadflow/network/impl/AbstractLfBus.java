@@ -520,6 +520,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public void setDisabled(boolean disabled) {
+        super.setDisabled(disabled);
+        for (LfShunt shunt : shunts) {
+            shunt.setDisabled(disabled);
+        }
+    }
+
+    @Override
     public String toString() {
         return getId();
     }
