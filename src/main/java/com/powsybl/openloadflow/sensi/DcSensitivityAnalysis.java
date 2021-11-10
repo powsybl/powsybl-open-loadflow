@@ -174,14 +174,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                        List<ParticipatingElement> participatingElements, Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
                                                        Reporter reporter) {
 
-        Map<LfBus, BusState> busStates = new HashMap<>();
+        List<BusState> busStates = Collections.emptyList();
         if (lfParameters.isDistributedSlack()) {
-            busStates = BusState.createBusStates(participatingElements.stream()
+            busStates = BusState.save(participatingElements.stream()
                 .map(ParticipatingElement::getLfBus)
                 .collect(Collectors.toSet()));
         }
         // the A1 variables will be set to 0 for disabledBranches, so we need to restore them at the end
-        Map<LfBranch, BranchState> branchStates = BranchState.createBranchStates(disabledBranches);
+        List<BranchState> branchStates = BranchState.save(disabledBranches);
 
         dcLoadFlowEngine.run(equationSystem, j, disabledBuses, disabledBranches, reporter);
 
@@ -190,9 +190,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
 
         if (lfParameters.isDistributedSlack()) {
-            BusState.restoreBusActiveStates(busStates);
+            BusState.restore(busStates);
         }
-        BranchState.restoreBranchStates(branchStates);
+        BranchState.restore(branchStates);
 
         double[] dx = dcLoadFlowEngine.getTargetVector();
         return new DenseMatrix(dx.length, 1, dx);
@@ -578,7 +578,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     private void applyInjectionContingencies(Network network, LfNetwork lfNetwork, PropagatedContingency contingency,
-                                             Set<LfGenerator> participatingGeneratorsToRemove, Map<LfBus, BusState> busStates,
+                                             Set<LfGenerator> participatingGeneratorsToRemove, List<BusState> busStates,
                                              LoadFlowParameters lfParameters) {
         // it applies on the network the loss of DC lines contained in the contingency.
         // it applies on the network the loss of generators contained in the contingency.
@@ -600,12 +600,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             processGenerator(lfNetwork, generator, generators);
         }
 
-        Collection<LfBus> busesToSave = new HashSet<>();
-        lccs.stream().map(Pair::getKey).forEach(busesToSave::add);
-        vscs.stream().map(LfGenerator::getBus).forEach(busesToSave::add);
-        generators.stream().map(LfGenerator::getBus).forEach(busesToSave::add);
-
-        BusState.addBusStates(busesToSave, busStates);
+        lccs.stream().map(Pair::getKey).forEach(b -> busStates.add(BusState.save(b)));
+        vscs.stream().map(LfGenerator::getBus).forEach(b -> busStates.add(BusState.save(b)));
+        generators.stream().map(LfGenerator::getBus).forEach(b -> busStates.add(BusState.save(b)));
 
         for (Pair<LfBus, LccConverterStation> busAndlcc : lccs) {
             LfBus bus = busAndlcc.getKey();
@@ -656,7 +653,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             // if we have a contingency including the loss of a DC line or a generator
             // if we have a contingency including the loss of a generator
 
-            Map<LfBus, BusState> busStates = new HashMap<>();
+            List<BusState> busStates = new ArrayList<>();
             Set<LfGenerator> participatingGeneratorsToRemove = new HashSet<>();
             applyInjectionContingencies(network, lfNetwork, contingency, participatingGeneratorsToRemove, busStates, lfParameters);
 
@@ -681,7 +678,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             calculateSensitivityValues(factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements, contingency, valueWriter);
 
-            BusState.restoreBusStates(busStates);
+            BusState.restore(busStates);
             if (participatingElementsChanged) {
                 setBaseCaseSensitivityValues(factorGroups, factorStates);
             }
