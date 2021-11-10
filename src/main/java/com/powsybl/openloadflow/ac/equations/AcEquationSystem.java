@@ -50,7 +50,7 @@ public final class AcEquationSystem {
             EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, variableSet, bus.getV().eval());
             v.addTerm(vTerm);
             bus.setV(vTerm);
-            v.setUpdateType(EquationSystem.EquationUpdateType.AFTER_NR);
+            v.setUpdateType(EquationUpdateType.AFTER_NR);
         }
     }
 
@@ -477,13 +477,13 @@ public final class AcEquationSystem {
 
         if (i1 != null) {
             Equation<AcVariableType, AcEquationType> i =  equationSystem.createEquation(branch.getNum(), AcEquationType.BRANCH_I1).addTerm(i1);
-            i.setUpdateType(EquationSystem.EquationUpdateType.AFTER_NR); // only update those equations after the newton raphson
+            i.setUpdateType(EquationUpdateType.AFTER_NR); // only update those equations after the newton raphson
             branch.setI1(i1);
         }
 
         if (i2 != null) {
             Equation<AcVariableType, AcEquationType> i =  equationSystem.createEquation(branch.getNum(), AcEquationType.BRANCH_I2).addTerm(i2);
-            i.setUpdateType(EquationSystem.EquationUpdateType.AFTER_NR); // only update those equations after the newton raphson
+            i.setUpdateType(EquationUpdateType.AFTER_NR); // only update those equations after the newton raphson
             branch.setI2(i2);
         }
     }
