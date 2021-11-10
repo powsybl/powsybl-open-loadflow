@@ -13,7 +13,6 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import net.jafama.FastMath;
-import org.apache.commons.compress.utils.Lists;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
@@ -617,7 +616,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
-        List<LfNetworkLoaderPostProcessor> postProcessors = Lists.newArrayList(ServiceLoader.load(LfNetworkLoaderPostProcessor.class, LfNetworkLoaderImpl.class.getClassLoader()).iterator());
+        List<LfNetworkLoaderPostProcessor> postProcessors = LfNetworkLoaderPostProcessor.findAll();
 
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report, postProcessors);

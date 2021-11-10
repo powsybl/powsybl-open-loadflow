@@ -26,12 +26,15 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
     private final VariableSet<AcVariableType> variableSet;
 
+    private final AcEquationSystemCreationParameters creationParameters;
+
     private final LfNetworkParameters networkParameters;
 
     public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet,
-                                   LfNetworkParameters networkParameters) {
+                                   AcEquationSystemCreationParameters creationParameters, LfNetworkParameters networkParameters) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.variableSet = Objects.requireNonNull(variableSet);
+        this.creationParameters = Objects.requireNonNull(creationParameters);
         this.networkParameters = Objects.requireNonNull(networkParameters);
     }
 
@@ -58,7 +61,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
             // create reactive power equations on controller buses that have voltage control on
             if (!controllerBusesWithVoltageControlOn.isEmpty()) {
-                AcEquationSystem.createReactivePowerDistributionEquations(equationSystem, variableSet, networkParameters, controllerBusesWithVoltageControlOn);
+                AcEquationSystem.createReactivePowerDistributionEquations(controllerBusesWithVoltageControlOn, networkParameters, equationSystem, variableSet, creationParameters);
             }
         }
     }
@@ -85,7 +88,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     @Override
-    public void onPhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode) {
+    public void onDiscretePhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode) {
         boolean on = newMode != DiscretePhaseControl.Mode.OFF;
 
         // activate/de-activate phase control equation
@@ -98,7 +101,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     @Override
-    public void onVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode) {
+    public void onDiscreteVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode) {
         LfBus bus = voltageControl.getControlled();
         if (newMode == DiscreteVoltageControl.Mode.OFF) {
 
@@ -121,7 +124,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                     .setActive(true);
 
             // add transformer distribution equations
-            AcEquationSystem.createR1DistributionEquations(equationSystem, variableSet, voltageControl.getControllers());
+            AcEquationSystem.createR1DistributionEquations(voltageControl.getControllers(), equationSystem, variableSet);
 
             for (LfBranch controllerBranch : voltageControl.getControllers()) {
                 // de-activate constant R1 equation

@@ -4,15 +4,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.network.impl;
+package com.powsybl.openloadflow.network;
 
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
+import org.apache.commons.compress.utils.Lists;
+
+import java.util.List;
+import java.util.ServiceLoader;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public interface LfNetworkLoaderPostProcessor {
+
+    static List<LfNetworkLoaderPostProcessor> findAll() {
+        return Lists.newArrayList(ServiceLoader.load(LfNetworkLoaderPostProcessor.class, LfNetworkLoaderPostProcessor.class.getClassLoader()).iterator());
+    }
 
     void onBusAdded(Object element, LfBus lfBus);
 

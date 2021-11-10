@@ -151,6 +151,8 @@ public final class DcEquationSystem {
         createBuses(network, variableSet, equationSystem);
         createBranches(network, variableSet, equationSystem, creationParameters);
 
+        EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem, variableSet));
+
         return equationSystem;
     }
 }

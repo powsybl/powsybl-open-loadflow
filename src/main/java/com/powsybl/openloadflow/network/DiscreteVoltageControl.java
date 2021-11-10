@@ -45,7 +45,7 @@ public class DiscreteVoltageControl {
             Mode oldMode = this.mode;
             this.mode = mode;
             for (LfNetworkListener listener : controlled.getNetwork().getListeners()) {
-                listener.onVoltageControlModeChange(this, oldMode, mode);
+                listener.onDiscreteVoltageControlModeChange(this, oldMode, mode);
             }
         }
     }
