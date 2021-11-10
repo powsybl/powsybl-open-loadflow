@@ -184,10 +184,6 @@ public class AcloadFlowEngine implements AutoCloseable {
                 targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getNum()), DiscretePhaseControl.Unit.MW);
                 break;
 
-            case BRANCH_I:
-                targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getNum()), DiscretePhaseControl.Unit.A);
-                break;
-
             case BRANCH_Q:
                 targets[equation.getColumn()] = getReactivePowerControlTarget(network.getBranch(equation.getNum()));
                 break;

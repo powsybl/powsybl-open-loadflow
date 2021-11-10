@@ -476,13 +476,13 @@ public final class AcEquationSystem {
         }
 
         if (i1 != null) {
-            Equation<AcVariableType, AcEquationType> i =  equationSystem.createEquation(bus1.getNum(), AcEquationType.BUS_I).addTerm(i1);
+            Equation<AcVariableType, AcEquationType> i =  equationSystem.createEquation(bus1.getNum(), AcEquationType.BRANCH_I).addTerm(i1);
             i.setUpdateType(EquationSystem.EquationUpdateType.AFTER_NR); // only update those equations after the newton raphson
             branch.setI1(i1);
         }
 
         if (i2 != null) {
-            Equation<AcVariableType, AcEquationType> i =  equationSystem.createEquation(bus2.getNum(), AcEquationType.BUS_I).addTerm(i2);
+            Equation<AcVariableType, AcEquationType> i =  equationSystem.createEquation(bus2.getNum(), AcEquationType.BRANCH_I).addTerm(i2);
             i.setUpdateType(EquationSystem.EquationUpdateType.AFTER_NR); // only update those equations after the newton raphson
             branch.setI2(i2);
         }
