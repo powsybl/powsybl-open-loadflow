@@ -39,15 +39,15 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
      */
     private boolean active = true;
 
-    private EquationSystem.EquationUpdateType updateType;
+    private EquationUpdateType updateType;
 
     private final List<EquationTerm<V, E>> terms = new ArrayList<>();
 
     Equation(int num, E type, EquationSystem<V, E> equationSystem) {
-        this(num, type, equationSystem, EquationSystem.EquationUpdateType.DEFAULT);
+        this(num, type, equationSystem, EquationUpdateType.DEFAULT);
     }
 
-    Equation(int num, E type, EquationSystem<V, E> equationSystem, EquationSystem.EquationUpdateType updateType) {
+    Equation(int num, E type, EquationSystem<V, E> equationSystem, EquationUpdateType updateType) {
         this.num = num;
         this.type = Objects.requireNonNull(type);
         this.equationSystem = Objects.requireNonNull(equationSystem);
@@ -85,12 +85,12 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         }
     }
 
-    public EquationSystem.EquationUpdateType getUpdateType() {
+    public EquationUpdateType getUpdateType() {
         return updateType;
     }
 
-    public void setUpdateType(EquationSystem.EquationUpdateType updateType) {
-        this.updateType = updateType;
+    public void setUpdateType(EquationUpdateType updateType) {
+        this.updateType = Objects.requireNonNull(updateType);
     }
 
     public void setData(Object data) {

@@ -494,6 +494,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public void setDisabled(boolean disabled) {
+        super.setDisabled(disabled);
+        for (LfShunt shunt : shunts) {
+            shunt.setDisabled(disabled);
+        }
+    }
+
+    @Override
     public void setP(Evaluable p) {
         this.p = Objects.requireNonNull(p);
     }
@@ -517,14 +525,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     public BusResults createBusResult() {
         double scale = getNominalV();
         return new BusResults(getVoltageLevelId(), getId(), getV().eval() * scale, getAngle());
-    }
-
-    @Override
-    public void setDisabled(boolean disabled) {
-        super.setDisabled(disabled);
-        for (LfShunt shunt : shunts) {
-            shunt.setDisabled(disabled);
-        }
     }
 
     @Override

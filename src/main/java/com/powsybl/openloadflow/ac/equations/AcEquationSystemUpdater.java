@@ -141,19 +141,4 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     public void onDiscreteVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode) {
         updateDiscreteVoltageControl(voltageControl, newMode);
     }
-
-    @Override
-    public void onDisableChange(LfElement element, boolean disabled) {
-        switch (element.getType()) {
-            case BUS:
-                // TODO
-                break;
-            case BRANCH:
-                // TODO
-                break;
-            case SHUNT_COMPENSATOR:
-                // TODO
-                break;
-        }
-    }
 }
