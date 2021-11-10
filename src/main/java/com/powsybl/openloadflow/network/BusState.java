@@ -25,6 +25,7 @@ public class BusState {
     private final Map<String, Double> generatorsTargetP;
     private final double generationTargetQ;
     private final boolean isVoltageControllerEnabled;
+    private final DiscreteVoltageControl.Mode discreteVoltageControlMode;
     private final boolean disabled;
 
     public BusState(LfBus bus) {
@@ -35,6 +36,7 @@ public class BusState {
         this.generatorsTargetP = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
         this.generationTargetQ = bus.getGenerationTargetQ();
         this.isVoltageControllerEnabled = bus.isVoltageControllerEnabled();
+        discreteVoltageControlMode = bus.getDiscreteVoltageControl().map(DiscreteVoltageControl::getMode).orElse(null);
         this.disabled = bus.isDisabled();
     }
 
@@ -46,6 +48,9 @@ public class BusState {
         bus.setGenerationTargetQ(generationTargetQ);
         bus.setVoltageControllerEnabled(isVoltageControllerEnabled);
         bus.setVoltageControlSwitchOffCount(0);
+        if (discreteVoltageControlMode != null) {
+            bus.getDiscreteVoltageControl().ifPresent(control -> control.setMode(discreteVoltageControlMode));
+        }
         bus.setDisabled(disabled);
     }
 
