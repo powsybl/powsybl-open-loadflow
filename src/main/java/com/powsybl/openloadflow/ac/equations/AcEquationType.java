@@ -13,21 +13,21 @@ import com.powsybl.openloadflow.network.ElementType;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public enum AcEquationType implements Quantity {
-    BUS_P("p", ElementType.BUS),
-    BUS_I("b_i", ElementType.BUS),
-    BUS_Q("q", ElementType.BUS),
+    BUS_P("bus_p", ElementType.BUS),
+    BUS_Q("bus_q", ElementType.BUS),
     BUS_V("v", ElementType.BUS),
     BUS_V_SLOPE("v_slope", ElementType.BUS),
     BUS_PHI("\u03C6", ElementType.BUS),
-    BRANCH_P("t", ElementType.BRANCH),
-    BRANCH_I("i", ElementType.BRANCH),
-    BRANCH_Q("q", ElementType.BRANCH),
+    BRANCH_P("branch_p", ElementType.BRANCH),
+    BRANCH_I1("branch_i1", ElementType.BRANCH),
+    BRANCH_I2("branch_i2", ElementType.BRANCH),
+    BRANCH_Q("branch_q", ElementType.BRANCH),
     BRANCH_ALPHA1("\u03B1" + "1", ElementType.BRANCH),
     BRANCH_RHO1("\u03C1" + "1", ElementType.BRANCH),
-    ZERO_Q("z_q", ElementType.BUS),
-    ZERO_V("z_v", ElementType.BRANCH),
-    ZERO_PHI("z_\u03C6", ElementType.BRANCH),
-    ZERO_RHO1("z_\u03C1", ElementType.BRANCH);
+    ZERO_Q("zero_q", ElementType.BUS),
+    ZERO_V("zero_v", ElementType.BRANCH),
+    ZERO_PHI("zero_\u03C6", ElementType.BRANCH),
+    ZERO_RHO1("zero_\u03C1", ElementType.BRANCH);
 
     private final String symbol;
 
