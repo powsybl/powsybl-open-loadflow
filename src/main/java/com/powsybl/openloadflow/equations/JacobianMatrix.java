@@ -11,6 +11,8 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -18,6 +20,8 @@ import java.util.*;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationSystemListener<V, E>, AutoCloseable {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(JacobianMatrix.class);
 
     static final class PartialDerivative<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
@@ -72,6 +76,14 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     @Override
     public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
+        System.out.println(equation);
+        if (equation.toString().equals("Equation(num=2260, type=BRANCH_I1, column=-1)")) {
+            try {
+                throw new RuntimeException();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         switch (eventType) {
             case EQUATION_CREATED:
             case EQUATION_REMOVED:
@@ -99,7 +111,9 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 // bridge (so necessary for the connectivity). Normally in that case a bus equation should also have been
                 // deactivated and so it should work but for an unknown reason it fails with a KLU singular error (which
                 // means most of the time we have created the matrix with a non fully connected network)
-                status = Status.MATRIX_INVALID;
+                if (status == Status.VALID) {
+                    status = Status.VALUES_INVALID;
+                }
                 break;
 
             default:
@@ -124,6 +138,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     private void initMatrix() {
+        LOGGER.debug("Rebuild Jacobian matrix");
         int rowCount = equationSystem.getSortedEquationsToSolve().size();
         int columnCount = equationSystem.getSortedVariablesToFind().size();
         if (rowCount != columnCount) {
@@ -151,6 +166,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     private void updateValues() {
+        LOGGER.debug("Update Jacobian matrix values");
         matrix.reset();
         for (PartialDerivative<V, E> partialDerivative : partialDerivatives) {
             EquationTerm<V, E> equationTerm = partialDerivative.getEquationTerm();
