@@ -16,8 +16,6 @@ import com.powsybl.openloadflow.network.LfBus;
 import java.util.List;
 import java.util.Objects;
 
-import static com.powsybl.openloadflow.network.PiModel.A2;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -74,10 +72,6 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected double ph2() {
         return x[ph2Var.getRow()];
-    }
-
-    protected double theta() {
-        return ksi - (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1()) + A2 - ph1() + ph2();
     }
 
     protected double r1() {

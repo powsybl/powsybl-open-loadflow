@@ -31,6 +31,10 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         return dp1dph1() * dph1 + dp1dph2() * dph2 + dp1dv1() * dv1 + dp1dv2() * dv2;
     }
 
+    protected double theta() {
+        return ksi - (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1()) + A2 - ph1() + ph2();
+    }
+
     private double p1() {
         return r1() * v1() * (g1 * r1() * v1() + y * r1() * v1() * sinKsi - y * R2 * v2() * FastMath.sin(theta()));
     }
