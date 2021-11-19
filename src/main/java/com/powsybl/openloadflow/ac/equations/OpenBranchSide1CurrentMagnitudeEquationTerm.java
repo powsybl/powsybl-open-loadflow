@@ -40,20 +40,22 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
         return x[ph2Var.getRow()];
     }
 
-    private double gres() {
+    private double gres(double shunt) {
         return g2 + (y * y * g1 + (b1 * b1 + g1 * g1) * y * sinKsi) / shunt;
     }
 
-    private double bres() {
+    private double bres(double shunt) {
         return b2 + (y * y * b1 - (b1 * b1 + g1 * g1) * y * cosKsi) / shunt;
     }
 
     private double reI2() {
-        return R2 * R2 * v2() * (gres() * FastMath.cos(ph2()) - bres() * FastMath.sin(ph2()));
+        double shunt = shunt();
+        return R2 * R2 * v2() * (gres(shunt) * FastMath.cos(ph2()) - bres(shunt) * FastMath.sin(ph2()));
     }
 
     private double imI2() {
-        return R2 * R2 * v2() * (gres() * FastMath.sin(ph2()) + bres() * FastMath.cos(ph2()));
+        double shunt = shunt();
+        return R2 * R2 * v2() * (gres(shunt) * FastMath.sin(ph2()) + bres(shunt) * FastMath.cos(ph2()));
     }
 
     private double i2() {
@@ -61,11 +63,13 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     private double dreI2dv2() {
-        return R2 * R2 * (gres() * FastMath.cos(ph2()) - bres() * FastMath.sin(ph2()));
+        double shunt = shunt();
+        return R2 * R2 * (gres(shunt) * FastMath.cos(ph2()) - bres(shunt) * FastMath.sin(ph2()));
     }
 
     private double dimI2dv2() {
-        return R2 * R2 * (gres() * FastMath.sin(ph2()) + bres() * FastMath.cos(ph2()));
+        double shunt = shunt();
+        return R2 * R2 * (gres(shunt) * FastMath.sin(ph2()) + bres(shunt) * FastMath.cos(ph2()));
     }
 
     private double di2dv2() {

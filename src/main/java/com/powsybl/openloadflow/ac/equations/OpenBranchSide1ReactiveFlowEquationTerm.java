@@ -33,10 +33,12 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
     }
 
     private double q2() {
+        double shunt = shunt();
         return -R2 * R2 * v2() * v2() * (b2 + y * y * b1 / shunt - (b1 * b1 + g1 * g1) * y * cosKsi / shunt);
     }
 
     private double dq2dv2() {
+        double shunt = shunt();
         return -2 * v2() * R2 * R2 * (b2 + y * y * b1 / shunt - (b1 * b1 + g1 * g1) * y * cosKsi / shunt);
     }
 

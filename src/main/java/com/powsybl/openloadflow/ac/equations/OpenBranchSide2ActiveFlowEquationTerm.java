@@ -35,10 +35,12 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
     }
 
     private double p1() {
+        double shunt = shunt();
         return r1() * r1() * v1() * v1() * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * sinKsi / shunt);
     }
 
     private double dp1dv1() {
+        double shunt = shunt();
         return 2 * r1() * r1() * v1() * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * sinKsi / shunt);
     }
 
