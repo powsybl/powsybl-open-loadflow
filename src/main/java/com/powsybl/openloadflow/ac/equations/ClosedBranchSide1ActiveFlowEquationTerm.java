@@ -36,11 +36,11 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     private double p1() {
-        return r1() * v1() * (g1 * r1() * v1() + y * r1() * v1() * sinKsi - y * R2 * v2() * FastMath.sin(theta()));
+        return r1() * v1() * (g1 * r1() * v1() + y * r1() * v1() * FastMath.sin(ksi) - y * R2 * v2() * FastMath.sin(theta()));
     }
 
     private double dp1dv1() {
-        return r1() * (2 * g1 * r1() * v1() + 2 * y * r1() * v1() * sinKsi - y * R2 * v2() * FastMath.sin(theta()));
+        return r1() * (2 * g1 * r1() * v1() + 2 * y * r1() * v1() * FastMath.sin(ksi) - y * R2 * v2() * FastMath.sin(theta()));
     }
 
     private double dp1dv2() {
@@ -60,7 +60,7 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     private double dp1dr1() {
-        return v1() * (2 * r1() * v1() * (g1 + y * sinKsi) - y * R2 * v2() * FastMath.sin(theta()));
+        return v1() * (2 * r1() * v1() * (g1 + y * FastMath.sin(ksi)) - y * R2 * v2() * FastMath.sin(theta()));
     }
 
     @Override

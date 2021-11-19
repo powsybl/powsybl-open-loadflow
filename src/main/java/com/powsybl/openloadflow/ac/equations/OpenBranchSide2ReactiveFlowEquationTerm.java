@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import net.jafama.FastMath;
 
 import java.util.Objects;
 
@@ -36,12 +37,12 @@ public class OpenBranchSide2ReactiveFlowEquationTerm extends AbstractOpenSide2Br
 
     private double q2() {
         double shunt = shunt();
-        return -r1() * r1() * v1() * v1() * (b1 + y * y * b2 / shunt - (b2 * b2 + g2 * g2) * y * cosKsi / shunt);
+        return -r1() * r1() * v1() * v1() * (b1 + y * y * b2 / shunt - (b2 * b2 + g2 * g2) * y * FastMath.cos(ksi) / shunt);
     }
 
     private double dq2dv1() {
         double shunt = shunt();
-        return -2 * v1() * r1() * r1() * (b1 + y * y * b2 / shunt - (b2 * b2 + g2 * g2) * y * cosKsi / shunt);
+        return -2 * v1() * r1() * r1() * (b1 + y * y * b2 / shunt - (b2 * b2 + g2 * g2) * y * FastMath.cos(ksi) / shunt);
     }
 
     @Override

@@ -36,7 +36,7 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     private double q2() {
-        return R2 * v2() * (-b2 * R2 * v2() - y * r1() * v1() * FastMath.cos(theta()) + y * R2 * v2() * cosKsi);
+        return R2 * v2() * (-b2 * R2 * v2() - y * r1() * v1() * FastMath.cos(theta()) + y * R2 * v2() * FastMath.cos(ksi));
     }
 
     private double dq2dv1() {
@@ -44,7 +44,7 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     private double dq2dv2() {
-        return R2 * (-2 * b2 * R2 * v2() - y * r1() * v1() * FastMath.cos(theta()) + 2 * y * R2 * v2() * cosKsi);
+        return R2 * (-2 * b2 * R2 * v2() - y * r1() * v1() * FastMath.cos(theta()) + 2 * y * R2 * v2() * FastMath.cos(ksi));
     }
 
     private double dq2dph1() {

@@ -54,11 +54,11 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     private double gres(double shunt) {
-        return g1 + (y * y * g2 + (b2 * b2 + g2 * g2) * y * sinKsi) / shunt;
+        return g1 + (y * y * g2 + (b2 * b2 + g2 * g2) * y * FastMath.sin(ksi)) / shunt;
     }
 
     private double bres(double shunt) {
-        return b1 + (y * y * b2 - (b2 * b2 + g2 * g2) * y * cosKsi) / shunt;
+        return b1 + (y * y * b2 - (b2 * b2 + g2 * g2) * y * FastMath.cos(ksi)) / shunt;
     }
 
     private double reI2() {
