@@ -78,6 +78,10 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         return r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
     }
 
+    protected double a1() {
+        return a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1();
+    }
+
     protected abstract double calculateSensi(double ph1, double ph2, double v1, double v2, double a1, double r1);
 
     @Override
