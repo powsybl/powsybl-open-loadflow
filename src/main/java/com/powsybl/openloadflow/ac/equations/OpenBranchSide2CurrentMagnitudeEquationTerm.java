@@ -61,44 +61,44 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
         return b1 + (y * y * b2 - (b2 * b2 + g2 * g2) * y * cosKsi) / shunt;
     }
 
-    private double reI1() {
+    private double reI2() {
         double shunt = shunt();
         return r1() * r1() * v1() * (gres(shunt) * FastMath.cos(ph1()) - bres(shunt) * FastMath.sin(ph1()));
     }
 
-    private double imI1() {
+    private double imI2() {
         double shunt = shunt();
         return r1() * r1() * v1() * (gres(shunt) * FastMath.sin(ph1()) + bres(shunt) * FastMath.cos(ph1()));
     }
 
-    private double i1() {
-        return FastMath.hypot(reI1(), imI1());
+    private double i2() {
+        return FastMath.hypot(reI2(), imI2());
     }
 
-    private double dreI1dv1() {
+    private double dreI2dv1() {
         double shunt = shunt();
         return r1() * r1() * (gres(shunt) * FastMath.cos(ph1()) - bres(shunt) * FastMath.sin(ph1()));
     }
 
-    private double dimI1dv1() {
+    private double dimI2dv1() {
         double shunt = shunt();
         return r1() * r1() * (gres(shunt) * FastMath.sin(ph1()) + bres(shunt) * FastMath.cos(ph1()));
     }
 
-    private double di1dv1() {
-        return (reI1() * dreI1dv1() + imI1() * dimI1dv1()) / i1();
+    private double di2dv1() {
+        return (reI2() * dreI2dv1() + imI2() * dimI2dv1()) / i2();
     }
 
     @Override
     public double eval() {
-        return i1();
+        return i2();
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return di1dv1();
+            return di2dv1();
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

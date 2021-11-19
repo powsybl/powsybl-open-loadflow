@@ -34,26 +34,26 @@ public class OpenBranchSide2ReactiveFlowEquationTerm extends AbstractOpenSide2Br
         return branch.getPiModel().getR1();
     }
 
-    private double q1() {
+    private double q2() {
         double shunt = shunt();
         return -r1() * r1() * v1() * v1() * (b1 + y * y * b2 / shunt - (b2 * b2 + g2 * g2) * y * cosKsi / shunt);
     }
 
-    private double dq1dv1() {
+    private double dq2dv1() {
         double shunt = shunt();
         return -2 * v1() * r1() * r1() * (b1 + y * y * b2 / shunt - (b2 * b2 + g2 * g2) * y * cosKsi / shunt);
     }
 
     @Override
     public double eval() {
-        return q1();
+        return q2();
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return dq1dv1();
+            return dq2dv1();
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
