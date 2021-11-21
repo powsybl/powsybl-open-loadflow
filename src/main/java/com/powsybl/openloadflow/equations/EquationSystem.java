@@ -166,6 +166,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private final List<EquationSystemListener<V, E>> listeners = new ArrayList<>();
 
+    private final StateVector stateVector = new StateVector();
+
     public EquationSystem() {
         this(false);
     }
@@ -173,6 +175,10 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     public EquationSystem(boolean indexTerms) {
         this.indexTerms = indexTerms;
         addListener(equationCache);
+    }
+
+    public StateVector getStateVector() {
+        return stateVector;
     }
 
     void addEquationTerm(EquationTerm<V, E> equationTerm) {

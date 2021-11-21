@@ -39,7 +39,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         dcSensitivityAnalysis = new DcSensitivityAnalysis(matrixFactory, connectivityProvider);
 
-        OpenSensitivityAnalysisProvider sensitivityAnalysisProvider = new OpenSensitivityAnalysisProvider();
+        OpenSensitivityAnalysisProvider sensitivityAnalysisProvider = new OpenSensitivityAnalysisProvider(matrixFactory);
 
         List<SensitivityVariableSet> variableSets = new ArrayList<>();
         SensitivityAnalysisParameters sensitivityAnalysisParameters = new SensitivityAnalysisParameters();

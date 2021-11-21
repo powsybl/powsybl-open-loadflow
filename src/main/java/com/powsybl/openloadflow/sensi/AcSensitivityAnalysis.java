@@ -161,8 +161,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     }
 
     private JacobianMatrix<AcVariableType, AcEquationType> createJacobianMatrix(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer voltageInitializer) {
-        double[] x = NewtonRaphson.createStateVector(network, equationSystem, voltageInitializer);
-        equationSystem.updateEquations(x);
+        NewtonRaphson.initStateVector(network, equationSystem, voltageInitializer);
+        equationSystem.updateEquations(equationSystem.getStateVector().get());
         return new JacobianMatrix<>(equationSystem, matrixFactory);
     }
 

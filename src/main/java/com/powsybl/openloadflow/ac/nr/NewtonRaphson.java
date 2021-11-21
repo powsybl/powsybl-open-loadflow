@@ -56,7 +56,7 @@ public class NewtonRaphson {
         this.targetVector = Objects.requireNonNull(targetVector);
     }
 
-    private NewtonRaphsonStatus runIteration(double[] fx, double[] x) {
+    private NewtonRaphsonStatus runIteration(double[] fx, StateVector stateVector) {
         LOGGER.debug("Start iteration {}", iteration);
 
         try {
@@ -69,10 +69,10 @@ public class NewtonRaphson {
             }
 
             // update x
-            Vectors.minus(x, fx);
+            stateVector.minus(fx);
 
             // evaluate equation terms with new x
-            equationSystem.updateEquations(x);
+            equationSystem.updateEquations(stateVector.get());
 
             // recalculate f(x) with new x
             equationSystem.updateEquationVector(fx);
@@ -108,39 +108,39 @@ public class NewtonRaphson {
                 - slackBus.getTargetP(); // slack bus can also have real injection connected
     }
 
-    public static double[] createStateVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer initializer) {
-        double[] x = new double[equationSystem.getSortedVariablesToFind().size()];
+    public static void initStateVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer initializer) {
+        StateVector stateVector = equationSystem.getStateVector();
+        stateVector.set(new double[equationSystem.getSortedVariablesToFind().size()]);
         for (Variable<AcVariableType> v : equationSystem.getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_V:
-                    x[v.getRow()] = initializer.getMagnitude(network.getBus(v.getNum()));
+                    stateVector.set(v.getRow(), initializer.getMagnitude(network.getBus(v.getNum())));
                     break;
 
                 case BUS_PHI:
-                    x[v.getRow()] = Math.toRadians(initializer.getAngle(network.getBus(v.getNum())));
+                    stateVector.set(v.getRow(), Math.toRadians(initializer.getAngle(network.getBus(v.getNum()))));
                     break;
 
                 case BRANCH_ALPHA1:
-                    x[v.getRow()] = network.getBranch(v.getNum()).getPiModel().getA1();
+                    stateVector.set(v.getRow(), network.getBranch(v.getNum()).getPiModel().getA1());
                     break;
 
                 case BRANCH_RHO1:
-                    x[v.getRow()] = network.getBranch(v.getNum()).getPiModel().getR1();
+                    stateVector.set(v.getRow(), network.getBranch(v.getNum()).getPiModel().getR1());
                     break;
 
                 case DUMMY_P:
                 case DUMMY_Q:
-                    x[v.getRow()] = 0;
+                    stateVector.set(v.getRow(), 0);
                     break;
 
                 default:
                     throw new IllegalStateException("Unknown variable type "  + v.getType());
             }
         }
-        return x;
     }
 
-    public void updateNetwork(double[] x) {
+    public void updateNetwork(StateVector stateVector) {
         // update state variable
         for (Variable<AcVariableType> v : equationSystem.getSortedVariablesToFind()) {
             switch (v.getType()) {
@@ -149,15 +149,15 @@ public class NewtonRaphson {
                     break;
 
                 case BUS_PHI:
-                    network.getBus(v.getNum()).setAngle(Math.toDegrees(x[v.getRow()]));
+                    network.getBus(v.getNum()).setAngle(Math.toDegrees(stateVector.get(v.getRow())));
                     break;
 
                 case BRANCH_ALPHA1:
-                    network.getBranch(v.getNum()).getPiModel().setA1(x[v.getRow()]);
+                    network.getBranch(v.getNum()).getPiModel().setA1(stateVector.get(v.getRow()));
                     break;
 
                 case BRANCH_RHO1:
-                    network.getBranch(v.getNum()).getPiModel().setR1(x[v.getRow()]);
+                    network.getBranch(v.getNum()).getPiModel().setR1(stateVector.get(v.getRow()));
                     break;
 
                 case DUMMY_P:
@@ -180,9 +180,9 @@ public class NewtonRaphson {
 
         voltageInitializer.prepare(network, networkParameters, matrixFactory, reporter);
 
-        double[] x = createStateVector(network, equationSystem, voltageInitializer);
+        initStateVector(network, equationSystem, voltageInitializer);
 
-        equationSystem.updateEquations(x);
+        equationSystem.updateEquations(equationSystem.getStateVector().get());
 
         // initialize mismatch vector (difference between equation values and targets)
         double[] fx = equationSystem.createEquationVector();
@@ -192,7 +192,7 @@ public class NewtonRaphson {
         // start iterations
         NewtonRaphsonStatus status = NewtonRaphsonStatus.NO_CALCULATION;
         while (iteration <= parameters.getMaxIteration()) {
-            NewtonRaphsonStatus newStatus = runIteration(fx, x);
+            NewtonRaphsonStatus newStatus = runIteration(fx, equationSystem.getStateVector());
             if (newStatus != null) {
                 status = newStatus;
                 break;
@@ -207,8 +207,8 @@ public class NewtonRaphson {
 
         // update network state variable
         if (status == NewtonRaphsonStatus.CONVERGED) {
-            equationSystem.updateEquations(x, EquationUpdateType.AFTER_NR);
-            updateNetwork(x);
+            equationSystem.updateEquations(equationSystem.getStateVector().get(), EquationUpdateType.AFTER_NR);
+            updateNetwork(equationSystem.getStateVector());
         }
 
         return new NewtonRaphsonResult(status, iteration, slackBusActivePowerMismatch);
