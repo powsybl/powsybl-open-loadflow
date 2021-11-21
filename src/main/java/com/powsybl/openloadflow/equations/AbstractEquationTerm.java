@@ -19,6 +19,13 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
 
     private boolean active = true;
 
+    protected double[] x;
+
+    @Override
+    public void update(double[] x) {
+        this.x = x;
+    }
+
     @Override
     public Equation<V, E> getEquation() {
         return equation;

@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import net.jafama.FastMath;
 
 import java.util.Collections;
 import java.util.List;
@@ -21,18 +22,20 @@ abstract class AbstractOpenSide1BranchAcFlowEquationTerm extends AbstractBranchA
 
     protected final List<Variable<AcVariableType>> variables;
 
-    protected double shunt;
-
     protected AbstractOpenSide1BranchAcFlowEquationTerm(LfBranch branch, AcVariableType variableType,
                                                    LfBus bus, VariableSet<AcVariableType> variableSet,
                                                    boolean deriveA1, boolean deriveR1) {
         super(branch);
         variables = Collections.singletonList(variableSet.getVariable(bus.getNum(), variableType));
-        shunt = (g1 + y * sinKsi) * (g1 + y * sinKsi) + (-b1 + y * cosKsi) * (-b1 + y * cosKsi);
-
         if (deriveA1 || deriveR1) {
             throw new IllegalArgumentException("Variable A1 or R1 on open branch not supported: " + branch.getId());
         }
+    }
+
+    protected double shunt() {
+        double sinKsi = FastMath.sin(ksi);
+        double cosKsi = FastMath.cos(ksi);
+        return (g1 + y * sinKsi) * (g1 + y * sinKsi) + (-b1 + y * cosKsi) * (-b1 + y * cosKsi);
     }
 
     @Override

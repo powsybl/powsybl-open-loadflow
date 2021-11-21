@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import net.jafama.FastMath;
 
 import java.util.Objects;
 
@@ -20,35 +21,40 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
 
     private final Variable<AcVariableType> v1Var;
 
-    private double p1;
-
-    private double dp1dv1;
-
     public OpenBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, VariableSet<AcVariableType> variableSet,
                                                  boolean deriveA1, boolean deriveR1) {
         super(branch, AcVariableType.BUS_V, bus1, variableSet, deriveA1, deriveR1);
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
     }
 
-    @Override
-    public void update(double[] x) {
-        Objects.requireNonNull(x);
-        double v1 = x[v1Var.getRow()];
-        double r1 = branch.getPiModel().getR1();
-        p1 = r1 * r1 * v1 * v1 * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * sinKsi / shunt);
-        dp1dv1 = 2 * r1 * r1 * v1 * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * sinKsi / shunt);
+    private double v1() {
+        return x[v1Var.getRow()];
+    }
+
+    private double r1() {
+        return branch.getPiModel().getR1();
+    }
+
+    private double p2() {
+        double shunt = shunt();
+        return r1() * r1() * v1() * v1() * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * FastMath.sin(ksi) / shunt);
+    }
+
+    private double dp2dv1() {
+        double shunt = shunt();
+        return 2 * r1() * r1() * v1() * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * FastMath.sin(ksi) / shunt);
     }
 
     @Override
     public double eval() {
-        return p1;
+        return p2();
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return dp1dv1;
+            return dp2dv1();
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

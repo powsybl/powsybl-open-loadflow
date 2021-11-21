@@ -10,7 +10,6 @@ import com.powsybl.openloadflow.equations.AbstractNamedEquationTerm;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
-import net.jafama.FastMath;
 
 import java.util.Objects;
 
@@ -27,8 +26,6 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractNamedEquationTer
     protected final double g2;
     protected final double y;
     protected final double ksi;
-    protected final double sinKsi;
-    protected final double cosKsi;
 
     protected AbstractBranchAcFlowEquationTerm(LfBranch branch) {
         this.branch = Objects.requireNonNull(branch);
@@ -42,8 +39,6 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractNamedEquationTer
         g2 = piModel.getG2();
         y = 1 / piModel.getZ();
         ksi = piModel.getKsi();
-        sinKsi = FastMath.sin(ksi);
-        cosKsi = FastMath.cos(ksi);
     }
 
     @Override
