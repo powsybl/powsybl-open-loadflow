@@ -62,11 +62,6 @@ class EquationSystemTest {
             public void onEquationTermChange(EquationTerm<AcVariableType, AcEquationType> term, EquationTermEventType eventType) {
                 equationTermEventTypes.add(eventType);
             }
-
-            @Override
-            public void onStateUpdate(double[] x) {
-                // nothing to do
-            }
         });
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         assertTrue(equations.isEmpty());

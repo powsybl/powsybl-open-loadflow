@@ -146,11 +146,6 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             }
         }
 
-        @Override
-        public void onStateUpdate(double[] x) {
-            // nothing to do
-        }
-
         private NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> getSortedEquationsToSolve() {
             update();
             return sortedEquationsToSolve;
@@ -302,7 +297,6 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 equation.update(x);
             }
         }
-        listeners.forEach(listener -> listener.onStateUpdate(x));
     }
 
     public void addListener(EquationSystemListener<V, E> listener) {
