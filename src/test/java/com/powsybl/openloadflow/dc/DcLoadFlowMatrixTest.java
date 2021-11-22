@@ -66,14 +66,14 @@ class DcLoadFlowMatrixTest {
             variableSet.getVariable(b.getNum(), DcVariableType.BUS_PHI);
         }
 
-        double[] x = DcLoadFlowEngine.createStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
+        DcLoadFlowEngine.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
         try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
             ps.println("X=");
-            Matrix.createFromColumn(x, new DenseMatrixFactory())
+            Matrix.createFromColumn(equationSystem.getStateVector().get(), new DenseMatrixFactory())
                     .print(ps, equationSystem.getColumnNames(mainNetwork), null);
         }
 
-        equationSystem.updateEquations(x);
+        equationSystem.updateEquations();
 
         Matrix j = new JacobianMatrix<>(equationSystem, matrixFactory).getMatrix();
         try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {

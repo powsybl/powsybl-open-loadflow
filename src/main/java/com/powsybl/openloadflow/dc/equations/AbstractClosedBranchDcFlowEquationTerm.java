@@ -64,11 +64,11 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
     }
 
     protected double ph1() {
-        return x[ph1Var.getRow()];
+        return stateVector.get(ph1Var.getRow());
     }
 
     protected double ph2() {
-        return x[ph2Var.getRow()];
+        return stateVector.get(ph2Var.getRow());
     }
 
     private double getA1(DenseMatrix x, int column) {
@@ -78,7 +78,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
     protected abstract double calculateSensi(double ph1, double ph2, double a1);
 
     protected double a1() {
-        return a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1();
+        return a1Var != null ? stateVector.get(a1Var.getRow()) : branch.getPiModel().getA1();
     }
 
     @Override

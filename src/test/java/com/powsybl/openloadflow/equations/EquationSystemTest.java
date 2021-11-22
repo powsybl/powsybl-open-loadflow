@@ -171,7 +171,7 @@ class EquationSystemTest {
         EquationSystem<AcVariableType, AcEquationType> equationSystem = AcEquationSystem.create(mainNetwork);
         NewtonRaphson.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
         double[] targets = TargetVector.createArray(mainNetwork, equationSystem, AcloadFlowEngine::initTarget);
-        equationSystem.updateEquations(equationSystem.getStateVector().get());
+        equationSystem.updateEquations();
         double[] fx = equationSystem.createEquationVector();
         Vectors.minus(fx, targets);
         List<Pair<Equation<AcVariableType, AcEquationType>, Double>> largestMismatches = equationSystem.findLargestMismatches(fx, 3);
@@ -190,10 +190,10 @@ class EquationSystemTest {
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         EquationSystem<AcVariableType, AcEquationType> equationSystem = AcEquationSystem.create(mainNetwork, variableSet);
         NewtonRaphson.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
-        equationSystem.updateEquations(equationSystem.getStateVector().get(), EquationUpdateType.AFTER_NR);
+        equationSystem.updateEquations(EquationUpdateType.AFTER_NR);
         LfBranch branch = mainNetwork.getBranchById("NHV1_NHV2_1");
-        EquationTerm<AcVariableType, AcEquationType> i1 = equationSystem.getEquation(branch.getNum(), AcEquationType.BRANCH_I1).orElseThrow().getTerms().get(0);
-        EquationTerm<AcVariableType, AcEquationType> i2 = equationSystem.getEquation(branch.getNum(), AcEquationType.BRANCH_I2).orElseThrow().getTerms().get(0);
+        EquationTerm<AcVariableType, AcEquationType> i1 = (EquationTerm<AcVariableType, AcEquationType>) branch.getI1();
+        EquationTerm<AcVariableType, AcEquationType> i2 = (EquationTerm<AcVariableType, AcEquationType>) branch.getI2();
         Variable<AcVariableType> v1var = variableSet.getVariable(branch.getBus1().getNum(), AcVariableType.BUS_V);
         Variable<AcVariableType> v2var = variableSet.getVariable(branch.getBus2().getNum(), AcVariableType.BUS_V);
         Variable<AcVariableType> ph1var = variableSet.getVariable(branch.getBus1().getNum(), AcVariableType.BUS_PHI);
@@ -220,9 +220,9 @@ class EquationSystemTest {
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         EquationSystem<AcVariableType, AcEquationType> equationSystem = AcEquationSystem.create(mainNetwork, variableSet);
         NewtonRaphson.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
-        equationSystem.updateEquations(equationSystem.getStateVector().get(), EquationUpdateType.AFTER_NR);
+        equationSystem.updateEquations(EquationUpdateType.AFTER_NR);
         LfBranch branch = mainNetwork.getBranchById("NHV1_NHV2_1");
-        EquationTerm<AcVariableType, AcEquationType> i1 = equationSystem.getEquation(branch.getNum(), AcEquationType.BRANCH_I1).orElseThrow().getTerms().stream().filter(OpenBranchSide2CurrentMagnitudeEquationTerm.class::isInstance).findAny().get();
+        EquationTerm<AcVariableType, AcEquationType> i1 = (EquationTerm<AcVariableType, AcEquationType>) branch.getI1();
         Variable<AcVariableType> v1var = variableSet.getVariable(branch.getBus1().getNum(), AcVariableType.BUS_V);
         Variable<AcVariableType> ph1var = variableSet.getVariable(branch.getBus1().getNum(), AcVariableType.BUS_PHI);
         assertEquals(0.559170, i1.der(v1var), 10E-6);
@@ -240,9 +240,9 @@ class EquationSystemTest {
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         EquationSystem<AcVariableType, AcEquationType> equationSystem = AcEquationSystem.create(mainNetwork, variableSet);
         NewtonRaphson.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
-        equationSystem.updateEquations(equationSystem.getStateVector().get(), EquationUpdateType.AFTER_NR);
+        equationSystem.updateEquations(EquationUpdateType.AFTER_NR);
         LfBranch branch = mainNetwork.getBranchById("NHV1_NHV2_1");
-        EquationTerm<AcVariableType, AcEquationType> i2 = equationSystem.getEquation(branch.getNum(), AcEquationType.BRANCH_I2).orElseThrow().getTerms().stream().filter(OpenBranchSide1CurrentMagnitudeEquationTerm.class::isInstance).findAny().get();
+        EquationTerm<AcVariableType, AcEquationType> i2 = (EquationTerm<AcVariableType, AcEquationType>) branch.getI2();
         Variable<AcVariableType> v2var = variableSet.getVariable(branch.getBus2().getNum(), AcVariableType.BUS_V);
         Variable<AcVariableType> ph2var = variableSet.getVariable(branch.getBus2().getNum(), AcVariableType.BUS_PHI);
         assertEquals(0.55917, i2.der(v2var), 10E-6);

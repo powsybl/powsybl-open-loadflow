@@ -32,7 +32,7 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     protected double theta() {
-        return ksi - (a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1()) + A2 - ph1() + ph2();
+        return ksi - (a1Var != null ? stateVector.get(a1Var.getRow()) : branch.getPiModel().getA1()) + A2 - ph1() + ph2();
     }
 
     private double q1() {

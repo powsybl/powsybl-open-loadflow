@@ -53,7 +53,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
     }
 
     private double v() {
-        return x[vVar.getRow()];
+        return stateVector.get(vVar.getRow());
     }
 
     private double q() {

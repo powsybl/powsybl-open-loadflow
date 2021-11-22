@@ -10,6 +10,8 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfNetwork;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(EquationSystem.class);
 
     private final boolean indexTerms;
 
@@ -42,6 +46,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
         private void update() {
             if (reIndex()) {
+                LOGGER.debug("Reindex equation system");
+
                 int columnCount = 0;
                 for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
                     equation.setColumn(columnCount++);
@@ -80,7 +86,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             // equations to add
             for (Equation<V, E> equation : equationsToAdd) {
                 // do not use equations that would be updated only after NR
-                if (equation.isActive() && EquationUpdateType.DEFAULT == equation.getUpdateType()) {
+                if (equation.isActive()) {
                     // check we have at least one equation term active
                     boolean atLeastOneTermIsValid = false;
                     for (EquationTerm<V, E> equationTerm : equation.getTerms()) {
@@ -285,17 +291,14 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
-    public void updateEquations(double[] x) {
-        updateEquations(x, EquationUpdateType.DEFAULT);
+    public void updateEquations() {
+        updateEquations(EquationUpdateType.DEFAULT);
     }
 
-    public void updateEquations(double[] x, EquationUpdateType updateType) {
-        Objects.requireNonNull(x);
+    public void updateEquations(EquationUpdateType updateType) {
         Objects.requireNonNull(updateType);
         for (Equation<V, E> equation : equations.values()) {
-            if (updateType == equation.getUpdateType()) {
-                equation.update(x);
-            }
+            equation.update(stateVector);
         }
     }
 

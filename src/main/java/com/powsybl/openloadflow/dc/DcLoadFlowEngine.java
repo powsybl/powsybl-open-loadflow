@@ -80,27 +80,27 @@ public class DcLoadFlowEngine {
         return new DcLoadFlowResult(pNetwork, getActivePowerMismatch(pNetwork.getBuses()), status);
     }
 
-    public static double[] createStateVector(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, VoltageInitializer initializer) {
-        double[] x = new double[equationSystem.getSortedVariablesToFind().size()];
+    public static void initStateVector(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, VoltageInitializer initializer) {
+        StateVector stateVector = equationSystem.getStateVector();
+        stateVector.set(new double[equationSystem.getSortedVariablesToFind().size()]);
         for (Variable<DcVariableType> v : equationSystem.getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_PHI:
-                    x[v.getRow()] = Math.toRadians(initializer.getAngle(network.getBus(v.getNum())));
+                    stateVector.set(v.getRow(), Math.toRadians(initializer.getAngle(network.getBus(v.getNum()))));
                     break;
 
                 case BRANCH_ALPHA1:
-                    x[v.getRow()] = network.getBranch(v.getNum()).getPiModel().getA1();
+                    stateVector.set(v.getRow(), network.getBranch(v.getNum()).getPiModel().getA1());
                     break;
 
                 case DUMMY_P:
-                    x[v.getRow()] = 0;
+                    stateVector.set(v.getRow(), 0);
                     break;
 
                 default:
                     throw new IllegalStateException("Unknown variable type "  + v.getType());
             }
         }
-        return x;
     }
 
     public static void updateNetwork(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, double[] x) {
@@ -164,7 +164,7 @@ public class DcLoadFlowEngine {
         // only process main (largest) connected component
         LfNetwork network = networks.get(0);
 
-        double[] x = createStateVector(network, equationSystem, new UniformValueVoltageInitializer());
+        initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
 
         Collection<LfBus> remainingBuses = new LinkedHashSet<>(network.getBuses());
         remainingBuses.removeAll(disabledBuses);
@@ -173,7 +173,7 @@ public class DcLoadFlowEngine {
             distributeSlack(remainingBuses);
         }
 
-        equationSystem.updateEquations(x);
+        equationSystem.updateEquations();
 
         this.targetVector = TargetVector.createArray(network, equationSystem, DcLoadFlowEngine::initTarget);
 
@@ -212,8 +212,9 @@ public class DcLoadFlowEngine {
             LOGGER.error("Failed to solve linear system for DC load flow", e);
         }
 
-        equationSystem.updateEquations(targetVector);
-        equationSystem.updateEquations(targetVector, EquationUpdateType.AFTER_NR);
+        equationSystem.getStateVector().set(targetVector);
+        equationSystem.updateEquations();
+        equationSystem.updateEquations(EquationUpdateType.AFTER_NR);
         updateNetwork(network, equationSystem, targetVector);
 
         // set all calculated voltages to NaN

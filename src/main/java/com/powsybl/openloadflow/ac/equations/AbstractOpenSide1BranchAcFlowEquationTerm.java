@@ -23,8 +23,8 @@ abstract class AbstractOpenSide1BranchAcFlowEquationTerm extends AbstractBranchA
     protected final List<Variable<AcVariableType>> variables;
 
     protected AbstractOpenSide1BranchAcFlowEquationTerm(LfBranch branch, AcVariableType variableType,
-                                                   LfBus bus, VariableSet<AcVariableType> variableSet,
-                                                   boolean deriveA1, boolean deriveR1) {
+                                                        LfBus bus, VariableSet<AcVariableType> variableSet,
+                                                        boolean deriveA1, boolean deriveR1) {
         super(branch);
         variables = Collections.singletonList(variableSet.getVariable(bus.getNum(), variableType));
         if (deriveA1 || deriveR1) {

@@ -30,7 +30,7 @@ public class OpenBranchSide1ActiveFlowEquationTerm extends AbstractOpenSide1Bran
     }
 
     private double v2() {
-        return x[v2Var.getRow()];
+        return stateVector.get(v2Var.getRow());
     }
 
     private double p2() {

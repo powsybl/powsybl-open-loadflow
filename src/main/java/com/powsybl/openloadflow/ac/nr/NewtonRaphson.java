@@ -72,7 +72,7 @@ public class NewtonRaphson {
             stateVector.minus(fx);
 
             // evaluate equation terms with new x
-            equationSystem.updateEquations(stateVector.get());
+            equationSystem.updateEquations();
 
             // recalculate f(x) with new x
             equationSystem.updateEquationVector(fx);
@@ -182,7 +182,7 @@ public class NewtonRaphson {
 
         initStateVector(network, equationSystem, voltageInitializer);
 
-        equationSystem.updateEquations(equationSystem.getStateVector().get());
+        equationSystem.updateEquations();
 
         // initialize mismatch vector (difference between equation values and targets)
         double[] fx = equationSystem.createEquationVector();
@@ -207,7 +207,7 @@ public class NewtonRaphson {
 
         // update network state variable
         if (status == NewtonRaphsonStatus.CONVERGED) {
-            equationSystem.updateEquations(equationSystem.getStateVector().get(), EquationUpdateType.AFTER_NR);
+            equationSystem.updateEquations(EquationUpdateType.AFTER_NR);
             updateNetwork(equationSystem.getStateVector());
         }
 

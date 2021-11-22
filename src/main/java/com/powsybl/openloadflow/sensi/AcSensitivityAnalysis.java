@@ -99,7 +99,11 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
     protected void setFunctionReferences(List<LfSensitivityFactor<AcVariableType, AcEquationType>> factors) {
         for (LfSensitivityFactor<AcVariableType, AcEquationType> factor : factors) {
-            factor.setFunctionReference(factor.getFunctionEquationTerm().eval());
+            if (factor.getFunctionPredefinedResult() != null) {
+                factor.setFunctionReference(factor.getFunctionPredefinedResult());
+            } else {
+                factor.setFunctionReference(factor.getFunctionEquationTerm().eval());
+            }
         }
     }
 
@@ -162,7 +166,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
     private JacobianMatrix<AcVariableType, AcEquationType> createJacobianMatrix(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer voltageInitializer) {
         NewtonRaphson.initStateVector(network, equationSystem, voltageInitializer);
-        equationSystem.updateEquations(equationSystem.getStateVector().get());
+        equationSystem.updateEquations();
         return new JacobianMatrix<>(equationSystem, matrixFactory);
     }
 

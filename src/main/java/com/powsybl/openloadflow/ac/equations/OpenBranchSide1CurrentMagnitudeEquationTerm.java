@@ -33,11 +33,11 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     private double v2() {
-        return x[v2Var.getRow()];
+        return stateVector.get(v2Var.getRow());
     }
 
     private double ph2() {
-        return x[ph2Var.getRow()];
+        return stateVector.get(ph2Var.getRow());
     }
 
     private double gres(double shunt) {

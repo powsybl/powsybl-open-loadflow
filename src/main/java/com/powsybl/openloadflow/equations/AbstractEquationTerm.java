@@ -19,11 +19,11 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
 
     private boolean active = true;
 
-    protected double[] x;
+    protected StateVector stateVector;
 
     @Override
-    public void update(double[] x) {
-        this.x = x;
+    public void update(StateVector stateVector) {
+        this.stateVector = stateVector;
     }
 
     @Override
