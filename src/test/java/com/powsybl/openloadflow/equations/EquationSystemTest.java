@@ -190,7 +190,6 @@ class EquationSystemTest {
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         EquationSystem<AcVariableType, AcEquationType> equationSystem = AcEquationSystem.create(mainNetwork, variableSet);
         NewtonRaphson.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
-        equationSystem.updateEquations(EquationUpdateType.AFTER_NR);
         LfBranch branch = mainNetwork.getBranchById("NHV1_NHV2_1");
         EquationTerm<AcVariableType, AcEquationType> i1 = (EquationTerm<AcVariableType, AcEquationType>) branch.getI1();
         EquationTerm<AcVariableType, AcEquationType> i2 = (EquationTerm<AcVariableType, AcEquationType>) branch.getI2();
@@ -220,7 +219,6 @@ class EquationSystemTest {
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         EquationSystem<AcVariableType, AcEquationType> equationSystem = AcEquationSystem.create(mainNetwork, variableSet);
         NewtonRaphson.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
-        equationSystem.updateEquations(EquationUpdateType.AFTER_NR);
         LfBranch branch = mainNetwork.getBranchById("NHV1_NHV2_1");
         EquationTerm<AcVariableType, AcEquationType> i1 = (EquationTerm<AcVariableType, AcEquationType>) branch.getI1();
         Variable<AcVariableType> v1var = variableSet.getVariable(branch.getBus1().getNum(), AcVariableType.BUS_V);
@@ -240,7 +238,6 @@ class EquationSystemTest {
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         EquationSystem<AcVariableType, AcEquationType> equationSystem = AcEquationSystem.create(mainNetwork, variableSet);
         NewtonRaphson.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
-        equationSystem.updateEquations(EquationUpdateType.AFTER_NR);
         LfBranch branch = mainNetwork.getBranchById("NHV1_NHV2_1");
         EquationTerm<AcVariableType, AcEquationType> i2 = (EquationTerm<AcVariableType, AcEquationType>) branch.getI2();
         Variable<AcVariableType> v2var = variableSet.getVariable(branch.getBus2().getNum(), AcVariableType.BUS_V);

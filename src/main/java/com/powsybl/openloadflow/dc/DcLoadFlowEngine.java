@@ -214,7 +214,6 @@ public class DcLoadFlowEngine {
 
         equationSystem.getStateVector().set(targetVector);
         equationSystem.updateEquations();
-        equationSystem.updateEquations(EquationUpdateType.AFTER_NR);
         updateNetwork(network, equationSystem, targetVector);
 
         // set all calculated voltages to NaN

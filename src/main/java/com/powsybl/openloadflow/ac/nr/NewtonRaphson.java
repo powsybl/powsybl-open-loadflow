@@ -207,7 +207,7 @@ public class NewtonRaphson {
 
         // update network state variable
         if (status == NewtonRaphsonStatus.CONVERGED) {
-            equationSystem.updateEquations(EquationUpdateType.AFTER_NR);
+            equationSystem.updateEquations();
             updateNetwork(equationSystem.getStateVector());
         }
 

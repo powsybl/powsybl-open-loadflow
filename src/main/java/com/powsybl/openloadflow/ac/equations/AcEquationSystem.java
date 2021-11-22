@@ -50,7 +50,6 @@ public final class AcEquationSystem {
             EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, variableSet, bus.getV().eval());
             v.addTerm(vTerm);
             bus.setV(vTerm);
-            v.setUpdateType(EquationUpdateType.AFTER_NR);
         }
     }
 

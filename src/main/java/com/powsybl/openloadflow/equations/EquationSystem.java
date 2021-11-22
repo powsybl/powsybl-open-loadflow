@@ -292,11 +292,6 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     public void updateEquations() {
-        updateEquations(EquationUpdateType.DEFAULT);
-    }
-
-    public void updateEquations(EquationUpdateType updateType) {
-        Objects.requireNonNull(updateType);
         for (Equation<V, E> equation : equations.values()) {
             equation.update(stateVector);
         }
