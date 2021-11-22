@@ -20,5 +20,5 @@ public interface EquationSystemPostProcessor {
         return Lists.newArrayList(ServiceLoader.load(EquationSystemPostProcessor.class, EquationSystemPostProcessor.class.getClassLoader()).iterator());
     }
 
-    void onCreate(EquationSystem<?, ?> equationSystem, VariableSet<?> variableSet);
+    void onCreate(EquationSystem<?, ?> equationSystem);
 }

@@ -57,13 +57,12 @@ class DcLoadFlowMatrixTest {
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 
-        VariableSet<DcVariableType> variableSet = new VariableSet<>();
         DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(true, false, false, true);
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(mainNetwork, variableSet, creationParameters);
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(mainNetwork, creationParameters);
 
         for (LfBus b : mainNetwork.getBuses()) {
             equationSystem.createEquation(b.getNum(), DcEquationType.BUS_P);
-            variableSet.getVariable(b.getNum(), DcVariableType.BUS_PHI);
+            equationSystem.getVariableSet().getVariable(b.getNum(), DcVariableType.BUS_PHI);
         }
 
         DcLoadFlowEngine.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
@@ -109,7 +108,7 @@ class DcLoadFlowMatrixTest {
         lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         mainNetwork = lfNetworks.get(0);
 
-        equationSystem = DcEquationSystem.create(mainNetwork, variableSet, creationParameters);
+        equationSystem = DcEquationSystem.create(mainNetwork, creationParameters);
 
         j = new JacobianMatrix<>(equationSystem, matrixFactory).getMatrix();
 
