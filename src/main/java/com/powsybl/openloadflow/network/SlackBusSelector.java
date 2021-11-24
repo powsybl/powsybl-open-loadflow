@@ -14,7 +14,7 @@ import java.util.Objects;
  */
 public interface SlackBusSelector {
 
-    LfBus select(List<LfBus> buses);
+    SelectedSlackBus select(List<LfBus> buses);
 
     static SlackBusSelector fromMode(SlackBusSelectionMode mode, String slackBusId) {
         Objects.requireNonNull(mode);
