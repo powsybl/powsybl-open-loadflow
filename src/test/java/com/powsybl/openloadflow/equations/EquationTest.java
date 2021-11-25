@@ -9,17 +9,15 @@ package com.powsybl.openloadflow.equations;
 import com.google.common.testing.EqualsTester;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.network.ElementType;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfElement;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -38,6 +36,10 @@ class EquationTest {
         Mockito.when(network.getBus(Mockito.anyInt())).thenReturn(bus);
         Mockito.when(bus.getId()).thenReturn("bus1");
         Mockito.when(bus.getType()).thenReturn(ElementType.BUS);
+        LfBranch branch = Mockito.mock(LfBranch.class);
+        Mockito.when(network.getBranch(Mockito.anyInt())).thenReturn(branch);
+        Mockito.when(branch.getId()).thenReturn("branch1");
+        Mockito.when(branch.getType()).thenReturn(ElementType.BRANCH);
     }
 
     @Test
@@ -50,11 +52,17 @@ class EquationTest {
 
     @Test
     void testGetElement() {
-        var equation = new Equation<>(0, AcEquationType.BUS_P, equationSystem);
-        Optional<LfElement> element = equation.getElement(network);
-        assertTrue(element.isPresent());
-        assertEquals("bus1", element.map(LfElement::getId).orElseThrow());
-        assertEquals(ElementType.BUS, element.map(LfElement::getType).orElseThrow());
+        var eq1 = new Equation<>(0, AcEquationType.BUS_P, equationSystem);
+        Optional<LfElement> bus = eq1.getElement(network);
+        assertTrue(bus.isPresent());
+        assertEquals("bus1", bus.map(LfElement::getId).orElseThrow());
+        assertEquals(ElementType.BUS, bus.map(LfElement::getType).orElseThrow());
+
+        var eq2 = new Equation<>(0, AcEquationType.BRANCH_ALPHA1, equationSystem);
+        Optional<LfElement> branch = eq2.getElement(network);
+        assertTrue(branch.isPresent());
+        assertEquals("branch1", branch.map(LfElement::getId).orElseThrow());
+        assertEquals(ElementType.BRANCH, branch.map(LfElement::getType).orElseThrow());
     }
 
     @Test
