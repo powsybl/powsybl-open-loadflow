@@ -9,13 +9,17 @@ package com.powsybl.openloadflow.equations;
 import com.google.common.testing.EqualsTester;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -24,13 +28,16 @@ class EquationTest {
 
     private EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
+    private LfNetwork network;
+
     @BeforeEach
     void setUp() {
         equationSystem = Mockito.mock(EquationSystem.class);
-        LfNetwork network = Mockito.mock(LfNetwork.class);
+        network = Mockito.mock(LfNetwork.class);
         LfBus bus = Mockito.mock(LfBus.class);
         Mockito.when(network.getBus(Mockito.anyInt())).thenReturn(bus);
         Mockito.when(bus.getId()).thenReturn("bus1");
+        Mockito.when(bus.getType()).thenReturn(ElementType.BUS);
     }
 
     @Test
@@ -39,6 +46,15 @@ class EquationTest {
                 .addEqualityGroup(new Equation<>(0, AcEquationType.BUS_P, equationSystem), new Equation<>(0, AcEquationType.BUS_P, equationSystem))
                 .addEqualityGroup(new Equation<>(1, AcEquationType.BUS_Q, equationSystem), new Equation<>(1, AcEquationType.BUS_Q, equationSystem))
                 .testEquals();
+    }
+
+    @Test
+    void testGetElement() {
+        var equation = new Equation<>(0, AcEquationType.BUS_P, equationSystem);
+        Optional<LfElement> element = equation.getElement(network);
+        assertTrue(element.isPresent());
+        assertEquals("bus1", element.map(LfElement::getId).orElseThrow());
+        assertEquals(ElementType.BUS, element.map(LfElement::getType).orElseThrow());
     }
 
     @Test
