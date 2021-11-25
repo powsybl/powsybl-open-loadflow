@@ -18,9 +18,15 @@ import com.powsybl.openloadflow.network.LfNetworkParameters;
  */
 public class PreviousValueVoltageInitializer implements VoltageInitializer {
 
+    private double slackBusAngle;
+
     @Override
     public void prepare(LfNetwork network, LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
-        // nothing to do
+        LfBus slackBus = network.getSlackBus();
+        slackBusAngle = slackBus.getAngle();
+        if (Double.isNaN(slackBusAngle)) {
+            throw new PowsyblException("Voltage magnitude is undefined for slack bus '" + slackBus.getId() + "'");
+        }
     }
 
     @Override
@@ -38,6 +44,6 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
         if (Double.isNaN(angle)) {
             throw new PowsyblException("Voltage angle is undefined for bus '" + bus.getId() + "'");
         }
-        return angle;
+        return angle - slackBusAngle;
     }
 }
