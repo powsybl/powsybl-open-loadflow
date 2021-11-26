@@ -9,25 +9,38 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.commons.PowsyblException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class NameSlackBusSelector implements SlackBusSelector {
 
-    private final String busId;
+    private final List<String> busesIds;
 
-    public NameSlackBusSelector(String busId) {
-        this.busId = Objects.requireNonNull(busId);
+    public NameSlackBusSelector(List<String> busesIds) {
+        if (busesIds.isEmpty()) {
+            throw new IllegalArgumentException("Empty bus list");
+        }
+        this.busesIds = Objects.requireNonNull(busesIds);
+    }
+
+    public NameSlackBusSelector(String... busesIds) {
+        this(List.of(busesIds));
     }
 
     @Override
     public SelectedSlackBus select(List<LfBus> buses) {
-        LfBus slackBus = buses.stream()
-                .filter(bus -> bus.getId().equals(busId))
-                .findFirst().orElseThrow(() -> new PowsyblException("Slack bus '" + busId + "' not found"));
-
-        return new SelectedSlackBus(slackBus, "Parameter bus");
+        Map<String, LfBus> busesById = buses.stream().collect(Collectors.toMap(LfBus::getId, Function.identity()));
+        for (String busId : busesIds) {
+            LfBus slackBus = busesById.get(busId);
+            if (slackBus != null) {
+                return new SelectedSlackBus(slackBus, "Parameter bus");
+            }
+        }
+        throw new PowsyblException("None of the slack buses " + busesIds + " have been not found");
     }
 }

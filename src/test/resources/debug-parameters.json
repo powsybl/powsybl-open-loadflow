@@ -8,7 +8,7 @@
     "noGeneratorReactiveLimits" : false,
     "twtSplitShuntAdmittance" : false,
     "simulShunt" : false,
-    "readSlackBus" : false,
+    "readSlackBus" : true,
     "writeSlackBus" : false,
     "dc" : true,
     "distributedSlack" : false,
@@ -19,7 +19,7 @@
     "extensions" : {
       "open-load-flow-parameters" : {
         "slackBusSelectionMode" : "NAME",
-        "slackBusId" : "b1_vl_0",
+        "slackBusesIds" : [ "b1_vl_0" ],
         "throwsExceptionInCaseOfSlackDistributionFailure" : false,
         "lowImpedanceBranchMode" : "REPLACE_BY_ZERO_IMPEDANCE_LINE",
         "loadPowerFactorConstant" : false,

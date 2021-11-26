@@ -16,15 +16,16 @@ public interface SlackBusSelector {
 
     SelectedSlackBus select(List<LfBus> buses);
 
-    static SlackBusSelector fromMode(SlackBusSelectionMode mode, String slackBusId) {
+    static SlackBusSelector fromMode(SlackBusSelectionMode mode, List<String> slackBusesIds) {
         Objects.requireNonNull(mode);
+        Objects.requireNonNull(slackBusesIds);
         switch (mode) {
             case FIRST:
                 return new FirstSlackBusSelector();
             case MOST_MESHED:
                 return new MostMeshedSlackBusSelector();
             case NAME:
-                return new NameSlackBusSelector(slackBusId);
+                return new NameSlackBusSelector(slackBusesIds);
             default:
                 throw new IllegalStateException("Unknown slack bus selection mode: " + mode);
         }
