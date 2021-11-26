@@ -87,7 +87,9 @@ public class LfNetwork {
 
     public void updateSlack() {
         if (slackBus == null) {
-            slackBus = slackBusSelector.select(busesByIndex);
+            SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex);
+            slackBus = selectedSlackBus.getBus();
+            LOGGER.info("Network {}, slack bus is '{}' (method='{}')", this, slackBus.getId(), selectedSlackBus.getSelectionMethod());
             slackBus.setSlack(true);
         }
     }
