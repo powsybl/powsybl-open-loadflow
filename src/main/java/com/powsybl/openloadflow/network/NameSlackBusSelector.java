@@ -23,9 +23,11 @@ public class NameSlackBusSelector implements SlackBusSelector {
     }
 
     @Override
-    public LfBus select(List<LfBus> buses) {
-        return buses.stream()
+    public SelectedSlackBus select(List<LfBus> buses) {
+        LfBus slackBus = buses.stream()
                 .filter(bus -> bus.getId().equals(busId))
                 .findFirst().orElseThrow(() -> new PowsyblException("Slack bus '" + busId + "' not found"));
+
+        return new SelectedSlackBus(slackBus, "Parameter bus");
     }
 }
