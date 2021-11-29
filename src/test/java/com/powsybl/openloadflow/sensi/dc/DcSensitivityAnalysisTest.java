@@ -34,10 +34,7 @@ import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
@@ -460,7 +457,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         double sensiChange = 10e-4;
         // test injection increase on loads
         Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
-        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", false);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, List.of("b1_vl_0", "b4_vl_0"), false);
 
         runLf(network, sensiParameters.getLoadFlowParameters());
         Network network1 = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
@@ -551,7 +548,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         // test injection increase on loads
         Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
-        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, List.of("b1_vl_0", "b4_vl_0"), true);
 
         runLf(network, sensiParameters.getLoadFlowParameters());
         Network network1 = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();

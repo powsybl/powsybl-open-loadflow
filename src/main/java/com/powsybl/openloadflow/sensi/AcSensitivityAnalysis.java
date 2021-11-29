@@ -186,7 +186,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // voltage control for the AC load flow engine.
             lfParameters.setTransformerVoltageControlOn(true);
         }
-        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusId());
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds());
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector, lfParametersExt.hasVoltageRemoteControl(),
                 true, lfParameters.isTwtSplitShuntAdmittance(), false, lfParametersExt.getPlausibleActivePowerLimit(),
                 false, true, lfParameters.getCountriesToBalance(),
