@@ -258,9 +258,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
-    private static DcLoadFlowParameters createDcParameters(Network network, MatrixFactory matrixFactory,
-                                                           LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                           boolean forcePhaseControlOffAndAddAngle1Var) {
+    static DcLoadFlowParameters createDcParameters(Network network, MatrixFactory matrixFactory,
+                                                   LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                   boolean forcePhaseControlOffAndAddAngle1Var) {
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
         LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());

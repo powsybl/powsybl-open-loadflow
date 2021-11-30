@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.network.LfNetworkParameters;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -56,5 +57,16 @@ public class AcLoadFlowParameters {
 
     public MatrixFactory getMatrixFactory() {
         return matrixFactory;
+    }
+
+    @Override
+    public String toString() {
+        return "AcLoadFlowParameters(" +
+                "networkParameters=" + networkParameters +
+                ", equationSystemCreationParameters=" + equationSystemCreationParameters +
+                ", newtonRaphsonParameters=" + newtonRaphsonParameters +
+                ", outerLoops=" + outerLoops.stream().map(outerLoop -> outerLoop.getClass().getSimpleName()).collect(Collectors.toList()) +
+                ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
+                ')';
     }
 }
