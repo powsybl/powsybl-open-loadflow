@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow;
 
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
@@ -41,7 +42,7 @@ class OpenLoadFlowProviderTest {
     @Test
     void testAcParameters() {
         Network network = Mockito.mock(Network.class);
-        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), new LoadFlowParameters().setReadSlackBus(true), new OpenLoadFlowParameters(), false);
+        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), new LoadFlowParameters().setReadSlackBus(true), new OpenLoadFlowParameters(), false, Reporter.NO_OP);
         assertEquals("AcLoadFlowParameters(networkParameters=LfNetworkParameters(slackBusSelector=NetworkSlackBusSelector, generatorVoltageRemoteControl=true, minImpedance=false, twtSplitShuntAdmittance=false, breakers=false, plausibleActivePowerLimit=5000.0, addRatioToLinesWithDifferentNominalVoltageAtBothEnds=false, computeMainConnectedComponentOnly=true, countriesToBalance=[], distributedOnConformLoad=false, phaseControl=false, transformerVoltageControl=false, voltagePerReactivePowerControl=false, reactivePowerRemoteControl=false), equationSystemCreationParameters=AcEquationSystemCreationParameters(forceA1Var=false, branchesWithCurrent=null), newtonRaphsonParameters=NewtonRaphsonParameters(maxIteration=30, voltageInitializer=UniformValueVoltageInitializer, stoppingCriteria=DefaultNewtonRaphsonStoppingCriteria), outerLoops=[DistributedSlackOuterLoop, ReactiveLimitsOuterLoop], matrixFactory=DenseMatrixFactory)",
                      acParameters.toString());
     }

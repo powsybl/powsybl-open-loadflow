@@ -156,7 +156,8 @@ class OpenSecurityAnalysisGraphTest {
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen);
         LOGGER.info("Contingencies contexts calculated from contingencies in {} ms", System.currentTimeMillis() - start);
 
-        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, lfParameters, Reporter.NO_OP, new DenseMatrixFactory(), lfParametersExt, true);
+        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network,
+            new DenseMatrixFactory(), lfParameters, lfParametersExt, true, Reporter.NO_OP);
 
         // create networks including all necessary switches
         List<LfNetwork> lfNetworks = securityAnalysis.createNetworks(allSwitchesToOpen, acParameters.getNetworkParameters());

@@ -31,15 +31,18 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
 
     private final LoadFlowParameters.BalanceType balanceType;
 
+    private final boolean useTransformerRatio;
+
     private final MatrixFactory matrixFactory;
 
     private final Reporter reporter;
 
     public DcValueVoltageInitializer(LfNetworkParameters networkParameters, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
-                                     MatrixFactory matrixFactory, Reporter reporter) {
+                                     boolean useTransformerRatio, MatrixFactory matrixFactory, Reporter reporter) {
         this.networkParameters = Objects.requireNonNull(networkParameters);
         this.distributedSlack = distributedSlack;
         this.balanceType = Objects.requireNonNull(balanceType);
+        this.useTransformerRatio = useTransformerRatio;
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.reporter = Objects.requireNonNull(reporter);
     }
@@ -47,7 +50,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
     @Override
     public void prepare(LfNetwork network) {
         DcLoadFlowParameters parameters = new DcLoadFlowParameters(networkParameters,
-                                                                   new DcEquationSystemCreationParameters(false, false, false, true),
+                                                                   new DcEquationSystemCreationParameters(false, false, false, useTransformerRatio),
                                                                    matrixFactory,
                                                                    distributedSlack,
                                                                    balanceType,

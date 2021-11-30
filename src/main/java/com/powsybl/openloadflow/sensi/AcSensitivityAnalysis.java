@@ -212,8 +212,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .collect(Collectors.toSet());
 
         // create AC engine
-        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, lfParameters, reporter, matrixFactory,
-                                                                                    lfParametersExt, false, true, branchesWithMeasuredCurrent);
+        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters,
+                                                                                    lfParametersExt, false, true,
+                                                                                    branchesWithMeasuredCurrent, reporter);
         try (AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters)) {
 
             engine.run(reporter);

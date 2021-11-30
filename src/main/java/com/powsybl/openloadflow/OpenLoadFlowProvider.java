@@ -92,15 +92,14 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new PowsyblCoreVersion().getMavenProjectVersion();
     }
 
-    public static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters,
-                                                           MatrixFactory matrixFactory, Reporter reporter) {
+    public static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
         switch (parameters.getVoltageInitMode()) {
             case UNIFORM_VALUES:
                 return new UniformValueVoltageInitializer();
             case PREVIOUS_VALUES:
                 return new PreviousValueVoltageInitializer();
             case DC_VALUES:
-                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), matrixFactory, reporter);
+                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), matrixFactory, reporter);
             default:
                 throw new UnsupportedOperationException("Unsupported voltage init mode: " + parameters.getVoltageInitMode());
         }
@@ -126,8 +125,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return outerLoopConfig;
     }
 
-    public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, Reporter reporter, MatrixFactory matrixFactory,
-                                                          OpenLoadFlowParameters parametersExt, boolean breakers) {
+    public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
+                                                          OpenLoadFlowParameters parametersExt, boolean breakers, Reporter reporter) {
         Set<String> branchesWithCurrent = null;
         if (parameters.isPhaseShifterRegulationOn()) {
             branchesWithCurrent = network.getTwoWindingsTransformerStream()
@@ -135,12 +134,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     .map(TwoWindingsTransformer::getId)
                     .collect(Collectors.toSet());
         }
-        return createAcParameters(network, parameters, reporter, matrixFactory, parametersExt, breakers, false, branchesWithCurrent);
+        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false, branchesWithCurrent, reporter);
     }
 
-    public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, Reporter reporter, MatrixFactory matrixFactory,
+    public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
                                                           OpenLoadFlowParameters parametersExt, boolean breakers, boolean forceA1Var,
-                                                          Set<String> branchesWithCurrent) {
+                                                          Set<String> branchesWithCurrent, Reporter reporter) {
 
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
@@ -197,7 +196,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
-        AcLoadFlowParameters acParameters = createAcParameters(network, parameters, reporter, matrixFactory, parametersExt, false);
+        AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt, false, reporter);
         List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, new LfNetworkLoaderImpl(), acParameters, reporter);
 
         Networks.resetState(network);
