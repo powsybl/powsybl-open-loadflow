@@ -13,12 +13,15 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -49,6 +52,13 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
 
     @Override
     public void prepare(LfNetwork network) {
+        // in case of distributed slack, we need to save and restore generators target p which might have been modified
+        // by slack distribution, so that AC load flow can restart from original state
+        Map<String, Double> generatorsTargetP = distributedSlack ? network.getBuses().stream()
+                                                                          .flatMap(bus -> bus.getGenerators().stream())
+                                                                          .collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP))
+                                                                 : null;
+
         DcLoadFlowParameters parameters = new DcLoadFlowParameters(networkParameters,
                                                                    new DcEquationSystemCreationParameters(false, false, false, useTransformerRatio),
                                                                    matrixFactory,
@@ -58,6 +68,12 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
         DcLoadFlowEngine engine = new DcLoadFlowEngine(List.of(network), parameters);
         if (engine.run(reporter, network).getStatus() != LoadFlowResult.ComponentResult.Status.CONVERGED) {
             throw new PowsyblException("DC loadflow failed, impossible to initialize voltage angle from DC values");
+        }
+
+        if (generatorsTargetP != null) {
+            network.getBuses().stream()
+                    .flatMap(bus -> bus.getGenerators().stream())
+                    .forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
         }
     }
 
