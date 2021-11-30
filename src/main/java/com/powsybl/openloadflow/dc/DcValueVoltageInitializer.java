@@ -18,19 +18,39 @@ import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class DcValueVoltageInitializer implements VoltageInitializer {
 
+    private final LfNetworkParameters networkParameters;
+
+    private final boolean distributedSlack;
+
+    private final LoadFlowParameters.BalanceType balanceType;
+
+    private final MatrixFactory matrixFactory;
+
+    private final Reporter reporter;
+
+    public DcValueVoltageInitializer(LfNetworkParameters networkParameters, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
+                                     MatrixFactory matrixFactory, Reporter reporter) {
+        this.networkParameters = Objects.requireNonNull(networkParameters);
+        this.distributedSlack = distributedSlack;
+        this.balanceType = Objects.requireNonNull(balanceType);
+        this.matrixFactory = Objects.requireNonNull(matrixFactory);
+        this.reporter = Objects.requireNonNull(reporter);
+    }
+
     @Override
-    public void prepare(LfNetwork network, LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
+    public void prepare(LfNetwork network) {
         DcLoadFlowParameters parameters = new DcLoadFlowParameters(networkParameters,
                                                                    new DcEquationSystemCreationParameters(false, false, false, true),
                                                                    matrixFactory,
-                                                                   false,
-                                                                   LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
+                                                                   distributedSlack,
+                                                                   balanceType,
                                                                    false);
         DcLoadFlowEngine engine = new DcLoadFlowEngine(List.of(network), parameters);
         if (engine.run(reporter, network).getStatus() != LoadFlowResult.ComponentResult.Status.CONVERGED) {

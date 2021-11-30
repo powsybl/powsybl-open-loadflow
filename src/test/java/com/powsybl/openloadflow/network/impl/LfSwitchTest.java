@@ -46,8 +46,8 @@ class LfSwitchTest {
     @BeforeEach
     void setUp() {
         network = NodeBreakerNetworkFactory.create();
-        acLoadFlowParameters = OpenLoadFlowProvider.createAcParameters(network, new DenseMatrixFactory(), new LoadFlowParameters(),
-                new OpenLoadFlowParameters(), true);
+        acLoadFlowParameters = OpenLoadFlowProvider.createAcParameters(network, new LoadFlowParameters(), Reporter.NO_OP,
+                                                                       new DenseMatrixFactory(), new OpenLoadFlowParameters(), true);
         List<LfNetwork> lfNetworks = Networks.load(network, acLoadFlowParameters.getNetworkParameters(), Reporter.NO_OP);
         assertEquals(1, lfNetworks.size());
         lfNetwork = lfNetworks.get(0);

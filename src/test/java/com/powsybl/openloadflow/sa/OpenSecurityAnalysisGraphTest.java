@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
@@ -155,8 +156,7 @@ class OpenSecurityAnalysisGraphTest {
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen);
         LOGGER.info("Contingencies contexts calculated from contingencies in {} ms", System.currentTimeMillis() - start);
 
-        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network,
-            new DenseMatrixFactory(), lfParameters, lfParametersExt, true);
+        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, lfParameters, Reporter.NO_OP, new DenseMatrixFactory(), lfParametersExt, true);
 
         // create networks including all necessary switches
         List<LfNetwork> lfNetworks = securityAnalysis.createNetworks(allSwitchesToOpen, acParameters.getNetworkParameters());

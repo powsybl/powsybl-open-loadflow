@@ -71,7 +71,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         Set<Switch> allSwitchesToOpen = new HashSet<>();
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen);
 
-        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters, lfParametersExt, true);
+        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, lfParameters, Reporter.NO_OP, matrixFactory, lfParametersExt, true);
 
         // create networks including all necessary switches
         List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters.getNetworkParameters());

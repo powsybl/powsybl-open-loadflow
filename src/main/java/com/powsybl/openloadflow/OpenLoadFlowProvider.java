@@ -92,14 +92,15 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new PowsyblCoreVersion().getMavenProjectVersion();
     }
 
-    public static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters) {
+    public static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters,
+                                                           MatrixFactory matrixFactory, Reporter reporter) {
         switch (parameters.getVoltageInitMode()) {
             case UNIFORM_VALUES:
                 return new UniformValueVoltageInitializer();
             case PREVIOUS_VALUES:
                 return new PreviousValueVoltageInitializer();
             case DC_VALUES:
-                return new DcValueVoltageInitializer();
+                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), matrixFactory, reporter);
             default:
                 throw new UnsupportedOperationException("Unsupported voltage init mode: " + parameters.getVoltageInitMode());
         }
@@ -125,7 +126,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return outerLoopConfig;
     }
 
-    public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
+    public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, Reporter reporter, MatrixFactory matrixFactory,
                                                           OpenLoadFlowParameters parametersExt, boolean breakers) {
         Set<String> branchesWithCurrent = null;
         if (parameters.isPhaseShifterRegulationOn()) {
@@ -134,19 +135,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     .map(TwoWindingsTransformer::getId)
                     .collect(Collectors.toSet());
         }
-        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false, branchesWithCurrent);
+        return createAcParameters(network, parameters, reporter, matrixFactory, parametersExt, breakers, false, branchesWithCurrent);
     }
 
-    public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
+    public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, Reporter reporter, MatrixFactory matrixFactory,
                                                           OpenLoadFlowParameters parametersExt, boolean breakers, boolean forceA1Var,
                                                           Set<String> branchesWithCurrent) {
 
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
-        VoltageInitializer voltageInitializer = getVoltageInitializer(parameters);
-
         LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
-        LOGGER.info("Voltage level initializer: {}", voltageInitializer.getClass().getSimpleName());
+        LOGGER.info("Voltage initialization mode: {}", parameters.getVoltageInitMode());
         LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
         LOGGER.info("Balance type: {}", parameters.getBalanceType());
         LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
@@ -186,6 +185,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var, branchesWithCurrent);
 
+        VoltageInitializer voltageInitializer = getVoltageInitializer(parameters, networkParameters, matrixFactory, reporter);
+
         var newtonRaphsonParameters = new NewtonRaphsonParameters()
                 .setVoltageInitializer(voltageInitializer);
 
@@ -196,7 +197,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
-        AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt, false);
+        AcLoadFlowParameters acParameters = createAcParameters(network, parameters, reporter, matrixFactory, parametersExt, false);
         List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, new LfNetworkLoaderImpl(), acParameters, reporter);
 
         Networks.resetState(network);
