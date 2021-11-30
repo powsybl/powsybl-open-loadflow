@@ -33,4 +33,12 @@ public class AcEquationSystemCreationParameters {
     public Set<String> getBranchesWithCurrent() {
         return branchesWithCurrent;
     }
+
+    @Override
+    public String toString() {
+        return "AcEquationSystemCreationParameters(" +
+                "forceA1Var=" + forceA1Var +
+                ", branchesWithCurrent=" + branchesWithCurrent +
+                ')';
+    }
 }
