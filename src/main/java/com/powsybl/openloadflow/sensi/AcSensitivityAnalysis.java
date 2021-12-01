@@ -272,7 +272,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     .flatMap(contingency -> LfContingency.create(contingency, lfNetwork, connectivity, false).stream())
                     .collect(Collectors.toList());
 
-            List<BusState> busStates = BusState.save(lfNetwork.getBuses());
+            List<BusState> busStates = ElementState.save(lfNetwork.getBuses(), BusState::save);
 
             // Contingency not breaking connectivity
             for (LfContingency lfContingency : lfContingencies.stream().filter(lfContingency -> lfContingency.getBuses().isEmpty()).collect(Collectors.toSet())) {

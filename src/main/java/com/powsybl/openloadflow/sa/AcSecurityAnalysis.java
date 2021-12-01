@@ -132,8 +132,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 LOGGER.info("Save pre-contingency state");
 
                 // save base state for later restoration after each contingency
-                List<BusState> busStates = BusState.save(network.getBuses());
-                List<BranchState> branchStates = BranchState.save(network.getBranches());
+                List<BusState> busStates = ElementState.save(network.getBuses(), BusState::save);
+                List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
                 for (LfBus bus : network.getBuses()) {
                     bus.setVoltageControlSwitchOffCount(0);
                 }
