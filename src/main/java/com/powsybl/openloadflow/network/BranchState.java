@@ -6,17 +6,10 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 /**
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
-public class BranchState {
-
-    private final LfBranch branch;
+public class BranchState extends ElementState<LfBranch> {
 
     private final double a1;
     private final double r1;
@@ -24,7 +17,7 @@ public class BranchState {
     private final boolean disabled;
 
     public BranchState(LfBranch branch) {
-        this.branch = Objects.requireNonNull(branch);
+        super(branch);
         PiModel piModel = branch.getPiModel();
         a1 = piModel.getA1();
         r1 = piModel.getR1();
@@ -32,25 +25,18 @@ public class BranchState {
         disabled = branch.isDisabled();
     }
 
+    @Override
     public void restore() {
-        PiModel piModel = branch.getPiModel();
+        PiModel piModel = element.getPiModel();
         piModel.setA1(a1);
         piModel.setR1(r1);
         if (discretePhaseControlMode != null) {
-            branch.getDiscretePhaseControl().ifPresent(control -> control.setMode(discretePhaseControlMode));
+            element.getDiscretePhaseControl().ifPresent(control -> control.setMode(discretePhaseControlMode));
         }
-        branch.setDisabled(disabled);
+        element.setDisabled(disabled);
     }
 
     public static BranchState save(LfBranch branch) {
         return new BranchState(branch);
-    }
-
-    public static List<BranchState> save(Collection<LfBranch> branches) {
-        return branches.stream().map(BranchState::save).collect(Collectors.toList());
-    }
-
-    public static void restore(Collection<BranchState> branchStates) {
-        branchStates.forEach(BranchState::restore);
     }
 }
