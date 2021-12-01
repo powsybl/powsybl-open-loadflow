@@ -6,14 +6,13 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.openloadflow.network.LfElement;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -39,15 +38,15 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
      */
     private boolean active = true;
 
-    private EquationSystem.EquationUpdateType updateType;
+    private EquationUpdateType updateType;
 
     private final List<EquationTerm<V, E>> terms = new ArrayList<>();
 
     Equation(int num, E type, EquationSystem<V, E> equationSystem) {
-        this(num, type, equationSystem, EquationSystem.EquationUpdateType.DEFAULT);
+        this(num, type, equationSystem, EquationUpdateType.DEFAULT);
     }
 
-    Equation(int num, E type, EquationSystem<V, E> equationSystem, EquationSystem.EquationUpdateType updateType) {
+    Equation(int num, E type, EquationSystem<V, E> equationSystem, EquationUpdateType updateType) {
         this.num = num;
         this.type = Objects.requireNonNull(type);
         this.equationSystem = Objects.requireNonNull(equationSystem);
@@ -85,12 +84,12 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         }
     }
 
-    public EquationSystem.EquationUpdateType getUpdateType() {
+    public EquationUpdateType getUpdateType() {
         return updateType;
     }
 
-    public void setUpdateType(EquationSystem.EquationUpdateType updateType) {
-        this.updateType = updateType;
+    public void setUpdateType(EquationUpdateType updateType) {
+        this.updateType = Objects.requireNonNull(updateType);
     }
 
     public void setData(Object data) {
@@ -186,11 +185,24 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         }
     }
 
+    public Optional<LfElement> getElement(LfNetwork network) {
+        Objects.requireNonNull(network);
+        LfElement element = null;
+        switch (type.getElementType()) {
+            case BUS:
+                element = network.getBus(num);
+                break;
+            case BRANCH:
+                element = network.getBranch(num);
+                break;
+        }
+        return Optional.ofNullable(element);
+    }
+
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder("Equation(num=").append(num)
-                .append(", type=").append(type)
-                .append(", column=").append(column).append(")");
-        return builder.toString();
+        return "Equation(num=" + num +
+                ", type=" + type +
+                ", column=" + column + ")";
     }
 }

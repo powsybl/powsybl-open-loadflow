@@ -22,14 +22,14 @@ public final class HvdcConverterStations {
     private HvdcConverterStations() {
     }
 
-    public static boolean isRectifier(HvdcConverterStation station) {
+    public static boolean isRectifier(HvdcConverterStation<?> station) {
         Objects.requireNonNull(station);
         HvdcLine line = station.getHvdcLine();
         return (line.getConverterStation1() == station && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER)
                 || (line.getConverterStation2() == station && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER);
     }
 
-    public static double getActivePowerSetpointMultiplier(HvdcConverterStation station) {
+    public static double getActivePowerSetpointMultiplier(HvdcConverterStation<?> station) {
         boolean isConverterStationRectifier = isRectifier(station);
         double sign;
         if (station instanceof LccConverterStation) { // load convention.

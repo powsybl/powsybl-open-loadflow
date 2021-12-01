@@ -48,4 +48,13 @@ public class NewtonRaphsonParameters {
     public NewtonRaphsonStoppingCriteria getStoppingCriteria() {
         return stoppingCriteria;
     }
+
+    @Override
+    public String toString() {
+        return "NewtonRaphsonParameters(" +
+                "maxIteration=" + maxIteration +
+                ", voltageInitializer=" + voltageInitializer.getClass().getSimpleName() +
+                ", stoppingCriteria=" + stoppingCriteria.getClass().getSimpleName() +
+                ')';
+    }
 }

@@ -13,7 +13,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -43,7 +43,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private SlackBusSelectionMode slackBusSelectionMode = SLACK_BUS_SELECTION_DEFAULT_VALUE;
 
-    private String slackBusId = null;
+    private List<String> slackBusesIds = Collections.emptyList();
 
     private boolean throwsExceptionInCaseOfSlackDistributionFailure = THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE;
 
@@ -82,12 +82,17 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public String getSlackBusId() {
-        return slackBusId;
+    public List<String> getSlackBusesIds() {
+        return slackBusesIds;
+    }
+
+    public OpenLoadFlowParameters setSlackBusesIds(List<String> slackBusesIds) {
+        this.slackBusesIds = Objects.requireNonNull(slackBusesIds);
+        return this;
     }
 
     public OpenLoadFlowParameters setSlackBusId(String slackBusId) {
-        this.slackBusId = slackBusId;
+        this.slackBusesIds = List.of(Objects.requireNonNull(slackBusId));
         return this;
     }
 
@@ -183,7 +188,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public String toString() {
         return "OpenLoadFlowParameters(" +
                 "slackBusSelectionMode=" + slackBusSelectionMode +
-                ", slackBusId='" + Objects.toString(slackBusId, "") + "'" +
+                ", slackBusesIds=" + slackBusesIds +
                 ", throwsExceptionInCaseOfSlackDistributionFailure=" + throwsExceptionInCaseOfSlackDistributionFailure +
                 ", voltageRemoteControl=" + voltageRemoteControl +
                 ", lowImpedanceBranchMode=" + lowImpedanceBranchMode +
@@ -201,7 +206,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         public static final String SLACK_BUS_SELECTION_PARAM_NAME = "slackBusSelectionMode";
 
-        public static final String SLACK_BUS_ID_PARAM_NAME = "slackBusId";
+        public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
 
         public static final String THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME = "throwsExceptionInCaseOfSlackDistributionFailure";
 
@@ -228,7 +233,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             platformConfig.getOptionalModuleConfig("open-loadflow-default-parameters")
                 .ifPresent(config -> parameters
                         .setSlackBusSelectionMode(config.getEnumProperty(SLACK_BUS_SELECTION_PARAM_NAME, SlackBusSelectionMode.class, SLACK_BUS_SELECTION_DEFAULT_VALUE))
-                        .setSlackBusId(config.getStringProperty(SLACK_BUS_ID_PARAM_NAME, null))
+                        .setSlackBusesIds(config.getStringListProperty(SLACK_BUSES_IDS_PARAM_NAME, Collections.emptyList()))
                         .setLowImpedanceBranchMode(config.getEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class, LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE))
                         .setVoltageRemoteControl(config.getBooleanProperty(VOLTAGE_REMOTE_CONTROL_PARAM_NAME, VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE))
                         .setThrowsExceptionInCaseOfSlackDistributionFailure(

@@ -37,8 +37,8 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.ObjDoubleConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -174,14 +174,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                        List<ParticipatingElement> participatingElements, Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
                                                        Reporter reporter) {
 
-        Map<LfBus, BusState> busStates = new HashMap<>();
+        List<BusState> busStates = Collections.emptyList();
         if (lfParameters.isDistributedSlack()) {
-            busStates = BusState.createBusStates(participatingElements.stream()
+            busStates = ElementState.save(participatingElements.stream()
                 .map(ParticipatingElement::getLfBus)
-                .collect(Collectors.toSet()));
+                .collect(Collectors.toSet()), BusState::save);
         }
         // the A1 variables will be set to 0 for disabledBranches, so we need to restore them at the end
-        Map<LfBranch, BranchState> branchStates = BranchState.createBranchStates(disabledBranches);
+        List<BranchState> branchStates = ElementState.save(disabledBranches, BranchState::save);
 
         dcLoadFlowEngine.run(equationSystem, j, disabledBuses, disabledBranches, reporter);
 
@@ -190,9 +190,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
 
         if (lfParameters.isDistributedSlack()) {
-            BusState.restoreBusActiveStates(busStates);
+            ElementState.restore(busStates);
         }
-        BranchState.restoreBranchStates(branchStates);
+        ElementState.restore(branchStates);
 
         double[] dx = dcLoadFlowEngine.getTargetVector();
         return new DenseMatrix(dx.length, 1, dx);
@@ -290,7 +290,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     private void setAlphas(Collection<ComputedContingencyElement> contingencyElements, DenseMatrix states,
-                           DenseMatrix contingenciesStates, int columnState, BiConsumer<ComputedContingencyElement, Double> setValue) {
+                           DenseMatrix contingenciesStates, int columnState, ObjDoubleConsumer<ComputedContingencyElement> setValue) {
         if (contingencyElements.size() == 1) {
             ComputedContingencyElement element = contingencyElements.iterator().next();
             LfBranch lfBranch = element.getLfBranch();
@@ -578,7 +578,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     private void applyInjectionContingencies(Network network, LfNetwork lfNetwork, PropagatedContingency contingency,
-                                             Set<LfGenerator> participatingGeneratorsToRemove, Map<LfBus, BusState> busStates,
+                                             Set<LfGenerator> participatingGeneratorsToRemove, List<BusState> busStates,
                                              LoadFlowParameters lfParameters) {
         // it applies on the network the loss of DC lines contained in the contingency.
         // it applies on the network the loss of generators contained in the contingency.
@@ -600,12 +600,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             processGenerator(lfNetwork, generator, generators);
         }
 
-        Collection<LfBus> busesToSave = new HashSet<>();
-        lccs.stream().map(Pair::getKey).forEach(busesToSave::add);
-        vscs.stream().map(LfGenerator::getBus).forEach(busesToSave::add);
-        generators.stream().map(LfGenerator::getBus).forEach(busesToSave::add);
-
-        BusState.addBusStates(busesToSave, busStates);
+        lccs.stream().map(Pair::getKey).forEach(b -> busStates.add(BusState.save(b)));
+        vscs.stream().map(LfGenerator::getBus).forEach(b -> busStates.add(BusState.save(b)));
+        generators.stream().map(LfGenerator::getBus).forEach(b -> busStates.add(BusState.save(b)));
 
         for (Pair<LfBus, LccConverterStation> busAndlcc : lccs) {
             LfBus bus = busAndlcc.getKey();
@@ -656,7 +653,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             // if we have a contingency including the loss of a DC line or a generator
             // if we have a contingency including the loss of a generator
 
-            Map<LfBus, BusState> busStates = new HashMap<>();
+            List<BusState> busStates = new ArrayList<>();
             Set<LfGenerator> participatingGeneratorsToRemove = new HashSet<>();
             applyInjectionContingencies(network, lfNetwork, contingency, participatingGeneratorsToRemove, busStates, lfParameters);
 
@@ -681,7 +678,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             calculateSensitivityValues(factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements, contingency, valueWriter);
 
-            BusState.restoreBusStates(busStates);
+            ElementState.restore(busStates);
             if (participatingElementsChanged) {
                 setBaseCaseSensitivityValues(factorGroups, factorStates);
             }
@@ -738,7 +735,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         // create the network (we only manage main connected component)
-        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusId());
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds());
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector, false, true, lfParameters.isTwtSplitShuntAdmittance(),
                 false, lfParametersExt.getPlausibleActivePowerLimit(), false, true, lfParameters.getCountriesToBalance(),
                 lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,

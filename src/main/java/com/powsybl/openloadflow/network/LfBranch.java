@@ -79,10 +79,6 @@ public interface LfBranch extends LfElement {
 
     BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1);
 
-    boolean isDisabled();
-
-    void setDisabled(boolean disabled);
-
     double computeApparentPower1();
 
     double computeApparentPower2();

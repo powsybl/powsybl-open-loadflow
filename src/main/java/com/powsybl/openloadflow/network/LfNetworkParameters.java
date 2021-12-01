@@ -132,4 +132,24 @@ public class LfNetworkParameters {
     public boolean isReactivePowerRemoteControl() {
         return reactivePowerRemoteControl;
     }
+
+    @Override
+    public String toString() {
+        return "LfNetworkParameters(" +
+                "slackBusSelector=" + slackBusSelector.getClass().getSimpleName() +
+                ", generatorVoltageRemoteControl=" + generatorVoltageRemoteControl +
+                ", minImpedance=" + minImpedance +
+                ", twtSplitShuntAdmittance=" + twtSplitShuntAdmittance +
+                ", breakers=" + breakers +
+                ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
+                ", addRatioToLinesWithDifferentNominalVoltageAtBothEnds=" + addRatioToLinesWithDifferentNominalVoltageAtBothEnds +
+                ", computeMainConnectedComponentOnly=" + computeMainConnectedComponentOnly +
+                ", countriesToBalance=" + countriesToBalance +
+                ", distributedOnConformLoad=" + distributedOnConformLoad +
+                ", phaseControl=" + phaseControl +
+                ", transformerVoltageControl=" + transformerVoltageControl +
+                ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
+                ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
+                ')';
+    }
 }

@@ -1098,7 +1098,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         // test injection increase on loads
         Network network = HvdcNetworkFactory.createNetworkWithGenerators();
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
-        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, List.of("b1_vl_0", "b4_vl_0"), true);
         Network network1 = HvdcNetworkFactory.createNetworkWithGenerators();
         network1.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         network1.getLine("l25").getTerminal1().disconnect();

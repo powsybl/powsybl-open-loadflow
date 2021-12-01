@@ -4,28 +4,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.network;
+package com.powsybl.openloadflow.equations;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface LfElement {
-
-    String getId();
-
-    ElementType getType();
-
-    int getNum();
-
-    void setNum(int num);
-
-    boolean isDisabled();
-
-    void setDisabled(boolean disabled);
-
-    LfNetwork getNetwork();
-
-    Object getUserObject();
-
-    void setUserObject(Object userObject);
+public enum EquationUpdateType {
+    DEFAULT,
+    AFTER_NR,
+    NEVER
 }
