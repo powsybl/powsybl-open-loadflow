@@ -46,4 +46,14 @@ public class DcEquationSystemCreationParameters {
     public boolean isUseTransformerRatio() {
         return useTransformerRatio;
     }
+
+    @Override
+    public String toString() {
+        return "DcEquationSystemCreationParameters(" +
+                "updateFlows=" + updateFlows +
+                ", indexTerms=" + indexTerms +
+                ", forcePhaseControlOffAndAddAngle1Var=" + forcePhaseControlOffAndAddAngle1Var +
+                ", useTransformerRatio=" + useTransformerRatio +
+                ')';
+    }
 }

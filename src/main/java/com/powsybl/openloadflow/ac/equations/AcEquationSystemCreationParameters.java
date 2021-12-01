@@ -13,35 +13,17 @@ import java.util.Set;
  */
 public class AcEquationSystemCreationParameters {
 
-    private final boolean phaseControl;
-
-    private final boolean transformerVoltageControl;
-
     private final boolean forceA1Var;
 
     private final Set<String> branchesWithCurrent;
 
-    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl) {
-        this(phaseControl, transformerVoltageControl, false);
+    public AcEquationSystemCreationParameters() {
+        this(false, null);
     }
 
-    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var) {
-        this(phaseControl, transformerVoltageControl, forceA1Var, null);
-    }
-
-    public AcEquationSystemCreationParameters(boolean phaseControl, boolean transformerVoltageControl, boolean forceA1Var, Set<String> branchesWithCurrent) {
-        this.phaseControl = phaseControl;
-        this.transformerVoltageControl = transformerVoltageControl;
+    public AcEquationSystemCreationParameters(boolean forceA1Var, Set<String> branchesWithCurrent) {
         this.forceA1Var = forceA1Var;
         this.branchesWithCurrent = branchesWithCurrent;
-    }
-
-    public boolean isPhaseControl() {
-        return phaseControl;
-    }
-
-    public boolean isTransformerVoltageControl() {
-        return transformerVoltageControl;
     }
 
     public boolean isForceA1Var() {
@@ -50,5 +32,13 @@ public class AcEquationSystemCreationParameters {
 
     public Set<String> getBranchesWithCurrent() {
         return branchesWithCurrent;
+    }
+
+    @Override
+    public String toString() {
+        return "AcEquationSystemCreationParameters(" +
+                "forceA1Var=" + forceA1Var +
+                ", branchesWithCurrent=" + branchesWithCurrent +
+                ')';
     }
 }

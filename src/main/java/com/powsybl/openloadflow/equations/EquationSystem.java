@@ -166,12 +166,6 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private final List<EquationSystemListener<V, E>> listeners = new ArrayList<>();
 
-    public enum EquationUpdateType {
-        DEFAULT,
-        AFTER_NR,
-        NEVER
-    }
-
     public EquationSystem() {
         this(false);
     }

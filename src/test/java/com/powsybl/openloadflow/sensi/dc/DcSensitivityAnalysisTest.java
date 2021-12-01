@@ -34,10 +34,7 @@ import com.powsybl.sensitivity.factors.variables.LinearGlsk;
 import com.powsybl.sensitivity.factors.variables.PhaseTapChangerAngle;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
@@ -460,7 +457,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         double sensiChange = 10e-4;
         // test injection increase on loads
         Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
-        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", false);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, List.of("b1_vl_0", "b4_vl_0"), false);
 
         runLf(network, sensiParameters.getLoadFlowParameters());
         Network network1 = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
@@ -551,7 +548,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         // test injection increase on loads
         Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
-        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, List.of("b1_vl_0", "b4_vl_0"), true);
 
         runLf(network, sensiParameters.getLoadFlowParameters());
         Network network1 = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
@@ -695,6 +692,11 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testGlskAndLineOutsideMainComponent() {
+        testGlskAndLineOutsideMainComponent(true);
+    }
+
+    @Test
     void testGlskPartiallyOutsideMainComponent() {
         testGlskPartiallyOutsideMainComponent(true);
     }
@@ -784,5 +786,43 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies);
         assertEquals(1, propagatedContingencies.size());
+    }
+
+    @Test
+    void testOpenMonitoredBranch() {
+        Network network = EurostagTutorialExample1Factory.create();
+        runDcLf(network);
+        network.getLine("NHV1_NHV2_1").getTerminal2().disconnect();
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+        SensitivityFactorsProvider factorsProvider = n -> {
+            Branch branch = n.getBranch("NHV1_NHV2_1");
+            return Collections.singletonList(new BranchFlowPerLinearGlsk(
+                    createBranchFlow(branch),
+                    new LinearGlsk("glsk", "glsk", Collections.singletonMap("LOAD", 10f))
+            ));
+        };
+        SensitivityAnalysisResult sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+                factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
+        assertEquals(0., getValue(sensiResult, "glsk", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, getFunctionReference(sensiResult, "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testOpenMonitoredBranch2() {
+        Network network = EurostagTutorialExample1Factory.create();
+        runDcLf(network);
+        network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+        SensitivityFactorsProvider factorsProvider = n -> {
+            Branch branch = n.getBranch("NHV1_NHV2_1");
+            return Collections.singletonList(new BranchFlowPerLinearGlsk(
+                    createBranchFlow(branch),
+                    new LinearGlsk("glsk", "glsk", Collections.singletonMap("LOAD", 10f))
+            ));
+        };
+        SensitivityAnalysisResult sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+                factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
+        assertEquals(0., getValue(sensiResult, "glsk", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, getFunctionReference(sensiResult, "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
     }
 }

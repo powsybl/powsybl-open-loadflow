@@ -65,6 +65,8 @@ public class LfNetwork {
 
     private boolean valid = true;
 
+    private Object userObject;
+
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector) {
         this.numCC = numCC;
         this.numSC = numSC;
@@ -85,7 +87,9 @@ public class LfNetwork {
 
     public void updateSlack() {
         if (slackBus == null) {
-            slackBus = slackBusSelector.select(busesByIndex);
+            SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex);
+            slackBus = selectedSlackBus.getBus();
+            LOGGER.info("Network {}, slack bus is '{}' (method='{}')", this, slackBus.getId(), selectedSlackBus.getSelectionMethod());
             slackBus.setSlack(true);
         }
     }
@@ -398,9 +402,8 @@ public class LfNetwork {
         if (minImpedance) {
             for (LfBranch branch : network.getBranches()) {
                 PiModel piModel = branch.getPiModel();
-                if (Math.abs(piModel.getZ()) < LOW_IMPEDANCE_THRESHOLD) {
-                    piModel.setR(0);
-                    piModel.setX(LOW_IMPEDANCE_THRESHOLD);
+                if (piModel.setMinZ(LOW_IMPEDANCE_THRESHOLD)) {
+                    LOGGER.trace("Branch {} has a low impedance, set to min {}", branch.getId(), LOW_IMPEDANCE_THRESHOLD);
                 }
             }
         }
@@ -430,37 +433,33 @@ public class LfNetwork {
         }
     }
 
-    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector) {
-        return load(network, new LfNetworkParameters(slackBusSelector), Reporter.NO_OP);
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector) {
+        return load(network, networkLoader, new LfNetworkParameters(slackBusSelector), Reporter.NO_OP);
     }
 
-    public static List<LfNetwork> load(Object network, LfNetworkParameters parameters) {
-        return load(network, parameters, Reporter.NO_OP);
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters) {
+        return load(network, networkLoader, parameters, Reporter.NO_OP);
     }
 
-    public static List<LfNetwork> load(Object network, SlackBusSelector slackBusSelector, Reporter reporter) {
-        return load(network, new LfNetworkParameters(slackBusSelector), reporter);
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector, Reporter reporter) {
+        return load(network, networkLoader, new LfNetworkParameters(slackBusSelector), reporter);
     }
 
-    public static List<LfNetwork> load(Object network, LfNetworkParameters parameters, Reporter reporter) {
+    public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
+        Objects.requireNonNull(networkLoader);
         Objects.requireNonNull(parameters);
-        for (LfNetworkLoader importer : ServiceLoader.load(LfNetworkLoader.class, LfNetwork.class.getClassLoader())) {
-            List<LfNetwork> lfNetworks = importer.load(network, parameters, reporter).orElse(null);
-            if (lfNetworks != null) {
-                for (LfNetwork lfNetwork : lfNetworks) {
-                    Reporter reporterNetwork = reporter.createSubReporter("postLoading", "Post loading process on network CC${numNetworkCc} SC${numNetworkSc}",
-                        Map.of("numNetworkCc", new TypedValue(lfNetwork.getNumCC(), TypedValue.UNTYPED),
-                            "numNetworkSc", new TypedValue(lfNetwork.getNumSC(), TypedValue.UNTYPED)));
-                    fix(lfNetwork, parameters.isMinImpedance());
-                    validate(lfNetwork, parameters.isMinImpedance());
-                    lfNetwork.reportSize(reporterNetwork);
-                    lfNetwork.reportBalance(reporterNetwork);
-                }
-                return lfNetworks;
-            }
+        List<LfNetwork> lfNetworks = networkLoader.load(network, parameters, reporter);
+        for (LfNetwork lfNetwork : lfNetworks) {
+            Reporter reporterNetwork = reporter.createSubReporter("postLoading", "Post loading process on network CC${numNetworkCc} SC${numNetworkSc}",
+                Map.of("numNetworkCc", new TypedValue(lfNetwork.getNumCC(), TypedValue.UNTYPED),
+                    "numNetworkSc", new TypedValue(lfNetwork.getNumSC(), TypedValue.UNTYPED)));
+            fix(lfNetwork, parameters.isMinImpedance());
+            validate(lfNetwork, parameters.isMinImpedance());
+            lfNetwork.reportSize(reporterNetwork);
+            lfNetwork.reportBalance(reporterNetwork);
         }
-        throw new PowsyblException("Cannot import network of type: " + network.getClass().getName());
+        return lfNetworks;
     }
 
     /**
@@ -514,6 +513,14 @@ public class LfNetwork {
 
     public void setValid(boolean valid) {
         this.valid = valid;
+    }
+
+    public Object getUserObject() {
+        return userObject;
+    }
+
+    public void setUserObject(Object userObject) {
+        this.userObject = userObject;
     }
 
     @Override

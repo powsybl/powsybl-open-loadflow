@@ -14,7 +14,7 @@ import java.util.List;
 public class FirstSlackBusSelector implements SlackBusSelector {
 
     @Override
-    public LfBus select(List<LfBus> buses) {
-        return buses.get(0);
+    public SelectedSlackBus select(List<LfBus> buses) {
+        return new SelectedSlackBus(buses.get(0), "First bus");
     }
 }

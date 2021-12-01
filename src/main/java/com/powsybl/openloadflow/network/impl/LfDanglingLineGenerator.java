@@ -30,7 +30,7 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
             // The controlled bus cannot be reached from the DanglingLine parameters (there is no terminal in DanglingLine.Generation)
             this.controlledBusId = Objects.requireNonNull(controlledLfBusId);
             setTargetV(danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV(), report);
-            this.hasVoltageControl = true;
+            this.generatorControlType = GeneratorControlType.VOLTAGE;
         }
     }
 

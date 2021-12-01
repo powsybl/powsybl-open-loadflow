@@ -157,7 +157,7 @@ class OpenSecurityAnalysisTest {
                 .map(id -> new Contingency(id, new BranchContingency(id)))
                 .collect(Collectors.toList());
 
-        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider();
+        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
         CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network, network.getVariantManager().getWorkingVariantId(),
             new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
             contingenciesProvider, Collections.emptyList());
@@ -598,10 +598,13 @@ class OpenSecurityAnalysisTest {
         fourBusNetwork.getLine("l34").newActivePowerLimits1().setPermanentLimit(0.15).add();
         fourBusNetwork.getLine("l13").newActivePowerLimits1().setPermanentLimit(0.1).add();
 
+        List<StateMonitor> monitors = new ArrayList<>();
+        monitors.add(new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "l34", "l13"), Collections.emptySet(), Collections.emptySet()));
+
         OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
         CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(fourBusNetwork, fourBusNetwork.getVariantManager().getWorkingVariantId(),
                 new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
-                contingenciesProvider, Collections.emptyList(), Collections.emptyList());
+                contingenciesProvider, Collections.emptyList(), monitors);
         SecurityAnalysisResult result = futureResult.join().getResult();
 
         assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
@@ -612,6 +615,33 @@ class OpenSecurityAnalysisTest {
         assertEquals(4, result.getPostContingencyResults().get(2).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(3).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
+
+        //Branch result for first contingency
+        assertEquals(5, result.getPostContingencyResults().get(0).getBranchResults().size());
+
+        //Check branch results for flowTransfer computation for contingency on l14
+        PostContingencyResult postContl14 = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals("l14")).findFirst().get();
+        assertEquals("l14", postContl14.getContingency().getId());
+
+        BranchResult brl14l12 = postContl14.getBranchResult("l12");
+        assertEquals(0.33, brl14l12.getP1(), 1e-2);
+        assertEquals(0.33, brl14l12.getFlowTransfer(), 1e-2);
+
+        BranchResult brl14l14 = postContl14.getBranchResult("l14");
+        assertEquals(0.0, brl14l14.getP1(), 1e-2);
+        assertEquals(-1.0, brl14l14.getFlowTransfer(), 1e-2);
+
+        BranchResult brl14l23 = postContl14.getBranchResult("l23");
+        assertEquals(1.33, brl14l23.getP1(), 1e-2);
+        assertEquals(0.33, brl14l23.getFlowTransfer(), 1e-2);
+
+        BranchResult brl14l34 = postContl14.getBranchResult("l34");
+        assertEquals(-1.0, brl14l34.getP1(), 1e-2);
+        assertEquals(1.0, brl14l34.getFlowTransfer(), 1e-2);
+
+        BranchResult brl14l13 = postContl14.getBranchResult("l13");
+        assertEquals(1.66, brl14l13.getP1(), 1e-2);
+        assertEquals(0.66, brl14l13.getFlowTransfer(), 1e-2);
 
         StringWriter writer = new StringWriter();
         Security.print(result, fourBusNetwork, writer, new AsciiTableFormatterFactory(), new TableFormatterConfig());
@@ -671,5 +701,58 @@ class OpenSecurityAnalysisTest {
                                                                                  Collections.emptyList(),
                                                                                  monitors);
         return futureResult.join().getResult();
+    }
+
+    @Test
+    void testSAmodeACAllBranchMonitoredFlowTransfer() {
+        Network network = FourBusNetworkFactory.create();
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+
+        // Testing all contingencies at once
+        ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
+                .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
+                .collect(Collectors.toList());
+
+        Set<String> allBranchIds = network.getBranchStream().map(b -> b.getId()).collect(Collectors.toSet());
+
+        List<StateMonitor> monitors = new ArrayList<>();
+        monitors.add(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
+
+        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
+        CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network, network.getVariantManager().getWorkingVariantId(),
+                new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
+                contingenciesProvider, Collections.emptyList(), monitors);
+        SecurityAnalysisResult result = futureResult.join().getResult();
+
+        assertEquals(5, result.getPostContingencyResults().size());
+
+        for (PostContingencyResult r : result.getPostContingencyResults()) {
+            assertEquals(4, r.getBranchResults().size());
+        }
+
+        //Check branch results for flowTransfer computation for contingency on l14
+        PostContingencyResult postContl14 = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals("l14")).findFirst().get();
+        assertEquals("l14", postContl14.getContingency().getId());
+
+        BranchResult brl14l12 = postContl14.getBranchResult("l12");
+        assertEquals(0.33, brl14l12.getP1(), 1e-2);
+        assertEquals(0.33, brl14l12.getFlowTransfer(), 1e-2);
+
+        BranchResult brl14l23 = postContl14.getBranchResult("l23");
+        assertEquals(1.33, brl14l23.getP1(), 1e-2);
+        assertEquals(0.33, brl14l23.getFlowTransfer(), 1e-2);
+
+        BranchResult brl14l34 = postContl14.getBranchResult("l34");
+        assertEquals(-1.0, brl14l34.getP1(), 1e-2);
+        assertEquals(1.0, brl14l34.getFlowTransfer(), 1e-2);
+
+        BranchResult brl14l13 = postContl14.getBranchResult("l13");
+        assertEquals(1.66, brl14l13.getP1(), 1e-2);
+        assertEquals(0.66, brl14l13.getFlowTransfer(), 1e-2);
     }
 }

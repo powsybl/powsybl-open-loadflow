@@ -19,5 +19,13 @@ public interface LfElement {
 
     void setNum(int num);
 
+    boolean isDisabled();
+
+    void setDisabled(boolean disabled);
+
     LfNetwork getNetwork();
+
+    Object getUserObject();
+
+    void setUserObject(Object userObject);
 }

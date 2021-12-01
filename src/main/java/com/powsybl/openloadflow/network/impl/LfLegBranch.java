@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.security.results.BranchResult;
 
 import java.util.*;
 
@@ -93,14 +94,23 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
         }
     }
 
+    public static String getId(String twtId, int legNum) {
+        return twtId + "_leg_" + legNum;
+    }
+
     @Override
     public String getId() {
-        return twt.getId() + "_leg_" + getLegNum();
+        return getId(twt.getId(), getLegNum());
     }
 
     @Override
     public boolean hasPhaseControlCapability() {
         return leg.getPhaseTapChanger() != null;
+    }
+
+    @Override
+    public BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1) {
+        throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
     }
 
     @Override
@@ -123,12 +133,12 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
         leg.getTerminal().setP(p.eval() * PerUnit.SB);
         leg.getTerminal().setQ(q.eval() * PerUnit.SB);
 
-        if (phaseShifterRegulationOn && isPhaseController() && phaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
+        if (phaseShifterRegulationOn && isPhaseController() && discretePhaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
             // it means there is a regulating phase tap changer located on that leg
             updateTapPosition(leg.getPhaseTapChanger());
         }
 
-        if (phaseShifterRegulationOn && isPhaseControlled() && phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
+        if (phaseShifterRegulationOn && isPhaseControlled() && discretePhaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
             // check if the target value deadband is respected
             checkTargetDeadband(p.eval());
         }

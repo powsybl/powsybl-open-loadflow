@@ -8,17 +8,16 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,17 +39,8 @@ public class DcLoadFlowEngine {
 
     private double[] targetVector;
 
-    public DcLoadFlowEngine(LfNetwork network, MatrixFactory matrixFactory, boolean setVToNan) {
-        this.networks = Collections.singletonList(network);
-        parameters = new DcLoadFlowParameters(new FirstSlackBusSelector(), matrixFactory, setVToNan);
-    }
-
-    public DcLoadFlowEngine(Object network, DcLoadFlowParameters parameters, Reporter reporter) {
-        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(parameters.getSlackBusSelector(), false, false, false, false,
-                parameters.getPlausibleActivePowerLimit(), false, parameters.isComputeMainConnectedComponentOnly(), parameters.getCountriesToBalance(),
-                parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                false, false, false);
-        this.networks = LfNetwork.load(network, lfNetworkParameters, reporter);
+    public <T> DcLoadFlowEngine(T network, LfNetworkLoader<T> networkLoader, DcLoadFlowParameters parameters, Reporter reporter) {
+        this.networks = LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reporter);
         this.parameters = Objects.requireNonNull(parameters);
     }
 
@@ -78,8 +68,7 @@ public class DcLoadFlowEngine {
     }
 
     public DcLoadFlowResult run(Reporter reporter, LfNetwork pNetwork) {
-        DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(parameters.isUpdateFlows(), false, parameters.isForcePhaseControlOffAndAddAngle1Var(), parameters.isUseTransformerRatio());
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(pNetwork, new VariableSet<>(), creationParameters);
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(pNetwork, new VariableSet<>(), parameters.getEquationSystemCreationParameters());
 
         LoadFlowResult.ComponentResult.Status status = LoadFlowResult.ComponentResult.Status.FAILED;
         try (JacobianMatrix<DcVariableType, DcEquationType> j = new JacobianMatrix<>(equationSystem, parameters.getMatrixFactory())) {
@@ -224,7 +213,7 @@ public class DcLoadFlowEngine {
         }
 
         equationSystem.updateEquations(targetVector);
-        equationSystem.updateEquations(targetVector, EquationSystem.EquationUpdateType.AFTER_NR);
+        equationSystem.updateEquations(targetVector, EquationUpdateType.AFTER_NR);
         updateNetwork(network, equationSystem, targetVector);
 
         // set all calculated voltages to NaN

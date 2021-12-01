@@ -63,15 +63,15 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private final PiModel piModel;
 
-    protected DiscretePhaseControl phaseControl;
+    protected DiscretePhaseControl discretePhaseControl;
 
     protected DiscreteVoltageControl discreteVoltageControl;
-
-    protected boolean disabled = false;
 
     protected boolean spanningTreeEdge = false;
 
     protected Evaluable a1;
+
+    private ReactivePowerControl reactivePowerControl;
 
     protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
         super(network);
@@ -137,27 +137,27 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     @Override
     public Optional<DiscretePhaseControl> getDiscretePhaseControl() {
-        return Optional.ofNullable(phaseControl);
+        return Optional.ofNullable(discretePhaseControl);
     }
 
     @Override
     public void setDiscretePhaseControl(DiscretePhaseControl discretePhaseControl) {
-        this.phaseControl = discretePhaseControl;
+        this.discretePhaseControl = discretePhaseControl;
     }
 
     @Override
     public boolean isPhaseController() {
-        return phaseControl != null && phaseControl.getController() == this;
+        return discretePhaseControl != null && discretePhaseControl.getController() == this;
     }
 
     @Override
     public boolean isPhaseControlled() {
-        return phaseControl != null && phaseControl.getControlled() == this;
+        return discretePhaseControl != null && discretePhaseControl.getControlled() == this;
     }
 
     @Override
     public boolean isPhaseControlled(DiscretePhaseControl.ControlledSide controlledSide) {
-        return isPhaseControlled() && phaseControl.getControlledSide() == controlledSide;
+        return isPhaseControlled() && discretePhaseControl.getControlledSide() == controlledSide;
     }
 
     protected void updateTapPosition(PhaseTapChanger ptc) {
@@ -171,11 +171,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     protected void checkTargetDeadband(double p) {
-        double distance = Math.abs(p - phaseControl.getTargetValue()); // in per unit system
-        if (distance > phaseControl.getTargetDeadband() / 2) {
+        double distance = Math.abs(p - discretePhaseControl.getTargetValue()); // in per unit system
+        if (distance > discretePhaseControl.getTargetDeadband() / 2) {
             LOGGER.warn("The active power on side {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
-                    phaseControl.getControlledSide(), getId(), p,
-                    phaseControl.getTargetValue() * PerUnit.SB, phaseControl.getTargetDeadband() / 2 * PerUnit.SB);
+                    discretePhaseControl.getControlledSide(), getId(), p,
+                    discretePhaseControl.getTargetValue() * PerUnit.SB, discretePhaseControl.getTargetDeadband() / 2 * PerUnit.SB);
         }
     }
 
@@ -219,16 +219,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.discreteVoltageControl = discreteVoltageControl;
     }
 
-    @Override
-    public boolean isDisabled() {
-        return disabled;
-    }
-
-    @Override
-    public void setDisabled(boolean disabled) {
-        this.disabled = disabled;
-    }
-
     public double computeApparentPower1() {
         double p = getP1().eval();
         double q = getQ1().eval();
@@ -260,5 +250,14 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public void setA1(Evaluable a1) {
         this.a1 = a1;
+    }
+
+    public Optional<ReactivePowerControl> getReactivePowerControl() {
+        return Optional.ofNullable(reactivePowerControl);
+    }
+
+    @Override
+    public void setReactivePowerControl(ReactivePowerControl pReactivePowerControl) {
+        this.reactivePowerControl = Objects.requireNonNull(pReactivePowerControl);
     }
 }

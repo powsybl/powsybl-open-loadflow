@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,11 +32,11 @@ class NameSlackBusSelectorTest {
 
     @Test
     void test() {
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new NameSlackBusSelector("VLGEN_0"));
+        List<LfNetwork> lfNetworks = Networks.load(network, new NameSlackBusSelector("VLGEN_0"));
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertEquals("VLGEN_0", lfNetwork.getSlackBus().getId());
 
-        lfNetworks = LfNetwork.load(network, new NameSlackBusSelector("VLLOAD_0"));
+        lfNetworks = Networks.load(network, new NameSlackBusSelector("VLLOAD_0"));
         lfNetwork = lfNetworks.get(0);
 
         assertEquals("VLLOAD_0", lfNetwork.getSlackBus().getId());
@@ -44,7 +45,7 @@ class NameSlackBusSelectorTest {
     @Test
     void errorTest() {
         NameSlackBusSelector slackBusSelector = new NameSlackBusSelector("???");
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, slackBusSelector);
+        List<LfNetwork> lfNetworks = Networks.load(network, slackBusSelector);
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertThrows(PowsyblException.class, () -> lfNetwork.getSlackBus(),
             "Slack bus '???' not found");
