@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  */
 public class ElementState<T extends LfElement> {
 
-    protected T element;
+    protected final T element;
 
     public ElementState(T element) {
         this.element = Objects.requireNonNull(element);
