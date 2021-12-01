@@ -36,6 +36,7 @@ import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.NetworkSlackBusSelector;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -91,21 +92,21 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new PowsyblCoreVersion().getMavenProjectVersion();
     }
 
-    public static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters) {
+    public static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
         switch (parameters.getVoltageInitMode()) {
             case UNIFORM_VALUES:
                 return new UniformValueVoltageInitializer();
             case PREVIOUS_VALUES:
                 return new PreviousValueVoltageInitializer();
             case DC_VALUES:
-                return new DcValueVoltageInitializer();
+                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), matrixFactory, reporter);
             default:
                 throw new UnsupportedOperationException("Unsupported voltage init mode: " + parameters.getVoltageInitMode());
         }
     }
 
     private static SlackBusSelector getSlackBusSelector(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusId());
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds());
         return parameters.isReadSlackBus() ? new NetworkSlackBusSelector(network, slackBusSelector)
                                            : slackBusSelector;
     }
@@ -125,7 +126,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
-                                                          OpenLoadFlowParameters parametersExt, boolean breakers) {
+                                                          OpenLoadFlowParameters parametersExt, boolean breakers, Reporter reporter) {
         Set<String> branchesWithCurrent = null;
         if (parameters.isPhaseShifterRegulationOn()) {
             branchesWithCurrent = network.getTwoWindingsTransformerStream()
@@ -133,19 +134,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     .map(TwoWindingsTransformer::getId)
                     .collect(Collectors.toSet());
         }
-        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false, branchesWithCurrent);
+        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false, branchesWithCurrent, reporter);
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
                                                           OpenLoadFlowParameters parametersExt, boolean breakers, boolean forceA1Var,
-                                                          Set<String> branchesWithCurrent) {
+                                                          Set<String> branchesWithCurrent, Reporter reporter) {
 
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
-        VoltageInitializer voltageInitializer = getVoltageInitializer(parameters);
-
         LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
-        LOGGER.info("Voltage level initializer: {}", voltageInitializer.getClass().getSimpleName());
+        LOGGER.info("Voltage initialization mode: {}", parameters.getVoltageInitMode());
         LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
         LOGGER.info("Balance type: {}", parameters.getBalanceType());
         LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
@@ -185,6 +184,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var, branchesWithCurrent);
 
+        VoltageInitializer voltageInitializer = getVoltageInitializer(parameters, networkParameters, matrixFactory, reporter);
+
         var newtonRaphsonParameters = new NewtonRaphsonParameters()
                 .setVoltageInitializer(voltageInitializer);
 
@@ -195,8 +196,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
-        AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt, false);
-        List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, acParameters, reporter);
+        AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt, false, reporter);
+        List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, new LfNetworkLoaderImpl(), acParameters, reporter);
 
         Networks.resetState(network);
 
@@ -256,9 +257,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
-    private static DcLoadFlowParameters createDcParameters(Network network, MatrixFactory matrixFactory,
-                                                           LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                           boolean forcePhaseControlOffAndAddAngle1Var) {
+    static DcLoadFlowParameters createDcParameters(Network network, MatrixFactory matrixFactory,
+                                                   LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                   boolean forcePhaseControlOffAndAddAngle1Var) {
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
         LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
@@ -301,7 +302,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         var dcParameters = createDcParameters(network, matrixFactory, parameters, parametersExt, forcePhaseControlOffAndAddAngle1Var);
 
-        List<DcLoadFlowResult> results = new DcLoadFlowEngine(network, dcParameters, reporter)
+        List<DcLoadFlowResult> results = new DcLoadFlowEngine(network, new LfNetworkLoaderImpl(), dcParameters, reporter)
                 .run(reporter);
 
         Networks.resetState(network);

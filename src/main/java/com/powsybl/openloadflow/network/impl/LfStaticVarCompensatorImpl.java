@@ -61,7 +61,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
         };
 
         if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
-            setVoltageControl(svc.getVoltageSetpoint(), svc.getRegulatingTerminal(), breakers, report);
+            setVoltageControl(svc.getVoltageSetpoint(), svc.getTerminal(), svc.getRegulatingTerminal(), breakers, report);
             if (voltagePerReactivePowerControl && svc.getExtension(VoltagePerReactivePowerControl.class) != null) {
                 this.slope = svc.getExtension(VoltagePerReactivePowerControl.class).getSlope() * PerUnit.SB / nominalV;
             }
@@ -80,7 +80,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return -svc.getReactivePowerSetPoint() / PerUnit.SB;
+        return -svc.getReactivePowerSetpoint() / PerUnit.SB;
     }
 
     @Override
@@ -102,7 +102,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     public void updateState() {
         svc.getTerminal()
                 .setP(0)
-                .setQ(Double.isNaN(calculatedQ) ? svc.getReactivePowerSetPoint() : -calculatedQ);
+                .setQ(Double.isNaN(calculatedQ) ? svc.getReactivePowerSetpoint() : -calculatedQ);
     }
 
     @Override

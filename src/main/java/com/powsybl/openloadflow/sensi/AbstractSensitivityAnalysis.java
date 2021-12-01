@@ -222,7 +222,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 case BUS_VOLTAGE:
                     return (EquationTerm<V, E>) ((LfBus) functionElement).getV();
                 default:
-                    throw new PowsyblException("Function type " + functionType + " is not implement.");
+                    throw createFunctionTypeNotSupportedException(functionType);
             }
         }
 
@@ -436,6 +436,10 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
+    private static NotImplementedException createVariableTypeNotImplementedException(SensitivityVariableType variableType) {
+        return new NotImplementedException("Variable type " + variableType + " is not implemented");
+    }
+
     static class SingleVariableFactorGroup<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractSensitivityFactorGroup<V, E> {
 
         private final LfElement variableElement;
@@ -470,7 +474,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     }
                     break;
                 default:
-                    throw new NotImplementedException("Variable type " + variableType + " is not implemented");
+                    throw createVariableTypeNotImplementedException(variableType);
             }
         }
     }
@@ -522,7 +526,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     }
                     break;
                 default:
-                    throw new NotImplementedException("Variable type " + variableType + " is not implemented");
+                    throw createVariableTypeNotImplementedException(variableType);
             }
         }
 
@@ -591,7 +595,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent, Collection<String> branchIdsToOpen) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
             String functionBranchId = factor.getFunctionElement().getId();
-            if (!branchIdsToOpen.stream().filter(id -> id.equals(functionBranchId)).collect(Collectors.toList()).isEmpty()) {
+            if (branchIdsToOpen.stream().anyMatch(id -> id.equals(functionBranchId))) {
                 factor.setSensitivityValuePredefinedResult(0d);
                 factor.setFunctionPredefinedResult(0d);
                 continue;
@@ -641,16 +645,22 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         skippedFactors.forEach(factor -> valueWriter.write(factor.getContext(), null, -1, Double.NaN, Double.NaN));
 
         Set<String> skippedVariables = skippedFactors.stream().map(LfSensitivityFactor::getVariableId).collect(Collectors.toSet());
-        if (!skippedVariables.isEmpty()) {
-            if (LOGGER.isWarnEnabled()) {
-                LOGGER.warn("Skipping all factors with variables: '{}', as they cannot be found in the network",
-                        String.join(", ", skippedVariables));
-            }
+        if (!skippedVariables.isEmpty() && LOGGER.isWarnEnabled()) {
+            LOGGER.warn("Skipping all factors with variables: '{}', as they cannot be found in the network",
+                    String.join(", ", skippedVariables));
         }
     }
 
-    public void checkContingencies(Network network, LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+    public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+        Set<String> contingenciesIds = new HashSet<>();
         for (PropagatedContingency contingency : contingencies) {
+            // check ID are unique because, later contingency are indexed by their IDs
+            String contingencyId = contingency.getContingency().getId();
+            if (contingenciesIds.contains(contingencyId)) {
+                throw new PowsyblException("Contingency '" + contingencyId + "' already exists");
+            }
+            contingenciesIds.add(contingencyId);
+
             // Elements have already been checked and found in PropagatedContingency, so there is no need to
             // check them again
             Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
@@ -715,7 +725,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     }
 
     private static void checkBranch(Network network, String branchId) {
-        Branch branch = network.getBranch(branchId);
+        Branch<?> branch = network.getBranch(branchId);
         if (branch == null) {
             throw new PowsyblException("Branch '" + branchId + "' not found");
         }
@@ -794,6 +804,14 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
+    private static PowsyblException createFunctionTypeNotSupportedException(SensitivityFunctionType functionType) {
+        return new PowsyblException("Function type " + functionType + " not supported");
+    }
+
+    private static PowsyblException createVariableTypeNotSupportedWithFunctionTypeException(SensitivityVariableType variableType, SensitivityFunctionType functionType) {
+        return new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
+    }
+
     public SensitivityFactorHolder<V, E> readAndCheckFactors(Network network, Map<String, SensitivityVariableSet> variableSetsById,
                                                        SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
         final SensitivityFactorHolder<V, E> factorHolder = new SensitivityFactorHolder<>();
@@ -804,7 +822,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             if (variableSet) {
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER) {
                     checkBranch(network, functionId);
-                    LfBranch functionElement = lfNetwork.getBranchById(functionId);
+                    LfBranch branch = lfNetwork.getBranchById(functionId);
+                    LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                     if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
                         Map<LfElement, Double> injectionLfBuses = injectionBusesByVariableId.get(variableId);
                         if (injectionLfBuses == null) {
@@ -824,20 +843,18 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                                 }
                                 injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
                             }
-                            if (!skippedInjection.isEmpty()) {
-                                if (LOGGER.isWarnEnabled()) {
-                                    LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
-                                }
+                            if (!skippedInjection.isEmpty() && LOGGER.isWarnEnabled()) {
+                                LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
                             }
                         }
                         factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorContext, variableId,
                                     functionElement, functionType,
                                     injectionLfBuses, variableType, contingencyContext));
                     } else {
-                        throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
+                        throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                     }
                 } else {
-                    throw new PowsyblException("Function type " + functionType + " not supported");
+                    throw createFunctionTypeNotSupportedException(functionType);
                 }
             } else {
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
@@ -884,7 +901,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             checkPhaseShifter(network, variableId);
                             variableElement = lfNetwork.getBranchById(variableId);
                         } else {
-                            throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
+                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
                     } else if (functionType == SensitivityFunctionType.BRANCH_CURRENT) {
                         checkBranch(network, functionId);
@@ -894,7 +911,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             checkPhaseShifter(network, variableId);
                             variableElement = lfNetwork.getBranchById(variableId);
                         } else {
-                            throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
+                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
                     } else if (functionType == SensitivityFunctionType.BUS_VOLTAGE) {
                         checkBus(network, functionId, busCache);
@@ -906,10 +923,10 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             Bus regulatedBus = regulatingTerminal.getBusView().getBus();
                             variableElement = regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
                         } else {
-                            throw new PowsyblException("Variable type " + variableType + " not supported with function type " + functionType);
+                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
                     } else {
-                        throw new PowsyblException("Function type " + functionType + " not supported");
+                        throw createFunctionTypeNotSupportedException(functionType);
                     }
                     factorHolder.addFactor(new SingleVariableLfSensitivityFactor<>(factorContext, variableId,
                             functionElement, functionType, variableElement, variableType, contingencyContext));

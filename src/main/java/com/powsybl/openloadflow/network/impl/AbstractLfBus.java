@@ -55,7 +55,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfShunt> shunts = new ArrayList<>();
 
-    protected LfLoads lfLoads = new LfLoads(network);
+    protected final LfLoads lfLoads = new LfLoads();
 
     protected boolean ensurePowerFactorConstantByLoad = false;
 
@@ -70,8 +70,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     private ReactivePowerControl reactivePowerControl;
 
     protected DiscreteVoltageControl discreteVoltageControl;
-
-    protected boolean disabled = false;
 
     protected Evaluable p = NAN;
 
@@ -208,7 +206,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         // note that batteries are out of the slack distribution.
         batteries.add(battery);
         loadTargetP += battery.getP0();
-        // initialLoadTargetP += battery.getP0();
         loadTargetQ += battery.getQ0();
     }
 
@@ -415,7 +412,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         branches.add(Objects.requireNonNull(branch));
     }
 
-    private double dispatchQ(List<LfGenerator> generatorsThatControlVoltage, boolean reactiveLimits, double qToDispatch) {
+    private static double dispatchQ(List<LfGenerator> generatorsThatControlVoltage, boolean reactiveLimits, double qToDispatch) {
         double residueQ = 0;
         double calculatedQ = qToDispatch / generatorsThatControlVoltage.size();
         Iterator<LfGenerator> itG = generatorsThatControlVoltage.iterator();
@@ -497,13 +494,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public boolean isDisabled() {
-        return disabled;
-    }
-
-    @Override
     public void setDisabled(boolean disabled) {
-        this.disabled = disabled;
+        super.setDisabled(disabled);
+        for (LfShunt shunt : shunts) {
+            shunt.setDisabled(disabled);
+        }
     }
 
     @Override

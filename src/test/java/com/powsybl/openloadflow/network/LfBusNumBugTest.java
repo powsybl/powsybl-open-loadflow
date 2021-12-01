@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +24,7 @@ class LfBusNumBugTest {
     @BeforeEach
     void setUp() {
         Network network = EurostagTutorialExample1Factory.create();
-        lfNetwork = LfNetwork.load(network, new FirstSlackBusSelector()).get(0);
+        lfNetwork = Networks.load(network, new FirstSlackBusSelector()).get(0);
     }
 
     @Test

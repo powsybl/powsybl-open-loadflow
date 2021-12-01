@@ -15,9 +15,8 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
-import com.powsybl.openloadflow.util.LfContingency;
-import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import com.powsybl.security.monitor.StateMonitor;
@@ -228,10 +227,6 @@ public abstract class AbstractSecurityAnalysis {
         return false;
     }
 
-    List<LfContingency> createContingencies(List<PropagatedContingency> propagatedContingencies, LfNetwork network) {
-        return LfContingency.createContingencies(propagatedContingencies, network, network.createDecrementalConnectivity(connectivityProvider), true);
-    }
-
     protected void addMonitorInfo(LfNetwork network, StateMonitor monitor, Collection<BranchResult> branchResultConsumer,
                                   Collection<BusResults> busResultsConsumer, Collection<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer,
                                   Map<String, BranchResult> preContingencyBranchResults, String contingencyId) {
@@ -257,9 +252,9 @@ public abstract class AbstractSecurityAnalysis {
     }
 
     private ThreeWindingsTransformerResult createThreeWindingsTransformerResult(String threeWindingsTransformerId, LfNetwork network) {
-        LfBranch leg1 = network.getBranchById(threeWindingsTransformerId + "_leg_1");
-        LfBranch leg2 = network.getBranchById(threeWindingsTransformerId + "_leg_2");
-        LfBranch leg3 = network.getBranchById(threeWindingsTransformerId + "_leg_3");
+        LfBranch leg1 = network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 1));
+        LfBranch leg2 = network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 2));
+        LfBranch leg3 = network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 3));
         double i1Base = PerUnit.ib(leg1.getBus1().getNominalV());
         double i2Base = PerUnit.ib(leg2.getBus1().getNominalV());
         double i3Base = PerUnit.ib(leg3.getBus1().getNominalV());

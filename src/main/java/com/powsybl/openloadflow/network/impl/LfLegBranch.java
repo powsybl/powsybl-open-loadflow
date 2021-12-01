@@ -94,9 +94,13 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
         }
     }
 
+    public static String getId(String twtId, int legNum) {
+        return twtId + "_leg_" + legNum;
+    }
+
     @Override
     public String getId() {
-        return twt.getId() + "_leg_" + getLegNum();
+        return getId(twt.getId(), getLegNum());
     }
 
     @Override
@@ -129,12 +133,12 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
         leg.getTerminal().setP(p.eval() * PerUnit.SB);
         leg.getTerminal().setQ(q.eval() * PerUnit.SB);
 
-        if (phaseShifterRegulationOn && isPhaseController() && phaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
+        if (phaseShifterRegulationOn && isPhaseController() && discretePhaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
             // it means there is a regulating phase tap changer located on that leg
             updateTapPosition(leg.getPhaseTapChanger());
         }
 
-        if (phaseShifterRegulationOn && isPhaseControlled() && phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
+        if (phaseShifterRegulationOn && isPhaseControlled() && discretePhaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
             // check if the target value deadband is respected
             checkTargetDeadband(p.eval());
         }

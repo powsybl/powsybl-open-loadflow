@@ -179,6 +179,6 @@ public class PropagatedContingency {
         }
         Connectable<?> c1 = terminal1.getConnectable();
         Connectable<?> c2 = terminal2.getConnectable();
-        return c1 != c2 && c1.getType() == ConnectableType.BUSBAR_SECTION && c2.getType() == ConnectableType.BUSBAR_SECTION;
+        return c1 != c2 && c1.getType() == IdentifiableType.BUSBAR_SECTION && c2.getType() == IdentifiableType.BUSBAR_SECTION;
     }
 }

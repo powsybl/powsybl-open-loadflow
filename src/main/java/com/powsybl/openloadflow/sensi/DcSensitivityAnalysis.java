@@ -24,17 +24,21 @@ import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.*;
-import com.powsybl.openloadflow.network.util.*;
-import com.powsybl.openloadflow.util.BranchState;
-import com.powsybl.openloadflow.util.BusState;
+import com.powsybl.openloadflow.network.impl.AbstractLfBus;
+import com.powsybl.openloadflow.network.impl.LfGeneratorImpl;
+import com.powsybl.openloadflow.network.impl.LfVscConverterStationImpl;
+import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.network.util.ParticipatingElement;
+import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.ObjDoubleConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -170,14 +174,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                        List<ParticipatingElement> participatingElements, Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
                                                        Reporter reporter) {
 
-        Map<LfBus, BusState> busStates = new HashMap<>();
+        List<BusState> busStates = Collections.emptyList();
         if (lfParameters.isDistributedSlack()) {
-            busStates = BusState.createBusStates(participatingElements.stream()
+            busStates = ElementState.save(participatingElements.stream()
                 .map(ParticipatingElement::getLfBus)
-                .collect(Collectors.toSet()));
+                .collect(Collectors.toSet()), BusState::save);
         }
         // the A1 variables will be set to 0 for disabledBranches, so we need to restore them at the end
-        Map<LfBranch, BranchState> branchStates = BranchState.createBranchStates(disabledBranches);
+        List<BranchState> branchStates = ElementState.save(disabledBranches, BranchState::save);
 
         dcLoadFlowEngine.run(equationSystem, j, disabledBuses, disabledBranches, reporter);
 
@@ -186,9 +190,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
 
         if (lfParameters.isDistributedSlack()) {
-            BusState.restoreBusActiveStates(busStates);
+            ElementState.restore(busStates);
         }
-        BranchState.restoreBranchStates(branchStates);
+        ElementState.restore(branchStates);
 
         double[] dx = dcLoadFlowEngine.getTargetVector();
         return new DenseMatrix(dx.length, 1, dx);
@@ -286,7 +290,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     private void setAlphas(Collection<ComputedContingencyElement> contingencyElements, DenseMatrix states,
-                           DenseMatrix contingenciesStates, int columnState, BiConsumer<ComputedContingencyElement, Double> setValue) {
+                           DenseMatrix contingenciesStates, int columnState, ObjDoubleConsumer<ComputedContingencyElement> setValue) {
         if (contingencyElements.size() == 1) {
             ComputedContingencyElement element = contingencyElements.iterator().next();
             LfBranch lfBranch = element.getLfBranch();
@@ -574,8 +578,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     private void applyInjectionContingencies(Network network, LfNetwork lfNetwork, PropagatedContingency contingency,
-                                             Set<LfGenerator> participatingGeneratorsToRemove,
-                                             Map<LfBus, BusState> busStates, LoadFlowParameters lfParameters) {
+                                             Set<LfGenerator> participatingGeneratorsToRemove, List<BusState> busStates,
+                                             LoadFlowParameters lfParameters) {
         // it applies on the network the loss of DC lines contained in the contingency.
         // it applies on the network the loss of generators contained in the contingency.
         // it applies on the network the loss of loads contained in the contingency.
@@ -597,20 +601,18 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             processGenerator(lfNetwork, generator, generators);
         }
 
-        Collection<LfBus> busesToSave = new HashSet<>();
-        lccs.stream().map(Pair::getKey).forEach(busesToSave::add);
-        vscs.stream().map(LfGenerator::getBus).forEach(busesToSave::add);
-        generators.stream().map(LfGenerator::getBus).forEach(busesToSave::add);
         for (String loadId : contingency.getLoadIdsToLose()) {
             Load load = network.getLoad(loadId);
             Bus bus = load.getTerminal().getBusView().getBus();
             if (bus != null) {
                 LfBus lfBus = lfNetwork.getBusById(bus.getId());
-                busesToSave.add(lfBus);
+                busStates.add(BusState.save(lfBus));
             }
         }
 
-        BusState.addBusStates(busesToSave, busStates);
+        lccs.stream().map(Pair::getKey).forEach(b -> busStates.add(BusState.save(b)));
+        vscs.stream().map(LfGenerator::getBus).forEach(b -> busStates.add(BusState.save(b)));
+        generators.stream().map(LfGenerator::getBus).forEach(b -> busStates.add(BusState.save(b)));
 
         for (Pair<LfBus, LccConverterStation> busAndlcc : lccs) {
             LfBus bus = busAndlcc.getKey();
@@ -625,7 +627,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         boolean distributedSlackOnGenerators = isDistributedSlackOnGenerators(lfParameters);
         for (LfGeneratorImpl generator : generators) {
-            generator.setTargetP(0); // we don't change the slack distribution participation here.
+            generator.setTargetP(0);
             if (distributedSlackOnGenerators && generator.isParticipating()) {
                 participatingGeneratorsToRemove.add(generator);
             }
@@ -636,8 +638,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             Bus bus = load.getTerminal().getBusView().getBus();
             if (bus != null) {
                 LfBus lfBus = lfNetwork.getBusById(bus.getId());
-                lfBus.setLoadTargetP(lfBus.getLoadTargetP() - load.getP0() / PerUnit.SB); // we don't change the slack distribution participation here.
-                lfBus.getLfLoads().setAbsVariableLoadTargetP(lfBus.getLfLoads().getAbsVariableLoadTargetP() - load.getP0()); // we change the slack distribution here.
+                lfBus.setLoadTargetP(lfBus.getLoadTargetP() - load.getP0() / PerUnit.SB);
+                lfBus.getLfLoads().setAbsVariableLoadTargetP(lfBus.getLfLoads().getAbsVariableLoadTargetP() - load.getP0());
             }
         }
     }
@@ -659,7 +661,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     public void calculateContingencySensitivityValues(PropagatedContingency contingency, List<SensitivityFactorGroup<DcVariableType, DcEquationType>> factorGroups, DenseMatrix factorStates, DenseMatrix contingenciesStates,
                                                       DenseMatrix flowStates, Collection<ComputedContingencyElement> contingencyElements, SensitivityValueWriter valueWriter, Network network,
-                                                      LfNetwork lfNetwork, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, JacobianMatrix<DcVariableType, DcEquationType> j, EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                                      LfNetwork lfNetwork, LoadFlowParameters lfParameters,  OpenLoadFlowParameters lfParametersExt, JacobianMatrix<DcVariableType, DcEquationType> j, EquationSystem<DcVariableType, DcEquationType> equationSystem,
                                                       DcLoadFlowEngine dcLoadFlowEngine, SensitivityFactorHolder<DcVariableType, DcEquationType> factorHolder, List<ParticipatingElement> participatingElements,
                                                       Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches, Reporter reporter) {
         List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors = factorHolder.getFactorsForContingency(contingency.getContingency().getId());
@@ -667,25 +669,28 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             calculateSensitivityValues(factors, factorStates, contingenciesStates, flowStates, contingencyElements,
                     contingency, valueWriter);
         } else {
+            // if we have a contingency including the loss of a DC line or a generator
+            // if we have a contingency including the loss of a generator
             // if we have a contingency including the loss of a DC line or a generator or a load
 
-            Map<LfBus, BusState> busStates = new HashMap<>();
+            List<BusState> busStates = new ArrayList<>();
             Set<LfGenerator> participatingGeneratorsToRemove = new HashSet<>();
             applyInjectionContingencies(network, lfNetwork, contingency, participatingGeneratorsToRemove, busStates, lfParameters);
 
             List<ParticipatingElement> newParticipatingElements = participatingElements;
             DenseMatrix newFactorStates = factorStates;
-            boolean participatingElementsChanged = (isDistributedSlackOnGenerators(lfParameters) && !participatingGeneratorsToRemove.isEmpty())
-                || (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLose().isEmpty());
+            boolean participatingElementsChanged = (isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty())
+                    || (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLose().isEmpty());
             if (participatingElementsChanged) {
-                // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
                 if (isDistributedSlackOnGenerators(lfParameters)) {
+                    // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
                     newParticipatingElements = participatingElements.stream()
                             .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
                             .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
                             .collect(Collectors.toList());
-                    normalizeParticipationFactors(newParticipatingElements, "LfGenerators");
-                } else { // slack distribution on loads.
+                    String elementType = isDistributedSlackOnLoads(lfParameters) ? "LfBus" : "LfGenerators";
+                    normalizeParticipationFactors(newParticipatingElements, elementType);
+                } else { // slack distribution on loads
                     newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters, lfParametersExt);
                 }
                 newFactorStates = calculateStates(j, equationSystem, factorGroups, newParticipatingElements);
@@ -696,7 +701,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             calculateSensitivityValues(factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements, contingency, valueWriter);
 
-            BusState.restoreBusStates(busStates);
+            ElementState.restore(busStates);
             if (participatingElementsChanged) {
                 setBaseCaseSensitivityValues(factorGroups, factorStates);
             }
@@ -753,14 +758,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         // create the network (we only manage main connected component)
-        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusId());
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds());
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector, false, true, lfParameters.isTwtSplitShuntAdmittance(),
                 false, lfParametersExt.getPlausibleActivePowerLimit(), false, true, lfParameters.getCountriesToBalance(),
                 lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                 false, false, false, false);
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, lfNetworkParameters, reporter);
+        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
-        checkContingencies(network, lfNetwork, contingencies);
+        checkContingencies(lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
 
         Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
