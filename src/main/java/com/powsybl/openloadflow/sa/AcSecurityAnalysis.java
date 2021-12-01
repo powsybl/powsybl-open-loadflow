@@ -160,8 +160,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                     LOGGER.info("Restore pre-contingency state");
 
                                     // restore base state
-                                    BusState.restore(busStates);
-                                    BranchState.restore(branchStates);
+                                    ElementState.restore(busStates);
+                                    ElementState.restore(branchStates);
                                 }
                             });
                 }

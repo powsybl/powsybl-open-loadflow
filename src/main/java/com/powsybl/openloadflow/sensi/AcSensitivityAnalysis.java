@@ -290,7 +290,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         });
                 calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, engine, factorGroups, slackParticipationByBus, lfParameters,
                         lfParametersExt, lfContingency.getId(), lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage);
-                BusState.restore(busStates);
+                ElementState.restore(busStates);
             }
 
             // Contingency breaking connectivity
@@ -327,7 +327,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                 calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, engine, factorGroups, slackParticipationByBusForThisConnectivity,
                     lfParameters, lfParametersExt, lfContingency.getId(), lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage);
-                BusState.restore(busStates);
+                ElementState.restore(busStates);
 
                 connectivity.reset();
             }

@@ -190,9 +190,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
 
         if (lfParameters.isDistributedSlack()) {
-            BusState.restore(busStates);
+            ElementState.restore(busStates);
         }
-        BranchState.restore(branchStates);
+        ElementState.restore(branchStates);
 
         double[] dx = dcLoadFlowEngine.getTargetVector();
         return new DenseMatrix(dx.length, 1, dx);
@@ -678,7 +678,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             calculateSensitivityValues(factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements, contingency, valueWriter);
 
-            BusState.restore(busStates);
+            ElementState.restore(busStates);
             if (participatingElementsChanged) {
                 setBaseCaseSensitivityValues(factorGroups, factorStates);
             }

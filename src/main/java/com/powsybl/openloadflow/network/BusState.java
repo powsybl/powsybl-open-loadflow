@@ -28,6 +28,7 @@ public class BusState extends BusDcState {
         this.disabled = bus.isDisabled();
     }
 
+    @Override
     public void restore() {
         super.restore();
         element.setAngle(angle);

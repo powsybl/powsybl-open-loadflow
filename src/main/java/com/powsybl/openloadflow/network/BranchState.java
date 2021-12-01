@@ -25,6 +25,7 @@ public class BranchState extends ElementState<LfBranch> {
         disabled = branch.isDisabled();
     }
 
+    @Override
     public void restore() {
         PiModel piModel = element.getPiModel();
         piModel.setA1(a1);

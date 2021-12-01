@@ -24,6 +24,7 @@ public class ElementState<T extends LfElement> {
     }
 
     public void restore() {
+        // nothing to restore
     }
 
     public static <T extends LfElement, U extends ElementState<T>> List<U> save(Collection<T> elements, Function<T, U> save) {
@@ -34,6 +35,6 @@ public class ElementState<T extends LfElement> {
 
     public static <T extends LfElement, U extends ElementState<T>> void restore(Collection<U> states) {
         Objects.requireNonNull(states);
-        states.forEach(state -> state.restore());
+        states.forEach(ElementState::restore);
     }
 }

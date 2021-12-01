@@ -23,6 +23,7 @@ public class BusDcState extends ElementState<LfBus> {
         this.generatorsTargetP = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
     }
 
+    @Override
     public void restore() {
         element.setLoadTargetP(loadTargetP);
         element.getGenerators().forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
