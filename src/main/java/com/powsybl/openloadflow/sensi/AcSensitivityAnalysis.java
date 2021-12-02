@@ -208,7 +208,10 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
         writeSkippedFactors(lfFactors, valueWriter);
         // next we only work with valid and valid only for function factors
-        lfFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION).collect(Collectors.toList());
+        List<LfSensitivityFactor.Status> validFactors = new ArrayList<>();
+        validFactors.add(LfSensitivityFactor.Status.VALID);
+        validFactors.add(LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION);
+        lfFactors = lfFactors.stream().filter(factor -> validFactors.contains(factor.getStatus())).collect(Collectors.toList());
 
         Set<String> branchesWithMeasuredCurrent = lfFactors.stream()
                 .filter(lfFactor -> lfFactor.getFunctionType() == SensitivityFunctionType.BRANCH_CURRENT)
@@ -277,7 +280,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // Contingency not breaking connectivity
             for (LfContingency lfContingency : lfContingencies.stream().filter(lfContingency -> lfContingency.getBuses().isEmpty()).collect(Collectors.toSet())) {
                 List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = factorHolder.getFactorsForContingency(lfContingency.getId());
-                contingencyFactors = contingencyFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION).collect(Collectors.toList());
+                contingencyFactors = contingencyFactors.stream().filter(factor -> validFactors.contains(factor.getStatus())).collect(Collectors.toList());
                 contingencyFactors.forEach(lfFactor -> {
                     lfFactor.setSensitivityValuePredefinedResult(null);
                     lfFactor.setFunctionPredefinedResult(null);
@@ -297,7 +300,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // Contingency breaking connectivity
             for (LfContingency lfContingency : lfContingencies.stream().filter(lfContingency -> !lfContingency.getBuses().isEmpty()).collect(Collectors.toSet())) {
                 List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = factorHolder.getFactorsForContingency(lfContingency.getId());
-                contingencyFactors = contingencyFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION).collect(Collectors.toList());
+                contingencyFactors = contingencyFactors.stream().filter(factor -> validFactors.contains(factor.getStatus())).collect(Collectors.toList());
                 contingencyFactors.forEach(lfFactor -> {
                     lfFactor.setSensitivityValuePredefinedResult(null);
                     lfFactor.setFunctionPredefinedResult(null); });
