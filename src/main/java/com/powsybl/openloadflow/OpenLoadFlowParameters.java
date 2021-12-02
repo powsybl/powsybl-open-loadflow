@@ -68,6 +68,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean reactivePowerRemoteControl = REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE;
 
+    private boolean initVoltageMagnitude = false;
+
     @Override
     public String getName() {
         return "open-load-flow-parameters";
@@ -177,6 +179,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setReactivePowerRemoteControl(boolean reactivePowerRemoteControl) {
         this.reactivePowerRemoteControl = reactivePowerRemoteControl;
+        return this;
+    }
+
+    public boolean isInitVoltageMagnitude() {
+        return initVoltageMagnitude;
+    }
+
+    public OpenLoadFlowParameters setInitVoltageMagnitude(boolean initVoltageMagnitude) {
+        this.initVoltageMagnitude = initVoltageMagnitude;
         return this;
     }
 

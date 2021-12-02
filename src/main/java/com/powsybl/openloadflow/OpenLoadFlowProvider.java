@@ -32,6 +32,7 @@ import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
+import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.NetworkSlackBusSelector;
 import com.powsybl.openloadflow.network.PerUnit;
@@ -184,7 +185,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var, branchesWithCurrent);
 
-        VoltageInitializer voltageInitializer = getVoltageInitializer(parameters, networkParameters, matrixFactory, reporter);
+        VoltageInitializer voltageInitializer;
+        if (parametersExt.isInitVoltageMagnitude()) {
+            voltageInitializer = new VoltageMagnitudeInitializer(matrixFactory);
+        } else {
+            voltageInitializer = getVoltageInitializer(parameters, networkParameters, matrixFactory, reporter);
+        }
 
         var newtonRaphsonParameters = new NewtonRaphsonParameters()
                 .setVoltageInitializer(voltageInitializer);

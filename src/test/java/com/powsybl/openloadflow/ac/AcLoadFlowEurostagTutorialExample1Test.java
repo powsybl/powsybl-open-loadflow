@@ -276,4 +276,12 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertEquals(1, result.getComponentResults().size());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
     }
+
+    @Test
+    void initVoltageMagnitudeTest() {
+        parametersExt.setInitVoltageMagnitude(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+    }
 }
