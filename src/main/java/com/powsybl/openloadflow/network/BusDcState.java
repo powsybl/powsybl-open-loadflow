@@ -16,17 +16,20 @@ public class BusDcState extends ElementState<LfBus> {
 
     private final double loadTargetP;
     private final Map<String, Double> generatorsTargetP;
+    private final double absVariableLoadTargetP;
 
     public BusDcState(LfBus bus) {
         super(bus);
         this.loadTargetP = bus.getLoadTargetP();
         this.generatorsTargetP = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
+        this.absVariableLoadTargetP = bus.getLfLoads().getAbsVariableLoadTargetP();
     }
 
     @Override
     public void restore() {
         element.setLoadTargetP(loadTargetP);
         element.getGenerators().forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
+        element.getLfLoads().setAbsVariableLoadTargetP(absVariableLoadTargetP);
     }
 
     public static BusDcState save(LfBus bus) {
