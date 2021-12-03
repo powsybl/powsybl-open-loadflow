@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
     public enum InitVmEquationType implements Quantity {
-        BUS_V("v", ElementType.BUS),
+        BUS_TARGET_V("v", ElementType.BUS),
         BUS_ZERO("z", ElementType.BUS);
 
         private final String symbol;
@@ -78,7 +78,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
         private double value;
 
-        private double[] der;
+        private final double[] der;
 
         public InitVmBusEquationTerm(LfBus bus, VariableSet<InitVmVariableType> variableSet) {
             this.bus = Objects.requireNonNull(bus);
@@ -88,6 +88,9 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                         return otherBus != null;
                     })
                     .collect(Collectors.toList());
+            if (branches.isEmpty()) {
+                throw new IllegalStateException("Isolated bus");
+            }
             variables = branches.stream()
                     .map(branch -> {
                         LfBus otherBus = branch.getBus1() == bus ? branch.getBus2() : branch.getBus1();
@@ -139,6 +142,9 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         @Override
         public double der(Variable<InitVmVariableType> variable) {
             int i = variables.indexOf(variable); // bof...
+            if (i == -1) {
+                throw new IllegalStateException("Unknown variable: " + variable);
+            }
             return der[i];
         }
 
@@ -171,7 +177,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         for (LfBus bus : network.getBuses()) {
             EquationTerm<InitVmVariableType, InitVmEquationType> v = EquationTerm.createVariableTerm(bus, InitVmVariableType.BUS_V, variableSet);
             if (bus.isVoltageControlled()) {
-                equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_V)
+                equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_TARGET_V)
                         .addTerm(v);
             } else {
                 equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_ZERO)
@@ -183,12 +189,14 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         try (JacobianMatrix<InitVmVariableType, InitVmEquationType> j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
             double[] b = TargetVector.createArray(network, equationSystem, (equation, network1, targets) -> {
                 switch (equation.getType()) {
-                    case BUS_V:
+                    case BUS_TARGET_V:
                         targets[equation.getColumn()] = network.getBus(equation.getNum()).getVoltageControl().orElseThrow().getTargetValue();
                         break;
                     case BUS_ZERO:
                         targets[equation.getColumn()] = 0;
                         break;
+                    default:
+                        throw new IllegalStateException("Unknown equation type: " + equation.getType());
                 }
             });
 
