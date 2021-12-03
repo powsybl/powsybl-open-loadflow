@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+ * Copyright (c) 2021, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -70,8 +70,6 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
         private final LfBus bus;
 
-        private final Map<LfBus, List<LfBranch>> neighbors;
-
         private final List<Variable<InitVmVariableType>> variables;
 
         private final TDoubleArrayList der;
@@ -80,7 +78,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
             this.bus = Objects.requireNonNull(bus);
 
             List<LfBranch> branches = bus.getBranches();
-            neighbors = new LinkedHashMap<>(branches.size());
+            Map<LfBus, List<LfBranch>> neighbors = new LinkedHashMap<>(branches.size());
             for (LfBranch branch : branches) {
                 LfBus otherBus = branch.getBus1() == bus ? branch.getBus2() : branch.getBus1();
                 if (otherBus != null) {
@@ -105,7 +103,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 for (LfBranch neighborBranch : neighborBranches) {
                     PiModel piModel = neighborBranch.getPiModel();
                     b += Math.abs(1 / piModel.getX());
-                    r += neighborBranch.getBus1() == bus ? piModel.getR1() : 1 / piModel.getR1();
+                    r += neighborBranch.getBus1() == bus ? 1 / piModel.getR1() : piModel.getR1();
                 }
                 r /= neighborBranches.size();
                 bs += b;
