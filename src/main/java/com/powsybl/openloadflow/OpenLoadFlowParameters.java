@@ -41,6 +41,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE = false;
 
+    public enum VoltageInitMode {
+        DEFAULT,
+        VOLTAGE_MAGNITUDE
+    }
+
+    public static final VoltageInitMode VOLTAGE_INIT_MODE_DEFAULT_VALUE = VoltageInitMode.DEFAULT;
+
     private SlackBusSelectionMode slackBusSelectionMode = SLACK_BUS_SELECTION_DEFAULT_VALUE;
 
     private List<String> slackBusesIds = Collections.emptyList();
@@ -68,7 +75,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean reactivePowerRemoteControl = REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE;
 
-    private boolean initVoltageMagnitude = false;
+    private VoltageInitMode voltageInitMode = VOLTAGE_INIT_MODE_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -182,12 +189,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public boolean isInitVoltageMagnitude() {
-        return initVoltageMagnitude;
+    public VoltageInitMode getVoltageInitMode() {
+        return voltageInitMode;
     }
 
-    public OpenLoadFlowParameters setInitVoltageMagnitude(boolean initVoltageMagnitude) {
-        this.initVoltageMagnitude = initVoltageMagnitude;
+    public OpenLoadFlowParameters setVoltageInitMode(VoltageInitMode voltageInitMode) {
+        this.voltageInitMode = Objects.requireNonNull(voltageInitMode);
         return this;
     }
 
@@ -209,6 +216,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", slackBusPMaxMismatch=" + slackBusPMaxMismatch +
                 ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
                 ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
+                ", voltageInitMode=" + voltageInitMode +
                 ')';
     }
 
@@ -237,6 +245,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         public static final String VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME = "voltagePerReactivePowerControl";
 
+        public static final String VOLTAGE_INIT_MODE_NAME = "voltageInitMode";
+
         @Override
         public OpenLoadFlowParameters load(PlatformConfig platformConfig) {
             OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
@@ -254,8 +264,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                         .setPlausibleActivePowerLimit(config.getDoubleProperty(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE))
                         .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(config.getBooleanProperty(ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME, ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE))
                         .setSlackBusPMaxMismatch(config.getDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_NAME, SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE))
-                        .setVoltagePerReactivePowerControl(VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE)
+                        .setVoltagePerReactivePowerControl(config.getBooleanProperty(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME, VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE))
                         .setReactivePowerRemoteControl(config.getBooleanProperty(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE))
+                        .setVoltageInitMode(config.getEnumProperty(VOLTAGE_INIT_MODE_NAME, VoltageInitMode.class, VOLTAGE_INIT_MODE_DEFAULT_VALUE))
                 );
             return parameters;
         }

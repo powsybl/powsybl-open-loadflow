@@ -186,10 +186,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var, branchesWithCurrent);
 
         VoltageInitializer voltageInitializer;
-        if (parametersExt.isInitVoltageMagnitude()) {
-            voltageInitializer = new VoltageMagnitudeInitializer(matrixFactory);
-        } else {
-            voltageInitializer = getVoltageInitializer(parameters, networkParameters, matrixFactory, reporter);
+        switch (parametersExt.getVoltageInitMode()) {
+            case DEFAULT:
+                voltageInitializer = getVoltageInitializer(parameters, networkParameters, matrixFactory, reporter);
+                break;
+
+            case VOLTAGE_MAGNITUDE:
+                voltageInitializer = new VoltageMagnitudeInitializer(matrixFactory);
+                break;
+
+            default:
+                throw new PowsyblException("Unknown voltage init mode: " + parametersExt.getVoltageInitMode());
         }
 
         var newtonRaphsonParameters = new NewtonRaphsonParameters()

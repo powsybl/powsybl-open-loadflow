@@ -36,6 +36,7 @@ class VoltageMagnitudeInitializerTest {
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
         parametersExt = new OpenLoadFlowParameters()
+                .setVoltageInitMode(OpenLoadFlowParameters.VoltageInitMode.VOLTAGE_MAGNITUDE)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
@@ -43,7 +44,6 @@ class VoltageMagnitudeInitializerTest {
     @Test
     void testEsgTuto1() {
         Network network = EurostagTutorialExample1Factory.create();
-        parametersExt.setInitVoltageMagnitude(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
     }
@@ -51,7 +51,6 @@ class VoltageMagnitudeInitializerTest {
     @Test
     void testIeee14() {
         Network network = IeeeCdfNetworkFactory.create14();
-        parametersExt.setInitVoltageMagnitude(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
     }
