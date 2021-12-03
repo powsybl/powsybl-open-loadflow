@@ -77,6 +77,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         public InitVmBusEquationTerm(LfBus bus, VariableSet<InitVmVariableType> variableSet) {
             this.bus = Objects.requireNonNull(bus);
 
+            // detect parallel branches
             List<LfBranch> branches = bus.getBranches();
             Map<LfBus, List<LfBranch>> neighbors = new LinkedHashMap<>(branches.size());
             for (LfBranch branch : branches) {
@@ -89,6 +90,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
             if (neighbors.isEmpty()) {
                 throw new IllegalStateException("Isolated bus");
             }
+
             variables = new ArrayList<>(neighbors.size());
             der = new TDoubleArrayList(neighbors.size());
             double bs = 0;
@@ -96,8 +98,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 LfBus neighborBus = e.getKey();
                 List<LfBranch> neighborBranches = e.getValue();
 
-                variables.add(variableSet.getVariable(neighborBus.getNum(), InitVmVariableType.BUS_V));
-
+                // evaluate derivative
                 double b = 0;
                 double r = 0;
                 for (LfBranch neighborBranch : neighborBranches) {
@@ -108,6 +109,9 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 r /= neighborBranches.size();
                 bs += b;
                 der.add(b * r);
+
+                // add variable
+                variables.add(variableSet.getVariable(neighborBus.getNum(), InitVmVariableType.BUS_V));
             }
             for (int i = 0; i < der.size(); i++) {
                 der.setQuick(i, der.getQuick(i) / bs);
@@ -170,6 +174,20 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
     }
 
+    private static void initTarget(Equation<InitVmVariableType, InitVmEquationType> equation, LfNetwork network, double[] targets) {
+        switch (equation.getType()) {
+            case BUS_TARGET_V:
+                LfBus bus = network.getBus(equation.getNum());
+                targets[equation.getColumn()] = bus.getVoltageControl().orElseThrow().getTargetValue();
+                break;
+            case BUS_ZERO:
+                targets[equation.getColumn()] = 0;
+                break;
+            default:
+                throw new IllegalStateException("Unknown equation type: " + equation.getType());
+        }
+    }
+
     @Override
     public void prepare(LfNetwork network) {
         EquationSystem<InitVmVariableType, InitVmEquationType> equationSystem = new EquationSystem<>();
@@ -187,19 +205,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         }
 
         try (JacobianMatrix<InitVmVariableType, InitVmEquationType> j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
-            double[] targets = TargetVector.createArray(network, equationSystem, (equation, network1, targets1) -> {
-                switch (equation.getType()) {
-                    case BUS_TARGET_V:
-                        LfBus bus = network.getBus(equation.getNum());
-                        targets1[equation.getColumn()] = bus.getVoltageControl().orElseThrow().getTargetValue();
-                        break;
-                    case BUS_ZERO:
-                        targets1[equation.getColumn()] = 0;
-                        break;
-                    default:
-                        throw new IllegalStateException("Unknown equation type: " + equation.getType());
-                }
-            });
+            double[] targets = TargetVector.createArray(network, equationSystem, VoltageMagnitudeInitializer::initTarget);
 
             j.solveTransposed(targets);
 
