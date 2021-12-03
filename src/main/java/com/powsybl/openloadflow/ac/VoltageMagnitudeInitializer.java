@@ -187,13 +187,14 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         }
 
         try (JacobianMatrix<InitVmVariableType, InitVmEquationType> j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
-            double[] b = TargetVector.createArray(network, equationSystem, (equation, network1, targets) -> {
+            double[] targets = TargetVector.createArray(network, equationSystem, (equation, network1, targets1) -> {
                 switch (equation.getType()) {
                     case BUS_TARGET_V:
-                        targets[equation.getColumn()] = network.getBus(equation.getNum()).getVoltageControl().orElseThrow().getTargetValue();
+                        LfBus bus = network.getBus(equation.getNum());
+                        targets1[equation.getColumn()] = bus.getVoltageControl().orElseThrow().getTargetValue();
                         break;
                     case BUS_ZERO:
-                        targets[equation.getColumn()] = 0;
+                        targets1[equation.getColumn()] = 0;
                         break;
                     default:
                         throw new IllegalStateException("Unknown equation type: " + equation.getType());
@@ -204,10 +205,11 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
             Arrays.fill(x, 1);
             equationSystem.updateEquations(x);
 
-            j.solveTransposed(b);
+            j.solveTransposed(targets);
 
             for (Variable<InitVmVariableType> variable : equationSystem.getSortedVariablesToFind()) {
-                network.getBus(variable.getNum()).setV(() -> b[variable.getRow()]);
+                LfBus bus = network.getBus(variable.getNum());
+                bus.setV(() -> targets[variable.getRow()]);
             }
         }
     }
