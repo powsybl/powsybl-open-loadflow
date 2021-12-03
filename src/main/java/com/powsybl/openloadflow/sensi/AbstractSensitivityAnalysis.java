@@ -675,7 +675,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 }
             }
             contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
-            if (contingency.getBranchIdsToOpen().isEmpty() && contingency.getHvdcIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty()) {
+            if (contingency.getBranchIdsToOpen().isEmpty() && contingency.getHvdcIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLose().isEmpty()) {
                 LOGGER.warn("Contingency {} has no impact", contingency.getContingency().getId());
             }
         }
@@ -899,7 +899,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                         } else if (variableType == SensitivityVariableType.TRANSFORMER_PHASE) {
                             checkPhaseShifter(network, variableId);
-                            variableElement = lfNetwork.getBranchById(variableId);
+                            LfBranch twt = lfNetwork.getBranchById(variableId);
+                            variableElement = twt != null && twt.getBus1() != null && twt.getBus2() != null ? twt : null;
                         } else {
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
@@ -909,7 +910,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                         if (variableType == SensitivityVariableType.TRANSFORMER_PHASE) {
                             checkPhaseShifter(network, variableId);
-                            variableElement = lfNetwork.getBranchById(variableId);
+                            LfBranch twt = lfNetwork.getBranchById(variableId);
+                            variableElement = twt != null && twt.getBus1() != null && twt.getBus2() != null ? twt : null;
                         } else {
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
