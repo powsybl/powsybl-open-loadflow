@@ -10,11 +10,9 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import gnu.trove.list.array.TDoubleArrayList;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -72,32 +70,50 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
         private final LfBus bus;
 
+        private final Map<LfBus, List<LfBranch>> neighbors;
+
         private final List<Variable<InitVmVariableType>> variables;
 
-        private final List<LfBranch> branches;
-
-        private double value;
-
-        private final double[] der;
+        private final TDoubleArrayList der;
 
         public InitVmBusEquationTerm(LfBus bus, VariableSet<InitVmVariableType> variableSet) {
             this.bus = Objects.requireNonNull(bus);
-            branches = bus.getBranches().stream()
-                    .filter(branch -> {
-                        LfBus otherBus = branch.getBus1() == bus ? branch.getBus2() : branch.getBus1();
-                        return otherBus != null;
-                    })
-                    .collect(Collectors.toList());
-            if (branches.isEmpty()) {
+
+            List<LfBranch> branches = bus.getBranches();
+            neighbors = new LinkedHashMap<>(branches.size());
+            for (LfBranch branch : branches) {
+                LfBus otherBus = branch.getBus1() == bus ? branch.getBus2() : branch.getBus1();
+                if (otherBus != null) {
+                    neighbors.computeIfAbsent(otherBus, k -> new ArrayList<>())
+                            .add(branch);
+                }
+            }
+            if (neighbors.isEmpty()) {
                 throw new IllegalStateException("Isolated bus");
             }
-            variables = branches.stream()
-                    .map(branch -> {
-                        LfBus otherBus = branch.getBus1() == bus ? branch.getBus2() : branch.getBus1();
-                        return variableSet.getVariable(otherBus.getNum(), InitVmVariableType.BUS_V);
-                    })
-                    .collect(Collectors.toList());
-            der = new double[variables.size()];
+            variables = new ArrayList<>(neighbors.size());
+            der = new TDoubleArrayList(neighbors.size());
+            double bs = 0;
+            for (Map.Entry<LfBus, List<LfBranch>> e : neighbors.entrySet()) {
+                LfBus neighborBus = e.getKey();
+                List<LfBranch> neighborBranches = e.getValue();
+
+                variables.add(variableSet.getVariable(neighborBus.getNum(), InitVmVariableType.BUS_V));
+
+                double b = 0;
+                double r = 0;
+                for (LfBranch neighborBranch : neighborBranches) {
+                    PiModel piModel = neighborBranch.getPiModel();
+                    b += Math.abs(1 / piModel.getX());
+                    r += neighborBranch.getBus1() == bus ? piModel.getR1() : 1 / piModel.getR1();
+                }
+                r /= neighborBranches.size();
+                bs += b;
+                der.add(b * r);
+            }
+            for (int i = 0; i < der.size(); i++) {
+                der.setQuick(i, der.getQuick(i) / bs);
+            }
         }
 
         @Override
@@ -117,26 +133,12 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
         @Override
         public void update(double[] x) {
-            value = 0;
-            double bs = 0;
-            for (int i = 0; i < branches.size(); i++) {
-                LfBranch branch = branches.get(i);
-                PiModel piModel = branch.getPiModel();
-                double b = Math.abs(1 / piModel.getX());
-                double r = branch.getBus1() == bus ? piModel.getR1() : 1 / piModel.getR1();
-                bs += b;
-                value += x[variables.get(i).getRow()] * b * r;
-                der[i] = b * r;
-            }
-            value /= bs;
-            for (int i = 0; i < branches.size(); i++) {
-                der[i] /= bs;
-            }
+            // nothing that depends on state
         }
 
         @Override
         public double eval() {
-            return value;
+            throw new IllegalStateException("Useless");
         }
 
         @Override
@@ -145,7 +147,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
             if (i == -1) {
                 throw new IllegalStateException("Unknown variable: " + variable);
             }
-            return der[i];
+            return der.getQuick(i);
         }
 
         @Override
@@ -200,10 +202,6 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                         throw new IllegalStateException("Unknown equation type: " + equation.getType());
                 }
             });
-
-            double[] x = new double[network.getBuses().size()];
-            Arrays.fill(x, 1);
-            equationSystem.updateEquations(x);
 
             j.solveTransposed(targets);
 
