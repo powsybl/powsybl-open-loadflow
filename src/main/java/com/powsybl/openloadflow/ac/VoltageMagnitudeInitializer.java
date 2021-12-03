@@ -119,15 +119,11 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
             for (int i = 0; i < branches.size(); i++) {
                 LfBranch branch = branches.get(i);
                 PiModel piModel = branch.getPiModel();
-                double b = 1 / piModel.getX();
-                if (branch.getBus1() == bus) {
-                    b *= piModel.getR1();
-                } else {
-                    b /= piModel.getR1();
-                }
+                double b = Math.abs(1 / piModel.getX());
+                double r = branch.getBus1() == bus ? piModel.getR1() : 1 / piModel.getR1();
                 bs += b;
-                value += x[variables.get(i).getRow()] * b;
-                der[i] = b;
+                value += x[variables.get(i).getRow()] * b * r;
+                der[i] = b * r;
             }
             value /= bs;
             for (int i = 0; i < branches.size(); i++) {
