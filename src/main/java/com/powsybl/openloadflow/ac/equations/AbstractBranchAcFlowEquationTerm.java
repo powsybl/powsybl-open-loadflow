@@ -6,20 +6,15 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.AbstractNamedEquationTerm;
-import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.equations.AbstractBranchEquationTerm;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
 import net.jafama.FastMath;
 
-import java.util.Objects;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-abstract class AbstractBranchAcFlowEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
-
-    protected final LfBranch branch;
+abstract class AbstractBranchAcFlowEquationTerm extends AbstractBranchEquationTerm<AcVariableType, AcEquationType> {
 
     protected final double b1;
     protected final double b2;
@@ -31,7 +26,7 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractNamedEquationTer
     protected final double cosKsi;
 
     protected AbstractBranchAcFlowEquationTerm(LfBranch branch) {
-        this.branch = Objects.requireNonNull(branch);
+        super(branch);
         PiModel piModel = branch.getPiModel();
         if (piModel.getR() == 0 && piModel.getX() == 0) {
             throw new IllegalArgumentException("Non impedant branch not supported: " + branch.getId());
@@ -44,25 +39,5 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractNamedEquationTer
         ksi = piModel.getKsi();
         sinKsi = FastMath.sin(ksi);
         cosKsi = FastMath.cos(ksi);
-    }
-
-    @Override
-    public ElementType getElementType() {
-        return ElementType.BRANCH;
-    }
-
-    @Override
-    public int getElementNum() {
-        return branch.getNum();
-    }
-
-    @Override
-    public boolean hasRhs() {
-        return false;
-    }
-
-    @Override
-    public double rhs() {
-        return 0;
     }
 }

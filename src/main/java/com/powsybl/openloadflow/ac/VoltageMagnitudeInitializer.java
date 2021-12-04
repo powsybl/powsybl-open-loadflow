@@ -67,16 +67,14 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         }
     }
 
-    public static final class InitVmBusEquationTerm extends AbstractNamedEquationTerm<InitVmVariableType, InitVmEquationType> {
-
-        private final LfBus bus;
+    public static final class InitVmBusEquationTerm extends AbstractBusEquationTerm<InitVmVariableType, InitVmEquationType> {
 
         private final List<Variable<InitVmVariableType>> variables;
 
         private final TDoubleArrayList der;
 
         public InitVmBusEquationTerm(LfBus bus, VariableSet<InitVmVariableType> variableSet) {
-            this.bus = Objects.requireNonNull(bus);
+            super(bus);
 
             // detect parallel branches
             List<LfBranch> branches = bus.getBranches();
@@ -123,16 +121,6 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         }
 
         @Override
-        public ElementType getElementType() {
-            return ElementType.BUS;
-        }
-
-        @Override
-        public int getElementNum() {
-            return bus.getNum();
-        }
-
-        @Override
         public List<Variable<InitVmVariableType>> getVariables() {
             return variables;
         }
@@ -154,16 +142,6 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 throw new IllegalStateException("Unknown variable: " + variable);
             }
             return der.getQuick(i);
-        }
-
-        @Override
-        public boolean hasRhs() {
-            return false;
-        }
-
-        @Override
-        public double rhs() {
-            return 0;
         }
 
         @Override
