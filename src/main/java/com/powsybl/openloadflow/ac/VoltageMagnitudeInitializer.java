@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
@@ -88,7 +89,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 }
             }
             if (neighbors.isEmpty()) {
-                throw new IllegalStateException("Isolated bus");
+                throw new PowsyblException("Isolated bus");
             }
 
             variables = new ArrayList<>(neighbors.size());
@@ -112,6 +113,9 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
                 // add variable
                 variables.add(variableSet.getVariable(neighborBus.getNum(), InitVmVariableType.BUS_V));
+            }
+            if (bs == 0) {
+                throw new PowsyblException("Susceptance sum is zero");
             }
             for (int i = 0; i < der.size(); i++) {
                 der.setQuick(i, der.getQuick(i) / bs);
