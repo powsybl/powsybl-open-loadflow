@@ -43,7 +43,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public enum VoltageInitMode {
         DEFAULT,
-        VOLTAGE_MAGNITUDE
+        VOLTAGE_MAGNITUDE,
+        FULL_VOLTAGE
     }
 
     public static final VoltageInitMode VOLTAGE_INIT_MODE_DEFAULT_VALUE = VoltageInitMode.DEFAULT;
