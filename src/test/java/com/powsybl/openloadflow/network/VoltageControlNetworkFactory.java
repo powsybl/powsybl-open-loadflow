@@ -13,19 +13,6 @@ import com.powsybl.iidm.network.*;
  */
 public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
-    /**
-     *   g1    g3    g3
-     *   |     |     |
-     *   b1----b2----b3
-     *   |     |     |
-     *   |tr1  |tr2  |tr3
-     *   |     |     |
-     *   +-----+-----+
-     *         b4
-     *         |
-     *         ld4
-     *
-     */
     public static Network createWithGeneratorRemoteControl() {
 
         Network network = Network.create("generator-remote-control-test", "code");
