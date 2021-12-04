@@ -157,16 +157,6 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public boolean hasRhs() {
-            return false;
-        }
-
-        @Override
-        public double rhs() {
-            return 0;
-        }
-
-        @Override
         public double calculateSensi(DenseMatrix x, int column) {
             return x.get(variables.get(0).getRow(), column);
         }
