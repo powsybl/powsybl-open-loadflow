@@ -106,6 +106,29 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
     }
 
+    public static VoltageInitializer getExtendedVoltageInitializer(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                                   LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
+        switch (parametersExt.getVoltageInitMode()) {
+            case NONE:
+                return getVoltageInitializer(parameters, networkParameters, matrixFactory, reporter);
+
+            case VOLTAGE_MAGNITUDE:
+                return new VoltageMagnitudeInitializer(matrixFactory);
+
+            case FULL_VOLTAGE:
+                return new FullVoltageInitializer(new VoltageMagnitudeInitializer(matrixFactory),
+                        new DcValueVoltageInitializer(networkParameters,
+                                parameters.isDistributedSlack(),
+                                parameters.getBalanceType(),
+                                parameters.isDcUseTransformerRatio(),
+                                matrixFactory,
+                                reporter));
+
+            default:
+                throw new PowsyblException("Unknown voltage init mode: " + parametersExt.getVoltageInitMode());
+        }
+    }
+
     private static SlackBusSelector getSlackBusSelector(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds());
         return parameters.isReadSlackBus() ? new NetworkSlackBusSelector(network, slackBusSelector)
@@ -146,6 +169,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
         LOGGER.info("Voltage initialization mode: {}", parameters.getVoltageInitMode());
+        LOGGER.info("Extended voltage initialization mode: {}", parametersExt.getVoltageInitMode());
         LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
         LOGGER.info("Balance type: {}", parameters.getBalanceType());
         LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
@@ -185,29 +209,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var, branchesWithCurrent);
 
-        VoltageInitializer voltageInitializer;
-        switch (parametersExt.getVoltageInitMode()) {
-            case DEFAULT:
-                voltageInitializer = getVoltageInitializer(parameters, networkParameters, matrixFactory, reporter);
-                break;
-
-            case VOLTAGE_MAGNITUDE:
-                voltageInitializer = new VoltageMagnitudeInitializer(matrixFactory);
-                break;
-
-            case FULL_VOLTAGE:
-                voltageInitializer = new FullVoltageInitializer(new VoltageMagnitudeInitializer(matrixFactory),
-                                                                new DcValueVoltageInitializer(networkParameters,
-                                                                                              parameters.isDistributedSlack(),
-                                                                                              parameters.getBalanceType(),
-                                                                                              parameters.isDcUseTransformerRatio(),
-                                                                                              matrixFactory,
-                                                                                              reporter));
-                break;
-
-            default:
-                throw new PowsyblException("Unknown voltage init mode: " + parametersExt.getVoltageInitMode());
-        }
+        VoltageInitializer voltageInitializer = getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory, reporter);
 
         var newtonRaphsonParameters = new NewtonRaphsonParameters()
                 .setVoltageInitializer(voltageInitializer);

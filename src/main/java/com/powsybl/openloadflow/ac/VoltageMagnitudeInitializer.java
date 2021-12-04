@@ -12,6 +12,8 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import gnu.trove.list.array.TDoubleArrayList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -19,6 +21,8 @@ import java.util.*;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class VoltageMagnitudeInitializer implements VoltageInitializer {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(VoltageMagnitudeInitializer.class);
 
     public enum InitVmEquationType implements Quantity {
         BUS_TARGET_V("v", ElementType.BUS),
@@ -196,6 +200,8 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 bus.setV(() -> targets[variable.getRow()]);
             }
         }
+
+        LOGGER.info("Initial voltage magnitude solved");
     }
 
     @Override

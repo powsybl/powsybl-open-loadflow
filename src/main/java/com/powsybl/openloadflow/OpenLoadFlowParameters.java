@@ -42,12 +42,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final boolean VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE = false;
 
     public enum VoltageInitMode {
-        DEFAULT,
+        NONE,
         VOLTAGE_MAGNITUDE,
         FULL_VOLTAGE
     }
 
-    public static final VoltageInitMode VOLTAGE_INIT_MODE_DEFAULT_VALUE = VoltageInitMode.DEFAULT;
+    public static final VoltageInitMode VOLTAGE_INIT_MODE_DEFAULT_VALUE = VoltageInitMode.NONE;
 
     private SlackBusSelectionMode slackBusSelectionMode = SLACK_BUS_SELECTION_DEFAULT_VALUE;
 

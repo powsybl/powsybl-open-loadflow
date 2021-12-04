@@ -27,7 +27,7 @@
         "addRatioToLinesWithDifferentNominalVoltageAtBothEnds" : false,
         "slackBusPMaxMismatch" : 1.0,
         "voltagePerReactivePowerControl" : false,
-        "voltageInitMode" : "DEFAULT"
+        "voltageInitMode" : "NONE"
       }
     }
   },
