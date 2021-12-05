@@ -165,19 +165,19 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     static LfNetworkParameters getNetworkParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                     SlackBusSelector slackBusSelector, boolean breakers) {
         return new LfNetworkParameters(slackBusSelector,
-                parametersExt.hasVoltageRemoteControl(),
-                parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
-                parameters.isTwtSplitShuntAdmittance(),
-                breakers,
-                parametersExt.getPlausibleActivePowerLimit(),
-                parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
-                parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
-                parameters.getCountriesToBalance(),
-                parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                parameters.isPhaseShifterRegulationOn(),
-                parameters.isTransformerVoltageControlOn(),
-                parametersExt.isVoltagePerReactivePowerControl(),
-                parametersExt.hasReactivePowerRemoteControl());
+                                       parametersExt.hasVoltageRemoteControl(),
+                                       parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
+                                       parameters.isTwtSplitShuntAdmittance(),
+                                       breakers,
+                                       parametersExt.getPlausibleActivePowerLimit(),
+                                       parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
+                                       parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
+                                       parameters.getCountriesToBalance(),
+                                       parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                                       parameters.isPhaseShifterRegulationOn(),
+                                       parameters.isTransformerVoltageControlOn(),
+                                       parametersExt.isVoltagePerReactivePowerControl(),
+                                       parametersExt.hasReactivePowerRemoteControl());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
