@@ -118,12 +118,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
             case FULL_VOLTAGE:
                 return new FullVoltageInitializer(new VoltageMagnitudeInitializer(matrixFactory),
-                        new DcValueVoltageInitializer(networkParameters,
-                                parameters.isDistributedSlack(),
-                                parameters.getBalanceType(),
-                                parameters.isDcUseTransformerRatio(),
-                                matrixFactory,
-                                reporter));
+                                                  new DcValueVoltageInitializer(networkParameters,
+                                                                                parameters.isDistributedSlack(),
+                                                                                parameters.getBalanceType(),
+                                                                                parameters.isDcUseTransformerRatio(),
+                                                                                matrixFactory,
+                                                                                reporter));
 
             default:
                 throw new PowsyblException("Unknown voltage init mode: " + parametersExt.getVoltageInitMode());

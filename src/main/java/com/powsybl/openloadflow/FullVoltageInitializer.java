@@ -15,6 +15,9 @@ import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import java.util.Objects;
 
 /**
+ * A voltage initializer that rely on {@link VoltageMagnitudeInitializer} for magnitude calculation and on
+ * {@link DcValueVoltageInitializer} for angle calculation.
+ *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class FullVoltageInitializer implements VoltageInitializer {

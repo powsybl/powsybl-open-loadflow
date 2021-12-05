@@ -18,6 +18,11 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 /**
+ * This voltage initializer is able to find a voltage magnitude starting point by resolving a linear system
+ * using only voltage set points, branches reactance and branches voltage ratio.
+ * This initializer is particularly useful for cases with a large range of voltage (many transformers with a ratio far
+ * from 1pu for instance).
+ *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class VoltageMagnitudeInitializer implements VoltageInitializer {
@@ -90,33 +95,35 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                             .add(branch);
                 }
             }
-            if (neighbors.isEmpty()) {
+            if (neighbors.isEmpty()) { // should never happen
                 throw new PowsyblException("Isolated bus");
             }
 
             variables = new ArrayList<>(neighbors.size());
             der = new TDoubleArrayList(neighbors.size());
-            double bs = 0;
+            double bs = 0; // neighbor branches susceptance sum
             for (Map.Entry<LfBus, List<LfBranch>> e : neighbors.entrySet()) {
                 LfBus neighborBus = e.getKey();
                 List<LfBranch> neighborBranches = e.getValue();
 
-                // evaluate derivative
+                // in case of multiple branches connected to same buses, we just sum the susceptance and take the
+                // average voltage ratio.
                 double b = 0;
                 double r = 0;
                 for (LfBranch neighborBranch : neighborBranches) {
                     PiModel piModel = neighborBranch.getPiModel();
-                    b += Math.abs(1 / piModel.getX());
+                    b += Math.abs(1 / piModel.getX()); // to void issue with negative reactances
                     r += neighborBranch.getBus1() == bus ? 1 / piModel.getR1() : piModel.getR1();
                 }
                 r /= neighborBranches.size();
+
                 bs += b;
                 der.add(b * r);
 
                 // add variable
                 variables.add(variableSet.getVariable(neighborBus.getNum(), InitVmVariableType.BUS_V));
             }
-            if (bs == 0) {
+            if (bs == 0) { // should never happen
                 throw new PowsyblException("Susceptance sum is zero");
             }
             for (int i = 0; i < der.size(); i++) {
@@ -176,6 +183,15 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
     @Override
     public void prepare(LfNetwork network) {
+        // create the equation system:
+        //
+        // there are 2 types of equations:
+        //   for PV buses: target_v = v_i where i is the bus number
+        //   for other buses: 0 = sum_j(b_j * v_j) / sum_j(b_j) - v_i where j are buses neighbors of bus i and b is 1 / x
+        //
+        // so the aim of to find a voltage plan that respect voltage set points and that compute other voltages
+        // magnitude by interpolating neighbors bus values proportionally to branch susceptance and voltage ratio
+        //
         EquationSystem<InitVmVariableType, InitVmEquationType> equationSystem = new EquationSystem<>();
         VariableSet<InitVmVariableType> variableSet = new VariableSet<>();
         for (LfBus bus : network.getBuses()) {
