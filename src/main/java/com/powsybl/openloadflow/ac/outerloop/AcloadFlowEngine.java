@@ -34,8 +34,6 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     private final AcLoadFlowParameters parameters;
 
-    private VariableSet<AcVariableType> variableSet;
-
     private EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
     private JacobianMatrix<AcVariableType, AcEquationType> j;
@@ -53,10 +51,6 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     public AcLoadFlowParameters getParameters() {
         return parameters;
-    }
-
-    public VariableSet<AcVariableType> getVariableSet() {
-        return variableSet;
     }
 
     public EquationSystem<AcVariableType, AcEquationType> getEquationSystem() {
@@ -227,8 +221,7 @@ public class AcloadFlowEngine implements AutoCloseable {
         if (equationSystem == null) {
             LOGGER.info("Start AC loadflow on network {}", network);
 
-            variableSet = new VariableSet<>();
-            equationSystem = AcEquationSystem.create(network, parameters.getNetworkParameters(), variableSet, parameters.getEquationSystemCreationParameters());
+            equationSystem = AcEquationSystem.create(network, parameters.getNetworkParameters(), parameters.getEquationSystemCreationParameters());
             j = new JacobianMatrix<>(equationSystem, parameters.getMatrixFactory());
             targetVector = new TargetVector<>(network, equationSystem, AcloadFlowEngine::initTarget);
         } else {

@@ -166,7 +166,7 @@ class AcLoadFlowSvcTest {
 
     @Test
     void testSvcWithSlope() {
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
 
@@ -189,7 +189,7 @@ class AcLoadFlowSvcTest {
     @Test
     void testSvcWithSlope2() {
         // Test switch PV to PQ
-        svc1.setVoltageSetPoint(440)
+        svc1.setVoltageSetpoint(440)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
 
@@ -223,7 +223,7 @@ class AcLoadFlowSvcTest {
                 .setVoltageRegulatorOn(true)
                 .add();
 
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
 
         parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
@@ -251,7 +251,7 @@ class AcLoadFlowSvcTest {
                 .setBmax(0.008)
                 .add();
 
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         svc2.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
         svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
@@ -271,7 +271,7 @@ class AcLoadFlowSvcTest {
     @Test
     void testSvcWithSlope5() {
         // With a generator at bus2 not controlling voltage
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
 
