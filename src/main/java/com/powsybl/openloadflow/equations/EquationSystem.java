@@ -166,13 +166,24 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private final List<EquationSystemListener<V, E>> listeners = new ArrayList<>();
 
+    private final VariableSet<V> variableSet;
+
     public EquationSystem() {
         this(false);
     }
 
     public EquationSystem(boolean indexTerms) {
+        this(new VariableSet<>(), indexTerms);
+    }
+
+    public EquationSystem(VariableSet<V> variableSet, boolean indexTerms) {
+        this.variableSet = Objects.requireNonNull(variableSet);
         this.indexTerms = indexTerms;
         addListener(equationCache);
+    }
+
+    public VariableSet<V> getVariableSet() {
+        return variableSet;
     }
 
     void addEquationTerm(EquationTerm<V, E> equationTerm) {
