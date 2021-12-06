@@ -189,7 +189,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         //   for PV buses: target_v = v_i where i is the bus number
         //   for other buses: 0 = sum_j(b_j * v_j) / sum_j(b_j) - v_i where j are buses neighbors of bus i and b is 1 / x
         //
-        // so the aim of to find a voltage plan that respect voltage set points and that compute other voltages
+        // so the aim is to find a voltage plan that respect voltage set points and that computes other voltages
         // magnitude by interpolating neighbors bus values proportionally to branch susceptance and voltage ratio
         //
         EquationSystem<InitVmVariableType, InitVmEquationType> equationSystem = new EquationSystem<>();
