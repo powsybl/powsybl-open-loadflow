@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.List;
@@ -23,16 +22,13 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
-    private final VariableSet<AcVariableType> variableSet;
-
     private final AcEquationSystemCreationParameters creationParameters;
 
     private final LfNetworkParameters networkParameters;
 
-    public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet,
+    public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                    AcEquationSystemCreationParameters creationParameters, LfNetworkParameters networkParameters) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
-        this.variableSet = Objects.requireNonNull(variableSet);
         this.creationParameters = Objects.requireNonNull(creationParameters);
         this.networkParameters = Objects.requireNonNull(networkParameters);
     }
@@ -60,7 +56,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
             // create reactive power equations on controller buses that have voltage control on
             if (!controllerBusesWithVoltageControlOn.isEmpty()) {
-                AcEquationSystem.createReactivePowerDistributionEquations(controllerBusesWithVoltageControlOn, networkParameters, equationSystem, variableSet, creationParameters);
+                AcEquationSystem.createReactivePowerDistributionEquations(controllerBusesWithVoltageControlOn, networkParameters, equationSystem, creationParameters);
             }
         }
     }
@@ -127,7 +123,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                     .setActive(true);
 
             // add transformer distribution equations
-            AcEquationSystem.createR1DistributionEquations(voltageControl.getControllers(), equationSystem, variableSet);
+            AcEquationSystem.createR1DistributionEquations(voltageControl.getControllers(), equationSystem);
 
             for (LfBranch controllerBranch : voltageControl.getControllers()) {
                 // de-activate constant R1 equation
