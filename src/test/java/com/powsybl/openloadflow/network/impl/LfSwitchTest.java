@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -54,7 +55,7 @@ class LfSwitchTest {
     @Test
     void getterTest() {
         assertEquals("B3", lfSwitch.getId());
-        assertEquals(false, lfSwitch.hasPhaseControlCapability());
+        assertFalse(lfSwitch.hasPhaseControlCapability());
         assertEquals(Double.NaN, lfSwitch.getP1().eval());
         assertEquals(Double.NaN, lfSwitch.getP2().eval());
         assertEquals(Double.NaN, lfSwitch.getI1().eval());
