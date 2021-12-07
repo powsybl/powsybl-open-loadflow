@@ -31,7 +31,8 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
     public enum InitVmEquationType implements Quantity {
         BUS_TARGET_V("v", ElementType.BUS),
-        BUS_ZERO("z", ElementType.BUS);
+        BUS_ZERO("bus_z", ElementType.BUS),
+        BRANCH_ZERO("branch_z", ElementType.BRANCH);
 
         private final String symbol;
 
@@ -54,7 +55,8 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
     }
 
     public enum InitVmVariableType implements Quantity {
-        BUS_V("v", ElementType.BUS);
+        BUS_V("v", ElementType.BUS),
+        DUMMY_V("dummy_v", ElementType.BRANCH);
 
         private final String symbol;
 
@@ -110,18 +112,25 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 // average voltage ratio.
                 double b = 0;
                 double r = 0;
+                int neighborCount = 0;
                 for (LfBranch neighborBranch : neighborBranches) {
                     PiModel piModel = neighborBranch.getPiModel();
+                    if (piModel.getX() == 0) { // skip non impedant branches
+                        continue;
+                    }
                     b += Math.abs(1 / piModel.getX()); // to void issue with negative reactances
                     r += neighborBranch.getBus1() == bus ? 1 / piModel.getR1() : piModel.getR1();
+                    neighborCount++;
                 }
-                r /= neighborBranches.size();
+                if (neighborCount > 0) {
+                    r /= neighborCount;
 
-                bs += b;
-                der.add(b * r);
+                    bs += b;
+                    der.add(b * r);
 
-                // add variable
-                variables.add(variableSet.getVariable(neighborBus.getNum(), InitVmVariableType.BUS_V));
+                    // add variable
+                    variables.add(variableSet.getVariable(neighborBus.getNum(), InitVmVariableType.BUS_V));
+                }
             }
             if (bs == 0) { // should never happen
                 throw new PowsyblException("Susceptance sum is zero");
@@ -157,7 +166,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
         @Override
         protected String getName() {
-            return "v";
+            return "v_distr";
         }
     }
 
@@ -174,6 +183,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 targets[equation.getColumn()] = bus.getVoltageControl().orElseThrow().getTargetValue();
                 break;
             case BUS_ZERO:
+            case BRANCH_ZERO:
                 targets[equation.getColumn()] = 0;
                 break;
             default:
@@ -193,16 +203,45 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         // magnitude by interpolating neighbors bus values proportionally to branch susceptance and voltage ratio
         //
         EquationSystem<InitVmVariableType, InitVmEquationType> equationSystem = new EquationSystem<>();
-        VariableSet<InitVmVariableType> variableSet = new VariableSet<>();
         for (LfBus bus : network.getBuses()) {
-            EquationTerm<InitVmVariableType, InitVmEquationType> v = EquationTerm.createVariableTerm(bus, InitVmVariableType.BUS_V, variableSet);
+            EquationTerm<InitVmVariableType, InitVmEquationType> v = EquationTerm.createVariableTerm(bus, InitVmVariableType.BUS_V, equationSystem.getVariableSet());
             if (bus.isVoltageControlled()) {
                 equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_TARGET_V)
                         .addTerm(v);
             } else {
                 equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_ZERO)
-                        .addTerm(new InitVmBusEquationTerm(bus, variableSet))
+                        .addTerm(new InitVmBusEquationTerm(bus, equationSystem.getVariableSet()))
                         .addTerm(EquationTerm.multiply(v, -1));
+            }
+        }
+
+        // create voltage coupling equation for each non impedant branches
+        for (LfBranch branch : network.getBranches()) {
+            LfBus bus1 = branch.getBus1();
+            LfBus bus2 = branch.getBus2();
+            if (bus1 != null && bus2 != null && branch.getPiModel().getX() == 0) {
+                if (branch.getPiModel().getR1() != 1) {
+                    throw new PowsyblException("Non impedant transformer not implemented");
+                }
+                // 0 = v1 - v2
+                EquationTerm<InitVmVariableType, InitVmEquationType> v1 = EquationTerm.createVariableTerm(bus1, InitVmVariableType.BUS_V, equationSystem.getVariableSet());
+                EquationTerm<InitVmVariableType, InitVmEquationType> v2 = EquationTerm.createVariableTerm(bus2, InitVmVariableType.BUS_V, equationSystem.getVariableSet());
+                equationSystem.createEquation(branch.getNum(), InitVmEquationType.BRANCH_ZERO)
+                        .addTerm(v1)
+                        .addTerm(EquationTerm.multiply(v2, -1));
+
+                // to keep a square matrix, we have to add a dummy voltage variable at each side of the branch with a
+                // opposite sign
+                // as v1 = v2 whatever the dummy voltage variable is, the equation system solution won't be impacted
+                EquationTerm<InitVmVariableType, InitVmEquationType> dummyV = EquationTerm.createVariableTerm(branch, InitVmVariableType.DUMMY_V, equationSystem.getVariableSet());
+                equationSystem.getEquation(bus1.getNum(), InitVmEquationType.BUS_ZERO)
+                        .or(() -> equationSystem.getEquation(bus1.getNum(), InitVmEquationType.BUS_TARGET_V))
+                        .orElseThrow()
+                        .addTerm(dummyV);
+                equationSystem.getEquation(bus2.getNum(), InitVmEquationType.BUS_ZERO)
+                        .or(() -> equationSystem.getEquation(bus2.getNum(), InitVmEquationType.BUS_TARGET_V))
+                        .orElseThrow()
+                        .addTerm(EquationTerm.multiply(dummyV, -1));
             }
         }
 
@@ -212,8 +251,10 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
             j.solveTransposed(targets);
 
             for (Variable<InitVmVariableType> variable : equationSystem.getSortedVariablesToFind()) {
-                LfBus bus = network.getBus(variable.getNum());
-                bus.setV(() -> targets[variable.getRow()]);
+                if (variable.getType() == InitVmVariableType.BUS_V) {
+                    LfBus bus = network.getBus(variable.getNum());
+                    bus.setV(() -> targets[variable.getRow()]);
+                }
             }
         }
 
