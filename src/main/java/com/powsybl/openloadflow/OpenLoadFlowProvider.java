@@ -109,7 +109,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     static VoltageInitializer getExtendedVoltageInitializer(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                             LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
-        switch (parametersExt.getVoltageInitMode()) {
+        switch (parametersExt.getVoltageInitModeOverride()) {
             case NONE:
                 return getVoltageInitializer(parameters, networkParameters, matrixFactory, reporter);
 
@@ -126,7 +126,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                                 reporter));
 
             default:
-                throw new PowsyblException("Unknown voltage init mode: " + parametersExt.getVoltageInitMode());
+                throw new PowsyblException("Unknown voltage init mode override: " + parametersExt.getVoltageInitModeOverride());
         }
     }
 
@@ -188,7 +188,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
         LOGGER.info("Voltage initialization mode: {}", parameters.getVoltageInitMode());
-        LOGGER.info("Extended voltage initialization mode: {}", parametersExt.getVoltageInitMode());
+        LOGGER.info("Voltage initialization mode override: {}", parametersExt.getVoltageInitModeOverride());
         LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
         LOGGER.info("Balance type: {}", parameters.getBalanceType());
         LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());

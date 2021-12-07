@@ -29,7 +29,7 @@
         "voltagePerReactivePowerControl" : false,
         "maxIteration" : 30,
         "newtonRaphsonConvEpsPerEq" : 1.0E-4,
-        "voltageInitMode" : "NONE"
+        "voltageInitModeOverride" : "NONE"
       }
     }
   },
