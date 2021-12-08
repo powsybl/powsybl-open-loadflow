@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.*;
@@ -17,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This voltage initializer is able to find a voltage magnitude starting point by resolving a linear system
@@ -85,11 +87,10 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
         private final TDoubleArrayList der;
 
-        public InitVmBusEquationTerm(LfBus bus, VariableSet<InitVmVariableType> variableSet) {
-            super(bus);
+        private static Map<LfBus, List<LfBranch>> findNeighbors(LfBus bus) {
+            List<LfBranch> branches = bus.getBranches();
 
             // detect parallel branches
-            List<LfBranch> branches = bus.getBranches();
             Map<LfBus, List<LfBranch>> neighbors = new LinkedHashMap<>(branches.size());
             for (LfBranch branch : branches) {
                 LfBus otherBus = branch.getBus1() == bus ? branch.getBus2() : branch.getBus1();
@@ -101,6 +102,14 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
             if (neighbors.isEmpty()) { // should never happen
                 throw new PowsyblException("Isolated bus");
             }
+
+            return neighbors;
+        }
+
+        public InitVmBusEquationTerm(LfBus bus, VariableSet<InitVmVariableType> variableSet) {
+            super(bus);
+
+            Map<LfBus, List<LfBranch>> neighbors = findNeighbors(bus);
 
             variables = new ArrayList<>(neighbors.size());
             der = new TDoubleArrayList(neighbors.size());
@@ -199,11 +208,11 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 && branch.getPiModel().getX() == 0;
     }
 
-    @Override
-    public void prepare(LfNetwork network) {
+    private Map<LfBus, LfBus> findPvBusFriends(LfNetwork network) {
         // check if there is at least one zero impedance branch
         boolean hasAtLeastOneZeroImpedanceBranch = network.getBranches().stream()
                 .anyMatch(VoltageMagnitudeInitializer::isZeroImpedanceBranch);
+
         Map<LfBus, LfBus> pvBusFriends = new HashMap<>();
         if (hasAtLeastOneZeroImpedanceBranch) {
             var subGraph = network.createSubGraph(VoltageMagnitudeInitializer::isZeroImpedanceBranch);
@@ -221,6 +230,47 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 }
             }
         }
+
+        return pvBusFriends;
+    }
+
+    private void createVoltageCouplingEquations(LfNetwork network, EquationSystem<InitVmVariableType, InitVmEquationType> equationSystem) {
+        for (LfBranch branch : network.getBranches()) {
+            if (isZeroImpedanceBranch(branch)) {
+                LfBus bus1 = branch.getBus1();
+                LfBus bus2 = branch.getBus2();
+                if (branch.getPiModel().getR1() != 1) {
+                    throw new PowsyblException("Zero impedance transformer not implemented");
+                }
+                // 0 = v1 - v2
+                EquationTerm<InitVmVariableType, InitVmEquationType> v1 = EquationTerm.createVariableTerm(bus1, InitVmVariableType.BUS_V, equationSystem.getVariableSet());
+                EquationTerm<InitVmVariableType, InitVmEquationType> v2 = EquationTerm.createVariableTerm(bus2, InitVmVariableType.BUS_V, equationSystem.getVariableSet());
+                equationSystem.createEquation(branch.getNum(), InitVmEquationType.BRANCH_ZERO)
+                        .addTerm(v1)
+                        .addTerm(EquationTerm.multiply(v2, -1));
+
+                // to keep a square matrix, we have to add a dummy voltage variable at each side of the branch with a
+                // opposite sign
+                // as v1 = v2 whatever the dummy voltage variable is, the equation system solution won't be impacted
+                EquationTerm<InitVmVariableType, InitVmEquationType> dummyV = EquationTerm.createVariableTerm(branch, InitVmVariableType.DUMMY_V, equationSystem.getVariableSet());
+                equationSystem.getEquation(bus1.getNum(), InitVmEquationType.BUS_ZERO)
+                        .or(() -> equationSystem.getEquation(bus1.getNum(), InitVmEquationType.BUS_TARGET_V))
+                        .orElseThrow()
+                        .addTerm(dummyV);
+                equationSystem.getEquation(bus2.getNum(), InitVmEquationType.BUS_ZERO)
+                        .or(() -> equationSystem.getEquation(bus2.getNum(), InitVmEquationType.BUS_TARGET_V))
+                        .orElseThrow()
+                        .addTerm(EquationTerm.multiply(dummyV, -1));
+            }
+        }
+    }
+
+    @Override
+    public void prepare(LfNetwork network) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
+        // bus to PV bus mapping in case of a bus connected to a PV bus though a zero impedance sub network
+        Map<LfBus, LfBus> pvBusFriends = findPvBusFriends(network);
 
         // create the equation system:
         //
@@ -258,34 +308,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         }
 
         // create voltage coupling equation for each zero impedance branches
-        for (LfBranch branch : network.getBranches()) {
-            if (isZeroImpedanceBranch(branch)) {
-                LfBus bus1 = branch.getBus1();
-                LfBus bus2 = branch.getBus2();
-                if (branch.getPiModel().getR1() != 1) {
-                    throw new PowsyblException("Zero impedance transformer not implemented");
-                }
-                // 0 = v1 - v2
-                EquationTerm<InitVmVariableType, InitVmEquationType> v1 = EquationTerm.createVariableTerm(bus1, InitVmVariableType.BUS_V, equationSystem.getVariableSet());
-                EquationTerm<InitVmVariableType, InitVmEquationType> v2 = EquationTerm.createVariableTerm(bus2, InitVmVariableType.BUS_V, equationSystem.getVariableSet());
-                equationSystem.createEquation(branch.getNum(), InitVmEquationType.BRANCH_ZERO)
-                        .addTerm(v1)
-                        .addTerm(EquationTerm.multiply(v2, -1));
-
-                // to keep a square matrix, we have to add a dummy voltage variable at each side of the branch with a
-                // opposite sign
-                // as v1 = v2 whatever the dummy voltage variable is, the equation system solution won't be impacted
-                EquationTerm<InitVmVariableType, InitVmEquationType> dummyV = EquationTerm.createVariableTerm(branch, InitVmVariableType.DUMMY_V, equationSystem.getVariableSet());
-                equationSystem.getEquation(bus1.getNum(), InitVmEquationType.BUS_ZERO)
-                        .or(() -> equationSystem.getEquation(bus1.getNum(), InitVmEquationType.BUS_TARGET_V))
-                        .orElseThrow()
-                        .addTerm(dummyV);
-                equationSystem.getEquation(bus2.getNum(), InitVmEquationType.BUS_ZERO)
-                        .or(() -> equationSystem.getEquation(bus2.getNum(), InitVmEquationType.BUS_TARGET_V))
-                        .orElseThrow()
-                        .addTerm(EquationTerm.multiply(dummyV, -1));
-            }
-        }
+        createVoltageCouplingEquations(network, equationSystem);
 
         try (JacobianMatrix<InitVmVariableType, InitVmEquationType> j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
             double[] targets = TargetVector.createArray(network, equationSystem, VoltageMagnitudeInitializer::initTarget);
@@ -300,7 +323,8 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
             }
         }
 
-        LOGGER.info("Initial voltage magnitude solved");
+        stopwatch.stop();
+        LOGGER.info("Initial voltage magnitude solved in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     @Override
