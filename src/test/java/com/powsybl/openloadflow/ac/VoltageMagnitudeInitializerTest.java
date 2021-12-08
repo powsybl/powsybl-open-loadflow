@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -89,5 +90,54 @@ public class VoltageMagnitudeInitializerTest {
         assertBusVoltage(lfNetwork, initializer, "VL12_0", 1.0701, 0);
         assertBusVoltage(lfNetwork, initializer, "VL13_0", 1.0701, 0);
         assertBusVoltage(lfNetwork, initializer, "VL14_0", 1.0708, 0); // equals VL9_0
+    }
+
+    @Test
+    @Disabled
+    void testNonImpedantBranchConnectedToPvBus() {
+        Network network = IeeeCdfNetworkFactory.create14();
+        network.getLine("L6-11-1").setX(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+        VoltageMagnitudeInitializer initializer = new VoltageMagnitudeInitializer(new DenseMatrixFactory());
+        initializer.prepare(lfNetwork);
+        assertBusVoltage(lfNetwork, initializer, "VL1_0", 1.06, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL2_0", 1.045, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL3_0", 1.01, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL4_0", 0, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL5_0", 0, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL6_0", 1.07, 0); // equals target
+        assertBusVoltage(lfNetwork, initializer, "VL7_0", 0, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL8_0", 1.09, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL9_0", 0, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL10_0", 0, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL11_0", 1.07, 0); // equals VL6_0
+        assertBusVoltage(lfNetwork, initializer, "VL12_0", 0, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL13_0", 0, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL14_0", 0, 0);
+    }
+
+    @Test
+    @Disabled
+    void testNonImpedantBranchConnectedToIsolatedBus() {
+        Network network = IeeeCdfNetworkFactory.create14();
+        network.getLine("L6-11-1").setX(0);
+        network.getLine("L10-11-1").remove();
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+        VoltageMagnitudeInitializer initializer = new VoltageMagnitudeInitializer(new DenseMatrixFactory());
+        initializer.prepare(lfNetwork);
+        assertBusVoltage(lfNetwork, initializer, "VL1_0", 1.06, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL2_0", 1.045, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL3_0", 1.01, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL4_0", 0, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL5_0", 0, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL6_0", 1.07, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL7_0", 0, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL8_0", 1.09, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL9_0", 0, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL10_0", 0, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL11_0", 0, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL12_0", 0, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL13_0", 0, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL14_0", 0, 0);
     }
 }
