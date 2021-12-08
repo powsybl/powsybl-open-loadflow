@@ -69,7 +69,7 @@ public class VoltageMagnitudeInitializerTest {
     }
 
     @Test
-    void testNonImpedantBranch() {
+    void testZeroImpedanceBranch() {
         Network network = IeeeCdfNetworkFactory.create14();
         network.getLine("L9-14-1").setX(0);
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
@@ -92,7 +92,7 @@ public class VoltageMagnitudeInitializerTest {
     }
 
     @Test
-    void testNonImpedantBranchConnectedToPvBus() {
+    void testZeroImpedanceBranchConnectedToPvBus() {
         Network network = IeeeCdfNetworkFactory.create14();
         network.getLine("L6-11-1").setX(0);
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
@@ -115,7 +115,7 @@ public class VoltageMagnitudeInitializerTest {
     }
 
     @Test
-    void testNonImpedantBranchConnectedToIsolatedBus() {
+    void testZeroImpedanceBranchConnectedToIsolatedBus() {
         Network network = IeeeCdfNetworkFactory.create14();
         network.getLine("L10-11-1").setX(0);
         network.getLine("L9-10-1").remove();

@@ -116,7 +116,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 int neighborCount = 0;
                 for (LfBranch neighborBranch : neighborBranches) {
                     PiModel piModel = neighborBranch.getPiModel();
-                    if (piModel.getX() == 0) { // skip non impedant branches
+                    if (piModel.getX() == 0) { // skip zero impedance branches
                         continue;
                     }
                     b += Math.abs(1 / piModel.getX()); // to void issue with negative reactances
@@ -257,13 +257,13 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
         }
 
-        // create voltage coupling equation for each non impedant branches
+        // create voltage coupling equation for each zero impedance branches
         for (LfBranch branch : network.getBranches()) {
             if (isZeroImpedanceBranch(branch)) {
                 LfBus bus1 = branch.getBus1();
                 LfBus bus2 = branch.getBus2();
                 if (branch.getPiModel().getR1() != 1) {
-                    throw new PowsyblException("Non impedant transformer not implemented");
+                    throw new PowsyblException("Zero impedance transformer not implemented");
                 }
                 // 0 = v1 - v2
                 EquationTerm<InitVmVariableType, InitVmEquationType> v1 = EquationTerm.createVariableTerm(bus1, InitVmVariableType.BUS_V, equationSystem.getVariableSet());
