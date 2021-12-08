@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import gnu.trove.list.array.TDoubleArrayList;
+import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -179,7 +180,8 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
     private static void initTarget(Equation<InitVmVariableType, InitVmEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
             case BUS_TARGET_V:
-                LfBus bus = network.getBus(equation.getNum());
+                int busNum = equation.getData() == null ? equation.getNum() : (Integer) equation.getData();
+                LfBus bus = network.getBus(busNum);
                 targets[equation.getColumn()] = bus.getVoltageControl().orElseThrow().getTargetValue();
                 break;
             case BUS_ZERO:
@@ -191,8 +193,35 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         }
     }
 
+    private static boolean isZeroImpedanceBranch(LfBranch branch) {
+        return branch.getBus1() != null
+                && branch.getBus2() != null
+                && branch.getPiModel().getX() == 0;
+    }
+
     @Override
     public void prepare(LfNetwork network) {
+        // check if there is at least one zero impedance branch
+        boolean hasAtLeastOneZeroImpedanceBranch = network.getBranches().stream()
+                .anyMatch(VoltageMagnitudeInitializer::isZeroImpedanceBranch);
+        Map<LfBus, LfBus> pvBusFriends = new HashMap<>();
+        if (hasAtLeastOneZeroImpedanceBranch) {
+            var subGraph = network.createSubGraph(VoltageMagnitudeInitializer::isZeroImpedanceBranch);
+            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(subGraph).connectedSets();
+            for (Set<LfBus> connectedSet : connectedSets) {
+                // at this stage we consider that voltage target is consistent if several bus are controlling voltage
+                // on this zero impedance connected set (fix done at network loading)
+                LfBus pvBus = connectedSet.stream().filter(LfBus::isVoltageControlled).findFirst().orElse(null);
+                if (pvBus != null) {
+                    for (LfBus bus : connectedSet) {
+                        if (bus != pvBus) {
+                            pvBusFriends.put(bus, pvBus);
+                        }
+                    }
+                }
+            }
+        }
+
         // create the equation system:
         //
         // there are 2 types of equations:
@@ -209,17 +238,30 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_TARGET_V)
                         .addTerm(v);
             } else {
-                equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_ZERO)
-                        .addTerm(new InitVmBusEquationTerm(bus, equationSystem.getVariableSet()))
-                        .addTerm(EquationTerm.multiply(v, -1));
+                LfBus pvBusFriend = pvBusFriends.get(bus);
+                if (pvBusFriend != null) {
+                    var eq = equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_TARGET_V)
+                            .addTerm(v);
+                    eq.setData(pvBusFriend.getNum()); // store the bus where to take the voltage target
+                } else {
+                    long impedantBranchCount = bus.getBranches().stream()
+                            .filter(branch -> !isZeroImpedanceBranch(branch))
+                            .count();
+                    var eq = equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_ZERO);
+                    if (impedantBranchCount > 0) {
+                        eq.addTerm(new InitVmBusEquationTerm(bus, equationSystem.getVariableSet()))
+                                .addTerm(EquationTerm.multiply(v, -1));
+                    }
+                }
             }
+
         }
 
         // create voltage coupling equation for each non impedant branches
         for (LfBranch branch : network.getBranches()) {
-            LfBus bus1 = branch.getBus1();
-            LfBus bus2 = branch.getBus2();
-            if (bus1 != null && bus2 != null && branch.getPiModel().getX() == 0) {
+            if (isZeroImpedanceBranch(branch)) {
+                LfBus bus1 = branch.getBus1();
+                LfBus bus2 = branch.getBus2();
                 if (branch.getPiModel().getR1() != 1) {
                     throw new PowsyblException("Non impedant transformer not implemented");
                 }
