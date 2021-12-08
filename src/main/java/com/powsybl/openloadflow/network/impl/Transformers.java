@@ -125,11 +125,11 @@ public final class Transformers {
     }
 
     public static Integer getCurrentPosition(RatioTapChanger rtc) {
-        return rtc != null ? rtc.getTapPosition() : null;
+        return rtc != null ? rtc.getTapPosition().orElseThrow() : null;
     }
 
     public static Integer getCurrentPosition(PhaseTapChanger ptc) {
-        return ptc != null ? ptc.getTapPosition() : null;
+        return ptc != null ? ptc.getTapPosition().orElseThrow() : null;
     }
 
     public static TapCharacteristics getTapCharacteristics(TwoWindingsTransformer twt) {
