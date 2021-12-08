@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.iidm.network.test.DanglingLineNetworkFactory;
@@ -151,5 +152,25 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         LfBus lfDanglingLineBus = mainNetwork.getBusById("dl1_BUS");
         LfGenerator generator = lfDanglingLineBus.getGenerators().get(0);
         assertEquals(0, generator.getDroop(), 10E-3);
+    }
+
+    @Test
+    void validationLevelTest() {
+        network = Network.create("test", "code");
+        network.setMinimumAcceptableValidationLevel(ValidationLevel.SCADA);
+        Bus b = createBus(network, "b", 380);
+        Bus b2 = createBus(network, "b2", 380);
+        createLine(network, b, b2, "l", 1);
+        g = createGenerator2(b, "g", 10, 400);
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector()); // FIXME
+    }
+
+    @Test
+    void validationLevelTest2() {
+        network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        network.setMinimumAcceptableValidationLevel(ValidationLevel.SCADA);
+        network.getTwoWindingsTransformer("T2wT").getRatioTapChanger().setTargetV(Double.NaN).setRegulating(true);
+        PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
+        assertEquals("Only LOADFLOW validation level of the network is supported", e.getMessage());
     }
 }

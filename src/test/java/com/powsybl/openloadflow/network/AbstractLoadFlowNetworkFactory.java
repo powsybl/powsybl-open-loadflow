@@ -64,6 +64,19 @@ public abstract class AbstractLoadFlowNetworkFactory {
         return g;
     }
 
+    protected static Generator createGenerator2(Bus b, String id, double p, double v) {
+        Generator g = b.getVoltageLevel()
+                .newGenerator()
+                .setId(id)
+                .setBus(b.getId())
+                .setConnectableBus(b.getId())
+                .setEnergySource(EnergySource.OTHER)
+                .setMinP(0)
+                .setMaxP(p)
+                .add();
+        return g;
+    }
+
     protected static Load createLoad(Bus b, String id, double p) {
         return createLoad(b, id, p, 0);
     }
