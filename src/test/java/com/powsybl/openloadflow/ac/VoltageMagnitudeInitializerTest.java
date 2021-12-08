@@ -131,10 +131,34 @@ public class VoltageMagnitudeInitializerTest {
         assertBusVoltage(lfNetwork, initializer, "VL7_0", 1.074415, 0);
         assertBusVoltage(lfNetwork, initializer, "VL8_0", 1.09, 0);
         assertBusVoltage(lfNetwork, initializer, "VL9_0", 1.073031, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL10_0", 1.07, 0); // equals 11
-        assertBusVoltage(lfNetwork, initializer, "VL11_0", 1.07, 0); // equals 10
+        assertBusVoltage(lfNetwork, initializer, "VL10_0", 1.07, 0); // equals VL11_0
+        assertBusVoltage(lfNetwork, initializer, "VL11_0", 1.07, 0); // equals VL10_0
         assertBusVoltage(lfNetwork, initializer, "VL12_0", 1.070239, 0);
         assertBusVoltage(lfNetwork, initializer, "VL13_0", 1.070426, 0);
         assertBusVoltage(lfNetwork, initializer, "VL14_0", 1.071892, 0);
+    }
+
+    @Test
+    void testZeroImpedanceBranchConnectedToIsolatedPvBus() {
+        Network network = IeeeCdfNetworkFactory.create14();
+        network.getLine("L7-8-1").setX(0);
+        network.getLine("L7-9-1").remove();
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+        VoltageMagnitudeInitializer initializer = new VoltageMagnitudeInitializer(new DenseMatrixFactory());
+        initializer.prepare(lfNetwork);
+        assertBusVoltage(lfNetwork, initializer, "VL1_0", 1.06, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL2_0", 1.045, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL3_0", 1.01, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL4_0", 1.037783, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL5_0", 1.037262, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL6_0", 1.07, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL7_0", 1.09, 0); // equals VL8_0
+        assertBusVoltage(lfNetwork, initializer, "VL8_0", 1.09, 0); // equals VL7_0
+        assertBusVoltage(lfNetwork, initializer, "VL9_0", 1.070334, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL10_0", 1.070275, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL11_0", 1.070139, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL12_0", 1.070026, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL13_0", 1.070047, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL14_0", 1.070208, 0);
     }
 }

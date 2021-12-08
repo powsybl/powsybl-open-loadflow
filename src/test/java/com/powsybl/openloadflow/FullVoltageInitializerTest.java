@@ -42,9 +42,9 @@ class FullVoltageInitializerTest {
                                                                                                       matrixFactory,
                                                                                                       Reporter.NO_OP));
         initializer.prepare(lfNetwork);
-        assertBusVoltage(lfNetwork, initializer, "VLGEN_0", 1.0208, 0);
-        assertBusVoltage(lfNetwork, initializer, "VLHV1_0", 1.0745, -2.511475);
-        assertBusVoltage(lfNetwork, initializer, "VLHV2_0", 1.0745, -6.439649);
-        assertBusVoltage(lfNetwork, initializer, "VLLOAD_0", 1.076, -12.61893);
+        assertBusVoltage(lfNetwork, initializer, "VLGEN_0", 1.020833, 0);
+        assertBusVoltage(lfNetwork, initializer, "VLHV1_0", 1.074561, -2.511475);
+        assertBusVoltage(lfNetwork, initializer, "VLHV2_0", 1.074561, -6.439649);
+        assertBusVoltage(lfNetwork, initializer, "VLLOAD_0", 1.075994, -12.61893);
     }
 }
