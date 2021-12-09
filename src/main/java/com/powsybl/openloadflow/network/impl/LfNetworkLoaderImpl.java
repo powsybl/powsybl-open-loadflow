@@ -229,7 +229,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             @Override
             public void visitGenerator(Generator generator) {
                 lfBus.addGenerator(generator, parameters.isBreakers(), report, parameters.getPlausibleActivePowerLimit());
-                if (generator.isVoltageRegulatorOn()) {
+                if (generator.isVoltageRegulatorOn().orElse(false)) {
                     report.voltageControllerCount++;
                 }
                 postProcessors.forEach(pp -> pp.onInjectionAdded(generator, lfBus));

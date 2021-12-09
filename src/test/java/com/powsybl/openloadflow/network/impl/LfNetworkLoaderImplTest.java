@@ -162,7 +162,8 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         Bus b2 = createBus(network, "b2", 380);
         createLine(network, b, b2, "l", 1);
         g = createGenerator2(b, "g", 10, 400);
-        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector()); // FIXME
+        PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
+        assertEquals("Only LOADFLOW validation level of the network is supported", e.getMessage());
     }
 
     @Test
