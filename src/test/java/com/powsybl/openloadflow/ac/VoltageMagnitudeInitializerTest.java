@@ -202,4 +202,29 @@ public class VoltageMagnitudeInitializerTest {
         assertBusVoltage(lfNetwork, initializer, "VL13_0", 1.070332, 0);
         assertBusVoltage(lfNetwork, initializer, "VL14_0", 1.071474, 0);
     }
+
+    @Test
+    void testZeroImpedanceBranchCycle() {
+        Network network = IeeeCdfNetworkFactory.create14();
+        network.getLine("L6-12-1").setX(0);
+        network.getLine("L6-13-1").setX(0);
+        network.getLine("L12-13-1").setX(0);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+        VoltageMagnitudeInitializer initializer = new VoltageMagnitudeInitializer(new DenseMatrixFactory());
+        initializer.prepare(lfNetwork);
+        assertBusVoltage(lfNetwork, initializer, "VL1_0", 1.06, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL2_0", 1.045, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL3_0", 1.01, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL4_0", 1.035147, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL5_0", 1.035612, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL6_0", 1.07, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL7_0", 1.074051, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL8_0", 1.09, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL9_0", 1.072307, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL10_0", 1.071897, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL11_0", 1.070965, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL12_0", 1.07, 0); // equals VL6_0
+        assertBusVoltage(lfNetwork, initializer, "VL13_0", 1.07, 0); // equals VL6_0
+        assertBusVoltage(lfNetwork, initializer, "VL14_0", 1.071298, 0);
+    }
 }
