@@ -6,7 +6,10 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.datasource.ResourceDataSource;
+import com.powsybl.commons.datasource.ResourceSet;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
+import com.powsybl.iidm.import_.Importers;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -16,6 +19,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -226,5 +230,17 @@ public class VoltageMagnitudeInitializerTest {
         assertBusVoltage(lfNetwork, initializer, "VL12_0", 1.07, 0); // equals VL6_0
         assertBusVoltage(lfNetwork, initializer, "VL13_0", 1.07, 0); // equals VL6_0
         assertBusVoltage(lfNetwork, initializer, "VL14_0", 1.071298, 0);
+    }
+
+    @Test
+    @Disabled
+    void testBug() {
+        Network network = Importers.importData("XIIDM", new ResourceDataSource("init_v_mag_bug", new ResourceSet("/", "init_v_mag_bug.xiidm")), null);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+        VoltageMagnitudeInitializer initializer = new VoltageMagnitudeInitializer(new DenseMatrixFactory());
+        initializer.prepare(lfNetwork);
+        for (LfBus bus : lfNetwork.getBuses()) {
+            System.out.println(initializer.getMagnitude(bus));
+        }
     }
 }
