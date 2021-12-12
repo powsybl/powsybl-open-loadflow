@@ -33,7 +33,6 @@ abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractBranchA
     }
 
     protected double shunt() {
-        double sinKsi = FastMath.sin(ksi);
         double cosKsi = FastMath.cos(ksi);
         return (g2 + y * FastMath.sin(ksi)) * (g2 + y * FastMath.sin(ksi)) + (-b2 + y * cosKsi) * (-b2 + y * cosKsi);
     }
