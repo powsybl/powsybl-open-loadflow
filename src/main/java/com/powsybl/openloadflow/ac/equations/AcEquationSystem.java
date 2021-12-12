@@ -478,12 +478,12 @@ public final class AcEquationSystem {
         }
 
         if (i1 != null) {
-            i1.setStateVector(equationSystem.getStateVector());
+            equationSystem.attach(i1);
             branch.setI1(i1);
         }
 
         if (i2 != null) {
-            i2.setStateVector(equationSystem.getStateVector());
+            equationSystem.attach(i2);
             branch.setI2(i2);
         }
     }

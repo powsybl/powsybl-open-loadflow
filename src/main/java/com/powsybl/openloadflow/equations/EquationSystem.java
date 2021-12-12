@@ -200,6 +200,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             equationTermsByElement.computeIfAbsent(element, k -> new ArrayList<>())
                     .add(equationTerm);
         }
+        attach(equationTerm);
     }
 
     public List<EquationTerm<V, E>> getEquationTerms(ElementType elementType, int elementNum) {
@@ -264,6 +265,11 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Objects.requireNonNull(elementType);
         Pair<ElementType, Integer> element = Pair.of(elementType, elementNum);
         return equationsByElement.getOrDefault(element, Collections.emptyList());
+    }
+
+    public void attach(EquationTerm<V, E> term) {
+        Objects.requireNonNull(term);
+        term.setStateVector(stateVector);
     }
 
     public SortedSet<Variable<V>> getSortedVariablesToFind() {

@@ -89,7 +89,6 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         Objects.requireNonNull(term);
         terms.add(term);
         term.setEquation(this);
-        term.setStateVector(equationSystem.getStateVector());
         equationSystem.addEquationTerm(term);
         equationSystem.notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_ADDED);
         return this;
