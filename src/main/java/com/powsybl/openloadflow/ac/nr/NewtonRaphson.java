@@ -64,9 +64,6 @@ public class NewtonRaphson {
             // update x
             stateVector.minus(fx);
 
-            // evaluate equation terms with new x
-            equationSystem.updateEquations();
-
             // recalculate f(x) with new x
             equationSystem.updateEquationVector(fx);
 
@@ -137,8 +134,9 @@ public class NewtonRaphson {
         }
     }
 
-    public void updateNetwork(StateVector stateVector) {
+    public void updateNetwork() {
         // update state variable
+        StateVector stateVector = equationSystem.getStateVector();
         for (Variable<AcVariableType> v : equationSystem.getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_V:
@@ -179,8 +177,6 @@ public class NewtonRaphson {
 
         initStateVector(network, equationSystem, voltageInitializer);
 
-        equationSystem.updateEquations();
-
         // initialize mismatch vector (difference between equation values and targets)
         double[] fx = equationSystem.createEquationVector();
 
@@ -204,8 +200,7 @@ public class NewtonRaphson {
 
         // update network state variable
         if (status == NewtonRaphsonStatus.CONVERGED) {
-            equationSystem.updateEquations();
-            updateNetwork(equationSystem.getStateVector());
+            updateNetwork();
         }
 
         return new NewtonRaphsonResult(status, iteration, slackBusActivePowerMismatch);

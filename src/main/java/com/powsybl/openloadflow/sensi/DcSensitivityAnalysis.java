@@ -709,7 +709,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     private JacobianMatrix<DcVariableType, DcEquationType> createJacobianMatrix(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, VoltageInitializer voltageInitializer) {
         DcLoadFlowEngine.initStateVector(network, equationSystem, voltageInitializer);
-        equationSystem.updateEquations();
         return new JacobianMatrix<>(equationSystem, matrixFactory);
     }
 

@@ -302,12 +302,6 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
-    public void updateEquations() {
-        for (Equation<V, E> equation : equations.values()) {
-            equation.update(stateVector);
-        }
-    }
-
     public void addListener(EquationSystemListener<V, E> listener) {
         Objects.requireNonNull(listener);
         listeners.add(listener);

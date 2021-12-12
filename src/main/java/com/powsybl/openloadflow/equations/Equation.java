@@ -89,6 +89,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         Objects.requireNonNull(term);
         terms.add(term);
         term.setEquation(this);
+        term.setStateVector(equationSystem.getStateVector());
         equationSystem.addEquationTerm(term);
         equationSystem.notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_ADDED);
         return this;
@@ -104,14 +105,6 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     public List<EquationTerm<V, E>> getTerms() {
         return terms;
-    }
-
-    public void update(StateVector stateVector) {
-        for (EquationTerm<V, E> term : terms) {
-            if (term.isActive()) {
-                term.setStateVector(stateVector);
-            }
-        }
     }
 
     @Override

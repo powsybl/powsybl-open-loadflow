@@ -170,7 +170,6 @@ class EquationSystemTest {
         EquationSystem<AcVariableType, AcEquationType> equationSystem = AcEquationSystem.create(mainNetwork);
         NewtonRaphson.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
         double[] targets = TargetVector.createArray(mainNetwork, equationSystem, AcloadFlowEngine::initTarget);
-        equationSystem.updateEquations();
         double[] fx = equationSystem.createEquationVector();
         Vectors.minus(fx, targets);
         List<Pair<Equation<AcVariableType, AcEquationType>, Double>> largestMismatches = equationSystem.findLargestMismatches(fx, 3);

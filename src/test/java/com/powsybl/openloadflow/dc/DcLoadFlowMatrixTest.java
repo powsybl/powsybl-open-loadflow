@@ -72,8 +72,6 @@ class DcLoadFlowMatrixTest {
                     .print(ps, equationSystem.getColumnNames(mainNetwork), null);
         }
 
-        equationSystem.updateEquations();
-
         Matrix j = new JacobianMatrix<>(equationSystem, matrixFactory).getMatrix();
         try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
             ps.println("J=");

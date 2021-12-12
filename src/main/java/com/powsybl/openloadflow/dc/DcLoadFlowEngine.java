@@ -171,8 +171,6 @@ public class DcLoadFlowEngine {
             distributeSlack(remainingBuses);
         }
 
-        equationSystem.updateEquations();
-
         this.targetVector = TargetVector.createArray(network, equationSystem, DcLoadFlowEngine::initTarget);
 
         if (!disabledBuses.isEmpty()) {
@@ -211,7 +209,6 @@ public class DcLoadFlowEngine {
         }
 
         equationSystem.getStateVector().set(targetVector);
-        equationSystem.updateEquations();
         updateNetwork(network, equationSystem, targetVector);
 
         // set all calculated voltages to NaN
