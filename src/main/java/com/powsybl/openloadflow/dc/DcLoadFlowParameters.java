@@ -64,4 +64,16 @@ public class DcLoadFlowParameters {
     public boolean isSetVToNan() {
         return setVToNan;
     }
+
+    @Override
+    public String toString() {
+        return "DcLoadFlowParameters(" +
+                "networkParameters=" + networkParameters +
+                ", equationSystemCreationParameters=" + equationSystemCreationParameters +
+                ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
+                ", distributedSlack=" + distributedSlack +
+                ", balanceType=" + balanceType +
+                ", setVToNan=" + setVToNan +
+                ')';
+    }
 }

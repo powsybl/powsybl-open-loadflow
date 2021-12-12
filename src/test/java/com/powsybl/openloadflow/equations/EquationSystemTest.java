@@ -102,8 +102,8 @@ class EquationSystemTest {
         assertTrue(equationSystem.getEquationTerms(ElementType.BRANCH, 0).isEmpty());
 
         clearEvents();
-        EquationTerm<AcVariableType, AcEquationType> equationTerm = EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, equationSystem.getVariableSet(), bus.getV().eval());
-        bus.setV(equationTerm);
+        EquationTerm<AcVariableType, AcEquationType> equationTerm = EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, equationSystem.getVariableSet());
+        bus.setCalculatedV(equationTerm);
         equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V).addTerm(equationTerm);
         assertEquals(2, equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V).getTerms().size());
         assertEquals(0, equations.size());

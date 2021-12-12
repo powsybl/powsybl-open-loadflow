@@ -8,8 +8,9 @@ package com.powsybl.openloadflow.dc.equations;
 
 import com.google.common.collect.ImmutableList;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.equations.*;
-import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.equations.AbstractBranchEquationTerm;
+import com.powsybl.openloadflow.equations.Variable;
+import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
@@ -22,9 +23,7 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNamedEquationTerm<DcVariableType, DcEquationType> {
-
-    protected final LfBranch branch;
+public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBranchEquationTerm<DcVariableType, DcEquationType> {
 
     protected final Variable<DcVariableType> ph1Var;
 
@@ -38,7 +37,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
 
     protected AbstractClosedBranchDcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
                                                      boolean deriveA1, boolean useTransformerRatio) {
-        this.branch = Objects.requireNonNull(branch);
+        super(branch);
         PiModel piModel = branch.getPiModel();
         if (piModel.getX() == 0) {
             throw new IllegalArgumentException("Branch '" + branch.getId() + "' has reactance equal to zero");
@@ -79,16 +78,6 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
 
     protected double a1() {
         return a1Var != null ? stateVector.get(a1Var.getRow()) : branch.getPiModel().getA1();
-    }
-
-    @Override
-    public ElementType getElementType() {
-        return ElementType.BRANCH;
-    }
-
-    @Override
-    public int getElementNum() {
-        return branch.getNum();
     }
 
     @Override

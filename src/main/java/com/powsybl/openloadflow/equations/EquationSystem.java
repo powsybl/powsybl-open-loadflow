@@ -176,6 +176,11 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     public EquationSystem(boolean indexTerms) {
+        this(new VariableSet<>(), indexTerms);
+    }
+
+    public EquationSystem(VariableSet<V> variableSet, boolean indexTerms) {
+        this.variableSet = Objects.requireNonNull(variableSet);
         this.indexTerms = indexTerms;
         addListener(equationCache);
     }

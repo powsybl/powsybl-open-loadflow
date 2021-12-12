@@ -7,13 +7,12 @@
 package com.powsybl.openloadflow.ac.nr;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import org.slf4j.Logger;
@@ -30,11 +29,7 @@ public class NewtonRaphson {
 
     private final LfNetwork network;
 
-    private final LfNetworkParameters networkParameters;
-
     private final NewtonRaphsonParameters parameters;
-
-    private final MatrixFactory matrixFactory;
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
@@ -44,13 +39,11 @@ public class NewtonRaphson {
 
     private final TargetVector<AcVariableType, AcEquationType> targetVector;
 
-    public NewtonRaphson(LfNetwork network, LfNetworkParameters networkParameters, NewtonRaphsonParameters parameters, MatrixFactory matrixFactory,
+    public NewtonRaphson(LfNetwork network, NewtonRaphsonParameters parameters,
                          EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j,
                          TargetVector<AcVariableType, AcEquationType> targetVector) {
         this.network = Objects.requireNonNull(network);
-        this.networkParameters = Objects.requireNonNull(networkParameters);
         this.parameters = Objects.requireNonNull(parameters);
-        this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.j = Objects.requireNonNull(j);
         this.targetVector = Objects.requireNonNull(targetVector);
@@ -81,7 +74,11 @@ public class NewtonRaphson {
 
             if (LOGGER.isTraceEnabled()) {
                 equationSystem.findLargestMismatches(fx, 5)
-                        .forEach(e -> LOGGER.trace("Mismatch for {}: {}", e.getKey(), e.getValue()));
+                        .forEach(e -> {
+                            Equation<AcVariableType, AcEquationType> equation = e.getKey();
+                            String elementId = equation.getElement(network).map(LfElement::getId).orElse("?");
+                            LOGGER.trace("Mismatch for {}: {} (element={})", equation, e.getValue(), elementId);
+                        });
             }
 
             // test stopping criteria and log norm(fx)
@@ -145,7 +142,7 @@ public class NewtonRaphson {
         for (Variable<AcVariableType> v : equationSystem.getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_V:
-                    // Equation must have been updated
+                    network.getBus(v.getNum()).setV(x[v.getRow()]);
                     break;
 
                 case BUS_PHI:
@@ -178,7 +175,7 @@ public class NewtonRaphson {
         VoltageInitializer voltageInitializer = iteration == 0 ? parameters.getVoltageInitializer()
                                                                : new PreviousValueVoltageInitializer();
 
-        voltageInitializer.prepare(network, networkParameters, matrixFactory, reporter);
+        voltageInitializer.prepare(network);
 
         initStateVector(network, equationSystem, voltageInitializer);
 

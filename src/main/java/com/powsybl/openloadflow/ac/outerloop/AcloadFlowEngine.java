@@ -229,8 +229,7 @@ public class AcloadFlowEngine implements AutoCloseable {
         }
 
         RunningContext runningContext = new RunningContext();
-        NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getNetworkParameters(), parameters.getNewtonRaphsonParameters(),
-                                                        parameters.getMatrixFactory(), equationSystem, j, targetVector);
+        NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getNewtonRaphsonParameters(), equationSystem, j, targetVector);
 
         // run initial Newton-Raphson
         runningContext.lastNrResult = newtonRaphson.run(reporter);

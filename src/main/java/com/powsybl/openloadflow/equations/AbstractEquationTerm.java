@@ -54,4 +54,14 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     public double calculateSensi(DenseMatrix x, int column) {
         throw new UnsupportedOperationException("Not implemented");
     }
+
+    @Override
+    public boolean hasRhs() {
+        return false;
+    }
+
+    @Override
+    public double rhs() {
+        return 0;
+    }
 }

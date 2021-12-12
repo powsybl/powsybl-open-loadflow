@@ -80,16 +80,6 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
     }
 
     @Override
-    public boolean hasRhs() {
-        return false;
-    }
-
-    @Override
-    public double rhs() {
-        return 0;
-    }
-
-    @Override
     protected String getName() {
         return "ac_q_shunt";
     }

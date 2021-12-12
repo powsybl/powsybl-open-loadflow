@@ -17,7 +17,7 @@ import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 public class MostMeshedSlackBusSelector implements SlackBusSelector {
 
     @Override
-    public LfBus select(List<LfBus> buses) {
+    public SelectedSlackBus select(List<LfBus> buses) {
         double[] nominalVoltages = buses.stream()
                 .filter(bus -> !bus.isFictitious())
                 .map(LfBus::getNominalV).mapToDouble(Double::valueOf).toArray();
@@ -26,9 +26,11 @@ public class MostMeshedSlackBusSelector implements SlackBusSelector {
                 .evaluate(nominalVoltages, 90);
 
         // select non fictitious and most meshed bus among buses with highest nominal voltage
-        return buses.stream()
+        LfBus slackBus = buses.stream()
             .filter(bus -> !bus.isFictitious() && bus.getNominalV() == maxNominalV)
             .max(Comparator.comparingInt((LfBus bus) -> bus.getBranches().size()).thenComparing(Comparator.comparing(LfBus::getId).reversed()))
             .orElseThrow(AssertionError::new);
+
+        return new SelectedSlackBus(slackBus, "Most meshed bus");
     }
 }

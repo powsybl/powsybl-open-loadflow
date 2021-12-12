@@ -120,10 +120,9 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         private double value;
 
-        VariableEquationTerm(int elementNum, V variableType, VariableSet<V> variableSet, double initialValue) {
+        VariableEquationTerm(int elementNum, V variableType, VariableSet<V> variableSet) {
             this.elementNum = elementNum;
             this.variables = Collections.singletonList(variableSet.getVariable(elementNum, variableType));
-            value = initialValue;
         }
 
         @Override
@@ -157,16 +156,6 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public boolean hasRhs() {
-            return false;
-        }
-
-        @Override
-        public double rhs() {
-            return 0;
-        }
-
-        @Override
         public double calculateSensi(DenseMatrix x, int column) {
             return x.get(variables.get(0).getRow(), column);
         }
@@ -178,10 +167,6 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
     }
 
     static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> VariableEquationTerm<V, E> createVariableTerm(LfElement element, V variableType, VariableSet<V> variableSet) {
-        return createVariableTerm(element, variableType, variableSet, Double.NaN);
-    }
-
-    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> VariableEquationTerm<V, E> createVariableTerm(LfElement element, V variableType, VariableSet<V> variableSet, double initialValue) {
         Objects.requireNonNull(element);
         Objects.requireNonNull(variableType);
         Objects.requireNonNull(variableSet);
@@ -189,7 +174,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
             throw new IllegalArgumentException("Wrong variable element type: " + variableType.getElementType()
                 + ", expected: " + element.getType());
         }
-        return new VariableEquationTerm<>(element.getNum(), variableType, variableSet, initialValue);
+        return new VariableEquationTerm<>(element.getNum(), variableType, variableSet);
     }
 
     Equation<V, E> getEquation();

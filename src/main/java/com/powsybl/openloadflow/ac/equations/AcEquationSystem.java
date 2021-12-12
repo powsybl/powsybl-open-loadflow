@@ -47,9 +47,9 @@ public final class AcEquationSystem {
         Equation<AcVariableType, AcEquationType> v = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V);
         if (v.getTerms().isEmpty()) {
             v.setActive(false);
-            EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, equationSystem.getVariableSet(), bus.getV().eval());
+            EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, equationSystem.getVariableSet());
             v.addTerm(vTerm);
-            bus.setV(vTerm);
+            bus.setCalculatedV(vTerm);
         }
     }
 
@@ -86,8 +86,8 @@ public final class AcEquationSystem {
     private static void createLocalVoltageControlEquation(LfBus bus, LfNetworkParameters networkParameters,
                                                           EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                           AcEquationSystemCreationParameters creationParameters) {
-        EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, equationSystem.getVariableSet(), bus.getV().eval());
-        bus.setV(vTerm);
+        EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, equationSystem.getVariableSet());
+        bus.setCalculatedV(vTerm);
         if (bus.hasGeneratorsWithSlope()) {
             // take first generator with slope: network loading ensures that there's only one generator with slope
             double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
@@ -120,10 +120,10 @@ public final class AcEquationSystem {
         LfBus controlledBus = voltageControl.getControlledBus();
 
         // create voltage equation at voltage controlled bus
-        EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(controlledBus, AcVariableType.BUS_V, equationSystem.getVariableSet(), controlledBus.getV().eval());
+        EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(controlledBus, AcVariableType.BUS_V, equationSystem.getVariableSet());
         Equation<AcVariableType, AcEquationType> vEq = equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_V)
                 .addTerm(vTerm);
-        controlledBus.setV(vTerm);
+        controlledBus.setCalculatedV(vTerm);
 
         List<LfBus> controllerBuses = voltageControl.getControllerBuses().stream()
                 .filter(LfBus::isVoltageControllerEnabled)
@@ -261,7 +261,7 @@ public final class AcEquationSystem {
             equationSystem.createEquation(branch.getNum(), AcEquationType.ZERO_V)
                     .addTerm(vTerm)
                     .addTerm(EquationTerm.multiply(bus2vTerm, -1 * rho));
-            bus1.setV(vTerm);
+            bus1.setCalculatedV(vTerm);
             // add a dummy reactive power variable to both sides of the non impedant branch and with an opposite sign
             // to ensure we have the same number of equation and variables
             Equation<AcVariableType, AcEquationType> sq1 = equationSystem.createEquation(bus1.getNum(), AcEquationType.BUS_Q);
@@ -333,9 +333,9 @@ public final class AcEquationSystem {
             .filter(dvc -> bus.isDiscreteVoltageControlled())
             .map(DiscreteVoltageControl::getControllers)
             .ifPresent(controllers -> {
-                EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, equationSystem.getVariableSet(), bus.getV().eval());
+                EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, equationSystem.getVariableSet());
                 equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V).addTerm(vTerm);
-                bus.setV(vTerm);
+                bus.setCalculatedV(vTerm);
 
                 // add transformer distribution equations
                 createR1DistributionEquations(controllers, equationSystem);
