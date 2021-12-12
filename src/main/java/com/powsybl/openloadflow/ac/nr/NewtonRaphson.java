@@ -142,7 +142,7 @@ public class NewtonRaphson {
         for (Variable<AcVariableType> v : equationSystem.getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_V:
-                    // Equation must have been updated
+                    network.getBus(v.getNum()).setV(x[v.getRow()]);
                     break;
 
                 case BUS_PHI:
