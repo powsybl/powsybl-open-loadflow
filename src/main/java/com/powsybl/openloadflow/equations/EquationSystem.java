@@ -30,9 +30,9 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private final Map<Pair<Integer, E>, Equation<V, E>> equations = new HashMap<>();
 
-    private final Map<Pair<ElementType, Integer>, List<Equation<V, E>>> equationsBySubject = new HashMap<>();
+    private final Map<Pair<ElementType, Integer>, List<Equation<V, E>>> equationsByElement = new HashMap<>();
 
-    private final Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsBySubject = new HashMap<>();
+    private final Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsByElement = new HashMap<>();
 
     private class EquationCache implements EquationSystemListener<V, E> {
 
@@ -196,8 +196,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     void addEquationTerm(EquationTerm<V, E> equationTerm) {
         if (indexTerms) {
             Objects.requireNonNull(equationTerm);
-            Pair<ElementType, Integer> subject = Pair.of(equationTerm.getElementType(), equationTerm.getElementNum());
-            equationTermsBySubject.computeIfAbsent(subject, k -> new ArrayList<>())
+            Pair<ElementType, Integer> element = Pair.of(equationTerm.getElementType(), equationTerm.getElementNum());
+            equationTermsByElement.computeIfAbsent(element, k -> new ArrayList<>())
                     .add(equationTerm);
         }
     }
@@ -207,8 +207,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             throw new PowsyblException("Equations terms have not been indexed");
         }
         Objects.requireNonNull(elementType);
-        Pair<ElementType, Integer> subject = Pair.of(elementType, elementNum);
-        return equationTermsBySubject.getOrDefault(subject, Collections.emptyList());
+        Pair<ElementType, Integer> element = Pair.of(elementType, elementNum);
+        return equationTermsByElement.getOrDefault(element, Collections.emptyList());
     }
 
     public <T extends EquationTerm<V, E>> T getEquationTerm(ElementType elementType, int elementNum, Class<T> clazz) {
@@ -243,8 +243,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Pair<Integer, E> p = Pair.of(num, type);
         Equation<V, E> equation = equations.remove(p);
         if (equation != null) {
-            Pair<ElementType, Integer> subject = Pair.of(type.getElementType(), num);
-            equationsBySubject.remove(subject);
+            Pair<ElementType, Integer> element = Pair.of(type.getElementType(), num);
+            equationsByElement.remove(element);
             notifyEquationChange(equation, EquationEventType.EQUATION_REMOVED);
         }
         return equation;
@@ -253,8 +253,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     private Equation<V, E> addEquation(Pair<Integer, E> p) {
         Equation<V, E> equation = new Equation<>(p.getLeft(), p.getRight(), EquationSystem.this);
         equations.put(p, equation);
-        Pair<ElementType, Integer> subject = Pair.of(p.getRight().getElementType(), p.getLeft());
-        equationsBySubject.computeIfAbsent(subject, k -> new ArrayList<>())
+        Pair<ElementType, Integer> element = Pair.of(p.getRight().getElementType(), p.getLeft());
+        equationsByElement.computeIfAbsent(element, k -> new ArrayList<>())
                 .add(equation);
         notifyEquationChange(equation, EquationEventType.EQUATION_CREATED);
         return equation;
@@ -262,8 +262,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     public List<Equation<V, E>> getEquations(ElementType elementType, int elementNum) {
         Objects.requireNonNull(elementType);
-        Pair<ElementType, Integer> subject = Pair.of(elementType, elementNum);
-        return equationsBySubject.getOrDefault(subject, Collections.emptyList());
+        Pair<ElementType, Integer> element = Pair.of(elementType, elementNum);
+        return equationsByElement.getOrDefault(element, Collections.emptyList());
     }
 
     public SortedSet<Variable<V>> getSortedVariablesToFind() {
