@@ -256,8 +256,8 @@ public final class AcEquationSystem {
             // 0 = v1 - v2 * rho
             PiModel piModel = branch.getPiModel();
             double rho = PiModel.R2 / piModel.getR1();
-            EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(bus1, AcVariableType.BUS_V, equationSystem.getVariableSet(), bus1.getV().eval());
-            EquationTerm<AcVariableType, AcEquationType> bus2vTerm = EquationTerm.createVariableTerm(bus2, AcVariableType.BUS_V, equationSystem.getVariableSet(), bus2.getV().eval());
+            EquationTerm<AcVariableType, AcEquationType> vTerm = EquationTerm.createVariableTerm(bus1, AcVariableType.BUS_V, equationSystem.getVariableSet());
+            EquationTerm<AcVariableType, AcEquationType> bus2vTerm = EquationTerm.createVariableTerm(bus2, AcVariableType.BUS_V, equationSystem.getVariableSet());
             equationSystem.createEquation(branch.getNum(), AcEquationType.ZERO_V)
                     .addTerm(vTerm)
                     .addTerm(EquationTerm.multiply(bus2vTerm, -1 * rho));
