@@ -79,26 +79,26 @@ public class DcLoadFlowEngine {
     }
 
     public static void initStateVector(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, VoltageInitializer initializer) {
-        StateVector stateVector = equationSystem.getStateVector();
-        stateVector.set(new double[equationSystem.getSortedVariablesToFind().size()]);
+        double[] x = new double[equationSystem.getSortedVariablesToFind().size()];
         for (Variable<DcVariableType> v : equationSystem.getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_PHI:
-                    stateVector.set(v.getRow(), Math.toRadians(initializer.getAngle(network.getBus(v.getNum()))));
+                    x[v.getRow()] = Math.toRadians(initializer.getAngle(network.getBus(v.getNum())));
                     break;
 
                 case BRANCH_ALPHA1:
-                    stateVector.set(v.getRow(), network.getBranch(v.getNum()).getPiModel().getA1());
+                    x[v.getRow()] = network.getBranch(v.getNum()).getPiModel().getA1();
                     break;
 
                 case DUMMY_P:
-                    stateVector.set(v.getRow(), 0);
+                    x[v.getRow()] = 0;
                     break;
 
                 default:
                     throw new IllegalStateException("Unknown variable type "  + v.getType());
             }
         }
+        equationSystem.getStateVector().set(x);
     }
 
     public static void updateNetwork(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, double[] x) {

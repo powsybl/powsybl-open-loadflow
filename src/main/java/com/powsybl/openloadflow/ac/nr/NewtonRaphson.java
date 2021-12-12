@@ -103,35 +103,35 @@ public class NewtonRaphson {
     }
 
     public static void initStateVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer initializer) {
-        StateVector stateVector = equationSystem.getStateVector();
-        stateVector.set(new double[equationSystem.getSortedVariablesToFind().size()]);
+        double[] x = new double[equationSystem.getSortedVariablesToFind().size()];
         for (Variable<AcVariableType> v : equationSystem.getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_V:
-                    stateVector.set(v.getRow(), initializer.getMagnitude(network.getBus(v.getNum())));
+                    x[v.getRow()] = initializer.getMagnitude(network.getBus(v.getNum()));
                     break;
 
                 case BUS_PHI:
-                    stateVector.set(v.getRow(), Math.toRadians(initializer.getAngle(network.getBus(v.getNum()))));
+                    x[v.getRow()] = Math.toRadians(initializer.getAngle(network.getBus(v.getNum())));
                     break;
 
                 case BRANCH_ALPHA1:
-                    stateVector.set(v.getRow(), network.getBranch(v.getNum()).getPiModel().getA1());
+                    x[v.getRow()] = network.getBranch(v.getNum()).getPiModel().getA1();
                     break;
 
                 case BRANCH_RHO1:
-                    stateVector.set(v.getRow(), network.getBranch(v.getNum()).getPiModel().getR1());
+                    x[v.getRow()] = network.getBranch(v.getNum()).getPiModel().getR1();
                     break;
 
                 case DUMMY_P:
                 case DUMMY_Q:
-                    stateVector.set(v.getRow(), 0);
+                    x[v.getRow()] = 0;
                     break;
 
                 default:
                     throw new IllegalStateException("Unknown variable type "  + v.getType());
             }
         }
+        equationSystem.getStateVector().set(x);
     }
 
     public void updateNetwork() {
