@@ -12,7 +12,6 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -26,7 +25,7 @@ abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractBranchA
                                                         LfBus bus, VariableSet<AcVariableType> variableSet,
                                                         boolean deriveA1, boolean deriveR1) {
         super(branch);
-        variables = Collections.singletonList(variableSet.getVariable(bus.getNum(), variableType));
+        variables = List.of(variableSet.getVariable(bus.getNum(), variableType));
         if (deriveA1 || deriveR1) {
             throw new IllegalArgumentException("Variable A1 or R1 on open branch not supported: " + branch.getId());
         }

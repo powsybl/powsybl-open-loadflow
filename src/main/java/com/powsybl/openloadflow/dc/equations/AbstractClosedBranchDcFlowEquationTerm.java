@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
-import com.google.common.collect.ImmutableList;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.AbstractBranchEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
@@ -29,7 +28,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBra
 
     protected final Variable<DcVariableType> ph2Var;
 
-    protected Variable<DcVariableType> a1Var;
+    protected final Variable<DcVariableType> a1Var;
 
     protected final List<Variable<DcVariableType>> variables;
 
@@ -44,13 +43,13 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBra
         }
         ph1Var = variableSet.getVariable(bus1.getNum(), DcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), DcVariableType.BUS_PHI);
-        ImmutableList.Builder<Variable<DcVariableType>> variablesBuilder = ImmutableList.<Variable<DcVariableType>>builder().add(ph1Var, ph2Var);
+        a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1) : null;
         power =  1 / piModel.getX() * (useTransformerRatio ? piModel.getR1() * R2 : 1);
-        if (deriveA1) {
-            a1Var = variableSet.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1);
-            variablesBuilder.add(a1Var);
+        if (a1Var != null) {
+            variables = List.of(ph1Var, ph2Var, a1Var);
+        } else {
+            variables = List.of(ph1Var, ph2Var);
         }
-        variables = variablesBuilder.build();
     }
 
     @Override
@@ -58,7 +57,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBra
         Objects.requireNonNull(x);
         double ph1 = x.get(ph1Var.getRow(), column);
         double ph2 = x.get(ph2Var.getRow(), column);
-        double a1 = getA1(x, column);
+        double a1 = a1Var != null ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
         return calculateSensi(ph1, ph2, a1);
     }
 
@@ -68,10 +67,6 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBra
 
     protected double ph2() {
         return stateVector.get(ph2Var.getRow());
-    }
-
-    private double getA1(DenseMatrix x, int column) {
-        return a1Var != null ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
     }
 
     protected abstract double calculateSensi(double ph1, double ph2, double a1);
