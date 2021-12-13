@@ -231,7 +231,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
             for (Variable<InitVmVariableType> variable : equationSystem.getSortedVariablesToFind()) {
                 if (variable.getType() == InitVmVariableType.BUS_V) {
                     LfBus bus = network.getBus(variable.getNum());
-                    bus.setV(() -> targets[variable.getRow()]);
+                    bus.setV(targets[variable.getRow()]);
                 }
             }
         }
@@ -242,7 +242,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
     @Override
     public double getMagnitude(LfBus bus) {
-        return bus.getV().eval();
+        return bus.getV();
     }
 
     @Override
