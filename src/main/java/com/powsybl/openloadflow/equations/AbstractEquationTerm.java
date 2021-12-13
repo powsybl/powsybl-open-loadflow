@@ -23,7 +23,7 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
 
     @Override
     public void setStateVector(StateVector stateVector) {
-        this.stateVector = stateVector;
+        this.stateVector = Objects.requireNonNull(stateVector);
     }
 
     @Override
