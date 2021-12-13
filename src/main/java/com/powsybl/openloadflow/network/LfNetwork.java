@@ -205,9 +205,8 @@ public class LfNetwork {
                 }
             }
         });
-        Double v = bus.getV().eval();
-        if (!Double.isNaN(v)) {
-            jsonGenerator.writeNumberField("v", v);
+        if (!Double.isNaN(bus.getV())) {
+            jsonGenerator.writeNumberField("v", bus.getV());
         }
         if (!Double.isNaN(bus.getAngle())) {
             jsonGenerator.writeNumberField("angle", bus.getAngle());
