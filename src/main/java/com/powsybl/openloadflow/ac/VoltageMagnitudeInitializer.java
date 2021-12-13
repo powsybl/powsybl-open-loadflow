@@ -16,7 +16,10 @@ import gnu.trove.list.array.TDoubleArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -84,34 +87,13 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
         private final TDoubleArrayList der;
 
-        private static boolean isConnected(LfBranch branch) {
-            return branch.getBus1() != null
-                    && branch.getBus2() != null;
-        }
-
-        private static Map<LfBus, List<LfBranch>> findNeighbors(LfBus bus) {
-            List<LfBranch> branches = bus.getBranches();
-
-            // detect parallel branches
-            Map<LfBus, List<LfBranch>> neighbors = new LinkedHashMap<>(branches.size());
-            for (LfBranch branch : branches) {
-                if (isConnected(branch)) {
-                    LfBus otherBus = branch.getBus1() == bus ? branch.getBus2() : branch.getBus1();
-                    neighbors.computeIfAbsent(otherBus, k -> new ArrayList<>())
-                            .add(branch);
-                }
-            }
-            if (neighbors.isEmpty()) { // should never happen
-                throw new PowsyblException("Isolated bus");
-            }
-
-            return neighbors;
-        }
-
         public InitVmBusEquationTerm(LfBus bus, VariableSet<InitVmVariableType> variableSet) {
             super(bus);
 
-            Map<LfBus, List<LfBranch>> neighbors = findNeighbors(bus);
+            Map<LfBus, List<LfBranch>> neighbors = bus.findNeighbors();
+            if (neighbors.isEmpty()) { // should never happen
+                throw new PowsyblException("Isolated bus");
+            }
 
             variables = new ArrayList<>(neighbors.size());
             der = new TDoubleArrayList(neighbors.size());
