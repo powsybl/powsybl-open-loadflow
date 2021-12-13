@@ -43,6 +43,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE = false;
 
+    public enum VoltageInitModeOverride {
+        NONE,
+        VOLTAGE_MAGNITUDE,
+        FULL_VOLTAGE
+    }
+
+    public static final VoltageInitModeOverride VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE = VoltageInitModeOverride.NONE;
+
     private SlackBusSelectionMode slackBusSelectionMode = SLACK_BUS_SELECTION_DEFAULT_VALUE;
 
     private List<String> slackBusesIds = Collections.emptyList();
@@ -73,6 +81,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private int maxIteration = NewtonRaphsonParameters.DEFAULT_MAX_ITERATION;
 
     private double newtonRaphsonConvEpsPerEq = DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ;
+
+    private VoltageInitModeOverride voltageInitModeOverride = VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -204,6 +214,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public VoltageInitModeOverride getVoltageInitModeOverride() {
+        return voltageInitModeOverride;
+    }
+
+    public OpenLoadFlowParameters setVoltageInitModeOverride(VoltageInitModeOverride voltageInitModeOverride) {
+        this.voltageInitModeOverride = Objects.requireNonNull(voltageInitModeOverride);
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return new OpenLoadFlowConfigLoader().load(PlatformConfig.defaultConfig());
     }
@@ -224,6 +243,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
                 ", maxIteration=" + maxIteration +
                 ", newtonRaphsonConvEpsPerEq=" + newtonRaphsonConvEpsPerEq +
+                ", voltageInitModeOverride=" + voltageInitModeOverride +
                 ')';
     }
 
@@ -256,6 +276,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         public static final String NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME = "newtonRaphsonConvEpsPerEq";
 
+        public static final String VOLTAGE_INIT_MODE_OVERRIDE_NAME = "voltageInitModeOverride";
+
         @Override
         public OpenLoadFlowParameters load(PlatformConfig platformConfig) {
             OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
@@ -277,6 +299,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                         .setReactivePowerRemoteControl(config.getBooleanProperty(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE))
                         .setMaxIteration(config.getIntProperty(MAX_ITERATION_NAME, NewtonRaphsonParameters.DEFAULT_MAX_ITERATION))
                         .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
+                        .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
                 );
             return parameters;
         }

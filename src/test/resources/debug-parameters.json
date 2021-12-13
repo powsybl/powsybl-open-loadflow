@@ -28,7 +28,8 @@
         "slackBusPMaxMismatch" : 1.0,
         "voltagePerReactivePowerControl" : false,
         "maxIteration" : 30,
-        "newtonRaphsonConvEpsPerEq" : 1.0E-4
+        "newtonRaphsonConvEpsPerEq" : 1.0E-4,
+        "voltageInitModeOverride" : "NONE"
       }
     }
   },
