@@ -49,7 +49,7 @@ public class NewtonRaphson {
         this.targetVector = Objects.requireNonNull(targetVector);
     }
 
-    private NewtonRaphsonStatus runIteration(double[] fx, StateVector stateVector) {
+    private NewtonRaphsonStatus runIteration(double[] fx) {
         LOGGER.debug("Start iteration {}", iteration);
 
         try {
@@ -62,7 +62,7 @@ public class NewtonRaphson {
             }
 
             // update x
-            stateVector.minus(fx);
+            equationSystem.getStateVector().minus(fx);
 
             // recalculate f(x) with new x
             equationSystem.updateEquationVector(fx);
@@ -185,7 +185,7 @@ public class NewtonRaphson {
         // start iterations
         NewtonRaphsonStatus status = NewtonRaphsonStatus.NO_CALCULATION;
         while (iteration <= parameters.getMaxIteration()) {
-            NewtonRaphsonStatus newStatus = runIteration(fx, equationSystem.getStateVector());
+            NewtonRaphsonStatus newStatus = runIteration(fx);
             if (newStatus != null) {
                 status = newStatus;
                 break;
