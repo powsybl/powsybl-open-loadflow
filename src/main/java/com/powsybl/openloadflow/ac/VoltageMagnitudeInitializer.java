@@ -134,11 +134,6 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         }
 
         @Override
-        public void update(double[] x) {
-            // nothing that depends on state
-        }
-
-        @Override
         public double eval() {
             throw new IllegalStateException("Useless");
         }

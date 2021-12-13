@@ -49,7 +49,7 @@ public class NewtonRaphson {
         this.targetVector = Objects.requireNonNull(targetVector);
     }
 
-    private NewtonRaphsonStatus runIteration(double[] fx, double[] x) {
+    private NewtonRaphsonStatus runIteration(double[] fx) {
         LOGGER.debug("Start iteration {}", iteration);
 
         try {
@@ -62,10 +62,7 @@ public class NewtonRaphson {
             }
 
             // update x
-            Vectors.minus(x, fx);
-
-            // evaluate equation terms with new x
-            equationSystem.updateEquations(x);
+            equationSystem.getStateVector().minus(fx);
 
             // recalculate f(x) with new x
             equationSystem.updateEquationVector(fx);
@@ -105,7 +102,7 @@ public class NewtonRaphson {
                 - slackBus.getTargetP(); // slack bus can also have real injection connected
     }
 
-    public static double[] createStateVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer initializer) {
+    public static void initStateVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer initializer) {
         double[] x = new double[equationSystem.getSortedVariablesToFind().size()];
         for (Variable<AcVariableType> v : equationSystem.getSortedVariablesToFind()) {
             switch (v.getType()) {
@@ -134,27 +131,28 @@ public class NewtonRaphson {
                     throw new IllegalStateException("Unknown variable type "  + v.getType());
             }
         }
-        return x;
+        equationSystem.getStateVector().set(x);
     }
 
-    public void updateNetwork(double[] x) {
+    public void updateNetwork() {
         // update state variable
+        StateVector stateVector = equationSystem.getStateVector();
         for (Variable<AcVariableType> v : equationSystem.getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_V:
-                    network.getBus(v.getNum()).setV(x[v.getRow()]);
+                    network.getBus(v.getNum()).setV(stateVector.get(v.getRow()));
                     break;
 
                 case BUS_PHI:
-                    network.getBus(v.getNum()).setAngle(Math.toDegrees(x[v.getRow()]));
+                    network.getBus(v.getNum()).setAngle(Math.toDegrees(stateVector.get(v.getRow())));
                     break;
 
                 case BRANCH_ALPHA1:
-                    network.getBranch(v.getNum()).getPiModel().setA1(x[v.getRow()]);
+                    network.getBranch(v.getNum()).getPiModel().setA1(stateVector.get(v.getRow()));
                     break;
 
                 case BRANCH_RHO1:
-                    network.getBranch(v.getNum()).getPiModel().setR1(x[v.getRow()]);
+                    network.getBranch(v.getNum()).getPiModel().setR1(stateVector.get(v.getRow()));
                     break;
 
                 case DUMMY_P:
@@ -177,9 +175,7 @@ public class NewtonRaphson {
 
         voltageInitializer.prepare(network);
 
-        double[] x = createStateVector(network, equationSystem, voltageInitializer);
-
-        equationSystem.updateEquations(x);
+        initStateVector(network, equationSystem, voltageInitializer);
 
         // initialize mismatch vector (difference between equation values and targets)
         double[] fx = equationSystem.createEquationVector();
@@ -189,7 +185,7 @@ public class NewtonRaphson {
         // start iterations
         NewtonRaphsonStatus status = NewtonRaphsonStatus.NO_CALCULATION;
         while (iteration <= parameters.getMaxIteration()) {
-            NewtonRaphsonStatus newStatus = runIteration(fx, x);
+            NewtonRaphsonStatus newStatus = runIteration(fx);
             if (newStatus != null) {
                 status = newStatus;
                 break;
@@ -204,8 +200,7 @@ public class NewtonRaphson {
 
         // update network state variable
         if (status == NewtonRaphsonStatus.CONVERGED) {
-            equationSystem.updateEquations(x, EquationUpdateType.AFTER_NR);
-            updateNetwork(x);
+            updateNetwork();
         }
 
         return new NewtonRaphsonResult(status, iteration, slackBusActivePowerMismatch);

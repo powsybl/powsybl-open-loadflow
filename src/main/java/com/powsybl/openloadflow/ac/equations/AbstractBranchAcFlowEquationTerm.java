@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.ac.equations;
 import com.powsybl.openloadflow.equations.AbstractBranchEquationTerm;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
-import net.jafama.FastMath;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -22,8 +21,6 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractBranchEquationTe
     protected final double g2;
     protected final double y;
     protected final double ksi;
-    protected final double sinKsi;
-    protected final double cosKsi;
 
     protected AbstractBranchAcFlowEquationTerm(LfBranch branch) {
         super(branch);
@@ -37,7 +34,5 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractBranchEquationTe
         g2 = piModel.getG2();
         y = 1 / piModel.getZ();
         ksi = piModel.getKsi();
-        sinKsi = FastMath.sin(ksi);
-        cosKsi = FastMath.cos(ksi);
     }
 }

@@ -78,7 +78,7 @@ public class DcLoadFlowEngine {
         return new DcLoadFlowResult(pNetwork, getActivePowerMismatch(pNetwork.getBuses()), status);
     }
 
-    public static double[] createStateVector(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, VoltageInitializer initializer) {
+    public static void initStateVector(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, VoltageInitializer initializer) {
         double[] x = new double[equationSystem.getSortedVariablesToFind().size()];
         for (Variable<DcVariableType> v : equationSystem.getSortedVariablesToFind()) {
             switch (v.getType()) {
@@ -98,7 +98,7 @@ public class DcLoadFlowEngine {
                     throw new IllegalStateException("Unknown variable type "  + v.getType());
             }
         }
-        return x;
+        equationSystem.getStateVector().set(x);
     }
 
     public static void updateNetwork(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, double[] x) {
@@ -162,7 +162,7 @@ public class DcLoadFlowEngine {
         // only process main (largest) connected component
         LfNetwork network = networks.get(0);
 
-        double[] x = createStateVector(network, equationSystem, new UniformValueVoltageInitializer());
+        initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
 
         Collection<LfBus> remainingBuses = new LinkedHashSet<>(network.getBuses());
         remainingBuses.removeAll(disabledBuses);
@@ -170,8 +170,6 @@ public class DcLoadFlowEngine {
         if (parameters.isDistributedSlack()) {
             distributeSlack(remainingBuses);
         }
-
-        equationSystem.updateEquations(x);
 
         this.targetVector = TargetVector.createArray(network, equationSystem, DcLoadFlowEngine::initTarget);
 
@@ -210,8 +208,7 @@ public class DcLoadFlowEngine {
             LOGGER.error("Failed to solve linear system for DC load flow", e);
         }
 
-        equationSystem.updateEquations(targetVector);
-        equationSystem.updateEquations(targetVector, EquationUpdateType.AFTER_NR);
+        equationSystem.getStateVector().set(targetVector);
         updateNetwork(network, equationSystem, targetVector);
 
         // set all calculated voltages to NaN

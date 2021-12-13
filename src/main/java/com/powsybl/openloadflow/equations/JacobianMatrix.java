@@ -11,13 +11,18 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationSystemListener<V, E>, AutoCloseable {
+public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
+        implements EquationSystemListener<V, E>, StateVectorListener, AutoCloseable {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(JacobianMatrix.class);
 
     static final class PartialDerivative<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
@@ -68,6 +73,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         equationSystem.addListener(this);
+        equationSystem.getStateVector().addListener(this);
     }
 
     @Override
@@ -108,7 +114,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     @Override
-    public void onStateUpdate(double[] x) {
+    public void onStateUpdate() {
         if (status == Status.VALID) {
             status = Status.VALUES_INVALID;
         }
@@ -124,6 +130,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     private void initMatrix() {
+        LOGGER.debug("Rebuild Jacobian matrix");
         int rowCount = equationSystem.getSortedEquationsToSolve().size();
         int columnCount = equationSystem.getSortedVariablesToFind().size();
         if (rowCount != columnCount) {
@@ -151,6 +158,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     private void updateValues() {
+        LOGGER.debug("Update Jacobian matrix values");
         matrix.reset();
         for (PartialDerivative<V, E> partialDerivative : partialDerivatives) {
             EquationTerm<V, E> equationTerm = partialDerivative.getEquationTerm();
@@ -212,6 +220,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     @Override
     public void close() {
         equationSystem.removeListener(this);
+        equationSystem.getStateVector().removeListener(this);
         clear();
     }
 }

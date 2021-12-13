@@ -19,6 +19,13 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
 
     private boolean active = true;
 
+    protected StateVector stateVector;
+
+    @Override
+    public void setStateVector(StateVector stateVector) {
+        this.stateVector = Objects.requireNonNull(stateVector);
+    }
+
     @Override
     public Equation<V, E> getEquation() {
         return equation;

@@ -71,8 +71,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public void update(double[] x) {
-            term.update(x);
+        public void setStateVector(StateVector stateVector) {
+            term.setStateVector(stateVector);
         }
 
         @Override
@@ -118,8 +118,6 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         private final List<Variable<V>> variables;
 
-        private double value;
-
         VariableEquationTerm(int elementNum, V variableType, VariableSet<V> variableSet) {
             this.elementNum = elementNum;
             this.variables = Collections.singletonList(variableSet.getVariable(elementNum, variableType));
@@ -141,13 +139,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public void update(double[] x) {
-            value = x[variables.get(0).getRow()];
-        }
-
-        @Override
         public double eval() {
-            return value;
+            return stateVector.get(variables.get(0).getRow());
         }
 
         @Override
@@ -196,10 +189,10 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
     List<Variable<V>> getVariables();
 
     /**
-     * Update equation term using {@code x} variable values.
-     * @param x variables values vector
+     * Set state vector to use for term evaluation.
+     * @param stateVector the state vector
      */
-    void update(double[] x);
+    void setStateVector(StateVector stateVector);
 
     /**
      * Evaluate equation term.

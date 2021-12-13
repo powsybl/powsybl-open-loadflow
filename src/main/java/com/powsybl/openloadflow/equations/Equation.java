@@ -38,19 +38,12 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
      */
     private boolean active = true;
 
-    private EquationUpdateType updateType;
-
     private final List<EquationTerm<V, E>> terms = new ArrayList<>();
 
     Equation(int num, E type, EquationSystem<V, E> equationSystem) {
-        this(num, type, equationSystem, EquationUpdateType.DEFAULT);
-    }
-
-    Equation(int num, E type, EquationSystem<V, E> equationSystem, EquationUpdateType updateType) {
         this.num = num;
         this.type = Objects.requireNonNull(type);
         this.equationSystem = Objects.requireNonNull(equationSystem);
-        this.updateType = updateType;
     }
 
     public int getNum() {
@@ -84,14 +77,6 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         }
     }
 
-    public EquationUpdateType getUpdateType() {
-        return updateType;
-    }
-
-    public void setUpdateType(EquationUpdateType updateType) {
-        this.updateType = Objects.requireNonNull(updateType);
-    }
-
     public void setData(Object data) {
         this.data = data;
     }
@@ -119,14 +104,6 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     public List<EquationTerm<V, E>> getTerms() {
         return terms;
-    }
-
-    public void update(double[] x) {
-        for (EquationTerm<V, E> term : terms) {
-            if (term.isActive()) {
-                term.update(x);
-            }
-        }
     }
 
     @Override

@@ -28,10 +28,6 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
 
     private final double b;
 
-    private double q;
-
-    private double dqdv;
-
     public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet<AcVariableType> variableSet) {
         this.shunt = Objects.requireNonNull(shunt);
         Objects.requireNonNull(bus);
@@ -56,24 +52,28 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
         return variables;
     }
 
-    @Override
-    public void update(double[] x) {
-        Objects.requireNonNull(x);
-        double v = x[vVar.getRow()];
-        q = -b * v * v;
-        dqdv = -2 * b * v;
+    private double v() {
+        return stateVector.get(vVar.getRow());
+    }
+
+    private double q() {
+        return  -b * v() * v();
+    }
+
+    private double dqdv() {
+        return -2 * b * v();
     }
 
     @Override
     public double eval() {
-        return q;
+        return q();
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
-            return dqdv;
+            return dqdv();
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

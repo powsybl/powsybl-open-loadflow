@@ -10,6 +10,8 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfNetwork;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -22,13 +24,15 @@ import java.util.stream.Collectors;
  */
 public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(EquationSystem.class);
+
     private final boolean indexTerms;
 
     private final Map<Pair<Integer, E>, Equation<V, E>> equations = new HashMap<>();
 
-    private final Map<Pair<ElementType, Integer>, List<Equation<V, E>>> equationsBySubject = new HashMap<>();
+    private final Map<Pair<ElementType, Integer>, List<Equation<V, E>>> equationsByElement = new HashMap<>();
 
-    private final Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsBySubject = new HashMap<>();
+    private final Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsByElement = new HashMap<>();
 
     private class EquationCache implements EquationSystemListener<V, E> {
 
@@ -42,6 +46,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
         private void update() {
             if (reIndex()) {
+                LOGGER.debug("Reindex equation system");
+
                 int columnCount = 0;
                 for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
                     equation.setColumn(columnCount++);
@@ -80,7 +86,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             // equations to add
             for (Equation<V, E> equation : equationsToAdd) {
                 // do not use equations that would be updated only after NR
-                if (equation.isActive() && EquationUpdateType.DEFAULT == equation.getUpdateType()) {
+                if (equation.isActive()) {
                     // check we have at least one equation term active
                     boolean atLeastOneTermIsValid = false;
                     for (EquationTerm<V, E> equationTerm : equation.getTerms()) {
@@ -146,11 +152,6 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             }
         }
 
-        @Override
-        public void onStateUpdate(double[] x) {
-            // nothing to do
-        }
-
         private NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> getSortedEquationsToSolve() {
             update();
             return sortedEquationsToSolve;
@@ -167,6 +168,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     private final List<EquationSystemListener<V, E>> listeners = new ArrayList<>();
 
     private final VariableSet<V> variableSet;
+
+    private final StateVector stateVector = new StateVector();
 
     public EquationSystem() {
         this(false);
@@ -186,13 +189,18 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return variableSet;
     }
 
+    public StateVector getStateVector() {
+        return stateVector;
+    }
+
     void addEquationTerm(EquationTerm<V, E> equationTerm) {
         if (indexTerms) {
             Objects.requireNonNull(equationTerm);
-            Pair<ElementType, Integer> subject = Pair.of(equationTerm.getElementType(), equationTerm.getElementNum());
-            equationTermsBySubject.computeIfAbsent(subject, k -> new ArrayList<>())
+            Pair<ElementType, Integer> element = Pair.of(equationTerm.getElementType(), equationTerm.getElementNum());
+            equationTermsByElement.computeIfAbsent(element, k -> new ArrayList<>())
                     .add(equationTerm);
         }
+        attach(equationTerm);
     }
 
     public List<EquationTerm<V, E>> getEquationTerms(ElementType elementType, int elementNum) {
@@ -200,8 +208,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             throw new PowsyblException("Equations terms have not been indexed");
         }
         Objects.requireNonNull(elementType);
-        Pair<ElementType, Integer> subject = Pair.of(elementType, elementNum);
-        return equationTermsBySubject.getOrDefault(subject, Collections.emptyList());
+        Pair<ElementType, Integer> element = Pair.of(elementType, elementNum);
+        return equationTermsByElement.getOrDefault(element, Collections.emptyList());
     }
 
     public <T extends EquationTerm<V, E>> T getEquationTerm(ElementType elementType, int elementNum, Class<T> clazz) {
@@ -236,8 +244,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Pair<Integer, E> p = Pair.of(num, type);
         Equation<V, E> equation = equations.remove(p);
         if (equation != null) {
-            Pair<ElementType, Integer> subject = Pair.of(type.getElementType(), num);
-            equationsBySubject.remove(subject);
+            Pair<ElementType, Integer> element = Pair.of(type.getElementType(), num);
+            equationsByElement.remove(element);
             notifyEquationChange(equation, EquationEventType.EQUATION_REMOVED);
         }
         return equation;
@@ -246,8 +254,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     private Equation<V, E> addEquation(Pair<Integer, E> p) {
         Equation<V, E> equation = new Equation<>(p.getLeft(), p.getRight(), EquationSystem.this);
         equations.put(p, equation);
-        Pair<ElementType, Integer> subject = Pair.of(p.getRight().getElementType(), p.getLeft());
-        equationsBySubject.computeIfAbsent(subject, k -> new ArrayList<>())
+        Pair<ElementType, Integer> element = Pair.of(p.getRight().getElementType(), p.getLeft());
+        equationsByElement.computeIfAbsent(element, k -> new ArrayList<>())
                 .add(equation);
         notifyEquationChange(equation, EquationEventType.EQUATION_CREATED);
         return equation;
@@ -255,8 +263,13 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     public List<Equation<V, E>> getEquations(ElementType elementType, int elementNum) {
         Objects.requireNonNull(elementType);
-        Pair<ElementType, Integer> subject = Pair.of(elementType, elementNum);
-        return equationsBySubject.getOrDefault(subject, Collections.emptyList());
+        Pair<ElementType, Integer> element = Pair.of(elementType, elementNum);
+        return equationsByElement.getOrDefault(element, Collections.emptyList());
+    }
+
+    public void attach(EquationTerm<V, E> term) {
+        Objects.requireNonNull(term);
+        term.setStateVector(stateVector);
     }
 
     public SortedSet<Variable<V>> getSortedVariablesToFind() {
@@ -293,21 +306,6 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         for (Equation<V, E> equation : equationCache.getSortedEquationsToSolve().keySet()) {
             fx[equation.getColumn()] = equation.eval();
         }
-    }
-
-    public void updateEquations(double[] x) {
-        updateEquations(x, EquationUpdateType.DEFAULT);
-    }
-
-    public void updateEquations(double[] x, EquationUpdateType updateType) {
-        Objects.requireNonNull(x);
-        Objects.requireNonNull(updateType);
-        for (Equation<V, E> equation : equations.values()) {
-            if (updateType == equation.getUpdateType()) {
-                equation.update(x);
-            }
-        }
-        listeners.forEach(listener -> listener.onStateUpdate(x));
     }
 
     public void addListener(EquationSystemListener<V, E> listener) {
