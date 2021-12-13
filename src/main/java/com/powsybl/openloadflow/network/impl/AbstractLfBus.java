@@ -539,6 +539,19 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public Map<LfBus, List<LfBranch>> findNeighbors() {
+        Map<LfBus, List<LfBranch>> neighbors = new LinkedHashMap<>(branches.size());
+        for (LfBranch branch : branches) {
+            if (branch.isConnectedAtBothSides()) {
+                LfBus otherBus = branch.getBus1() == this ? branch.getBus2() : branch.getBus1();
+                neighbors.computeIfAbsent(otherBus, k -> new ArrayList<>())
+                        .add(branch);
+            }
+        }
+        return neighbors;
+    }
+
+    @Override
     public String toString() {
         return getId();
     }
