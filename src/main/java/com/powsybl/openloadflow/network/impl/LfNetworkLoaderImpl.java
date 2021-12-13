@@ -409,7 +409,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (!minImpedance) {
             // Merge the discrete voltage control in each zero impedance connected set
             List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.createZeroImpedanceSubGraph()).connectedSets();
-            connectedSets.forEach(set -> mergeVoltageControls(set, transformerVoltageControl));
+            connectedSets.forEach(connectedSet -> mergeVoltageControls(connectedSet, transformerVoltageControl));
         }
     }
 

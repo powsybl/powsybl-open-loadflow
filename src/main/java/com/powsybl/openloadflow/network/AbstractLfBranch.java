@@ -260,4 +260,9 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     public void setReactivePowerControl(ReactivePowerControl pReactivePowerControl) {
         this.reactivePowerControl = Objects.requireNonNull(pReactivePowerControl);
     }
+
+    @Override
+    public boolean isConnectedAtBothSides() {
+        return bus1 != null && bus2 != null;
+    }
 }
