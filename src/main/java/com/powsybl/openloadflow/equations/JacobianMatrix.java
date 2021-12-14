@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
@@ -15,6 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -130,7 +134,8 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     private void initMatrix() {
-        LOGGER.debug("Rebuild Jacobian matrix");
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         int rowCount = equationSystem.getSortedEquationsToSolve().size();
         int columnCount = equationSystem.getSortedVariablesToFind().size();
         if (rowCount != columnCount) {
@@ -146,31 +151,38 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             Equation<V, E> eq = e.getKey();
             int column = eq.getColumn();
             for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e2 : e.getValue().entrySet()) {
-                Variable<V> var = e2.getKey();
-                int row = var.getRow();
+                Variable<V> variable = e2.getKey();
+                int row = variable.getRow();
                 for (EquationTerm<V, E> equationTerm : e2.getValue()) {
-                    double value = equationTerm.der(var);
+                    double value = equationTerm.der(variable);
                     int elementIndex = matrix.addAndGetIndex(row, column, value);
-                    partialDerivatives.add(new JacobianMatrix.PartialDerivative<>(equationTerm, elementIndex, var));
+                    partialDerivatives.add(new JacobianMatrix.PartialDerivative<>(equationTerm, elementIndex, variable));
                 }
             }
         }
+
+        stopwatch.stop();
+        LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
 
     private void updateValues() {
-        LOGGER.debug("Update Jacobian matrix values");
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         matrix.reset();
         for (PartialDerivative<V, E> partialDerivative : partialDerivatives) {
             EquationTerm<V, E> equationTerm = partialDerivative.getEquationTerm();
             int elementIndex = partialDerivative.getElementIndex();
-            Variable<V> var = partialDerivative.getVariable();
-            double value = equationTerm.der(var);
+            Variable<V> variable = partialDerivative.getVariable();
+            double value = equationTerm.der(variable);
             matrix.addAtIndex(elementIndex, value);
         }
 
         if (lu != null) {
             lu.update();
         }
+
+        stopwatch.stop();
+        LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
 
     public Matrix getMatrix() {

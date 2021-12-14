@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -17,7 +18,10 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -302,10 +306,16 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         if (fx.length != equationCache.getSortedEquationsToSolve().size()) {
             throw new IllegalArgumentException("Bad equation vector length: " + fx.length);
         }
+
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         Arrays.fill(fx, 0);
         for (Equation<V, E> equation : equationCache.getSortedEquationsToSolve().keySet()) {
             fx[equation.getColumn()] = equation.eval();
         }
+
+        stopwatch.stop();
+        LOGGER.debug(PERFORMANCE_MARKER, "Equation vector updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
 
     public void addListener(EquationSystemListener<V, E> listener) {
