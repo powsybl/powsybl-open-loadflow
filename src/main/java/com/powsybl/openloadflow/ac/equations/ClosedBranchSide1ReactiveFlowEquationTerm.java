@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
@@ -22,9 +21,9 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
  */
 public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
-    public ClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+    public ClosedBranchSide1ReactiveFlowEquationTerm(VectorizedBranches branches, int num, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                      boolean deriveA1, boolean deriveR1) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+        super(branches, num, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
 
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
@@ -32,25 +31,25 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     protected double theta() {
-        return ksi - (a1Var != null ? stateVector.get(a1Var.getRow()) : branch.getPiModel().getA1()) + A2 - ph1() + ph2();
+        return branches.ksi(num) - (a1Var != null ? stateVector.get(a1Var.getRow()) : branches.a1(num)) + A2 - ph1() + ph2();
     }
 
     private double q1() {
-        return r1() * v1() * (-b1 * r1() * v1() + y * r1() * v1() * FastMath.cos(ksi)
-                - y * R2 * v2() * FastMath.cos(theta()));
+        return r1() * v1() * (-branches.b1(num) * r1() * v1() + branches.y(num) * r1() * v1() * FastMath.cos(branches.ksi(num))
+                - branches.y(num) * R2 * v2() * FastMath.cos(theta()));
     }
 
     private double dq1dv1() {
-        return r1() * (-2 * b1 * r1() * v1() + 2 * y * r1() * v1() * FastMath.cos(ksi)
-                - y * R2 * v2() * FastMath.cos(theta()));
+        return r1() * (-2 * branches.b1(num) * r1() * v1() + 2 * branches.y(num) * r1() * v1() * FastMath.cos(branches.ksi(num))
+                - branches.y(num) * R2 * v2() * FastMath.cos(theta()));
     }
 
     private double dq1dv2() {
-        return -y * r1() * R2 * v1() * FastMath.cos(theta());
+        return -branches.y(num) * r1() * R2 * v1() * FastMath.cos(theta());
     }
 
     private double dq1dph1() {
-        return -y * r1() * R2 * v1() * v2() * FastMath.sin(theta());
+        return -branches.y(num) * r1() * R2 * v1() * v2() * FastMath.sin(theta());
     }
 
     private double dq1dph2() {
@@ -62,7 +61,7 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     private double dq1dr1() {
-        return v1() * (2 * r1() * v1() * (-b1 + y * FastMath.cos(ksi)) - y * R2 * v2() * FastMath.cos(theta()));
+        return v1() * (2 * r1() * v1() * (-branches.b1(num) + branches.y(num) * FastMath.cos(branches.ksi(num))) - branches.y(num) * R2 * v2() * FastMath.cos(theta()));
     }
 
     @Override

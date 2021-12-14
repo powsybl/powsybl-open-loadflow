@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
@@ -17,23 +16,24 @@ import java.util.List;
 /**
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
-abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractBranchAcFlowEquationTerm {
+abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractAcBranchEquationTerm {
 
     protected final List<Variable<AcVariableType>> variables;
 
-    protected AbstractOpenSide2BranchAcFlowEquationTerm(LfBranch branch, AcVariableType variableType,
+    protected AbstractOpenSide2BranchAcFlowEquationTerm(VectorizedBranches branches, int num, AcVariableType variableType,
                                                         LfBus bus, VariableSet<AcVariableType> variableSet,
                                                         boolean deriveA1, boolean deriveR1) {
-        super(branch);
+        super(branches, num);
         variables = List.of(variableSet.getVariable(bus.getNum(), variableType));
         if (deriveA1 || deriveR1) {
-            throw new IllegalArgumentException("Variable A1 or R1 on open branch not supported: " + branch.getId());
+            throw new IllegalArgumentException("Variable A1 or R1 on open branch not supported: " + branches.get(num).getId());
         }
     }
 
     protected double shunt() {
-        double cosKsi = FastMath.cos(ksi);
-        return (g2 + y * FastMath.sin(ksi)) * (g2 + y * FastMath.sin(ksi)) + (-b2 + y * cosKsi) * (-b2 + y * cosKsi);
+        double cosKsi = FastMath.cos(branches.ksi(num));
+        return (branches.g2(num) + branches.y(num) * FastMath.sin(branches.ksi(num))) * (branches.g2(num) + branches.y(num) * FastMath.sin(branches.ksi(num)))
+                + (-branches.b2(num) + branches.y(num) * cosKsi) * (-branches.b2(num) + branches.y(num) * cosKsi);
     }
 
     @Override

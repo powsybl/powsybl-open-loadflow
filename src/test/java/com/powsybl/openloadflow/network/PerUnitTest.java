@@ -8,12 +8,15 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
+import com.powsybl.openloadflow.ac.equations.VectorizedBranches;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.VariableSet;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -41,6 +44,7 @@ class PerUnitTest {
         variableSet.getVariable(1, AcVariableType.BUS_PHI).setRow(3);
 
         LfBranch branch = Mockito.mock(LfBranch.class, new RuntimeExceptionAnswer());
+        Mockito.doReturn(0).when(branch).getNum();
         PiModel piModel = Mockito.mock(PiModel.class, new RuntimeExceptionAnswer());
         LfBus bus1 = Mockito.mock(LfBus.class, new RuntimeExceptionAnswer());
         LfBus bus2 = Mockito.mock(LfBus.class, new RuntimeExceptionAnswer());
@@ -58,7 +62,8 @@ class PerUnitTest {
         Mockito.doReturn(Math.atan2(0.1, 3)).when(piModel).getKsi();
         Mockito.doReturn(0d).when(piModel).getA1();
 
-        ClosedBranchSide1ActiveFlowEquationTerm p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, false, false);
+        VectorizedBranches vectorizedBranches = new VectorizedBranches(List.of(branch));
+        ClosedBranchSide1ActiveFlowEquationTerm p1 = new ClosedBranchSide1ActiveFlowEquationTerm(vectorizedBranches, branch.getNum(), bus1, bus2, variableSet, false, false);
         StateVector stateVector = new StateVector();
         p1.setStateVector(stateVector);
         double[] x = new double[4];

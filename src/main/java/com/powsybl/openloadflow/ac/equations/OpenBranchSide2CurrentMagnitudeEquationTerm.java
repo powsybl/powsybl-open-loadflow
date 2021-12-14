@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
@@ -25,9 +24,9 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     private Variable<AcVariableType> r1Var;
 
-    public OpenBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, VariableSet<AcVariableType> variableSet,
+    public OpenBranchSide2CurrentMagnitudeEquationTerm(VectorizedBranches branches, int num, LfBus bus1, VariableSet<AcVariableType> variableSet,
                                                        boolean deriveA1, boolean deriveR1) {
-        super(branch, AcVariableType.BUS_V, bus1, variableSet, deriveA1, deriveR1);
+        super(branches, num, AcVariableType.BUS_V, bus1, variableSet, deriveA1, deriveR1);
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
         if (deriveR1) {
@@ -44,15 +43,15 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     private double r1() {
-        return r1Var != null ? stateVector.get(r1Var.getRow()) : branch.getPiModel().getR1();
+        return r1Var != null ? stateVector.get(r1Var.getRow()) : branches.r1(num);
     }
 
     private double gres(double shunt) {
-        return g1 + (y * y * g2 + (b2 * b2 + g2 * g2) * y * FastMath.sin(ksi)) / shunt;
+        return branches.g1(num) + (branches.y(num) * branches.y(num) * branches.g2(num) + (branches.b2(num) * branches.b2(num) + branches.g2(num) * branches.g2(num)) * branches.y(num) * FastMath.sin(branches.ksi(num))) / shunt;
     }
 
     private double bres(double shunt) {
-        return b1 + (y * y * b2 - (b2 * b2 + g2 * g2) * y * FastMath.cos(ksi)) / shunt;
+        return branches.b1(num) + (branches.y(num) * branches.y(num) * branches.b2(num) - (branches.b2(num) * branches.b2(num) + branches.g2(num) * branches.g2(num)) * branches.y(num) * FastMath.cos(branches.ksi(num))) / shunt;
     }
 
     private double reI2() {

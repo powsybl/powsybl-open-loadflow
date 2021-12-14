@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
@@ -23,9 +22,9 @@ public class OpenBranchSide1ActiveFlowEquationTerm extends AbstractOpenSide1Bran
 
     private final Variable<AcVariableType> v2Var;
 
-    public OpenBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus2, VariableSet<AcVariableType> variableSet,
+    public OpenBranchSide1ActiveFlowEquationTerm(VectorizedBranches branches, int num, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                  boolean deriveA1, boolean deriveR1) {
-        super(branch, AcVariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
+        super(branches, num, AcVariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
         v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
     }
 
@@ -35,12 +34,12 @@ public class OpenBranchSide1ActiveFlowEquationTerm extends AbstractOpenSide1Bran
 
     private double p2() {
         double shunt = shunt();
-        return R2 * R2 * v2() * v2() * (g2 + y * y * g1 / shunt + (b1 * b1 + g1 * g1) * y * FastMath.sin(ksi) / shunt);
+        return R2 * R2 * v2() * v2() * (branches.g2(num) + branches.y(num) * branches.y(num) * branches.g1(num) / shunt + (branches.b1(num) * branches.b1(num) + branches.g1(num) * branches.g1(num)) * branches.y(num) * FastMath.sin(branches.ksi(num)) / shunt);
     }
 
     private double dp2dv2() {
         double shunt = shunt();
-        return 2 * R2 * R2 * v2() * (g2 + y * y * g1 / shunt + (b1 * b1 + g1 * g1) * y * FastMath.sin(ksi) / shunt);
+        return 2 * R2 * R2 * v2() * (branches.g2(num) + branches.y(num) * branches.y(num) * branches.g1(num) / shunt + (branches.b1(num) * branches.b1(num) + branches.g1(num) * branches.g1(num)) * branches.y(num) * FastMath.sin(branches.ksi(num)) / shunt);
     }
 
     @Override

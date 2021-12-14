@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
@@ -25,9 +24,9 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     private final Variable<AcVariableType> ph2Var;
 
-    public OpenBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus2, VariableSet<AcVariableType> variableSet,
+    public OpenBranchSide1CurrentMagnitudeEquationTerm(VectorizedBranches branches, int num, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                        boolean deriveA1, boolean deriveR1) {
-        super(branch, AcVariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
+        super(branches, num, AcVariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
         v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
         ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
     }
@@ -41,11 +40,11 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     private double gres(double shunt) {
-        return g2 + (y * y * g1 + (b1 * b1 + g1 * g1) * y * FastMath.sin(ksi)) / shunt;
+        return branches.g2(num) + (branches.y(num) * branches.y(num) * branches.g1(num) + (branches.b1(num) * branches.b1(num) + branches.g1(num) * branches.g1(num)) * branches.y(num) * FastMath.sin(branches.ksi(num))) / shunt;
     }
 
     private double bres(double shunt) {
-        return b2 + (y * y * b1 - (b1 * b1 + g1 * g1) * y * FastMath.cos(ksi)) / shunt;
+        return branches.b2(num) + (branches.y(num) * branches.y(num) * branches.b1(num) - (branches.b1(num) * branches.b1(num) + branches.g1(num) * branches.g1(num)) * branches.y(num) * FastMath.cos(branches.ksi(num))) / shunt;
     }
 
     private double reI2() {

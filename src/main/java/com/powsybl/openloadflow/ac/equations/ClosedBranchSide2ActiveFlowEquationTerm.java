@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
@@ -22,9 +21,9 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
  */
 public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
-    public ClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+    public ClosedBranchSide2ActiveFlowEquationTerm(VectorizedBranches branches, int num, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                    boolean deriveA1, boolean deriveR1) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+        super(branches, num, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
 
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
@@ -32,23 +31,23 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     private double theta() {
-        return ksi + (a1Var != null ? stateVector.get(a1Var.getRow()) : branch.getPiModel().getA1()) - A2 + ph1() - ph2();
+        return branches.ksi(num) + (a1Var != null ? stateVector.get(a1Var.getRow()) : branches.a1(num)) - A2 + ph1() - ph2();
     }
 
     private double p2() {
-        return R2 * v2() * (g2 * R2 * v2() - y * r1() * v1() * FastMath.sin(theta()) + y * R2 * v2() * FastMath.sin(ksi));
+        return R2 * v2() * (branches.g2(num) * R2 * v2() - branches.y(num) * r1() * v1() * FastMath.sin(theta()) + branches.y(num) * R2 * v2() * FastMath.sin(branches.ksi(num)));
     }
 
     private double dp2dv1() {
-        return -y * r1() * R2 * v2() * FastMath.sin(theta());
+        return -branches.y(num) * r1() * R2 * v2() * FastMath.sin(theta());
     }
 
     private double dp2dv2() {
-        return R2 * (2 * g2 * R2 * v2() - y * r1() * v1() * FastMath.sin(theta()) + 2 * y * R2 * v2() * FastMath.sin(ksi));
+        return R2 * (2 * branches.g2(num) * R2 * v2() - branches.y(num) * r1() * v1() * FastMath.sin(theta()) + 2 * branches.y(num) * R2 * v2() * FastMath.sin(branches.ksi(num)));
     }
 
     private double dp2dph1() {
-        return -y * r1() * R2 * v1() * v2() * FastMath.cos(theta());
+        return -branches.y(num) * r1() * R2 * v1() * v2() * FastMath.cos(theta());
     }
 
     private double dp2dph2() {
@@ -60,7 +59,7 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     private double dp2dr1() {
-        return -y * R2 * v1() * v2() * FastMath.sin(theta());
+        return -branches.y(num) * R2 * v1() * v2() * FastMath.sin(theta());
     }
 
     @Override

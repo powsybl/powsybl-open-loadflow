@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
@@ -23,9 +22,9 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
 
     private final Variable<AcVariableType> v2Var;
 
-    public OpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, VariableSet<AcVariableType> variableSet,
+    public OpenBranchSide1ReactiveFlowEquationTerm(VectorizedBranches branches, int num, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                    boolean deriveA1, boolean deriveR1) {
-        super(branch, AcVariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
+        super(branches, num, AcVariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
         v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
     }
 
@@ -35,12 +34,12 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
 
     private double q2() {
         double shunt = shunt();
-        return -R2 * R2 * v2() * v2() * (b2 + y * y * b1 / shunt - (b1 * b1 + g1 * g1) * y * FastMath.cos(ksi) / shunt);
+        return -R2 * R2 * v2() * v2() * (branches.b2(num) + branches.y(num) * branches.y(num) * branches.b1(num) / shunt - (branches.b1(num) * branches.b1(num) + branches.g1(num) * branches.g1(num)) * branches.y(num) * FastMath.cos(branches.ksi(num)) / shunt);
     }
 
     private double dq2dv2() {
         double shunt = shunt();
-        return -2 * v2() * R2 * R2 * (b2 + y * y * b1 / shunt - (b1 * b1 + g1 * g1) * y * FastMath.cos(ksi) / shunt);
+        return -2 * v2() * R2 * R2 * (branches.b2(num) + branches.y(num) * branches.y(num) * branches.b1(num) / shunt - (branches.b1(num) * branches.b1(num) + branches.g1(num) * branches.g1(num)) * branches.y(num) * FastMath.cos(branches.ksi(num)) / shunt);
     }
 
     @Override
