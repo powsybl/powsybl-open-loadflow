@@ -155,19 +155,19 @@ public class AcloadFlowEngine implements AutoCloseable {
     public static void initTarget(Equation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
             case BUS_P:
-                targets[equation.getColumn()] = network.getBus(equation.getNum()).getTargetP();
+                targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getTargetP();
                 break;
 
             case BUS_Q:
-                targets[equation.getColumn()] = network.getBus(equation.getNum()).getTargetQ();
+                targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getTargetQ();
                 break;
 
             case BUS_V:
-                targets[equation.getColumn()] = getBusTargetV(network.getBus(equation.getNum()));
+                targets[equation.getColumn()] = getBusTargetV(network.getBus(equation.getElementNum()));
                 break;
 
             case BUS_V_SLOPE:
-                targets[equation.getColumn()] = createBusWithSlopeTarget(network.getBus(equation.getNum()), equation.getData());
+                targets[equation.getColumn()] = createBusWithSlopeTarget(network.getBus(equation.getElementNum()), equation.getData());
                 break;
 
             case BUS_PHI:
@@ -175,23 +175,23 @@ public class AcloadFlowEngine implements AutoCloseable {
                 break;
 
             case BRANCH_P:
-                targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getNum()), DiscretePhaseControl.Unit.MW);
+                targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getElementNum()), DiscretePhaseControl.Unit.MW);
                 break;
 
             case BRANCH_Q:
-                targets[equation.getColumn()] = getReactivePowerControlTarget(network.getBranch(equation.getNum()));
+                targets[equation.getColumn()] = getReactivePowerControlTarget(network.getBranch(equation.getElementNum()));
                 break;
 
             case BRANCH_ALPHA1:
-                targets[equation.getColumn()] = network.getBranch(equation.getNum()).getPiModel().getA1();
+                targets[equation.getColumn()] = network.getBranch(equation.getElementNum()).getPiModel().getA1();
                 break;
 
             case BRANCH_RHO1:
-                targets[equation.getColumn()] = network.getBranch(equation.getNum()).getPiModel().getR1();
+                targets[equation.getColumn()] = network.getBranch(equation.getElementNum()).getPiModel().getR1();
                 break;
 
             case ZERO_Q:
-                targets[equation.getColumn()] = getReactivePowerDistributionTarget(network, equation.getNum(), equation.getData());
+                targets[equation.getColumn()] = getReactivePowerDistributionTarget(network, equation.getElementNum(), equation.getData());
                 break;
 
             case ZERO_V:
@@ -199,11 +199,11 @@ public class AcloadFlowEngine implements AutoCloseable {
                 break;
 
             case ZERO_PHI:
-                targets[equation.getColumn()] = LfBranch.getA(network.getBranch(equation.getNum()));
+                targets[equation.getColumn()] = LfBranch.getA(network.getBranch(equation.getElementNum()));
                 break;
 
             case ZERO_RHO1:
-                targets[equation.getColumn()] = getRho1DistributionTarget(network, equation.getNum(), equation.getData());
+                targets[equation.getColumn()] = getRho1DistributionTarget(network, equation.getElementNum(), equation.getData());
                 break;
 
             default:

@@ -67,7 +67,7 @@ class EquationTest {
 
     @Test
     void testToString() {
-        assertEquals("Equation(num=0, type=BUS_P, column=-1)", new Equation<>(0, AcEquationType.BUS_P, equationSystem).toString());
-        assertEquals("Equation(num=1, type=ZERO_Q, column=-1)", new Equation<>(1, AcEquationType.ZERO_Q, equationSystem).toString());
+        assertEquals("Equation(elementNum=0, type=BUS_P, column=-1)", new Equation<>(0, AcEquationType.BUS_P, equationSystem).toString());
+        assertEquals("Equation(elementNum=1, type=ZERO_Q, column=-1)", new Equation<>(1, AcEquationType.ZERO_Q, equationSystem).toString());
     }
 }
