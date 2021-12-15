@@ -20,10 +20,7 @@ import java.util.stream.Collectors;
  */
 public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements Evaluable, Comparable<Equation<V, E>> {
 
-    /**
-     * Bus or any other equipment id.
-     */
-    private final int num;
+    private final int elementNum;
 
     private final E type;
 
@@ -40,14 +37,14 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     private final List<EquationTerm<V, E>> terms = new ArrayList<>();
 
-    Equation(int num, E type, EquationSystem<V, E> equationSystem) {
-        this.num = num;
+    Equation(int elementNum, E type, EquationSystem<V, E> equationSystem) {
+        this.elementNum = elementNum;
         this.type = Objects.requireNonNull(type);
         this.equationSystem = Objects.requireNonNull(equationSystem);
     }
 
-    public int getNum() {
-        return num;
+    public int getElementNum() {
+        return elementNum;
     }
 
     public E getType() {
@@ -122,7 +119,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     @Override
     public int hashCode() {
-        return num + type.hashCode();
+        return elementNum + type.hashCode();
     }
 
     @Override
@@ -141,7 +138,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         if (o == this) {
             return 0;
         }
-        int c = num - o.num;
+        int c = elementNum - o.elementNum;
         if (c == 0) {
             c = type.ordinal() - o.type.ordinal();
         }
@@ -150,7 +147,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     public void write(Writer writer) throws IOException {
         writer.write(type.getSymbol());
-        writer.append(Integer.toString(num));
+        writer.append(Integer.toString(elementNum));
         writer.append(" = ");
         List<EquationTerm<V, E>> activeTerms = terms.stream().filter(EquationTerm::isActive).collect(Collectors.toList());
         for (Iterator<EquationTerm<V, E>> it = activeTerms.iterator(); it.hasNext();) {
@@ -167,10 +164,10 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         LfElement element = null;
         switch (type.getElementType()) {
             case BUS:
-                element = network.getBus(num);
+                element = network.getBus(elementNum);
                 break;
             case BRANCH:
-                element = network.getBranch(num);
+                element = network.getBranch(elementNum);
                 break;
         }
         return Optional.ofNullable(element);
@@ -178,7 +175,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     @Override
     public String toString() {
-        return "Equation(num=" + num +
+        return "Equation(elementNum=" + elementNum +
                 ", type=" + type +
                 ", column=" + column + ")";
     }

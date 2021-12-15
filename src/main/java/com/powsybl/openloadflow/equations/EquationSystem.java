@@ -286,13 +286,13 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     public List<String> getRowNames(LfNetwork network) {
         return getSortedVariablesToFind().stream()
-                .map(eq -> network.getBus(eq.getNum()).getId() + "/" + eq.getType())
+                .map(eq -> network.getBus(eq.getElementNum()).getId() + "/" + eq.getType())
                 .collect(Collectors.toList());
     }
 
     public List<String> getColumnNames(LfNetwork network) {
         return getSortedEquationsToSolve().navigableKeySet().stream()
-                .map(v -> network.getBus(v.getNum()).getId() + "/" + v.getType())
+                .map(v -> network.getBus(v.getElementNum()).getId() + "/" + v.getType())
                 .collect(Collectors.toList());
     }
 

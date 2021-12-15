@@ -162,7 +162,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
     private static void initTarget(Equation<InitVmVariableType, InitVmEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
             case BUS_TARGET_V:
-                targets[equation.getColumn()] = network.getBus(equation.getNum()).getVoltageControl().orElseThrow().getTargetValue();
+                targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getVoltageControl().orElseThrow().getTargetValue();
                 break;
             case BUS_ZERO:
                 targets[equation.getColumn()] = 0;
@@ -204,7 +204,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
             j.solveTransposed(targets);
 
             for (Variable<InitVmVariableType> variable : equationSystem.getSortedVariablesToFind()) {
-                LfBus bus = network.getBus(variable.getNum());
+                LfBus bus = network.getBus(variable.getElementNum());
                 bus.setV(targets[variable.getRow()]);
             }
         }

@@ -107,19 +107,19 @@ public class NewtonRaphson {
         for (Variable<AcVariableType> v : equationSystem.getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_V:
-                    x[v.getRow()] = initializer.getMagnitude(network.getBus(v.getNum()));
+                    x[v.getRow()] = initializer.getMagnitude(network.getBus(v.getElementNum()));
                     break;
 
                 case BUS_PHI:
-                    x[v.getRow()] = Math.toRadians(initializer.getAngle(network.getBus(v.getNum())));
+                    x[v.getRow()] = Math.toRadians(initializer.getAngle(network.getBus(v.getElementNum())));
                     break;
 
                 case BRANCH_ALPHA1:
-                    x[v.getRow()] = network.getBranch(v.getNum()).getPiModel().getA1();
+                    x[v.getRow()] = network.getBranch(v.getElementNum()).getPiModel().getA1();
                     break;
 
                 case BRANCH_RHO1:
-                    x[v.getRow()] = network.getBranch(v.getNum()).getPiModel().getR1();
+                    x[v.getRow()] = network.getBranch(v.getElementNum()).getPiModel().getR1();
                     break;
 
                 case DUMMY_P:
@@ -140,19 +140,19 @@ public class NewtonRaphson {
         for (Variable<AcVariableType> v : equationSystem.getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_V:
-                    network.getBus(v.getNum()).setV(stateVector.get(v.getRow()));
+                    network.getBus(v.getElementNum()).setV(stateVector.get(v.getRow()));
                     break;
 
                 case BUS_PHI:
-                    network.getBus(v.getNum()).setAngle(Math.toDegrees(stateVector.get(v.getRow())));
+                    network.getBus(v.getElementNum()).setAngle(Math.toDegrees(stateVector.get(v.getRow())));
                     break;
 
                 case BRANCH_ALPHA1:
-                    network.getBranch(v.getNum()).getPiModel().setA1(stateVector.get(v.getRow()));
+                    network.getBranch(v.getElementNum()).getPiModel().setA1(stateVector.get(v.getRow()));
                     break;
 
                 case BRANCH_RHO1:
-                    network.getBranch(v.getNum()).getPiModel().setR1(stateVector.get(v.getRow()));
+                    network.getBranch(v.getElementNum()).getPiModel().setR1(stateVector.get(v.getRow()));
                     break;
 
                 case DUMMY_P:
