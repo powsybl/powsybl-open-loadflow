@@ -79,7 +79,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         // the only case currently: if we are computing the sensitivity of a phasetap change on itself
                         Variable<AcVariableType> phi1Var = factor.getFunctionEquationTerm().getVariables()
                                 .stream()
-                                .filter(var -> var.getNum() == factor.getFunctionElement().getNum() && var.getType().equals(AcVariableType.BRANCH_ALPHA1))
+                                .filter(var -> var.getElementNum() == factor.getFunctionElement().getNum() && var.getType().equals(AcVariableType.BRANCH_ALPHA1))
                                 .findAny()
                                 .orElseThrow(() -> new PowsyblException("No alpha_1 variable on the function branch"));
                         sensi += Math.toRadians(factor.getFunctionEquationTerm().der(phi1Var));

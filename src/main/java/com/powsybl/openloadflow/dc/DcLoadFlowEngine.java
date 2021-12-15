@@ -83,11 +83,11 @@ public class DcLoadFlowEngine {
         for (Variable<DcVariableType> v : equationSystem.getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_PHI:
-                    x[v.getRow()] = Math.toRadians(initializer.getAngle(network.getBus(v.getNum())));
+                    x[v.getRow()] = Math.toRadians(initializer.getAngle(network.getBus(v.getElementNum())));
                     break;
 
                 case BRANCH_ALPHA1:
-                    x[v.getRow()] = network.getBranch(v.getNum()).getPiModel().getA1();
+                    x[v.getRow()] = network.getBranch(v.getElementNum()).getPiModel().getA1();
                     break;
 
                 case DUMMY_P:
@@ -106,11 +106,11 @@ public class DcLoadFlowEngine {
         for (Variable<DcVariableType> v : equationSystem.getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_PHI:
-                    network.getBus(v.getNum()).setAngle(Math.toDegrees(x[v.getRow()]));
+                    network.getBus(v.getElementNum()).setAngle(Math.toDegrees(x[v.getRow()]));
                     break;
 
                 case BRANCH_ALPHA1:
-                    network.getBranch(v.getNum()).getPiModel().setA1(x[v.getRow()]);
+                    network.getBranch(v.getElementNum()).getPiModel().setA1(x[v.getRow()]);
                     break;
 
                 case DUMMY_P:
@@ -126,7 +126,7 @@ public class DcLoadFlowEngine {
     public static void initTarget(Equation<DcVariableType, DcEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
             case BUS_P:
-                targets[equation.getColumn()] = network.getBus(equation.getNum()).getTargetP();
+                targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getTargetP();
                 break;
 
             case BUS_PHI:
@@ -134,15 +134,15 @@ public class DcLoadFlowEngine {
                 break;
 
             case BRANCH_P:
-                targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getNum()), DiscretePhaseControl.Unit.MW);
+                targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getElementNum()), DiscretePhaseControl.Unit.MW);
                 break;
 
             case BRANCH_ALPHA1:
-                targets[equation.getColumn()] = network.getBranch(equation.getNum()).getPiModel().getA1();
+                targets[equation.getColumn()] = network.getBranch(equation.getElementNum()).getPiModel().getA1();
                 break;
 
             case ZERO_PHI:
-                targets[equation.getColumn()] = LfBranch.getA(network.getBranch(equation.getNum()));
+                targets[equation.getColumn()] = LfBranch.getA(network.getBranch(equation.getElementNum()));
                 break;
 
             default:

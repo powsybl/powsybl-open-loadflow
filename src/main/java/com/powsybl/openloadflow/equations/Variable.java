@@ -15,22 +15,19 @@ import java.util.Objects;
  */
 public class Variable<T extends Enum<T> & Quantity> implements Comparable<Variable<T>> {
 
-    /**
-     * Bus or any other equipment num.
-     */
-    private final int num;
+    private final int elementNum;
 
     private final T type;
 
     private int row = -1;
 
-    Variable(int num, T type) {
-        this.num = num;
+    Variable(int elementNum, T type) {
+        this.elementNum = elementNum;
         this.type = Objects.requireNonNull(type);
     }
 
-    public int getNum() {
-        return num;
+    public int getElementNum() {
+        return elementNum;
     }
 
     public T getType() {
@@ -47,7 +44,7 @@ public class Variable<T extends Enum<T> & Quantity> implements Comparable<Variab
 
     @Override
     public int hashCode() {
-        return num + type.hashCode();
+        return elementNum + type.hashCode();
     }
 
     @Override
@@ -66,7 +63,7 @@ public class Variable<T extends Enum<T> & Quantity> implements Comparable<Variab
         if (o == this) {
             return 0;
         }
-        int c = num - o.num;
+        int c = elementNum - o.elementNum;
         if (c == 0) {
             c = type.ordinal() - o.type.ordinal();
         }
@@ -75,11 +72,11 @@ public class Variable<T extends Enum<T> & Quantity> implements Comparable<Variab
 
     public void write(Writer writer) throws IOException {
         writer.write(type.getSymbol());
-        writer.write(Integer.toString(num));
+        writer.write(Integer.toString(elementNum));
     }
 
     @Override
     public String toString() {
-        return "Variable(num=" + num + ", type=" + type + ", row=" + row + ")";
+        return "Variable(elementNum=" + elementNum + ", type=" + type + ", row=" + row + ")";
     }
 }
