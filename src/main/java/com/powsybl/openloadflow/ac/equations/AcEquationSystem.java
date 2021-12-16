@@ -386,7 +386,7 @@ public final class AcEquationSystem {
         return (networkParameters.isPhaseControl()
                 && branch.isPhaseController()
                 && branch.getDiscretePhaseControl().filter(dpc -> dpc.getMode() != DiscretePhaseControl.Mode.OFF).isPresent())
-                || (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability());
+                || (creationParameters.isForceA1Var() && branch.hasPhaseControlCapability() && branch.isConnectedAtBothSides());
     }
 
     private static boolean isDeriveR1(LfBranch branch, LfNetworkParameters networkParameters) {
