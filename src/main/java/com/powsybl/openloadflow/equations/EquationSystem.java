@@ -38,7 +38,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private final Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsByElement = new HashMap<>();
 
-    private class EquationCache implements EquationSystemListener<V, E> {
+    private class EquationCache extends AbstractEquationSystemListener<V, E> {
 
         private final NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = new TreeMap<>();
 
@@ -61,6 +61,8 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 for (Variable<V> variable : sortedVariablesToFind.keySet()) {
                     variable.setRow(rowCount++);
                 }
+
+                listeners.forEach(EquationSystemListener::onIndexUpdate);
             }
         }
 

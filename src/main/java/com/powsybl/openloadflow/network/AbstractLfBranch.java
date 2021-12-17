@@ -78,6 +78,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.bus1 = bus1;
         this.bus2 = bus2;
         this.piModel = Objects.requireNonNull(piModel);
+        this.piModel.setBranch(this);
     }
 
     protected static List<LfLimit> createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus) {

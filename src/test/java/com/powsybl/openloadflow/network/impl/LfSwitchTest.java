@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
+import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -51,7 +52,8 @@ class LfSwitchTest {
         List<LfNetwork> lfNetworks = Networks.load(network, acLoadFlowParameters.getNetworkParameters(), Reporter.NO_OP);
         assertEquals(1, lfNetworks.size());
         lfNetwork = lfNetworks.get(0);
-        branchVector = new BranchVector(lfNetwork.getBranches());
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
+        branchVector = new BranchVector(lfNetwork, equationSystem);
         lfSwitch = (LfSwitch) lfNetwork.getBranchById("B3");
     }
 

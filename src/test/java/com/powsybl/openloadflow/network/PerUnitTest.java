@@ -6,9 +6,11 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
 import com.powsybl.openloadflow.ac.equations.BranchVector;
+import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.VariableSet;
 import org.junit.jupiter.api.Test;
@@ -43,7 +45,10 @@ class PerUnitTest {
         variableSet.getVariable(1, AcVariableType.BUS_V).setRow(2);
         variableSet.getVariable(1, AcVariableType.BUS_PHI).setRow(3);
 
+        LfNetwork network = Mockito.mock(LfNetwork.class, new RuntimeExceptionAnswer());
+        Mockito.doNothing().when(network).addListener(Mockito.any());
         LfBranch branch = Mockito.mock(LfBranch.class, new RuntimeExceptionAnswer());
+        Mockito.doReturn(List.of(branch)).when(network).getBranches();
         Mockito.doReturn(0).when(branch).getNum();
         PiModel piModel = Mockito.mock(PiModel.class, new RuntimeExceptionAnswer());
         LfBus bus1 = Mockito.mock(LfBus.class, new RuntimeExceptionAnswer());
@@ -51,6 +56,8 @@ class PerUnitTest {
         Mockito.doReturn(piModel).when(branch).getPiModel();
         Mockito.doReturn(0).when(bus1).getNum();
         Mockito.doReturn(1).when(bus2).getNum();
+        Mockito.doReturn(bus1).when(branch).getBus1();
+        Mockito.doReturn(bus2).when(branch).getBus2();
         Mockito.doReturn(1d).when(piModel).getR1();
         Mockito.doReturn(324 * Math.pow(10, -6) * zb).when(piModel).getB1();
         Mockito.doReturn(186 * Math.pow(10, -6) * zb).when(piModel).getB2();
@@ -61,8 +68,11 @@ class PerUnitTest {
         Mockito.doReturn(Math.hypot(0.1, 3) / zb).when(piModel).getZ();
         Mockito.doReturn(Math.atan2(0.1, 3)).when(piModel).getKsi();
         Mockito.doReturn(0d).when(piModel).getA1();
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = Mockito.mock(EquationSystem.class, new RuntimeExceptionAnswer());
+        Mockito.doReturn(variableSet).when(equationSystem).getVariableSet();
+        Mockito.doNothing().when(equationSystem).addListener(Mockito.any());
 
-        BranchVector branchVector = new BranchVector(List.of(branch));
+        BranchVector branchVector = new BranchVector(network, equationSystem);
         ClosedBranchSide1ActiveFlowEquationTerm p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branchVector, branch.getNum(), bus1, bus2, variableSet, false, false);
         StateVector stateVector = new StateVector();
         p1.setStateVector(stateVector);

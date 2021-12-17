@@ -25,5 +25,5 @@ public interface LfNetworkListener {
 
     void onGenerationReactivePowerTargetChange(LfBus bus, double oldGenerationTargetQ, double newGenerationTargetQ);
 
-    void onDiscretePhaseControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition);
+    void onDiscretePhaseControlTapPositionChange(LfBranch branch, int oldPosition, int newPosition);
 }

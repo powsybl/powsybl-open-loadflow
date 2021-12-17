@@ -24,7 +24,7 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
-        implements EquationSystemListener<V, E>, StateVectorListener, AutoCloseable {
+        extends AbstractEquationSystemListener<V, E> implements StateVectorListener, AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JacobianMatrix.class);
 

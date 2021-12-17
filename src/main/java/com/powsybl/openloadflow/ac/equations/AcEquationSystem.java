@@ -524,7 +524,7 @@ public final class AcEquationSystem {
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(true);
 
-        BranchVector branchVec = new BranchVector(network.getBranches());
+        BranchVector branchVec = new BranchVector(network, equationSystem);
         createBusesEquations(network, branchVec, networkParameters, equationSystem, creationParameters);
         createBranchesEquations(network, branchVec, networkParameters, equationSystem, creationParameters);
 

@@ -85,7 +85,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                 Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
                 models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
             }
-            piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition(), network);
+            piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
         }
 
         RatioTapChanger rtc = twt.getRatioTapChanger();
@@ -99,7 +99,7 @@ public class LfBranchImpl extends AbstractLfBranch {
                     Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
                     models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
                 }
-                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition(), network);
+                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
             } else {
                 throw new PowsyblException("Voltage and phase control on same branch '" + twt.getId() + "' is not yet supported");
             }

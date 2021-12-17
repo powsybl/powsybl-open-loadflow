@@ -55,4 +55,6 @@ public interface PiModel {
     boolean updateTapPosition(Direction direction);
 
     boolean setMinZ(double minZ);
+
+    void setBranch(LfBranch branch);
 }
