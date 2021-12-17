@@ -177,7 +177,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                        parameters.isPhaseShifterRegulationOn(),
                                        parameters.isTransformerVoltageControlOn(),
                                        parametersExt.isVoltagePerReactivePowerControl(),
-                                       parametersExt.hasReactivePowerRemoteControl());
+                                       parametersExt.hasReactivePowerRemoteControl(),
+                                       parameters.isDc());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
@@ -316,7 +317,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                         false,
                                                         false,
                                                         false,
-                                                        false);
+                                                        false,
+                                                        true);
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       false,
