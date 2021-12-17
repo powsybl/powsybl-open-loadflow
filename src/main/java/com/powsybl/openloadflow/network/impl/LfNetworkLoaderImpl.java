@@ -620,23 +620,26 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report, postProcessors);
         createBranches(lfBuses, lfNetwork, loadingContext, report, parameters, postProcessors);
-        createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isVoltagePerReactivePowerControl());
 
-        if (parameters.isReactivePowerRemoteControl()) {
-            createReactivePowerControls(lfNetwork, lfBuses);
-        }
-
-        if (parameters.isTransformerVoltageControl()) {
-            // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)
-            createDiscreteVoltageControls(lfNetwork, parameters.isBreakers(), loadingContext);
+        if (!parameters.isDc()) {
+            createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isVoltagePerReactivePowerControl());
+            if (parameters.isReactivePowerRemoteControl()) {
+                createReactivePowerControls(lfNetwork, lfBuses);
+            }
+            if (parameters.isTransformerVoltageControl()) {
+                // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)
+                createDiscreteVoltageControls(lfNetwork, parameters.isBreakers(), loadingContext);
+            }
         }
 
         if (parameters.isBreakers()) {
             createSwitches(switches, lfNetwork, postProcessors);
         }
 
-        // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
-        fixAllVoltageControls(lfNetwork, parameters.isMinImpedance(), parameters.isTransformerVoltageControl());
+        if (!parameters.isDc()) {
+            // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
+            fixAllVoltageControls(lfNetwork, parameters.isMinImpedance(), parameters.isTransformerVoltageControl());
+        }
 
         if (!parameters.isMinImpedance()) {
             // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph
