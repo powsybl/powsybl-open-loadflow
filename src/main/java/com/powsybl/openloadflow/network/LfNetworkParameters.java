@@ -46,6 +46,8 @@ public class LfNetworkParameters {
 
     private final boolean reactivePowerRemoteControl;
 
+    private final boolean isDc;
+
     public LfNetworkParameters() {
         this(new FirstSlackBusSelector());
     }
@@ -53,14 +55,15 @@ public class LfNetworkParameters {
     public LfNetworkParameters(SlackBusSelector slackBusSelector) {
         this(slackBusSelector, false, false, false, false,
                 PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true, Collections.emptySet(), false, false, false, false, false);
+                true, Collections.emptySet(), false, false, false, false, false, false);
     }
 
     public LfNetworkParameters(SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl,
                                boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers,
                                double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                boolean computeMainConnectedComponentOnly, Set<Country> countriesToBalance, boolean distributedOnConformLoad,
-                               boolean phaseControl, boolean transformerVoltageControl, boolean voltagePerReactivePowerControl, boolean reactivePowerRemoteControl) {
+                               boolean phaseControl, boolean transformerVoltageControl, boolean voltagePerReactivePowerControl, boolean reactivePowerRemoteControl,
+                               boolean isDc) {
         this.slackBusSelector = slackBusSelector;
         this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
         this.minImpedance = minImpedance;
@@ -75,6 +78,7 @@ public class LfNetworkParameters {
         this.transformerVoltageControl = transformerVoltageControl;
         this.voltagePerReactivePowerControl = voltagePerReactivePowerControl;
         this.reactivePowerRemoteControl = reactivePowerRemoteControl;
+        this.isDc = isDc;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -133,6 +137,10 @@ public class LfNetworkParameters {
         return reactivePowerRemoteControl;
     }
 
+    public boolean isDc() {
+        return isDc;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -150,6 +158,7 @@ public class LfNetworkParameters {
                 ", transformerVoltageControl=" + transformerVoltageControl +
                 ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
                 ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
+                ", isDc=" + isDc +
                 ')';
     }
 }
