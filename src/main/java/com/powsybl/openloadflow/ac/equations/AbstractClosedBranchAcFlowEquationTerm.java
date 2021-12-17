@@ -34,7 +34,7 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractAcB
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
-    protected AbstractClosedBranchAcFlowEquationTerm(VectorizedBranches branches, int num, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+    protected AbstractClosedBranchAcFlowEquationTerm(BranchVector branches, int num, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                      boolean deriveA1, boolean deriveR1) {
         super(branches, num);
         Objects.requireNonNull(bus1);
@@ -75,11 +75,11 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractAcB
     }
 
     protected double r1() {
-        return r1Var != null ? stateVector.get(r1Var.getRow()) : branches.r1(num);
+        return r1Var != null ? stateVector.get(r1Var.getRow()) : branchVec.r1(num);
     }
 
     protected double a1() {
-        return a1Var != null ? stateVector.get(a1Var.getRow()) : branches.a1(num);
+        return a1Var != null ? stateVector.get(a1Var.getRow()) : branchVec.a1(num);
     }
 
     protected abstract double calculateSensi(double ph1, double ph2, double v1, double v2, double a1, double r1);
@@ -91,8 +91,8 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractAcB
         double ph2 = x.get(ph2Var.getRow(), column);
         double v1 = x.get(v1Var.getRow(), column);
         double v2 = x.get(v2Var.getRow(), column);
-        double a1 = a1Var != null ? x.get(a1Var.getRow(), column) : branches.a1(num);
-        double r1 = r1Var != null ? x.get(r1Var.getRow(), column) : branches.r1(num);
+        double a1 = a1Var != null ? x.get(a1Var.getRow(), column) : branchVec.a1(num);
+        double r1 = r1Var != null ? x.get(r1Var.getRow(), column) : branchVec.r1(num);
         return calculateSensi(ph1, ph2, v1, v2, a1, r1);
     }
 

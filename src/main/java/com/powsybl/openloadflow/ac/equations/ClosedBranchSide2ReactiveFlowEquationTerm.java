@@ -21,7 +21,7 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
  */
 public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
-    public ClosedBranchSide2ReactiveFlowEquationTerm(VectorizedBranches branches, int num, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+    public ClosedBranchSide2ReactiveFlowEquationTerm(BranchVector branches, int num, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                      boolean deriveA1, boolean deriveR1) {
         super(branches, num, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
@@ -31,23 +31,23 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     private double theta() {
-        return branches.ksi(num) + (a1Var != null ? stateVector.get(a1Var.getRow()) : branches.a1(num)) - A2 + ph1() - ph2();
+        return branchVec.ksi(num) + (a1Var != null ? stateVector.get(a1Var.getRow()) : branchVec.a1(num)) - A2 + ph1() - ph2();
     }
 
     private double q2() {
-        return R2 * v2() * (-branches.b2(num) * R2 * v2() - branches.y(num) * r1() * v1() * FastMath.cos(theta()) + branches.y(num) * R2 * v2() * FastMath.cos(branches.ksi(num)));
+        return R2 * v2() * (-branchVec.b2(num) * R2 * v2() - branchVec.y(num) * r1() * v1() * FastMath.cos(theta()) + branchVec.y(num) * R2 * v2() * FastMath.cos(branchVec.ksi(num)));
     }
 
     private double dq2dv1() {
-        return -branches.y(num) * r1() * R2 * v2() * FastMath.cos(theta());
+        return -branchVec.y(num) * r1() * R2 * v2() * FastMath.cos(theta());
     }
 
     private double dq2dv2() {
-        return R2 * (-2 * branches.b2(num) * R2 * v2() - branches.y(num) * r1() * v1() * FastMath.cos(theta()) + 2 * branches.y(num) * R2 * v2() * FastMath.cos(branches.ksi(num)));
+        return R2 * (-2 * branchVec.b2(num) * R2 * v2() - branchVec.y(num) * r1() * v1() * FastMath.cos(theta()) + 2 * branchVec.y(num) * R2 * v2() * FastMath.cos(branchVec.ksi(num)));
     }
 
     private double dq2dph1() {
-        return branches.y(num) * r1() * R2 * v1() * v2() * FastMath.sin(theta());
+        return branchVec.y(num) * r1() * R2 * v1() * v2() * FastMath.sin(theta());
     }
 
     private double dq2dph2() {
@@ -59,7 +59,7 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     private double dq2dr1() {
-        return -branches.y(num) * R2 * v1() * v2() * FastMath.cos(theta());
+        return -branchVec.y(num) * R2 * v1() * v2() * FastMath.cos(theta());
     }
 
     @Override

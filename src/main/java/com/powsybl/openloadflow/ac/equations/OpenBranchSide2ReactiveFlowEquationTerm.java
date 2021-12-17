@@ -20,7 +20,7 @@ public class OpenBranchSide2ReactiveFlowEquationTerm extends AbstractOpenSide2Br
 
     private final Variable<AcVariableType> v1Var;
 
-    public OpenBranchSide2ReactiveFlowEquationTerm(VectorizedBranches branches, int num, LfBus bus1, VariableSet<AcVariableType> variableSet,
+    public OpenBranchSide2ReactiveFlowEquationTerm(BranchVector branches, int num, LfBus bus1, VariableSet<AcVariableType> variableSet,
                                                    boolean deriveA1, boolean deriveR1) {
         super(branches, num, AcVariableType.BUS_V, bus1, variableSet, deriveA1, deriveR1);
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
@@ -31,17 +31,17 @@ public class OpenBranchSide2ReactiveFlowEquationTerm extends AbstractOpenSide2Br
     }
 
     private double r1() {
-        return branches.r1(num);
+        return branchVec.r1(num);
     }
 
     private double q2() {
         double shunt = shunt();
-        return -r1() * r1() * v1() * v1() * (branches.b1(num) + branches.y(num) * branches.y(num) * branches.b2(num) / shunt - (branches.b2(num) * branches.b2(num) + branches.g2(num) * branches.g2(num)) * branches.y(num) * FastMath.cos(branches.ksi(num)) / shunt);
+        return -r1() * r1() * v1() * v1() * (branchVec.b1(num) + branchVec.y(num) * branchVec.y(num) * branchVec.b2(num) / shunt - (branchVec.b2(num) * branchVec.b2(num) + branchVec.g2(num) * branchVec.g2(num)) * branchVec.y(num) * FastMath.cos(branchVec.ksi(num)) / shunt);
     }
 
     private double dq2dv1() {
         double shunt = shunt();
-        return -2 * v1() * r1() * r1() * (branches.b1(num) + branches.y(num) * branches.y(num) * branches.b2(num) / shunt - (branches.b2(num) * branches.b2(num) + branches.g2(num) * branches.g2(num)) * branches.y(num) * FastMath.cos(branches.ksi(num)) / shunt);
+        return -2 * v1() * r1() * r1() * (branchVec.b1(num) + branchVec.y(num) * branchVec.y(num) * branchVec.b2(num) / shunt - (branchVec.b2(num) * branchVec.b2(num) + branchVec.g2(num) * branchVec.g2(num)) * branchVec.y(num) * FastMath.cos(branchVec.ksi(num)) / shunt);
     }
 
     @Override

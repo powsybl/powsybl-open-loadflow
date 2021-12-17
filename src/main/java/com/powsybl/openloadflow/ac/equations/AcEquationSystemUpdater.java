@@ -24,16 +24,16 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
     private final AcEquationSystemCreationParameters creationParameters;
 
-    private final VectorizedBranches vectorizedBranches;
+    private final BranchVector branchVector;
 
     private final LfNetworkParameters networkParameters;
 
     public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                    AcEquationSystemCreationParameters creationParameters,
-                                   VectorizedBranches vectorizedBranches, LfNetworkParameters networkParameters) {
+                                   BranchVector branchVector, LfNetworkParameters networkParameters) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.creationParameters = Objects.requireNonNull(creationParameters);
-        this.vectorizedBranches = Objects.requireNonNull(vectorizedBranches);
+        this.branchVector = Objects.requireNonNull(branchVector);
         this.networkParameters = Objects.requireNonNull(networkParameters);
     }
 
@@ -60,7 +60,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
             // create reactive power equations on controller buses that have voltage control on
             if (!controllerBusesWithVoltageControlOn.isEmpty()) {
-                AcEquationSystem.createReactivePowerDistributionEquations(vectorizedBranches, controllerBusesWithVoltageControlOn, networkParameters, equationSystem, creationParameters);
+                AcEquationSystem.createReactivePowerDistributionEquations(branchVector, controllerBusesWithVoltageControlOn, networkParameters, equationSystem, creationParameters);
             }
         }
     }

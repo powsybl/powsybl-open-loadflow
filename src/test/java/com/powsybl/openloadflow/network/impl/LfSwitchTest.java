@@ -37,7 +37,7 @@ class LfSwitchTest {
 
     private LfNetwork lfNetwork;
 
-    private VectorizedBranches vectorizedBranches;
+    private BranchVector branchVector;
 
     private LfSwitch lfSwitch;
 
@@ -51,7 +51,7 @@ class LfSwitchTest {
         List<LfNetwork> lfNetworks = Networks.load(network, acLoadFlowParameters.getNetworkParameters(), Reporter.NO_OP);
         assertEquals(1, lfNetworks.size());
         lfNetwork = lfNetworks.get(0);
-        vectorizedBranches = new VectorizedBranches(lfNetwork.getBranches());
+        branchVector = new BranchVector(lfNetwork.getBranches());
         lfSwitch = (LfSwitch) lfNetwork.getBranchById("B3");
     }
 
@@ -72,15 +72,15 @@ class LfSwitchTest {
         lfSwitch.getPiModel().setX(LfNetwork.LOW_IMPEDANCE_THRESHOLD); //FIXME
 
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
-        EquationTerm<AcVariableType, AcEquationType> p1 = new ClosedBranchSide1ActiveFlowEquationTerm(vectorizedBranches, lfSwitch.getNum(), lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
-        EquationTerm<AcVariableType, AcEquationType> p2 = new ClosedBranchSide2ActiveFlowEquationTerm(vectorizedBranches, lfSwitch.getNum(), lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
+        EquationTerm<AcVariableType, AcEquationType> p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branchVector, lfSwitch.getNum(), lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
+        EquationTerm<AcVariableType, AcEquationType> p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branchVector, lfSwitch.getNum(), lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
         lfSwitch.setP1(p1);
         assertEquals(Double.NaN, lfSwitch.getP1().eval());
         lfSwitch.setP2(p2);
         assertEquals(Double.NaN, lfSwitch.getP2().eval());
 
-        EquationTerm<AcVariableType, AcEquationType> i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(vectorizedBranches, lfSwitch.getNum(), lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
-        EquationTerm<AcVariableType, AcEquationType> i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(vectorizedBranches, lfSwitch.getNum(), lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
+        EquationTerm<AcVariableType, AcEquationType> i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branchVector, lfSwitch.getNum(), lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
+        EquationTerm<AcVariableType, AcEquationType> i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(branchVector, lfSwitch.getNum(), lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
         lfSwitch.setI1(i1);
         assertEquals(Double.NaN, lfSwitch.getP1().eval());
         lfSwitch.setI2(i2);

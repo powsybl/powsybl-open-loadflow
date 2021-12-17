@@ -20,7 +20,7 @@ abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractAcBranc
 
     protected final List<Variable<AcVariableType>> variables;
 
-    protected AbstractOpenSide2BranchAcFlowEquationTerm(VectorizedBranches branches, int num, AcVariableType variableType,
+    protected AbstractOpenSide2BranchAcFlowEquationTerm(BranchVector branches, int num, AcVariableType variableType,
                                                         LfBus bus, VariableSet<AcVariableType> variableSet,
                                                         boolean deriveA1, boolean deriveR1) {
         super(branches, num);
@@ -31,9 +31,9 @@ abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractAcBranc
     }
 
     protected double shunt() {
-        double cosKsi = FastMath.cos(branches.ksi(num));
-        return (branches.g2(num) + branches.y(num) * FastMath.sin(branches.ksi(num))) * (branches.g2(num) + branches.y(num) * FastMath.sin(branches.ksi(num)))
-                + (-branches.b2(num) + branches.y(num) * cosKsi) * (-branches.b2(num) + branches.y(num) * cosKsi);
+        double cosKsi = FastMath.cos(branchVec.ksi(num));
+        return (branchVec.g2(num) + branchVec.y(num) * FastMath.sin(branchVec.ksi(num))) * (branchVec.g2(num) + branchVec.y(num) * FastMath.sin(branchVec.ksi(num)))
+                + (-branchVec.b2(num) + branchVec.y(num) * cosKsi) * (-branchVec.b2(num) + branchVec.y(num) * cosKsi);
     }
 
     @Override

@@ -24,7 +24,7 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     private Variable<AcVariableType> r1Var;
 
-    public OpenBranchSide2CurrentMagnitudeEquationTerm(VectorizedBranches branches, int num, LfBus bus1, VariableSet<AcVariableType> variableSet,
+    public OpenBranchSide2CurrentMagnitudeEquationTerm(BranchVector branches, int num, LfBus bus1, VariableSet<AcVariableType> variableSet,
                                                        boolean deriveA1, boolean deriveR1) {
         super(branches, num, AcVariableType.BUS_V, bus1, variableSet, deriveA1, deriveR1);
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
@@ -43,15 +43,15 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     private double r1() {
-        return r1Var != null ? stateVector.get(r1Var.getRow()) : branches.r1(num);
+        return r1Var != null ? stateVector.get(r1Var.getRow()) : branchVec.r1(num);
     }
 
     private double gres(double shunt) {
-        return branches.g1(num) + (branches.y(num) * branches.y(num) * branches.g2(num) + (branches.b2(num) * branches.b2(num) + branches.g2(num) * branches.g2(num)) * branches.y(num) * FastMath.sin(branches.ksi(num))) / shunt;
+        return branchVec.g1(num) + (branchVec.y(num) * branchVec.y(num) * branchVec.g2(num) + (branchVec.b2(num) * branchVec.b2(num) + branchVec.g2(num) * branchVec.g2(num)) * branchVec.y(num) * FastMath.sin(branchVec.ksi(num))) / shunt;
     }
 
     private double bres(double shunt) {
-        return branches.b1(num) + (branches.y(num) * branches.y(num) * branches.b2(num) - (branches.b2(num) * branches.b2(num) + branches.g2(num) * branches.g2(num)) * branches.y(num) * FastMath.cos(branches.ksi(num))) / shunt;
+        return branchVec.b1(num) + (branchVec.y(num) * branchVec.y(num) * branchVec.b2(num) - (branchVec.b2(num) * branchVec.b2(num) + branchVec.g2(num) * branchVec.g2(num)) * branchVec.y(num) * FastMath.cos(branchVec.ksi(num))) / shunt;
     }
 
     private double reI2() {

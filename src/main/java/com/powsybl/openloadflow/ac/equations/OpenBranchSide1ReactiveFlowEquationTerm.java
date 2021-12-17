@@ -22,7 +22,7 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
 
     private final Variable<AcVariableType> v2Var;
 
-    public OpenBranchSide1ReactiveFlowEquationTerm(VectorizedBranches branches, int num, LfBus bus2, VariableSet<AcVariableType> variableSet,
+    public OpenBranchSide1ReactiveFlowEquationTerm(BranchVector branches, int num, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                    boolean deriveA1, boolean deriveR1) {
         super(branches, num, AcVariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
         v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
@@ -34,12 +34,12 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
 
     private double q2() {
         double shunt = shunt();
-        return -R2 * R2 * v2() * v2() * (branches.b2(num) + branches.y(num) * branches.y(num) * branches.b1(num) / shunt - (branches.b1(num) * branches.b1(num) + branches.g1(num) * branches.g1(num)) * branches.y(num) * FastMath.cos(branches.ksi(num)) / shunt);
+        return -R2 * R2 * v2() * v2() * (branchVec.b2(num) + branchVec.y(num) * branchVec.y(num) * branchVec.b1(num) / shunt - (branchVec.b1(num) * branchVec.b1(num) + branchVec.g1(num) * branchVec.g1(num)) * branchVec.y(num) * FastMath.cos(branchVec.ksi(num)) / shunt);
     }
 
     private double dq2dv2() {
         double shunt = shunt();
-        return -2 * v2() * R2 * R2 * (branches.b2(num) + branches.y(num) * branches.y(num) * branches.b1(num) / shunt - (branches.b1(num) * branches.b1(num) + branches.g1(num) * branches.g1(num)) * branches.y(num) * FastMath.cos(branches.ksi(num)) / shunt);
+        return -2 * v2() * R2 * R2 * (branchVec.b2(num) + branchVec.y(num) * branchVec.y(num) * branchVec.b1(num) / shunt - (branchVec.b1(num) * branchVec.b1(num) + branchVec.g1(num) * branchVec.g1(num)) * branchVec.y(num) * FastMath.cos(branchVec.ksi(num)) / shunt);
     }
 
     @Override

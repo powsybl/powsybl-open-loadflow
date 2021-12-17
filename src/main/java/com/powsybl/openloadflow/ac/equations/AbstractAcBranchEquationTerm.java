@@ -18,14 +18,14 @@ import java.util.Objects;
  */
 public abstract class AbstractAcBranchEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
 
-    protected final VectorizedBranches branches;
+    protected final BranchVector branchVec;
 
     protected final int num;
 
-    protected AbstractAcBranchEquationTerm(VectorizedBranches branches, int num) {
-        this.branches = Objects.requireNonNull(branches);
+    protected AbstractAcBranchEquationTerm(BranchVector branchVec, int num) {
+        this.branchVec = Objects.requireNonNull(branchVec);
         this.num = num;
-        LfBranch branch = branches.get(num);
+        LfBranch branch = branchVec.get(num);
         PiModel piModel = branch.getPiModel();
         if (piModel.getR() == 0 && piModel.getX() == 0) {
             throw new IllegalArgumentException("Non impedant branch not supported: " + branch.getId());

@@ -21,7 +21,7 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
  */
 public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
-    public ClosedBranchSide1CurrentMagnitudeEquationTerm(VectorizedBranches branches, int num, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+    public ClosedBranchSide1CurrentMagnitudeEquationTerm(BranchVector branches, int num, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                          boolean deriveA1, boolean deriveR1) {
         super(branches, num, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
@@ -32,23 +32,23 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     private double theta() {
-        return branches.ksi(num) - a1() + A2 + ph2();
+        return branchVec.ksi(num) - a1() + A2 + ph2();
     }
 
     private double interReI1() {
-        return branches.g1(num) * FastMath.cos(ph1()) - branches.b1(num) * FastMath.sin(ph1()) + branches.y(num) * FastMath.sin(ph1() + branches.ksi(num));
+        return branchVec.g1(num) * FastMath.cos(ph1()) - branchVec.b1(num) * FastMath.sin(ph1()) + branchVec.y(num) * FastMath.sin(ph1() + branchVec.ksi(num));
     }
 
     private double interImI1() {
-        return branches.g1(num) * FastMath.sin(ph1()) + branches.b1(num) * FastMath.cos(ph1()) - branches.y(num) * FastMath.cos(ph1() + branches.ksi(num));
+        return branchVec.g1(num) * FastMath.sin(ph1()) + branchVec.b1(num) * FastMath.cos(ph1()) - branchVec.y(num) * FastMath.cos(ph1() + branchVec.ksi(num));
     }
 
     private double reI1() {
-        return r1() * (r1() * v1() * interReI1() - branches.y(num) * R2 * v2() * FastMath.sin(theta()));
+        return r1() * (r1() * v1() * interReI1() - branchVec.y(num) * R2 * v2() * FastMath.sin(theta()));
     }
 
     private double imI1() {
-        return r1() * (r1() * v1() * interImI1() + branches.y(num) * R2 * v2() * FastMath.cos(theta()));
+        return r1() * (r1() * v1() * interImI1() + branchVec.y(num) * R2 * v2() * FastMath.cos(theta()));
     }
 
     private double i1() {
@@ -60,15 +60,15 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     private double dreI1dv2() {
-        return r1() * (-branches.y(num) * R2 * FastMath.sin(theta()));
+        return r1() * (-branchVec.y(num) * R2 * FastMath.sin(theta()));
     }
 
     private double dreI1dph1() {
-        return r1() * r1() * v1() * (-branches.g1(num) * FastMath.sin(ph1()) - branches.b1(num) * FastMath.cos(ph1()) + branches.y(num) * FastMath.cos(ph1() + branches.ksi(num)));
+        return r1() * r1() * v1() * (-branchVec.g1(num) * FastMath.sin(ph1()) - branchVec.b1(num) * FastMath.cos(ph1()) + branchVec.y(num) * FastMath.cos(ph1() + branchVec.ksi(num)));
     }
 
     private double dreI1dph2() {
-        return r1() * (-branches.y(num) * R2 * v2() * FastMath.cos(theta()));
+        return r1() * (-branchVec.y(num) * R2 * v2() * FastMath.cos(theta()));
     }
 
     private double dimI1dv1() {
@@ -76,7 +76,7 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     private double dimI1dv2() {
-        return r1() * (branches.y(num) * R2 * FastMath.cos(theta()));
+        return r1() * (branchVec.y(num) * R2 * FastMath.cos(theta()));
     }
 
     private double dimI1dph1() {
@@ -84,7 +84,7 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     private double dimI1dph2() {
-        return r1() * (-branches.y(num) * R2 * v2() * FastMath.sin(theta()));
+        return r1() * (-branchVec.y(num) * R2 * v2() * FastMath.sin(theta()));
     }
 
     private double di1dv1() {

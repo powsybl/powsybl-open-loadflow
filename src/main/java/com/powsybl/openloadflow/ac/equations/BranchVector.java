@@ -15,7 +15,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class VectorizedBranches {
+public class BranchVector {
 
     private final List<LfBranch> branches;
     private final double[] b1;
@@ -27,7 +27,7 @@ public class VectorizedBranches {
     private final double[] a1;
     private final double[] r1;
 
-    public VectorizedBranches(List<LfBranch> branches) {
+    public BranchVector(List<LfBranch> branches) {
         this.branches = Objects.requireNonNull(branches);
         b1 = new double[branches.size()];
         b2 = new double[branches.size()];

@@ -24,7 +24,7 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     private final Variable<AcVariableType> ph2Var;
 
-    public OpenBranchSide1CurrentMagnitudeEquationTerm(VectorizedBranches branches, int num, LfBus bus2, VariableSet<AcVariableType> variableSet,
+    public OpenBranchSide1CurrentMagnitudeEquationTerm(BranchVector branches, int num, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                        boolean deriveA1, boolean deriveR1) {
         super(branches, num, AcVariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
         v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
@@ -40,11 +40,11 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     private double gres(double shunt) {
-        return branches.g2(num) + (branches.y(num) * branches.y(num) * branches.g1(num) + (branches.b1(num) * branches.b1(num) + branches.g1(num) * branches.g1(num)) * branches.y(num) * FastMath.sin(branches.ksi(num))) / shunt;
+        return branchVec.g2(num) + (branchVec.y(num) * branchVec.y(num) * branchVec.g1(num) + (branchVec.b1(num) * branchVec.b1(num) + branchVec.g1(num) * branchVec.g1(num)) * branchVec.y(num) * FastMath.sin(branchVec.ksi(num))) / shunt;
     }
 
     private double bres(double shunt) {
-        return branches.b2(num) + (branches.y(num) * branches.y(num) * branches.b1(num) - (branches.b1(num) * branches.b1(num) + branches.g1(num) * branches.g1(num)) * branches.y(num) * FastMath.cos(branches.ksi(num))) / shunt;
+        return branchVec.b2(num) + (branchVec.y(num) * branchVec.y(num) * branchVec.b1(num) - (branchVec.b1(num) * branchVec.b1(num) + branchVec.g1(num) * branchVec.g1(num)) * branchVec.y(num) * FastMath.cos(branchVec.ksi(num))) / shunt;
     }
 
     private double reI2() {
