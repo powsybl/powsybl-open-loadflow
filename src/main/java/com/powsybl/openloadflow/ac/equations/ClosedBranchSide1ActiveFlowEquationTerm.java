@@ -31,7 +31,7 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     protected double theta() {
-        return ksi - a1() + A2 - ph1() + ph2();
+        return branchVec.ksi(num) - a1() + A2 - ph1() + ph2();
     }
 
     private double p1() {
