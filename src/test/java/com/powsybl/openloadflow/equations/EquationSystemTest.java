@@ -67,7 +67,7 @@ class EquationSystemTest {
         assertTrue(equationEventTypes.isEmpty());
         assertTrue(equationSystem.getSortedEquationsToSolve().isEmpty());
 
-        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V).addTerm(EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, equationSystem.getVariableSet()));
+        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, equationSystem.getVariableSet()));
         assertEquals(1, equations.size());
         assertEquals(1, equationEventTypes.size());
         assertEquals(1, equationTermEventTypes.size());
@@ -76,26 +76,26 @@ class EquationSystemTest {
         assertEquals(1, equationSystem.getSortedEquationsToSolve().size());
 
         clearEvents();
-        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V).setActive(true);
+        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).setActive(true);
         assertTrue(equations.isEmpty());
         assertTrue(equationEventTypes.isEmpty());
 
-        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V).setActive(false);
+        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).setActive(false);
         assertEquals(1, equations.size());
         assertEquals(1, equationEventTypes.size());
         assertEquals(EquationEventType.EQUATION_DEACTIVATED, equationEventTypes.get(0));
         assertTrue(equationSystem.getSortedEquationsToSolve().isEmpty());
 
         clearEvents();
-        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V).setActive(true);
+        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).setActive(true);
         assertEquals(1, equations.size());
         assertEquals(1, equationEventTypes.size());
         assertEquals(EquationEventType.EQUATION_ACTIVATED, equationEventTypes.get(0));
         assertEquals(1, equationSystem.getSortedEquationsToSolve().size());
 
-        assertTrue(equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_V).isPresent());
+        assertTrue(equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).isPresent());
         assertEquals(1, equationSystem.getEquations(ElementType.BUS, bus.getNum()).size());
-        assertFalse(equationSystem.getEquation(99, AcEquationType.BUS_V).isPresent());
+        assertFalse(equationSystem.getEquation(99, AcEquationType.BUS_TARGET_V).isPresent());
         assertTrue(equationSystem.getEquations(ElementType.BUS, 99).isEmpty());
 
         assertEquals(1, equationSystem.getEquationTerms(ElementType.BUS, bus.getNum()).size());
@@ -104,8 +104,8 @@ class EquationSystemTest {
         clearEvents();
         EquationTerm<AcVariableType, AcEquationType> equationTerm = EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, equationSystem.getVariableSet());
         bus.setCalculatedV(equationTerm);
-        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V).addTerm(equationTerm);
-        assertEquals(2, equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V).getTerms().size());
+        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(equationTerm);
+        assertEquals(2, equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).getTerms().size());
         assertEquals(0, equations.size());
         assertEquals(0, equationEventTypes.size());
         assertEquals(1, equationTermEventTypes.size());
@@ -129,14 +129,14 @@ class EquationSystemTest {
             equationSystem.write(writer);
             writer.flush();
             String ref = String.join(System.lineSeparator(),
-                    "v0 = v0",
-                    "φ0 = φ0",
-                    "bus_p1 = ac_p_closed_2(v0, v1, φ0, φ1) + ac_p_closed_1(v1, v2, φ1, φ2) + ac_p_closed_1(v1, v2, φ1, φ2)",
-                    "bus_q1 = ac_q_closed_2(v0, v1, φ0, φ1) + ac_q_closed_1(v1, v2, φ1, φ2) + ac_q_closed_1(v1, v2, φ1, φ2)",
-                    "bus_p2 = ac_p_closed_2(v1, v2, φ1, φ2) + ac_p_closed_2(v1, v2, φ1, φ2) + ac_p_closed_1(v2, v3, φ2, φ3)",
-                    "bus_q2 = ac_q_closed_2(v1, v2, φ1, φ2) + ac_q_closed_2(v1, v2, φ1, φ2) + ac_q_closed_1(v2, v3, φ2, φ3)",
-                    "bus_p3 = ac_p_closed_2(v2, v3, φ2, φ3)",
-                    "bus_q3 = ac_q_closed_2(v2, v3, φ2, φ3)")
+                    "bus_target_v0 = v0",
+                    "bus_target_φ0 = φ0",
+                    "bus_target_p1 = ac_p_closed_2(v0, v1, φ0, φ1) + ac_p_closed_1(v1, v2, φ1, φ2) + ac_p_closed_1(v1, v2, φ1, φ2)",
+                    "bus_target_q1 = ac_q_closed_2(v0, v1, φ0, φ1) + ac_q_closed_1(v1, v2, φ1, φ2) + ac_q_closed_1(v1, v2, φ1, φ2)",
+                    "bus_target_p2 = ac_p_closed_2(v1, v2, φ1, φ2) + ac_p_closed_2(v1, v2, φ1, φ2) + ac_p_closed_1(v2, v3, φ2, φ3)",
+                    "bus_target_q2 = ac_q_closed_2(v1, v2, φ1, φ2) + ac_q_closed_2(v1, v2, φ1, φ2) + ac_q_closed_1(v2, v3, φ2, φ3)",
+                    "bus_target_p3 = ac_p_closed_2(v2, v3, φ2, φ3)",
+                    "bus_target_q3 = ac_q_closed_2(v2, v3, φ2, φ3)")
                     + System.lineSeparator();
             assertEquals(ref, writer.toString());
         }
@@ -152,10 +152,10 @@ class EquationSystemTest {
             equationSystem.write(writer);
             writer.flush();
             String ref = String.join(System.lineSeparator(),
-                    "φ0 = φ0",
-                    "p1 = dc_p_2(φ0, φ1) + dc_p_1(φ1, φ2) + dc_p_1(φ1, φ2)",
-                    "p2 = dc_p_2(φ1, φ2) + dc_p_2(φ1, φ2) + dc_p_1(φ2, φ3)",
-                    "p3 = dc_p_2(φ2, φ3)")
+                    "bus_target_φ0 = φ0",
+                    "bus_target_p1 = dc_p_2(φ0, φ1) + dc_p_1(φ1, φ2) + dc_p_1(φ1, φ2)",
+                    "bus_target_p2 = dc_p_2(φ1, φ2) + dc_p_2(φ1, φ2) + dc_p_1(φ2, φ3)",
+                    "bus_target_p3 = dc_p_2(φ2, φ3)")
                     + System.lineSeparator();
             assertEquals(ref, writer.toString());
         }

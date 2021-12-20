@@ -47,7 +47,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             // we only support one controlling static var compensator without any other controlling generators
             // we don't support controller bus that wants to control back voltage with slope.
             if (!firstControllerBus.isVoltageControllerEnabled()) {
-                equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_V_SLOPE).setActive(false);
+                equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE).setActive(false);
             }
         } else {
             // controlled bus has a voltage equation only if one of the controller bus has voltage control on
@@ -55,9 +55,9 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                     .filter(LfBus::isVoltageControllerEnabled)
                     .collect(Collectors.toList());
             // clean reactive power distribution equations
-            controllerBuses.forEach(b -> equationSystem.removeEquation(b.getNum(), AcEquationType.ZERO_Q));
+            controllerBuses.forEach(b -> equationSystem.removeEquation(b.getNum(), AcEquationType.DISTR_Q));
             // is there one static var compensator with a non-zero slope
-            equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
+            equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
             // create reactive power equations on controller buses that have voltage control on
             if (!controllerBusesWithVoltageControlOn.isEmpty()) {
                 AcEquationSystem.createReactivePowerDistributionEquations(branchVector, controllerBusesWithVoltageControlOn, networkParameters, equationSystem, creationParameters);
@@ -66,7 +66,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     private void updateVoltageControl(LfBus controllerBus, boolean newVoltageControllerEnabled) {
-        Equation<AcVariableType, AcEquationType> qEq = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.BUS_Q);
+        Equation<AcVariableType, AcEquationType> qEq = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.BUS_TARGET_Q);
         if (newVoltageControllerEnabled) { // switch PQ/PV
             qEq.setActive(false);
 
@@ -91,11 +91,11 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         boolean on = newMode != DiscretePhaseControl.Mode.OFF;
 
         // activate/de-activate phase control equation
-        equationSystem.createEquation(phaseControl.getControlled().getNum(), AcEquationType.BRANCH_P)
+        equationSystem.createEquation(phaseControl.getControlled().getNum(), AcEquationType.BRANCH_TARGET_P)
                 .setActive(on);
 
         // de-activate/activate constant A1 equation
-        equationSystem.createEquation(phaseControl.getController().getNum(), AcEquationType.BRANCH_ALPHA1)
+        equationSystem.createEquation(phaseControl.getController().getNum(), AcEquationType.BRANCH_TARGET_ALPHA1)
                 .setActive(!on);
     }
 
@@ -109,21 +109,21 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         if (newMode == DiscreteVoltageControl.Mode.OFF) {
 
             // de-activate transformer voltage control equation
-            equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_V)
+            equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                     .setActive(false);
 
             for (LfBranch controllerBranch : voltageControl.getControllers()) {
                 // activate constant R1 equation
-                equationSystem.createEquation(controllerBranch.getNum(), AcEquationType.BRANCH_RHO1)
+                equationSystem.createEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
                         .setActive(true);
 
                 // clean transformer distribution equations
-                equationSystem.removeEquation(controllerBranch.getNum(), AcEquationType.ZERO_RHO1);
+                equationSystem.removeEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO);
             }
         } else { // newMode == DiscreteVoltageControl.Mode.VOLTAGE
 
             // activate transformer voltage control equation
-            equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_V)
+            equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                     .setActive(true);
 
             // add transformer distribution equations
@@ -131,7 +131,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
             for (LfBranch controllerBranch : voltageControl.getControllers()) {
                 // de-activate constant R1 equation
-                equationSystem.createEquation(controllerBranch.getNum(), AcEquationType.BRANCH_RHO1)
+                equationSystem.createEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
                         .setActive(false);
             }
         }

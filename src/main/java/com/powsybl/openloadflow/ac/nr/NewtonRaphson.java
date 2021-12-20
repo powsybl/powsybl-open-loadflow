@@ -96,7 +96,7 @@ public class NewtonRaphson {
     private double computeSlackBusActivePowerMismatch(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         // search equation corresponding to slack bus active power injection
         LfBus slackBus = network.getSlackBus();
-        Equation<AcVariableType, AcEquationType> slackBusActivePowerEquation = equationSystem.createEquation(slackBus.getNum(), AcEquationType.BUS_P);
+        Equation<AcVariableType, AcEquationType> slackBusActivePowerEquation = equationSystem.createEquation(slackBus.getNum(), AcEquationType.BUS_TARGET_P);
 
         return slackBusActivePowerEquation.eval()
                 - slackBus.getTargetP(); // slack bus can also have real injection connected

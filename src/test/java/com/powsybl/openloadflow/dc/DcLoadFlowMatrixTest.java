@@ -61,7 +61,7 @@ class DcLoadFlowMatrixTest {
         EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(mainNetwork, creationParameters);
 
         for (LfBus b : mainNetwork.getBuses()) {
-            equationSystem.createEquation(b.getNum(), DcEquationType.BUS_P);
+            equationSystem.createEquation(b.getNum(), DcEquationType.BUS_TARGET_P);
             equationSystem.getVariableSet().getVariable(b.getNum(), DcVariableType.BUS_PHI);
         }
 

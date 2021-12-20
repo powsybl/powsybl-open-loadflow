@@ -13,9 +13,9 @@ import com.powsybl.openloadflow.network.ElementType;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public enum DcVariableType implements Quantity {
-    BUS_PHI("\u03C6", ElementType.BUS),
-    BRANCH_ALPHA1("\u03B1" + "1", ElementType.BRANCH),
-    DUMMY_P("dummy_p", ElementType.BRANCH);
+    BUS_PHI("\u03C6", ElementType.BUS), // bus voltage angle
+    BRANCH_ALPHA1("\u03B1", ElementType.BRANCH), // branch phase shift
+    DUMMY_P("dummy_p", ElementType.BRANCH); // dummy active power injection (zero impedance branch)
 
     private final String symbol;
 

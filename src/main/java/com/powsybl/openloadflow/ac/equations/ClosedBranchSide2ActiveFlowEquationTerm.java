@@ -31,7 +31,7 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     private double theta() {
-        return branchVec.ksi(num) + (a1Var != null ? stateVector.get(a1Var.getRow()) : branchVec.a1(num)) - A2 + ph1() - ph2();
+        return ksi + a1() - A2 + ph1() - ph2();
     }
 
     private double p2() {
