@@ -15,13 +15,13 @@ import com.powsybl.openloadflow.network.ElementType;
 public enum AcEquationType implements Quantity {
     BUS_TARGET_P("bus_target_p", ElementType.BUS), // bus active power target
     BUS_TARGET_Q("bus_target_q", ElementType.BUS), // bus reactive power target
-    BUS_TARGET_V("target_v", ElementType.BUS), // bus voltage magnitude control
-    BUS_TARGET_V_WITH_SLOPE("target_v_slope", ElementType.BUS), // V - slop * Q like bus voltage magnitude control
-    BUS_TARGET_PHI("target_\u03C6", ElementType.BUS), // slack bus voltage angle target
+    BUS_TARGET_V("bus_target_v", ElementType.BUS), // bus voltage magnitude control
+    BUS_TARGET_V_WITH_SLOPE("bus_target_v_slope", ElementType.BUS), // V - slop * Q like bus voltage magnitude control
+    BUS_TARGET_PHI("bus_target_\u03C6", ElementType.BUS), // slack bus voltage angle target
     BRANCH_TARGET_P("branch_target_p", ElementType.BRANCH), // phase shifter active flow control
     BRANCH_TARGET_Q("branch_target_q", ElementType.BRANCH), // generator reactive power control
-    BRANCH_TARGET_ALPHA1("target_\u03B1", ElementType.BRANCH), // phase shifter constant shift
-    BRANCH_TARGET_RHO1("target_\u03C1", ElementType.BRANCH), // transformer constant voltage control
+    BRANCH_TARGET_ALPHA1("branch_target_\u03B1", ElementType.BRANCH), // phase shifter constant shift
+    BRANCH_TARGET_RHO1("branch_target_\u03C1", ElementType.BRANCH), // transformer constant voltage control
     DISTR_Q("distr_q", ElementType.BUS), // remote voltage control reactive power distribution
     ZERO_V("zero_v", ElementType.BRANCH), // zero impedance branch, voltage magnitude equality
     ZERO_PHI("zero_\u03C6", ElementType.BRANCH), // zero impedance branch, voltage angle equality
