@@ -365,14 +365,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             LfBus bus1 = lfBranch.getBus1();
             LfBus bus2 = lfBranch.getBus2();
             if (bus1.isSlack()) {
-                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_P).orElseThrow(IllegalStateException::new);
+                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
                 rhs.set(p.getColumn(), element.getContingencyIndex(), -1);
             } else if (bus2.isSlack()) {
-                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_P).orElseThrow(IllegalStateException::new);
+                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
                 rhs.set(p.getColumn(), element.getContingencyIndex(), 1);
             } else {
-                Equation<DcVariableType, DcEquationType> p1 = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                Equation<DcVariableType, DcEquationType> p2 = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_P).orElseThrow(IllegalStateException::new);
+                Equation<DcVariableType, DcEquationType> p1 = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
+                Equation<DcVariableType, DcEquationType> p2 = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
                 rhs.set(p1.getColumn(), element.getContingencyIndex(), 1);
                 rhs.set(p2.getColumn(), element.getContingencyIndex(), -1);
             }

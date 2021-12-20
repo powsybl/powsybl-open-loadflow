@@ -45,20 +45,20 @@ class EquationTest {
     @Test
     void testEquals() {
         new EqualsTester()
-                .addEqualityGroup(new Equation<>(0, AcEquationType.BUS_P, equationSystem), new Equation<>(0, AcEquationType.BUS_P, equationSystem))
-                .addEqualityGroup(new Equation<>(1, AcEquationType.BUS_Q, equationSystem), new Equation<>(1, AcEquationType.BUS_Q, equationSystem))
+                .addEqualityGroup(new Equation<>(0, AcEquationType.BUS_TARGET_P, equationSystem), new Equation<>(0, AcEquationType.BUS_TARGET_P, equationSystem))
+                .addEqualityGroup(new Equation<>(1, AcEquationType.BUS_TARGET_Q, equationSystem), new Equation<>(1, AcEquationType.BUS_TARGET_Q, equationSystem))
                 .testEquals();
     }
 
     @Test
     void testGetElement() {
-        var eq1 = new Equation<>(0, AcEquationType.BUS_P, equationSystem);
+        var eq1 = new Equation<>(0, AcEquationType.BUS_TARGET_P, equationSystem);
         Optional<LfElement> bus = eq1.getElement(network);
         assertTrue(bus.isPresent());
         assertEquals("bus1", bus.map(LfElement::getId).orElseThrow());
         assertEquals(ElementType.BUS, bus.map(LfElement::getType).orElseThrow());
 
-        var eq2 = new Equation<>(0, AcEquationType.BRANCH_ALPHA1, equationSystem);
+        var eq2 = new Equation<>(0, AcEquationType.BRANCH_TARGET_ALPHA1, equationSystem);
         Optional<LfElement> branch = eq2.getElement(network);
         assertTrue(branch.isPresent());
         assertEquals("branch1", branch.map(LfElement::getId).orElseThrow());
@@ -67,7 +67,7 @@ class EquationTest {
 
     @Test
     void testToString() {
-        assertEquals("Equation(elementNum=0, type=BUS_P, column=-1)", new Equation<>(0, AcEquationType.BUS_P, equationSystem).toString());
-        assertEquals("Equation(elementNum=1, type=ZERO_Q, column=-1)", new Equation<>(1, AcEquationType.ZERO_Q, equationSystem).toString());
+        assertEquals("Equation(elementNum=0, type=BUS_TARGET_P, column=-1)", new Equation<>(0, AcEquationType.BUS_TARGET_P, equationSystem).toString());
+        assertEquals("Equation(elementNum=1, type=DISTR_Q, column=-1)", new Equation<>(1, AcEquationType.DISTR_Q, equationSystem).toString());
     }
 }

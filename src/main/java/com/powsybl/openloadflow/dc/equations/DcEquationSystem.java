@@ -34,16 +34,16 @@ public final class DcEquationSystem {
     private static void createBuses(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         for (LfBus bus : network.getBuses()) {
             if (bus.isSlack()) {
-                equationSystem.createEquation(bus.getNum(), DcEquationType.BUS_PHI).addTerm(EquationTerm.createVariableTerm(bus, DcVariableType.BUS_PHI, equationSystem.getVariableSet()));
-                equationSystem.createEquation(bus.getNum(), DcEquationType.BUS_P).setActive(false);
+                equationSystem.createEquation(bus.getNum(), DcEquationType.BUS_TARGET_PHI).addTerm(EquationTerm.createVariableTerm(bus, DcVariableType.BUS_PHI, equationSystem.getVariableSet()));
+                equationSystem.createEquation(bus.getNum(), DcEquationType.BUS_TARGET_P).setActive(false);
             }
         }
     }
 
     public static void createNonImpedantBranch(EquationSystem<DcVariableType, DcEquationType> equationSystem,
                                                LfBranch branch, LfBus bus1, LfBus bus2) {
-        boolean hasPhi1 = equationSystem.hasEquation(bus1.getNum(), DcEquationType.BUS_PHI);
-        boolean hasPhi2 = equationSystem.hasEquation(bus2.getNum(), DcEquationType.BUS_PHI);
+        boolean hasPhi1 = equationSystem.hasEquation(bus1.getNum(), DcEquationType.BUS_TARGET_PHI);
+        boolean hasPhi2 = equationSystem.hasEquation(bus2.getNum(), DcEquationType.BUS_TARGET_PHI);
         if (!(hasPhi1 && hasPhi2)) {
             // create voltage angle coupling equation
             // alpha = phi1 - phi2
@@ -53,13 +53,13 @@ public final class DcEquationSystem {
 
             // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
             // to ensure we have the same number of equation and variables
-            Equation<DcVariableType, DcEquationType> sp1 = equationSystem.createEquation(bus1.getNum(), DcEquationType.BUS_P);
+            Equation<DcVariableType, DcEquationType> sp1 = equationSystem.createEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P);
             if (sp1.getTerms().isEmpty()) {
                 bus1.setP(sp1);
             }
             sp1.addTerm(EquationTerm.createVariableTerm(branch, DcVariableType.DUMMY_P, equationSystem.getVariableSet()));
 
-            Equation<DcVariableType, DcEquationType> sp2 = equationSystem.createEquation(bus2.getNum(), DcEquationType.BUS_P);
+            Equation<DcVariableType, DcEquationType> sp2 = equationSystem.createEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P);
             if (sp2.getTerms().isEmpty()) {
                 bus2.setP(sp2);
             }
@@ -76,12 +76,12 @@ public final class DcEquationSystem {
             boolean deriveA1 = creationParameters.isForcePhaseControlOffAndAddAngle1Var() && branch.hasPhaseControlCapability(); //TODO: phase control outer loop
             ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio());
             ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio());
-            Equation<DcVariableType, DcEquationType> sp1 = equationSystem.createEquation(bus1.getNum(), DcEquationType.BUS_P);
+            Equation<DcVariableType, DcEquationType> sp1 = equationSystem.createEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P);
             if (sp1.getTerms().isEmpty()) {
                 bus1.setP(sp1);
             }
             sp1.addTerm(p1);
-            Equation<DcVariableType, DcEquationType> sp2 = equationSystem.createEquation(bus2.getNum(), DcEquationType.BUS_P);
+            Equation<DcVariableType, DcEquationType> sp2 = equationSystem.createEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P);
             if (sp2.getTerms().isEmpty()) {
                 bus2.setP(sp2);
             }
@@ -91,7 +91,7 @@ public final class DcEquationSystem {
                     // use for sensitiviy analysis only: with this equation term, we force the a1 variable to be constant.
                     EquationTerm.VariableEquationTerm<DcVariableType, DcEquationType> a1 = EquationTerm.createVariableTerm(branch, DcVariableType.BRANCH_ALPHA1, equationSystem.getVariableSet());
                     branch.setA1(a1);
-                    equationSystem.createEquation(branch.getNum(), DcEquationType.BRANCH_ALPHA1)
+                    equationSystem.createEquation(branch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1)
                             .addTerm(a1);
                 } else {
                     //TODO
