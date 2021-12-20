@@ -125,19 +125,19 @@ public class DcLoadFlowEngine {
 
     public static void initTarget(Equation<DcVariableType, DcEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
-            case BUS_P:
+            case BUS_TARGET_P:
                 targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getTargetP();
                 break;
 
-            case BUS_PHI:
+            case BUS_TARGET_PHI:
                 targets[equation.getColumn()] = 0;
                 break;
 
-            case BRANCH_P:
+            case BRANCH_TARGET_P:
                 targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getElementNum()), DiscretePhaseControl.Unit.MW);
                 break;
 
-            case BRANCH_ALPHA1:
+            case BRANCH_TARGET_ALPHA1:
                 targets[equation.getColumn()] = network.getBranch(equation.getElementNum()).getPiModel().getA1();
                 break;
 
@@ -176,7 +176,7 @@ public class DcLoadFlowEngine {
         if (!disabledBuses.isEmpty()) {
             // set buses injections and transformers to 0
             disabledBuses.stream()
-                .map(lfBus -> equationSystem.getEquation(lfBus.getNum(), DcEquationType.BUS_P))
+                .map(lfBus -> equationSystem.getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .map(Equation::getColumn)
@@ -186,7 +186,7 @@ public class DcLoadFlowEngine {
         if (!disabledBranches.isEmpty()) {
             // set transformer phase shift to 0
             disabledBranches.stream()
-                .map(lfBranch -> equationSystem.getEquation(lfBranch.getNum(), DcEquationType.BRANCH_ALPHA1))
+                .map(lfBranch -> equationSystem.getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .map(Equation::getColumn)

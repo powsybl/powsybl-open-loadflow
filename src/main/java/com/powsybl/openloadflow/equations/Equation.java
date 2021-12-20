@@ -146,15 +146,15 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
     }
 
     public void write(Writer writer) throws IOException {
-        writer.write(type.getSymbol());
-        writer.append(Integer.toString(elementNum));
-        writer.append(" = ");
+        writer.append(type.getSymbol())
+                .append(Integer.toString(elementNum))
+                .append(" = ");
         List<EquationTerm<V, E>> activeTerms = terms.stream().filter(EquationTerm::isActive).collect(Collectors.toList());
         for (Iterator<EquationTerm<V, E>> it = activeTerms.iterator(); it.hasNext();) {
             EquationTerm<V, E> term = it.next();
             term.write(writer);
             if (it.hasNext()) {
-                writer.write(" + ");
+                writer.append(" + ");
             }
         }
     }
