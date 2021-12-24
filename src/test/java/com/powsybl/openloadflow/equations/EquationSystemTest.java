@@ -9,7 +9,9 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.openloadflow.ac.equations.*;
+import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
@@ -67,7 +69,7 @@ class EquationSystemTest {
         assertTrue(equationEventTypes.isEmpty());
         assertTrue(equationSystem.getSortedEquationsToSolve().isEmpty());
 
-        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, equationSystem.getVariableSet()));
+        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V).createTerm());
         assertEquals(1, equations.size());
         assertEquals(1, equationEventTypes.size());
         assertEquals(1, equationTermEventTypes.size());
@@ -102,7 +104,8 @@ class EquationSystemTest {
         assertTrue(equationSystem.getEquationTerms(ElementType.BRANCH, 0).isEmpty());
 
         clearEvents();
-        EquationTerm<AcVariableType, AcEquationType> equationTerm = EquationTerm.createVariableTerm(bus, AcVariableType.BUS_V, equationSystem.getVariableSet());
+        EquationTerm<AcVariableType, AcEquationType> equationTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
+                .createTerm();
         bus.setCalculatedV(equationTerm);
         equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(equationTerm);
         assertEquals(2, equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).getTerms().size());

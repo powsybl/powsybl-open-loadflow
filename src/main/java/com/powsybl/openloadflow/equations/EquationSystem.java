@@ -195,6 +195,10 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return variableSet;
     }
 
+    public Variable<V> getVariable(int elementNum, V type) {
+        return variableSet.getVariable(elementNum, type);
+    }
+
     public StateVector getStateVector() {
         return stateVector;
     }

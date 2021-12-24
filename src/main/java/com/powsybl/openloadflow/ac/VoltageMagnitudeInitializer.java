@@ -187,14 +187,15 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         //
         EquationSystem<InitVmVariableType, InitVmEquationType> equationSystem = new EquationSystem<>();
         for (LfBus bus : network.getBuses()) {
-            EquationTerm<InitVmVariableType, InitVmEquationType> v = EquationTerm.createVariableTerm(bus, InitVmVariableType.BUS_V, equationSystem.getVariableSet());
+            EquationTerm<InitVmVariableType, InitVmEquationType> v = equationSystem.getVariable(bus.getNum(), InitVmVariableType.BUS_V)
+                    .createTerm();
             if (bus.isVoltageControlled()) {
                 equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_TARGET_V)
                         .addTerm(v);
             } else {
                 equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_ZERO)
                         .addTerm(new InitVmBusEquationTerm(bus, equationSystem.getVariableSet()))
-                        .addTerm(EquationTerm.multiply(v, -1));
+                        .addTerm(v.minus());
             }
         }
 

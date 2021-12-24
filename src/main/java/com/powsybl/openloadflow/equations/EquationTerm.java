@@ -8,12 +8,10 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
-import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -114,23 +112,24 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
     class VariableEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractEquationTerm<V, E> {
 
-        private final int elementNum;
-
         private final List<Variable<V>> variables;
 
-        VariableEquationTerm(int elementNum, V variableType, VariableSet<V> variableSet) {
-            this.elementNum = elementNum;
-            this.variables = Collections.singletonList(variableSet.getVariable(elementNum, variableType));
+        VariableEquationTerm(Variable<V> variable) {
+            this.variables = List.of(Objects.requireNonNull(variable));
+        }
+
+        private Variable<V> getVariable() {
+            return variables.get(0);
         }
 
         @Override
         public ElementType getElementType() {
-            return variables.get(0).getType().getElementType();
+            return getVariable().getType().getElementType();
         }
 
         @Override
         public int getElementNum() {
-            return elementNum;
+            return getVariable().getElementNum();
         }
 
         @Override
@@ -140,7 +139,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         @Override
         public double eval() {
-            return stateVector.get(variables.get(0).getRow());
+            return stateVector.get(getVariable().getRow());
         }
 
         @Override
@@ -150,24 +149,13 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         @Override
         public double calculateSensi(DenseMatrix x, int column) {
-            return x.get(variables.get(0).getRow(), column);
+            return x.get(getVariable().getRow(), column);
         }
 
         @Override
         public void write(Writer writer) throws IOException {
-            variables.get(0).write(writer);
+            getVariable().write(writer);
         }
-    }
-
-    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> VariableEquationTerm<V, E> createVariableTerm(LfElement element, V variableType, VariableSet<V> variableSet) {
-        Objects.requireNonNull(element);
-        Objects.requireNonNull(variableType);
-        Objects.requireNonNull(variableSet);
-        if (element.getType() != variableType.getElementType()) {
-            throw new IllegalArgumentException("Wrong variable element type: " + variableType.getElementType()
-                + ", expected: " + element.getType());
-        }
-        return new VariableEquationTerm<>(element.getNum(), variableType, variableSet);
     }
 
     Equation<V, E> getEquation();
@@ -224,4 +212,12 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
     double calculateSensi(DenseMatrix x, int column);
 
     void write(Writer writer) throws IOException;
+
+    default EquationTerm<V, E> multiply(double c) {
+        return multiply(this, c);
+    }
+
+    default EquationTerm<V, E> minus() {
+        return multiply(-1);
+    }
 }
