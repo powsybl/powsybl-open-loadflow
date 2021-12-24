@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
@@ -15,6 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -120,9 +124,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
-    private void clear() {
-        matrix = null;
-        partialDerivatives = null;
+    private void clearLu() {
         if (lu != null) {
             lu.close();
         }
@@ -130,7 +132,8 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     private void initMatrix() {
-        LOGGER.debug("Rebuild Jacobian matrix");
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         int rowCount = equationSystem.getSortedEquationsToSolve().size();
         int columnCount = equationSystem.getSortedVariablesToFind().size();
         if (rowCount != columnCount) {
@@ -155,10 +158,25 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 }
             }
         }
+
+        LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+
+        clearLu();
+    }
+
+    private void updateLu() {
+        if (lu != null) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+
+            lu.update();
+
+            LOGGER.debug(PERFORMANCE_MARKER, "LU decomposition updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+        }
     }
 
     private void updateValues() {
-        LOGGER.debug("Update Jacobian matrix values");
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         matrix.reset();
         for (PartialDerivative<V, E> partialDerivative : partialDerivatives) {
             EquationTerm<V, E> equationTerm = partialDerivative.getEquationTerm();
@@ -168,16 +186,15 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             matrix.addAtIndex(elementIndex, value);
         }
 
-        if (lu != null) {
-            lu.update();
-        }
+        LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+
+        updateLu();
     }
 
     public Matrix getMatrix() {
         if (status != Status.VALID) {
             switch (status) {
                 case MATRIX_INVALID:
-                    clear();
                     initMatrix();
                     break;
 
@@ -196,7 +213,11 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     private LUDecomposition getLUDecomposition() {
         Matrix m = getMatrix();
         if (lu == null) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+
             lu = m.decomposeLU();
+
+            LOGGER.debug(PERFORMANCE_MARKER, "LU decomposition done in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
         }
         return lu;
     }
@@ -221,6 +242,8 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     public void close() {
         equationSystem.removeListener(this);
         equationSystem.getStateVector().removeListener(this);
-        clear();
+        matrix = null;
+        partialDerivatives = null;
+        clearLu();
     }
 }
