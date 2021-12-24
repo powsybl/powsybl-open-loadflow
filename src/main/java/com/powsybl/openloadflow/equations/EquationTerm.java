@@ -6,14 +6,15 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * An equation term, i.e part of the equation sum.
@@ -158,6 +159,128 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
     }
 
+    private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> List<Variable<V>> findDistinctVariables(List<EquationTerm<V, E>> terms) {
+        return Objects.requireNonNull(terms).stream()
+                .flatMap(term -> term.getVariables().stream())
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    class SumEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractEquationTerm<V, E> {
+
+        private final List<EquationTerm<V, E>> terms;
+
+        private final ElementType elementType;
+
+        private final int elementNum;
+
+        private final List<Variable<V>> variables;
+
+        SumEquationTerm(List<EquationTerm<V, E>> terms, ElementType elementType, int elementNum) {
+            this.terms = Objects.requireNonNull(terms);
+            this.elementType = Objects.requireNonNull(elementType);
+            this.elementNum = elementNum;
+            variables = findDistinctVariables(terms);
+        }
+
+        @Override
+        public ElementType getElementType() {
+            return elementType;
+        }
+
+        @Override
+        public int getElementNum() {
+            return elementNum;
+        }
+
+        @Override
+        public List<Variable<V>> getVariables() {
+            return variables;
+        }
+
+        @Override
+        public double eval() {
+            return terms.stream().mapToDouble(EquationTerm::eval).sum();
+        }
+
+        @Override
+        public double der(Variable<V> variable) {
+            return terms.stream().mapToDouble(term -> term.der(variable)).sum();
+        }
+
+        @Override
+        public void write(Writer writer) throws IOException {
+            writer.write("sum(");
+            Iterator<EquationTerm<V, E>> it = terms.iterator();
+            while (it.hasNext()) {
+                it.next().write(writer);
+                if (it.hasNext()) {
+                    writer.write(", ");
+                }
+            }
+            writer.write(")");
+        }
+    }
+
+    class DivisionEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractEquationTerm<V, E> {
+
+        private final EquationTerm<V, E> term1;
+
+        private final EquationTerm<V, E> term2;
+
+        private final List<Variable<V>> variables;
+
+        DivisionEquationTerm(EquationTerm<V, E> term1, EquationTerm<V, E> term2) {
+            this.term1 = Objects.requireNonNull(term1);
+            this.term2 = Objects.requireNonNull(term2);
+            variables = findDistinctVariables(List.of(term1, term2));
+        }
+
+        @Override
+        public ElementType getElementType() {
+            return term1.getElementType(); // numerator by convention
+        }
+
+        @Override
+        public int getElementNum() {
+            return term1.getElementNum(); // numerator by convention
+        }
+
+        @Override
+        public List<Variable<V>> getVariables() {
+            return variables;
+        }
+
+        @Override
+        public double eval() {
+            double value1 = term1.eval();
+            double value2 = term2.eval();
+            if (value2 == 0) {
+                throw new PowsyblException("Division by 0");
+            }
+            return value1 / value2;
+        }
+
+        @Override
+        public double der(Variable<V> variable) {
+            double value1 = term1.eval();
+            double value2 = term2.eval();
+            if (value2 == 0) {
+                throw new PowsyblException("Division by 0");
+            }
+            double der1 = term1.der(variable);
+            double der2 = term2.der(variable);
+            return (der1 * value2 - value1 * der2) / (value2 * value2);
+        }
+
+        @Override
+        public void write(Writer writer) throws IOException {
+            term1.write(writer);
+            writer.write(" / ");
+            term2.write(writer);
+        }
+    }
+
     Equation<V, E> getEquation();
 
     void setEquation(Equation<V, E> equation);
@@ -219,5 +342,15 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
     default EquationTerm<V, E> minus() {
         return multiply(-1);
+    }
+
+    default EquationTerm<V, E> divide(EquationTerm<V, E> otherTerm) {
+        return new DivisionEquationTerm<>(this, otherTerm);
+    }
+
+    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> EquationTerm<V, E> sum(List<EquationTerm<V, E>> terms,
+                                                                                               ElementType elementType,
+                                                                                               int elementNum) {
+        return new SumEquationTerm<>(terms, elementType, elementNum);
     }
 }
