@@ -10,10 +10,8 @@ import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.network.*;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -34,7 +32,6 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     private void updateVoltageControl(VoltageControl voltageControl) {
-
         LfBus controlledBus = voltageControl.getControlledBus();
         Set<LfBus> controllerBuses = voltageControl.getControllerBuses();
 
@@ -46,17 +43,12 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                 equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE).setActive(false);
             }
         } else {
-            // controlled bus has a voltage equation only if one of the controller bus has voltage control on
-            List<LfBus> controllerBusesWithVoltageControlOn = controllerBuses.stream()
-                    .filter(LfBus::isVoltageControllerEnabled)
-                    .collect(Collectors.toList());
-            // clean reactive power distribution equations
-            controllerBuses.forEach(b -> equationSystem.removeEquation(b.getNum(), AcEquationType.DISTR_Q));
-            // is there one static var compensator with a non-zero slope
-            equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
-            // create reactive power equations on controller buses that have voltage control on
-            if (!controllerBusesWithVoltageControlOn.isEmpty()) {
-                AcEquationSystem.createReactivePowerDistributionEquations(controllerBusesWithVoltageControlOn, networkParameters, equationSystem, creationParameters);
+            if (voltageControl.isVoltageControlLocal()) {
+                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
+                        .orElseThrow()
+                        .setActive(controlledBus.isVoltageControllerEnabled());
+            } else {
+                AcEquationSystem.updateRemoteVoltageControlEquations(voltageControl, equationSystem);
             }
         }
     }
@@ -66,14 +58,14 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         if (newVoltageControllerEnabled) { // switch PQ/PV
             qEq.setActive(false);
 
-            controllerBus.getVoltageControl()
-                    .filter(bus -> controllerBus.isVoltageControllerEnabled())
-                    .ifPresent(this::updateVoltageControl);
+            if (controllerBus.isVoltageControllerEnabled()) {
+                controllerBus.getVoltageControl()
+                        .ifPresent(this::updateVoltageControl);
+            }
         } else { // switch PV/PQ
             qEq.setActive(true);
 
             controllerBus.getVoltageControl()
-                    .filter(bus -> controllerBus.hasVoltageControllerCapability())
                     .ifPresent(this::updateVoltageControl);
         }
     }

@@ -126,12 +126,15 @@ public class AcloadFlowEngine implements AutoCloseable {
         });
     }
 
-    private static double getReactivePowerDistributionTarget(LfNetwork network, int num, DistributionData data) {
-        LfBus controllerBus = network.getBus(num);
-        LfBus firstControllerBus = network.getBus(data.getFirstControllerElementNum());
-        double c = data.getC();
-        return c * (controllerBus.getLoadTargetQ() - controllerBus.getGenerationTargetQ())
-                - firstControllerBus.getLoadTargetQ() - firstControllerBus.getGenerationTargetQ();
+    private static double getReactivePowerDistributionTarget(LfNetwork network, int busNum) {
+        LfBus controllerBus = network.getBus(busNum);
+        double target = (controllerBus.getRemoteControlReactivePercent() - 1) * (controllerBus.getLoadTargetQ() - controllerBus.getGenerationTargetQ());
+        for (LfBus otherControllerBus : controllerBus.getVoltageControl().orElseThrow().getControllerBuses()) {
+            if (otherControllerBus != controllerBus) {
+                target += otherControllerBus.getRemoteControlReactivePercent() * (otherControllerBus.getLoadTargetQ() - otherControllerBus.getGenerationTargetQ());
+            }
+        }
+        return target;
     }
 
     private static double getRho1DistributionTarget(LfNetwork network, int num, DistributionData data) {
@@ -191,7 +194,7 @@ public class AcloadFlowEngine implements AutoCloseable {
                 break;
 
             case DISTR_Q:
-                targets[equation.getColumn()] = getReactivePowerDistributionTarget(network, equation.getElementNum(), equation.getData());
+                targets[equation.getColumn()] = getReactivePowerDistributionTarget(network, equation.getElementNum());
                 break;
 
             case ZERO_V:

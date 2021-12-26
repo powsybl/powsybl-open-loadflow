@@ -77,6 +77,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected Evaluable q = NAN;
 
+    protected double remoteControlReactivePercent = Double.NaN;
+
     protected AbstractLfBus(LfNetwork network, double v, double angle) {
         super(network);
         this.v = v;
@@ -549,6 +551,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             }
         }
         return neighbors;
+    }
+
+    @Override
+    public double getRemoteControlReactivePercent() {
+        return remoteControlReactivePercent;
+    }
+
+    @Override
+    public void setRemoteControlReactivePercent(double remoteControlReactivePercent) {
+        this.remoteControlReactivePercent = remoteControlReactivePercent;
     }
 
     @Override

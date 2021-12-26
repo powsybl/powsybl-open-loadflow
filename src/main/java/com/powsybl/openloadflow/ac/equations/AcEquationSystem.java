@@ -10,8 +10,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.DiscretePhaseControl.Mode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,8 +21,6 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public final class AcEquationSystem {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(AcEquationSystem.class);
 
     private AcEquationSystem() {
     }
@@ -72,8 +68,7 @@ public final class AcEquationSystem {
             if (voltageControl.isVoltageControlLocal()) {
                 createLocalVoltageControlEquation(bus, networkParameters, equationSystem, creationParameters);
             } else if (bus.isVoltageControlled()) {
-                // remote controlled: set voltage equation on this controlled bus
-                createVoltageControlledBusEquations(voltageControl, networkParameters, equationSystem, creationParameters);
+                createRemoteVoltageControlEquations(voltageControl, networkParameters, equationSystem, creationParameters);
             }
 
             if (bus.isVoltageControllerEnabled()) {
@@ -117,25 +112,50 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createVoltageControlledBusEquations(VoltageControl voltageControl, LfNetworkParameters networkParameters,
+    private static void createRemoteVoltageControlEquations(VoltageControl voltageControl, LfNetworkParameters networkParameters,
                                                             EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                             AcEquationSystemCreationParameters creationParameters) {
         LfBus controlledBus = voltageControl.getControlledBus();
 
         // create voltage equation at voltage controlled bus
         EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(controlledBus.getNum(), AcVariableType.BUS_V).createTerm();
-        Equation<AcVariableType, AcEquationType> vEq = equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
+        equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                 .addTerm(vTerm);
         controlledBus.setCalculatedV(vTerm);
 
-        List<LfBus> controllerBuses = voltageControl.getControllerBuses().stream()
-                .filter(LfBus::isVoltageControllerEnabled)
-                .collect(Collectors.toList());
-        if (controllerBuses.isEmpty()) {
-            vEq.setActive(false);
-        } else {
-            // create reactive power distribution equations at voltage controller buses (except one)
-            createReactivePowerDistributionEquations(controllerBuses, networkParameters, equationSystem, creationParameters);
+        // create reactive power distribution equations at voltage controller buses
+        createReactivePowerDistributionEquations(new ArrayList<>(voltageControl.getControllerBuses()), networkParameters, equationSystem, creationParameters);
+
+        updateRemoteVoltageControlEquations(voltageControl, equationSystem);
+    }
+
+    static void updateRemoteVoltageControlEquations(VoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        List<LfBus> enabledControllerBuses = new ArrayList<>(voltageControl.getControllerBuses().size());
+        List<LfBus> disabledControllerBuses = new ArrayList<>(voltageControl.getControllerBuses().size());
+        for (LfBus controllerBus : voltageControl.getControllerBuses()) {
+            if (controllerBus.isVoltageControllerEnabled()) {
+                enabledControllerBuses.add(controllerBus);
+            } else {
+                disabledControllerBuses.add(controllerBus);
+            }
+        }
+
+        // activate voltage control at controlled bus only if at least one controller bus is enabled
+        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(voltageControl.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V).orElseThrow();
+        vEq.setActive(!enabledControllerBuses.isEmpty());
+
+        // deactivate reactive power distribution equation on all disabled (PQ) buses
+        for (LfBus controllerBus : disabledControllerBuses) {
+            equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
+                    .orElseThrow()
+                    .setActive(false);
+        }
+
+        // activate reactive power distribution equation at all enabled controller buses except one
+        for (int i = 0; i < enabledControllerBuses.size(); i++) {
+            LfBus controllerBus = enabledControllerBuses.get(i);
+            var qDistrEq = equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q).orElseThrow();
+            qDistrEq.setActive(i != 0);
         }
     }
 
@@ -176,77 +196,25 @@ public final class AcEquationSystem {
         return terms;
     }
 
-    public static void createReactivePowerDistributionEquations(List<LfBus> controllerBuses, LfNetworkParameters networkParameters,
-                                                                EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                                AcEquationSystemCreationParameters creationParameters) {
-        double[] qKeys = createReactiveKeys(controllerBuses);
-
-        // we choose first controller bus as reference for reactive power
-        LfBus firstControllerBus = controllerBuses.get(0);
-        List<EquationTerm<AcVariableType, AcEquationType>> firstControllerBusReactiveTerms
-                = createReactiveTerms(firstControllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters);
-
-        // create a reactive power distribution equation for all the other controller buses
-        for (int i = 1; i < controllerBuses.size(); i++) {
-            LfBus controllerBus = controllerBuses.get(i);
-            double c = qKeys[0] / qKeys[i];
-
-            // l0 - c * li = q0 - c * qi
-            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.DISTR_Q);
-            zero.setData(new DistributionData(firstControllerBus.getNum(), c)); // for later use
-            zero.addTerms(firstControllerBusReactiveTerms);
-            zero.addTerms(createReactiveTerms(controllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters).
-                    stream()
-                    .map(term -> term.multiply(-c))
-                    .collect(Collectors.toList()));
-        }
-    }
-
-    private static double[] createUniformReactiveKeys(List<LfBus> controllerBuses) {
-        double[] qKeys = new double[controllerBuses.size()];
+    private static void createReactivePowerDistributionEquations(List<LfBus> controllerBuses, LfNetworkParameters networkParameters,
+                                                                 EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                                 AcEquationSystemCreationParameters creationParameters) {
         for (int i = 0; i < controllerBuses.size(); i++) {
             LfBus controllerBus = controllerBuses.get(i);
-            qKeys[i] = controllerBus.getGenerators().stream().filter(LfGenerator::hasVoltageControl).count();
-        }
-        return qKeys;
-    }
-
-    private static double[] createReactiveKeysFromMaxReactivePowerRange(List<LfBus> controllerBuses) {
-        double[] qKeys = new double[controllerBuses.size()];
-        // try to build keys from reactive power range
-        for (int i = 0; i < controllerBuses.size(); i++) {
-            LfBus controllerBus = controllerBuses.get(i);
-            for (LfGenerator generator : controllerBus.getGenerators()) {
-                double maxRangeQ = generator.getMaxRangeQ();
-                // if one reactive range is not plausible, we fallback to uniform keys
-                if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB || maxRangeQ > PlausibleValues.MAX_REACTIVE_RANGE / PerUnit.SB) {
-                    return createUniformReactiveKeys(controllerBuses);
-                } else {
-                    qKeys[i] += maxRangeQ;
+            double qPercent = controllerBus.getRemoteControlReactivePercent();
+            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
+                    .addTerms(createReactiveTerms(controllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters).stream()
+                                .map(term -> term.multiply(qPercent - 1))
+                                .collect(Collectors.toList()));
+            for (int j = 0; j < controllerBuses.size(); j++) {
+                if (j != i) {
+                    LfBus otherControllerBus = controllerBuses.get(j);
+                    zero.addTerms(createReactiveTerms(otherControllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters).stream()
+                            .map(term -> term.multiply(qPercent))
+                            .collect(Collectors.toList()));
                 }
             }
         }
-        return qKeys;
-    }
-
-    private static double[] createReactiveKeys(List<LfBus> controllerBuses) {
-        double[] qKeys = new double[controllerBuses.size()];
-        for (int i = 0; i < controllerBuses.size(); i++) {
-            LfBus controllerBus = controllerBuses.get(i);
-            for (LfGenerator generator : controllerBus.getGenerators()) {
-                double qKey = generator.getRemoteControlReactiveKey().orElse(Double.NaN);
-                if (Double.isNaN(qKey) || qKey == 0) {
-                    if (qKey == 0) {
-                        LOGGER.error("Generator '{}' remote control reactive key value is zero", generator.getId());
-                    }
-                    // in case of one missing key, we fallback to keys based on reactive power range
-                    return createReactiveKeysFromMaxReactivePowerRange(controllerBuses);
-                } else {
-                    qKeys[i] += qKey;
-                }
-            }
-        }
-        return qKeys;
     }
 
     private static void createNonImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,

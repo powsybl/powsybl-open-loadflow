@@ -639,6 +639,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (!parameters.isDc()) {
             // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
             fixAllVoltageControls(lfNetwork, parameters.isMinImpedance(), parameters.isTransformerVoltageControl());
+
+            // calculate voltage remote control reactive keys
+            for (LfBus bus : lfNetwork.getBuses()) {
+                bus.getVoltageControl().ifPresent(VoltageControl::updateReactiveKeys);
+            }
         }
 
         if (!parameters.isMinImpedance()) {
