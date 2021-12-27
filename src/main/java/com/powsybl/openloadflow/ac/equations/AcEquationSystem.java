@@ -11,10 +11,7 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.DiscretePhaseControl.Mode;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -124,7 +121,7 @@ public final class AcEquationSystem {
         controlledBus.setCalculatedV(vTerm);
 
         // create reactive power distribution equations at voltage controller buses
-        createReactivePowerDistributionEquations(new ArrayList<>(voltageControl.getControllerBuses()), networkParameters, equationSystem, creationParameters);
+        createReactivePowerDistributionEquations(voltageControl.getControllerBuses(), networkParameters, equationSystem, creationParameters);
 
         updateRemoteVoltageControlEquations(voltageControl, equationSystem);
     }
@@ -154,7 +151,8 @@ public final class AcEquationSystem {
         // activate reactive power distribution equation at all enabled controller buses except one
         for (int i = 0; i < enabledControllerBuses.size(); i++) {
             LfBus controllerBus = enabledControllerBuses.get(i);
-            var qDistrEq = equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q).orElseThrow();
+            var qDistrEq = equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
+                    .orElseThrow();
             qDistrEq.setActive(i != 0);
         }
     }
@@ -196,19 +194,17 @@ public final class AcEquationSystem {
         return terms;
     }
 
-    private static void createReactivePowerDistributionEquations(List<LfBus> controllerBuses, LfNetworkParameters networkParameters,
+    private static void createReactivePowerDistributionEquations(Collection<LfBus> controllerBuses, LfNetworkParameters networkParameters,
                                                                  EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                  AcEquationSystemCreationParameters creationParameters) {
-        for (int i = 0; i < controllerBuses.size(); i++) {
-            LfBus controllerBus = controllerBuses.get(i);
+        for (LfBus controllerBus : controllerBuses) {
             double qPercent = controllerBus.getRemoteControlReactivePercent();
             Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
                     .addTerms(createReactiveTerms(controllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters).stream()
                                 .map(term -> term.multiply(qPercent - 1))
                                 .collect(Collectors.toList()));
-            for (int j = 0; j < controllerBuses.size(); j++) {
-                if (j != i) {
-                    LfBus otherControllerBus = controllerBuses.get(j);
+            for (LfBus otherControllerBus : controllerBuses) {
+                if (otherControllerBus != controllerBus) {
                     zero.addTerms(createReactiveTerms(otherControllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters).stream()
                             .map(term -> term.multiply(qPercent))
                             .collect(Collectors.toList()));
