@@ -51,11 +51,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
     private void updateVoltageControl(LfBus controllerBus, boolean newVoltageControllerEnabled) {
         Equation<AcVariableType, AcEquationType> qEq = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.BUS_TARGET_Q);
-        if (newVoltageControllerEnabled) { // switch PQ/PV
-            qEq.setActive(false);
-        } else { // switch PV/PQ
-            qEq.setActive(true);
-        }
+        qEq.setActive(!newVoltageControllerEnabled);
         updateVoltageControl(controllerBus.getVoltageControl().orElseThrow());
     }
 
