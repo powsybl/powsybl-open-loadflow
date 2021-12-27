@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.network.*;
 
@@ -25,9 +24,6 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     private void updateVoltageControl(VoltageControl voltageControl) {
-        // ensure reactive keys are up-to-date
-        voltageControl.updateReactiveKeys();
-
         LfBus controlledBus = voltageControl.getControlledBus();
         Set<LfBus> controllerBuses = voltageControl.getControllerBuses();
 
@@ -50,8 +46,10 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     private void updateVoltageControl(LfBus controllerBus, boolean newVoltageControllerEnabled) {
-        Equation<AcVariableType, AcEquationType> qEq = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.BUS_TARGET_Q);
-        qEq.setActive(!newVoltageControllerEnabled);
+        // active/de-activate bus target reactive power equation to switch bus PV or PQ
+        equationSystem.createEquation(controllerBus.getNum(), AcEquationType.BUS_TARGET_Q)
+                .setActive(!newVoltageControllerEnabled);
+
         updateVoltageControl(controllerBus.getVoltageControl().orElseThrow());
     }
 

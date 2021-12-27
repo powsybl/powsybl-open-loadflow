@@ -127,6 +127,9 @@ public final class AcEquationSystem {
     }
 
     static void updateRemoteVoltageControlEquations(VoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        // ensure reactive keys are up-to-date
+        voltageControl.updateReactiveKeys();
+
         Set<LfBus> controllerBuses = voltageControl.getControllerBuses();
         List<LfBus> enabledControllerBuses = new ArrayList<>(controllerBuses.size());
         List<LfBus> disabledControllerBuses = new ArrayList<>(controllerBuses.size());
