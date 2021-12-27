@@ -20,15 +20,8 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
-    private final AcEquationSystemCreationParameters creationParameters;
-
-    private final LfNetworkParameters networkParameters;
-
-    public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                   AcEquationSystemCreationParameters creationParameters, LfNetworkParameters networkParameters) {
+    public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
-        this.creationParameters = Objects.requireNonNull(creationParameters);
-        this.networkParameters = Objects.requireNonNull(networkParameters);
     }
 
     private void updateVoltageControl(VoltageControl voltageControl) {
@@ -60,17 +53,10 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         Equation<AcVariableType, AcEquationType> qEq = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.BUS_TARGET_Q);
         if (newVoltageControllerEnabled) { // switch PQ/PV
             qEq.setActive(false);
-
-            if (controllerBus.isVoltageControllerEnabled()) {
-                controllerBus.getVoltageControl()
-                        .ifPresent(this::updateVoltageControl);
-            }
         } else { // switch PV/PQ
             qEq.setActive(true);
-
-            controllerBus.getVoltageControl()
-                    .ifPresent(this::updateVoltageControl);
         }
+        updateVoltageControl(controllerBus.getVoltageControl().orElseThrow());
     }
 
     @Override
