@@ -67,10 +67,22 @@ public class VoltageControl {
 
     public void updateReactiveKeys() {
         List<LfBus> controllerBuses = new ArrayList<>(controllers);
+
         double[] reactiveKeys = createReactiveKeys(controllerBuses);
+
+        // no reactive dispatch on PQ buses, so we set the key to 0
+        for (int i = 0; i < controllerBuses.size(); i++) {
+            LfBus controllerBus = controllerBuses.get(i);
+            if (!controllerBus.isVoltageControllerEnabled()) {
+                reactiveKeys[i] = 0d;
+            }
+        }
+
+        // update bus reactive keys
         double reactiveKeysSum = Arrays.stream(reactiveKeys).sum();
         for (int i = 0; i < controllerBuses.size(); i++) {
-            controllerBuses.get(i).setRemoteControlReactivePercent(reactiveKeys[i] / reactiveKeysSum);
+            LfBus controllerBus = controllerBuses.get(i);
+            controllerBus.setRemoteControlReactivePercent(reactiveKeys[i] / reactiveKeysSum);
         }
     }
 

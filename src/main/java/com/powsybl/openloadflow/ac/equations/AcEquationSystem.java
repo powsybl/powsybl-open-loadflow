@@ -198,15 +198,14 @@ public final class AcEquationSystem {
                                                                  EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                  AcEquationSystemCreationParameters creationParameters) {
         for (LfBus controllerBus : controllerBuses) {
-            double qPercent = controllerBus.getRemoteControlReactivePercent();
             Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
                     .addTerms(createReactiveTerms(controllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters).stream()
-                                .map(term -> term.multiply(qPercent - 1))
+                                .map(term -> term.multiply(() -> controllerBus.getRemoteControlReactivePercent() - 1))
                                 .collect(Collectors.toList()));
             for (LfBus otherControllerBus : controllerBuses) {
                 if (otherControllerBus != controllerBus) {
                     zero.addTerms(createReactiveTerms(otherControllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters).stream()
-                            .map(term -> term.multiply(qPercent))
+                            .map(term -> term.multiply(controllerBus::getRemoteControlReactivePercent))
                             .collect(Collectors.toList()));
                 }
             }

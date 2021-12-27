@@ -32,6 +32,9 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     private void updateVoltageControl(VoltageControl voltageControl) {
+        // ensure reactive keys are up-to-date
+        voltageControl.updateReactiveKeys();
+
         LfBus controlledBus = voltageControl.getControlledBus();
         Set<LfBus> controllerBuses = voltageControl.getControllerBuses();
 
