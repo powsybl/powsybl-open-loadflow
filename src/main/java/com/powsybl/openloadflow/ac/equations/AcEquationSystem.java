@@ -127,9 +127,10 @@ public final class AcEquationSystem {
     }
 
     static void updateRemoteVoltageControlEquations(VoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        List<LfBus> enabledControllerBuses = new ArrayList<>(voltageControl.getControllerBuses().size());
-        List<LfBus> disabledControllerBuses = new ArrayList<>(voltageControl.getControllerBuses().size());
-        for (LfBus controllerBus : voltageControl.getControllerBuses()) {
+        Set<LfBus> controllerBuses = voltageControl.getControllerBuses();
+        List<LfBus> enabledControllerBuses = new ArrayList<>(controllerBuses.size());
+        List<LfBus> disabledControllerBuses = new ArrayList<>(controllerBuses.size());
+        for (LfBus controllerBus : controllerBuses) {
             if (controllerBus.isVoltageControllerEnabled()) {
                 enabledControllerBuses.add(controllerBus);
             } else {
@@ -138,7 +139,8 @@ public final class AcEquationSystem {
         }
 
         // activate voltage control at controlled bus only if at least one controller bus is enabled
-        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(voltageControl.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V).orElseThrow();
+        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(voltageControl.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V)
+                .orElseThrow();
         vEq.setActive(!enabledControllerBuses.isEmpty());
 
         // deactivate reactive power distribution equation on all disabled (PQ) buses
@@ -148,7 +150,7 @@ public final class AcEquationSystem {
                     .setActive(false);
         }
 
-        // activate reactive power distribution equation at all enabled controller buses except one
+        // activate reactive power distribution equation at all enabled controller buses except one (first)
         for (int i = 0; i < enabledControllerBuses.size(); i++) {
             LfBus controllerBus = enabledControllerBuses.get(i);
             var qDistrEq = equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
@@ -198,6 +200,11 @@ public final class AcEquationSystem {
                                                                  EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                  AcEquationSystemCreationParameters creationParameters) {
         for (LfBus controllerBus : controllerBuses) {
+            // reactive power at controller bus i (supposing this voltage control is enabled)
+            // q_i = qPercent_i * sum_j(q_j) where j are all the voltage controller buses
+            // 0 = qPercent_i * sum_j(q_j) - q_i
+            // which can be rewritten in a more simple way
+            // 0 = (qPercent_i - 1) * q_i + qPercent_i * sum_j(q_j) where j are all the voltage controller buses except i
             Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
                     .addTerms(createReactiveTerms(controllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters).stream()
                                 .map(term -> term.multiply(() -> controllerBus.getRemoteControlReactivePercent() - 1))
