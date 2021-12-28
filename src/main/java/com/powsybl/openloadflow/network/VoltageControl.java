@@ -82,7 +82,7 @@ public class VoltageControl {
         double reactiveKeysSum = Arrays.stream(reactiveKeys).sum();
         for (int i = 0; i < controllerBuses.size(); i++) {
             LfBus controllerBus = controllerBuses.get(i);
-            controllerBus.setRemoteControlReactivePercent(reactiveKeys[i] / reactiveKeysSum);
+            controllerBus.setRemoteVoltageControlReactivePercent(reactiveKeysSum == 0 ? 0 : reactiveKeys[i] / reactiveKeysSum);
         }
     }
 

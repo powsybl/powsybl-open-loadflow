@@ -128,10 +128,10 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     private static double getReactivePowerDistributionTarget(LfNetwork network, int busNum) {
         LfBus controllerBus = network.getBus(busNum);
-        double target = (controllerBus.getRemoteControlReactivePercent() - 1) * controllerBus.getTargetQ();
+        double target = (controllerBus.getRemoteVoltageControlReactivePercent() - 1) * controllerBus.getTargetQ();
         for (LfBus otherControllerBus : controllerBus.getVoltageControl().orElseThrow().getControllerBuses()) {
             if (otherControllerBus != controllerBus) {
-                target += controllerBus.getRemoteControlReactivePercent() * otherControllerBus.getTargetQ();
+                target += controllerBus.getRemoteVoltageControlReactivePercent() * otherControllerBus.getTargetQ();
             }
         }
         return target;

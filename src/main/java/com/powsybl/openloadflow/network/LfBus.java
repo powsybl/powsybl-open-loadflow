@@ -153,7 +153,7 @@ public interface LfBus extends LfElement {
      */
     Map<LfBus, List<LfBranch>> findNeighbors();
 
-    double getRemoteControlReactivePercent();
+    double getRemoteVoltageControlReactivePercent();
 
-    void setRemoteControlReactivePercent(double key);
+    void setRemoteVoltageControlReactivePercent(double remoteVoltageControlReactivePercent);
 }
