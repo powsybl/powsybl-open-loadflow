@@ -13,7 +13,6 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import net.jafama.FastMath;
-import org.apache.commons.compress.utils.Lists;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
@@ -412,7 +411,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (!minImpedance) {
             // Merge the discrete voltage control in each zero impedance connected set
             List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.createZeroImpedanceSubGraph()).connectedSets();
-            connectedSets.forEach(set -> mergeVoltageControls(set, transformerVoltageControl));
+            connectedSets.forEach(connectedSet -> mergeVoltageControls(connectedSet, transformerVoltageControl));
         }
     }
 
@@ -589,20 +588,23 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             return;
         }
 
-        Optional<DiscreteVoltageControl> candidateDiscreteVoltageControl = controlledBus.getDiscreteVoltageControl()
-            .filter(dvc -> controlledBus.isDiscreteVoltageControlled());
-        if (candidateDiscreteVoltageControl.isPresent()) {
+        double regulatingTerminalNominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
+        double targetValue = rtc.getTargetV() / regulatingTerminalNominalV;
+
+        controlledBus.getDiscreteVoltageControl().ifPresentOrElse(vc -> {
             LOGGER.trace("Controlled bus {} already has a transformer voltage control: a shared control is created", controlledBus.getId());
-            candidateDiscreteVoltageControl.get().addController(controllerBranch);
-            controllerBranch.setDiscreteVoltageControl(candidateDiscreteVoltageControl.get());
-        } else {
-            double regulatingTerminalNominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-            DiscreteVoltageControl discreteVoltageControl = new DiscreteVoltageControl(controlledBus,
-                DiscreteVoltageControl.Mode.VOLTAGE, rtc.getTargetV() / regulatingTerminalNominalV);
-            discreteVoltageControl.addController(controllerBranch);
-            controllerBranch.setDiscreteVoltageControl(discreteVoltageControl);
-            controlledBus.setDiscreteVoltageControl(discreteVoltageControl);
-        }
+            if (FastMath.abs(vc.getTargetValue() - targetValue) > TARGET_V_EPSILON) {
+                LOGGER.warn("Controlled bus {} already has a transformer voltage control with a different target voltage: {} and {}",
+                        controlledBus.getId(), vc.getTargetValue(), targetValue);
+            }
+            vc.addController(controllerBranch);
+            controllerBranch.setDiscreteVoltageControl(vc);
+        }, () -> {
+                DiscreteVoltageControl discreteVoltageControl = new DiscreteVoltageControl(controlledBus, DiscreteVoltageControl.Mode.VOLTAGE, targetValue);
+                discreteVoltageControl.addController(controllerBranch);
+                controllerBranch.setDiscreteVoltageControl(discreteVoltageControl);
+                controlledBus.setDiscreteVoltageControl(discreteVoltageControl);
+            });
     }
 
     private static LfBus getLfBus(Terminal terminal, LfNetwork lfNetwork, boolean breakers) {
@@ -611,36 +613,35 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static LfNetwork create(int numCC, int numSC, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
-        // NameSlackBusSelector is only available for the {CC0,SC0} network so far
-        SlackBusSelector selector = (numCC != 0 || numSC != 0) && parameters.getSlackBusSelector() instanceof NameSlackBusSelector ?
-            new MostMeshedSlackBusSelector() : parameters.getSlackBusSelector();
-
-        LfNetwork lfNetwork = new LfNetwork(numCC, numSC, selector);
+        LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector());
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
-        List<LfNetworkLoaderPostProcessor> postProcessors = Lists.newArrayList(ServiceLoader.load(LfNetworkLoaderPostProcessor.class, LfNetworkLoaderImpl.class.getClassLoader()).iterator());
+        List<LfNetworkLoaderPostProcessor> postProcessors = LfNetworkLoaderPostProcessor.findAll();
 
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report, postProcessors);
         createBranches(lfBuses, lfNetwork, loadingContext, report, parameters, postProcessors);
-        createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isVoltagePerReactivePowerControl());
 
-        if (parameters.isReactivePowerRemoteControl()) {
-            createReactivePowerControls(lfNetwork, lfBuses);
-        }
-
-        if (parameters.isTransformerVoltageControl()) {
-            // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)
-            createDiscreteVoltageControls(lfNetwork, parameters.isBreakers(), loadingContext);
+        if (!parameters.isDc()) {
+            createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isVoltagePerReactivePowerControl());
+            if (parameters.isReactivePowerRemoteControl()) {
+                createReactivePowerControls(lfNetwork, lfBuses);
+            }
+            if (parameters.isTransformerVoltageControl()) {
+                // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)
+                createDiscreteVoltageControls(lfNetwork, parameters.isBreakers(), loadingContext);
+            }
         }
 
         if (parameters.isBreakers()) {
             createSwitches(switches, lfNetwork, postProcessors);
         }
 
-        // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
-        fixAllVoltageControls(lfNetwork, parameters.isMinImpedance(), parameters.isTransformerVoltageControl());
+        if (!parameters.isDc()) {
+            // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
+            fixAllVoltageControls(lfNetwork, parameters.isMinImpedance(), parameters.isTransformerVoltageControl());
+        }
 
         if (!parameters.isMinImpedance()) {
             // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph

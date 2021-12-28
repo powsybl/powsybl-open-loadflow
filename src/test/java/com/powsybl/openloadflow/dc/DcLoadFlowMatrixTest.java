@@ -57,23 +57,20 @@ class DcLoadFlowMatrixTest {
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 
-        VariableSet<DcVariableType> variableSet = new VariableSet<>();
         DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(true, false, false, true);
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(mainNetwork, variableSet, creationParameters);
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(mainNetwork, creationParameters);
 
         for (LfBus b : mainNetwork.getBuses()) {
-            equationSystem.createEquation(b.getNum(), DcEquationType.BUS_P);
-            variableSet.getVariable(b.getNum(), DcVariableType.BUS_PHI);
+            equationSystem.createEquation(b.getNum(), DcEquationType.BUS_TARGET_P);
+            equationSystem.getVariableSet().getVariable(b.getNum(), DcVariableType.BUS_PHI);
         }
 
-        double[] x = DcLoadFlowEngine.createStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
+        DcLoadFlowEngine.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
         try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
             ps.println("X=");
-            Matrix.createFromColumn(x, new DenseMatrixFactory())
+            Matrix.createFromColumn(equationSystem.getStateVector().get(), new DenseMatrixFactory())
                     .print(ps, equationSystem.getColumnNames(mainNetwork), null);
         }
-
-        equationSystem.updateEquations(x);
 
         Matrix j = new JacobianMatrix<>(equationSystem, matrixFactory).getMatrix();
         try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
@@ -109,7 +106,7 @@ class DcLoadFlowMatrixTest {
         lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         mainNetwork = lfNetworks.get(0);
 
-        equationSystem = DcEquationSystem.create(mainNetwork, variableSet, creationParameters);
+        equationSystem = DcEquationSystem.create(mainNetwork, creationParameters);
 
         j = new JacobianMatrix<>(equationSystem, matrixFactory).getMatrix();
 

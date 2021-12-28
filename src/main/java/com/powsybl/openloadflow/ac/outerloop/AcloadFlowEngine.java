@@ -34,8 +34,6 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     private final AcLoadFlowParameters parameters;
 
-    private VariableSet<AcVariableType> variableSet;
-
     private EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
     private JacobianMatrix<AcVariableType, AcEquationType> j;
@@ -55,10 +53,6 @@ public class AcloadFlowEngine implements AutoCloseable {
         return parameters;
     }
 
-    public VariableSet<AcVariableType> getVariableSet() {
-        return variableSet;
-    }
-
     public EquationSystem<AcVariableType, AcEquationType> getEquationSystem() {
         return equationSystem;
     }
@@ -67,7 +61,7 @@ public class AcloadFlowEngine implements AutoCloseable {
         if (lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
             for (LfBus bus : network.getBuses()) {
                 if (bus.isVoltageControllerEnabled()) {
-                    Equation<AcVariableType, AcEquationType> q = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_Q);
+                    Equation<AcVariableType, AcEquationType> q = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q);
                     bus.setCalculatedQ(q.eval());
                 } else {
                     bus.setCalculatedQ(Double.NaN);
@@ -83,7 +77,7 @@ public class AcloadFlowEngine implements AutoCloseable {
         private final Map<String, MutableInt> outerLoopIterationByType = new HashMap<>();
     }
 
-    private void runOuterLoop(OuterLoop outerLoop, LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet,
+    private void runOuterLoop(OuterLoop outerLoop, LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                               NewtonRaphson newtonRaphson, RunningContext runningContext, Reporter reporter) {
         Reporter olReporter = reporter.createSubReporter("OuterLoop", "Outer loop ${outerLoopType}", "outerLoopType", outerLoop.getType());
 
@@ -160,48 +154,44 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     public static void initTarget(Equation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
-            case BUS_P:
-                targets[equation.getColumn()] = network.getBus(equation.getNum()).getTargetP();
+            case BUS_TARGET_P:
+                targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getTargetP();
                 break;
 
-            case BUS_Q:
-                targets[equation.getColumn()] = network.getBus(equation.getNum()).getTargetQ();
+            case BUS_TARGET_Q:
+                targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getTargetQ();
                 break;
 
-            case BUS_V:
-                targets[equation.getColumn()] = getBusTargetV(network.getBus(equation.getNum()));
+            case BUS_TARGET_V:
+                targets[equation.getColumn()] = getBusTargetV(network.getBus(equation.getElementNum()));
                 break;
 
-            case BUS_V_SLOPE:
-                targets[equation.getColumn()] = createBusWithSlopeTarget(network.getBus(equation.getNum()), equation.getData());
+            case BUS_TARGET_V_WITH_SLOPE:
+                targets[equation.getColumn()] = createBusWithSlopeTarget(network.getBus(equation.getElementNum()), equation.getData());
                 break;
 
-            case BUS_PHI:
+            case BUS_TARGET_PHI:
                 targets[equation.getColumn()] = 0;
                 break;
 
-            case BRANCH_P:
-                targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getNum()), DiscretePhaseControl.Unit.MW);
+            case BRANCH_TARGET_P:
+                targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getElementNum()), DiscretePhaseControl.Unit.MW);
                 break;
 
-            case BRANCH_I:
-                targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getNum()), DiscretePhaseControl.Unit.A);
+            case BRANCH_TARGET_Q:
+                targets[equation.getColumn()] = getReactivePowerControlTarget(network.getBranch(equation.getElementNum()));
                 break;
 
-            case BRANCH_Q:
-                targets[equation.getColumn()] = getReactivePowerControlTarget(network.getBranch(equation.getNum()));
+            case BRANCH_TARGET_ALPHA1:
+                targets[equation.getColumn()] = network.getBranch(equation.getElementNum()).getPiModel().getA1();
                 break;
 
-            case BRANCH_ALPHA1:
-                targets[equation.getColumn()] = network.getBranch(equation.getNum()).getPiModel().getA1();
+            case BRANCH_TARGET_RHO1:
+                targets[equation.getColumn()] = network.getBranch(equation.getElementNum()).getPiModel().getR1();
                 break;
 
-            case BRANCH_RHO1:
-                targets[equation.getColumn()] = network.getBranch(equation.getNum()).getPiModel().getR1();
-                break;
-
-            case ZERO_Q:
-                targets[equation.getColumn()] = getReactivePowerDistributionTarget(network, equation.getNum(), equation.getData());
+            case DISTR_Q:
+                targets[equation.getColumn()] = getReactivePowerDistributionTarget(network, equation.getElementNum(), equation.getData());
                 break;
 
             case ZERO_V:
@@ -209,11 +199,11 @@ public class AcloadFlowEngine implements AutoCloseable {
                 break;
 
             case ZERO_PHI:
-                targets[equation.getColumn()] = LfBranch.getA(network.getBranch(equation.getNum()));
+                targets[equation.getColumn()] = LfBranch.getA(network.getBranch(equation.getElementNum()));
                 break;
 
-            case ZERO_RHO1:
-                targets[equation.getColumn()] = getRho1DistributionTarget(network, equation.getNum(), equation.getData());
+            case DISTR_RHO:
+                targets[equation.getColumn()] = getRho1DistributionTarget(network, equation.getElementNum(), equation.getData());
                 break;
 
             default:
@@ -231,8 +221,7 @@ public class AcloadFlowEngine implements AutoCloseable {
         if (equationSystem == null) {
             LOGGER.info("Start AC loadflow on network {}", network);
 
-            variableSet = new VariableSet<>();
-            equationSystem = AcEquationSystem.create(network, variableSet, parameters.getNetworkParameters(), parameters.getEquationSystemCreationParameters());
+            equationSystem = AcEquationSystem.create(network, parameters.getNetworkParameters(), parameters.getEquationSystemCreationParameters());
             j = new JacobianMatrix<>(equationSystem, parameters.getMatrixFactory());
             targetVector = new TargetVector<>(network, equationSystem, AcloadFlowEngine::initTarget);
         } else {
@@ -240,8 +229,7 @@ public class AcloadFlowEngine implements AutoCloseable {
         }
 
         RunningContext runningContext = new RunningContext();
-        NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getNetworkParameters(), parameters.getNewtonRaphsonParameters(),
-                                                        parameters.getMatrixFactory(), equationSystem, j, targetVector);
+        NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getNewtonRaphsonParameters(), equationSystem, j, targetVector);
 
         // run initial Newton-Raphson
         runningContext.lastNrResult = newtonRaphson.run(reporter);
@@ -262,7 +250,7 @@ public class AcloadFlowEngine implements AutoCloseable {
 
                 // outer loops are nested: inner most loop first in the list, outer most loop last
                 for (OuterLoop outerLoop : parameters.getOuterLoops()) {
-                    runOuterLoop(outerLoop, network, equationSystem, variableSet, newtonRaphson, runningContext, reporter);
+                    runOuterLoop(outerLoop, network, equationSystem, newtonRaphson, runningContext, reporter);
 
                     // continue with next outer loop only if last Newton-Raphson succeed
                     if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED) {

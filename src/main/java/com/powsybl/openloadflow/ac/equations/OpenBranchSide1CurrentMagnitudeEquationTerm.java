@@ -25,10 +25,6 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     private final Variable<AcVariableType> ph2Var;
 
-    private double i2;
-
-    private double di2dv2;
-
     public OpenBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                        boolean deriveA1, boolean deriveR1) {
         super(branch, AcVariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
@@ -36,38 +32,60 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
         ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
     }
 
-    @Override
-    public void update(double[] x) {
-        Objects.requireNonNull(x);
-        double v2 = x[v2Var.getRow()];
-        double ph2 = x[ph2Var.getRow()];
-        double w2 = R2 * v2;
-        double cosPh2 = FastMath.cos(ph2);
-        double sinPh2 = FastMath.sin(ph2);
+    private double v2() {
+        return stateVector.get(v2Var.getRow());
+    }
 
-        double gres = g2 + (y * y * g1 + (b1 * b1 + g1 * g1) * y * sinKsi) / shunt;
-        double bres = b2 + (y * y * b1 - (b1 * b1 + g1 * g1) * y * cosKsi) / shunt;
+    private double ph2() {
+        return stateVector.get(ph2Var.getRow());
+    }
 
-        double reI2 = R2 * w2 * (gres * cosPh2 - bres * sinPh2);
-        double imI2 = R2 * w2 * (gres * sinPh2 + bres * cosPh2);
-        i2 = FastMath.hypot(reI2, imI2);
+    private double gres(double shunt) {
+        return g2 + (y * y * g1 + (b1 * b1 + g1 * g1) * y * FastMath.sin(ksi)) / shunt;
+    }
 
-        double dreI2dv2 = R2 * R2 * (gres * cosPh2 - bres * sinPh2);
+    private double bres(double shunt) {
+        return b2 + (y * y * b1 - (b1 * b1 + g1 * g1) * y * FastMath.cos(ksi)) / shunt;
+    }
 
-        double dimI2dv2 = R2 * R2 * (gres * sinPh2 + bres * cosPh2);
-        di2dv2 = (reI2 * dreI2dv2 + imI2 * dimI2dv2) / i2;
+    private double reI2() {
+        double shunt = shunt();
+        return R2 * R2 * v2() * (gres(shunt) * FastMath.cos(ph2()) - bres(shunt) * FastMath.sin(ph2()));
+    }
+
+    private double imI2() {
+        double shunt = shunt();
+        return R2 * R2 * v2() * (gres(shunt) * FastMath.sin(ph2()) + bres(shunt) * FastMath.cos(ph2()));
+    }
+
+    private double i2() {
+        return FastMath.hypot(reI2(), imI2());
+    }
+
+    private double dreI2dv2() {
+        double shunt = shunt();
+        return R2 * R2 * (gres(shunt) * FastMath.cos(ph2()) - bres(shunt) * FastMath.sin(ph2()));
+    }
+
+    private double dimI2dv2() {
+        double shunt = shunt();
+        return R2 * R2 * (gres(shunt) * FastMath.sin(ph2()) + bres(shunt) * FastMath.cos(ph2()));
+    }
+
+    private double di2dv2() {
+        return (reI2() * dreI2dv2() + imI2() * dimI2dv2()) / i2();
     }
 
     @Override
     public double eval() {
-        return i2;
+        return i2();
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v2Var)) {
-            return di2dv2;
+            return di2dv2();
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

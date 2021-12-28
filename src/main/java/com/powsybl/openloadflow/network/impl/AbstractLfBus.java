@@ -31,7 +31,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean slack = false;
 
-    protected Evaluable v;
+    protected double v;
+
+    protected Evaluable calculatedV = NAN;
 
     protected double angle;
 
@@ -55,7 +57,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfShunt> shunts = new ArrayList<>();
 
-    protected LfLoads lfLoads = new LfLoads(network);
+    protected final LfLoads lfLoads = new LfLoads();
 
     protected boolean ensurePowerFactorConstantByLoad = false;
 
@@ -71,15 +73,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected DiscreteVoltageControl discreteVoltageControl;
 
-    protected boolean disabled = false;
-
     protected Evaluable p = NAN;
 
     protected Evaluable q = NAN;
 
     protected AbstractLfBus(LfNetwork network, double v, double angle) {
         super(network);
-        this.v = () -> v / getNominalV(); // this will be replaced by an equation term once the equationSystem is created
+        this.v = v;
         this.angle = angle;
     }
 
@@ -208,7 +208,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         // note that batteries are out of the slack distribution.
         batteries.add(battery);
         loadTargetP += battery.getP0();
-        // initialLoadTargetP += battery.getP0();
         loadTargetQ += battery.getQ0();
     }
 
@@ -361,13 +360,23 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public Evaluable getV() {
-        return v;
+    public double getV() {
+        return v / getNominalV();
     }
 
     @Override
-    public void setV(Evaluable v) {
-        this.v = v;
+    public void setV(double v) {
+        this.v = v * getNominalV();
+    }
+
+    @Override
+    public Evaluable getCalculatedV() {
+        return calculatedV;
+    }
+
+    @Override
+    public void setCalculatedV(Evaluable calculatedV) {
+        this.calculatedV = Objects.requireNonNull(calculatedV);
     }
 
     @Override
@@ -415,7 +424,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         branches.add(Objects.requireNonNull(branch));
     }
 
-    private double dispatchQ(List<LfGenerator> generatorsThatControlVoltage, boolean reactiveLimits, double qToDispatch) {
+    private static double dispatchQ(List<LfGenerator> generatorsThatControlVoltage, boolean reactiveLimits, double qToDispatch) {
         double residueQ = 0;
         double calculatedQ = qToDispatch / generatorsThatControlVoltage.size();
         Iterator<LfGenerator> itG = generatorsThatControlVoltage.iterator();
@@ -497,13 +506,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public boolean isDisabled() {
-        return disabled;
-    }
-
-    @Override
     public void setDisabled(boolean disabled) {
-        this.disabled = disabled;
+        super.setDisabled(disabled);
+        for (LfShunt shunt : shunts) {
+            shunt.setDisabled(disabled);
+        }
     }
 
     @Override
@@ -528,8 +535,20 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public BusResults createBusResult() {
-        double scale = getNominalV();
-        return new BusResults(getVoltageLevelId(), getId(), getV().eval() * scale, getAngle());
+        return new BusResults(getVoltageLevelId(), getId(), v, getAngle());
+    }
+
+    @Override
+    public Map<LfBus, List<LfBranch>> findNeighbors() {
+        Map<LfBus, List<LfBranch>> neighbors = new LinkedHashMap<>(branches.size());
+        for (LfBranch branch : branches) {
+            if (branch.isConnectedAtBothSides()) {
+                LfBus otherBus = branch.getBus1() == this ? branch.getBus2() : branch.getBus1();
+                neighbors.computeIfAbsent(otherBus, k -> new ArrayList<>())
+                        .add(branch);
+            }
+        }
+        return neighbors;
     }
 
     @Override

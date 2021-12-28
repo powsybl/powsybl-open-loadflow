@@ -63,11 +63,9 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private final PiModel piModel;
 
-    protected DiscretePhaseControl phaseControl;
+    protected DiscretePhaseControl discretePhaseControl;
 
     protected DiscreteVoltageControl discreteVoltageControl;
-
-    protected boolean disabled = false;
 
     protected boolean spanningTreeEdge = false;
 
@@ -139,27 +137,27 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     @Override
     public Optional<DiscretePhaseControl> getDiscretePhaseControl() {
-        return Optional.ofNullable(phaseControl);
+        return Optional.ofNullable(discretePhaseControl);
     }
 
     @Override
     public void setDiscretePhaseControl(DiscretePhaseControl discretePhaseControl) {
-        this.phaseControl = discretePhaseControl;
+        this.discretePhaseControl = discretePhaseControl;
     }
 
     @Override
     public boolean isPhaseController() {
-        return phaseControl != null && phaseControl.getController() == this;
+        return discretePhaseControl != null && discretePhaseControl.getController() == this;
     }
 
     @Override
     public boolean isPhaseControlled() {
-        return phaseControl != null && phaseControl.getControlled() == this;
+        return discretePhaseControl != null && discretePhaseControl.getControlled() == this;
     }
 
     @Override
     public boolean isPhaseControlled(DiscretePhaseControl.ControlledSide controlledSide) {
-        return isPhaseControlled() && phaseControl.getControlledSide() == controlledSide;
+        return isPhaseControlled() && discretePhaseControl.getControlledSide() == controlledSide;
     }
 
     protected void updateTapPosition(PhaseTapChanger ptc) {
@@ -173,18 +171,18 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     protected void checkTargetDeadband(double p) {
-        double distance = Math.abs(p - phaseControl.getTargetValue()); // in per unit system
-        if (distance > phaseControl.getTargetDeadband() / 2) {
+        double distance = Math.abs(p - discretePhaseControl.getTargetValue()); // in per unit system
+        if (distance > discretePhaseControl.getTargetDeadband() / 2) {
             LOGGER.warn("The active power on side {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
-                    phaseControl.getControlledSide(), getId(), p,
-                    phaseControl.getTargetValue() * PerUnit.SB, phaseControl.getTargetDeadband() / 2 * PerUnit.SB);
+                    discretePhaseControl.getControlledSide(), getId(), p,
+                    discretePhaseControl.getTargetValue() * PerUnit.SB, discretePhaseControl.getTargetDeadband() / 2 * PerUnit.SB);
         }
     }
 
     protected void checkTargetDeadband(RatioTapChanger rtc) {
         if (rtc.getTargetDeadband() != 0) {
             double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-            double v = discreteVoltageControl.getControlled().getV().eval();
+            double v = discreteVoltageControl.getControlled().getV();
             double distance = Math.abs(v - discreteVoltageControl.getTargetValue()); // in per unit system
             if (distance > rtc.getTargetDeadband() / 2) {
                 LOGGER.warn("The voltage on bus {} ({} kV) is out of the target value ({} kV) +/- deadband/2 ({} kV)",
@@ -219,16 +217,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl) {
         this.discreteVoltageControl = discreteVoltageControl;
-    }
-
-    @Override
-    public boolean isDisabled() {
-        return disabled;
-    }
-
-    @Override
-    public void setDisabled(boolean disabled) {
-        this.disabled = disabled;
     }
 
     public double computeApparentPower1() {
@@ -271,5 +259,10 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public void setReactivePowerControl(ReactivePowerControl pReactivePowerControl) {
         this.reactivePowerControl = Objects.requireNonNull(pReactivePowerControl);
+    }
+
+    @Override
+    public boolean isConnectedAtBothSides() {
+        return bus1 != null && bus2 != null;
     }
 }

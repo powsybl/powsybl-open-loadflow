@@ -212,6 +212,64 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void test4busesOpenPhaseShifterOnPower() {
+        Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        network.getBranch("l23").getTerminal1().disconnect();
+
+        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream()
+                .filter(branch -> branch.getId().equals("l14"))
+                .map(AcSensitivityAnalysisTest::createBranchFlow)
+                .map(branchFlow -> new BranchFlowPerPSTAngle(branchFlow, new PhaseTapChangerAngle("l23", "l23", "l23"))).collect(Collectors.toList());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+                        sensiParameters, LocalComputationManager.getDefault()).join();
+
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(0, getValue(result, "l23", "l14"), LoadFlowAssert.DELTA_ANGLE);
+
+        network.getBranch("l23").getTerminal1().connect();
+        network.getBranch("l23").getTerminal2().disconnect();
+
+        SensitivityAnalysisResult result2 = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+                        sensiParameters, LocalComputationManager.getDefault()).join();
+
+        assertEquals(1, result2.getSensitivityValues().size());
+        assertEquals(0, getValue(result2, "l23", "l14"), LoadFlowAssert.DELTA_ANGLE);
+    }
+
+    @Test
+    void test4busesOpenPhaseShifterOnCurrent() {
+        Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        network.getBranch("l23").getTerminal1().disconnect();
+
+        SensitivityFactorsProvider factorsProvider = n -> network.getBranchStream()
+                .filter(branch -> branch.getId().equals("l14"))
+                .map(AcSensitivityAnalysisTest::createBranchIntensity)
+                .map(branchIntensity -> new BranchIntensityPerPSTAngle(branchIntensity, new PhaseTapChangerAngle("l23", "l23", "l23"))).collect(Collectors.toList());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+                        sensiParameters, LocalComputationManager.getDefault()).join();
+
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(0, getValue(result, "l23", "l14"), LoadFlowAssert.DELTA_ANGLE);
+
+        network.getBranch("l23").getTerminal1().connect();
+        network.getBranch("l23").getTerminal2().disconnect();
+
+        SensitivityAnalysisResult result2 = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+                        sensiParameters, LocalComputationManager.getDefault()).join();
+
+        assertEquals(1, result2.getSensitivityValues().size());
+        assertEquals(0, getValue(result2, "l23", "l14"), LoadFlowAssert.DELTA_ANGLE);
+    }
+
+    @Test
     void test4busesFunctionReference() {
         Network network = FourBusNetworkFactory.create();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);

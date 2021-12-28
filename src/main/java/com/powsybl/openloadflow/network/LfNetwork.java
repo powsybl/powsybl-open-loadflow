@@ -28,6 +28,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -87,7 +88,9 @@ public class LfNetwork {
 
     public void updateSlack() {
         if (slackBus == null) {
-            slackBus = slackBusSelector.select(busesByIndex);
+            SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex);
+            slackBus = selectedSlackBus.getBus();
+            LOGGER.info("Network {}, slack bus is '{}' (method='{}')", this, slackBus.getId(), selectedSlackBus.getSelectionMethod());
             slackBus.setSlack(true);
         }
     }
@@ -202,9 +205,8 @@ public class LfNetwork {
                 }
             }
         });
-        Double v = bus.getV().eval();
-        if (!Double.isNaN(v)) {
-            jsonGenerator.writeNumberField("v", v);
+        if (!Double.isNaN(bus.getV())) {
+            jsonGenerator.writeNumberField("v", bus.getV());
         }
         if (!Double.isNaN(bus.getAngle())) {
             jsonGenerator.writeNumberField("angle", bus.getAngle());
@@ -466,10 +468,16 @@ public class LfNetwork {
      * @return the zero-impedance subgraph
      */
     public Graph<LfBus, LfBranch> createZeroImpedanceSubGraph() {
+        return createSubGraph(branch -> LfNetwork.isZeroImpedanceBranch(branch)
+                && branch.getBus1() != null && branch.getBus2() != null);
+    }
+
+    public Graph<LfBus, LfBranch> createSubGraph(Predicate<LfBranch> branchFilter) {
+        Objects.requireNonNull(branchFilter);
+
         List<LfBranch> zeroImpedanceBranches = getBranches().stream()
-            .filter(LfNetwork::isZeroImpedanceBranch)
-            .filter(b -> b.getBus1() != null && b.getBus2() != null)
-            .collect(Collectors.toList());
+                .filter(branchFilter)
+                .collect(Collectors.toList());
 
         Graph<LfBus, LfBranch> subGraph = new Pseudograph<>(LfBranch.class);
         for (LfBranch branch : zeroImpedanceBranches) {
@@ -478,7 +486,7 @@ public class LfNetwork {
             subGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
         }
 
-        return  subGraph;
+        return subGraph;
     }
 
     public static boolean isZeroImpedanceBranch(LfBranch branch) {

@@ -15,6 +15,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
@@ -186,7 +187,7 @@ public abstract class AbstractSecurityAnalysis {
     protected void detectBusViolations(LfBus bus, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
         // detect violation limits on a bus
         double scale = bus.getNominalV();
-        double busV = bus.getV().eval();
+        double busV = bus.getV();
         if (!Double.isNaN(bus.getHighVoltageLimit()) && busV > bus.getHighVoltageLimit()) {
             LimitViolation limitViolation1 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit() * scale,
                     (float) 1., busV * scale);
@@ -251,9 +252,9 @@ public abstract class AbstractSecurityAnalysis {
     }
 
     private ThreeWindingsTransformerResult createThreeWindingsTransformerResult(String threeWindingsTransformerId, LfNetwork network) {
-        LfBranch leg1 = network.getBranchById(threeWindingsTransformerId + "_leg_1");
-        LfBranch leg2 = network.getBranchById(threeWindingsTransformerId + "_leg_2");
-        LfBranch leg3 = network.getBranchById(threeWindingsTransformerId + "_leg_3");
+        LfBranch leg1 = network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 1));
+        LfBranch leg2 = network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 2));
+        LfBranch leg3 = network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 3));
         double i1Base = PerUnit.ib(leg1.getBus1().getNominalV());
         double i2Base = PerUnit.ib(leg2.getBus1().getNominalV());
         double i3Base = PerUnit.ib(leg3.getBus1().getNominalV());

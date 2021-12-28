@@ -47,13 +47,13 @@ public class NetworkSlackBusSelector implements SlackBusSelector {
     }
 
     @Override
-    public LfBus select(List<LfBus> buses) {
+    public SelectedSlackBus select(List<LfBus> buses) {
         List<LfBus> slackBuses = buses.stream().filter(bus -> !bus.isFictitious() && slackBusIds.contains(bus.getId())).collect(Collectors.toList());
         if (slackBuses.isEmpty()) {
             // fallback to automatic selection
             return fallbackSelector.select(buses);
         } else if (slackBuses.size() == 1) {
-            return slackBuses.get(0);
+            return new SelectedSlackBus(slackBuses.get(0), "Network extension bus");
         } else {
             // fallback to automatic selection among slack buses
             return fallbackSelector.select(slackBuses);

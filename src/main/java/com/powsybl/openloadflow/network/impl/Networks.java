@@ -34,7 +34,7 @@ public final class Networks {
         for (ShuntCompensator sc : network.getShuntCompensators()) {
             sc.getTerminal().setQ(Double.NaN);
         }
-        for (Branch b : network.getBranches()) {
+        for (Branch<?> b : network.getBranches()) {
             b.getTerminal1().setP(Double.NaN);
             b.getTerminal1().setQ(Double.NaN);
             b.getTerminal2().setP(Double.NaN);
@@ -42,34 +42,34 @@ public final class Networks {
         }
     }
 
-    private static double getDoubleProperty(Identifiable identifiable, String name) {
+    private static double getDoubleProperty(Identifiable<?> identifiable, String name) {
         Objects.requireNonNull(identifiable);
         String value = identifiable.getProperty(name);
         return value != null ? Double.parseDouble(value) : Double.NaN;
     }
 
-    private static void setDoubleProperty(Identifiable identifiable, String name, double value) {
+    private static void setDoubleProperty(Identifiable<?> identifiable, String name, double value) {
         Objects.requireNonNull(identifiable);
         if (Double.isNaN(value)) {
-            identifiable.getProperties().remove(name);
+            identifiable.removeProperty(name);
         } else {
             identifiable.setProperty(name, Double.toString(value));
         }
     }
 
-    public static double getPropertyV(Identifiable identifiable) {
+    public static double getPropertyV(Identifiable<?> identifiable) {
         return getDoubleProperty(identifiable, PROPERTY_V);
     }
 
-    public static void setPropertyV(Identifiable identifiable, double v) {
+    public static void setPropertyV(Identifiable<?> identifiable, double v) {
         setDoubleProperty(identifiable, PROPERTY_V, v);
     }
 
-    public static double getPropertyAngle(Identifiable identifiable) {
+    public static double getPropertyAngle(Identifiable<?> identifiable) {
         return getDoubleProperty(identifiable, PROPERTY_ANGLE);
     }
 
-    public static void setPropertyAngle(Identifiable identifiable, double angle) {
+    public static void setPropertyAngle(Identifiable<?> identifiable, double angle) {
         setDoubleProperty(identifiable, PROPERTY_ANGLE, angle);
     }
 

@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BusResults;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -85,9 +86,13 @@ public interface LfBus extends LfElement {
 
     double getMaxQ();
 
-    Evaluable getV();
+    double getV();
 
-    void setV(Evaluable v);
+    void setV(double v);
+
+    Evaluable getCalculatedV();
+
+    void setCalculatedV(Evaluable calculatedV);
 
     double getAngle();
 
@@ -129,10 +134,6 @@ public interface LfBus extends LfElement {
 
     void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
 
-    boolean isDisabled();
-
-    void setDisabled(boolean disabled);
-
     void setP(Evaluable p);
 
     Evaluable getP();
@@ -146,4 +147,9 @@ public interface LfBus extends LfElement {
     }
 
     BusResults createBusResult();
+
+    /**
+     * Find bus + parallel branches neighbors.
+     */
+    Map<LfBus, List<LfBranch>> findNeighbors();
 }
