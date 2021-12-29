@@ -96,7 +96,7 @@ public final class AcEquationSystem {
             double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
             createBusWithSlopeEquation(bus, slope, networkParameters, equationSystem, vTerm, creationParameters);
         } else {
-            equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(vTerm).setActive(bus.isVoltageControllerEnabled());
+            equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(vTerm);
         }
     }
 
@@ -122,16 +122,18 @@ public final class AcEquationSystem {
                                                             AcEquationSystemCreationParameters creationParameters) {
         LfBus controlledBus = voltageControl.getControlledBus();
 
+        // create voltage equation at voltage controlled bus
+        EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(controlledBus.getNum(), AcVariableType.BUS_V).createTerm();
+        Equation<AcVariableType, AcEquationType> vEq = equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
+                .addTerm(vTerm);
+        controlledBus.setCalculatedV(vTerm);
+
         List<LfBus> controllerBuses = voltageControl.getControllerBuses().stream()
                 .filter(LfBus::isVoltageControllerEnabled)
                 .collect(Collectors.toList());
-        if (!controllerBuses.isEmpty()) {
-            // create voltage equation at voltage controlled bus
-            EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(controlledBus.getNum(), AcVariableType.BUS_V).createTerm();
-            Equation<AcVariableType, AcEquationType> vEq = equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
-                    .addTerm(vTerm);
-            controlledBus.setCalculatedV(vTerm);
-
+        if (controllerBuses.isEmpty()) {
+            vEq.setActive(false);
+        } else {
             // create reactive power distribution equations at voltage controller buses (except one)
             createReactivePowerDistributionEquations(controllerBuses, networkParameters, equationSystem, creationParameters);
         }
