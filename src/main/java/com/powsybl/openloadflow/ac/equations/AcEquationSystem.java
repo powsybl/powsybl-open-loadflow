@@ -342,11 +342,10 @@ public final class AcEquationSystem {
         // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
         Equation<AcVariableType, AcEquationType> eq = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE);
         eq.addTerm(vTerm);
-        List<EquationTerm<AcVariableType, AcEquationType>> controllerBusReactiveTerms = createReactiveTerms(bus, networkParameters, equationSystem.getVariableSet(), creationParameters);
-        eq.setData(new DistributionData(bus.getNum(), slope)); // for later use
-        for (EquationTerm<AcVariableType, AcEquationType> eqTerm : controllerBusReactiveTerms) {
-            eq.addTerm(eqTerm.multiply(slope));
-        }
+        eq.addTerms(createReactiveTerms(bus, networkParameters, equationSystem.getVariableSet(), creationParameters)
+                        .stream()
+                        .map(term -> term.multiply(slope))
+                        .collect(Collectors.toList()));
     }
 
     public static void createR1DistributionEquations(List<LfBranch> controllerBranches,
