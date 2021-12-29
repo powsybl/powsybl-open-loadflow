@@ -168,8 +168,8 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         generator.setTargetQ(10.);
         assertEquals(10., generator.getTargetQ(), 10E-3);
         assertEquals(LfGenerator.GeneratorControlType.VOLTAGE, generator.getGeneratorControlType());
-        generator.setGeneratorControlType(LfGenerator.GeneratorControlType.MONITORING_VOLTAGE);
-        assertEquals(LfGenerator.GeneratorControlType.MONITORING_VOLTAGE, generator.getGeneratorControlType());
+        generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+        assertEquals(LfGenerator.GeneratorControlType.OFF, generator.getGeneratorControlType());
     }
 
     @Test

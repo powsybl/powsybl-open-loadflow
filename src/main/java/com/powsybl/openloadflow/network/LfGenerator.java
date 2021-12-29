@@ -78,7 +78,7 @@ public interface LfGenerator {
     void setUserObject(Object userObject);
 
     enum GeneratorControlType {
-        OFF, REACTIVE_POWER, VOLTAGE, MONITORING_VOLTAGE
+        OFF, REACTIVE_POWER, VOLTAGE
     }
 
     GeneratorControlType getGeneratorControlType();

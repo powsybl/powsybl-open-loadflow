@@ -63,7 +63,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         for (LfBus controllerBus : lfBuses) {
 
             List<LfGenerator> voltageControlGenerators = controllerBus.getGenerators().stream()
-                    .filter(gen -> gen.hasVoltageControl() || gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)
+                    .filter(gen -> gen.hasVoltageControl())
                     .collect(Collectors.toList());
             if (!voltageControlGenerators.isEmpty()) {
 
