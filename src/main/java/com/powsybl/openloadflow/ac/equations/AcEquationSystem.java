@@ -340,12 +340,12 @@ public final class AcEquationSystem {
         // we only support one generator controlling voltage with a non zero slope at a bus.
         // equation is: V + slope * qSVC = targetV
         // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
-        Equation<AcVariableType, AcEquationType> eq = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE);
-        eq.addTerm(vTerm);
-        eq.addTerms(createReactiveTerms(bus, networkParameters, equationSystem.getVariableSet(), creationParameters)
-                        .stream()
-                        .map(term -> term.multiply(slope))
-                        .collect(Collectors.toList()));
+        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
+                .addTerm(vTerm)
+                .addTerms(createReactiveTerms(bus, networkParameters, equationSystem.getVariableSet(), creationParameters)
+                            .stream()
+                            .map(term -> term.multiply(slope))
+                            .collect(Collectors.toList()));
     }
 
     public static void createR1DistributionEquations(List<LfBranch> controllerBranches,
