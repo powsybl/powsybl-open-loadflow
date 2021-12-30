@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.DoubleSupplier;
 
 /**
  * An equation term, i.e part of the equation sum.
@@ -26,11 +27,15 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         private final EquationTerm<V, E> term;
 
-        private final double scalar;
+        private final DoubleSupplier scalarSupplier;
 
         MultiplyByScalarEquationTerm(EquationTerm<V, E> term, double scalar) {
+            this(term, () -> scalar);
+        }
+
+        MultiplyByScalarEquationTerm(EquationTerm<V, E> term, DoubleSupplier scalarSupplier) {
             this.term = Objects.requireNonNull(term);
-            this.scalar = scalar;
+            this.scalarSupplier = Objects.requireNonNull(scalarSupplier);
         }
 
         @Override
@@ -75,12 +80,12 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         @Override
         public double eval() {
-            return scalar * term.eval();
+            return scalarSupplier.getAsDouble() * term.eval();
         }
 
         @Override
         public double der(Variable<V> variable) {
-            return scalar * term.der(variable);
+            return scalarSupplier.getAsDouble() * term.der(variable);
         }
 
         @Override
@@ -90,20 +95,24 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         @Override
         public double rhs() {
-            return scalar * term.rhs();
+            return scalarSupplier.getAsDouble() * term.rhs();
         }
 
         @Override
         public double calculateSensi(DenseMatrix x, int column) {
-            return scalar * term.calculateSensi(x, column);
+            return scalarSupplier.getAsDouble() * term.calculateSensi(x, column);
         }
 
         @Override
         public void write(Writer writer) throws IOException {
-            writer.write(Double.toString(scalar));
+            writer.write(Double.toString(scalarSupplier.getAsDouble()));
             writer.write(" * ");
             term.write(writer);
         }
+    }
+
+    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> EquationTerm<V, E> multiply(EquationTerm<V, E> term, DoubleSupplier scalarSupplier) {
+        return new MultiplyByScalarEquationTerm<>(term, scalarSupplier);
     }
 
     static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> EquationTerm<V, E> multiply(EquationTerm<V, E> term, double scalar) {
@@ -213,8 +222,12 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
     void write(Writer writer) throws IOException;
 
-    default EquationTerm<V, E> multiply(double c) {
-        return multiply(this, c);
+    default EquationTerm<V, E> multiply(DoubleSupplier scalarSupplier) {
+        return multiply(this, scalarSupplier);
+    }
+
+    default EquationTerm<V, E> multiply(double scalar) {
+        return multiply(this, scalar);
     }
 
     default EquationTerm<V, E> minus() {

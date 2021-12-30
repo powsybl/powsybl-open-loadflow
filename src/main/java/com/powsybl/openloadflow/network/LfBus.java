@@ -152,4 +152,8 @@ public interface LfBus extends LfElement {
      * Find bus + parallel branches neighbors.
      */
     Map<LfBus, List<LfBranch>> findNeighbors();
+
+    double getRemoteVoltageControlReactivePercent();
+
+    void setRemoteVoltageControlReactivePercent(double remoteVoltageControlReactivePercent);
 }
