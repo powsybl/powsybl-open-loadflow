@@ -126,12 +126,15 @@ public class AcloadFlowEngine implements AutoCloseable {
         });
     }
 
-    private static double getReactivePowerDistributionTarget(LfNetwork network, int num, DistributionData data) {
-        LfBus controllerBus = network.getBus(num);
-        LfBus firstControllerBus = network.getBus(data.getFirstControllerElementNum());
-        double c = data.getC();
-        return c * (controllerBus.getLoadTargetQ() - controllerBus.getGenerationTargetQ())
-                - firstControllerBus.getLoadTargetQ() - firstControllerBus.getGenerationTargetQ();
+    private static double getReactivePowerDistributionTarget(LfNetwork network, int busNum) {
+        LfBus controllerBus = network.getBus(busNum);
+        double target = (controllerBus.getRemoteVoltageControlReactivePercent() - 1) * controllerBus.getTargetQ();
+        for (LfBus otherControllerBus : controllerBus.getVoltageControl().orElseThrow().getControllerBuses()) {
+            if (otherControllerBus != controllerBus) {
+                target += controllerBus.getRemoteVoltageControlReactivePercent() * otherControllerBus.getTargetQ();
+            }
+        }
+        return target;
     }
 
     private static double getRho1DistributionTarget(LfNetwork network, int num, DistributionData data) {
@@ -141,8 +144,9 @@ public class AcloadFlowEngine implements AutoCloseable {
         return controllerBranch.getPiModel().getR1() - firstControllerBranch.getPiModel().getR1();
     }
 
-    private static double createBusWithSlopeTarget(LfBus bus, DistributionData data) {
-        double slope = data.getC();
+    private static double createBusWithSlopeTarget(LfBus bus) {
+        // take first generator with slope: network loading ensures that there's only one generator with slope
+        double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
         return getBusTargetV(bus) - slope * (bus.getLoadTargetQ() - bus.getGenerationTargetQ());
     }
 
@@ -167,7 +171,7 @@ public class AcloadFlowEngine implements AutoCloseable {
                 break;
 
             case BUS_TARGET_V_WITH_SLOPE:
-                targets[equation.getColumn()] = createBusWithSlopeTarget(network.getBus(equation.getElementNum()), equation.getData());
+                targets[equation.getColumn()] = createBusWithSlopeTarget(network.getBus(equation.getElementNum()));
                 break;
 
             case BUS_TARGET_PHI:
@@ -191,7 +195,7 @@ public class AcloadFlowEngine implements AutoCloseable {
                 break;
 
             case DISTR_Q:
-                targets[equation.getColumn()] = getReactivePowerDistributionTarget(network, equation.getElementNum(), equation.getData());
+                targets[equation.getColumn()] = getReactivePowerDistributionTarget(network, equation.getElementNum());
                 break;
 
             case ZERO_V:

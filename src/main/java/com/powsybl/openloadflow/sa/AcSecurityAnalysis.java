@@ -140,9 +140,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
                 // start a simulation for each of the contingency
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
+                GraphDecrementalConnectivity<LfBus> connectivity = network.createDecrementalConnectivity(connectivityProvider);
                 while (contingencyIt.hasNext()) {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
-                    LfContingency.create(propagatedContingency, network, network.createDecrementalConnectivity(connectivityProvider), true)
+                    LfContingency.create(propagatedContingency, network, connectivity, true)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
                                 for (LfBus bus : lfContingency.getBuses()) {
                                     bus.setDisabled(true);
