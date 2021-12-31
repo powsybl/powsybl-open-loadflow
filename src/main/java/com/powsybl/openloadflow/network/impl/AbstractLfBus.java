@@ -55,7 +55,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfGenerator> generators = new ArrayList<>();
 
-    protected final List<LfShunt> shunts = new ArrayList<>();
+    protected List<LfShunt> shunts = new ArrayList<>();
 
     protected final LfLoads lfLoads = new LfLoads();
 
@@ -566,5 +566,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public String toString() {
         return getId();
+    }
+
+    @Override
+    public void addShunt(LfShunt shunt) {
+        shunts.add(shunt);
     }
 }

@@ -7,6 +7,8 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.ShuntCompensator;
+import com.powsybl.iidm.network.StaticVarCompensator;
+import com.powsybl.iidm.network.Terminal;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
@@ -19,18 +21,31 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  */
 public class LfShuntImpl extends AbstractElement implements LfShunt {
 
-    private final ShuntCompensator shuntCompensator;
-
     private final double b;
 
     private Evaluable q = NAN;
 
+    private final String id;
+
+    private final Terminal terminal;
+
     public LfShuntImpl(ShuntCompensator shuntCompensator, LfNetwork network) {
         super(network);
-        this.shuntCompensator = Objects.requireNonNull(shuntCompensator);
+        Objects.requireNonNull(shuntCompensator);
         double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
         double zb = nominalV * nominalV / PerUnit.SB;
-        b = shuntCompensator.getB() * zb;
+        this.b = shuntCompensator.getB() * zb;
+        this.id = shuntCompensator.getId();
+        this.terminal = shuntCompensator.getTerminal();
+    }
+
+    public LfShuntImpl(StaticVarCompensator svc, double b, LfNetwork network) {
+        super(network);
+        double nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
+        double zb = nominalV * nominalV / PerUnit.SB;
+        this.b = b * zb;
+        this.id = svc.getId() + "_shunt";
+        this.terminal = svc.getTerminal();
     }
 
     @Override
@@ -40,7 +55,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     @Override
     public String getId() {
-        return shuntCompensator.getId();
+        return id;
     }
 
     @Override
@@ -60,6 +75,6 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     @Override
     public void updateState() {
-        shuntCompensator.getTerminal().setQ(q.eval() * PerUnit.SB);
+        terminal.setQ(q.eval() * PerUnit.SB);
     }
 }
