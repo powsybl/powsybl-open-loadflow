@@ -120,7 +120,7 @@ public class AcloadFlowEngine implements AutoCloseable {
     private static Optional<Double> getVoltageControlledTargetValue(LfBus bus) {
         return bus.getVoltageControl().filter(vc -> bus.isVoltageControlled()).map(vc -> {
             if (vc.getControllerBuses().stream().noneMatch(LfBus::isVoltageControllerEnabled)) {
-                throw new IllegalStateException("None of the controller buses of bus '" + bus.getId() + "'has voltage control on");
+                LOGGER.warn("None of the controller buses of bus '" + bus.getId() + "' has voltage control on");
             }
             return vc.getTargetValue();
         });
