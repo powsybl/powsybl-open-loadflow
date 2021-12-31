@@ -72,9 +72,4 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
     public void updateState() {
         // nothing to update
     }
-
-    @Override
-    public void setTargetQ(double targetQ) {
-        this.targetQ = targetQ;
-    }
 }

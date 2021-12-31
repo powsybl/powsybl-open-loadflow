@@ -142,37 +142,6 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    void defaultMethodsTest2() {
-        network = DanglingLineFactory.create();
-        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
-        assertEquals(1, lfNetworks.size());
-
-        LfNetwork mainNetwork = lfNetworks.get(0);
-        LfBus lfDanglingLineBus = mainNetwork.getBusById("dl1_BUS");
-        LfGenerator generator = lfDanglingLineBus.getGenerators().get(0);
-        assertEquals(0, generator.getDroop(), 10E-3);
-        assertEquals(0, generator.getTargetQ(), 10E-3);
-        generator.setTargetQ(1.);
-        assertEquals(1., generator.getTargetQ(), 10E-3);
-    }
-
-    @Test
-    void defaultMethodsTest3() {
-        network = EurostagTutorialExample1Factory.create();
-        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
-        assertEquals(1, lfNetworks.size());
-
-        LfNetwork mainNetwork = lfNetworks.get(0);
-        LfGenerator generator = mainNetwork.getBusById("VLGEN_0").getGenerators().get(0);
-        assertEquals(3.01, generator.getTargetQ(), 10E-3);
-        generator.setTargetQ(10.);
-        assertEquals(10., generator.getTargetQ(), 10E-3);
-        assertEquals(LfGenerator.GeneratorControlType.VOLTAGE, generator.getGeneratorControlType());
-        generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
-        assertEquals(LfGenerator.GeneratorControlType.OFF, generator.getGeneratorControlType());
-    }
-
-    @Test
     void defaultMethodsTest4() {
         network = EurostagTutorialExample1Factory.create();
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
@@ -186,18 +155,5 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
             assertEquals(1.7, voltageControl.getTargetValue(), 10E-3);
 
         }
-    }
-
-    @Test
-    void defaultMethodsTest5() {
-        network = HvdcNetworkFactory.createVsc();
-        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
-        assertEquals(2, lfNetworks.size());
-
-        LfNetwork mainNetwork = lfNetworks.get(0);
-        LfGenerator generator = mainNetwork.getBusById("vl2_0").getGenerators().get(0);
-        assertEquals(1.0, generator.getTargetQ(), 10E-3);
-        generator.setTargetQ(1.5);
-        assertEquals(1.5, generator.getTargetQ(), 10E-3);
     }
 }

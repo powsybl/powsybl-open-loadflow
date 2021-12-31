@@ -79,9 +79,4 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
                 .setP(-targetP)
                 .setQ(Double.isNaN(calculatedQ) ? -station.getReactivePowerSetpoint() : -calculatedQ);
     }
-
-    @Override
-    public void setTargetQ(double targetQ) {
-        this.targetQ = targetQ;
-    }
 }

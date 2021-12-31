@@ -144,9 +144,4 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
                 .setP(-targetP)
                 .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ);
     }
-
-    @Override
-    public void setTargetQ(double targetQ) {
-        this.targetQ = targetQ;
-    }
 }
