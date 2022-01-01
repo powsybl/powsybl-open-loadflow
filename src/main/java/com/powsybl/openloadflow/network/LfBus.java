@@ -118,7 +118,7 @@ public interface LfBus extends LfElement {
 
     List<LfGenerator> getGenerators();
 
-    List<LfShunt> getShunts();
+    Optional<LfShunt> getShunt();
 
     LfLoads getLfLoads();
 

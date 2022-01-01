@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.ShuntCompensator;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 
+import java.util.List;
 import java.util.Objects;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
@@ -19,18 +20,24 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  */
 public class LfShuntImpl extends AbstractElement implements LfShunt {
 
-    private final ShuntCompensator shuntCompensator;
+    private final List<ShuntCompensator> shuntCompensators;
 
     private final double b;
 
     private Evaluable q = NAN;
 
-    public LfShuntImpl(ShuntCompensator shuntCompensator, LfNetwork network) {
+    public LfShuntImpl(List<ShuntCompensator> shuntCompensators, LfNetwork network) {
         super(network);
-        this.shuntCompensator = Objects.requireNonNull(shuntCompensator);
-        double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
+        if (shuntCompensators.isEmpty()) {
+            throw new IllegalArgumentException("Empty shunt compensator list");
+        }
+        this.shuntCompensators = Objects.requireNonNull(shuntCompensators);
+        double nominalV = shuntCompensators.get(0).getTerminal().getVoltageLevel().getNominalV(); // has to be the same for all shunts
         double zb = nominalV * nominalV / PerUnit.SB;
-        b = shuntCompensator.getB() * zb;
+        b = shuntCompensators.stream()
+                .mapToDouble(ShuntCompensator::getB)
+                .map(aB -> aB * zb)
+                .sum();
     }
 
     @Override
@@ -40,7 +47,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     @Override
     public String getId() {
-        return shuntCompensator.getId();
+        return shuntCompensators.get(0).getTerminal().getVoltageLevel().getId() + "_shunt_compensators";
     }
 
     @Override
@@ -60,6 +67,13 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     @Override
     public void updateState() {
-        shuntCompensator.getTerminal().setQ(q.eval() * PerUnit.SB);
+        double qCalc = q.eval();
+        double bSum = shuntCompensators.stream()
+                .mapToDouble(ShuntCompensator::getB)
+                .sum();
+        for (ShuntCompensator sc : shuntCompensators) {
+            double c = sc.getB() / bSum;
+            sc.getTerminal().setQ(qCalc * c / PerUnit.SB);
+        }
     }
 }

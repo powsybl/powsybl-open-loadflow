@@ -129,9 +129,7 @@ public class LfNetwork {
         busesByIndex.add(bus);
         busesById.put(bus.getId(), bus);
         invalidateSlack();
-        for (LfShunt shunt : bus.getShunts()) {
-            shunt.setNum(shuntCount++);
-        }
+        bus.getShunt().ifPresent(shunt -> shunt.setNum(shuntCount++));
     }
 
     public List<LfBus> getBuses() {
@@ -161,9 +159,7 @@ public class LfNetwork {
             for (LfGenerator generator : bus.getGenerators()) {
                 generator.updateState();
             }
-            for (LfShunt shunt : bus.getShunts()) {
-                shunt.updateState();
-            }
+            bus.getShunt().ifPresent(LfShunt::updateState);
         }
         for (LfBranch branch : branches) {
             branch.updateState(phaseShifterRegulationOn, transformerVoltageControlOn);
@@ -295,19 +291,18 @@ public class LfNetwork {
 
                 writeJson(bus, jsonGenerator);
 
-                List<LfShunt> sortedShunts = bus.getShunts().stream().sorted(Comparator.comparing(LfShunt::getId)).collect(Collectors.toList());
-                if (!sortedShunts.isEmpty()) {
-                    jsonGenerator.writeFieldName("shunts");
-                    jsonGenerator.writeStartArray();
-                    for (LfShunt shunt : sortedShunts) {
+                bus.getShunt().ifPresent(shunt -> {
+                    try {
+                        jsonGenerator.writeFieldName("shunt");
                         jsonGenerator.writeStartObject();
 
                         writeJson(shunt, jsonGenerator);
 
                         jsonGenerator.writeEndObject();
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
                     }
-                    jsonGenerator.writeEndArray();
-                }
+                });
 
                 List<LfGenerator> sortedGenerators = bus.getGenerators().stream().sorted(Comparator.comparing(LfGenerator::getId)).collect(Collectors.toList());
                 if (!sortedGenerators.isEmpty()) {

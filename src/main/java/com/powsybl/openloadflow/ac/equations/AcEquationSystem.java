@@ -102,11 +102,11 @@ public final class AcEquationSystem {
     }
 
     private static void createShuntEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        for (LfShunt shunt : bus.getShunts()) {
+        bus.getShunt().ifPresent(shunt -> {
             ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
             equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).addTerm(q);
             shunt.setQ(q);
-        }
+        });
     }
 
     private static void createRemoteVoltageControlEquations(VoltageControl voltageControl, LfNetworkParameters networkParameters,
@@ -192,10 +192,10 @@ public final class AcEquationSystem {
             }
             terms.add(q);
         }
-        for (LfShunt shunt : controllerBus.getShunts()) {
+        controllerBus.getShunt().ifPresent(shunt -> {
             ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, variableSet);
             terms.add(q);
-        }
+        });
         return terms;
     }
 

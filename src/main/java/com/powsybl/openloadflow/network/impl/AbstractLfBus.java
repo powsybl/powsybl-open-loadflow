@@ -55,7 +55,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfGenerator> generators = new ArrayList<>();
 
-    protected final List<LfShunt> shunts = new ArrayList<>();
+    protected LfShunt shunt;
 
     protected final LfLoads lfLoads = new LfLoads();
 
@@ -274,8 +274,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         add(LfVscConverterStationImpl.create(vscCs, breakers, report));
     }
 
-    void addShuntCompensator(ShuntCompensator sc) {
-        shunts.add(new LfShuntImpl(sc, network));
+    void setShuntCompensators(List<ShuntCompensator> shuntCompensators) {
+        shunt = new LfShuntImpl(shuntCompensators, network);
     }
 
     @Override
@@ -402,8 +402,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public List<LfShunt> getShunts() {
-        return shunts;
+    public Optional<LfShunt> getShunt() {
+        return Optional.ofNullable(shunt);
     }
 
     @Override
@@ -510,7 +510,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void setDisabled(boolean disabled) {
         super.setDisabled(disabled);
-        for (LfShunt shunt : shunts) {
+        if (shunt != null) {
             shunt.setDisabled(disabled);
         }
     }
