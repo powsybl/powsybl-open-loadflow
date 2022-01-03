@@ -8,12 +8,9 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.ShuntCompensator;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.List;
 import java.util.Objects;
-
-import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -23,8 +20,6 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     private final List<ShuntCompensator> shuntCompensators;
 
     private final double b;
-
-    private Evaluable q = NAN;
 
     protected LfBus bus;
 
@@ -58,16 +53,6 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     }
 
     @Override
-    public void setQ(Evaluable q) {
-        this.q = Objects.requireNonNull(q);
-    }
-
-    @Override
-    public Evaluable getQ() {
-        return q;
-    }
-
-    @Override
     public void setBus(LfBus bus) {
         this.bus = bus;
     }
@@ -75,7 +60,6 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     @Override
     public void updateState() {
         double vSquare = bus.getV() * bus.getV() * bus.getNominalV() * bus.getNominalV();
-        System.out.println(vSquare);
         for (ShuntCompensator sc : shuntCompensators) {
             sc.getTerminal().setQ(-sc.getB() * vSquare);
         }

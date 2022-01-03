@@ -105,7 +105,6 @@ public final class AcEquationSystem {
         bus.getShunt().ifPresent(shunt -> {
             ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
             equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).addTerm(q);
-            shunt.setQ(q);
         });
     }
 
