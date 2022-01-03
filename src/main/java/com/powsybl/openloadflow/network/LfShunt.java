@@ -20,4 +20,6 @@ public interface LfShunt extends LfElement {
     Evaluable getQ();
 
     void updateState();
+
+    boolean isPartOfStaticVarCompensator();
 }

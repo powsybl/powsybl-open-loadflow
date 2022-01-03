@@ -29,6 +29,8 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     private final Terminal terminal;
 
+    private boolean isPartOfStaticVarCompensator = false;
+
     public LfShuntImpl(ShuntCompensator shuntCompensator, LfNetwork network) {
         super(network);
         Objects.requireNonNull(shuntCompensator);
@@ -44,8 +46,9 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         double nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
         double zb = nominalV * nominalV / PerUnit.SB;
         this.b = b * zb;
-        this.id = svc.getId() + "_shunt";
+        this.id = svc.getId();
         this.terminal = svc.getTerminal();
+        this.isPartOfStaticVarCompensator = true;
     }
 
     @Override
@@ -76,5 +79,10 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     @Override
     public void updateState() {
         terminal.setQ(q.eval() * PerUnit.SB);
+    }
+
+    @Override
+    public boolean isPartOfStaticVarCompensator() {
+        return this.isPartOfStaticVarCompensator;
     }
 }

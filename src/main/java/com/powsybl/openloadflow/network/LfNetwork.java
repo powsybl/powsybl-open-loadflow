@@ -14,6 +14,7 @@ import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.network.impl.LfStaticVarCompensatorImpl;
 import net.jafama.FastMath;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
@@ -162,7 +163,16 @@ public class LfNetwork {
                 generator.updateState();
             }
             for (LfShunt shunt : bus.getShunts()) {
-                shunt.updateState();
+                if (!shunt.isPartOfStaticVarCompensator()) {
+                    shunt.updateState();
+                } else {
+                    Optional<LfGenerator> svc = bus.getGenerators().stream().filter(gen -> gen.getId().equals(shunt.getId())).findAny();
+                    if (svc.isPresent()) {
+                        LfStaticVarCompensatorImpl lfStaticVarCompensator = (LfStaticVarCompensatorImpl) svc.get();
+                        double qGenerator = lfStaticVarCompensator.getQ();
+                        lfStaticVarCompensator.updateQ(qGenerator + shunt.getQ().eval() * PerUnit.SB);
+                    }
+                }
             }
         }
         for (LfBranch branch : branches) {

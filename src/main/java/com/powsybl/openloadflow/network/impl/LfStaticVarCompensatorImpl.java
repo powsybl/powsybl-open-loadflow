@@ -28,6 +28,8 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     private double targetQ;
 
+    private double q = Double.NaN;
+
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc, AbstractLfBus bus, boolean voltagePerReactivePowerControl, boolean breakers, LfNetworkLoadingReport report) {
         super(0);
         this.svc = svc;
@@ -104,9 +106,20 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     @Override
     public void updateState() {
+        if (Double.isNaN(q)) {
+            q = Double.isNaN(calculatedQ) ? -targetQ * PerUnit.SB : -calculatedQ;
+        }
         svc.getTerminal()
                 .setP(0)
-                .setQ(Double.isNaN(calculatedQ) ? -targetQ * PerUnit.SB : -calculatedQ);
+                .setQ(q);
+    }
+
+    public double getQ() {
+        return q;
+    }
+
+    public void updateQ(double q) {
+        svc.getTerminal().setQ(q);
     }
 
     @Override
