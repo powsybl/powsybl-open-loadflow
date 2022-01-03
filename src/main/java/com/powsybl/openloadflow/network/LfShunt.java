@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.openloadflow.util.Evaluable;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -15,9 +13,7 @@ public interface LfShunt extends LfElement {
 
     double getB();
 
-    void setQ(Evaluable q);
-
-    Evaluable getQ();
+    void setBus(LfBus bus);
 
     void updateState();
 }

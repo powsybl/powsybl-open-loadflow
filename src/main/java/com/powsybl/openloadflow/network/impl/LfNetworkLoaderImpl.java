@@ -39,7 +39,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static class LoadingContext {
 
-        private final Set<Branch> branchSet = new LinkedHashSet<>();
+        private final Set<Branch<?>> branchSet = new LinkedHashSet<>();
 
         private final List<DanglingLine> danglingLines = new ArrayList<>();
 
@@ -205,9 +205,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                                        LfNetworkLoadingReport report, List<LfNetworkLoaderPostProcessor> postProcessors) {
         LfBusImpl lfBus = LfBusImpl.create(bus, lfNetwork, participateToSlackDistribution(parameters, bus));
 
+        List<ShuntCompensator> shuntCompensators = new ArrayList<>();
+
         bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
 
-            private void visitBranch(Branch branch) {
+            private void visitBranch(Branch<?> branch) {
                 loadingContext.branchSet.add(branch);
             }
 
@@ -243,7 +245,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
             @Override
             public void visitShuntCompensator(ShuntCompensator sc) {
-                lfBus.addShuntCompensator(sc);
+                shuntCompensators.add(sc);
                 postProcessors.forEach(pp -> pp.onInjectionAdded(sc, lfBus));
             }
 
@@ -291,6 +293,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 postProcessors.forEach(pp -> pp.onInjectionAdded(converterStation, lfBus));
             }
         });
+
+        if (!shuntCompensators.isEmpty()) {
+            lfBus.setShuntCompensators(shuntCompensators);
+        }
 
         return lfBus;
     }

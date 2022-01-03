@@ -22,11 +22,11 @@
     "num" : 3,
     "loadTargetP" : 6.0,
     "loadTargetQ" : 2.0,
-    "shunts" : [ {
-      "id" : "SC",
+    "shunt" : {
+      "id" : "VLLOAD_shunt_compensators",
       "num" : 0,
       "b" : 0.7312500000000001
-    } ]
+    }
   } ],
   "branches" : [ {
     "id" : "NGEN_NHV1",
