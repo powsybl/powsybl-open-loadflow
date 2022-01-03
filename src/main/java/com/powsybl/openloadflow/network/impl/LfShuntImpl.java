@@ -26,6 +26,8 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     private Evaluable q = NAN;
 
+    protected LfBus bus;
+
     public LfShuntImpl(List<ShuntCompensator> shuntCompensators, LfNetwork network) {
         super(network);
         if (shuntCompensators.isEmpty()) {
@@ -66,14 +68,16 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     }
 
     @Override
+    public void setBus(LfBus bus) {
+        this.bus = bus;
+    }
+
+    @Override
     public void updateState() {
-        double qCalc = q.eval();
-        double bSum = shuntCompensators.stream()
-                .mapToDouble(ShuntCompensator::getB)
-                .sum();
+        double vSquare = bus.getV() * bus.getV() * bus.getNominalV() * bus.getNominalV();
+        System.out.println(vSquare);
         for (ShuntCompensator sc : shuntCompensators) {
-            double c = sc.getB() / bSum;
-            sc.getTerminal().setQ(qCalc * c / PerUnit.SB);
+            sc.getTerminal().setQ(-sc.getB() * vSquare);
         }
     }
 }
