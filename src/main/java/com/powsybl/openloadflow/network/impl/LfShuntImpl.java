@@ -30,13 +30,13 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     protected LfBus bus;
 
-    private List<ControllerLfShunt> controllerLfShunts = new ArrayList<>();
+    private final List<ControllerLfShunt> controllerLfShunts = new ArrayList<>();
 
     private double zb;
 
-    private class ControllerLfShunt {
+    private static class ControllerLfShunt {
 
-        private Double bAmplitude;
+        private double bAmplitude;
 
         private Integer position;
 
@@ -85,20 +85,20 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         }
         for (ShuntCompensator sc : shuntCompensators) {
             if (sc.isVoltageRegulatorOn()) {
-                this.controllerShunts.add(sc);
+                controllerShunts.add(sc);
             } else {
-                this.fixedShunts.add(sc);
+                fixedShunts.add(sc);
             }
         }
         double nominalV = shuntCompensators.get(0).getTerminal().getVoltageLevel().getNominalV(); // has to be the same for all shunts
-        this.zb = nominalV * nominalV / PerUnit.SB;
+        zb = nominalV * nominalV / PerUnit.SB;
         b = shuntCompensators.stream()
                 .mapToDouble(ShuntCompensator::getB)
                 .map(aB -> aB * zb)
                 .sum();
 
-        if (!this.controllerShunts.isEmpty()) {
-            controllerShunts.stream().forEach(shuntCompensator -> {
+        if (!controllerShunts.isEmpty()) {
+            controllerShunts.forEach(shuntCompensator -> {
                 List<Double> sections = new ArrayList<>();
                 sections.add(0.0);
                 ShuntCompensatorModel model = shuntCompensator.getModel();
@@ -128,7 +128,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     @Override
     public String getId() {
-        return this.controllerLfShunts.isEmpty() ? bus.getId() + "_shunt_compensators" : bus.getId() + "_controller_shunt_compensators";
+        return controllerLfShunts.isEmpty() ? bus.getId() + "_shunt_compensators" : bus.getId() + "_controller_shunt_compensators";
     }
 
     @Override
@@ -167,12 +167,12 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
                 .collect(Collectors.toList());
         double residueB = b;
         int remainingShunts = sortedShunts.size();
-        for (int i = 0; i < sortedShunts.size(); i++) {
+        for (ControllerLfShunt sortedShunt : sortedShunts) {
             double bToDispatchByShunt = residueB / remainingShunts--;
-            roundBToClosestSection(bToDispatchByShunt, sortedShunts.get(i));
-            residueB -= sortedShunts.get(i).getB();
+            roundBToClosestSection(bToDispatchByShunt, sortedShunt);
+            residueB -= sortedShunt.getB();
         }
-        this.b = controllerLfShunts.stream().mapToDouble(ControllerLfShunt::getB).sum();
+        b = controllerLfShunts.stream().mapToDouble(ControllerLfShunt::getB).sum();
         return residueB;
     }
 
@@ -182,7 +182,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         for (ShuntCompensator sc : fixedShunts) {
             sc.getTerminal().setQ(-sc.getB() * vSquare);
         }
-        if (!this.controllerLfShunts.isEmpty()) {
+        if (!controllerLfShunts.isEmpty()) {
             for (int i = 0; i < controllerShunts.size(); i++) {
                 ShuntCompensator sc = controllerShunts.get(i);
                 sc.getTerminal().setQ(-controllerLfShunts.get(i).getB() * vSquare / this.zb);
