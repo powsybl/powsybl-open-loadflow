@@ -161,11 +161,11 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     }
 
     @Override
-    public double dispatchB(double bToDispatch) {
+    public double dispatchB() {
         List<ControllerLfShunt> sortedShunts = controllerLfShunts.stream()
                 .sorted(Comparator.comparing(ControllerLfShunt::getBAmplitude))
                 .collect(Collectors.toList());
-        double residueB = bToDispatch;
+        double residueB = b;
         int remainingShunts = sortedShunts.size();
         for (int i = 0; i < sortedShunts.size(); i++) {
             double bToDispatchByShunt = residueB / remainingShunts--;

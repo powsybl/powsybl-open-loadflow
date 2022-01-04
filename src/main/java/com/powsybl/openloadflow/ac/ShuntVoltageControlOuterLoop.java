@@ -10,10 +10,12 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.DiscreteVoltageControl;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfShunt;
+import com.powsybl.openloadflow.network.ShuntVoltageControl;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -49,11 +51,7 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
 
         for (LfBus controllerBus : vc.getControllers()) {
             // round the rho shift to the closest tap
-            Optional<LfShunt> shunt = controllerBus.getControllerShunt();
-            if (shunt.isPresent()) {
-                double bToDispatch = shunt.get().getB();
-                shunt.get().dispatchB(bToDispatch);
-            }
+            controllerBus.getControllerShunt().ifPresent(LfShunt::dispatchB);
         }
 
         vc.setMode(DiscreteVoltageControl.Mode.OFF);

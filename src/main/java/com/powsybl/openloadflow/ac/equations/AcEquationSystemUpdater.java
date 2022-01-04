@@ -10,7 +10,6 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -118,12 +117,11 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                     .setActive(false);
 
             for (LfBus controllerBus : voltageControl.getControllers()) {
-                Optional<LfShunt> shunt = controllerBus.getControllerShunt();
-                if (shunt.isPresent()) {
+                controllerBus.getControllerShunt().ifPresent(shunt ->
                     // activate constant B equation
-                    equationSystem.createEquation(shunt.get().getNum(), AcEquationType.SHUNT_TARGET_B)
-                            .setActive(true);
-                }
+                    equationSystem.createEquation(shunt.getNum(), AcEquationType.SHUNT_TARGET_B)
+                            .setActive(true)
+                );
             }
         } else { // newMode == AbstractDiscreteVoltageControl.Mode.VOLTAGE
             // TODO

@@ -352,12 +352,12 @@ public final class AcEquationSystem {
                     for (LfBus controllerBus : controllers) {
                         // we also create an equation that will be used later to maintain B variable constant
                         // this equation is now inactive
-                        Optional<LfShunt> shunt = controllerBus.getControllerShunt();
-                        if (shunt.isPresent()) {
-                            equationSystem.createEquation(shunt.get().getNum(), AcEquationType.SHUNT_TARGET_B)
-                                    .addTerm(equationSystem.getVariable(shunt.get().getNum(), AcVariableType.SHUNT_B).createTerm())
-                                    .setActive(false);
-                        }
+                        controllerBus.getControllerShunt()
+                            .ifPresent(shunt ->
+                                equationSystem.createEquation(shunt.getNum(), AcEquationType.SHUNT_TARGET_B)
+                                              .addTerm(equationSystem.getVariable(shunt.getNum(), AcVariableType.SHUNT_B).createTerm())
+                                              .setActive(false)
+                            );
                     }
                 });
     }
