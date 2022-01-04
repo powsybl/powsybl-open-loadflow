@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  */
 public class LfShuntImpl extends AbstractElement implements LfShunt {
 
-    protected static final Logger LOGGER = LoggerFactory.getLogger(LfShuntImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfShuntImpl.class);
 
     private final List<ShuntCompensator> fixedShunts = new ArrayList<>();
 
