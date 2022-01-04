@@ -53,8 +53,10 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
         for (LfBus controllerBus : vc.getControllers()) {
             // round the rho shift to the closest tap
             Optional<LfShunt> shunt = controllerBus.getControllerShunt();
-            double bToDispatch = shunt.get().getB();
-            shunt.get().dispatchB(bToDispatch);
+            if (shunt.isPresent()) {
+                double bToDispatch = shunt.get().getB();
+                shunt.get().dispatchB(bToDispatch);
+            }
         }
 
         vc.setMode(AbstractDiscreteVoltageControl.Mode.OFF);

@@ -119,11 +119,11 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
             for (LfBus controllerBus : voltageControl.getControllers()) {
                 Optional<LfShunt> shunt = controllerBus.getControllerShunt();
-                // activate constant B equation
-                equationSystem.createEquation(shunt.get().getNum(), AcEquationType.SHUNT_TARGET_B)
-                        .setActive(true);
-
-                // TODO: clean shunt distribution equations in case of shared remote control.
+                if (shunt.isPresent()) {
+                    // activate constant B equation
+                    equationSystem.createEquation(shunt.get().getNum(), AcEquationType.SHUNT_TARGET_B)
+                            .setActive(true);
+                }
             }
         } else { // newMode == AbstractDiscreteVoltageControl.Mode.VOLTAGE
             // TODO
