@@ -6,35 +6,118 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.ShuntCompensator;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
 public class LfShuntImpl extends AbstractElement implements LfShunt {
 
-    private final List<ShuntCompensator> shuntCompensators;
+    protected static final Logger LOGGER = LoggerFactory.getLogger(LfShuntImpl.class);
 
-    private final double b;
+    private final List<ShuntCompensator> fixedShunts;
+
+    private final List<ShuntCompensator> controllerShunts;
+
+    private double b;
+
+    private double variableB;
 
     protected LfBus bus;
 
-    public LfShuntImpl(List<ShuntCompensator> shuntCompensators, LfNetwork network) {
+    private boolean hasVoltageControl = false;
+
+    private List<ControllerLfShunt> controllerLfShunts = new ArrayList<>();
+
+    private double zb;
+
+    private class ControllerLfShunt {
+
+        private Double bAmplitude;
+
+        private Integer position;
+
+        private List<Double> sections;
+
+        private String id;
+
+        public ControllerLfShunt(List<Double> sections, Integer position, String id) {
+            this.sections = sections;
+            this.position = position;
+            double bMin = Math.min(sections.get(0), sections.get(sections.size() - 1));
+            double bMax = Math.max(sections.get(0), sections.get(sections.size() - 1));
+            this.bAmplitude = Math.abs(bMax - bMin);
+            this.id = id;
+        }
+
+        public List<Double> getSections() {
+            return this.sections;
+        }
+
+        public Integer getPosition() {
+            return this.position;
+        }
+
+        public void setPosition(Integer position) {
+            this.position = position;
+        }
+
+        public double getB() {
+            return this.sections.get(this.position);
+        }
+
+        public double getBAmplitude() {
+            return this.bAmplitude;
+        }
+
+        public String getId() {
+            return this.id;
+        }
+    }
+
+    public LfShuntImpl(List<ShuntCompensator> shuntCompensators, List<ShuntCompensator> controllerShunts, LfNetwork network) {
         super(network);
         if (shuntCompensators.isEmpty()) {
             throw new IllegalArgumentException("Empty shunt compensator list");
         }
-        this.shuntCompensators = Objects.requireNonNull(shuntCompensators);
+        this.fixedShunts = Objects.requireNonNull(shuntCompensators);
         double nominalV = shuntCompensators.get(0).getTerminal().getVoltageLevel().getNominalV(); // has to be the same for all shunts
-        double zb = nominalV * nominalV / PerUnit.SB;
+        this.zb = nominalV * nominalV / PerUnit.SB;
         b = shuntCompensators.stream()
                 .mapToDouble(ShuntCompensator::getB)
                 .map(aB -> aB * zb)
                 .sum();
+
+        this.controllerShunts = controllerShunts;
+        if (!this.controllerShunts.isEmpty()) {
+            hasVoltageControl = true;
+            controllerShunts.stream().forEach(shuntCompensator -> {
+                List<Double> sections = new ArrayList<>();
+                ShuntCompensatorModel model = shuntCompensator.getModel();
+                switch (shuntCompensator.getModelType()) {
+                    case LINEAR:
+                        ShuntCompensatorLinearModel linearModel = (ShuntCompensatorLinearModel) model;
+                        for (int section = 0; section <= shuntCompensator.getMaximumSectionCount(); section++) {
+                            sections.add(linearModel.getBPerSection() * section * zb);
+                        }
+                        break;
+                    case NON_LINEAR:
+                        ShuntCompensatorNonLinearModel nonLinearModel = (ShuntCompensatorNonLinearModel) model;
+                        for (int section = 0; section < shuntCompensator.getMaximumSectionCount(); section++) {
+                            sections.add(nonLinearModel.getAllSections().get(section).getB() * zb);
+                        }
+                        break;
+                }
+                controllerLfShunts.add(new ControllerLfShunt(sections, shuntCompensator.getSectionCount(), shuntCompensator.getId()));
+            });
+        }
     }
 
     @Override
@@ -44,7 +127,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     @Override
     public String getId() {
-        return shuntCompensators.get(0).getTerminal().getVoltageLevel().getId() + "_shunt_compensators";
+        return fixedShunts.get(0).getTerminal().getVoltageLevel().getId() + "_shunt_compensators";
     }
 
     @Override
@@ -53,15 +136,65 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     }
 
     @Override
+    public void setVariableB(double b) {
+        this.variableB = b;
+    }
+
+    @Override
+    public double getVariableB() {
+        return controllerLfShunts.stream().mapToDouble(ControllerLfShunt::getB).sum();
+    }
+
+    @Override
     public void setBus(LfBus bus) {
         this.bus = bus;
+    }
+
+    private void roundBToClosestSection(double b, ControllerLfShunt shunt) {
+        List<Double> sections = shunt.getSections();
+        // find tap position with the closest b value
+        double smallestDistance = Math.abs(b - sections.get(shunt.getPosition()));
+        for (int s = 0; s < sections.size(); s++) {
+            double distance = Math.abs(b - sections.get(s));
+            if (distance < smallestDistance) {
+                shunt.setPosition(s);
+                smallestDistance = distance;
+            }
+        }
+        LOGGER.info("Round B shift of shunt '{}': {} -> {}", shunt.getId(), b, shunt.getB());
+    }
+
+    @Override
+    public double dispatchB(double bToDispatch) {
+        List<ControllerLfShunt> sortedShunts = controllerLfShunts.stream()
+                .sorted(Comparator.comparing(ControllerLfShunt::getBAmplitude))
+                .collect(Collectors.toList());
+        double residueB = bToDispatch;
+        int remainingShunts = sortedShunts.size();
+        for (int i = 0; i < sortedShunts.size(); i++) {
+            double b = residueB / remainingShunts--;
+            roundBToClosestSection(b, sortedShunts.get(i));
+            residueB -= sortedShunts.get(i).getB();
+        }
+        return residueB;
+    }
+
+    @Override
+    public boolean hasVoltageControl() {
+        return hasVoltageControl;
     }
 
     @Override
     public void updateState() {
         double vSquare = bus.getV() * bus.getV() * bus.getNominalV() * bus.getNominalV();
-        for (ShuntCompensator sc : shuntCompensators) {
+        for (ShuntCompensator sc : fixedShunts) {
             sc.getTerminal().setQ(-sc.getB() * vSquare);
+        }
+        if (hasVoltageControl) {
+            for (int i = 0; i < controllerShunts.size(); i++) {
+                ShuntCompensator sc = controllerShunts.get(i);
+                sc.getTerminal().setQ(-controllerLfShunts.get(i).getB() * vSquare / this.zb);
+            }
         }
     }
 }

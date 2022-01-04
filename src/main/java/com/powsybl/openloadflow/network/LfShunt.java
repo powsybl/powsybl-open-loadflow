@@ -13,7 +13,15 @@ public interface LfShunt extends LfElement {
 
     double getB();
 
+    void setVariableB(double b);
+
+    double getVariableB();
+
     void setBus(LfBus bus);
+
+    double dispatchB(double b);
+
+    boolean hasVoltageControl();
 
     void updateState();
 }

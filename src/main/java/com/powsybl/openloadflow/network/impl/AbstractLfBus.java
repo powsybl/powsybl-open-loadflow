@@ -275,7 +275,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void setShuntCompensators(List<ShuntCompensator> shuntCompensators) {
-        shunt = new LfShuntImpl(shuntCompensators, network);
+        shunt = new LfShuntImpl(shuntCompensators, Collections.emptyList(), network);
         shunt.setBus(this);
     }
 
