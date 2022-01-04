@@ -134,7 +134,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         if (hasTransformerBusTargetVoltage) {
             for (LfBus bus : lfNetwork.getBuses()) {
                 // switch on regulating transformers
-                bus.getTransformerVoltageControl().filter(dvc -> dvc.getMode() == AbstractDiscreteVoltageControl.Mode.OFF).ifPresent(dvc -> dvc.setMode(AbstractDiscreteVoltageControl.Mode.VOLTAGE));
+                bus.getTransformerVoltageControl().filter(dvc -> dvc.getMode() == DiscreteVoltageControl.Mode.OFF).ifPresent(dvc -> dvc.setMode(DiscreteVoltageControl.Mode.VOLTAGE));
             }
         }
 
@@ -252,7 +252,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             if (hasTransformerBusTargetVoltage) {
                 for (LfBus bus : lfNetwork.getBuses()) {
                     // switch on regulating transformers
-                    bus.getTransformerVoltageControl().filter(dvc -> dvc.getMode() == AbstractDiscreteVoltageControl.Mode.OFF).ifPresent(dvc -> dvc.setMode(AbstractDiscreteVoltageControl.Mode.VOLTAGE));
+                    bus.getTransformerVoltageControl().filter(dvc -> dvc.getMode() == DiscreteVoltageControl.Mode.OFF).ifPresent(dvc -> dvc.setMode(DiscreteVoltageControl.Mode.VOLTAGE));
                 }
             }
 

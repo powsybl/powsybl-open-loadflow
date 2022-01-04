@@ -10,10 +10,7 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.AbstractDiscreteVoltageControl;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfShunt;
-import com.powsybl.openloadflow.network.ShuntVoltageControl;
+import com.powsybl.openloadflow.network.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -59,6 +56,6 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
             }
         }
 
-        vc.setMode(AbstractDiscreteVoltageControl.Mode.OFF);
+        vc.setMode(DiscreteVoltageControl.Mode.OFF);
     }
 }

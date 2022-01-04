@@ -609,7 +609,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             vc.addController(controllerBranch);
             controllerBranch.setTransformerVoltageControl(vc);
         }, () -> {
-                TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, AbstractDiscreteVoltageControl.Mode.VOLTAGE, targetValue);
+                TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, DiscreteVoltageControl.Mode.VOLTAGE, targetValue);
                 voltageControl.addController(controllerBranch);
                 controllerBranch.setTransformerVoltageControl(voltageControl);
                 controlledBus.setTransformerVoltageControl(voltageControl);
@@ -655,7 +655,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }, () -> {
             // we create a new shunt voltage control.
-                ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, AbstractDiscreteVoltageControl.Mode.VOLTAGE, targetValue);
+                ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, DiscreteVoltageControl.Mode.VOLTAGE, targetValue);
                 voltageControl.addController(controllerBus);
                 controllerBus.setShuntVoltageControl(voltageControl);
                 controlledBus.setShuntVoltageControl(voltageControl);

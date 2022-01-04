@@ -15,8 +15,8 @@ public class BusState extends BusDcState {
     private final double loadTargetQ;
     private final double generationTargetQ;
     private final boolean isVoltageControllerEnabled;
-    private final AbstractDiscreteVoltageControl.Mode transformerVoltageControlMode;
-    private final AbstractDiscreteVoltageControl.Mode shuntVoltageControlMode;
+    private final DiscreteVoltageControl.Mode transformerVoltageControlMode;
+    private final DiscreteVoltageControl.Mode shuntVoltageControlMode;
     private final boolean disabled;
 
     public BusState(LfBus bus) {

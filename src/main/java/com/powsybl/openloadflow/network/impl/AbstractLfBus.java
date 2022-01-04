@@ -526,7 +526,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isTransformerVoltageControlled() {
-        return transformerVoltageControl != null && transformerVoltageControl.getMode() != AbstractDiscreteVoltageControl.Mode.OFF
+        return transformerVoltageControl != null && transformerVoltageControl.getMode() != DiscreteVoltageControl.Mode.OFF
                  && transformerVoltageControl.getControlled() == this;
     }
 
@@ -542,7 +542,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isShuntVoltageControlled() {
-        return shuntVoltageControl != null && shuntVoltageControl.getMode() != AbstractDiscreteVoltageControl.Mode.OFF
+        return shuntVoltageControl != null && shuntVoltageControl.getMode() != DiscreteVoltageControl.Mode.OFF
                 && shuntVoltageControl.getControlled() == this;
     }
 

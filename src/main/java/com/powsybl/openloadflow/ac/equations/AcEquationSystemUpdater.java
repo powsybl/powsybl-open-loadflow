@@ -76,9 +76,9 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         updateDiscretePhaseControl(phaseControl, newMode);
     }
 
-    private void updateTransformerVoltageControl(TransformerVoltageControl voltageControl, AbstractDiscreteVoltageControl.Mode newMode) {
+    private void updateTransformerVoltageControl(TransformerVoltageControl voltageControl, DiscreteVoltageControl.Mode newMode) {
         LfBus controlledBus = voltageControl.getControlled();
-        if (newMode == AbstractDiscreteVoltageControl.Mode.OFF) {
+        if (newMode == DiscreteVoltageControl.Mode.OFF) {
 
             // de-activate transformer voltage control equation
             equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
@@ -109,9 +109,9 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         }
     }
 
-    private void updateShuntVoltageControl(ShuntVoltageControl voltageControl, AbstractDiscreteVoltageControl.Mode newMode) {
+    private void updateShuntVoltageControl(ShuntVoltageControl voltageControl, DiscreteVoltageControl.Mode newMode) {
         LfBus controlledBus = voltageControl.getControlled();
-        if (newMode == AbstractDiscreteVoltageControl.Mode.OFF) {
+        if (newMode == DiscreteVoltageControl.Mode.OFF) {
 
             // de-activate transformer or shunt voltage control equation
             equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
@@ -131,7 +131,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     @Override
-    public void onDiscreteVoltageControlModeChange(AbstractDiscreteVoltageControl voltageControl, AbstractDiscreteVoltageControl.Mode newMode) {
+    public void onDiscreteVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode newMode) {
         if (voltageControl instanceof TransformerVoltageControl) {
             updateTransformerVoltageControl((TransformerVoltageControl) voltageControl, newMode);
         }

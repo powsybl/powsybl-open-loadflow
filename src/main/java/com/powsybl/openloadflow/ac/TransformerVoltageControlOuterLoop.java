@@ -10,10 +10,7 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.AbstractDiscreteVoltageControl;
-import com.powsybl.openloadflow.network.TransformerVoltageControl;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +48,7 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
     }
 
     private void switchOffVoltageControl(TransformerVoltageControl vc) {
-        vc.setMode(AbstractDiscreteVoltageControl.Mode.OFF);
+        vc.setMode(DiscreteVoltageControl.Mode.OFF);
 
         for (LfBranch controllerBranch : vc.getControllers()) {
             // round the rho shift to the closest tap

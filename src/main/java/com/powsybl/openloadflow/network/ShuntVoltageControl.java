@@ -18,7 +18,7 @@ public class ShuntVoltageControl extends AbstractDiscreteVoltageControl {
 
     protected final List<LfBus> controllers = new ArrayList<>();
 
-    public ShuntVoltageControl(LfBus controlled, AbstractDiscreteVoltageControl.Mode mode, double targetValue) {
+    public ShuntVoltageControl(LfBus controlled, DiscreteVoltageControl.Mode mode, double targetValue) {
         super(controlled, mode, targetValue);
     }
 

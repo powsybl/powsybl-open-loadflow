@@ -18,7 +18,7 @@ public class TransformerVoltageControl extends AbstractDiscreteVoltageControl {
 
     protected final List<LfBranch> controllers = new ArrayList<>();
 
-    public TransformerVoltageControl(LfBus controlled, AbstractDiscreteVoltageControl.Mode mode, double targetValue) {
+    public TransformerVoltageControl(LfBus controlled, DiscreteVoltageControl.Mode mode, double targetValue) {
         super(controlled, mode, targetValue);
     }
 

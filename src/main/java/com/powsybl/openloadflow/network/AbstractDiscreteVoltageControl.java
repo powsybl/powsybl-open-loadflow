@@ -12,29 +12,26 @@ import java.util.Objects;
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public abstract class AbstractDiscreteVoltageControl {
+abstract class AbstractDiscreteVoltageControl implements DiscreteVoltageControl {
 
-    public enum Mode {
-        VOLTAGE,
-        OFF
-    }
-
-    private AbstractDiscreteVoltageControl.Mode mode;
+    private Mode mode;
 
     private final LfBus controlled;
 
     private final double targetValue;
 
-    protected AbstractDiscreteVoltageControl(LfBus controlled, AbstractDiscreteVoltageControl.Mode mode, double targetValue) {
+    protected AbstractDiscreteVoltageControl(LfBus controlled, Mode mode, double targetValue) {
         this.controlled = Objects.requireNonNull(controlled);
         this.targetValue = targetValue;
         this.mode = Objects.requireNonNull(mode);
     }
 
+    @Override
     public Mode getMode() {
         return mode;
     }
 
+    @Override
     public void setMode(Mode mode) {
         Objects.requireNonNull(mode);
         if (mode != this.mode) {
@@ -45,10 +42,12 @@ public abstract class AbstractDiscreteVoltageControl {
         }
     }
 
+    @Override
     public double getTargetValue() {
         return targetValue;
     }
 
+    @Override
     public LfBus getControlled() {
         return controlled;
     }
