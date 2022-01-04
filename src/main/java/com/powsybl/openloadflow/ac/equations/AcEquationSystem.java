@@ -36,7 +36,7 @@ public final class AcEquationSystem {
 
         createShuntEquations(bus, equationSystem);
 
-        if (networkParameters.isTransformerVoltageControl()) {
+        if (networkParameters.isTransformerVoltageControl() || networkParameters.isShuntVoltageControl()) {
             createDiscreteVoltageControlEquation(bus, equationSystem);
         }
         Equation<AcVariableType, AcEquationType> v = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V);
@@ -103,7 +103,11 @@ public final class AcEquationSystem {
 
     private static void createShuntEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         bus.getShunt().ifPresent(shunt -> {
-            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
+            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), false);
+            equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).addTerm(q);
+        });
+        bus.getControllerShunt().ifPresent(shunt -> {
+            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), true);
             equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).addTerm(q);
         });
     }
@@ -192,7 +196,11 @@ public final class AcEquationSystem {
             terms.add(q);
         }
         controllerBus.getShunt().ifPresent(shunt -> {
-            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, variableSet);
+            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, variableSet, false);
+            terms.add(q);
+        });
+        controllerBus.getControllerShunt().ifPresent(shunt -> {
+            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, controllerBus, variableSet, false);
             terms.add(q);
         });
         return terms;
@@ -311,26 +319,47 @@ public final class AcEquationSystem {
     }
 
     private static void createDiscreteVoltageControlEquation(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        bus.getDiscreteVoltageControl()
-            .filter(dvc -> bus.isDiscreteVoltageControlled())
-            .map(DiscreteVoltageControl::getControllers)
-            .ifPresent(controllers -> {
-                EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
-                        .createTerm();
-                equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(vTerm);
-                bus.setCalculatedV(vTerm);
+        bus.getTransformerVoltageControl()
+                .filter(tvc -> bus.isTransformerVoltageControlled())
+                .map(TransformerVoltageControl::getControllers)
+                .ifPresent(controllers -> {
+                    EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
+                            .createTerm();
+                    equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(vTerm);
+                    bus.setCalculatedV(vTerm);
 
-                // add transformer distribution equations
-                createR1DistributionEquations(controllers, equationSystem);
+                    // add transformer distribution equations
+                    createR1DistributionEquations(controllers, equationSystem);
 
-                for (LfBranch controllerBranch : controllers) {
-                    // we also create an equation that will be used later to maintain R1 variable constant
-                    // this equation is now inactive
-                    equationSystem.createEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
-                        .addTerm(equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_RHO1).createTerm())
-                        .setActive(false);
-                }
-            });
+                    for (LfBranch controllerBranch : controllers) {
+                        // we also create an equation that will be used later to maintain R1 variable constant
+                        // this equation is now inactive
+                        equationSystem.createEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
+                                .addTerm(equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_RHO1).createTerm())
+                                .setActive(false);
+                    }
+                });
+
+        bus.getShuntVoltageControl()
+                .filter(svc -> bus.isShuntVoltageControlled())
+                .map(ShuntVoltageControl::getControllers)
+                .ifPresent(controllers -> {
+                    EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
+                            .createTerm();
+                    equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(vTerm);
+                    bus.setCalculatedV(vTerm);
+
+                    for (LfBus controllerBus : controllers) {
+                        // we also create an equation that will be used later to maintain B variable constant
+                        // this equation is now inactive
+                        Optional<LfShunt> shunt = controllerBus.getControllerShunt();
+                        if (shunt.isPresent()) {
+                            equationSystem.createEquation(shunt.get().getNum(), AcEquationType.SHUNT_TARGET_B)
+                                    .addTerm(equationSystem.getVariable(shunt.get().getNum(), AcVariableType.SHUNT_B).createTerm())
+                                    .setActive(false);
+                        }
+                    }
+                });
     }
 
     private static void createBusWithSlopeEquation(LfBus bus, double slope, LfNetworkParameters networkParameters,

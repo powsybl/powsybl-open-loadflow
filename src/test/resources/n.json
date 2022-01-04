@@ -23,7 +23,7 @@
     "loadTargetP" : 6.0,
     "loadTargetQ" : 2.0,
     "shunt" : {
-      "id" : "VLLOAD_shunt_compensators",
+      "id" : "VLLOAD_0_shunt_compensators",
       "num" : 0,
       "b" : 0.7312500000000001
     }

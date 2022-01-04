@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.network.ElementType;
 public enum AcVariableType implements Quantity {
     BUS_V("v", ElementType.BUS), // bus voltage magnitude
     BUS_PHI("\u03C6", ElementType.BUS), // bus voltage angle
+    SHUNT_B("b", ElementType.SHUNT_COMPENSATOR), // shunt susceptance
     BRANCH_ALPHA1("\u03B1", ElementType.BRANCH), // branch phase shift
     BRANCH_RHO1("\u03C1", ElementType.BRANCH), // branch voltage ratio
     DUMMY_P("dummy_p", ElementType.BRANCH), // dummy active power injection (zero impedance branch)

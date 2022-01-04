@@ -112,9 +112,11 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     private static double getBusTargetV(LfBus bus) {
         Objects.requireNonNull(bus);
-        return bus.getDiscreteVoltageControl().filter(dvc -> bus.isDiscreteVoltageControlled())
-                .map(DiscreteVoltageControl::getTargetValue)
-                .orElse(getVoltageControlledTargetValue(bus).orElse(Double.NaN));
+        return bus.getShuntVoltageControl().filter(dvc -> bus.isShuntVoltageControlled())
+                .map(ShuntVoltageControl::getTargetValue)
+                .orElse(bus.getTransformerVoltageControl().filter(dvc -> bus.isTransformerVoltageControlled())
+                        .map(TransformerVoltageControl::getTargetValue)
+                        .orElse(getVoltageControlledTargetValue(bus).orElse(Double.NaN)));
     }
 
     private static Optional<Double> getVoltageControlledTargetValue(LfBus bus) {
@@ -176,6 +178,10 @@ public class AcloadFlowEngine implements AutoCloseable {
 
             case BUS_TARGET_PHI:
                 targets[equation.getColumn()] = 0;
+                break;
+
+            case SHUNT_TARGET_B:
+                targets[equation.getColumn()] = network.getShunt(equation.getElementNum()).getB();
                 break;
 
             case BRANCH_TARGET_P:

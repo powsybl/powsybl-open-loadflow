@@ -10,7 +10,8 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.DiscreteVoltageControl;
+import com.powsybl.openloadflow.network.AbstractDiscreteVoltageControl;
+import com.powsybl.openloadflow.network.TransformerVoltageControl;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
@@ -35,24 +36,24 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
 
         if (context.getIteration() == 0) {
-            List<DiscreteVoltageControl> discreteVoltageControls = context.getNetwork().getBuses().stream()
-                .flatMap(bus -> bus.getDiscreteVoltageControl().filter(dvc -> bus.isDiscreteVoltageControlled()).stream())
-                .collect(Collectors.toList());
+            List<TransformerVoltageControl> transformerVoltageControls = context.getNetwork().getBuses().stream()
+                    .flatMap(bus -> bus.getTransformerVoltageControl().filter(vc -> bus.isTransformerVoltageControlled()).stream())
+                    .collect(Collectors.toList());
 
             // switch off regulating transformers
-            discreteVoltageControls.forEach(this::switchOffVoltageControl);
+            transformerVoltageControls.forEach(this::switchOffVoltageControl);
 
             // if at least one transformer has been switched off wee need to continue
-            return discreteVoltageControls.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
+            return transformerVoltageControls.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
         }
 
         return OuterLoopStatus.STABLE;
     }
 
-    private void switchOffVoltageControl(DiscreteVoltageControl dvc) {
-        dvc.setMode(DiscreteVoltageControl.Mode.OFF);
+    private void switchOffVoltageControl(TransformerVoltageControl vc) {
+        vc.setMode(AbstractDiscreteVoltageControl.Mode.OFF);
 
-        for (LfBranch controllerBranch : dvc.getControllers()) {
+        for (LfBranch controllerBranch : vc.getControllers()) {
             // round the rho shift to the closest tap
             PiModel piModel = controllerBranch.getPiModel();
             double r1Value = piModel.getR1();

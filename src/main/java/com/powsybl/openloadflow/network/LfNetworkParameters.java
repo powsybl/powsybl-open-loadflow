@@ -48,6 +48,8 @@ public class LfNetworkParameters {
 
     private final boolean isDc;
 
+    private final boolean shuntVoltageControl;
+
     public LfNetworkParameters() {
         this(new FirstSlackBusSelector());
     }
@@ -55,7 +57,7 @@ public class LfNetworkParameters {
     public LfNetworkParameters(SlackBusSelector slackBusSelector) {
         this(slackBusSelector, false, false, false, false,
                 PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true, Collections.emptySet(), false, false, false, false, false, false);
+                true, Collections.emptySet(), false, false, false, false, false, false, false);
     }
 
     public LfNetworkParameters(SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl,
@@ -63,7 +65,7 @@ public class LfNetworkParameters {
                                double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                boolean computeMainConnectedComponentOnly, Set<Country> countriesToBalance, boolean distributedOnConformLoad,
                                boolean phaseControl, boolean transformerVoltageControl, boolean voltagePerReactivePowerControl, boolean reactivePowerRemoteControl,
-                               boolean isDc) {
+                               boolean isDc, boolean shuntVoltageControl) {
         this.slackBusSelector = slackBusSelector;
         this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
         this.minImpedance = minImpedance;
@@ -79,6 +81,7 @@ public class LfNetworkParameters {
         this.voltagePerReactivePowerControl = voltagePerReactivePowerControl;
         this.reactivePowerRemoteControl = reactivePowerRemoteControl;
         this.isDc = isDc;
+        this.shuntVoltageControl = shuntVoltageControl;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -139,6 +142,10 @@ public class LfNetworkParameters {
 
     public boolean isDc() {
         return isDc;
+    }
+
+    public boolean isShuntVoltageControl() {
+        return shuntVoltageControl;
     }
 
     @Override

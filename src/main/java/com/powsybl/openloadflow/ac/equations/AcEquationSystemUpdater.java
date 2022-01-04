@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -75,9 +76,9 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         updateDiscretePhaseControl(phaseControl, newMode);
     }
 
-    private void updateDiscreteVoltageControl(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode newMode) {
+    private void updateTransformerVoltageControl(TransformerVoltageControl voltageControl, AbstractDiscreteVoltageControl.Mode newMode) {
         LfBus controlledBus = voltageControl.getControlled();
-        if (newMode == DiscreteVoltageControl.Mode.OFF) {
+        if (newMode == AbstractDiscreteVoltageControl.Mode.OFF) {
 
             // de-activate transformer voltage control equation
             equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
@@ -91,7 +92,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                 // clean transformer distribution equations
                 equationSystem.removeEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO);
             }
-        } else { // newMode == DiscreteVoltageControl.Mode.VOLTAGE
+        } else { // newMode == AbstractDiscreteVoltageControl.Mode.VOLTAGE
 
             // activate transformer voltage control equation
             equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
@@ -108,8 +109,34 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         }
     }
 
+    private void updateShuntVoltageControl(ShuntVoltageControl voltageControl, AbstractDiscreteVoltageControl.Mode newMode) {
+        LfBus controlledBus = voltageControl.getControlled();
+        if (newMode == AbstractDiscreteVoltageControl.Mode.OFF) {
+
+            // de-activate transformer or shunt voltage control equation
+            equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
+                    .setActive(false);
+
+            for (LfBus controllerBus : voltageControl.getControllers()) {
+                Optional<LfShunt> shunt = controllerBus.getControllerShunt();
+                // activate constant B equation
+                equationSystem.createEquation(shunt.get().getNum(), AcEquationType.SHUNT_TARGET_B)
+                        .setActive(true);
+
+                // TODO: clean shunt distribution equations in case of shared remote control.
+            }
+        } else { // newMode == AbstractDiscreteVoltageControl.Mode.VOLTAGE
+            // TODO
+        }
+    }
+
     @Override
-    public void onDiscreteVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode) {
-        updateDiscreteVoltageControl(voltageControl, newMode);
+    public void onDiscreteVoltageControlModeChange(AbstractDiscreteVoltageControl voltageControl, AbstractDiscreteVoltageControl.Mode newMode) {
+        if (voltageControl instanceof TransformerVoltageControl) {
+            updateTransformerVoltageControl((TransformerVoltageControl) voltageControl, newMode);
+        }
+        if (voltageControl instanceof ShuntVoltageControl) {
+            updateShuntVoltageControl((ShuntVoltageControl) voltageControl, newMode);
+        }
     }
 }

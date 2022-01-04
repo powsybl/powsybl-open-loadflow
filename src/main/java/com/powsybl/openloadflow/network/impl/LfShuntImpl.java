@@ -22,17 +22,13 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(LfShuntImpl.class);
 
-    private final List<ShuntCompensator> fixedShunts;
+    private final List<ShuntCompensator> fixedShunts = new ArrayList<>();
 
-    private final List<ShuntCompensator> controllerShunts;
+    private final List<ShuntCompensator> controllerShunts = new ArrayList<>();
 
     private double b;
 
-    private double variableB;
-
     protected LfBus bus;
-
-    private boolean hasVoltageControl = false;
 
     private List<ControllerLfShunt> controllerLfShunts = new ArrayList<>();
 
@@ -82,12 +78,18 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         }
     }
 
-    public LfShuntImpl(List<ShuntCompensator> shuntCompensators, List<ShuntCompensator> controllerShunts, LfNetwork network) {
+    public LfShuntImpl(List<ShuntCompensator> shuntCompensators, LfNetwork network) {
         super(network);
         if (shuntCompensators.isEmpty()) {
             throw new IllegalArgumentException("Empty shunt compensator list");
         }
-        this.fixedShunts = Objects.requireNonNull(shuntCompensators);
+        for (ShuntCompensator sc : shuntCompensators) {
+            if (sc.isVoltageRegulatorOn()) {
+                this.controllerShunts.add(sc);
+            } else {
+                this.fixedShunts.add(sc);
+            }
+        }
         double nominalV = shuntCompensators.get(0).getTerminal().getVoltageLevel().getNominalV(); // has to be the same for all shunts
         this.zb = nominalV * nominalV / PerUnit.SB;
         b = shuntCompensators.stream()
@@ -95,11 +97,10 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
                 .map(aB -> aB * zb)
                 .sum();
 
-        this.controllerShunts = controllerShunts;
         if (!this.controllerShunts.isEmpty()) {
-            hasVoltageControl = true;
             controllerShunts.stream().forEach(shuntCompensator -> {
                 List<Double> sections = new ArrayList<>();
+                sections.add(0.0);
                 ShuntCompensatorModel model = shuntCompensator.getModel();
                 switch (shuntCompensator.getModelType()) {
                     case LINEAR:
@@ -127,7 +128,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     @Override
     public String getId() {
-        return fixedShunts.get(0).getTerminal().getVoltageLevel().getId() + "_shunt_compensators";
+        return this.controllerLfShunts.isEmpty() ? bus.getId() + "_shunt_compensators" : bus.getId() + "_controller_shunt_compensators";
     }
 
     @Override
@@ -136,13 +137,8 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     }
 
     @Override
-    public void setVariableB(double b) {
-        this.variableB = b;
-    }
-
-    @Override
-    public double getVariableB() {
-        return controllerLfShunts.stream().mapToDouble(ControllerLfShunt::getB).sum();
+    public void setB(double b) {
+        this.b = b;
     }
 
     @Override
@@ -176,12 +172,8 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
             roundBToClosestSection(b, sortedShunts.get(i));
             residueB -= sortedShunts.get(i).getB();
         }
+        this.b = controllerLfShunts.stream().mapToDouble(ControllerLfShunt::getB).sum();
         return residueB;
-    }
-
-    @Override
-    public boolean hasVoltageControl() {
-        return hasVoltageControl;
     }
 
     @Override
@@ -190,10 +182,12 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         for (ShuntCompensator sc : fixedShunts) {
             sc.getTerminal().setQ(-sc.getB() * vSquare);
         }
-        if (hasVoltageControl) {
+        if (!this.controllerLfShunts.isEmpty()) {
             for (int i = 0; i < controllerShunts.size(); i++) {
                 ShuntCompensator sc = controllerShunts.get(i);
                 sc.getTerminal().setQ(-controllerLfShunts.get(i).getB() * vSquare / this.zb);
+                System.out.println(controllerLfShunts.get(i).getPosition());
+                sc.setSectionCount(controllerLfShunts.get(i).getPosition());
             }
         }
     }

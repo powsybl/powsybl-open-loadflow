@@ -728,7 +728,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                         false,
                                                         false,
                                                         false,
-                                                        true);
+                                                        true,
+                                                        false);
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       true,
@@ -761,7 +762,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector, false, true, lfParameters.isTwtSplitShuntAdmittance(),
                 false, lfParametersExt.getPlausibleActivePowerLimit(), false, true, lfParameters.getCountriesToBalance(),
                 lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                false, false, false, false, true);
+                false, false, false, false, true, false);
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
