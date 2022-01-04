@@ -91,7 +91,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                 // clean transformer distribution equations
                 equationSystem.removeEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO);
             }
-        } else { // newMode == AbstractDiscreteVoltageControl.Mode.VOLTAGE
+        } else { // newMode == DiscreteVoltageControl.Mode.VOLTAGE
 
             // activate transformer voltage control equation
             equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
@@ -123,7 +123,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                             .setActive(true)
                 );
             }
-        } else { // newMode == AbstractDiscreteVoltageControl.Mode.VOLTAGE
+        } else { // newMode == DiscreteVoltageControl.Mode.VOLTAGE
             // TODO
         }
     }
@@ -132,8 +132,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     public void onDiscreteVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode newMode) {
         if (voltageControl instanceof TransformerVoltageControl) {
             updateTransformerVoltageControl((TransformerVoltageControl) voltageControl, newMode);
-        }
-        if (voltageControl instanceof ShuntVoltageControl) {
+        } else if (voltageControl instanceof ShuntVoltageControl) {
             updateShuntVoltageControl((ShuntVoltageControl) voltageControl, newMode);
         }
     }
