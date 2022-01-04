@@ -307,4 +307,32 @@ class AcLoadFlowShuntTest {
         assertEquals(1, shunt.getSectionCount());
         assertEquals(1, shunt2.getSectionCount());
     }
+
+    @Test
+    void testLocalVoltageControl3() {
+        network = createNetwork();
+        // in that test case, we test two shunts connected to the same bus, but with just one in voltage regulation
+        network.getShuntCompensator("SHUNT").remove();
+        ShuntCompensator shunt2 = network.getVoltageLevel("vl3").newShuntCompensator()
+                .setId("SHUNT2")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(10)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(l2.getTerminal1())
+                .setTargetV(400)
+                .setTargetDeadband(5.0)
+                .newLinearModel()
+                .setMaximumSectionCount(10)
+                .setBPerSection(1E-3)
+                .setGPerSection(0.0)
+                .add()
+                .add();
+
+        parameters.setSimulShunt(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(400.600, bus3);
+        assertEquals(6, shunt2.getSectionCount());
+    }
 }

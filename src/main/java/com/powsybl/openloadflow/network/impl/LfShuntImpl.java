@@ -168,8 +168,8 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         double residueB = bToDispatch;
         int remainingShunts = sortedShunts.size();
         for (int i = 0; i < sortedShunts.size(); i++) {
-            double b = residueB / remainingShunts--;
-            roundBToClosestSection(b, sortedShunts.get(i));
+            double bToDispatchByShunt = residueB / remainingShunts--;
+            roundBToClosestSection(bToDispatchByShunt, sortedShunts.get(i));
             residueB -= sortedShunts.get(i).getB();
         }
         this.b = controllerLfShunts.stream().mapToDouble(ControllerLfShunt::getB).sum();
@@ -186,7 +186,6 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
             for (int i = 0; i < controllerShunts.size(); i++) {
                 ShuntCompensator sc = controllerShunts.get(i);
                 sc.getTerminal().setQ(-controllerLfShunts.get(i).getB() * vSquare / this.zb);
-                System.out.println(controllerLfShunts.get(i).getPosition());
                 sc.setSectionCount(controllerLfShunts.get(i).getPosition());
             }
         }
