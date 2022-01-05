@@ -75,39 +75,6 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         updateDiscretePhaseControl(phaseControl, newMode);
     }
 
-    private void updateTransformerVoltageControl(TransformerVoltageControl voltageControl, DiscreteVoltageControl.Mode newMode) {
-        LfBus controlledBus = voltageControl.getControlled();
-        if (newMode == DiscreteVoltageControl.Mode.OFF) {
-
-            // de-activate transformer voltage control equation
-            equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
-                    .setActive(false);
-
-            for (LfBranch controllerBranch : voltageControl.getControllers()) {
-                // activate constant R1 equation
-                equationSystem.createEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
-                        .setActive(true);
-
-                // clean transformer distribution equations
-                equationSystem.removeEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO);
-            }
-        } else { // newMode == DiscreteVoltageControl.Mode.VOLTAGE
-
-            // activate transformer voltage control equation
-            equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
-                    .setActive(true);
-
-            // add transformer distribution equations
-            AcEquationSystem.createR1DistributionEquations(voltageControl.getControllers(), equationSystem);
-
-            for (LfBranch controllerBranch : voltageControl.getControllers()) {
-                // de-activate constant R1 equation
-                equationSystem.createEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
-                        .setActive(false);
-            }
-        }
-    }
-
     private void updateShuntVoltageControl(ShuntVoltageControl voltageControl, DiscreteVoltageControl.Mode newMode) {
         LfBus controlledBus = voltageControl.getControlled();
         if (newMode == DiscreteVoltageControl.Mode.OFF) {
@@ -147,7 +114,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     @Override
     public void onDiscreteVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode newMode) {
         if (voltageControl instanceof TransformerVoltageControl) {
-            updateTransformerVoltageControl((TransformerVoltageControl) voltageControl, newMode);
+            AcEquationSystem.updateTransformerVoltageControlEquations((TransformerVoltageControl) voltageControl, equationSystem);
         } else if (voltageControl instanceof ShuntVoltageControl) {
             updateShuntVoltageControl((ShuntVoltageControl) voltageControl, newMode);
         }
