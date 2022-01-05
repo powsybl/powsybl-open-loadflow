@@ -53,6 +53,10 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
             this.bMagnitude = Math.abs(bMax - bMin);
         }
 
+        public String getId() {
+            return id;
+        }
+
         public List<Double> getSections() {
             return sections;
         }
@@ -71,10 +75,6 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
         public double getBMagnitude() {
             return bMagnitude;
-        }
-
-        public String getId() {
-            return id;
         }
     }
 
