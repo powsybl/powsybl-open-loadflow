@@ -21,7 +21,6 @@ import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.network.DiscreteVoltageControl.Mode;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
@@ -135,7 +134,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         if (hasTransformerBusTargetVoltage) {
             for (LfBus bus : lfNetwork.getBuses()) {
                 // switch on regulating transformers
-                bus.getDiscreteVoltageControl().filter(dvc -> dvc.getMode() == Mode.OFF).ifPresent(dvc -> dvc.setMode(Mode.VOLTAGE));
+                bus.getTransformerVoltageControl().filter(dvc -> dvc.getMode() == DiscreteVoltageControl.Mode.OFF).ifPresent(dvc -> dvc.setMode(DiscreteVoltageControl.Mode.VOLTAGE));
             }
         }
 
@@ -195,7 +194,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 false, true, lfParameters.getCountriesToBalance(),
                 lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                 lfParameters.isPhaseShifterRegulationOn(), lfParameters.isTransformerVoltageControlOn(),
-                lfParametersExt.isVoltagePerReactivePowerControl(), lfParametersExt.hasReactivePowerRemoteControl(), lfParameters.isDc());
+                lfParametersExt.isVoltagePerReactivePowerControl(), lfParametersExt.hasReactivePowerRemoteControl(), lfParameters.isDc(), lfParameters.isSimulShunt());
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
@@ -253,7 +252,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             if (hasTransformerBusTargetVoltage) {
                 for (LfBus bus : lfNetwork.getBuses()) {
                     // switch on regulating transformers
-                    bus.getDiscreteVoltageControl().filter(dvc -> dvc.getMode() == Mode.OFF).ifPresent(dvc -> dvc.setMode(Mode.VOLTAGE));
+                    bus.getTransformerVoltageControl().filter(dvc -> dvc.getMode() == DiscreteVoltageControl.Mode.OFF).ifPresent(dvc -> dvc.setMode(DiscreteVoltageControl.Mode.VOLTAGE));
                 }
             }
 

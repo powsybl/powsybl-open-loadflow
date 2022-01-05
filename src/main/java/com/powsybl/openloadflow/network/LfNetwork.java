@@ -62,6 +62,8 @@ public class LfNetwork {
 
     private int shuntCount = 0;
 
+    private List<LfShunt> shuntsByIndex = new ArrayList<>();
+
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
     private boolean valid = true;
@@ -129,7 +131,14 @@ public class LfNetwork {
         busesByIndex.add(bus);
         busesById.put(bus.getId(), bus);
         invalidateSlack();
-        bus.getShunt().ifPresent(shunt -> shunt.setNum(shuntCount++));
+        bus.getShunt().ifPresent(shunt -> {
+            shunt.setNum(shuntCount++);
+            shuntsByIndex.add(shunt);
+        });
+        bus.getControllerShunt().ifPresent(shunt -> {
+            shunt.setNum(shuntCount++);
+            shuntsByIndex.add(shunt);
+        });
     }
 
     public List<LfBus> getBuses() {
@@ -150,6 +159,10 @@ public class LfNetwork {
         return slackBus;
     }
 
+    public LfShunt getShunt(int num) {
+        return shuntsByIndex.get(num);
+    }
+
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
                             boolean transformerVoltageControlOn, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -160,6 +173,7 @@ public class LfNetwork {
                 generator.updateState();
             }
             bus.getShunt().ifPresent(LfShunt::updateState);
+            bus.getControllerShunt().ifPresent(LfShunt::updateState);
         }
         for (LfBranch branch : branches) {
             branch.updateState(phaseShifterRegulationOn, transformerVoltageControlOn);

@@ -57,6 +57,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected LfShunt shunt;
 
+    protected LfShunt controllerShunt;
+
     protected final LfLoads lfLoads = new LfLoads();
 
     protected boolean ensurePowerFactorConstantByLoad = false;
@@ -71,7 +73,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private ReactivePowerControl reactivePowerControl;
 
-    protected DiscreteVoltageControl discreteVoltageControl;
+    protected TransformerVoltageControl transformerVoltageControl;
+
+    protected ShuntVoltageControl shuntVoltageControl;
 
     protected Evaluable p = NAN;
 
@@ -274,9 +278,23 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         add(LfVscConverterStationImpl.create(vscCs, breakers, report));
     }
 
-    void setShuntCompensators(List<ShuntCompensator> shuntCompensators) {
-        shunt = new LfShuntImpl(shuntCompensators, network);
-        shunt.setBus(this);
+    void setShuntCompensators(List<ShuntCompensator> shuntCompensators, boolean isShuntVoltageControl) {
+        if (!isShuntVoltageControl && !shuntCompensators.isEmpty()) {
+            shunt = new LfShuntImpl(shuntCompensators, network, this, false);
+        } else {
+            List<ShuntCompensator> controllerShuntCompensators = shuntCompensators.stream()
+                    .filter(ShuntCompensator::isVoltageRegulatorOn)
+                    .collect(Collectors.toList());
+            if (!controllerShuntCompensators.isEmpty()) {
+                controllerShunt = new LfShuntImpl(controllerShuntCompensators, network, this, true);
+            }
+            List<ShuntCompensator> fixedShuntCompensators = shuntCompensators.stream()
+                    .filter(sc -> !sc.isVoltageRegulatorOn())
+                    .collect(Collectors.toList());
+            if (!fixedShuntCompensators.isEmpty()) {
+                shunt = new LfShuntImpl(fixedShuntCompensators, network, this, false);
+            }
+        }
     }
 
     @Override
@@ -408,6 +426,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public Optional<LfShunt> getControllerShunt() {
+        return Optional.ofNullable(controllerShunt);
+    }
+
+    @Override
     public List<LfGenerator> getGenerators() {
         return generators;
     }
@@ -494,18 +517,35 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public Optional<DiscreteVoltageControl> getDiscreteVoltageControl() {
-        return Optional.ofNullable(discreteVoltageControl);
+    public Optional<TransformerVoltageControl> getTransformerVoltageControl() {
+        return Optional.ofNullable(transformerVoltageControl);
     }
 
     @Override
-    public boolean isDiscreteVoltageControlled() {
-        return discreteVoltageControl != null && discreteVoltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE;
+    public boolean isTransformerVoltageControlled() {
+        return transformerVoltageControl != null && transformerVoltageControl.getMode() != DiscreteVoltageControl.Mode.OFF
+                 && transformerVoltageControl.getControlled() == this;
     }
 
     @Override
-    public void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl) {
-        this.discreteVoltageControl = discreteVoltageControl;
+    public void setTransformerVoltageControl(TransformerVoltageControl transformerVoltageControl) {
+        this.transformerVoltageControl = transformerVoltageControl;
+    }
+
+    @Override
+    public Optional<ShuntVoltageControl> getShuntVoltageControl() {
+        return Optional.ofNullable(shuntVoltageControl);
+    }
+
+    @Override
+    public boolean isShuntVoltageControlled() {
+        return shuntVoltageControl != null && shuntVoltageControl.getMode() != DiscreteVoltageControl.Mode.OFF
+                && shuntVoltageControl.getControlled() == this;
+    }
+
+    @Override
+    public void setShuntVoltageControl(ShuntVoltageControl shuntVoltageControl) {
+        this.shuntVoltageControl = shuntVoltageControl;
     }
 
     @Override

@@ -112,9 +112,11 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     private static double getBusTargetV(LfBus bus) {
         Objects.requireNonNull(bus);
-        return bus.getDiscreteVoltageControl().filter(dvc -> bus.isDiscreteVoltageControlled())
-                .map(DiscreteVoltageControl::getTargetValue)
-                .orElse(getVoltageControlledTargetValue(bus).orElse(Double.NaN));
+        return bus.getShuntVoltageControl().filter(dvc -> bus.isShuntVoltageControlled())
+                .map(ShuntVoltageControl::getTargetValue)
+                .orElse(bus.getTransformerVoltageControl().filter(dvc -> bus.isTransformerVoltageControlled())
+                        .map(TransformerVoltageControl::getTargetValue)
+                        .orElse(getVoltageControlledTargetValue(bus).orElse(Double.NaN)));
     }
 
     private static Optional<Double> getVoltageControlledTargetValue(LfBus bus) {
@@ -142,6 +144,13 @@ public class AcloadFlowEngine implements AutoCloseable {
         LfBranch firstControllerBranch = network.getBranch(data.getFirstControllerElementNum());
         // as a first and very simple ratio distribution strategy, we keep the gap between the 2 ratios constant
         return controllerBranch.getPiModel().getR1() - firstControllerBranch.getPiModel().getR1();
+    }
+
+    private static double getBDistributionTarget(LfNetwork network, int num, DistributionData data) {
+        LfShunt controllerShunt = network.getShunt(num);
+        LfShunt firstControllerShunt = network.getShunt(data.getFirstControllerElementNum());
+        // as a first and very simple B distribution strategy, we keep the gap between the 2 B constant
+        return controllerShunt.getB() - firstControllerShunt.getB();
     }
 
     private static double createBusWithSlopeTarget(LfBus bus) {
@@ -178,6 +187,10 @@ public class AcloadFlowEngine implements AutoCloseable {
                 targets[equation.getColumn()] = 0;
                 break;
 
+            case SHUNT_TARGET_B:
+                targets[equation.getColumn()] = network.getShunt(equation.getElementNum()).getB();
+                break;
+
             case BRANCH_TARGET_P:
                 targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getElementNum()), DiscretePhaseControl.Unit.MW);
                 break;
@@ -208,6 +221,10 @@ public class AcloadFlowEngine implements AutoCloseable {
 
             case DISTR_RHO:
                 targets[equation.getColumn()] = getRho1DistributionTarget(network, equation.getElementNum(), equation.getData());
+                break;
+
+            case DISTR_B:
+                targets[equation.getColumn()] = getBDistributionTarget(network, equation.getElementNum(), equation.getData());
                 break;
 
             default:

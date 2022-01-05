@@ -90,7 +90,7 @@ class LfNetworkTest extends AbstractConverterTest {
         LfNetworkParameters parameters = new LfNetworkParameters(new MostMeshedSlackBusSelector(), false,
                 false, false, false, LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
                 false, true, Collections.emptySet(), false,
-                true, false, false, false, false);
+                true, false, false, false, false, false);
         List<LfNetwork> lfNetworks = Networks.load(network, parameters);
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(1, lfNetworks.size());

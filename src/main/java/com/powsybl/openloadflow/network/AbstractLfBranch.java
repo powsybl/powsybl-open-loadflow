@@ -65,7 +65,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected DiscretePhaseControl discretePhaseControl;
 
-    protected DiscreteVoltageControl discreteVoltageControl;
+    protected TransformerVoltageControl transformerVoltageControl;
 
     protected boolean spanningTreeEdge = false;
 
@@ -182,11 +182,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     protected void checkTargetDeadband(RatioTapChanger rtc) {
         if (rtc.getTargetDeadband() != 0) {
             double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-            double v = discreteVoltageControl.getControlled().getV();
-            double distance = Math.abs(v - discreteVoltageControl.getTargetValue()); // in per unit system
+            double v = transformerVoltageControl.getControlled().getV();
+            double distance = Math.abs(v - transformerVoltageControl.getTargetValue()); // in per unit system
             if (distance > rtc.getTargetDeadband() / 2) {
                 LOGGER.warn("The voltage on bus {} ({} kV) is out of the target value ({} kV) +/- deadband/2 ({} kV)",
-                        discreteVoltageControl.getControlled().getId(), v * nominalV, rtc.getTargetV(), rtc.getTargetDeadband() / 2);
+                        transformerVoltageControl.getControlled().getId(), v * nominalV, rtc.getTargetV(), rtc.getTargetDeadband() / 2);
             }
         }
     }
@@ -205,18 +205,18 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public Optional<DiscreteVoltageControl> getDiscreteVoltageControl() {
-        return Optional.ofNullable(discreteVoltageControl);
+    public Optional<TransformerVoltageControl> getTransformerVoltageControl() {
+        return Optional.ofNullable(transformerVoltageControl);
     }
 
     @Override
     public boolean isVoltageController() {
-        return discreteVoltageControl != null;
+        return transformerVoltageControl != null;
     }
 
     @Override
-    public void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl) {
-        this.discreteVoltageControl = discreteVoltageControl;
+    public void setTransformerVoltageControl(TransformerVoltageControl transformerVoltageControl) {
+        this.transformerVoltageControl = transformerVoltageControl;
     }
 
     public double computeApparentPower1() {
