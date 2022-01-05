@@ -15,8 +15,6 @@ public interface LfShunt extends LfElement {
 
     void setB(double b);
 
-    void setBus(LfBus bus);
-
     double dispatchB();
 
     void updateState();

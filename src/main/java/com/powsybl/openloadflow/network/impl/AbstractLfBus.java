@@ -280,22 +280,19 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     void setShuntCompensators(List<ShuntCompensator> shuntCompensators, boolean isShuntVoltageControl) {
         if (!isShuntVoltageControl && !shuntCompensators.isEmpty()) {
-            shunt = new LfShuntImpl(shuntCompensators, network, false);
-            shunt.setBus(this);
+            shunt = new LfShuntImpl(shuntCompensators, network, this, false);
         } else {
             List<ShuntCompensator> controllerShuntCompensators = shuntCompensators.stream()
                     .filter(ShuntCompensator::isVoltageRegulatorOn)
                     .collect(Collectors.toList());
             if (!controllerShuntCompensators.isEmpty()) {
-                controllerShunt = new LfShuntImpl(controllerShuntCompensators, network, true);
-                controllerShunt.setBus(this);
+                controllerShunt = new LfShuntImpl(controllerShuntCompensators, network, this, true);
             }
             List<ShuntCompensator> fixedShuntCompensators = shuntCompensators.stream()
                     .filter(sc -> !sc.isVoltageRegulatorOn())
                     .collect(Collectors.toList());
             if (!fixedShuntCompensators.isEmpty()) {
-                shunt = new LfShuntImpl(fixedShuntCompensators, network, false);
-                shunt.setBus(this);
+                shunt = new LfShuntImpl(fixedShuntCompensators, network, this, false);
             }
         }
     }

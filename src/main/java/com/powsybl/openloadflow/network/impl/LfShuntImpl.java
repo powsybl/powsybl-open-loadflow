@@ -22,67 +22,68 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfShuntImpl.class);
 
-    private List<ShuntCompensator> shuntCompensators;
+    private final List<ShuntCompensator> shuntCompensators;
 
     private double b;
 
-    protected LfBus bus;
+    private final LfBus bus;
 
     private final List<Controller> controllers = new ArrayList<>();
 
-    private double zb;
+    private final double zb;
 
-    boolean withVoltageControl;
+    private final boolean withVoltageControl;
 
     private static class Controller {
 
-        private double bAmplitude;
+        private final double bAmplitude;
 
-        private Integer position;
+        private int position;
 
-        private List<Double> sections;
+        private final List<Double> sections;
 
-        private String id;
+        private final String id;
 
-        public Controller(List<Double> sections, Integer position, String id) {
-            this.sections = sections;
+        public Controller(List<Double> sections, int position, String id) {
+            this.sections = Objects.requireNonNull(sections);
             this.position = position;
             double bMin = Math.min(sections.get(0), sections.get(sections.size() - 1));
             double bMax = Math.max(sections.get(0), sections.get(sections.size() - 1));
             this.bAmplitude = Math.abs(bMax - bMin);
-            this.id = id;
+            this.id = Objects.requireNonNull(id);
         }
 
         public List<Double> getSections() {
-            return this.sections;
+            return sections;
         }
 
-        public Integer getPosition() {
-            return this.position;
+        public int getPosition() {
+            return position;
         }
 
-        public void setPosition(Integer position) {
+        public void setPosition(int position) {
             this.position = position;
         }
 
         public double getB() {
-            return this.sections.get(this.position);
+            return sections.get(this.position);
         }
 
         public double getBAmplitude() {
-            return this.bAmplitude;
+            return bAmplitude;
         }
 
         public String getId() {
-            return this.id;
+            return id;
         }
     }
 
-    public LfShuntImpl(List<ShuntCompensator> shuntCompensators, LfNetwork network, boolean withVoltageControl) {
+    public LfShuntImpl(List<ShuntCompensator> shuntCompensators, LfNetwork network, LfBus bus, boolean withVoltageControl) {
         // if withVoltageControl equals to true, all shunt compensators that are listed must control voltage.
         // if withVoltageControl equals to false, all shunt compensators that are listed will be treated as fixed shunt
         // compensators.
         super(network);
+        this.bus = Objects.requireNonNull(bus);
         if (shuntCompensators.isEmpty()) {
             throw new IllegalArgumentException("Empty shunt compensator list");
         }
@@ -137,11 +138,6 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     @Override
     public void setB(double b) {
         this.b = b;
-    }
-
-    @Override
-    public void setBus(LfBus bus) {
-        this.bus = bus;
     }
 
     private void roundBToClosestSection(double b, Controller shunt) {
