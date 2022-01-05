@@ -24,33 +24,33 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     private final List<ShuntCompensator> shuntCompensators;
 
-    private double b;
-
     private final LfBus bus;
-
-    private final List<Controller> controllers = new ArrayList<>();
-
-    private final double zb;
 
     private final boolean withVoltageControl;
 
+    private final List<Controller> controllers = new ArrayList<>();
+
+    private double b;
+
+    private final double zb;
+
     private static class Controller {
-
-        private final double bAmplitude;
-
-        private int position;
-
-        private final List<Double> sections;
 
         private final String id;
 
-        public Controller(List<Double> sections, int position, String id) {
+        private final List<Double> sections;
+
+        private int position;
+
+        private final double bMagnitude;
+
+        public Controller(String id, List<Double> sections, int position) {
+            this.id = Objects.requireNonNull(id);
             this.sections = Objects.requireNonNull(sections);
             this.position = position;
             double bMin = Math.min(sections.get(0), sections.get(sections.size() - 1));
             double bMax = Math.max(sections.get(0), sections.get(sections.size() - 1));
-            this.bAmplitude = Math.abs(bMax - bMin);
-            this.id = Objects.requireNonNull(id);
+            this.bMagnitude = Math.abs(bMax - bMin);
         }
 
         public List<Double> getSections() {
@@ -69,8 +69,8 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
             return sections.get(this.position);
         }
 
-        public double getBAmplitude() {
-            return bAmplitude;
+        public double getBMagnitude() {
+            return bMagnitude;
         }
 
         public String getId() {
@@ -83,12 +83,12 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         // if withVoltageControl equals to false, all shunt compensators that are listed will be treated as fixed shunt
         // compensators.
         super(network);
-        this.bus = Objects.requireNonNull(bus);
+        this.shuntCompensators = Objects.requireNonNull(shuntCompensators);
         if (shuntCompensators.isEmpty()) {
             throw new IllegalArgumentException("Empty shunt compensator list");
         }
+        this.bus = Objects.requireNonNull(bus);
         this.withVoltageControl = withVoltageControl;
-        this.shuntCompensators = shuntCompensators;
         double nominalV = shuntCompensators.get(0).getTerminal().getVoltageLevel().getNominalV(); // has to be the same for all shunts
         zb = nominalV * nominalV / PerUnit.SB;
         b = shuntCompensators.stream()
@@ -98,7 +98,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
         if (withVoltageControl) {
             shuntCompensators.forEach(shuntCompensator -> {
-                List<Double> sections = new ArrayList<>();
+                List<Double> sections = new ArrayList<>(1);
                 sections.add(0.0);
                 ShuntCompensatorModel model = shuntCompensator.getModel();
                 switch (shuntCompensator.getModelType()) {
@@ -115,7 +115,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
                         }
                         break;
                 }
-                controllers.add(new Controller(sections, shuntCompensator.getSectionCount(), shuntCompensator.getId()));
+                controllers.add(new Controller(shuntCompensator.getId(), sections, shuntCompensator.getSectionCount()));
             });
         }
     }
@@ -140,31 +140,31 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         this.b = b;
     }
 
-    private void roundBToClosestSection(double b, Controller shunt) {
-        List<Double> sections = shunt.getSections();
+    private void roundBToClosestSection(double b, Controller controller) {
+        List<Double> sections = controller.getSections();
         // find tap position with the closest b value
-        double smallestDistance = Math.abs(b - sections.get(shunt.getPosition()));
+        double smallestDistance = Math.abs(b - sections.get(controller.getPosition()));
         for (int s = 0; s < sections.size(); s++) {
             double distance = Math.abs(b - sections.get(s));
             if (distance < smallestDistance) {
-                shunt.setPosition(s);
+                controller.setPosition(s);
                 smallestDistance = distance;
             }
         }
-        LOGGER.info("Round B shift of shunt '{}': {} -> {}", shunt.getId(), b, shunt.getB());
+        LOGGER.info("Round B shift of shunt '{}': {} -> {}", controller.getId(), b, controller.getB());
     }
 
     @Override
     public double dispatchB() {
-        List<Controller> sortedShunts = controllers.stream()
-                .sorted(Comparator.comparing(Controller::getBAmplitude))
+        List<Controller> sortedControllers = controllers.stream()
+                .sorted(Comparator.comparing(Controller::getBMagnitude))
                 .collect(Collectors.toList());
         double residueB = b;
-        int remainingShunts = sortedShunts.size();
-        for (Controller sortedShunt : sortedShunts) {
-            double bToDispatchByShunt = residueB / remainingShunts--;
-            roundBToClosestSection(bToDispatchByShunt, sortedShunt);
-            residueB -= sortedShunt.getB();
+        int remainingControllers = sortedControllers.size();
+        for (Controller sortedController : sortedControllers) {
+            double bToDispatchByController = residueB / remainingControllers--;
+            roundBToClosestSection(bToDispatchByController, sortedController);
+            residueB -= sortedController.getB();
         }
         b = controllers.stream().mapToDouble(Controller::getB).sum();
         return residueB;
@@ -180,7 +180,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         } else {
             for (int i = 0; i < shuntCompensators.size(); i++) {
                 ShuntCompensator sc = shuntCompensators.get(i);
-                sc.getTerminal().setQ(-controllers.get(i).getB() * vSquare / this.zb);
+                sc.getTerminal().setQ(-controllers.get(i).getB() * vSquare / zb);
                 sc.setSectionCount(controllers.get(i).getPosition());
             }
         }
