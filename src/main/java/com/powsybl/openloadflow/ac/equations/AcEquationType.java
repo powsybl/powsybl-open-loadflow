@@ -26,7 +26,8 @@ public enum AcEquationType implements Quantity {
     DISTR_Q("distr_q", ElementType.BUS), // remote voltage control reactive power distribution
     ZERO_V("zero_v", ElementType.BRANCH), // zero impedance branch, voltage magnitude equality
     ZERO_PHI("zero_\u03C6", ElementType.BRANCH), // zero impedance branch, voltage angle equality
-    DISTR_RHO("distr_\u03C1", ElementType.BRANCH); // remote transformer voltage control ratio distribution
+    DISTR_RHO("distr_\u03C1", ElementType.BRANCH), // remote transformer voltage control ratio distribution
+    DISTR_B("distr_b", ElementType.SHUNT_COMPENSATOR); // remote transformer voltage control ratio distribution
 
     private final String symbol;
 

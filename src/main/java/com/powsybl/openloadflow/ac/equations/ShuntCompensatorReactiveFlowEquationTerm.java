@@ -60,7 +60,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
     }
 
     private double b() {
-        return bVar != null ? stateVector.get(bVar.getRow()) : shunt.getB(); // FIXME
+        return bVar != null ? stateVector.get(bVar.getRow()) : shunt.getB();
     }
 
     private double q() {

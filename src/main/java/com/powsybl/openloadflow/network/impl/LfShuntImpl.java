@@ -105,7 +105,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
                 switch (shuntCompensator.getModelType()) {
                     case LINEAR:
                         ShuntCompensatorLinearModel linearModel = (ShuntCompensatorLinearModel) model;
-                        for (int section = 0; section <= shuntCompensator.getMaximumSectionCount(); section++) {
+                        for (int section = 1; section <= shuntCompensator.getMaximumSectionCount(); section++) {
                             sections.add(linearModel.getBPerSection() * section * zb);
                         }
                         break;

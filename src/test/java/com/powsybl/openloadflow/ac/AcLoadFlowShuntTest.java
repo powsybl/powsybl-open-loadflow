@@ -14,6 +14,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -196,15 +197,16 @@ class AcLoadFlowShuntTest {
 
     @Test
     void testRemoteVoltageControl() {
+        Network network = VoltageControlNetworkFactory.createWithShuntRemoteControl();
+        ShuntCompensator shuntCompensator2 = network.getShuntCompensator("SHUNT2");
+        shuntCompensator2.setVoltageRegulatorOn(false);
+        ShuntCompensator shuntCompensator3 = network.getShuntCompensator("SHUNT3");
         parameters.setSimulShunt(true);
-        shunt.setSectionCount(0)
-                .setRegulatingTerminal(network.getLoad("ld1").getTerminal())
-                .setTargetV(392.)
-                .setVoltageRegulatorOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(395.709, bus3);
-        assertEquals(2, shunt.getSectionCount());
+        assertVoltageEquals(433.749, network.getBusBreakerView().getBus("b4"));
+        assertEquals(0, shuntCompensator2.getSectionCount());
+        assertEquals(10, shuntCompensator3.getSectionCount());
     }
 
     @Test
@@ -333,6 +335,19 @@ class AcLoadFlowShuntTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(400.600, bus3);
-        assertEquals(6, shunt2.getSectionCount());
+        assertEquals(5, shunt2.getSectionCount());
+    }
+
+    @Test
+    void testSharedRemoteVoltageControl() {
+        Network network = VoltageControlNetworkFactory.createWithShuntRemoteControl();
+        parameters.setSimulShunt(true);
+        ShuntCompensator shuntCompensator2 = network.getShuntCompensator("SHUNT2");
+        ShuntCompensator shuntCompensator3 = network.getShuntCompensator("SHUNT3");
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(406.971, network.getBusBreakerView().getBus("b4"));
+        assertEquals(10, shuntCompensator2.getSectionCount());
+        assertEquals(10, shuntCompensator3.getSectionCount());
     }
 }

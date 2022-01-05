@@ -349,6 +349,9 @@ public final class AcEquationSystem {
                     equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(vTerm);
                     bus.setCalculatedV(vTerm);
 
+                    // add shunt distribution equations
+                    createBDistributionEquations(controllers, equationSystem);
+
                     for (LfBus controllerBus : controllers) {
                         // we also create an equation that will be used later to maintain B variable constant
                         // this equation is now inactive
@@ -379,7 +382,7 @@ public final class AcEquationSystem {
     public static void createR1DistributionEquations(List<LfBranch> controllerBranches,
                                                      EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         if (controllerBranches.size() > 1) {
-            // we choose first controller bus as reference for reactive power
+            // we choose first controller branch as reference for R1
             LfBranch firstControllerBranch = controllerBranches.get(0);
 
             // create a R1 distribution equation for all the other controller branches
@@ -390,6 +393,28 @@ public final class AcEquationSystem {
                         .addTerm(equationSystem.getVariable(firstControllerBranch.getNum(), AcVariableType.BRANCH_RHO1).<AcEquationType>createTerm()
                                              .minus());
                 zero.setData(new DistributionData(firstControllerBranch.getNum(), 1)); // for later use
+            }
+        }
+    }
+
+    public static void createBDistributionEquations(List<LfBus> controllerBuses,
+                                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        if (controllerBuses.size() > 1) {
+            // we choose first controller bus as reference for B
+            Optional<LfShunt> firstControllerShunt = controllerBuses.get(0).getControllerShunt();
+
+            if (firstControllerShunt.isPresent()) {
+                // create a B distribution equation for all the other controller buses
+                for (int i = 1; i < controllerBuses.size(); i++) {
+                    Optional<LfShunt> controllerShunt = controllerBuses.get(i).getControllerShunt();
+                    if (controllerShunt.isPresent()) {
+                        Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerShunt.get().getNum(), AcEquationType.DISTR_B)
+                                .addTerm(equationSystem.getVariable(controllerShunt.get().getNum(), AcVariableType.SHUNT_B).createTerm())
+                                .addTerm(equationSystem.getVariable(firstControllerShunt.get().getNum(), AcVariableType.SHUNT_B).<AcEquationType>createTerm()
+                                        .minus());
+                        zero.setData(new DistributionData(firstControllerShunt.get().getNum(), 1)); // for later use
+                    }
+                }
             }
         }
     }
