@@ -382,10 +382,12 @@ public final class AcEquationSystem {
     }
 
     static void updateTransformerVoltageControlEquations(TransformerVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        boolean on = voltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE;
+
         // activate voltage target equation if control is on
         equationSystem.getEquation(voltageControl.getControlled().getNum(), AcEquationType.BUS_TARGET_V)
                 .orElseThrow()
-                .setActive(voltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE);
+                .setActive(on);
 
         List<LfBranch> controllerBranches = voltageControl.getControllers();
         for (int i = 0; i < controllerBranches.size(); i++) {
@@ -394,12 +396,12 @@ public final class AcEquationSystem {
             // activate all rho1 equations if voltage control is off
             equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
                     .orElseThrow()
-                    .setActive(voltageControl.getMode() == DiscreteVoltageControl.Mode.OFF);
+                    .setActive(!on);
 
             // activate rho1 distribution equations except one if control is on
             equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO)
                     .orElseThrow()
-                    .setActive(voltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE && i < controllerBranches.size() - 1);
+                    .setActive(on && i < controllerBranches.size() - 1);
         }
     }
 
@@ -442,7 +444,7 @@ public final class AcEquationSystem {
                     // 0 = (1 / controller_count - 1) * b_i + sum_j(b_j) / controller_count where j are all the controller buses except i
                     EquationTerm<AcVariableType, AcEquationType> shuntB = equationSystem.getVariable(shunt.getNum(), AcVariableType.SHUNT_B)
                             .createTerm();
-                    Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.DISTR_B)
+                    Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.DISTR_SHUNT_B)
                             .addTerm(shuntB.multiply(() -> 1d / controllerBuses.size() - 1));
                     for (LfBus otherControllerBus : controllerBuses) {
                         if (otherControllerBus != controllerBus) {
@@ -459,10 +461,12 @@ public final class AcEquationSystem {
     }
 
     static void updateShuntVoltageControlEquations(ShuntVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        boolean on = voltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE;
+
         // activate voltage target equation if control is on
         equationSystem.getEquation(voltageControl.getControlled().getNum(), AcEquationType.BUS_TARGET_V)
                 .orElseThrow()
-                .setActive(voltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE);
+                .setActive(on);
 
         List<LfBus> controllerBuses = voltageControl.getControllers();
         for (int i = 0; i < controllerBuses.size(); i++) {
@@ -472,13 +476,13 @@ public final class AcEquationSystem {
             controllerBus.getControllerShunt().ifPresent(shunt ->
                 equationSystem.getEquation(shunt.getNum(), AcEquationType.SHUNT_TARGET_B)
                         .orElseThrow()
-                        .setActive(voltageControl.getMode() == DiscreteVoltageControl.Mode.OFF)
+                        .setActive(!on)
             );
 
             // activate shunt b distribution equations except one if control is on
-            equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_B)
+            equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_SHUNT_B)
                     .orElseThrow()
-                    .setActive(voltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE && i < controllerBuses.size() - 1);
+                    .setActive(on && i < controllerBuses.size() - 1);
         }
     }
 

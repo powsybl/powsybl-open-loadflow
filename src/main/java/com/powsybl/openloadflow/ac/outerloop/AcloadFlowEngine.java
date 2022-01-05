@@ -206,10 +206,7 @@ public class AcloadFlowEngine implements AutoCloseable {
                 break;
 
             case DISTR_RHO:
-                targets[equation.getColumn()] = 0;
-                break;
-
-            case DISTR_B:
+            case DISTR_SHUNT_B:
                 targets[equation.getColumn()] = 0;
                 break;
 
