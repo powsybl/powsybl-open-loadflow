@@ -224,7 +224,7 @@ public class AcloadFlowEngine implements AutoCloseable {
                 break;
 
             case DISTR_B:
-                targets[equation.getColumn()] = getRho1DistributionTarget(network, equation.getElementNum(), equation.getData());
+                targets[equation.getColumn()] = getBDistributionTarget(network, equation.getElementNum(), equation.getData());
                 break;
 
             default:
