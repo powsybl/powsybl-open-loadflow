@@ -413,40 +413,72 @@ public final class AcEquationSystem {
                     bus.setCalculatedV(vTerm);
 
                     // add shunt distribution equations
-                    createBDistributionEquations(voltageControl.getControllers(), equationSystem);
+                    createShuntSusceptanceDistributionEquations(voltageControl.getControllers(), equationSystem);
 
                     for (LfBus controllerBus : voltageControl.getControllers()) {
                         // we also create an equation that will be used later to maintain B variable constant
                         // this equation is now inactive
                         controllerBus.getControllerShunt()
                             .ifPresent(shunt ->
-                                    equationSystem.createEquation(shunt.getNum(), AcEquationType.SHUNT_TARGET_B)
-                                            .addTerm(equationSystem.getVariable(shunt.getNum(), AcVariableType.SHUNT_B).createTerm())
-                                            .setActive(false)
+                                equationSystem.createEquation(shunt.getNum(), AcEquationType.SHUNT_TARGET_B)
+                                        .addTerm(equationSystem.getVariable(shunt.getNum(), AcVariableType.SHUNT_B).createTerm())
                             );
                     }
+
+                    updateShuntVoltageControlEquations(voltageControl, equationSystem);
                 });
     }
 
-    public static void createBDistributionEquations(List<LfBus> controllerBuses,
-                                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        if (controllerBuses.size() > 1) {
-            // we choose first controller bus as reference for B
-            Optional<LfShunt> firstControllerShunt = controllerBuses.get(0).getControllerShunt();
-
-            if (firstControllerShunt.isPresent()) {
-                // create a B distribution equation for all the other controller buses
-                for (int i = 1; i < controllerBuses.size(); i++) {
-                    Optional<LfShunt> controllerShunt = controllerBuses.get(i).getControllerShunt();
-                    if (controllerShunt.isPresent()) {
-                        Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerShunt.get().getNum(), AcEquationType.DISTR_B)
-                                .addTerm(equationSystem.getVariable(controllerShunt.get().getNum(), AcVariableType.SHUNT_B).createTerm())
-                                .addTerm(equationSystem.getVariable(firstControllerShunt.get().getNum(), AcVariableType.SHUNT_B).<AcEquationType>createTerm()
-                                        .minus());
-                        zero.setData(new DistributionData(firstControllerShunt.get().getNum(), 1)); // for later use
+    public static void createShuntSusceptanceDistributionEquations(List<LfBus> controllerBuses,
+                                                                   EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        for (int i = 0; i < controllerBuses.size(); i++) {
+            LfBus controllerBus = controllerBuses.get(i);
+            controllerBus.getControllerShunt()
+                .ifPresent(shunt -> {
+                    // shunt b at controller bus i
+                    // b_i = sum_j(b_j) / controller_count where j are all the controller buses
+                    // 0 = sum_j(b_j) / controller_count - b_i
+                    // which can be rewritten in a more simple way
+                    // 0 = (1 / controller_count - 1) * b_i + sum_j(b_j) / controller_count where j are all the controller buses except i
+                    EquationTerm<AcVariableType, AcEquationType> shuntB = equationSystem.getVariable(shunt.getNum(), AcVariableType.SHUNT_B)
+                            .createTerm();
+                    Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.DISTR_B)
+                            .addTerm(shuntB.multiply(() -> 1d / controllerBuses.size() - 1));
+                    for (LfBus otherControllerBus : controllerBuses) {
+                        if (otherControllerBus != controllerBus) {
+                            otherControllerBus.getControllerShunt()
+                                .ifPresent(otherShunt -> {
+                                    EquationTerm<AcVariableType, AcEquationType> otherShuntB = equationSystem.getVariable(otherShunt.getNum(), AcVariableType.SHUNT_B)
+                                            .createTerm();
+                                    zero.addTerm(otherShuntB.multiply(() -> 1d / controllerBuses.size()));
+                                });
+                        }
                     }
-                }
-            }
+                });
+        }
+    }
+
+    static void updateShuntVoltageControlEquations(ShuntVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        // activate voltage target equation if control is on
+        equationSystem.getEquation(voltageControl.getControlled().getNum(), AcEquationType.BUS_TARGET_V)
+                .orElseThrow()
+                .setActive(voltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE);
+
+        List<LfBus> controllerBuses = voltageControl.getControllers();
+        for (int i = 0; i < controllerBuses.size(); i++) {
+            LfBus controllerBus = controllerBuses.get(i);
+
+            // activate all b target equations if voltage control is off
+            controllerBus.getControllerShunt().ifPresent(shunt ->
+                equationSystem.getEquation(shunt.getNum(), AcEquationType.SHUNT_TARGET_B)
+                        .orElseThrow()
+                        .setActive(voltageControl.getMode() == DiscreteVoltageControl.Mode.OFF)
+            );
+
+            // activate shunt b distribution equations except one if control is on
+            equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_B)
+                    .orElseThrow()
+                    .setActive(voltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE && i < controllerBuses.size() - 1);
         }
     }
 
