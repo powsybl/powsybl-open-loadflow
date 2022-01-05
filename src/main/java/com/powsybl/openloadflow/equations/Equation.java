@@ -169,6 +169,9 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
             case BRANCH:
                 element = network.getBranch(elementNum);
                 break;
+            case SHUNT_COMPENSATOR:
+                element = network.getShunt(elementNum);
+                break;
         }
         return Optional.ofNullable(element);
     }

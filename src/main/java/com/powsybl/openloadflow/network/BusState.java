@@ -15,7 +15,8 @@ public class BusState extends BusDcState {
     private final double loadTargetQ;
     private final double generationTargetQ;
     private final boolean isVoltageControllerEnabled;
-    private final DiscreteVoltageControl.Mode discreteVoltageControlMode;
+    private final DiscreteVoltageControl.Mode transformerVoltageControlMode;
+    private final DiscreteVoltageControl.Mode shuntVoltageControlMode;
     private final boolean disabled;
 
     public BusState(LfBus bus) {
@@ -24,7 +25,8 @@ public class BusState extends BusDcState {
         this.loadTargetQ = bus.getLoadTargetQ();
         this.generationTargetQ = bus.getGenerationTargetQ();
         this.isVoltageControllerEnabled = bus.isVoltageControllerEnabled();
-        discreteVoltageControlMode = bus.getDiscreteVoltageControl().map(DiscreteVoltageControl::getMode).orElse(null);
+        transformerVoltageControlMode = bus.getTransformerVoltageControl().map(TransformerVoltageControl::getMode).orElse(null);
+        shuntVoltageControlMode = bus.getShuntVoltageControl().map(ShuntVoltageControl::getMode).orElse(null);
         this.disabled = bus.isDisabled();
     }
 
@@ -36,8 +38,11 @@ public class BusState extends BusDcState {
         element.setGenerationTargetQ(generationTargetQ);
         element.setVoltageControllerEnabled(isVoltageControllerEnabled);
         element.setVoltageControlSwitchOffCount(0);
-        if (discreteVoltageControlMode != null) {
-            element.getDiscreteVoltageControl().ifPresent(control -> control.setMode(discreteVoltageControlMode));
+        if (transformerVoltageControlMode != null) {
+            element.getTransformerVoltageControl().ifPresent(control -> control.setMode(transformerVoltageControlMode));
+        }
+        if (shuntVoltageControlMode != null) {
+            element.getShuntVoltageControl().ifPresent(control -> control.setMode(shuntVoltageControlMode));
         }
         element.setDisabled(disabled);
     }

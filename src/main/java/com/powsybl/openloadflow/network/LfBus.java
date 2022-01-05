@@ -120,6 +120,8 @@ public interface LfBus extends LfElement {
 
     Optional<LfShunt> getShunt();
 
+    Optional<LfShunt> getControllerShunt();
+
     LfLoads getLfLoads();
 
     List<LfBranch> getBranches();
@@ -128,11 +130,17 @@ public interface LfBus extends LfElement {
 
     void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant);
 
-    Optional<DiscreteVoltageControl> getDiscreteVoltageControl();
+    Optional<TransformerVoltageControl> getTransformerVoltageControl();
 
-    boolean isDiscreteVoltageControlled();
+    boolean isTransformerVoltageControlled();
 
-    void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
+    void setTransformerVoltageControl(TransformerVoltageControl transformerVoltageControl);
+
+    Optional<ShuntVoltageControl> getShuntVoltageControl();
+
+    boolean isShuntVoltageControlled();
+
+    void setShuntVoltageControl(ShuntVoltageControl shuntVoltageControl);
 
     void setP(Evaluable p);
 

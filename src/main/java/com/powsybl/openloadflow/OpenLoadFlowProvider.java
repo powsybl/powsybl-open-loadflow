@@ -178,7 +178,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                        parameters.isTransformerVoltageControlOn(),
                                        parametersExt.isVoltagePerReactivePowerControl(),
                                        parametersExt.hasReactivePowerRemoteControl(),
-                                       parameters.isDc());
+                                       parameters.isDc(),
+                                       parameters.isSimulShunt());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
@@ -205,6 +206,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
         LOGGER.info("Voltage per reactive power control: {}", parametersExt.isVoltagePerReactivePowerControl());
         LOGGER.info("Reactive Power Remote control: {}", parametersExt.hasReactivePowerRemoteControl());
+        LOGGER.info("Shunt voltage control: {}", parameters.isSimulShunt());
 
         OuterLoopConfig outerLoopConfig = findOuterLoopConfig();
         List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
@@ -318,7 +320,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                         false,
                                                         false,
                                                         false,
-                                                        true);
+                                                        true,
+                                                        false);
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       false,
