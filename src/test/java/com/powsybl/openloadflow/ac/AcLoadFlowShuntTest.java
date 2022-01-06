@@ -350,4 +350,29 @@ class AcLoadFlowShuntTest {
         assertEquals(10, shuntCompensator2.getSectionCount());
         assertEquals(10, shuntCompensator3.getSectionCount());
     }
+
+    @Test
+    void testNoShuntVoltageControl() {
+        parameters.setSimulShunt(true);
+        shunt.setRegulatingTerminal(network.getGenerator("g1").getTerminal());
+        shunt.setSectionCount(0);
+        shunt.setVoltageRegulatorOn(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(388.581, bus3);
+        assertEquals(0, shunt.getSectionCount());
+    }
+
+    @Test
+    void testNoShuntVoltageControl2() {
+        parameters.setSimulShunt(true);
+        shunt.setSectionCount(0);
+        shunt.setVoltageRegulatorOn(true);
+        shunt.setRegulatingTerminal(network.getLoad("ld1").getTerminal());
+        network.getLoad("ld1").getTerminal().disconnect();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(389.999, bus3);
+        assertEquals(0, shunt.getSectionCount());
+    }
 }
