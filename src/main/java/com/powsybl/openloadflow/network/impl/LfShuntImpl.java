@@ -26,7 +26,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     private final LfBus bus;
 
-    private final boolean withVoltageControl;
+    private boolean withVoltageControl;
 
     private final List<Controller> controllers = new ArrayList<>();
 
@@ -138,6 +138,16 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     @Override
     public void setB(double b) {
         this.b = b;
+    }
+
+    @Override
+    public boolean hasVoltageControl() {
+        return withVoltageControl;
+    }
+
+    @Override
+    public void setVoltageControl(boolean voltageControl) {
+        this.withVoltageControl = voltageControl;
     }
 
     private void roundBToClosestSection(double b, Controller controller) {

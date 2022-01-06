@@ -18,4 +18,8 @@ public interface LfShunt extends LfElement {
     double dispatchB();
 
     void updateState();
+
+    boolean hasVoltageControl();
+
+    void setVoltageControl(boolean voltageControl);
 }

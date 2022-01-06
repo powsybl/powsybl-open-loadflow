@@ -350,4 +350,73 @@ class AcLoadFlowShuntTest {
         assertEquals(10, shuntCompensator2.getSectionCount());
         assertEquals(10, shuntCompensator3.getSectionCount());
     }
+
+    @Test
+    void testNoShuntVoltageControl() {
+        parameters.setSimulShunt(true);
+        shunt.setRegulatingTerminal(network.getGenerator("g1").getTerminal());
+        shunt.setSectionCount(0);
+        shunt.setVoltageRegulatorOn(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(388.581, bus3);
+        assertEquals(0, shunt.getSectionCount());
+    }
+
+    @Test
+    void testNoShuntVoltageControl2() {
+        parameters.setSimulShunt(true);
+        shunt.setSectionCount(0);
+        shunt.setVoltageRegulatorOn(true);
+        shunt.setRegulatingTerminal(network.getLoad("ld1").getTerminal());
+        network.getLoad("ld1").getTerminal().disconnect();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(389.999, bus3);
+        assertEquals(0, shunt.getSectionCount());
+    }
+
+    @Test
+    void testNoShuntVoltageControl3() {
+        Network network = VoltageControlNetworkFactory.createWithShuntRemoteControl();
+        TwoWindingsTransformer twt = network.getTwoWindingsTransformer("tr1");
+        twt.newRatioTapChanger()
+                .setTargetDeadband(0)
+                .setTapPosition(0)
+                .setLoadTapChangingCapabilities(true)
+                .setRegulating(true)
+                .setTargetV(400)
+                .setRegulationTerminal(network.getLoad("l4").getTerminal())
+                .beginStep()
+                .setRho(0.9)
+                .setR(0.1089)
+                .setX(0.01089)
+                .setG(0.8264462809917356)
+                .setB(0.08264462809917356)
+                .endStep()
+                .beginStep()
+                .setRho(1.0)
+                .setR(0.121)
+                .setX(0.0121)
+                .setG(0.8264462809917356)
+                .setB(0.08264462809917356)
+                .endStep()
+                .beginStep()
+                .setRho(1.1)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .add();
+        parameters.setSimulShunt(true);
+        parameters.setTransformerVoltageControlOn(true);
+        ShuntCompensator shuntCompensator2 = network.getShuntCompensator("SHUNT2");
+        ShuntCompensator shuntCompensator3 = network.getShuntCompensator("SHUNT3");
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(419.690, network.getBusBreakerView().getBus("b4"));
+        assertEquals(0, shuntCompensator2.getSectionCount());
+        assertEquals(0, shuntCompensator3.getSectionCount());
+    }
 }

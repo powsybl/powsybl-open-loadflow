@@ -628,16 +628,26 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         LfBus controlledBus = getLfBus(shuntCompensator.getRegulatingTerminal(), lfNetwork, breakers);
         if (controlledBus == null) {
             LOGGER.warn("Regulating terminal of voltage controller shunt {} is out of voltage: no voltage control created", shuntCompensator.getId());
+            controllerBus.getControllerShunt().ifPresent(shunt ->
+                    shunt.setVoltageControl(false)
+            );
             return;
         }
         if (controlledBus.isVoltageControlled()) {
             LOGGER.warn("Controlled bus {} has both generator and shunt voltage control on: only generator control is kept", controlledBus.getId());
+            controllerBus.getControllerShunt().ifPresent(shunt ->
+                    shunt.setVoltageControl(false)
+            );
             return;
         }
-        controlledBus.getTransformerVoltageControl().ifPresent(vc -> {
-            LOGGER.trace("Controlled bus {} has already a transformer voltage control: only transformer control is kept", controlledBus.getId());
+        Optional<TransformerVoltageControl> tvc = controlledBus.getTransformerVoltageControl();
+        if (tvc.isPresent()) {
+            LOGGER.error("Controlled bus {} has already a transformer voltage control: only transformer control is kept", controlledBus.getId());
+            controllerBus.getControllerShunt().ifPresent(shunt ->
+                    shunt.setVoltageControl(false)
+            );
             return;
-        });
+        }
 
         double regulatingTerminalNominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
         double targetValue = shuntCompensator.getTargetV() / regulatingTerminalNominalV;
