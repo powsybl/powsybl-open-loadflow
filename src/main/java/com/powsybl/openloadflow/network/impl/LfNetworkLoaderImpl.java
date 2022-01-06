@@ -645,7 +645,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             controllerBus.getControllerShunt().ifPresent(shunt ->
                     shunt.setVoltageControl(false)
             );
-            return;
         });
 
         double regulatingTerminalNominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();

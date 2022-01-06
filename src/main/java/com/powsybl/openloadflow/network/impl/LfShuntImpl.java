@@ -142,7 +142,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     @Override
     public boolean hasVoltageControl() {
-        return this.withVoltageControl;
+        return withVoltageControl;
     }
 
     @Override
