@@ -755,4 +755,66 @@ class OpenSecurityAnalysisTest {
         assertEquals(1.66, brl14l13.getP1(), 1e-2);
         assertEquals(0.66, brl14l13.getFlowTransfer(), 1e-2);
     }
+
+    @Test
+    void testSAWithRemoteSharedControl() {
+        // FIXME
+        Network network = VoltageControlNetworkFactory.createWithGeneratorRemoteControl();
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters();
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+        ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
+                .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
+                .collect(Collectors.toList());
+
+        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network, network.getVariantManager().getWorkingVariantId(),
+                new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
+                contingenciesProvider, Collections.emptyList());
+        SecurityAnalysisResult result = futureResult.join().getResult();
+    }
+
+    @Test
+    void testSAWithTransformerRemoteSharedControl() {
+        // FIXME
+        Network network = VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl();
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        lfParameters.setTransformerVoltageControlOn(true);
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters();
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+        ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
+                .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
+                .collect(Collectors.toList());
+
+        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network, network.getVariantManager().getWorkingVariantId(),
+                new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
+                contingenciesProvider, Collections.emptyList());
+        SecurityAnalysisResult result = futureResult.join().getResult();
+    }
+
+    @Test
+    void testSAWithShuntRemoteSharedControl() {
+        // FIXME
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        lfParameters.setSimulShunt(true);
+        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters();
+        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
+        saParameters.setLoadFlowParameters(lfParameters);
+        ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
+                .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
+                .collect(Collectors.toList());
+
+        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network, network.getVariantManager().getWorkingVariantId(),
+                new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
+                contingenciesProvider, Collections.emptyList());
+        SecurityAnalysisResult result = futureResult.join().getResult();
+    }
 }

@@ -197,7 +197,7 @@ class AcLoadFlowShuntTest {
 
     @Test
     void testRemoteVoltageControl() {
-        Network network = VoltageControlNetworkFactory.createWithShuntRemoteControl();
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
         ShuntCompensator shuntCompensator2 = network.getShuntCompensator("SHUNT2");
         shuntCompensator2.setVoltageRegulatorOn(false);
         ShuntCompensator shuntCompensator3 = network.getShuntCompensator("SHUNT3");
@@ -340,7 +340,7 @@ class AcLoadFlowShuntTest {
 
     @Test
     void testSharedRemoteVoltageControl() {
-        Network network = VoltageControlNetworkFactory.createWithShuntRemoteControl();
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
         parameters.setSimulShunt(true);
         ShuntCompensator shuntCompensator2 = network.getShuntCompensator("SHUNT2");
         ShuntCompensator shuntCompensator3 = network.getShuntCompensator("SHUNT3");
