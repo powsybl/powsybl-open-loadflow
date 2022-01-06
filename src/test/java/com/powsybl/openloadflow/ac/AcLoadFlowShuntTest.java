@@ -378,7 +378,7 @@ class AcLoadFlowShuntTest {
 
     @Test
     void testNoShuntVoltageControl3() {
-        Network network = VoltageControlNetworkFactory.createWithShuntRemoteControl();
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
         TwoWindingsTransformer twt = network.getTwoWindingsTransformer("tr1");
         twt.newRatioTapChanger()
                 .setTargetDeadband(0)
