@@ -136,7 +136,10 @@ public final class AcEquationSystem {
         // ensure reactive keys are up-to-date
         voltageControl.updateReactiveKeys();
 
-        Set<LfBus> controllerBuses = voltageControl.getControllerBuses();
+        List<LfBus> controllerBuses = voltageControl.getControllerBuses()
+                .stream()
+                .filter(b -> !b.isDisabled())
+                .collect(Collectors.toList());
         List<LfBus> enabledControllerBuses = new ArrayList<>(controllerBuses.size());
         List<LfBus> disabledControllerBuses = new ArrayList<>(controllerBuses.size());
         for (LfBus controllerBus : controllerBuses) {

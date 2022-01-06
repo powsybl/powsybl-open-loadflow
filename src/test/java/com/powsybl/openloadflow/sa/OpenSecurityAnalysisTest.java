@@ -770,10 +770,16 @@ class OpenSecurityAnalysisTest {
                 .collect(Collectors.toList());
 
         OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
-        CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network, network.getVariantManager().getWorkingVariantId(),
-                new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
-                contingenciesProvider, Collections.emptyList());
-        SecurityAnalysisResult result = futureResult.join().getResult();
+        SecurityAnalysisReport saReport = osaProvider.run(network,
+                                                          network.getVariantManager().getWorkingVariantId(),
+                                                          new DefaultLimitViolationDetector(),
+                                                          new LimitViolationFilter(),
+                                                          null,
+                                                          saParameters,
+                                                          contingenciesProvider,
+                                                          Collections.emptyList())
+                .join();
+        assertEquals(3, saReport.getResult().getPostContingencyResults().size());
     }
 
     @Test
