@@ -24,8 +24,6 @@ import java.util.stream.Collectors;
 
 public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
-    DcSensitivityAnalysis dcSensitivityAnalysis = null;
-
     protected DcSecurityAnalysis(final Network network, final LimitViolationDetector detector, final LimitViolationFilter filter,
                               final MatrixFactory matrixFactory, final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider, List<StateMonitor> stateMonitors) {
         super(network, detector, filter, matrixFactory, connectivityProvider, stateMonitors);
@@ -37,11 +35,9 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
 
-        dcSensitivityAnalysis = new DcSensitivityAnalysis(matrixFactory, connectivityProvider);
+        OpenSensitivityAnalysisProvider sensitivityAnalysisProvider = new OpenSensitivityAnalysisProvider(matrixFactory);
 
-        OpenSensitivityAnalysisProvider sensitivityAnalysisProvider = new OpenSensitivityAnalysisProvider();
-
-        List<SensitivityVariableSet> variableSets = new ArrayList<>();
+        List<SensitivityVariableSet> variableSets = Collections.emptyList();
         SensitivityAnalysisParameters sensitivityAnalysisParameters = new SensitivityAnalysisParameters();
         sensitivityAnalysisParameters.getLoadFlowParameters().setDc(true);
 

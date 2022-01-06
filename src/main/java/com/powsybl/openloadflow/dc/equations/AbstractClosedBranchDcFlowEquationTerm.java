@@ -6,10 +6,10 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
-import com.google.common.collect.ImmutableList;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.equations.*;
-import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.equations.AbstractBranchEquationTerm;
+import com.powsybl.openloadflow.equations.Variable;
+import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
@@ -22,15 +22,13 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNamedEquationTerm<DcVariableType, DcEquationType> {
-
-    protected final LfBranch branch;
+public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBranchEquationTerm<DcVariableType, DcEquationType> {
 
     protected final Variable<DcVariableType> ph1Var;
 
     protected final Variable<DcVariableType> ph2Var;
 
-    protected Variable<DcVariableType> a1Var;
+    protected final Variable<DcVariableType> a1Var;
 
     protected final List<Variable<DcVariableType>> variables;
 
@@ -38,20 +36,20 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
 
     protected AbstractClosedBranchDcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
                                                      boolean deriveA1, boolean useTransformerRatio) {
-        this.branch = Objects.requireNonNull(branch);
+        super(branch);
         PiModel piModel = branch.getPiModel();
         if (piModel.getX() == 0) {
             throw new IllegalArgumentException("Branch '" + branch.getId() + "' has reactance equal to zero");
         }
         ph1Var = variableSet.getVariable(bus1.getNum(), DcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), DcVariableType.BUS_PHI);
-        ImmutableList.Builder<Variable<DcVariableType>> variablesBuilder = ImmutableList.<Variable<DcVariableType>>builder().add(ph1Var, ph2Var);
+        a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1) : null;
         power =  1 / piModel.getX() * (useTransformerRatio ? piModel.getR1() * R2 : 1);
-        if (deriveA1) {
-            a1Var = variableSet.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1);
-            variablesBuilder.add(a1Var);
+        if (a1Var != null) {
+            variables = List.of(ph1Var, ph2Var, a1Var);
+        } else {
+            variables = List.of(ph1Var, ph2Var);
         }
-        variables = variablesBuilder.build();
     }
 
     @Override
@@ -59,28 +57,22 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractNam
         Objects.requireNonNull(x);
         double ph1 = x.get(ph1Var.getRow(), column);
         double ph2 = x.get(ph2Var.getRow(), column);
-        double a1 = getA1(x, column);
+        double a1 = a1Var != null ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
         return calculateSensi(ph1, ph2, a1);
     }
 
-    private double getA1(DenseMatrix x, int column) {
-        return a1Var != null ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
+    protected double ph1() {
+        return stateVector.get(ph1Var.getRow());
+    }
+
+    protected double ph2() {
+        return stateVector.get(ph2Var.getRow());
     }
 
     protected abstract double calculateSensi(double ph1, double ph2, double a1);
 
-    protected double getA1(double[] stateVector) {
-        return a1Var != null ? stateVector[a1Var.getRow()] : branch.getPiModel().getA1();
-    }
-
-    @Override
-    public ElementType getElementType() {
-        return ElementType.BRANCH;
-    }
-
-    @Override
-    public int getElementNum() {
-        return branch.getNum();
+    protected double a1() {
+        return a1Var != null ? stateVector.get(a1Var.getRow()) : branch.getPiModel().getA1();
     }
 
     @Override

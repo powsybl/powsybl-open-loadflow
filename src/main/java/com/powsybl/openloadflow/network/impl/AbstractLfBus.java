@@ -31,7 +31,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean slack = false;
 
-    protected Evaluable v;
+    protected double v;
+
+    protected Evaluable calculatedV = NAN;
 
     protected double angle;
 
@@ -53,7 +55,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfGenerator> generators = new ArrayList<>();
 
-    protected final List<LfShunt> shunts = new ArrayList<>();
+    protected LfShunt shunt;
+
+    protected LfShunt controllerShunt;
 
     protected final LfLoads lfLoads = new LfLoads();
 
@@ -69,15 +73,19 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private ReactivePowerControl reactivePowerControl;
 
-    protected DiscreteVoltageControl discreteVoltageControl;
+    protected TransformerVoltageControl transformerVoltageControl;
+
+    protected ShuntVoltageControl shuntVoltageControl;
 
     protected Evaluable p = NAN;
 
     protected Evaluable q = NAN;
 
+    protected double remoteVoltageControlReactivePercent = Double.NaN;
+
     protected AbstractLfBus(LfNetwork network, double v, double angle) {
         super(network);
-        this.v = () -> v / getNominalV(); // this will be replaced by an equation term once the equationSystem is created
+        this.v = v;
         this.angle = angle;
     }
 
@@ -270,8 +278,23 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         add(LfVscConverterStationImpl.create(vscCs, breakers, report));
     }
 
-    void addShuntCompensator(ShuntCompensator sc) {
-        shunts.add(new LfShuntImpl(sc, network));
+    void setShuntCompensators(List<ShuntCompensator> shuntCompensators, boolean isShuntVoltageControl) {
+        if (!isShuntVoltageControl && !shuntCompensators.isEmpty()) {
+            shunt = new LfShuntImpl(shuntCompensators, network, this, false);
+        } else {
+            List<ShuntCompensator> controllerShuntCompensators = shuntCompensators.stream()
+                    .filter(ShuntCompensator::isVoltageRegulatorOn)
+                    .collect(Collectors.toList());
+            if (!controllerShuntCompensators.isEmpty()) {
+                controllerShunt = new LfShuntImpl(controllerShuntCompensators, network, this, true);
+            }
+            List<ShuntCompensator> fixedShuntCompensators = shuntCompensators.stream()
+                    .filter(sc -> !sc.isVoltageRegulatorOn())
+                    .collect(Collectors.toList());
+            if (!fixedShuntCompensators.isEmpty()) {
+                shunt = new LfShuntImpl(fixedShuntCompensators, network, this, false);
+            }
+        }
     }
 
     @Override
@@ -358,13 +381,23 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public Evaluable getV() {
-        return v;
+    public double getV() {
+        return v / getNominalV();
     }
 
     @Override
-    public void setV(Evaluable v) {
-        this.v = v;
+    public void setV(double v) {
+        this.v = v * getNominalV();
+    }
+
+    @Override
+    public Evaluable getCalculatedV() {
+        return calculatedV;
+    }
+
+    @Override
+    public void setCalculatedV(Evaluable calculatedV) {
+        this.calculatedV = Objects.requireNonNull(calculatedV);
     }
 
     @Override
@@ -388,8 +421,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public List<LfShunt> getShunts() {
-        return shunts;
+    public Optional<LfShunt> getShunt() {
+        return Optional.ofNullable(shunt);
+    }
+
+    @Override
+    public Optional<LfShunt> getControllerShunt() {
+        return Optional.ofNullable(controllerShunt);
     }
 
     @Override
@@ -479,24 +517,41 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public Optional<DiscreteVoltageControl> getDiscreteVoltageControl() {
-        return Optional.ofNullable(discreteVoltageControl);
+    public Optional<TransformerVoltageControl> getTransformerVoltageControl() {
+        return Optional.ofNullable(transformerVoltageControl);
     }
 
     @Override
-    public boolean isDiscreteVoltageControlled() {
-        return discreteVoltageControl != null && discreteVoltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE;
+    public boolean isTransformerVoltageControlled() {
+        return transformerVoltageControl != null && transformerVoltageControl.getMode() != DiscreteVoltageControl.Mode.OFF
+                 && transformerVoltageControl.getControlled() == this;
     }
 
     @Override
-    public void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl) {
-        this.discreteVoltageControl = discreteVoltageControl;
+    public void setTransformerVoltageControl(TransformerVoltageControl transformerVoltageControl) {
+        this.transformerVoltageControl = transformerVoltageControl;
+    }
+
+    @Override
+    public Optional<ShuntVoltageControl> getShuntVoltageControl() {
+        return Optional.ofNullable(shuntVoltageControl);
+    }
+
+    @Override
+    public boolean isShuntVoltageControlled() {
+        return shuntVoltageControl != null && shuntVoltageControl.getMode() != DiscreteVoltageControl.Mode.OFF
+                && shuntVoltageControl.getControlled() == this;
+    }
+
+    @Override
+    public void setShuntVoltageControl(ShuntVoltageControl shuntVoltageControl) {
+        this.shuntVoltageControl = shuntVoltageControl;
     }
 
     @Override
     public void setDisabled(boolean disabled) {
         super.setDisabled(disabled);
-        for (LfShunt shunt : shunts) {
+        if (shunt != null) {
             shunt.setDisabled(disabled);
         }
     }
@@ -523,8 +578,30 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public BusResults createBusResult() {
-        double scale = getNominalV();
-        return new BusResults(getVoltageLevelId(), getId(), getV().eval() * scale, getAngle());
+        return new BusResults(getVoltageLevelId(), getId(), v, getAngle());
+    }
+
+    @Override
+    public Map<LfBus, List<LfBranch>> findNeighbors() {
+        Map<LfBus, List<LfBranch>> neighbors = new LinkedHashMap<>(branches.size());
+        for (LfBranch branch : branches) {
+            if (branch.isConnectedAtBothSides()) {
+                LfBus otherBus = branch.getBus1() == this ? branch.getBus2() : branch.getBus1();
+                neighbors.computeIfAbsent(otherBus, k -> new ArrayList<>())
+                        .add(branch);
+            }
+        }
+        return neighbors;
+    }
+
+    @Override
+    public double getRemoteVoltageControlReactivePercent() {
+        return remoteVoltageControlReactivePercent;
+    }
+
+    @Override
+    public void setRemoteVoltageControlReactivePercent(double remoteVoltageControlReactivePercent) {
+        this.remoteVoltageControlReactivePercent = remoteVoltageControlReactivePercent;
     }
 
     @Override

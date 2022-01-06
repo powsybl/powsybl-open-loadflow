@@ -71,7 +71,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         Set<Switch> allSwitchesToOpen = new HashSet<>();
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen);
 
-        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters, lfParametersExt, true);
+        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters, lfParametersExt, true, Reporter.NO_OP);
 
         // create networks including all necessary switches
         List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters.getNetworkParameters());
@@ -132,17 +132,18 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 LOGGER.info("Save pre-contingency state");
 
                 // save base state for later restoration after each contingency
-                List<BusState> busStates = BusState.save(network.getBuses());
-                List<BranchState> branchStates = BranchState.save(network.getBranches());
+                List<BusState> busStates = ElementState.save(network.getBuses(), BusState::save);
+                List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
                 for (LfBus bus : network.getBuses()) {
                     bus.setVoltageControlSwitchOffCount(0);
                 }
 
                 // start a simulation for each of the contingency
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
+                GraphDecrementalConnectivity<LfBus> connectivity = network.createDecrementalConnectivity(connectivityProvider);
                 while (contingencyIt.hasNext()) {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
-                    LfContingency.create(propagatedContingency, network, network.createDecrementalConnectivity(connectivityProvider), true)
+                    LfContingency.create(propagatedContingency, network, connectivity, true)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
                                 for (LfBus bus : lfContingency.getBuses()) {
                                     bus.setDisabled(true);
@@ -160,8 +161,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                     LOGGER.info("Restore pre-contingency state");
 
                                     // restore base state
-                                    BusState.restore(busStates);
-                                    BranchState.restore(branchStates);
+                                    ElementState.restore(busStates);
+                                    ElementState.restore(branchStates);
                                 }
                             });
                 }

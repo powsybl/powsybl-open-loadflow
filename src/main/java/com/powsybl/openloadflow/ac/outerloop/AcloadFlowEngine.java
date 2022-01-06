@@ -34,8 +34,6 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     private final AcLoadFlowParameters parameters;
 
-    private VariableSet<AcVariableType> variableSet;
-
     private EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
     private JacobianMatrix<AcVariableType, AcEquationType> j;
@@ -55,10 +53,6 @@ public class AcloadFlowEngine implements AutoCloseable {
         return parameters;
     }
 
-    public VariableSet<AcVariableType> getVariableSet() {
-        return variableSet;
-    }
-
     public EquationSystem<AcVariableType, AcEquationType> getEquationSystem() {
         return equationSystem;
     }
@@ -67,7 +61,7 @@ public class AcloadFlowEngine implements AutoCloseable {
         if (lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
             for (LfBus bus : network.getBuses()) {
                 if (bus.isVoltageControllerEnabled()) {
-                    Equation<AcVariableType, AcEquationType> q = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_Q);
+                    Equation<AcVariableType, AcEquationType> q = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q);
                     bus.setCalculatedQ(q.eval());
                 } else {
                     bus.setCalculatedQ(Double.NaN);
@@ -118,9 +112,11 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     private static double getBusTargetV(LfBus bus) {
         Objects.requireNonNull(bus);
-        return bus.getDiscreteVoltageControl().filter(dvc -> bus.isDiscreteVoltageControlled())
-                .map(DiscreteVoltageControl::getTargetValue)
-                .orElse(getVoltageControlledTargetValue(bus).orElse(Double.NaN));
+        return bus.getShuntVoltageControl().filter(dvc -> bus.isShuntVoltageControlled())
+                .map(ShuntVoltageControl::getTargetValue)
+                .orElse(bus.getTransformerVoltageControl().filter(dvc -> bus.isTransformerVoltageControlled())
+                        .map(TransformerVoltageControl::getTargetValue)
+                        .orElse(getVoltageControlledTargetValue(bus).orElse(Double.NaN)));
     }
 
     private static Optional<Double> getVoltageControlledTargetValue(LfBus bus) {
@@ -132,12 +128,15 @@ public class AcloadFlowEngine implements AutoCloseable {
         });
     }
 
-    private static double getReactivePowerDistributionTarget(LfNetwork network, int num, DistributionData data) {
-        LfBus controllerBus = network.getBus(num);
-        LfBus firstControllerBus = network.getBus(data.getFirstControllerElementNum());
-        double c = data.getC();
-        return c * (controllerBus.getLoadTargetQ() - controllerBus.getGenerationTargetQ())
-                - firstControllerBus.getLoadTargetQ() - firstControllerBus.getGenerationTargetQ();
+    private static double getReactivePowerDistributionTarget(LfNetwork network, int busNum) {
+        LfBus controllerBus = network.getBus(busNum);
+        double target = (controllerBus.getRemoteVoltageControlReactivePercent() - 1) * controllerBus.getTargetQ();
+        for (LfBus otherControllerBus : controllerBus.getVoltageControl().orElseThrow().getControllerBuses()) {
+            if (otherControllerBus != controllerBus) {
+                target += controllerBus.getRemoteVoltageControlReactivePercent() * otherControllerBus.getTargetQ();
+            }
+        }
+        return target;
     }
 
     private static double getRho1DistributionTarget(LfNetwork network, int num, DistributionData data) {
@@ -147,8 +146,16 @@ public class AcloadFlowEngine implements AutoCloseable {
         return controllerBranch.getPiModel().getR1() - firstControllerBranch.getPiModel().getR1();
     }
 
-    private static double createBusWithSlopeTarget(LfBus bus, DistributionData data) {
-        double slope = data.getC();
+    private static double getBDistributionTarget(LfNetwork network, int num, DistributionData data) {
+        LfShunt controllerShunt = network.getShunt(num);
+        LfShunt firstControllerShunt = network.getShunt(data.getFirstControllerElementNum());
+        // as a first and very simple B distribution strategy, we keep the gap between the 2 B constant
+        return controllerShunt.getB() - firstControllerShunt.getB();
+    }
+
+    private static double createBusWithSlopeTarget(LfBus bus) {
+        // take first generator with slope: network loading ensures that there's only one generator with slope
+        double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
         return getBusTargetV(bus) - slope * (bus.getLoadTargetQ() - bus.getGenerationTargetQ());
     }
 
@@ -160,44 +167,48 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     public static void initTarget(Equation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
-            case BUS_P:
-                targets[equation.getColumn()] = network.getBus(equation.getNum()).getTargetP();
+            case BUS_TARGET_P:
+                targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getTargetP();
                 break;
 
-            case BUS_Q:
-                targets[equation.getColumn()] = network.getBus(equation.getNum()).getTargetQ();
+            case BUS_TARGET_Q:
+                targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getTargetQ();
                 break;
 
-            case BUS_V:
-                targets[equation.getColumn()] = getBusTargetV(network.getBus(equation.getNum()));
+            case BUS_TARGET_V:
+                targets[equation.getColumn()] = getBusTargetV(network.getBus(equation.getElementNum()));
                 break;
 
-            case BUS_V_SLOPE:
-                targets[equation.getColumn()] = createBusWithSlopeTarget(network.getBus(equation.getNum()), equation.getData());
+            case BUS_TARGET_V_WITH_SLOPE:
+                targets[equation.getColumn()] = createBusWithSlopeTarget(network.getBus(equation.getElementNum()));
                 break;
 
-            case BUS_PHI:
+            case BUS_TARGET_PHI:
                 targets[equation.getColumn()] = 0;
                 break;
 
-            case BRANCH_P:
-                targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getNum()), DiscretePhaseControl.Unit.MW);
+            case SHUNT_TARGET_B:
+                targets[equation.getColumn()] = network.getShunt(equation.getElementNum()).getB();
                 break;
 
-            case BRANCH_Q:
-                targets[equation.getColumn()] = getReactivePowerControlTarget(network.getBranch(equation.getNum()));
+            case BRANCH_TARGET_P:
+                targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getElementNum()), DiscretePhaseControl.Unit.MW);
                 break;
 
-            case BRANCH_ALPHA1:
-                targets[equation.getColumn()] = network.getBranch(equation.getNum()).getPiModel().getA1();
+            case BRANCH_TARGET_Q:
+                targets[equation.getColumn()] = getReactivePowerControlTarget(network.getBranch(equation.getElementNum()));
                 break;
 
-            case BRANCH_RHO1:
-                targets[equation.getColumn()] = network.getBranch(equation.getNum()).getPiModel().getR1();
+            case BRANCH_TARGET_ALPHA1:
+                targets[equation.getColumn()] = network.getBranch(equation.getElementNum()).getPiModel().getA1();
                 break;
 
-            case ZERO_Q:
-                targets[equation.getColumn()] = getReactivePowerDistributionTarget(network, equation.getNum(), equation.getData());
+            case BRANCH_TARGET_RHO1:
+                targets[equation.getColumn()] = network.getBranch(equation.getElementNum()).getPiModel().getR1();
+                break;
+
+            case DISTR_Q:
+                targets[equation.getColumn()] = getReactivePowerDistributionTarget(network, equation.getElementNum());
                 break;
 
             case ZERO_V:
@@ -205,11 +216,15 @@ public class AcloadFlowEngine implements AutoCloseable {
                 break;
 
             case ZERO_PHI:
-                targets[equation.getColumn()] = LfBranch.getA(network.getBranch(equation.getNum()));
+                targets[equation.getColumn()] = LfBranch.getA(network.getBranch(equation.getElementNum()));
                 break;
 
-            case ZERO_RHO1:
-                targets[equation.getColumn()] = getRho1DistributionTarget(network, equation.getNum(), equation.getData());
+            case DISTR_RHO:
+                targets[equation.getColumn()] = getRho1DistributionTarget(network, equation.getElementNum(), equation.getData());
+                break;
+
+            case DISTR_B:
+                targets[equation.getColumn()] = getBDistributionTarget(network, equation.getElementNum(), equation.getData());
                 break;
 
             default:
@@ -227,8 +242,7 @@ public class AcloadFlowEngine implements AutoCloseable {
         if (equationSystem == null) {
             LOGGER.info("Start AC loadflow on network {}", network);
 
-            variableSet = new VariableSet<>();
-            equationSystem = AcEquationSystem.create(network, parameters.getNetworkParameters(), variableSet, parameters.getEquationSystemCreationParameters());
+            equationSystem = AcEquationSystem.create(network, parameters.getNetworkParameters(), parameters.getEquationSystemCreationParameters());
             j = new JacobianMatrix<>(equationSystem, parameters.getMatrixFactory());
             targetVector = new TargetVector<>(network, equationSystem, AcloadFlowEngine::initTarget);
         } else {
@@ -236,8 +250,7 @@ public class AcloadFlowEngine implements AutoCloseable {
         }
 
         RunningContext runningContext = new RunningContext();
-        NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getNetworkParameters(), parameters.getNewtonRaphsonParameters(),
-                                                        parameters.getMatrixFactory(), equationSystem, j, targetVector);
+        NewtonRaphson newtonRaphson = new NewtonRaphson(network, parameters.getNewtonRaphsonParameters(), equationSystem, j, targetVector);
 
         // run initial Newton-Raphson
         runningContext.lastNrResult = newtonRaphson.run(reporter);

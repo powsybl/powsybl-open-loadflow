@@ -276,4 +276,78 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertEquals(1, result.getComponentResults().size());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
     }
+
+    @Test
+    void testSeveralShunts() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getVoltageLevel("VLLOAD").newShuntCompensator()
+                .setId("SC")
+                .setBus("NLOAD")
+                .setConnectableBus("NLOAD")
+                .setSectionCount(1)
+                .newLinearModel()
+                .setBPerSection(3.25 * Math.pow(10, -3))
+                .setMaximumSectionCount(1)
+                .add()
+                .add();
+        network.getVoltageLevel("VLLOAD").newShuntCompensator()
+                .setId("SC2")
+                .setBus("NLOAD")
+                .setConnectableBus("NLOAD")
+                .setSectionCount(1)
+                .newLinearModel()
+                .setBPerSection(-3.25 * Math.pow(10, -3))
+                .setMaximumSectionCount(1)
+                .add()
+                .add();
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL)
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
+        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(-70.782, network.getShuntCompensator("SC").getTerminal());
+        assertReactivePowerEquals(70.782, network.getShuntCompensator("SC2").getTerminal());
+    }
+
+    @Test
+    void testSeveralShunts2() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getVoltageLevel("VLLOAD").newShuntCompensator()
+                .setId("SC")
+                .setBus("NLOAD")
+                .setConnectableBus("NLOAD")
+                .setSectionCount(1)
+                .newLinearModel()
+                .setBPerSection(0.0)
+                .setMaximumSectionCount(1)
+                .add()
+                .add();
+        network.getVoltageLevel("VLLOAD").newShuntCompensator()
+                .setId("SC2")
+                .setBus("NLOAD")
+                .setConnectableBus("NLOAD")
+                .setSectionCount(1)
+                .newLinearModel()
+                .setBPerSection(0.0)
+                .setMaximumSectionCount(1)
+                .add()
+                .add();
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL)
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
+        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(0, network.getShuntCompensator("SC").getTerminal());
+        assertReactivePowerEquals(0, network.getShuntCompensator("SC2").getTerminal());
+    }
 }

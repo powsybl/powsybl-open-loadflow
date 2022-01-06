@@ -46,6 +46,10 @@ public class LfNetworkParameters {
 
     private final boolean reactivePowerRemoteControl;
 
+    private final boolean isDc;
+
+    private final boolean shuntVoltageControl;
+
     public LfNetworkParameters() {
         this(new FirstSlackBusSelector());
     }
@@ -53,14 +57,15 @@ public class LfNetworkParameters {
     public LfNetworkParameters(SlackBusSelector slackBusSelector) {
         this(slackBusSelector, false, false, false, false,
                 PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true, Collections.emptySet(), false, false, false, false, false);
+                true, Collections.emptySet(), false, false, false, false, false, false, false);
     }
 
     public LfNetworkParameters(SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl,
                                boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers,
                                double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                boolean computeMainConnectedComponentOnly, Set<Country> countriesToBalance, boolean distributedOnConformLoad,
-                               boolean phaseControl, boolean transformerVoltageControl, boolean voltagePerReactivePowerControl, boolean reactivePowerRemoteControl) {
+                               boolean phaseControl, boolean transformerVoltageControl, boolean voltagePerReactivePowerControl, boolean reactivePowerRemoteControl,
+                               boolean isDc, boolean shuntVoltageControl) {
         this.slackBusSelector = slackBusSelector;
         this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
         this.minImpedance = minImpedance;
@@ -75,6 +80,8 @@ public class LfNetworkParameters {
         this.transformerVoltageControl = transformerVoltageControl;
         this.voltagePerReactivePowerControl = voltagePerReactivePowerControl;
         this.reactivePowerRemoteControl = reactivePowerRemoteControl;
+        this.isDc = isDc;
+        this.shuntVoltageControl = shuntVoltageControl;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -131,5 +138,34 @@ public class LfNetworkParameters {
 
     public boolean isReactivePowerRemoteControl() {
         return reactivePowerRemoteControl;
+    }
+
+    public boolean isDc() {
+        return isDc;
+    }
+
+    public boolean isShuntVoltageControl() {
+        return shuntVoltageControl;
+    }
+
+    @Override
+    public String toString() {
+        return "LfNetworkParameters(" +
+                "slackBusSelector=" + slackBusSelector.getClass().getSimpleName() +
+                ", generatorVoltageRemoteControl=" + generatorVoltageRemoteControl +
+                ", minImpedance=" + minImpedance +
+                ", twtSplitShuntAdmittance=" + twtSplitShuntAdmittance +
+                ", breakers=" + breakers +
+                ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
+                ", addRatioToLinesWithDifferentNominalVoltageAtBothEnds=" + addRatioToLinesWithDifferentNominalVoltageAtBothEnds +
+                ", computeMainConnectedComponentOnly=" + computeMainConnectedComponentOnly +
+                ", countriesToBalance=" + countriesToBalance +
+                ", distributedOnConformLoad=" + distributedOnConformLoad +
+                ", phaseControl=" + phaseControl +
+                ", transformerVoltageControl=" + transformerVoltageControl +
+                ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
+                ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
+                ", isDc=" + isDc +
+                ')';
     }
 }

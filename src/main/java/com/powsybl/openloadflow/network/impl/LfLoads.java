@@ -38,6 +38,10 @@ public class LfLoads {
         return absVariableLoadTargetP;
     }
 
+    public void setAbsVariableLoadTargetP(double absVariableLoadTargetP) {
+        this.absVariableLoadTargetP = absVariableLoadTargetP;
+    }
+
     private void init() {
         if (isInitialized) {
             return;

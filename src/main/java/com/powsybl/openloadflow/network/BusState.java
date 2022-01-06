@@ -6,63 +6,48 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class BusState {
-
-    private final LfBus bus;
+public class BusState extends BusDcState {
 
     private final double angle;
-    private final double loadTargetP;
     private final double loadTargetQ;
-    private final Map<String, Double> generatorsTargetP;
     private final double generationTargetQ;
     private final boolean isVoltageControllerEnabled;
-    private final DiscreteVoltageControl.Mode discreteVoltageControlMode;
+    private final DiscreteVoltageControl.Mode transformerVoltageControlMode;
+    private final DiscreteVoltageControl.Mode shuntVoltageControlMode;
     private final boolean disabled;
 
     public BusState(LfBus bus) {
-        this.bus = Objects.requireNonNull(bus);
+        super(bus);
         this.angle = bus.getAngle();
-        this.loadTargetP = bus.getLoadTargetP();
         this.loadTargetQ = bus.getLoadTargetQ();
-        this.generatorsTargetP = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
         this.generationTargetQ = bus.getGenerationTargetQ();
         this.isVoltageControllerEnabled = bus.isVoltageControllerEnabled();
-        discreteVoltageControlMode = bus.getDiscreteVoltageControl().map(DiscreteVoltageControl::getMode).orElse(null);
+        transformerVoltageControlMode = bus.getTransformerVoltageControl().map(TransformerVoltageControl::getMode).orElse(null);
+        shuntVoltageControlMode = bus.getShuntVoltageControl().map(ShuntVoltageControl::getMode).orElse(null);
         this.disabled = bus.isDisabled();
     }
 
+    @Override
     public void restore() {
-        bus.setAngle(angle);
-        bus.setLoadTargetP(loadTargetP);
-        bus.setLoadTargetQ(loadTargetQ);
-        bus.getGenerators().forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
-        bus.setGenerationTargetQ(generationTargetQ);
-        bus.setVoltageControllerEnabled(isVoltageControllerEnabled);
-        bus.setVoltageControlSwitchOffCount(0);
-        if (discreteVoltageControlMode != null) {
-            bus.getDiscreteVoltageControl().ifPresent(control -> control.setMode(discreteVoltageControlMode));
+        super.restore();
+        element.setAngle(angle);
+        element.setLoadTargetQ(loadTargetQ);
+        element.setGenerationTargetQ(generationTargetQ);
+        element.setVoltageControllerEnabled(isVoltageControllerEnabled);
+        element.setVoltageControlSwitchOffCount(0);
+        if (transformerVoltageControlMode != null) {
+            element.getTransformerVoltageControl().ifPresent(control -> control.setMode(transformerVoltageControlMode));
         }
-        bus.setDisabled(disabled);
+        if (shuntVoltageControlMode != null) {
+            element.getShuntVoltageControl().ifPresent(control -> control.setMode(shuntVoltageControlMode));
+        }
+        element.setDisabled(disabled);
     }
 
     public static BusState save(LfBus bus) {
         return new BusState(bus);
-    }
-
-    public static List<BusState> save(Collection<LfBus> buses) {
-        return buses.stream().map(BusState::save).collect(Collectors.toList());
-    }
-
-    public static void restore(Collection<BusState> busStates) {
-        busStates.forEach(BusState::restore);
     }
 }

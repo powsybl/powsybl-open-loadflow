@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
+import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.VariableSet;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -58,12 +59,14 @@ class PerUnitTest {
         Mockito.doReturn(0d).when(piModel).getA1();
 
         ClosedBranchSide1ActiveFlowEquationTerm p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, false, false);
+        StateVector stateVector = new StateVector();
+        p1.setStateVector(stateVector);
         double[] x = new double[4];
         x[0] = 405 / vb;
         x[1] = 0.045;
         x[2] = 404 / vb;
         x[3] = 0.0297;
-        p1.update(x);
+        stateVector.set(x);
         assertEquals(856.4176570806668, p1.eval() / PerUnit.SB, 0d);
     }
 

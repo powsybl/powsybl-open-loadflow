@@ -22,7 +22,7 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
 
     @Override
     public List<OuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        List<OuterLoop> outerLoops = new ArrayList<>(4);
+        List<OuterLoop> outerLoops = new ArrayList<>(5);
         if (parameters.isDistributedSlack()) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant());
             outerLoops.add(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), parametersExt.getSlackBusPMaxMismatch()));
@@ -35,6 +35,9 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
         }
         if (parameters.isTransformerVoltageControlOn()) {
             outerLoops.add(new TransformerVoltageControlOuterLoop());
+        }
+        if (parameters.isSimulShunt()) {
+            outerLoops.add(new ShuntVoltageControlOuterLoop());
         }
         return outerLoops;
     }

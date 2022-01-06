@@ -157,7 +157,7 @@ class OpenSecurityAnalysisTest {
                 .map(id -> new Contingency(id, new BranchContingency(id)))
                 .collect(Collectors.toList());
 
-        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider();
+        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
         CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network, network.getVariantManager().getWorkingVariantId(),
             new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
             contingenciesProvider, Collections.emptyList());
