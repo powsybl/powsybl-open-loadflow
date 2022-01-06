@@ -640,12 +640,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             );
             return;
         }
-        controlledBus.getTransformerVoltageControl().ifPresent(vc -> {
-            LOGGER.trace("Controlled bus {} has already a transformer voltage control: only transformer control is kept", controlledBus.getId());
+        Optional<TransformerVoltageControl> tvc = controlledBus.getTransformerVoltageControl();
+        if (tvc.isPresent()) {
+            LOGGER.error("Controlled bus {} has already a transformer voltage control: only transformer control is kept", controlledBus.getId());
             controllerBus.getControllerShunt().ifPresent(shunt ->
                     shunt.setVoltageControl(false)
             );
-        });
+            return;
+        }
 
         double regulatingTerminalNominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
         double targetValue = shuntCompensator.getTargetV() / regulatingTerminalNominalV;
