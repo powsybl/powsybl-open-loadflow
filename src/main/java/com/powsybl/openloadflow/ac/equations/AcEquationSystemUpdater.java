@@ -87,4 +87,12 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             AcEquationSystem.updateShuntVoltageControlEquations((ShuntVoltageControl) voltageControl, equationSystem);
         }
     }
+
+    @Override
+    public void onDisableChange(LfElement element, boolean disabled) {
+        if (element.getType() == ElementType.BUS) {
+            LfBus bus = (LfBus) element;
+            bus.getVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateRemoteVoltageControlEquations(voltageControl, equationSystem));
+        }
+    }
 }

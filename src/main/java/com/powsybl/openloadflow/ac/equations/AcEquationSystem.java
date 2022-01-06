@@ -138,36 +138,48 @@ public final class AcEquationSystem {
 
         List<LfBus> controllerBuses = voltageControl.getControllerBuses()
                 .stream()
-                .filter(b -> !b.isDisabled())
+                .filter(b -> !b.isDisabled()) // discard disabled controller buses
                 .collect(Collectors.toList());
-        List<LfBus> enabledControllerBuses = new ArrayList<>(controllerBuses.size());
-        List<LfBus> disabledControllerBuses = new ArrayList<>(controllerBuses.size());
-        for (LfBus controllerBus : controllerBuses) {
-            if (controllerBus.isVoltageControllerEnabled()) {
-                enabledControllerBuses.add(controllerBus);
-            } else {
-                disabledControllerBuses.add(controllerBus);
-            }
-        }
 
-        // activate voltage control at controlled bus only if at least one controller bus is enabled
         Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(voltageControl.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V)
                 .orElseThrow();
-        vEq.setActive(!enabledControllerBuses.isEmpty());
 
-        // deactivate reactive power distribution equation on all disabled (PQ) buses
-        for (LfBus controllerBus : disabledControllerBuses) {
-            equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
-                    .orElseThrow()
-                    .setActive(false);
-        }
+        if (voltageControl.getControlledBus().isDisabled()) {
+            // if controlled bus is disabled, we disable all voltage control equations
+            vEq.setActive(false);
+            for (LfBus controllerBus : controllerBuses) {
+                equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
+                        .orElseThrow()
+                        .setActive(false);
+            }
+        } else {
+            List<LfBus> enabledControllerBuses = new ArrayList<>(controllerBuses.size());
+            List<LfBus> disabledControllerBuses = new ArrayList<>(controllerBuses.size());
+            for (LfBus controllerBus : controllerBuses) {
+                if (controllerBus.isVoltageControllerEnabled()) {
+                    enabledControllerBuses.add(controllerBus);
+                } else {
+                    disabledControllerBuses.add(controllerBus);
+                }
+            }
 
-        // activate reactive power distribution equation at all enabled controller buses except one (first)
-        for (int i = 0; i < enabledControllerBuses.size(); i++) {
-            LfBus controllerBus = enabledControllerBuses.get(i);
-            var qDistrEq = equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
-                    .orElseThrow();
-            qDistrEq.setActive(i != 0);
+            // activate voltage control at controlled bus only if at least one controller bus is enabled
+            vEq.setActive(!enabledControllerBuses.isEmpty());
+
+            // deactivate reactive power distribution equation on all disabled (PQ) buses
+            for (LfBus controllerBus : disabledControllerBuses) {
+                equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
+                        .orElseThrow()
+                        .setActive(false);
+            }
+
+            // activate reactive power distribution equation at all enabled controller buses except one (first)
+            for (int i = 0; i < enabledControllerBuses.size(); i++) {
+                boolean active = i != 0;
+                LfBus controllerBus = enabledControllerBuses.get(i);
+                equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
+                        .ifPresent(qDistrEq -> qDistrEq.setActive(active));
+            }
         }
     }
 
