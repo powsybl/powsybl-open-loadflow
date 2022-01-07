@@ -785,21 +785,19 @@ class OpenSecurityAnalysisTest {
 
         // pre-contingency tests
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        BranchResult tr2PreContingencyResults = preContingencyResult.getPreContingencyBranchResult("tr2");
-        assertEquals(69.924, tr2PreContingencyResults.getQ1(), 1e-2);
-        assertEquals(-66.879, tr2PreContingencyResults.getQ2(), 1e-2);
+        assertEquals(-67.375, preContingencyResult.getPreContingencyBranchResult("tr1").getQ2(), 1e-2);
+        assertEquals(-66.879, preContingencyResult.getPreContingencyBranchResult("tr2").getQ2(), 1e-2);
+        assertEquals(-65.744, preContingencyResult.getPreContingencyBranchResult("tr3").getQ2(), 1e-2);
 
         // post-contingency tests
-        PostContingencyResult postContingencyResultTr1 = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals("tr1")).findFirst().get();
-        assertEquals("tr1", postContingencyResultTr1.getContingency().getId());
-        BranchResult tr2Results = postContingencyResultTr1.getBranchResult("tr2");
-        assertEquals(108.145, tr2Results.getQ1(), 1e-2);
-        assertEquals(-101.258, tr2Results.getQ2(), 1e-2);
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals("tr1")).findFirst().get();
+        assertEquals("tr1", postContingencyResult.getContingency().getId());
+        assertEquals(-101.257, postContingencyResult.getBranchResult("tr2").getQ2(), 1e-2);
+        assertEquals(-98.742, postContingencyResult.getBranchResult("tr3").getQ2(), 1e-2);
     }
 
     @Test
     void testSAWithTransformerRemoteSharedControl() {
-        // FIXME
         Network network = VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl();
         SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
         LoadFlowParameters lfParameters = new LoadFlowParameters();
@@ -810,17 +808,29 @@ class OpenSecurityAnalysisTest {
         ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
                 .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
                 .collect(Collectors.toList());
+        List<StateMonitor> monitors = new ArrayList<>();
+        Set<String> allBranchIds = network.getBranchStream().map(b -> b.getId()).collect(Collectors.toSet());
+        monitors.add(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
 
         OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
         CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network, network.getVariantManager().getWorkingVariantId(),
                 new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
-                contingenciesProvider, Collections.emptyList());
+                contingenciesProvider, Collections.emptyList(), monitors);
         SecurityAnalysisResult result = futureResult.join().getResult();
+
+        // pre-contingency tests
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(-2.665, preContingencyResult.getPreContingencyBranchResult("T2wT2").getQ2(), 1e-2);
+        assertEquals(-3.071, preContingencyResult.getPreContingencyBranchResult("T2wT").getQ1(), 1e-2);
+
+        // post-contingency tests
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals("T2wT")).findFirst().get();
+        assertEquals("T2wT", postContingencyResult.getContingency().getId());
+        assertEquals(0.0, postContingencyResult.getBranchResult("T2wT2").getQ2(), 1e-2); // FIXME
     }
 
     @Test
     void testSAWithShuntRemoteSharedControl() {
-        // FIXME
         Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
         SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
         LoadFlowParameters lfParameters = new LoadFlowParameters();
@@ -831,11 +841,26 @@ class OpenSecurityAnalysisTest {
         ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
                 .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
                 .collect(Collectors.toList());
+        List<StateMonitor> monitors = new ArrayList<>();
+        Set<String> allBranchIds = network.getBranchStream().map(b -> b.getId()).collect(Collectors.toSet());
+        monitors.add(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
 
         OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
         CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network, network.getVariantManager().getWorkingVariantId(),
                 new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
-                contingenciesProvider, Collections.emptyList());
+                contingenciesProvider, Collections.emptyList(), monitors);
         SecurityAnalysisResult result = futureResult.join().getResult();
+
+        // pre-contingency tests
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(-807.198, preContingencyResult.getPreContingencyBranchResult("tr1").getQ2(), 1e-2);
+        assertEquals(390.433, preContingencyResult.getPreContingencyBranchResult("tr2").getQ2(), 1e-2);
+        assertEquals(416.767, preContingencyResult.getPreContingencyBranchResult("tr3").getQ2(), 1e-2);
+
+        // post-contingency tests
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals("tr2")).findFirst().get();
+        assertEquals("tr2", postContingencyResult.getContingency().getId());
+        assertEquals(-807.198, preContingencyResult.getPreContingencyBranchResult("tr1").getQ2(), 1e-2);
+        assertEquals(0.01855, postContingencyResult.getBranchResult("tr3").getQ2(), 1e-2); // FIXME
     }
 }
