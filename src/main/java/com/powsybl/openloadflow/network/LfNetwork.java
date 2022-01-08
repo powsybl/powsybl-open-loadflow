@@ -424,23 +424,24 @@ public class LfNetwork {
         }
     }
 
-    private void validateBranches(boolean minImpedance, Reporter reporter) {
-        if (!minImpedance) {
-            for (LfBranch branch : branches) {
-                PiModel piModel = branch.getPiModel();
-                if (Math.abs(piModel.getZ()) < LOW_IMPEDANCE_THRESHOLD) { // will be transformed to non impedant branch
-                    LfBus bus1 = branch.getBus1();
-                    LfBus bus2 = branch.getBus2();
-                    // ensure target voltages are consistent
-                    if (bus1 != null && bus2 != null) {
-                        Optional<VoltageControl> vc1 = bus1.getVoltageControl();
-                        Optional<VoltageControl> vc2 = bus2.getVoltageControl();
-                        if (vc1.isPresent() && vc2.isPresent() && bus1.isVoltageControllerEnabled() && bus2.isVoltageControllerEnabled()
-                                && FastMath.abs((vc1.get().getTargetValue() / vc2.get().getTargetValue()) - piModel.getR1() / PiModel.R2) > TARGET_VOLTAGE_EPSILON) {
-                            throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
-                                    + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
-                                    + vc1.get().getTargetValue() + " and " + vc2.get().getTargetValue());
-                        }
+    private void validateBranches(boolean minImpedance) {
+        if (minImpedance) {
+            return;
+        }
+        for (LfBranch branch : branches) {
+            PiModel piModel = branch.getPiModel();
+            if (Math.abs(piModel.getZ()) < LOW_IMPEDANCE_THRESHOLD) { // will be transformed to non impedant branch
+                LfBus bus1 = branch.getBus1();
+                LfBus bus2 = branch.getBus2();
+                // ensure target voltages are consistent
+                if (bus1 != null && bus2 != null) {
+                    Optional<VoltageControl> vc1 = bus1.getVoltageControl();
+                    Optional<VoltageControl> vc2 = bus2.getVoltageControl();
+                    if (vc1.isPresent() && vc2.isPresent() && bus1.isVoltageControllerEnabled() && bus2.isVoltageControllerEnabled()
+                            && FastMath.abs((vc1.get().getTargetValue() / vc2.get().getTargetValue()) - piModel.getR1() / PiModel.R2) > TARGET_VOLTAGE_EPSILON) {
+                        throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
+                                + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
+                                + vc1.get().getTargetValue() + " and " + vc2.get().getTargetValue());
                     }
                 }
             }
@@ -450,7 +451,7 @@ public class LfNetwork {
     public void validate(boolean minImpedance, Reporter reporter) {
         valid = true;
         validateBuses(reporter);
-        validateBranches(minImpedance, reporter);
+        validateBranches(minImpedance);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector) {
