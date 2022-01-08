@@ -404,9 +404,7 @@ public class LfNetwork {
         }
     }
 
-    public void validate(boolean minImpedance, Reporter reporter) {
-        valid = true;
-
+    private void validateBuses(Reporter reporter) {
         boolean hasAtLeastOneBusVoltageControlled = false;
         for (LfBus bus : busesByIndex) {
             if (bus.isVoltageControlled()) {
@@ -424,7 +422,9 @@ public class LfNetwork {
                     .build());
             valid = false;
         }
+    }
 
+    private void validateBranches(boolean minImpedance, Reporter reporter) {
         if (!minImpedance) {
             for (LfBranch branch : branches) {
                 PiModel piModel = branch.getPiModel();
@@ -445,6 +445,12 @@ public class LfNetwork {
                 }
             }
         }
+    }
+
+    public void validate(boolean minImpedance, Reporter reporter) {
+        valid = true;
+        validateBuses(reporter);
+        validateBranches(minImpedance, reporter);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector) {
