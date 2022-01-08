@@ -404,7 +404,7 @@ public class LfNetwork {
         }
     }
 
-    public void validate(boolean minImpedance) {
+    public void validate(boolean minImpedance, Reporter reporter) {
         valid = true;
 
         boolean hasAtLeastOneBusVoltageControlled = false;
@@ -416,6 +416,12 @@ public class LfNetwork {
         }
         if (!hasAtLeastOneBusVoltageControlled) {
             LOGGER.error("Network {} must have at least one bus voltage controlled", this);
+            reporter.report(Report.builder()
+                    .withKey("networkMustHaveAtLEastOneBusVoltageControlled")
+                    .withDefaultMessage("Network CC${numNetworkCc} SC${numNetworkSc} must have at least one bus voltage controlled")
+                    .withValue("numNetworkCc", numCC)
+                    .withValue("numNetworkSc", numSC)
+                    .build());
             valid = false;
         }
 
@@ -463,7 +469,7 @@ public class LfNetwork {
                 Map.of("numNetworkCc", new TypedValue(lfNetwork.getNumCC(), TypedValue.UNTYPED),
                     "numNetworkSc", new TypedValue(lfNetwork.getNumSC(), TypedValue.UNTYPED)));
             lfNetwork.fix(parameters.isMinImpedance());
-            lfNetwork.validate(parameters.isMinImpedance());
+            lfNetwork.validate(parameters.isMinImpedance(), reporterNetwork);
             if (lfNetwork.isValid()) {
                 lfNetwork.reportSize(reporterNetwork);
                 lfNetwork.reportBalance(reporterNetwork);

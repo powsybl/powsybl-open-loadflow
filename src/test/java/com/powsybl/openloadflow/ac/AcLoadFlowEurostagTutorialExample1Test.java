@@ -7,6 +7,7 @@
 
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.iidm.network.extensions.SlackTerminalAdder;
@@ -271,10 +272,44 @@ class AcLoadFlowEurostagTutorialExample1Test {
     @Test
     void noGeneratorTest() {
         network.getGenerator("GEN").getTerminal().disconnect();
+
+        ReporterModel reporter = new ReporterModel("unitTest", "");
+        LoadFlowResult result = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, null, parameters, reporter);
+        assertFalse(result.isOk());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+
+        // also check there is a report added for this error
+        assertEquals(1, reporter.getSubReporters().size());
+        ReporterModel lfReporter = reporter.getSubReporters().get(0);
+        assertEquals(2, lfReporter.getSubReporters().size());
+        ReporterModel postLoadingReporter = lfReporter.getSubReporters().get(1);
+        assertEquals("postLoading", postLoadingReporter.getTaskKey());
+        assertEquals(1, postLoadingReporter.getReports().size());
+        assertEquals("Network CC${numNetworkCc} SC${numNetworkSc} must have at least one bus voltage controlled",
+                postLoadingReporter.getReports().iterator().next().getDefaultMessage());
+    }
+
+    @Test
+    void noGeneratorBecauseOfReactiveRangeTest() {
+        Generator gen = network.getGenerator("GEN");
+        gen.newMinMaxReactiveLimits()
+                .setMinQ(0)
+                .setMaxQ(0)
+                .add();
+
+        parameters.setNoGeneratorReactiveLimits(false);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isOk());
         assertEquals(1, result.getComponentResults().size());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+
+        // but if we do not take into account reactive limits in parameters, calculation should be ok
+        parameters.setNoGeneratorReactiveLimits(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
     }
 
     @Test
