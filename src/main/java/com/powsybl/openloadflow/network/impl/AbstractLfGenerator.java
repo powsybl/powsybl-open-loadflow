@@ -154,8 +154,9 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         return lfNetwork.getBusById(controlledBusId);
     }
 
-    protected void setVoltageControl(double targetV, Terminal terminal, Terminal regulatingTerminal, boolean breakers, LfNetworkLoadingReport report) {
-        if (!checkVoltageControlConsistency(report)) {
+    protected void setVoltageControl(double targetV, Terminal terminal, Terminal regulatingTerminal, boolean breakers,
+                                     boolean reactiveLimits, LfNetworkLoadingReport report) {
+        if (!checkVoltageControlConsistency(reactiveLimits, report)) {
             return;
         }
         Bus controlledBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
@@ -174,13 +175,15 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         this.generatorControlType = GeneratorControlType.VOLTAGE;
     }
 
-    protected boolean checkVoltageControlConsistency(LfNetworkLoadingReport report) {
+    protected boolean checkVoltageControlConsistency(boolean reactiveLimits, LfNetworkLoadingReport report) {
         boolean consistency = true;
-        double maxRangeQ = getMaxRangeQ();
-        if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
-            LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small", getId(), maxRangeQ);
-            report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
-            consistency = false;
+        if (reactiveLimits) {
+            double maxRangeQ = getMaxRangeQ();
+            if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
+                LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small", getId(), maxRangeQ);
+                report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
+                consistency = false;
+            }
         }
         if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());

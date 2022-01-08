@@ -260,13 +260,15 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    void addGenerator(Generator generator, boolean breakers, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
-        add(LfGeneratorImpl.create(generator, breakers, report, plausibleActivePowerLimit));
+    void addGenerator(Generator generator, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
+                      LfNetworkLoadingReport report) {
+        add(LfGeneratorImpl.create(generator, breakers, plausibleActivePowerLimit, reactiveLimits, report));
     }
 
-    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean voltagePerReactivePowerControl, boolean breakers, LfNetworkLoadingReport report) {
+    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean voltagePerReactivePowerControl,
+                                 boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
-            LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, this, voltagePerReactivePowerControl, breakers, report);
+            LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, this, voltagePerReactivePowerControl, breakers, reactiveLimits, report);
             add(lfSvc);
             if (lfSvc.getSlope() != 0) {
                 hasGeneratorsWithSlope = true;
@@ -274,8 +276,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    void addVscConverterStation(VscConverterStation vscCs, boolean breakers, LfNetworkLoadingReport report) {
-        add(LfVscConverterStationImpl.create(vscCs, breakers, report));
+    void addVscConverterStation(VscConverterStation vscCs, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
+        add(LfVscConverterStationImpl.create(vscCs, breakers, reactiveLimits, report));
     }
 
     void setShuntCompensators(List<ShuntCompensator> shuntCompensators, boolean isShuntVoltageControl) {

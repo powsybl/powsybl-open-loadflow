@@ -232,10 +232,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
             @Override
             public void visitGenerator(Generator generator) {
-                lfBus.addGenerator(generator, parameters.isBreakers(), report, parameters.getPlausibleActivePowerLimit());
-                if (generator.isVoltageRegulatorOn()) {
-                    report.voltageControllerCount++;
-                }
+                lfBus.addGenerator(generator, parameters.isBreakers(), parameters.getPlausibleActivePowerLimit(), parameters.isReactiveLimits(), report);
                 postProcessors.forEach(pp -> pp.onInjectionAdded(generator, lfBus));
             }
 
@@ -257,19 +254,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             @Override
             public void visitDanglingLine(DanglingLine danglingLine) {
                 loadingContext.danglingLines.add(danglingLine);
-                DanglingLine.Generation generation = danglingLine.getGeneration();
-                if (generation != null && generation.isVoltageRegulationOn()) {
-                    report.voltageControllerCount++;
-                }
                 postProcessors.forEach(pp -> pp.onInjectionAdded(danglingLine, lfBus));
             }
 
             @Override
             public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
-                lfBus.addStaticVarCompensator(staticVarCompensator, parameters.isVoltagePerReactivePowerControl(), parameters.isBreakers(), report);
-                if (staticVarCompensator.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
-                    report.voltageControllerCount++;
-                }
+                lfBus.addStaticVarCompensator(staticVarCompensator, parameters.isVoltagePerReactivePowerControl(), parameters.isBreakers(), parameters.isReactiveLimits(), report);
                 postProcessors.forEach(pp -> pp.onInjectionAdded(staticVarCompensator, lfBus));
             }
 
@@ -284,10 +274,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 switch (converterStation.getHvdcType()) {
                     case VSC:
                         VscConverterStation vscConverterStation = (VscConverterStation) converterStation;
-                        lfBus.addVscConverterStation(vscConverterStation, parameters.isBreakers(), report);
-                        if (vscConverterStation.isVoltageRegulatorOn()) {
-                            report.voltageControllerCount++;
-                        }
+                        lfBus.addVscConverterStation(vscConverterStation, parameters.isBreakers(), parameters.isReactiveLimits(), report);
                         break;
                     case LCC:
                         lfBus.addLccConverterStation((LccConverterStation) converterStation);
@@ -331,7 +318,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
-            LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, report);
+            LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters.isReactiveLimits(), report);
             lfNetwork.addBus(lfBus2);
             lfBuses.add(lfBus2);
             LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
@@ -768,11 +755,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
         if (report.nonImpedantBranches > 0) {
             LOGGER.warn("Network {}: {} branches are non impedant", lfNetwork, report.nonImpedantBranches);
-        }
-
-        if (report.voltageControllerCount == 0) {
-            LOGGER.error("Discard network {} because there is no equipment to control voltage", lfNetwork);
-            lfNetwork.setValid(false);
         }
 
         return lfNetwork;
