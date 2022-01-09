@@ -14,7 +14,7 @@ public class BusState extends BusDcState {
     private final double angle;
     private final double loadTargetQ;
     private final double generationTargetQ;
-    private final boolean isVoltageControllerEnabled;
+    private final boolean voltageControlEnabled;
     private final DiscreteVoltageControl.Mode transformerVoltageControlMode;
     private final DiscreteVoltageControl.Mode shuntVoltageControlMode;
     private final boolean disabled;
@@ -24,7 +24,7 @@ public class BusState extends BusDcState {
         this.angle = bus.getAngle();
         this.loadTargetQ = bus.getLoadTargetQ();
         this.generationTargetQ = bus.getGenerationTargetQ();
-        this.isVoltageControllerEnabled = bus.isVoltageControllerEnabled();
+        this.voltageControlEnabled = bus.isVoltageControlEnabled();
         transformerVoltageControlMode = bus.getTransformerVoltageControl().map(TransformerVoltageControl::getMode).orElse(null);
         shuntVoltageControlMode = bus.getShuntVoltageControl().map(ShuntVoltageControl::getMode).orElse(null);
         this.disabled = bus.isDisabled();
@@ -36,7 +36,7 @@ public class BusState extends BusDcState {
         element.setAngle(angle);
         element.setLoadTargetQ(loadTargetQ);
         element.setGenerationTargetQ(generationTargetQ);
-        element.setVoltageControllerEnabled(isVoltageControllerEnabled);
+        element.setVoltageControlEnabled(voltageControlEnabled);
         element.setVoltageControlSwitchOffCount(0);
         if (transformerVoltageControlMode != null) {
             element.getTransformerVoltageControl().ifPresent(control -> control.setMode(transformerVoltageControlMode));

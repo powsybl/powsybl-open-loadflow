@@ -68,7 +68,7 @@ public final class AcEquationSystem {
                 createRemoteVoltageControlEquations(voltageControl, networkParameters, equationSystem, creationParameters);
             }
 
-            if (bus.isVoltageControllerEnabled()) {
+            if (bus.isVoltageControlEnabled()) {
                 equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).setActive(false);
             }
         } else { // If bus has both voltage and remote reactive power controls, then only voltage control has been kept
@@ -137,7 +137,7 @@ public final class AcEquationSystem {
         List<LfBus> enabledControllerBuses = new ArrayList<>(controllerBuses.size());
         List<LfBus> disabledControllerBuses = new ArrayList<>(controllerBuses.size());
         for (LfBus controllerBus : controllerBuses) {
-            if (controllerBus.isVoltageControllerEnabled()) {
+            if (controllerBus.isVoltageControlEnabled()) {
                 enabledControllerBuses.add(controllerBus);
             } else {
                 disabledControllerBuses.add(controllerBus);

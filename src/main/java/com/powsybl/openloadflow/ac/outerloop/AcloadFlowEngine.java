@@ -60,7 +60,7 @@ public class AcloadFlowEngine implements AutoCloseable {
     private void updatePvBusesReactivePower(NewtonRaphsonResult lastNrResult, LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         if (lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
             for (LfBus bus : network.getBuses()) {
-                if (bus.isVoltageControllerEnabled()) {
+                if (bus.isVoltageControlEnabled()) {
                     Equation<AcVariableType, AcEquationType> q = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q);
                     bus.setCalculatedQ(q.eval());
                 } else {
@@ -121,7 +121,7 @@ public class AcloadFlowEngine implements AutoCloseable {
 
     private static Optional<Double> getVoltageControlledTargetValue(LfBus bus) {
         return bus.getVoltageControl().filter(vc -> bus.isVoltageControlled()).map(vc -> {
-            if (vc.getControllerBuses().stream().noneMatch(LfBus::isVoltageControllerEnabled)) {
+            if (vc.getControllerBuses().stream().noneMatch(LfBus::isVoltageControlEnabled)) {
                 throw new IllegalStateException("None of the controller buses of bus '" + bus.getId() + "'has voltage control on");
             }
             return vc.getTargetValue();

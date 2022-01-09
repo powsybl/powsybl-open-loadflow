@@ -41,7 +41,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private boolean hasGeneratorsWithSlope;
 
-    protected boolean voltageControllerEnabled = false;
+    protected boolean voltageControlEnabled = false;
 
     protected int voltageControlSwitchOffCount = 0;
 
@@ -131,10 +131,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public void setVoltageControl(VoltageControl voltageControl) {
-        Objects.requireNonNull(voltageControl);
-        this.voltageControl = voltageControl;
+        this.voltageControl = Objects.requireNonNull(voltageControl);
         if (hasVoltageControllerCapability()) {
-            this.voltageControllerEnabled = true;
+            this.voltageControlEnabled = true;
         } else if (!isVoltageControlled()) {
             throw new PowsyblException("Setting inconsistent voltage control to bus " + getId());
         }
@@ -172,17 +171,17 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public boolean isVoltageControllerEnabled() {
-        return voltageControllerEnabled;
+    public boolean isVoltageControlEnabled() {
+        return voltageControlEnabled;
     }
 
     @Override
-    public void setVoltageControllerEnabled(boolean voltageControlEnabled) {
-        if (this.voltageControllerEnabled != voltageControlEnabled) {
-            if (this.voltageControllerEnabled) {
+    public void setVoltageControlEnabled(boolean voltageControlEnabled) {
+        if (this.voltageControlEnabled != voltageControlEnabled) {
+            if (this.voltageControlEnabled) {
                 voltageControlSwitchOffCount++;
             }
-            this.voltageControllerEnabled = voltageControlEnabled;
+            this.voltageControlEnabled = voltageControlEnabled;
             for (LfNetworkListener listener : network.getListeners()) {
                 listener.onVoltageControlChange(this, voltageControlEnabled);
             }
@@ -493,7 +492,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         // update generator reactive power
-        updateGeneratorsState(voltageControllerEnabled ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
+        updateGeneratorsState(voltageControlEnabled ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
 
         // update load power
         lfLoads.updateState(getLoadTargetP() - getInitialLoadTargetP(), loadPowerFactorConstant);
