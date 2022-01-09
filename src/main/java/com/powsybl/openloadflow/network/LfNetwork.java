@@ -540,10 +540,6 @@ public class LfNetwork {
         return valid;
     }
 
-    public void setValid(boolean valid) {
-        this.valid = valid;
-    }
-
     public Object getUserObject() {
         return userObject;
     }
