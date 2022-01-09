@@ -29,7 +29,7 @@ public interface LfBus extends LfElement {
 
     boolean hasVoltageControllerCapability();
 
-    boolean isVoltageControllerEnabled();
+    boolean isVoltageControlEnabled();
 
     boolean isVoltageControlled();
 
@@ -48,7 +48,7 @@ public interface LfBus extends LfElement {
 
     void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount);
 
-    void setVoltageControllerEnabled(boolean voltageControl);
+    void setVoltageControlEnabled(boolean voltageControlEnabled);
 
     Optional<VoltageControl> getVoltageControl();
 

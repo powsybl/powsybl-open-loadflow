@@ -31,14 +31,14 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         if (firstControllerBus.hasGeneratorsWithSlope()) {
             // we only support one controlling static var compensator without any other controlling generators
             // we don't support controller bus that wants to control back voltage with slope.
-            if (!firstControllerBus.isVoltageControllerEnabled()) {
+            if (!firstControllerBus.isVoltageControlEnabled()) {
                 equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE).setActive(false);
             }
         } else {
             if (voltageControl.isVoltageControlLocal()) {
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                         .orElseThrow()
-                        .setActive(controlledBus.isVoltageControllerEnabled());
+                        .setActive(controlledBus.isVoltageControlEnabled());
             } else {
                 AcEquationSystem.updateRemoteVoltageControlEquations(voltageControl, equationSystem);
             }

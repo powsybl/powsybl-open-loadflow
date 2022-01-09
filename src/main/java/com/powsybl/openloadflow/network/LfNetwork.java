@@ -204,7 +204,7 @@ public class LfNetwork {
             jsonGenerator.writeNumberField("loadTargetQ", bus.getLoadTargetQ());
         }
         bus.getVoltageControl().ifPresent(vc -> {
-            if (bus.isVoltageControllerEnabled()) {
+            if (bus.isVoltageControlEnabled()) {
                 try {
                     if (vc.getControlledBus() != bus) {
                         jsonGenerator.writeNumberField("remoteControlTargetBus", vc.getControlledBus().getNum());
@@ -359,11 +359,11 @@ public class LfNetwork {
         int remoteControllerBusCount = 0;
         for (LfBus b : busesById.values()) {
             // To avoid counting the local voltage controls we check that the voltage controller is not also voltage controlled
-            if (b.isVoltageControllerEnabled() && !b.isVoltageControlled()) {
+            if (b.isVoltageControlEnabled() && !b.isVoltageControlled()) {
                 remoteControllerBusCount++;
             }
             // Similarly, to avoid counting the local voltage controls we check that the voltage controlled is not also voltage controller
-            if (b.isVoltageControlled() && !b.isVoltageControllerEnabled()) {
+            if (b.isVoltageControlled() && !b.isVoltageControlEnabled()) {
                 remoteControlledBusCount++;
             }
         }
@@ -431,7 +431,7 @@ public class LfNetwork {
                 if (bus1 != null && bus2 != null) {
                     Optional<VoltageControl> vc1 = bus1.getVoltageControl();
                     Optional<VoltageControl> vc2 = bus2.getVoltageControl();
-                    if (vc1.isPresent() && vc2.isPresent() && bus1.isVoltageControllerEnabled() && bus2.isVoltageControllerEnabled()
+                    if (vc1.isPresent() && vc2.isPresent() && bus1.isVoltageControlEnabled() && bus2.isVoltageControlEnabled()
                         && FastMath.abs((vc1.get().getTargetValue() / vc2.get().getTargetValue()) - piModel.getR1() / PiModel.R2) > TARGET_VOLTAGE_EPSILON) {
                         throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
                             + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "

@@ -73,7 +73,7 @@ public class VoltageControl {
         // no reactive dispatch on PQ buses, so we set the key to 0
         for (int i = 0; i < controllerBuses.size(); i++) {
             LfBus controllerBus = controllerBuses.get(i);
-            if (!controllerBus.isVoltageControllerEnabled()) {
+            if (!controllerBus.isVoltageControlEnabled()) {
                 reactiveKeys[i] = 0d;
             }
         }
