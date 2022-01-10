@@ -71,7 +71,7 @@ public final class AcEquationSystem {
                 createRemoteVoltageControlEquations(voltageControl, networkParameters, equationSystem, creationParameters);
             }
 
-            if (bus.isVoltageControllerEnabled()) {
+            if (bus.isVoltageControlEnabled()) {
                 equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).setActive(false);
             }
         } else { // If bus has both voltage and remote reactive power controls, then only voltage control has been kept

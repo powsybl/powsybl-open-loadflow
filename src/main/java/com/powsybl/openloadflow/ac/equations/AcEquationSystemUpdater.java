@@ -39,7 +39,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             if (voltageControl.isVoltageControlLocal()) {
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                         .orElseThrow()
-                        .setActive(controlledBus.isVoltageControllerEnabled());
+                        .setActive(controlledBus.isVoltageControlEnabled());
             } else {
                 AcEquationSystem.updateRemoteVoltageControlEquations(voltageControl, equationSystem);
             }
