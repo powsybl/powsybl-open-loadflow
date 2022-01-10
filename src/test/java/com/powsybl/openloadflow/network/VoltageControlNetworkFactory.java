@@ -485,6 +485,17 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         return network;
     }
 
+    /**
+     *   g1     SHUNT2  SHUNT3
+     *   |      |       |
+     *  b1      b2      b3
+     *  |       |       |
+     *  8 tr1   8 tr2   8 tr3
+     *  |       |       |
+     *  +------ b4 -----+
+     *          |
+     *          l4
+     */
     public static Network createWithShuntSharedRemoteControl() {
 
         Network network = Network.create("shunt-remote-control-test", "code");

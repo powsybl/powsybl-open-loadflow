@@ -9,9 +9,11 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfShunt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -62,6 +64,27 @@ public final class EquationUtil {
                 if (equationTerm.isActive()) {
                     equationTerm.setActive(false);
                     deactivatedEquationTerms.add(equationTerm);
+                }
+            }
+
+            List<LfShunt> shunts = new ArrayList<>(2);
+            bus.getShunt().ifPresent(shunts::add);
+            bus.getControllerShunt().ifPresent(shunts::add);
+            for (LfShunt shunt : shunts) {
+                // deactivate all equations related to a shunt
+                for (Equation<V, E> equation : equationSystem.getEquations(ElementType.SHUNT_COMPENSATOR, shunt.getNum())) {
+                    if (equation.isActive()) {
+                        equation.setActive(false);
+                        deactivatedEquations.add(equation);
+                    }
+                }
+
+                // deactivate all equation terms related to a shunt
+                for (EquationTerm<V, E> equationTerm : equationSystem.getEquationTerms(ElementType.SHUNT_COMPENSATOR, shunt.getNum())) {
+                    if (equationTerm.isActive()) {
+                        equationTerm.setActive(false);
+                        deactivatedEquationTerms.add(equationTerm);
+                    }
                 }
             }
         }

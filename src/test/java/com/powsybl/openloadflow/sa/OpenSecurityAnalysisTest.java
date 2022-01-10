@@ -13,6 +13,7 @@ import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.iidm.network.Branch;
+import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
@@ -718,7 +719,7 @@ class OpenSecurityAnalysisTest {
                 .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
                 .collect(Collectors.toList());
 
-        Set<String> allBranchIds = network.getBranchStream().map(b -> b.getId()).collect(Collectors.toSet());
+        Set<String> allBranchIds = network.getBranchStream().map(Identifiable::getId).collect(Collectors.toSet());
 
         List<StateMonitor> monitors = new ArrayList<>();
         monitors.add(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
@@ -768,7 +769,7 @@ class OpenSecurityAnalysisTest {
                 .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
                 .collect(Collectors.toList());
         List<StateMonitor> monitors = new ArrayList<>();
-        Set<String> allBranchIds = network.getBranchStream().map(b -> b.getId()).collect(Collectors.toSet());
+        Set<String> allBranchIds = network.getBranchStream().map(Identifiable::getId).collect(Collectors.toSet());
         monitors.add(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
 
         OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
@@ -809,7 +810,7 @@ class OpenSecurityAnalysisTest {
                 .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
                 .collect(Collectors.toList());
         List<StateMonitor> monitors = new ArrayList<>();
-        Set<String> allBranchIds = network.getBranchStream().map(b -> b.getId()).collect(Collectors.toSet());
+        Set<String> allBranchIds = network.getBranchStream().map(Identifiable::getId).collect(Collectors.toSet());
         monitors.add(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
 
         OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
@@ -841,7 +842,7 @@ class OpenSecurityAnalysisTest {
         List<Contingency> contingencies = List.of(new Contingency("N-2", List.of(new BranchContingency("T2wT"), new BranchContingency("T2wT2"))));
         ContingenciesProvider contingenciesProvider = n -> contingencies;
         List<StateMonitor> monitors = new ArrayList<>();
-        Set<String> allBranchIds = network.getBranchStream().map(b -> b.getId()).collect(Collectors.toSet());
+        Set<String> allBranchIds = network.getBranchStream().map(Identifiable::getId).collect(Collectors.toSet());
         monitors.add(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
 
         OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
@@ -864,7 +865,7 @@ class OpenSecurityAnalysisTest {
                 .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
                 .collect(Collectors.toList());
         List<StateMonitor> monitors = new ArrayList<>();
-        Set<String> allBranchIds = network.getBranchStream().map(b -> b.getId()).collect(Collectors.toSet());
+        Set<String> allBranchIds = network.getBranchStream().map(Identifiable::getId).collect(Collectors.toSet());
         monitors.add(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
 
         OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), () -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
@@ -880,9 +881,9 @@ class OpenSecurityAnalysisTest {
         assertEquals(416.767, preContingencyResult.getPreContingencyBranchResult("tr3").getQ2(), 1e-2);
 
         // post-contingency tests
-        PostContingencyResult postContingencyResult = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals("tr2")).findFirst().get();
-        assertEquals("tr2", postContingencyResult.getContingency().getId());
+        PostContingencyResult tr2ContingencyResult = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals("tr2")).findFirst().orElseThrow();
+        assertEquals("tr2", tr2ContingencyResult.getContingency().getId());
         assertEquals(-807.198, preContingencyResult.getPreContingencyBranchResult("tr1").getQ2(), 1e-2);
-        assertEquals(473.418, postContingencyResult.getBranchResult("tr3").getQ2(), 1e-2);
+        assertEquals(473.418, tr2ContingencyResult.getBranchResult("tr3").getQ2(), 1e-2);
     }
 }
