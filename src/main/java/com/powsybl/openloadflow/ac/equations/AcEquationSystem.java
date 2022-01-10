@@ -462,24 +462,23 @@ public final class AcEquationSystem {
 
     public static void createShuntSusceptanceDistributionEquations(List<LfBus> controllerBuses,
                                                                    EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        for (int i = 0; i < controllerBuses.size(); i++) {
-            LfBus controllerBus = controllerBuses.get(i);
+        for (LfBus controllerBus : controllerBuses) {
             controllerBus.getControllerShunt()
-                .ifPresent(shunt -> {
+                .ifPresent(controllerShunt -> {
                     // shunt b at controller bus i
                     // b_i = sum_j(b_j) / controller_count where j are all the controller buses
                     // 0 = sum_j(b_j) / controller_count - b_i
                     // which can be rewritten in a more simple way
                     // 0 = (1 / controller_count - 1) * b_i + sum_j(b_j) / controller_count where j are all the controller buses except i
-                    EquationTerm<AcVariableType, AcEquationType> shuntB = equationSystem.getVariable(shunt.getNum(), AcVariableType.SHUNT_B)
+                    EquationTerm<AcVariableType, AcEquationType> shuntB = equationSystem.getVariable(controllerShunt.getNum(), AcVariableType.SHUNT_B)
                             .createTerm();
-                    Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.DISTR_SHUNT_B)
+                    Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerShunt.getNum(), AcEquationType.DISTR_SHUNT_B)
                             .addTerm(shuntB.multiply(() -> 1d / controllerBuses.stream().filter(b -> !b.isDisabled() && b.getControllerShunt().isPresent()).count() - 1));
                     for (LfBus otherControllerBus : controllerBuses) {
                         if (otherControllerBus != controllerBus) {
                             otherControllerBus.getControllerShunt()
-                                .ifPresent(otherShunt -> {
-                                    EquationTerm<AcVariableType, AcEquationType> otherShuntB = equationSystem.getVariable(otherShunt.getNum(), AcVariableType.SHUNT_B)
+                                .ifPresent(otherControllerShunt -> {
+                                    EquationTerm<AcVariableType, AcEquationType> otherShuntB = equationSystem.getVariable(otherControllerShunt.getNum(), AcVariableType.SHUNT_B)
                                             .createTerm();
                                     zero.addTerm(otherShuntB.multiply(() -> 1d / controllerBuses.stream().filter(b -> !b.isDisabled() && b.getControllerShunt().isPresent()).count()));
                                 });
@@ -505,27 +504,28 @@ public final class AcEquationSystem {
             // if controlled bus is disabled, we disable all transformer voltage control equations
             vEq.setActive(false);
             for (LfBus controllerBus : controllerBuses) {
-                equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_SHUNT_B)
+                controllerBus.getControllerShunt().ifPresent(controllerShunt -> equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.DISTR_SHUNT_B)
                         .orElseThrow()
-                        .setActive(false);
+                        .setActive(false));
             }
         } else {
             // activate voltage target equation if control is on
             vEq.setActive(on);
-            for (int i = 0; i < controllerBuses.size(); i++) {
-                LfBus controllerBus = controllerBuses.get(i);
+            List<LfShunt> controllerShunts = controllerBuses.stream()
+                    .flatMap(b -> b.getControllerShunt().stream())
+                    .collect(Collectors.toList());
+            for (int i = 0; i < controllerShunts.size(); i++) {
+                LfShunt controllerShunt = controllerShunts.get(i);
 
                 // activate all b target equations if voltage control is off
-                controllerBus.getControllerShunt().ifPresent(shunt ->
-                        equationSystem.getEquation(shunt.getNum(), AcEquationType.SHUNT_TARGET_B)
-                                .orElseThrow()
-                                .setActive(!on)
-                );
+                equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.SHUNT_TARGET_B)
+                        .orElseThrow()
+                        .setActive(!on);
 
                 // activate shunt b distribution equations except one if control is on
-                equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_SHUNT_B)
+                equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.DISTR_SHUNT_B)
                         .orElseThrow()
-                        .setActive(on && i < controllerBuses.size() - 1);
+                        .setActive(on && i < controllerShunts.size() - 1);
             }
         }
     }
