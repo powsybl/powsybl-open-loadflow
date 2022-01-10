@@ -156,7 +156,7 @@ public final class AcEquationSystem {
             List<LfBus> enabledControllerBuses = new ArrayList<>(controllerBuses.size());
             List<LfBus> disabledControllerBuses = new ArrayList<>(controllerBuses.size());
             for (LfBus controllerBus : controllerBuses) {
-                if (controllerBus.isVoltageControllerEnabled()) {
+                if (controllerBus.isVoltageControlEnabled()) {
                     enabledControllerBuses.add(controllerBus);
                 } else {
                     disabledControllerBuses.add(controllerBus);
