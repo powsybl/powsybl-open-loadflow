@@ -355,30 +355,16 @@ public class LfNetwork {
     }
 
     private void reportSize(Reporter reporter) {
-        int remoteControlledBusCount = 0;
-        int remoteControllerBusCount = 0;
-        for (LfBus b : busesById.values()) {
-            // To avoid counting the local voltage controls we check that the voltage controller is not also voltage controlled
-            if (b.isVoltageControlEnabled() && !b.isVoltageControlled()) {
-                remoteControllerBusCount++;
-            }
-            // Similarly, to avoid counting the local voltage controls we check that the voltage controlled is not also voltage controller
-            if (b.isVoltageControlled() && !b.isVoltageControlEnabled()) {
-                remoteControlledBusCount++;
-            }
-        }
         reporter.report(Report.builder()
             .withKey("networkSize")
-            .withDefaultMessage("Network CC${numNetworkCc} SC${numNetworkSc} has ${nbBuses} buses (voltage remote control: ${nbRemoteControllerBuses} controllers, ${nbRemoteControlledBuses} controlled) and ${nbBranches} branches")
+            .withDefaultMessage("Network CC${numNetworkCc} SC${numNetworkSc} has ${busCount} buses and ${branchCount} branches")
             .withValue("numNetworkCc", numCC)
             .withValue("numNetworkSc", numSC)
-            .withValue("nbBuses", busesById.values().size())
-            .withValue("nbRemoteControllerBuses", remoteControllerBusCount)
-            .withValue("nbRemoteControlledBuses", remoteControlledBusCount)
-            .withValue("nbBranches", branches.size())
+            .withValue("busCount", busesById.values().size())
+            .withValue("branchCount", branches.size())
             .build());
-        LOGGER.info("Network {} has {} buses (voltage remote control: {} controllers, {} controlled) and {} branches",
-            this, busesById.values().size(), remoteControllerBusCount, remoteControlledBusCount, branches.size());
+        LOGGER.info("Network {} has {} buses and {} branches",
+            this, busesById.values().size(), branches.size());
     }
 
     public void reportBalance(Reporter reporter) {
@@ -407,9 +393,9 @@ public class LfNetwork {
             this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
-    private static void fix(LfNetwork network, boolean minImpedance) {
+    public void fix(boolean minImpedance) {
         if (minImpedance) {
-            for (LfBranch branch : network.getBranches()) {
+            for (LfBranch branch : branches) {
                 PiModel piModel = branch.getPiModel();
                 if (piModel.setMinZ(LOW_IMPEDANCE_THRESHOLD)) {
                     LOGGER.trace("Branch {} has a low impedance, set to min {}", branch.getId(), LOW_IMPEDANCE_THRESHOLD);
@@ -418,11 +404,31 @@ public class LfNetwork {
         }
     }
 
-    private static void validate(LfNetwork network, boolean minImpedance) {
+    private void validateBuses(Reporter reporter) {
+        boolean hasAtLeastOneBusVoltageControlled = false;
+        for (LfBus bus : busesByIndex) {
+            if (bus.isVoltageControlled()) {
+                hasAtLeastOneBusVoltageControlled = true;
+                break;
+            }
+        }
+        if (!hasAtLeastOneBusVoltageControlled) {
+            LOGGER.error("Network {} must have at least one bus voltage controlled", this);
+            reporter.report(Report.builder()
+                    .withKey("networkMustHaveAtLEastOneBusVoltageControlled")
+                    .withDefaultMessage("Network CC${numNetworkCc} SC${numNetworkSc} must have at least one bus voltage controlled")
+                    .withValue("numNetworkCc", numCC)
+                    .withValue("numNetworkSc", numSC)
+                    .build());
+            valid = false;
+        }
+    }
+
+    private void validateBranches(boolean minImpedance) {
         if (minImpedance) {
             return;
         }
-        for (LfBranch branch : network.getBranches()) {
+        for (LfBranch branch : branches) {
             PiModel piModel = branch.getPiModel();
             if (Math.abs(piModel.getZ()) < LOW_IMPEDANCE_THRESHOLD) { // will be transformed to non impedant branch
                 LfBus bus1 = branch.getBus1();
@@ -434,12 +440,18 @@ public class LfNetwork {
                     if (vc1.isPresent() && vc2.isPresent() && bus1.isVoltageControlEnabled() && bus2.isVoltageControlEnabled()
                         && FastMath.abs((vc1.get().getTargetValue() / vc2.get().getTargetValue()) - piModel.getR1() / PiModel.R2) > TARGET_VOLTAGE_EPSILON) {
                         throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
-                            + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
-                            + vc1.get().getTargetValue() + " and " + vc2.get().getTargetValue());
+                                + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
+                                + vc1.get().getTargetValue() + " and " + vc2.get().getTargetValue());
                     }
                 }
             }
         }
+    }
+
+    public void validate(boolean minImpedance, Reporter reporter) {
+        valid = true;
+        validateBuses(reporter);
+        validateBranches(minImpedance);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector) {
@@ -463,10 +475,12 @@ public class LfNetwork {
             Reporter reporterNetwork = reporter.createSubReporter("postLoading", "Post loading process on network CC${numNetworkCc} SC${numNetworkSc}",
                 Map.of("numNetworkCc", new TypedValue(lfNetwork.getNumCC(), TypedValue.UNTYPED),
                     "numNetworkSc", new TypedValue(lfNetwork.getNumSC(), TypedValue.UNTYPED)));
-            fix(lfNetwork, parameters.isMinImpedance());
-            validate(lfNetwork, parameters.isMinImpedance());
-            lfNetwork.reportSize(reporterNetwork);
-            lfNetwork.reportBalance(reporterNetwork);
+            lfNetwork.fix(parameters.isMinImpedance());
+            lfNetwork.validate(parameters.isMinImpedance(), reporterNetwork);
+            if (lfNetwork.isValid()) {
+                lfNetwork.reportSize(reporterNetwork);
+                lfNetwork.reportBalance(reporterNetwork);
+            }
         }
         return lfNetworks;
     }
@@ -524,10 +538,6 @@ public class LfNetwork {
 
     public boolean isValid() {
         return valid;
-    }
-
-    public void setValid(boolean valid) {
-        this.valid = valid;
     }
 
     public Object getUserObject() {

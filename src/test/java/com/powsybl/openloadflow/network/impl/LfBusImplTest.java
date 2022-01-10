@@ -131,9 +131,9 @@ class LfBusImplTest {
 
         LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0, true);
         LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
-        lfBus.addStaticVarCompensator(svc1, false, true, lfNetworkLoadingReport);
-        lfBus.addStaticVarCompensator(svc2, false, true, lfNetworkLoadingReport);
-        lfBus.addStaticVarCompensator(svc3, false, true, lfNetworkLoadingReport);
+        lfBus.addStaticVarCompensator(svc1, false, true, true, lfNetworkLoadingReport);
+        lfBus.addStaticVarCompensator(svc2, false, true, true, lfNetworkLoadingReport);
+        lfBus.addStaticVarCompensator(svc3, false, true, true, lfNetworkLoadingReport);
         double generationQ = -6.412103131789854;
         lfBus.updateGeneratorsState(generationQ * PerUnit.SB, true);
         double sumQ = 0;
