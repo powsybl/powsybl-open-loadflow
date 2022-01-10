@@ -375,9 +375,8 @@ public final class AcEquationSystem {
 
     public static void createR1DistributionEquations(List<LfBranch> controllerBranches,
                                                      EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        List<LfBranch> enabledControllerBranches = controllerBranches.stream().filter(b -> !b.isDisabled()).collect(Collectors.toList());
-        for (int i = 0; i < enabledControllerBranches.size(); i++) {
-            LfBranch controllerBranch = enabledControllerBranches.get(i);
+        for (int i = 0; i < controllerBranches.size(); i++) {
+            LfBranch controllerBranch = controllerBranches.get(i);
             // r1 at controller branch i
             // r1_i = sum_j(r1_j) / controller_count where j are all the controller branches
             // 0 = sum_j(r1_j) / controller_count - r1_i
@@ -386,12 +385,12 @@ public final class AcEquationSystem {
             EquationTerm<AcVariableType, AcEquationType> r1 = equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_RHO1)
                     .createTerm();
             Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO)
-                    .addTerm(r1.multiply(() -> 1d / enabledControllerBranches.size() - 1));
-            for (LfBranch otherControllerBranch : enabledControllerBranches) {
+                    .addTerm(r1.multiply(() -> 1d / controllerBranches.stream().filter(b -> !b.isDisabled()).count() - 1));
+            for (LfBranch otherControllerBranch : controllerBranches) {
                 if (otherControllerBranch != controllerBranch) {
                     EquationTerm<AcVariableType, AcEquationType> otherR1 = equationSystem.getVariable(otherControllerBranch.getNum(), AcVariableType.BRANCH_RHO1)
                             .createTerm();
-                    zero.addTerm(otherR1.multiply(() -> 1d / enabledControllerBranches.size()));
+                    zero.addTerm(otherR1.multiply(() -> 1d / controllerBranches.stream().filter(b -> !b.isDisabled()).count()));
                 }
             }
         }
@@ -463,9 +462,8 @@ public final class AcEquationSystem {
 
     public static void createShuntSusceptanceDistributionEquations(List<LfBus> controllerBuses,
                                                                    EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        List<LfBus> enabledControllerBuses = controllerBuses.stream().filter(b -> !b.isDisabled()).collect(Collectors.toList());
-        for (int i = 0; i < enabledControllerBuses.size(); i++) {
-            LfBus controllerBus = enabledControllerBuses.get(i);
+        for (int i = 0; i < controllerBuses.size(); i++) {
+            LfBus controllerBus = controllerBuses.get(i);
             controllerBus.getControllerShunt()
                 .ifPresent(shunt -> {
                     // shunt b at controller bus i
@@ -476,14 +474,14 @@ public final class AcEquationSystem {
                     EquationTerm<AcVariableType, AcEquationType> shuntB = equationSystem.getVariable(shunt.getNum(), AcVariableType.SHUNT_B)
                             .createTerm();
                     Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.DISTR_SHUNT_B)
-                            .addTerm(shuntB.multiply(() -> 1d / enabledControllerBuses.size() - 1));
-                    for (LfBus otherControllerBus : enabledControllerBuses) {
+                            .addTerm(shuntB.multiply(() -> 1d / controllerBuses.stream().filter(b -> !b.isDisabled() && b.getControllerShunt().isPresent()).count() - 1));
+                    for (LfBus otherControllerBus : controllerBuses) {
                         if (otherControllerBus != controllerBus) {
                             otherControllerBus.getControllerShunt()
                                 .ifPresent(otherShunt -> {
                                     EquationTerm<AcVariableType, AcEquationType> otherShuntB = equationSystem.getVariable(otherShunt.getNum(), AcVariableType.SHUNT_B)
                                             .createTerm();
-                                    zero.addTerm(otherShuntB.multiply(() -> 1d / enabledControllerBuses.size()));
+                                    zero.addTerm(otherShuntB.multiply(() -> 1d / controllerBuses.stream().filter(b -> !b.isDisabled() && b.getControllerShunt().isPresent()).count()));
                                 });
                         }
                     }
