@@ -397,26 +397,43 @@ public final class AcEquationSystem {
     }
 
     static void updateTransformerVoltageControlEquations(TransformerVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        boolean on = voltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE;
+        List<LfBranch> controllerBranches = voltageControl.getControllers()
+                .stream()
+                .filter(b -> !b.isDisabled()) // discard disabled controller branches
+                .collect(Collectors.toList());
+
+        boolean on = voltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE && !controllerBranches.isEmpty();
 
         // activate voltage target equation if control is on
-        equationSystem.getEquation(voltageControl.getControlled().getNum(), AcEquationType.BUS_TARGET_V)
-                .orElseThrow()
-                .setActive(on);
+        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(voltageControl.getControlled().getNum(), AcEquationType.BUS_TARGET_V)
+                .orElseThrow();
 
-        List<LfBranch> controllerBranches = voltageControl.getControllers();
-        for (int i = 0; i < controllerBranches.size(); i++) {
-            LfBranch controllerBranch = controllerBranches.get(i);
+        if (voltageControl.getControlled().isDisabled()) {
+            // if controlled bus is disabled, we disable all transformer voltage control equations
+            vEq.setActive(false);
+            for (LfBranch controllerBranch : controllerBranches) {
+                equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.DISTR_Q)
+                        .orElseThrow()
+                        .setActive(false);
+            }
+        } else {
+            vEq.setActive(on);
+            if (!voltageControl.getControllers().equals(controllerBranches)) {
+                createR1DistributionEquations(controllerBranches, equationSystem);
+            }
+            for (int i = 0; i < controllerBranches.size(); i++) {
+                LfBranch controllerBranch = controllerBranches.get(i);
 
-            // activate all rho1 equations if voltage control is off
-            equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
-                    .orElseThrow()
-                    .setActive(!on);
+                // activate all rho1 equations if voltage control is off
+                equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
+                        .orElseThrow()
+                        .setActive(!on);
 
-            // activate rho1 distribution equations except one if control is on
-            equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO)
-                    .orElseThrow()
-                    .setActive(on && i < controllerBranches.size() - 1);
+                // activate rho1 distribution equations except one if control is on
+                equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO)
+                        .orElseThrow()
+                        .setActive(on && i < controllerBranches.size() - 1);
+            }
         }
     }
 
@@ -476,28 +493,46 @@ public final class AcEquationSystem {
     }
 
     static void updateShuntVoltageControlEquations(ShuntVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        boolean on = voltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE;
+        List<LfBus> controllerBuses = voltageControl.getControllers()
+                .stream()
+                .filter(b -> !b.isDisabled()) // discard disabled controller buses
+                .collect(Collectors.toList());
+
+        boolean on = voltageControl.getMode() == DiscreteVoltageControl.Mode.VOLTAGE && !controllerBuses.isEmpty();
 
         // activate voltage target equation if control is on
-        equationSystem.getEquation(voltageControl.getControlled().getNum(), AcEquationType.BUS_TARGET_V)
-                .orElseThrow()
-                .setActive(on);
+        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(voltageControl.getControlled().getNum(), AcEquationType.BUS_TARGET_V)
+                .orElseThrow();
 
-        List<LfBus> controllerBuses = voltageControl.getControllers();
-        for (int i = 0; i < controllerBuses.size(); i++) {
-            LfBus controllerBus = controllerBuses.get(i);
-
-            // activate all b target equations if voltage control is off
-            controllerBus.getControllerShunt().ifPresent(shunt ->
-                equationSystem.getEquation(shunt.getNum(), AcEquationType.SHUNT_TARGET_B)
+        if (voltageControl.getControlled().isDisabled()) {
+            // if controlled bus is disabled, we disable all transformer voltage control equations
+            vEq.setActive(false);
+            for (LfBus controllerBus : controllerBuses) {
+                equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_SHUNT_B)
                         .orElseThrow()
-                        .setActive(!on)
-            );
+                        .setActive(false);
+            }
+        } else {
+            // activate voltage target equation if control is on
+            vEq.setActive(on);
+            if (!voltageControl.getControllers().equals(controllerBuses)) {
+                createShuntSusceptanceDistributionEquations(controllerBuses, equationSystem);
+            }
+            for (int i = 0; i < controllerBuses.size(); i++) {
+                LfBus controllerBus = controllerBuses.get(i);
 
-            // activate shunt b distribution equations except one if control is on
-            equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_SHUNT_B)
-                    .orElseThrow()
-                    .setActive(on && i < controllerBuses.size() - 1);
+                // activate all b target equations if voltage control is off
+                controllerBus.getControllerShunt().ifPresent(shunt ->
+                        equationSystem.getEquation(shunt.getNum(), AcEquationType.SHUNT_TARGET_B)
+                                .orElseThrow()
+                                .setActive(!on)
+                );
+
+                // activate shunt b distribution equations except one if control is on
+                equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_SHUNT_B)
+                        .orElseThrow()
+                        .setActive(on && i < controllerBuses.size() - 1);
+            }
         }
     }
 

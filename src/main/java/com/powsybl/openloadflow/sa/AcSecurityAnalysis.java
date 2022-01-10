@@ -112,6 +112,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         List<BranchResult> preContingencyBranchResults = new ArrayList<>();
         List<BusResults> preContingencyBusResults = new ArrayList<>();
         List<ThreeWindingsTransformerResult> preContingencyThreeWindingsTransformerResults = new ArrayList<>();
+        List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
+        List<BusModeState> busModeStates = ElementState.save(network.getBuses(), BusModeState::save);
 
         // run pre-contingency simulation
         try (AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters)) {
@@ -133,7 +135,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
                 // save base state for later restoration after each contingency
                 List<BusState> busStates = ElementState.save(network.getBuses(), BusState::save);
-                List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
                 for (LfBus bus : network.getBuses()) {
                     bus.setVoltageControlSwitchOffCount(0);
                 }
@@ -145,11 +146,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
                     LfContingency.create(propagatedContingency, network, connectivity, true)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
-                                for (LfBus bus : lfContingency.getBuses()) {
-                                    bus.setDisabled(true);
-                                }
                                 for (LfBranch branch : lfContingency.getBranches()) {
                                     branch.setDisabled(true);
+                                }
+                                for (LfBus bus : lfContingency.getBuses()) {
+                                    bus.setDisabled(true);
                                 }
 
                                 distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
@@ -162,6 +163,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
                                     // restore base state
                                     ElementState.restore(busStates);
+                                    ElementState.restore(busModeStates);
                                     ElementState.restore(branchStates);
                                 }
                             });
