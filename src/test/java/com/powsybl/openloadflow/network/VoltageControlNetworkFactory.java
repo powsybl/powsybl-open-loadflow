@@ -70,7 +70,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setP0(299.6)
                 .setQ0(200)
                 .add();
-        Generator g1 = b1.getVoltageLevel()
+        b1.getVoltageLevel()
                 .newGenerator()
                 .setId("g1")
                 .setBus("b1")
@@ -83,7 +83,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setVoltageRegulatorOn(true)
                 .setRegulatingTerminal(l4.getTerminal())
                 .add();
-        Generator g2 = b2.getVoltageLevel()
+        b2.getVoltageLevel()
                 .newGenerator()
                 .setId("g2")
                 .setBus("b2")
@@ -96,7 +96,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setVoltageRegulatorOn(true)
                 .setRegulatingTerminal(l4.getTerminal())
                 .add();
-        Generator g3 = b3.getVoltageLevel()
+        b3.getVoltageLevel()
                 .newGenerator()
                 .setId("g3")
                 .setBus("b3")
@@ -109,7 +109,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setVoltageRegulatorOn(true)
                 .setRegulatingTerminal(l4.getTerminal())
                 .add();
-        TwoWindingsTransformer tr1 = s.newTwoWindingsTransformer()
+        s.newTwoWindingsTransformer()
                 .setId("tr1")
                 .setVoltageLevel1(b1.getVoltageLevel().getId())
                 .setBus1(b1.getId())
@@ -124,7 +124,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setG(0)
                 .setB(0)
                 .add();
-        TwoWindingsTransformer tr2 = s.newTwoWindingsTransformer()
+        s.newTwoWindingsTransformer()
                 .setId("tr2")
                 .setVoltageLevel1(b2.getVoltageLevel().getId())
                 .setBus1(b2.getId())
@@ -139,7 +139,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setG(0)
                 .setB(0)
                 .add();
-        TwoWindingsTransformer tr3 = s.newTwoWindingsTransformer()
+        s.newTwoWindingsTransformer()
                 .setId("tr3")
                 .setVoltageLevel1(b3.getVoltageLevel().getId())
                 .setBus1(b3.getId())
@@ -204,7 +204,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setP0(299.6)
                 .setQ0(200)
                 .add();
-        Generator g1 = b1.getVoltageLevel()
+        b1.getVoltageLevel()
                 .newGenerator()
                 .setId("g1")
                 .setBus("b1")
@@ -217,7 +217,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setVoltageRegulatorOn(true)
                 .setRegulatingTerminal(l4.getTerminal())
                 .add();
-        Generator g2 = b2.getVoltageLevel()
+        b2.getVoltageLevel()
                 .newGenerator()
                 .setId("g2")
                 .setBus("b2")
@@ -230,7 +230,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setVoltageRegulatorOn(true)
                 .setRegulatingTerminal(l4.getTerminal())
                 .add();
-        Generator g3 = b3.getVoltageLevel()
+        b3.getVoltageLevel()
                 .newGenerator()
                 .setId("g3")
                 .setBus("b3")
@@ -243,7 +243,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setVoltageRegulatorOn(true)
                 .setRegulatingTerminal(l4.getTerminal())
                 .add();
-        TwoWindingsTransformer tr1 = s.newTwoWindingsTransformer()
+        s.newTwoWindingsTransformer()
                 .setId("tr1")
                 .setVoltageLevel1(b1.getVoltageLevel().getId())
                 .setBus1(b1.getId())
@@ -258,7 +258,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setG(0)
                 .setB(0)
                 .add();
-        TwoWindingsTransformer tr2 = s.newTwoWindingsTransformer()
+        s.newTwoWindingsTransformer()
                 .setId("tr2")
                 .setVoltageLevel1(b2.getVoltageLevel().getId())
                 .setBus1(b2.getId())
@@ -273,7 +273,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setG(0)
                 .setB(0)
                 .add();
-        TwoWindingsTransformer tr3 = s.newTwoWindingsTransformer()
+        s.newTwoWindingsTransformer()
                 .setId("tr3")
                 .setVoltageLevel1(b3.getVoltageLevel().getId())
                 .setBus1(b3.getId())
@@ -676,7 +676,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setP0(299.6)
                 .setQ0(0)
                 .add();
-        Generator g1 = b1.getVoltageLevel()
+        b1.getVoltageLevel()
                 .newGenerator()
                 .setId("g1")
                 .setBus("b1")
@@ -688,7 +688,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setTargetV(21)
                 .setVoltageRegulatorOn(true)
                 .add();
-        ShuntCompensator shunt2 = b2.getVoltageLevel().newShuntCompensator()
+        b2.getVoltageLevel().newShuntCompensator()
                 .setId("SHUNT2")
                 .setBus("b2")
                 .setConnectableBus("b2")
@@ -703,7 +703,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setGPerSection(0.0)
                 .add()
                 .add();
-        ShuntCompensator shunt3 = b3.getVoltageLevel().newShuntCompensator()
+        b3.getVoltageLevel().newShuntCompensator()
                 .setId("SHUNT3")
                 .setBus("b3")
                 .setConnectableBus("b3")
@@ -718,7 +718,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setGPerSection(0.0)
                 .add()
                 .add();
-        TwoWindingsTransformer tr1 = s.newTwoWindingsTransformer()
+        s.newTwoWindingsTransformer()
                 .setId("tr1")
                 .setVoltageLevel1(b1.getVoltageLevel().getId())
                 .setBus1(b1.getId())
@@ -733,7 +733,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setG(0)
                 .setB(0)
                 .add();
-        TwoWindingsTransformer tr2 = s.newTwoWindingsTransformer()
+        s.newTwoWindingsTransformer()
                 .setId("tr2")
                 .setVoltageLevel1(b2.getVoltageLevel().getId())
                 .setBus1(b2.getId())
@@ -748,7 +748,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setG(0)
                 .setB(0)
                 .add();
-        TwoWindingsTransformer tr3 = s.newTwoWindingsTransformer()
+        s.newTwoWindingsTransformer()
                 .setId("tr3")
                 .setVoltageLevel1(b3.getVoltageLevel().getId())
                 .setBus1(b3.getId())

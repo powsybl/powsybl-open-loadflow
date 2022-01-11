@@ -750,6 +750,13 @@ class OpenSecurityAnalysisTest {
         assertEquals(0.66, brl14l13.getFlowTransfer(), 1e-2);
     }
 
+    private static PostContingencyResult getPostContingencyResult(SecurityAnalysisResult result, String contingencyId) {
+        return result.getPostContingencyResults().stream()
+                .filter(r -> r.getContingency().getId().equals(contingencyId))
+                .findFirst()
+                .orElseThrow();
+    }
+
     @Test
     void testSaWithRemoteSharedControl() {
         Network network = VoltageControlNetworkFactory.createWithIdenticalTransformers();
@@ -767,8 +774,7 @@ class OpenSecurityAnalysisTest {
         assertEquals(-66.667, preContingencyResult.getPreContingencyBranchResult("tr3").getQ2(), 1e-2);
 
         // post-contingency tests
-        PostContingencyResult postContingencyResult = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals("tr1")).findFirst().get();
-        assertEquals("tr1", postContingencyResult.getContingency().getId());
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "tr1");
         assertEquals(-99.999, postContingencyResult.getBranchResult("tr2").getQ2(), 1e-2);
         assertEquals(-99.999, postContingencyResult.getBranchResult("tr3").getQ2(), 1e-2);
     }
@@ -791,8 +797,7 @@ class OpenSecurityAnalysisTest {
         assertEquals(-0.659, preContingencyResult.getPreContingencyBranchResult("T2wT").getQ1(), 1e-2);
 
         // post-contingency tests
-        PostContingencyResult postContingencyResult = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals("T2wT2")).findFirst().get();
-        assertEquals("T2wT2", postContingencyResult.getContingency().getId());
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "T2wT2");
         assertEquals(-0.572, postContingencyResult.getBranchResult("T2wT").getQ1(), 1e-2); // this assertion is not so relevant. It is more relevant to look at the logs.
     }
 
@@ -814,8 +819,7 @@ class OpenSecurityAnalysisTest {
         assertEquals(-6.181, preContingencyResult.getPreContingencyBranchResult("LINE_12").getQ2(), 1e-2);
 
         // post-contingency tests
-        PostContingencyResult postContingencyResult = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals("N-2")).findFirst().orElseThrow();
-        assertEquals("N-2", postContingencyResult.getContingency().getId());
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "N-2");
         assertEquals(-7.499, postContingencyResult.getBranchResult("LINE_12").getQ2(), 1e-2);
     }
 
@@ -839,9 +843,8 @@ class OpenSecurityAnalysisTest {
         assertEquals(54.298, preContingencyResult.getPreContingencyBranchResult("tr3").getQ2(), 1e-2);
 
         // post-contingency tests
-        PostContingencyResult tr2ContingencyResult = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals("tr2")).findFirst().orElseThrow();
-        assertEquals("tr2", tr2ContingencyResult.getContingency().getId());
-        assertEquals(-108.596, preContingencyResult.getPreContingencyBranchResult("tr1").getQ2(), 1e-2);
+        PostContingencyResult tr2ContingencyResult = getPostContingencyResult(result, "tr2");
+        assertEquals(-107.543, tr2ContingencyResult.getBranchResult("tr1").getQ2(), 1e-2);
         assertEquals(107.543, tr2ContingencyResult.getBranchResult("tr3").getQ2(), 1e-2);
     }
 }
