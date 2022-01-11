@@ -865,7 +865,7 @@ class OpenSecurityAnalysisTest {
         Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
         SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
         LoadFlowParameters lfParameters = new LoadFlowParameters();
-        lfParameters.setSimulShunt(true); // FIXME KLU issue if false
+        lfParameters.setSimulShunt(true);
         OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters();
         lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
         saParameters.setLoadFlowParameters(lfParameters);
@@ -884,14 +884,14 @@ class OpenSecurityAnalysisTest {
 
         // pre-contingency tests
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        assertEquals(-809.466, preContingencyResult.getPreContingencyBranchResult("tr1").getQ2(), 1e-2);
-        assertEquals(404.733, preContingencyResult.getPreContingencyBranchResult("tr2").getQ2(), 1e-2);
-        assertEquals(404.733, preContingencyResult.getPreContingencyBranchResult("tr3").getQ2(), 1e-2);
+        assertEquals(-108.596, preContingencyResult.getPreContingencyBranchResult("tr1").getQ2(), 1e-2);
+        assertEquals(54.298, preContingencyResult.getPreContingencyBranchResult("tr2").getQ2(), 1e-2);
+        assertEquals(54.298, preContingencyResult.getPreContingencyBranchResult("tr3").getQ2(), 1e-2);
 
         // post-contingency tests
         PostContingencyResult tr2ContingencyResult = result.getPostContingencyResults().stream().filter(r -> r.getContingency().getId().equals("tr2")).findFirst().orElseThrow();
         assertEquals("tr2", tr2ContingencyResult.getContingency().getId());
-        assertEquals(-809.466, preContingencyResult.getPreContingencyBranchResult("tr1").getQ2(), 1e-2);
-        assertEquals(461.993, tr2ContingencyResult.getBranchResult("tr3").getQ2(), 1e-2); // FIXME?
+        assertEquals(-108.596, preContingencyResult.getPreContingencyBranchResult("tr1").getQ2(), 1e-2);
+        assertEquals(107.543, tr2ContingencyResult.getBranchResult("tr3").getQ2(), 1e-2);
     }
 }

@@ -685,7 +685,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(25)
+                .setTargetV(21)
                 .setVoltageRegulatorOn(true)
                 .add();
         ShuntCompensator shunt2 = b2.getVoltageLevel().newShuntCompensator()
@@ -698,8 +698,8 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setTargetV(400)
                 .setTargetDeadband(5.0)
                 .newLinearModel()
-                .setMaximumSectionCount(10)
-                .setBPerSection(-1E-1)
+                .setMaximumSectionCount(50)
+                .setBPerSection(-1E-2)
                 .setGPerSection(0.0)
                 .add()
                 .add();
@@ -713,8 +713,8 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setTargetV(400)
                 .setTargetDeadband(5.0)
                 .newLinearModel()
-                .setMaximumSectionCount(10)
-                .setBPerSection(-1E-1)
+                .setMaximumSectionCount(50)
+                .setBPerSection(-1E-2)
                 .setGPerSection(0.0)
                 .add()
                 .add();
