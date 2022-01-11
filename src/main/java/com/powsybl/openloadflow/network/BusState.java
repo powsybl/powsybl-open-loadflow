@@ -12,6 +12,7 @@ package com.powsybl.openloadflow.network;
 public class BusState extends BusDcState {
 
     private final double angle;
+    private final double voltage;
     private final double loadTargetQ;
     private final double generationTargetQ;
     private final boolean voltageControlEnabled;
@@ -20,6 +21,7 @@ public class BusState extends BusDcState {
     public BusState(LfBus bus) {
         super(bus);
         this.angle = bus.getAngle();
+        this.voltage = bus.getV();
         this.loadTargetQ = bus.getLoadTargetQ();
         this.generationTargetQ = bus.getGenerationTargetQ();
         this.voltageControlEnabled = bus.isVoltageControlEnabled();
@@ -30,6 +32,7 @@ public class BusState extends BusDcState {
     public void restore() {
         super.restore();
         element.setAngle(angle);
+        element.setV(voltage);
         element.setLoadTargetQ(loadTargetQ);
         element.setGenerationTargetQ(generationTargetQ);
         element.setVoltageControlEnabled(voltageControlEnabled);
