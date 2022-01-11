@@ -92,11 +92,10 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     public void onDisableChange(LfElement element, boolean disabled) {
         if (element.getType() == ElementType.BUS) {
             LfBus bus = (LfBus) element;
-            bus.getVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateRemoteVoltageControlEquations(voltageControl, equationSystem));
+            bus.getVoltageControl().ifPresent(this::updateVoltageControl);
             bus.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
             bus.getShuntVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateShuntVoltageControlEquations(voltageControl, equationSystem));
-        }
-        if (element.getType() == ElementType.BRANCH) {
+        } else if (element.getType() == ElementType.BRANCH) {
             LfBranch branch = (LfBranch) element;
             branch.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
             // TODO phase control.
