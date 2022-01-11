@@ -112,6 +112,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         List<BranchResult> preContingencyBranchResults = new ArrayList<>();
         List<BusResults> preContingencyBusResults = new ArrayList<>();
         List<ThreeWindingsTransformerResult> preContingencyThreeWindingsTransformerResults = new ArrayList<>();
+        List<BranchModeState> branchModeStates = ElementState.save(network.getBranches(), BranchModeState::save);
 
         // run pre-contingency simulation
         try (AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters)) {
@@ -163,6 +164,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                     // restore base state
                                     ElementState.restore(busStates);
                                     ElementState.restore(branchStates);
+                                    ElementState.restore(branchModeStates);
                                 }
                             });
                 }
