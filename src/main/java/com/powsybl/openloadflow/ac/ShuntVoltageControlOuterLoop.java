@@ -41,7 +41,7 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
                     // round the susceptance to the closest section
                     double b = controllerShunt.getB();
                     controllerShunt.dispatchB();
-                    LOGGER.info("Round susceptance of '{}': {} -> {}", controllerShunt.getId(), b, controllerShunt.getB());
+                    LOGGER.trace("Round susceptance of '{}': {} -> {}", controllerShunt.getId(), b, controllerShunt.getB());
 
                     status = OuterLoopStatus.UNSTABLE;
                 }
