@@ -98,7 +98,6 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         } else if (element.getType() == ElementType.BRANCH) {
             LfBranch branch = (LfBranch) element;
             branch.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
-            // TODO phase control.
         }
     }
 }
