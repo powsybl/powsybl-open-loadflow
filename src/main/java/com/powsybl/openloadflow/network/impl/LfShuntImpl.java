@@ -161,7 +161,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
                 smallestDistance = distance;
             }
         }
-        LOGGER.info("Round B shift of shunt '{}': {} -> {}", controller.getId(), b, controller.getB());
+        LOGGER.trace("Round B shift of shunt '{}': {} -> {}", controller.getId(), b, controller.getB());
     }
 
     @Override

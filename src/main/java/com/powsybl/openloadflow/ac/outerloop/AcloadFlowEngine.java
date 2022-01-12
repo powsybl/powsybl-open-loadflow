@@ -139,20 +139,6 @@ public class AcloadFlowEngine implements AutoCloseable {
         return target;
     }
 
-    private static double getRho1DistributionTarget(LfNetwork network, int num, DistributionData data) {
-        LfBranch controllerBranch = network.getBranch(num);
-        LfBranch firstControllerBranch = network.getBranch(data.getFirstControllerElementNum());
-        // as a first and very simple ratio distribution strategy, we keep the gap between the 2 ratios constant
-        return controllerBranch.getPiModel().getR1() - firstControllerBranch.getPiModel().getR1();
-    }
-
-    private static double getBDistributionTarget(LfNetwork network, int num, DistributionData data) {
-        LfShunt controllerShunt = network.getShunt(num);
-        LfShunt firstControllerShunt = network.getShunt(data.getFirstControllerElementNum());
-        // as a first and very simple B distribution strategy, we keep the gap between the 2 B constant
-        return controllerShunt.getB() - firstControllerShunt.getB();
-    }
-
     private static double createBusWithSlopeTarget(LfBus bus) {
         // take first generator with slope: network loading ensures that there's only one generator with slope
         double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
@@ -220,11 +206,8 @@ public class AcloadFlowEngine implements AutoCloseable {
                 break;
 
             case DISTR_RHO:
-                targets[equation.getColumn()] = getRho1DistributionTarget(network, equation.getElementNum(), equation.getData());
-                break;
-
-            case DISTR_B:
-                targets[equation.getColumn()] = getBDistributionTarget(network, equation.getElementNum(), equation.getData());
+            case DISTR_SHUNT_B:
+                targets[equation.getColumn()] = 0;
                 break;
 
             default:
