@@ -135,6 +135,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
                 // save base state for later restoration after each contingency
                 List<BusState> busStates = ElementState.save(network.getBuses(), BusState::save);
+                ElementState.restore(busModeStates);
+                ElementState.restore(branchStates);
                 for (LfBus bus : network.getBuses()) {
                     bus.setVoltageControlSwitchOffCount(0);
                 }
