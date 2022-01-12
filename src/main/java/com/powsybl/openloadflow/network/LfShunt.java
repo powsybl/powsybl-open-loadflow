@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.Optional;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -19,7 +21,15 @@ public interface LfShunt extends LfElement {
 
     void updateState();
 
-    boolean hasVoltageControl();
+    boolean hasVoltageControlCapability();
 
-    void setVoltageControl(boolean voltageControl);
+    void setVoltageControlCapability(boolean voltageControlCapability);
+
+    boolean isVoltageControlEnabled();
+
+    void setVoltageControlEnabled(boolean voltageControlEnabled);
+
+    Optional<ShuntVoltageControl> getVoltageControl();
+
+    void setVoltageControl(ShuntVoltageControl voltageControl);
 }

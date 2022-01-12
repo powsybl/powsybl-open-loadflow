@@ -459,7 +459,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 LOGGER.info("Zero impedance connected set with several discrete voltage controls and a voltage control: discrete controls deleted");
                 transformerVoltageControls.stream()
                         .flatMap(dvc -> dvc.getControllers().stream())
-                        .forEach(controller -> controller.setTransformerVoltageControl(null));
+                        .forEach(controller -> controller.setVoltageControl(null));
                 transformerVoltageControls.forEach(dvc -> dvc.getControlled().setTransformerVoltageControl(null));
             }
         } else {
@@ -480,7 +480,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 .flatMap(tvc -> tvc.getControllers().stream())
                 .forEach(controller -> {
                     keptTransformerVoltageControl.addController(controller);
-                    controller.setTransformerVoltageControl(keptTransformerVoltageControl);
+                    controller.setVoltageControl(keptTransformerVoltageControl);
                 });
         }
     }
@@ -587,6 +587,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         double regulatingTerminalNominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
         double targetValue = rtc.getTargetV() / regulatingTerminalNominalV;
 
+        controllerBranch.setVoltageControlEnabled(true);
+
         controlledBus.getTransformerVoltageControl().ifPresentOrElse(vc -> {
             LOGGER.trace("Controlled bus {} already has a transformer voltage control: a shared control is created", controlledBus.getId());
             if (FastMath.abs(vc.getTargetValue() - targetValue) > TARGET_V_EPSILON) {
@@ -594,11 +596,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                         controlledBus.getId(), vc.getTargetValue(), targetValue);
             }
             vc.addController(controllerBranch);
-            controllerBranch.setTransformerVoltageControl(vc);
+            controllerBranch.setVoltageControl(vc);
         }, () -> {
-                TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, DiscreteVoltageControl.Mode.VOLTAGE, targetValue);
+                TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, targetValue);
                 voltageControl.addController(controllerBranch);
-                controllerBranch.setTransformerVoltageControl(voltageControl);
+                controllerBranch.setVoltageControl(voltageControl);
                 controlledBus.setTransformerVoltageControl(voltageControl);
             });
     }
@@ -612,49 +614,46 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.warn("Voltage controller shunt {} is out of voltage: no voltage control created", shuntCompensator.getId());
             return;
         }
+        LfShunt controllerShunt = controllerBus.getControllerShunt().orElseThrow();
         LfBus controlledBus = getLfBus(shuntCompensator.getRegulatingTerminal(), lfNetwork, breakers);
         if (controlledBus == null) {
             LOGGER.warn("Regulating terminal of voltage controller shunt {} is out of voltage: no voltage control created", shuntCompensator.getId());
-            controllerBus.getControllerShunt().ifPresent(shunt ->
-                    shunt.setVoltageControl(false)
-            );
+            controllerShunt.setVoltageControlCapability(false);
             return;
         }
         if (controlledBus.isVoltageControlled()) {
             LOGGER.warn("Controlled bus {} has both generator and shunt voltage control on: only generator control is kept", controlledBus.getId());
-            controllerBus.getControllerShunt().ifPresent(shunt ->
-                    shunt.setVoltageControl(false)
-            );
+            controllerShunt.setVoltageControlCapability(false);
             return;
         }
         Optional<TransformerVoltageControl> tvc = controlledBus.getTransformerVoltageControl();
         if (tvc.isPresent()) {
             LOGGER.error("Controlled bus {} has already a transformer voltage control: only transformer control is kept", controlledBus.getId());
-            controllerBus.getControllerShunt().ifPresent(shunt ->
-                    shunt.setVoltageControl(false)
-            );
+            controllerShunt.setVoltageControlCapability(false);
             return;
         }
+
+        controllerShunt.setVoltageControlEnabled(true);
 
         double regulatingTerminalNominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
         double targetValue = shuntCompensator.getTargetV() / regulatingTerminalNominalV;
 
-        controlledBus.getShuntVoltageControl().ifPresentOrElse(vc -> {
+        controlledBus.getShuntVoltageControl().ifPresentOrElse(voltageControl -> {
             LOGGER.trace("Controlled bus {} has already a shunt voltage control: a shared control is created", controlledBus.getId());
-            if (FastMath.abs(vc.getTargetValue() - targetValue) > TARGET_V_EPSILON) {
+            if (FastMath.abs(voltageControl.getTargetValue() - targetValue) > TARGET_V_EPSILON) {
                 LOGGER.warn("Controlled bus {} already has a transformer voltage control with a different target voltage: {} and {}",
-                        controlledBus.getId(), vc.getTargetValue(), targetValue);
+                        controlledBus.getId(), voltageControl.getTargetValue(), targetValue);
             }
-            if (!vc.getControllers().contains(controllerBus)) {
-                // We create a remote shared control.
-                vc.addController(controllerBus);
-                controllerBus.setShuntVoltageControl(vc);
+            if (!voltageControl.getControllers().contains(controllerShunt)) {
+                voltageControl.addController(controllerShunt);
+                controllerShunt.setVoltageControl(voltageControl);
+                controlledBus.setShuntVoltageControl(voltageControl);
             }
         }, () -> {
-            // we create a new shunt voltage control.
-                ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, DiscreteVoltageControl.Mode.VOLTAGE, targetValue);
-                voltageControl.addController(controllerBus);
-                controllerBus.setShuntVoltageControl(voltageControl);
+                // we create a new shunt voltage control.
+                ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, targetValue);
+                voltageControl.addController(controllerShunt);
+                controllerShunt.setVoltageControl(voltageControl);
                 controlledBus.setShuntVoltageControl(voltageControl);
             });
     }

@@ -265,6 +265,11 @@ public class AcloadFlowEngine implements AutoCloseable {
                     && runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED);
         }
 
+        // outer loops finalization
+        for (OuterLoop outerLoop : parameters.getOuterLoops()) {
+            outerLoop.cleanup(network);
+        }
+
         int nrIterations = runningContext.lastNrResult.getIteration();
         int outerLoopIterations = runningContext.outerLoopIterationByType.values().stream().mapToInt(MutableInt::getValue).sum() + 1;
 

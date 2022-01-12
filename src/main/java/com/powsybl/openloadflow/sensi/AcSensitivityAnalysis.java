@@ -132,9 +132,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
         // system obtained just before the transformer steps rounding.
         if (hasTransformerBusTargetVoltage) {
-            for (LfBus bus : lfNetwork.getBuses()) {
-                // switch on regulating transformers
-                bus.getTransformerVoltageControl().filter(dvc -> dvc.getMode() == DiscreteVoltageControl.Mode.OFF).ifPresent(dvc -> dvc.setMode(DiscreteVoltageControl.Mode.VOLTAGE));
+            for (LfBranch branch : lfNetwork.getBranches()) {
+                branch.getVoltageControl().ifPresent(vc -> branch.setVoltageControlEnabled(true));
             }
         }
 
@@ -251,9 +250,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
             // system obtained just before the transformer steps rounding.
             if (hasTransformerBusTargetVoltage) {
-                for (LfBus bus : lfNetwork.getBuses()) {
-                    // switch on regulating transformers
-                    bus.getTransformerVoltageControl().filter(dvc -> dvc.getMode() == DiscreteVoltageControl.Mode.OFF).ifPresent(dvc -> dvc.setMode(DiscreteVoltageControl.Mode.VOLTAGE));
+                // switch on regulating transformers
+                for (LfBranch branch : lfNetwork.getBranches()) {
+                    branch.getVoltageControl().ifPresent(vc -> branch.setVoltageControlEnabled(true));
                 }
             }
 
