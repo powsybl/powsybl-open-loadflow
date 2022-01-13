@@ -12,9 +12,7 @@ import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Identifiable;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -858,29 +856,14 @@ class OpenSecurityAnalysisTest {
                 .setTapPosition(1)
                 .setRegulationTerminal(t2wt.getTerminal1())
                 .setRegulationValue(83);
-        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
-        LoadFlowParameters lfParameters = new LoadFlowParameters();
-        lfParameters.setPhaseShifterRegulationOn(true);
-        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
-        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
-        saParameters.setLoadFlowParameters(lfParameters);
 
-        // Testing all contingencies at once
-        ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
-                .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
-                .collect(Collectors.toList());
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setPhaseShifterRegulationOn(true);
 
-        Set<String> allBranchIds = network.getBranchStream().map(b -> b.getId()).collect(Collectors.toSet());
+        List<Contingency> contingencies = allBranches(network);
 
-        List<StateMonitor> monitors = new ArrayList<>();
-        monitors.add(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
-        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
-        CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network, network.getVariantManager().getWorkingVariantId(),
-                new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
-                contingenciesProvider, Collections.emptyList(), monitors);
-        SecurityAnalysisResult result = futureResult.join().getResult();
-
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, lfParameters);
     }
 }

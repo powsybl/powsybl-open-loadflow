@@ -31,10 +31,8 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         if (firstControllerBus.hasGeneratorsWithSlope()) {
             // we only support one controlling static var compensator without any other controlling generators
             // we don't support controller bus that wants to control back voltage with slope.
-            if (!firstControllerBus.isVoltageControlEnabled()) {
-                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
-                        .orElseThrow().setActive(false);
-            }
+            equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
+                    .orElseThrow().setActive(firstControllerBus.isVoltageControlEnabled());
         } else {
             if (voltageControl.isVoltageControlLocal()) {
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
@@ -60,23 +58,19 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         updateVoltageControl(controllerBus, newVoltageControllerEnabled);
     }
 
-    private void updateDiscretePhaseControl(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode newMode) {
-        boolean on = newMode != DiscretePhaseControl.Mode.OFF;
+    @Override
+    public void onTransformerPhaseControlChange(LfBranch branch, boolean phaseControlEnabled) {
+        DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl().orElseThrow();
 
         // activate/de-activate phase control equation
         equationSystem.getEquation(phaseControl.getControlled().getNum(), AcEquationType.BRANCH_TARGET_P)
                 .orElseThrow()
-                .setActive(on);
+                .setActive(!branch.isDisabled() && branch.isPhaseControlEnabled());
 
         // de-activate/activate constant A1 equation
         equationSystem.getEquation(phaseControl.getController().getNum(), AcEquationType.BRANCH_TARGET_ALPHA1)
                 .orElseThrow()
-                .setActive(!on);
-    }
-
-    @Override
-    public void onDiscretePhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode) {
-        updateDiscretePhaseControl(phaseControl, newMode);
+                .setActive(!branch.isDisabled() && !branch.isPhaseControlEnabled());
     }
 
     @Override

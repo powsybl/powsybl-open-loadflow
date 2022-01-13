@@ -34,6 +34,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected DiscretePhaseControl discretePhaseControl;
 
+    protected boolean phaseControlEnabled = false;
+
     protected TransformerVoltageControl voltageControl;
 
     protected boolean voltageControlEnabled = false;
@@ -129,6 +131,21 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public boolean isPhaseControlled(DiscretePhaseControl.ControlledSide controlledSide) {
         return isPhaseControlled() && discretePhaseControl.getControlledSide() == controlledSide;
+    }
+
+    @Override
+    public boolean isPhaseControlEnabled() {
+        return phaseControlEnabled;
+    }
+
+    @Override
+    public void setPhaseControlEnabled(boolean phaseControlEnabled) {
+        if (this.phaseControlEnabled != phaseControlEnabled) {
+            this.phaseControlEnabled = phaseControlEnabled;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onTransformerPhaseControlChange(this, phaseControlEnabled);
+            }
+        }
     }
 
     protected void updateTapPosition(PhaseTapChanger ptc) {

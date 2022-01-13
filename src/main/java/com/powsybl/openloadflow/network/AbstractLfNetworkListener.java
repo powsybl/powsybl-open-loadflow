@@ -17,7 +17,7 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onDiscretePhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode) {
+    public void onTransformerPhaseControlChange(LfBranch branch, boolean phaseControlEnabled) {
         // empty
     }
 

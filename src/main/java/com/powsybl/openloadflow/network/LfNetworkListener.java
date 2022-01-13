@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.network.impl.AbstractLfBranch;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -13,7 +15,7 @@ public interface LfNetworkListener {
 
     void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled);
 
-    void onDiscretePhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode);
+    void onTransformerPhaseControlChange(LfBranch branch, boolean phaseControlEnabled);
 
     void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled);
 
