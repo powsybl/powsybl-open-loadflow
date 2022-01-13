@@ -53,7 +53,7 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
     @Override
     public void cleanup(LfNetwork network) {
         for (LfBus bus : network.getBuses()) {
-            bus.getShuntVoltageControl().ifPresent(b -> b.getControllers().stream().forEach(controllerShunt -> controllerShunt.setVoltageControlEnabled(true)));
+            bus.getShuntVoltageControl().ifPresent(b -> b.getControllers().forEach(controllerShunt -> controllerShunt.setVoltageControlEnabled(true)));
         }
     }
 }
