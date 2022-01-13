@@ -134,9 +134,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 // save base state for later restoration after each contingency
                 List<BusState> busStates = ElementState.save(network.getBuses(), BusState::save);
                 List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
-                for (LfBus bus : network.getBuses()) {
-                    bus.setVoltageControlSwitchOffCount(0);
-                }
 
                 // start a simulation for each of the contingency
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
