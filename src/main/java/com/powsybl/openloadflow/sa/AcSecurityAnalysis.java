@@ -112,8 +112,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         List<BranchResult> preContingencyBranchResults = new ArrayList<>();
         List<BusResults> preContingencyBusResults = new ArrayList<>();
         List<ThreeWindingsTransformerResult> preContingencyThreeWindingsTransformerResults = new ArrayList<>();
-        List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
-        List<BusModeState> busModeStates = ElementState.save(network.getBuses(), BusModeState::save);
 
         // run pre-contingency simulation
         try (AcloadFlowEngine engine = new AcloadFlowEngine(network, acParameters)) {
@@ -135,11 +133,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
                 // save base state for later restoration after each contingency
                 List<BusState> busStates = ElementState.save(network.getBuses(), BusState::save);
-                ElementState.restore(busModeStates);
-                ElementState.restore(branchStates);
-                for (LfBus bus : network.getBuses()) {
-                    bus.setVoltageControlSwitchOffCount(0);
-                }
+                List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
 
                 // start a simulation for each of the contingency
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
@@ -165,7 +159,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
                                     // restore base state
                                     ElementState.restore(busStates);
-                                    ElementState.restore(busModeStates);
                                     ElementState.restore(branchStates);
                                 }
                             });

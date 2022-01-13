@@ -80,24 +80,34 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     @Override
-    public void onDiscreteVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode newMode) {
-        if (voltageControl instanceof TransformerVoltageControl) {
-            AcEquationSystem.updateTransformerVoltageControlEquations((TransformerVoltageControl) voltageControl, equationSystem);
-        } else if (voltageControl instanceof ShuntVoltageControl) {
-            AcEquationSystem.updateShuntVoltageControlEquations((ShuntVoltageControl) voltageControl, equationSystem);
-        }
+    public void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled) {
+        AcEquationSystem.updateTransformerVoltageControlEquations(controllerBranch.getVoltageControl().orElseThrow(), equationSystem);
+    }
+
+    @Override
+    public void onShuntVoltageControlChange(LfShunt controllerShunt, boolean newVoltageControllerEnabled) {
+        AcEquationSystem.updateShuntVoltageControlEquations(controllerShunt.getVoltageControl().orElseThrow(), equationSystem);
     }
 
     @Override
     public void onDisableChange(LfElement element, boolean disabled) {
-        if (element.getType() == ElementType.BUS) {
-            LfBus bus = (LfBus) element;
-            bus.getVoltageControl().ifPresent(this::updateVoltageControl);
-            bus.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
-            bus.getShuntVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateShuntVoltageControlEquations(voltageControl, equationSystem));
-        } else if (element.getType() == ElementType.BRANCH) {
-            LfBranch branch = (LfBranch) element;
-            branch.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
+        switch (element.getType()) {
+            case BUS:
+                LfBus bus = (LfBus) element;
+                bus.getVoltageControl().ifPresent(this::updateVoltageControl);
+                bus.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
+                bus.getShuntVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateShuntVoltageControlEquations(voltageControl, equationSystem));
+                break;
+            case BRANCH:
+                LfBranch branch = (LfBranch) element;
+                branch.getVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
+                break;
+            case SHUNT_COMPENSATOR:
+                LfShunt shunt = (LfShunt) element;
+                shunt.getVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateShuntVoltageControlEquations(voltageControl, equationSystem));
+                break;
+            default:
+                throw new IllegalStateException("Unknown element type: " + element.getType());
         }
     }
 }

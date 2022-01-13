@@ -14,32 +14,13 @@ import java.util.Objects;
  */
 abstract class AbstractDiscreteVoltageControl implements DiscreteVoltageControl {
 
-    private Mode mode;
-
     private final LfBus controlled;
 
     private final double targetValue;
 
-    protected AbstractDiscreteVoltageControl(LfBus controlled, Mode mode, double targetValue) {
+    protected AbstractDiscreteVoltageControl(LfBus controlled, double targetValue) {
         this.controlled = Objects.requireNonNull(controlled);
         this.targetValue = targetValue;
-        this.mode = Objects.requireNonNull(mode);
-    }
-
-    @Override
-    public Mode getMode() {
-        return mode;
-    }
-
-    @Override
-    public void setMode(Mode mode) {
-        Objects.requireNonNull(mode);
-        if (mode != this.mode) {
-            this.mode = mode;
-            for (LfNetworkListener listener : controlled.getNetwork().getListeners()) {
-                listener.onDiscreteVoltageControlModeChange(this, mode);
-            }
-        }
     }
 
     @Override

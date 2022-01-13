@@ -26,7 +26,11 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     private final LfBus bus;
 
-    private boolean withVoltageControl;
+    private ShuntVoltageControl voltageControl;
+
+    private boolean voltageControlCapability;
+
+    private boolean voltageControlEnabled = false;
 
     private final List<Controller> controllers = new ArrayList<>();
 
@@ -78,7 +82,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         }
     }
 
-    public LfShuntImpl(List<ShuntCompensator> shuntCompensators, LfNetwork network, LfBus bus, boolean withVoltageControl) {
+    public LfShuntImpl(List<ShuntCompensator> shuntCompensators, LfNetwork network, LfBus bus, boolean voltageControlCapability) {
         // if withVoltageControl equals to true, all shunt compensators that are listed must control voltage.
         // if withVoltageControl equals to false, all shunt compensators that are listed will be treated as fixed shunt
         // compensators.
@@ -88,7 +92,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
             throw new IllegalArgumentException("Empty shunt compensator list");
         }
         this.bus = Objects.requireNonNull(bus);
-        this.withVoltageControl = withVoltageControl;
+        this.voltageControlCapability = voltageControlCapability;
         double nominalV = shuntCompensators.get(0).getTerminal().getVoltageLevel().getNominalV(); // has to be the same for all shunts
         zb = nominalV * nominalV / PerUnit.SB;
         b = shuntCompensators.stream()
@@ -96,7 +100,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
                 .map(aB -> aB * zb)
                 .sum();
 
-        if (withVoltageControl) {
+        if (voltageControlCapability) {
             shuntCompensators.forEach(shuntCompensator -> {
                 List<Double> sections = new ArrayList<>(1);
                 sections.add(0.0);
@@ -141,13 +145,38 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     }
 
     @Override
-    public boolean hasVoltageControl() {
-        return withVoltageControl;
+    public boolean hasVoltageControlCapability() {
+        return voltageControlCapability;
     }
 
     @Override
-    public void setVoltageControl(boolean voltageControl) {
-        this.withVoltageControl = voltageControl;
+    public void setVoltageControlCapability(boolean voltageControlCapability) {
+        this.voltageControlCapability = voltageControlCapability;
+    }
+
+    @Override
+    public boolean isVoltageControlEnabled() {
+        return voltageControlEnabled;
+    }
+
+    @Override
+    public void setVoltageControlEnabled(boolean voltageControlEnabled) {
+        if (this.voltageControlEnabled != voltageControlEnabled) {
+            this.voltageControlEnabled = voltageControlEnabled;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onShuntVoltageControlChange(this, voltageControlEnabled);
+            }
+        }
+    }
+
+    @Override
+    public Optional<ShuntVoltageControl> getVoltageControl() {
+        return Optional.ofNullable(voltageControl);
+    }
+
+    @Override
+    public void setVoltageControl(ShuntVoltageControl voltageControl) {
+        this.voltageControl = voltageControl;
     }
 
     private void roundBToClosestSection(double b, Controller controller) {
@@ -183,7 +212,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     @Override
     public void updateState() {
         double vSquare = bus.getV() * bus.getV() * bus.getNominalV() * bus.getNominalV();
-        if (!withVoltageControl) {
+        if (!voltageControlCapability) {
             for (ShuntCompensator sc : shuntCompensators) {
                 sc.getTerminal().setQ(-sc.getB() * vSquare);
             }

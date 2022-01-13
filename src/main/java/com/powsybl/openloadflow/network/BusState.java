@@ -16,6 +16,7 @@ public class BusState extends BusDcState {
     private final double loadTargetQ;
     private final double generationTargetQ;
     private final boolean voltageControlEnabled;
+    private final Boolean shuntVoltageControlEnabled;
     private final boolean disabled;
 
     public BusState(LfBus bus) {
@@ -25,6 +26,8 @@ public class BusState extends BusDcState {
         this.loadTargetQ = bus.getLoadTargetQ();
         this.generationTargetQ = bus.getGenerationTargetQ();
         this.voltageControlEnabled = bus.isVoltageControlEnabled();
+        LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
+        shuntVoltageControlEnabled = controllerShunt != null ? controllerShunt.isVoltageControlEnabled() : null;
         this.disabled = bus.isDisabled();
     }
 
@@ -37,6 +40,9 @@ public class BusState extends BusDcState {
         element.setGenerationTargetQ(generationTargetQ);
         element.setVoltageControlEnabled(voltageControlEnabled);
         element.setVoltageControlSwitchOffCount(0);
+        if (shuntVoltageControlEnabled != null) {
+            element.getControllerShunt().orElseThrow().setVoltageControlEnabled(shuntVoltageControlEnabled);
+        }
         element.setDisabled(disabled);
     }
 

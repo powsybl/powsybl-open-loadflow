@@ -11,15 +11,6 @@ package com.powsybl.openloadflow.network;
  */
 public interface DiscreteVoltageControl {
 
-    enum Mode {
-        VOLTAGE,
-        OFF
-    }
-
-    Mode getMode();
-
-    void setMode(Mode mode);
-
     double getTargetValue();
 
     LfBus getControlled();

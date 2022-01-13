@@ -16,18 +16,18 @@ import java.util.Objects;
  */
 public class ShuntVoltageControl extends AbstractDiscreteVoltageControl {
 
-    protected final List<LfBus> controllers = new ArrayList<>();
+    private final List<LfShunt> controllers = new ArrayList<>();
 
-    public ShuntVoltageControl(LfBus controlled, DiscreteVoltageControl.Mode mode, double targetValue) {
-        super(controlled, mode, targetValue);
+    public ShuntVoltageControl(LfBus controlled, double targetValue) {
+        super(controlled, targetValue);
     }
 
-    public List<LfBus> getControllers() {
+    public List<LfShunt> getControllers() {
         return controllers;
     }
 
-    public void addController(LfBus controllerBus) {
-        Objects.requireNonNull(controllerBus);
-        controllers.add(controllerBus);
+    public void addController(LfShunt controller) {
+        Objects.requireNonNull(controller);
+        controllers.add(controller);
     }
 }
