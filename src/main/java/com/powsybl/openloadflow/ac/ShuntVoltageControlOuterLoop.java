@@ -10,18 +10,18 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.DiscreteVoltageControl;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfShunt;
-import com.powsybl.openloadflow.network.ShuntVoltageControl;
-
-import java.util.List;
-import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
 public class ShuntVoltageControlOuterLoop implements OuterLoop {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ShuntVoltageControlOuterLoop.class);
 
     @Override
     public String getType() {
@@ -33,27 +33,27 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         if (context.getIteration() == 0) {
+            for (LfBus bus : context.getNetwork().getBuses()) {
+                LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
+                if (controllerShunt != null && controllerShunt.isVoltageControlEnabled()) {
+                    controllerShunt.setVoltageControlEnabled(false);
 
-            List<ShuntVoltageControl> shuntVoltageControls = context.getNetwork().getBuses().stream()
-                    .flatMap(bus -> bus.getShuntVoltageControl().filter(vc -> bus.isShuntVoltageControlled()).stream())
-                    .collect(Collectors.toList());
+                    // round the susceptance to the closest section
+                    double b = controllerShunt.getB();
+                    controllerShunt.dispatchB();
+                    LOGGER.trace("Round susceptance of '{}': {} -> {}", controllerShunt.getId(), b, controllerShunt.getB());
 
-            shuntVoltageControls.forEach(this::switchOffVoltageControl);
-
-            // if at least one shunt has been switched off wee need to continue
-
-            return shuntVoltageControls.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
+                    status = OuterLoopStatus.UNSTABLE;
+                }
+            }
         }
         return status;
     }
 
-    private void switchOffVoltageControl(ShuntVoltageControl vc) {
-
-        for (LfBus controllerBus : vc.getControllers()) {
-            // round the rho shift to the closest tap
-            controllerBus.getControllerShunt().ifPresent(LfShunt::dispatchB);
+    @Override
+    public void cleanup(LfNetwork network) {
+        for (LfBus bus : network.getBuses()) {
+            bus.getShuntVoltageControl().ifPresent(b -> b.getControllers().forEach(controllerShunt -> controllerShunt.setVoltageControlEnabled(true)));
         }
-
-        vc.setMode(DiscreteVoltageControl.Mode.OFF);
     }
 }

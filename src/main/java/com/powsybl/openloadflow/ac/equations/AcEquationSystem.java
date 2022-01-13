@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.DiscretePhaseControl.Mode;
 
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -36,8 +37,11 @@ public final class AcEquationSystem {
 
         createShuntEquations(bus, equationSystem);
 
-        if (networkParameters.isTransformerVoltageControl() || networkParameters.isShuntVoltageControl()) {
-            createDiscreteVoltageControlEquation(bus, equationSystem);
+        if (networkParameters.isTransformerVoltageControl()) {
+            createTransformerVoltageControlEquations(bus, equationSystem);
+        }
+        if (networkParameters.isShuntVoltageControl()) {
+            createShuntVoltageControlEquations(bus, equationSystem);
         }
         Equation<AcVariableType, AcEquationType> v = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V);
         if (v.getTerms().isEmpty()) {
@@ -107,7 +111,7 @@ public final class AcEquationSystem {
             equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).addTerm(q);
         });
         bus.getControllerShunt().ifPresent(shunt -> {
-            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), shunt.hasVoltageControl());
+            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), shunt.hasVoltageControlCapability());
             equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).addTerm(q);
         });
     }
@@ -133,35 +137,45 @@ public final class AcEquationSystem {
         // ensure reactive keys are up-to-date
         voltageControl.updateReactiveKeys();
 
-        Set<LfBus> controllerBuses = voltageControl.getControllerBuses();
-        List<LfBus> enabledControllerBuses = new ArrayList<>(controllerBuses.size());
-        List<LfBus> disabledControllerBuses = new ArrayList<>(controllerBuses.size());
-        for (LfBus controllerBus : controllerBuses) {
-            if (controllerBus.isVoltageControlEnabled()) {
-                enabledControllerBuses.add(controllerBus);
-            } else {
-                disabledControllerBuses.add(controllerBus);
-            }
-        }
+        List<LfBus> controllerBuses = voltageControl.getControllerBuses()
+                .stream()
+                .filter(b -> !b.isDisabled()) // discard disabled controller buses
+                .collect(Collectors.toList());
 
-        // activate voltage control at controlled bus only if at least one controller bus is enabled
         Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(voltageControl.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V)
                 .orElseThrow();
-        vEq.setActive(!enabledControllerBuses.isEmpty());
 
-        // deactivate reactive power distribution equation on all disabled (PQ) buses
-        for (LfBus controllerBus : disabledControllerBuses) {
-            equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
-                    .orElseThrow()
-                    .setActive(false);
-        }
+        if (voltageControl.getControlledBus().isDisabled()) {
+            // if controlled bus is disabled, we disable all voltage control equations
+            vEq.setActive(false);
+            for (LfBus controllerBus : controllerBuses) {
+                equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
+                        .orElseThrow()
+                        .setActive(false);
+            }
+        } else {
+            List<LfBus> enabledControllerBuses = controllerBuses.stream()
+                    .filter(LfBus::isVoltageControlEnabled).collect(Collectors.toList());
+            List<LfBus> disabledControllerBuses = controllerBuses.stream()
+                    .filter(Predicate.not(LfBus::isVoltageControlEnabled)).collect(Collectors.toList());
 
-        // activate reactive power distribution equation at all enabled controller buses except one (first)
-        for (int i = 0; i < enabledControllerBuses.size(); i++) {
-            LfBus controllerBus = enabledControllerBuses.get(i);
-            var qDistrEq = equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
-                    .orElseThrow();
-            qDistrEq.setActive(i != 0);
+            // activate voltage control at controlled bus only if at least one controller bus is enabled
+            vEq.setActive(!enabledControllerBuses.isEmpty());
+
+            // deactivate reactive power distribution equation on all disabled (PQ) buses
+            for (LfBus controllerBus : disabledControllerBuses) {
+                equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
+                        .orElseThrow()
+                        .setActive(false);
+            }
+
+            // activate reactive power distribution equation at all enabled controller buses except one (first)
+            for (int i = 0; i < enabledControllerBuses.size(); i++) {
+                boolean active = i != 0;
+                LfBus controllerBus = enabledControllerBuses.get(i);
+                equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
+                        .ifPresent(qDistrEq -> qDistrEq.setActive(active));
+            }
         }
     }
 
@@ -227,6 +241,20 @@ public final class AcEquationSystem {
                 }
             }
         }
+    }
+
+    private static void createBusWithSlopeEquation(LfBus bus, double slope, LfNetworkParameters networkParameters,
+                                                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                   EquationTerm<AcVariableType, AcEquationType> vTerm, AcEquationSystemCreationParameters creationParameters) {
+        // we only support one generator controlling voltage with a non zero slope at a bus.
+        // equation is: V + slope * qSVC = targetV
+        // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
+        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
+                .addTerm(vTerm)
+                .addTerms(createReactiveTerms(bus, networkParameters, equationSystem.getVariableSet(), creationParameters)
+                        .stream()
+                        .map(term -> term.multiply(slope))
+                        .collect(Collectors.toList()));
     }
 
     private static void createNonImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
@@ -318,103 +346,202 @@ public final class AcEquationSystem {
             });
     }
 
-    private static void createDiscreteVoltageControlEquation(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private static void createTransformerVoltageControlEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         bus.getTransformerVoltageControl()
-                .filter(tvc -> bus.isTransformerVoltageControlled())
-                .map(TransformerVoltageControl::getControllers)
-                .ifPresent(controllers -> {
+                .ifPresent(voltageControl -> {
+                    // create voltage target equation at controlled bus
                     EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
                             .createTerm();
                     equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(vTerm);
                     bus.setCalculatedV(vTerm);
 
-                    // add transformer distribution equations
-                    createR1DistributionEquations(controllers, equationSystem);
+                    // add transformer ratio distribution equations
+                    createR1DistributionEquations(voltageControl.getControllers(), equationSystem);
 
-                    for (LfBranch controllerBranch : controllers) {
-                        // we also create an equation that will be used later to maintain R1 variable constant
-                        // this equation is now inactive
+                    // we also create an equation per controller that will be used later to maintain R1 variable constant
+                    for (LfBranch controllerBranch : voltageControl.getControllers()) {
                         equationSystem.createEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
-                                .addTerm(equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_RHO1).createTerm())
-                                .setActive(false);
+                                .addTerm(equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_RHO1).createTerm());
                     }
-                });
 
+                    updateTransformerVoltageControlEquations(voltageControl, equationSystem);
+                });
+    }
+
+    public static void createR1DistributionEquations(List<LfBranch> controllerBranches,
+                                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        for (int i = 0; i < controllerBranches.size(); i++) {
+            LfBranch controllerBranch = controllerBranches.get(i);
+            // r1 at controller branch i
+            // r1_i = sum_j(r1_j) / controller_count where j are all the controller branches
+            // 0 = sum_j(r1_j) / controller_count - r1_i
+            // which can be rewritten in a more simple way
+            // 0 = (1 / controller_count - 1) * r1_i + sum_j(r1_j) / controller_count where j are all the controller branches except i
+            EquationTerm<AcVariableType, AcEquationType> r1 = equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_RHO1)
+                    .createTerm();
+            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO)
+                    .addTerm(r1.multiply(() -> 1d / controllerBranches.stream().filter(b -> !b.isDisabled()).count() - 1));
+            for (LfBranch otherControllerBranch : controllerBranches) {
+                if (otherControllerBranch != controllerBranch) {
+                    EquationTerm<AcVariableType, AcEquationType> otherR1 = equationSystem.getVariable(otherControllerBranch.getNum(), AcVariableType.BRANCH_RHO1)
+                            .createTerm();
+                    zero.addTerm(otherR1.multiply(() -> 1d / controllerBranches.stream().filter(b -> !b.isDisabled()).count()));
+                }
+            }
+        }
+    }
+
+    static void updateTransformerVoltageControlEquations(TransformerVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        List<LfBranch> controllerBranches = voltageControl.getControllers()
+                .stream()
+                .filter(b -> !b.isDisabled()) // discard disabled controller branches
+                .collect(Collectors.toList());
+
+        // activate voltage target equation if control is on
+        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(voltageControl.getControlled().getNum(), AcEquationType.BUS_TARGET_V)
+                .orElseThrow();
+
+        if (voltageControl.getControlled().isDisabled()) {
+            // if controlled bus is disabled, we deactivate voltage target and rho distribution equations
+            // and activate rho target equations
+            vEq.setActive(false);
+            for (LfBranch controllerBranch : controllerBranches) {
+                equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.DISTR_Q)
+                        .orElseThrow()
+                        .setActive(false);
+                equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
+                        .orElseThrow()
+                        .setActive(true);
+            }
+        } else {
+            List<LfBranch> enabledControllerBranches = controllerBranches.stream()
+                    .filter(LfBranch::isVoltageControlEnabled)
+                    .collect(Collectors.toList());
+            List<LfBranch> disabledControllerBranches = controllerBranches.stream()
+                    .filter(Predicate.not(LfBranch::isVoltageControlEnabled))
+                    .collect(Collectors.toList());
+
+            for (LfBranch controllerBranch : disabledControllerBranches) {
+                equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO)
+                        .orElseThrow()
+                        .setActive(false);
+                equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
+                        .orElseThrow()
+                        .setActive(true);
+            }
+
+            vEq.setActive(!enabledControllerBranches.isEmpty());
+
+            for (int i = 0; i < enabledControllerBranches.size(); i++) {
+                LfBranch controllerBranch = enabledControllerBranches.get(i);
+
+                // deactivate rho1 equation
+                equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
+                        .orElseThrow()
+                        .setActive(false);
+
+                // activate rho1 distribution equation except one
+                equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO)
+                        .orElseThrow()
+                        .setActive(i < enabledControllerBranches.size() - 1);
+            }
+        }
+    }
+
+    private static void createShuntVoltageControlEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         bus.getShuntVoltageControl()
-                .filter(svc -> bus.isShuntVoltageControlled())
-                .map(ShuntVoltageControl::getControllers)
-                .ifPresent(controllers -> {
+                .ifPresent(voltageControl -> {
                     EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
                             .createTerm();
                     equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(vTerm);
                     bus.setCalculatedV(vTerm);
 
                     // add shunt distribution equations
-                    createBDistributionEquations(controllers, equationSystem);
+                    createShuntSusceptanceDistributionEquations(voltageControl.getControllers(), equationSystem);
 
-                    for (LfBus controllerBus : controllers) {
+                    for (LfShunt controllerShunt : voltageControl.getControllers()) {
                         // we also create an equation that will be used later to maintain B variable constant
                         // this equation is now inactive
-                        controllerBus.getControllerShunt()
-                            .ifPresent(shunt ->
-                                equationSystem.createEquation(shunt.getNum(), AcEquationType.SHUNT_TARGET_B)
-                                              .addTerm(equationSystem.getVariable(shunt.getNum(), AcVariableType.SHUNT_B).createTerm())
-                                              .setActive(false)
-                            );
+                        equationSystem.createEquation(controllerShunt.getNum(), AcEquationType.SHUNT_TARGET_B)
+                                .addTerm(equationSystem.getVariable(controllerShunt.getNum(), AcVariableType.SHUNT_B).createTerm());
                     }
+
+                    updateShuntVoltageControlEquations(voltageControl, equationSystem);
                 });
     }
 
-    private static void createBusWithSlopeEquation(LfBus bus, double slope, LfNetworkParameters networkParameters,
-                                                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                   EquationTerm<AcVariableType, AcEquationType> vTerm, AcEquationSystemCreationParameters creationParameters) {
-        // we only support one generator controlling voltage with a non zero slope at a bus.
-        // equation is: V + slope * qSVC = targetV
-        // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
-        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
-                .addTerm(vTerm)
-                .addTerms(createReactiveTerms(bus, networkParameters, equationSystem.getVariableSet(), creationParameters)
-                            .stream()
-                            .map(term -> term.multiply(slope))
-                            .collect(Collectors.toList()));
-    }
-
-    public static void createR1DistributionEquations(List<LfBranch> controllerBranches,
-                                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        if (controllerBranches.size() > 1) {
-            // we choose first controller branch as reference for R1
-            LfBranch firstControllerBranch = controllerBranches.get(0);
-
-            // create a R1 distribution equation for all the other controller branches
-            for (int i = 1; i < controllerBranches.size(); i++) {
-                LfBranch controllerBranch = controllerBranches.get(i);
-                Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO)
-                        .addTerm(equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_RHO1).createTerm())
-                        .addTerm(equationSystem.getVariable(firstControllerBranch.getNum(), AcVariableType.BRANCH_RHO1).<AcEquationType>createTerm()
-                                             .minus());
-                zero.setData(new DistributionData(firstControllerBranch.getNum(), 1)); // for later use
+    public static void createShuntSusceptanceDistributionEquations(List<LfShunt> controllerShunts,
+                                                                   EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        for (LfShunt controllerShunt : controllerShunts) {
+            // shunt b at controller bus i
+            // b_i = sum_j(b_j) / controller_count where j are all the controller buses
+            // 0 = sum_j(b_j) / controller_count - b_i
+            // which can be rewritten in a more simple way
+            // 0 = (1 / controller_count - 1) * b_i + sum_j(b_j) / controller_count where j are all the controller buses except i
+            EquationTerm<AcVariableType, AcEquationType> shuntB = equationSystem.getVariable(controllerShunt.getNum(), AcVariableType.SHUNT_B)
+                    .createTerm();
+            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerShunt.getNum(), AcEquationType.DISTR_SHUNT_B)
+                    .addTerm(shuntB.multiply(() -> 1d / controllerShunts.stream().filter(b -> !b.isDisabled()).count() - 1));
+            for (LfShunt otherControllerShunt : controllerShunts) {
+                if (otherControllerShunt != controllerShunt) {
+                    EquationTerm<AcVariableType, AcEquationType> otherShuntB = equationSystem.getVariable(otherControllerShunt.getNum(), AcVariableType.SHUNT_B)
+                            .createTerm();
+                    zero.addTerm(otherShuntB.multiply(() -> 1d / controllerShunts.stream().filter(b -> !b.isDisabled()).count()));
+                }
             }
         }
     }
 
-    public static void createBDistributionEquations(List<LfBus> controllerBuses,
-                                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        if (controllerBuses.size() > 1) {
-            // we choose first controller bus as reference for B
-            Optional<LfShunt> firstControllerShunt = controllerBuses.get(0).getControllerShunt();
+    static void updateShuntVoltageControlEquations(ShuntVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        List<LfShunt> controllerShunts = voltageControl.getControllers()
+                .stream()
+                .filter(b -> !b.isDisabled()) // discard disabled controller shunts
+                .collect(Collectors.toList());
 
-            if (firstControllerShunt.isPresent()) {
-                // create a B distribution equation for all the other controller buses
-                for (int i = 1; i < controllerBuses.size(); i++) {
-                    Optional<LfShunt> controllerShunt = controllerBuses.get(i).getControllerShunt();
-                    if (controllerShunt.isPresent()) {
-                        Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerShunt.get().getNum(), AcEquationType.DISTR_B)
-                                .addTerm(equationSystem.getVariable(controllerShunt.get().getNum(), AcVariableType.SHUNT_B).createTerm())
-                                .addTerm(equationSystem.getVariable(firstControllerShunt.get().getNum(), AcVariableType.SHUNT_B).<AcEquationType>createTerm()
-                                        .minus());
-                        zero.setData(new DistributionData(firstControllerShunt.get().getNum(), 1)); // for later use
-                    }
-                }
+        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(voltageControl.getControlled().getNum(), AcEquationType.BUS_TARGET_V)
+                .orElseThrow();
+
+        if (voltageControl.getControlled().isDisabled()) {
+            // if controlled bus is disabled, we deactivate voltage target equation and all susceptance distribution
+            // equations and activate susceptance target equations
+            vEq.setActive(false);
+            for (LfShunt controllerShunt : controllerShunts) {
+                equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.DISTR_SHUNT_B)
+                        .orElseThrow()
+                        .setActive(false);
+                equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.SHUNT_TARGET_B)
+                        .orElseThrow()
+                        .setActive(true);
+            }
+        } else {
+            List<LfShunt> enabledControllerShunts = controllerShunts.stream()
+                    .filter(LfShunt::isVoltageControlEnabled)
+                    .collect(Collectors.toList());
+            List<LfShunt> disabledControllerShunts = controllerShunts.stream()
+                    .filter(Predicate.not(LfShunt::isVoltageControlEnabled))
+                    .collect(Collectors.toList());
+
+            for (LfShunt controllerShunt : disabledControllerShunts) {
+                equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.DISTR_SHUNT_B)
+                        .orElseThrow()
+                        .setActive(false);
+                equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.SHUNT_TARGET_B)
+                        .orElseThrow()
+                        .setActive(true);
+            }
+
+            vEq.setActive(!enabledControllerShunts.isEmpty());
+
+            for (int i = 0; i < enabledControllerShunts.size(); i++) {
+                LfShunt controllerShunt = enabledControllerShunts.get(i);
+
+                equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.SHUNT_TARGET_B)
+                        .orElseThrow()
+                        .setActive(false);
+
+                equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.DISTR_SHUNT_B)
+                        .orElseThrow()
+                        .setActive(i < enabledControllerShunts.size() - 1);
             }
         }
     }

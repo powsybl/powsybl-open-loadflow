@@ -135,9 +135,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 // save base state for later restoration after each contingency
                 List<BusState> busStates = ElementState.save(network.getBuses(), BusState::save);
                 List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
-                for (LfBus bus : network.getBuses()) {
-                    bus.setVoltageControlSwitchOffCount(0);
-                }
 
                 // start a simulation for each of the contingency
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
@@ -146,11 +143,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
                     LfContingency.create(propagatedContingency, network, connectivity, true)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
-                                for (LfBus bus : lfContingency.getBuses()) {
-                                    bus.setDisabled(true);
-                                }
                                 for (LfBranch branch : lfContingency.getBranches()) {
                                     branch.setDisabled(true);
+                                }
+                                for (LfBus bus : lfContingency.getBuses()) {
+                                    bus.setDisabled(true);
                                 }
 
                                 distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);

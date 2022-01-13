@@ -103,11 +103,15 @@ public interface LfBranch extends LfElement {
 
     void setDiscretePhaseControl(DiscretePhaseControl discretePhaseControl);
 
-    Optional<TransformerVoltageControl> getTransformerVoltageControl();
+    Optional<TransformerVoltageControl> getVoltageControl();
+
+    boolean isVoltageControlEnabled();
+
+    void setVoltageControlEnabled(boolean voltageControlEnabled);
 
     boolean isVoltageController();
 
-    void setTransformerVoltageControl(TransformerVoltageControl transformerVoltageControl);
+    void setVoltageControl(TransformerVoltageControl transformerVoltageControl);
 
     BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1);
 

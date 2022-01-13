@@ -34,7 +34,9 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected DiscretePhaseControl discretePhaseControl;
 
-    protected TransformerVoltageControl transformerVoltageControl;
+    protected TransformerVoltageControl voltageControl;
+
+    protected boolean voltageControlEnabled = false;
 
     protected boolean spanningTreeEdge = false;
 
@@ -151,11 +153,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     protected void checkTargetDeadband(RatioTapChanger rtc) {
         if (rtc.getTargetDeadband() != 0) {
             double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-            double v = transformerVoltageControl.getControlled().getV();
-            double distance = Math.abs(v - transformerVoltageControl.getTargetValue()); // in per unit system
+            double v = voltageControl.getControlled().getV();
+            double distance = Math.abs(v - voltageControl.getTargetValue()); // in per unit system
             if (distance > rtc.getTargetDeadband() / 2) {
                 LOGGER.warn("The voltage on bus {} ({} kV) is out of the target value ({} kV) +/- deadband/2 ({} kV)",
-                        transformerVoltageControl.getControlled().getId(), v * nominalV, rtc.getTargetV(), rtc.getTargetDeadband() / 2);
+                        voltageControl.getControlled().getId(), v * nominalV, rtc.getTargetV(), rtc.getTargetDeadband() / 2);
             }
         }
     }
@@ -174,18 +176,32 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public Optional<TransformerVoltageControl> getTransformerVoltageControl() {
-        return Optional.ofNullable(transformerVoltageControl);
+    public Optional<TransformerVoltageControl> getVoltageControl() {
+        return Optional.ofNullable(voltageControl);
     }
 
     @Override
     public boolean isVoltageController() {
-        return transformerVoltageControl != null;
+        return voltageControl != null;
     }
 
     @Override
-    public void setTransformerVoltageControl(TransformerVoltageControl transformerVoltageControl) {
-        this.transformerVoltageControl = transformerVoltageControl;
+    public void setVoltageControl(TransformerVoltageControl transformerVoltageControl) {
+        this.voltageControl = transformerVoltageControl;
+    }
+
+    @Override
+    public boolean isVoltageControlEnabled() {
+        return voltageControlEnabled;
+    }
+
+    public void setVoltageControlEnabled(boolean voltageControlEnabled) {
+        if (this.voltageControlEnabled != voltageControlEnabled) {
+            this.voltageControlEnabled = voltageControlEnabled;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onTransformerVoltageControlChange(this, voltageControlEnabled);
+            }
+        }
     }
 
     public double computeApparentPower1() {
