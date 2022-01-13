@@ -844,7 +844,7 @@ class OpenSecurityAnalysisTest {
 
         // post-contingency tests
         PostContingencyResult tr2ContingencyResult = getPostContingencyResult(result, "tr2");
-        assertEquals(-55.4, tr2ContingencyResult.getBranchResult("tr1").getQ2(), 1e-2);
-        assertEquals(55.4, tr2ContingencyResult.getBranchResult("tr3").getQ2(), 1e-2);
+        assertEquals(-107.543, tr2ContingencyResult.getBranchResult("tr1").getQ2(), 1e-2);
+        assertEquals(107.543, tr2ContingencyResult.getBranchResult("tr3").getQ2(), 1e-2);
     }
 }

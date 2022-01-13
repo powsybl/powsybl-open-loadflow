@@ -35,7 +35,7 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
         if (context.getIteration() == 0) {
             for (LfBus bus : context.getNetwork().getBuses()) {
                 LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
-                if (controllerShunt != null) {
+                if (controllerShunt != null && controllerShunt.isVoltageControlEnabled()) {
                     controllerShunt.setVoltageControlEnabled(false);
 
                     // round the susceptance to the closest section
@@ -53,7 +53,7 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
     @Override
     public void cleanup(LfNetwork network) {
         for (LfBus bus : network.getBuses()) {
-            bus.getControllerShunt().ifPresent(controllerShunt -> controllerShunt.setVoltageControlEnabled(false));
+            bus.getShuntVoltageControl().ifPresent(b -> b.getControllers().stream().forEach(controllerShunt -> controllerShunt.setVoltageControlEnabled(true)));
         }
     }
 }

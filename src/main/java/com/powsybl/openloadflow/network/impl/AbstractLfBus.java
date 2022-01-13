@@ -553,6 +553,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         if (shunt != null) {
             shunt.setDisabled(disabled);
         }
+        if (controllerShunt != null) {
+            controllerShunt.setDisabled(disabled);
+        }
     }
 
     @Override
