@@ -18,6 +18,8 @@ public class BusState extends BusDcState {
     private final boolean voltageControlEnabled;
     private final Boolean shuntVoltageControlEnabled;
     private final boolean disabled;
+    private final double shuntB;
+    private final double controllerShuntB;
 
     public BusState(LfBus bus) {
         super(bus);
@@ -28,6 +30,9 @@ public class BusState extends BusDcState {
         this.voltageControlEnabled = bus.isVoltageControlEnabled();
         LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
         shuntVoltageControlEnabled = controllerShunt != null ? controllerShunt.isVoltageControlEnabled() : null;
+        controllerShuntB = controllerShunt != null ? controllerShunt.getB() : Double.NaN;
+        LfShunt shunt = bus.getShunt().orElse(null);
+        shuntB = shunt != null ? shunt.getB() : Double.NaN;
         this.disabled = bus.isDisabled();
     }
 
@@ -42,6 +47,12 @@ public class BusState extends BusDcState {
         element.setVoltageControlSwitchOffCount(0);
         if (shuntVoltageControlEnabled != null) {
             element.getControllerShunt().orElseThrow().setVoltageControlEnabled(shuntVoltageControlEnabled);
+        }
+        if (!Double.isNaN(controllerShuntB)) {
+            element.getControllerShunt().orElseThrow().setB(controllerShuntB);
+        }
+        if (!Double.isNaN(shuntB)) {
+            element.getShunt().orElseThrow().setB(shuntB);
         }
         element.setDisabled(disabled);
     }

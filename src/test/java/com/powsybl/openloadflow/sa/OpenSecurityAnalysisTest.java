@@ -8,10 +8,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.io.table.AsciiTableFormatterFactory;
 import com.powsybl.commons.io.table.TableFormatterConfig;
-import com.powsybl.contingency.BranchContingency;
-import com.powsybl.contingency.ContingenciesProvider;
-import com.powsybl.contingency.Contingency;
-import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Network;
@@ -846,5 +843,37 @@ class OpenSecurityAnalysisTest {
         PostContingencyResult tr2ContingencyResult = getPostContingencyResult(result, "tr2");
         assertEquals(-107.543, tr2ContingencyResult.getBranchResult("tr1").getQ2(), 1e-2);
         assertEquals(107.543, tr2ContingencyResult.getBranchResult("tr3").getQ2(), 1e-2);
+    }
+
+    @Test
+    void testSaWithShuntContingency() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+        network.getShuntCompensatorStream().forEach(shuntCompensator -> {
+            shuntCompensator.setVoltageRegulatorOn(false);
+            shuntCompensator.setSectionCount(10);
+        });
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+
+        List<Contingency> contingencies = List.of(new Contingency("SHUNT2", new ShuntCompensatorContingency("SHUNT2")),
+                new Contingency("tr3", new BranchContingency("tr3")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, lfParameters);
+
+        // pre-contingency tests
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(42.342, preContingencyResult.getPreContingencyBranchResult("tr2").getQ2(), 1e-2);
+        assertEquals(42.342, preContingencyResult.getPreContingencyBranchResult("tr3").getQ2(), 1e-2);
+
+        // post-contingency tests
+        PostContingencyResult contingencyResult = getPostContingencyResult(result, "SHUNT2");
+        assertEquals(0.0, contingencyResult.getBranchResult("tr2").getQ2(), 1e-2);
+        assertEquals(42.914, contingencyResult.getBranchResult("tr3").getQ2(), 1e-2);
+
+        // post-contingency tests
+        PostContingencyResult tr3ContingencyResult = getPostContingencyResult(result, "tr3");
+        assertEquals(42.914, tr3ContingencyResult.getBranchResult("tr2").getQ2(), 1e-2);
     }
 }

@@ -146,6 +146,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                 for (LfBus bus : lfContingency.getBuses()) {
                                     bus.setDisabled(true);
                                 }
+                                for (Pair<LfShunt, Double> shuntAndB : lfContingency.getShunts()) {
+                                    LfShunt shunt = shuntAndB.getKey();
+                                    shunt.setB(shunt.getB() - shuntAndB.getValue());
+                                }
 
                                 distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
