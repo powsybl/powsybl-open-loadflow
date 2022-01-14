@@ -27,6 +27,6 @@ class VariableTest {
 
     @Test
     void testToString() {
-        assertEquals("Variable(num=0, type=BUS_PHI, row=-1)", new Variable<>(0, AcVariableType.BUS_PHI).toString());
+        assertEquals("Variable(elementNum=0, type=BUS_PHI, row=-1)", new Variable<>(0, AcVariableType.BUS_PHI).toString());
     }
 }

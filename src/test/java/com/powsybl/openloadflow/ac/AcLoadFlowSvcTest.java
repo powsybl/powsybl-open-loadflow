@@ -136,7 +136,7 @@ class AcLoadFlowSvcTest {
         assertTrue(Double.isNaN(svc1.getTerminal().getP()));
         assertTrue(Double.isNaN(svc1.getTerminal().getQ()));
 
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
 
         result = loadFlowRunner.run(network, parameters);
@@ -166,7 +166,7 @@ class AcLoadFlowSvcTest {
 
     @Test
     void testSvcWithSlope() {
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
 
@@ -189,7 +189,7 @@ class AcLoadFlowSvcTest {
     @Test
     void testSvcWithSlope2() {
         // Test switch PV to PQ
-        svc1.setVoltageSetPoint(440)
+        svc1.setVoltageSetpoint(440)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
 
@@ -223,7 +223,7 @@ class AcLoadFlowSvcTest {
                 .setVoltageRegulatorOn(true)
                 .add();
 
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
 
         parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
@@ -251,7 +251,7 @@ class AcLoadFlowSvcTest {
                 .setBmax(0.008)
                 .add();
 
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         svc2.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
         svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
@@ -271,7 +271,7 @@ class AcLoadFlowSvcTest {
     @Test
     void testSvcWithSlope5() {
         // With a generator at bus2 not controlling voltage
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
 
@@ -301,5 +301,14 @@ class AcLoadFlowSvcTest {
         assertReactivePowerEquals(-165.413, l1.getTerminal2());
         assertActivePowerEquals(0, svc1.getTerminal());
         assertReactivePowerEquals(115.413, svc1.getTerminal());
+    }
+
+    @Test
+    void testRegulationModeOff() {
+        svc1.setReactivePowerSetpoint(100)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(100, svc1.getTerminal());
     }
 }

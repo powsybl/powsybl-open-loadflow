@@ -13,9 +13,11 @@ public interface LfNetworkListener {
 
     void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled);
 
-    void onPhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode);
+    void onDiscretePhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode);
 
-    void onVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode);
+    void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled);
+
+    void onShuntVoltageControlChange(LfShunt controllerShunt, boolean newVoltageControllerEnabled);
 
     void onLoadActivePowerTargetChange(LfBus bus, double oldLoadTargetP, double newLoadTargetP);
 
@@ -25,5 +27,7 @@ public interface LfNetworkListener {
 
     void onGenerationReactivePowerTargetChange(LfBus bus, double oldGenerationTargetQ, double newGenerationTargetQ);
 
-    void onPhaseControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition);
+    void onDiscretePhaseControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition);
+
+    void onDisableChange(LfElement element, boolean disabled);
 }

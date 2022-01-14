@@ -8,8 +8,6 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.extensions.LoadDetail;
-import com.powsybl.openloadflow.network.AbstractElement;
-import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PerUnit;
 
 import java.util.ArrayList;
@@ -18,7 +16,7 @@ import java.util.List;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class LfLoads extends AbstractElement {
+public class LfLoads {
 
     private final List<Load> loads = new ArrayList<>();
 
@@ -30,10 +28,6 @@ public class LfLoads extends AbstractElement {
 
     private boolean isInitialized;
 
-    protected LfLoads(LfNetwork network) {
-        super(network);
-    }
-
     public void add(Load load, boolean distributedOnConformLoad) {
         loads.add(load);
         this.distributedOnConformLoad = distributedOnConformLoad; // TODO: put in constructor instead
@@ -42,6 +36,10 @@ public class LfLoads extends AbstractElement {
     public double getAbsVariableLoadTargetP() {
         init();
         return absVariableLoadTargetP;
+    }
+
+    public void setAbsVariableLoadTargetP(double absVariableLoadTargetP) {
+        this.absVariableLoadTargetP = absVariableLoadTargetP;
     }
 
     private void init() {

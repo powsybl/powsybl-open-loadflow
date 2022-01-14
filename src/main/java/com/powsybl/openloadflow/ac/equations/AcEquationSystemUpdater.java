@@ -6,16 +6,11 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.*;
 
-import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -24,18 +19,11 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
-    private final VariableSet<AcVariableType> variableSet;
-
-    private final AcEquationSystemCreationParameters creationParameters;
-
-    public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet, AcEquationSystemCreationParameters creationParameters) {
+    public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
-        this.variableSet = Objects.requireNonNull(variableSet);
-        this.creationParameters = Objects.requireNonNull(creationParameters);
     }
 
-    private void updateControlledBus(VoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem, VariableSet<AcVariableType> variableSet) {
-
+    private void updateVoltageControl(VoltageControl voltageControl) {
         LfBus controlledBus = voltageControl.getControlledBus();
         Set<LfBus> controllerBuses = voltageControl.getControllerBuses();
 
@@ -43,90 +31,83 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         if (firstControllerBus.hasGeneratorsWithSlope()) {
             // we only support one controlling static var compensator without any other controlling generators
             // we don't support controller bus that wants to control back voltage with slope.
-            if (!firstControllerBus.isVoltageControllerEnabled()) {
-                equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_V_SLOPE).setActive(false);
+            if (!firstControllerBus.isVoltageControlEnabled()) {
+                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
+                        .orElseThrow().setActive(false);
             }
         } else {
-            // controlled bus has a voltage equation only if one of the controller bus has voltage control on
-            List<LfBus> controllerBusesWithVoltageControlOn = controllerBuses.stream()
-                    .filter(LfBus::isVoltageControllerEnabled)
-                    .collect(Collectors.toList());
-            // clean reactive power distribution equations
-            controllerBuses.forEach(b -> equationSystem.removeEquation(b.getNum(), AcEquationType.ZERO_Q));
-            // is there one static var compensator with a non-zero slope
-            equationSystem.createEquation(controlledBus.getNum(), AcEquationType.BUS_V).setActive(!controllerBusesWithVoltageControlOn.isEmpty());
-            // create reactive power equations on controller buses that have voltage control on
-            if (!controllerBusesWithVoltageControlOn.isEmpty()) {
-                AcEquationSystem.createReactivePowerDistributionEquations(equationSystem, variableSet, creationParameters, controllerBusesWithVoltageControlOn);
+            if (voltageControl.isVoltageControlLocal()) {
+                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
+                        .orElseThrow()
+                        .setActive(controlledBus.isVoltageControlEnabled());
+            } else {
+                AcEquationSystem.updateRemoteVoltageControlEquations(voltageControl, equationSystem);
             }
         }
+    }
+
+    private void updateVoltageControl(LfBus controllerBus, boolean newVoltageControllerEnabled) {
+        // active/de-activate bus target reactive power equation to switch bus PV or PQ
+        equationSystem.getEquation(controllerBus.getNum(), AcEquationType.BUS_TARGET_Q)
+                .orElseThrow()
+                .setActive(!newVoltageControllerEnabled);
+
+        updateVoltageControl(controllerBus.getVoltageControl().orElseThrow());
     }
 
     @Override
     public void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
-        if (newVoltageControllerEnabled) { // switch PQ/PV
-            Equation<AcVariableType, AcEquationType> qEq = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.BUS_Q);
-            qEq.setActive(false);
-
-            Optional<VoltageControl> vc = controllerBus.getVoltageControl();
-            if (vc.isPresent() && controllerBus.isVoltageControllerEnabled()) {
-                updateControlledBus(vc.get(), equationSystem, variableSet);
-            }
-        } else { // switch PV/PQ
-            Equation<AcVariableType, AcEquationType> qEq = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.BUS_Q);
-            qEq.setActive(true);
-
-            Optional<VoltageControl> vc = controllerBus.getVoltageControl();
-            if (vc.isPresent() && controllerBus.hasVoltageControllerCapability()) {
-                updateControlledBus(vc.get(), equationSystem, variableSet);
-            }
-        }
+        updateVoltageControl(controllerBus, newVoltageControllerEnabled);
     }
 
-    @Override
-    public void onPhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode) {
+    private void updateDiscretePhaseControl(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode newMode) {
         boolean on = newMode != DiscretePhaseControl.Mode.OFF;
 
         // activate/de-activate phase control equation
-        equationSystem.createEquation(phaseControl.getControlled().getNum(), AcEquationType.BRANCH_P)
+        equationSystem.getEquation(phaseControl.getControlled().getNum(), AcEquationType.BRANCH_TARGET_P)
+                .orElseThrow()
                 .setActive(on);
 
         // de-activate/activate constant A1 equation
-        equationSystem.createEquation(phaseControl.getController().getNum(), AcEquationType.BRANCH_ALPHA1)
+        equationSystem.getEquation(phaseControl.getController().getNum(), AcEquationType.BRANCH_TARGET_ALPHA1)
+                .orElseThrow()
                 .setActive(!on);
     }
 
     @Override
-    public void onVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode) {
-        LfBus bus = voltageControl.getControlled();
-        if (newMode == DiscreteVoltageControl.Mode.OFF) {
+    public void onDiscretePhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode) {
+        updateDiscretePhaseControl(phaseControl, newMode);
+    }
 
-            // de-activate transformer voltage control equation
-            equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V)
-                    .setActive(false);
+    @Override
+    public void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled) {
+        AcEquationSystem.updateTransformerVoltageControlEquations(controllerBranch.getVoltageControl().orElseThrow(), equationSystem);
+    }
 
-            for (LfBranch controllerBranch : voltageControl.getControllers()) {
-                // activate constant R1 equation
-                equationSystem.createEquation(controllerBranch.getNum(), AcEquationType.BRANCH_RHO1)
-                        .setActive(true);
+    @Override
+    public void onShuntVoltageControlChange(LfShunt controllerShunt, boolean newVoltageControllerEnabled) {
+        AcEquationSystem.updateShuntVoltageControlEquations(controllerShunt.getVoltageControl().orElseThrow(), equationSystem);
+    }
 
-                // clean transformer distribution equations
-                equationSystem.removeEquation(controllerBranch.getNum(), AcEquationType.ZERO_RHO1);
-            }
-        } else { // newMode == DiscreteVoltageControl.Mode.VOLTAGE
-
-            // activate transformer voltage control equation
-            equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_V)
-                    .setActive(true);
-
-            // add transformer distribution equations
-            AcEquationSystem.createR1DistributionEquations(equationSystem, variableSet, voltageControl.getControllers());
-
-            for (LfBranch controllerBranch : voltageControl.getControllers()) {
-                // de-activate constant R1 equation
-                equationSystem.createEquation(controllerBranch.getNum(), AcEquationType.BRANCH_RHO1)
-                        .setActive(false);
-            }
+    @Override
+    public void onDisableChange(LfElement element, boolean disabled) {
+        switch (element.getType()) {
+            case BUS:
+                LfBus bus = (LfBus) element;
+                bus.getVoltageControl().ifPresent(this::updateVoltageControl);
+                bus.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
+                bus.getShuntVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateShuntVoltageControlEquations(voltageControl, equationSystem));
+                break;
+            case BRANCH:
+                LfBranch branch = (LfBranch) element;
+                branch.getVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
+                break;
+            case SHUNT_COMPENSATOR:
+                LfShunt shunt = (LfShunt) element;
+                shunt.getVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateShuntVoltageControlEquations(voltageControl, equationSystem));
+                break;
+            default:
+                throw new IllegalStateException("Unknown element type: " + element.getType());
         }
     }
 }

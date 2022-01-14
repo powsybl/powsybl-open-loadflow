@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BusResults;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -28,7 +29,7 @@ public interface LfBus extends LfElement {
 
     boolean hasVoltageControllerCapability();
 
-    boolean isVoltageControllerEnabled();
+    boolean isVoltageControlEnabled();
 
     boolean isVoltageControlled();
 
@@ -47,13 +48,17 @@ public interface LfBus extends LfElement {
 
     void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount);
 
-    void setVoltageControllerEnabled(boolean voltageControl);
+    void setVoltageControlEnabled(boolean voltageControlEnabled);
 
     Optional<VoltageControl> getVoltageControl();
 
     void removeVoltageControl();
 
     void setVoltageControl(VoltageControl voltageControl);
+
+    Optional<ReactivePowerControl> getReactivePowerControl();
+
+    void setReactivePowerControl(ReactivePowerControl reactivePowerControl);
 
     double getTargetP();
 
@@ -81,9 +86,13 @@ public interface LfBus extends LfElement {
 
     double getMaxQ();
 
-    Evaluable getV();
+    double getV();
 
-    void setV(Evaluable v);
+    void setV(double v);
+
+    Evaluable getCalculatedV();
+
+    void setCalculatedV(Evaluable calculatedV);
 
     double getAngle();
 
@@ -109,7 +118,9 @@ public interface LfBus extends LfElement {
 
     List<LfGenerator> getGenerators();
 
-    List<LfShunt> getShunts();
+    Optional<LfShunt> getShunt();
+
+    Optional<LfShunt> getControllerShunt();
 
     LfLoads getLfLoads();
 
@@ -119,15 +130,17 @@ public interface LfBus extends LfElement {
 
     void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant);
 
-    Optional<DiscreteVoltageControl> getDiscreteVoltageControl();
+    Optional<TransformerVoltageControl> getTransformerVoltageControl();
 
-    boolean isDiscreteVoltageControlled();
+    boolean isTransformerVoltageControlled();
 
-    void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
+    void setTransformerVoltageControl(TransformerVoltageControl transformerVoltageControl);
 
-    boolean isDisabled();
+    Optional<ShuntVoltageControl> getShuntVoltageControl();
 
-    void setDisabled(boolean disabled);
+    boolean isShuntVoltageControlled();
+
+    void setShuntVoltageControl(ShuntVoltageControl shuntVoltageControl);
 
     void setP(Evaluable p);
 
@@ -142,4 +155,13 @@ public interface LfBus extends LfElement {
     }
 
     BusResults createBusResult();
+
+    /**
+     * Find bus + parallel branches neighbors.
+     */
+    Map<LfBus, List<LfBranch>> findNeighbors();
+
+    double getRemoteVoltageControlReactivePercent();
+
+    void setRemoteVoltageControlReactivePercent(double remoteVoltageControlReactivePercent);
 }

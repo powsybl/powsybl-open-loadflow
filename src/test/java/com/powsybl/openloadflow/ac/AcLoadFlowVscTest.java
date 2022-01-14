@@ -27,7 +27,7 @@ class AcLoadFlowVscTest {
         Network network = HvdcNetworkFactory.createVsc();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                                             .setDistributedSlack(false);
+                .setDistributedSlack(false);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
         parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
@@ -63,5 +63,47 @@ class AcLoadFlowVscTest {
         assertReactivePowerEquals(615.733, l12.getTerminal1());
         assertActivePowerEquals(-100.55, l12.getTerminal2());
         assertReactivePowerEquals(-608.046, l12.getTerminal2());
+    }
+
+    @Test
+    void testRegulatingTerminal() {
+        Network network = HvdcNetworkFactory.createVsc();
+        network.getGenerator("g1").setTargetQ(50).setVoltageRegulatorOn(false);
+        VscConverterStation vscConverterStation = network.getVscConverterStation("cs2");
+        vscConverterStation.setRegulatingTerminal(network.getGenerator("g1").getTerminal()).setVoltageSetpoint(390);
+        vscConverterStation.setVoltageRegulatorOn(true); //FIXME
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        Bus bus1 = network.getBusView().getBus("vl1_0");
+        assertVoltageEquals(390.0, bus1);
+    }
+
+    @Test
+    void testRegulatingTerminal2() {
+        Network network = HvdcNetworkFactory.createVsc();
+        network.getGenerator("g1").setTargetV(390);
+        VscConverterStation vscConverterStation = network.getVscConverterStation("cs2");
+        vscConverterStation.setRegulatingTerminal(network.getVscConverterStation("cs3").getTerminal()).setVoltageSetpoint(400); // will be discarded.
+        vscConverterStation.setVoltageRegulatorOn(true); //FIXME
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        Bus bus1 = network.getBusView().getBus("vl1_0");
+        assertVoltageEquals(390.0, bus1);
     }
 }

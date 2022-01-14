@@ -172,9 +172,18 @@ public class PiModelArray implements PiModel {
         }
         if (hasChange) {
             for (LfNetworkListener listener : network.getListeners()) {
-                listener.onPhaseControlTapPositionChange(this, oldTapPosition, tapPosition);
+                listener.onDiscretePhaseControlTapPositionChange(this, oldTapPosition, tapPosition);
             }
         }
         return hasChange;
+    }
+
+    @Override
+    public boolean setMinZ(double minZ) {
+        boolean done = false;
+        for (PiModel model : models) {
+            done |= model.setMinZ(minZ);
+        }
+        return done;
     }
 }

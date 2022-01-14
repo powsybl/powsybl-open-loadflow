@@ -20,10 +20,6 @@ import static com.powsybl.openloadflow.network.PiModel.A2;
  */
 public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBranchDcFlowEquationTerm {
 
-    private double p2;
-
-    private double rhs;
-
     private ClosedBranchSide2DcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
                                                 boolean deriveA1, boolean useTransformerRatio) {
         super(branch, bus1, bus2, variableSet, deriveA1, useTransformerRatio);
@@ -45,22 +41,8 @@ public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public void update(double[] x) {
-        Objects.requireNonNull(x);
-        double ph1 = x[ph1Var.getRow()];
-        double ph2 = x[ph2Var.getRow()];
-        double a1 = getA1(x);
-        p2 = calculateSensi(ph1, ph2, a1);
-        if (a1Var != null) {
-            rhs = power * A2;
-        } else {
-            rhs = power * (A2 - a1);
-        }
-    }
-
-    @Override
     public double eval() {
-        return p2;
+        return calculateSensi(ph1(), ph2(), a1());
     }
 
     @Override
@@ -79,7 +61,11 @@ public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBra
 
     @Override
     public double rhs() {
-        return rhs;
+        if (a1Var != null) {
+            return power * A2;
+        } else {
+            return power * (A2 - a1());
+        }
     }
 
     @Override

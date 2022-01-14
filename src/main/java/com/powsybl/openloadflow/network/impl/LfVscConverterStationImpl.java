@@ -19,19 +19,19 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
 
     private final VscConverterStation station;
 
-    private LfVscConverterStationImpl(VscConverterStation station, boolean breakers, LfNetworkLoadingReport report) {
+    private LfVscConverterStationImpl(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
         super(getHvdcLineTargetP(station));
         this.station = station;
 
         // local control only
         if (station.isVoltageRegulatorOn()) {
-            setVoltageControl(station.getVoltageSetpoint(), station.getTerminal(), breakers, report);
+            setVoltageControl(station.getVoltageSetpoint(), station.getTerminal(), station.getRegulatingTerminal(), breakers, reactiveLimits, report);
         }
     }
 
-    public static LfVscConverterStationImpl create(VscConverterStation station, boolean breakers, LfNetworkLoadingReport report) {
+    public static LfVscConverterStationImpl create(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
         Objects.requireNonNull(station);
-        return new LfVscConverterStationImpl(station, breakers, report);
+        return new LfVscConverterStationImpl(station, breakers, reactiveLimits, report);
     }
 
     private static double getHvdcLineTargetP(VscConverterStation vscCs) {

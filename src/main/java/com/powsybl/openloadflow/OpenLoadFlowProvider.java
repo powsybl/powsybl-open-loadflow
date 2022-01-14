@@ -23,21 +23,26 @@ import com.powsybl.loadflow.resultscompletion.z0flows.Z0FlowsCompletion;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.ac.DefaultOuterLoopConfig;
-import com.powsybl.openloadflow.ac.nr.DcValueVoltageInitializer;
+import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.ac.outerloop.*;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
-import com.powsybl.openloadflow.equations.PreviousValueVoltageInitializer;
-import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
-import com.powsybl.openloadflow.equations.VoltageInitializer;
+import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
+import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.NetworkSlackBusSelector;
 import com.powsybl.openloadflow.network.PerUnit;
 import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Markers;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.tools.PowsyblCoreVersion;
@@ -89,21 +94,44 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new PowsyblCoreVersion().getMavenProjectVersion();
     }
 
-    public static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters) {
+    static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
         switch (parameters.getVoltageInitMode()) {
             case UNIFORM_VALUES:
                 return new UniformValueVoltageInitializer();
             case PREVIOUS_VALUES:
                 return new PreviousValueVoltageInitializer();
             case DC_VALUES:
-                return new DcValueVoltageInitializer();
+                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), matrixFactory, reporter);
             default:
                 throw new UnsupportedOperationException("Unsupported voltage init mode: " + parameters.getVoltageInitMode());
         }
     }
 
-    private static SlackBusSelector getSlackBusSelector(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusId());
+    static VoltageInitializer getExtendedVoltageInitializer(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                            LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
+        switch (parametersExt.getVoltageInitModeOverride()) {
+            case NONE:
+                return getVoltageInitializer(parameters, networkParameters, matrixFactory, reporter);
+
+            case VOLTAGE_MAGNITUDE:
+                return new VoltageMagnitudeInitializer(matrixFactory);
+
+            case FULL_VOLTAGE:
+                return new FullVoltageInitializer(new VoltageMagnitudeInitializer(matrixFactory),
+                                                  new DcValueVoltageInitializer(networkParameters,
+                                                                                parameters.isDistributedSlack(),
+                                                                                parameters.getBalanceType(),
+                                                                                parameters.isDcUseTransformerRatio(),
+                                                                                matrixFactory,
+                                                                                reporter));
+
+            default:
+                throw new PowsyblException("Unknown voltage init mode override: " + parametersExt.getVoltageInitModeOverride());
+        }
+    }
+
+    static SlackBusSelector getSlackBusSelector(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds());
         return parameters.isReadSlackBus() ? new NetworkSlackBusSelector(network, slackBusSelector)
                                            : slackBusSelector;
     }
@@ -123,7 +151,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
-                                                          OpenLoadFlowParameters parametersExt, boolean breakers) {
+                                                          OpenLoadFlowParameters parametersExt, boolean breakers, Reporter reporter) {
         Set<String> branchesWithCurrent = null;
         if (parameters.isPhaseShifterRegulationOn()) {
             branchesWithCurrent = network.getTwoWindingsTransformerStream()
@@ -131,21 +159,39 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     .map(TwoWindingsTransformer::getId)
                     .collect(Collectors.toSet());
         }
-        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false, branchesWithCurrent);
+        return createAcParameters(network, matrixFactory, parameters, parametersExt, breakers, false, branchesWithCurrent, reporter);
+    }
+
+    static LfNetworkParameters getNetworkParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                    SlackBusSelector slackBusSelector, boolean breakers) {
+        return new LfNetworkParameters(slackBusSelector,
+                                       parametersExt.hasVoltageRemoteControl(),
+                                       parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
+                                       parameters.isTwtSplitShuntAdmittance(),
+                                       breakers,
+                                       parametersExt.getPlausibleActivePowerLimit(),
+                                       parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
+                                       parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
+                                       parameters.getCountriesToBalance(),
+                                       parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                                       parameters.isPhaseShifterRegulationOn(),
+                                       parameters.isTransformerVoltageControlOn(),
+                                       parametersExt.isVoltagePerReactivePowerControl(),
+                                       parametersExt.hasReactivePowerRemoteControl(),
+                                       parameters.isDc(),
+                                       parameters.isSimulShunt(),
+                                       !parameters.isNoGeneratorReactiveLimits());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, MatrixFactory matrixFactory, LoadFlowParameters parameters,
                                                           OpenLoadFlowParameters parametersExt, boolean breakers, boolean forceA1Var,
-                                                          Set<String> branchesWithCurrent) {
+                                                          Set<String> branchesWithCurrent, Reporter reporter) {
 
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
-        VoltageInitializer voltageInitializer = getVoltageInitializer(parameters);
-
-        NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
-
         LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
-        LOGGER.info("Voltage level initializer: {}", voltageInitializer.getClass().getSimpleName());
+        LOGGER.info("Voltage initialization mode: {}", parameters.getVoltageInitMode());
+        LOGGER.info("Voltage initialization mode override: {}", parametersExt.getVoltageInitModeOverride());
         LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
         LOGGER.info("Balance type: {}", parameters.getBalanceType());
         LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
@@ -160,6 +206,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Slack bus Pmax mismatch: {}", parametersExt.getSlackBusPMaxMismatch());
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
         LOGGER.info("Voltage per reactive power control: {}", parametersExt.isVoltagePerReactivePowerControl());
+        LOGGER.info("Reactive Power Remote control: {}", parametersExt.hasReactivePowerRemoteControl());
+        LOGGER.info("Shunt voltage control: {}", parameters.isSimulShunt());
 
         OuterLoopConfig outerLoopConfig = findOuterLoopConfig();
         List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
@@ -167,29 +215,26 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info("Outer loops: {}", outerLoops.stream().map(OuterLoop::getType).collect(Collectors.toList()));
         }
 
-        return new AcLoadFlowParameters(slackBusSelector,
-                                        voltageInitializer,
-                                        stoppingCriteria,
-                                        outerLoops, matrixFactory,
-                                        parametersExt.hasVoltageRemoteControl(),
-                                        parameters.isPhaseShifterRegulationOn(),
-                                        parameters.isTransformerVoltageControlOn(),
-                                        parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
-                                        parameters.isTwtSplitShuntAdmittance(),
-                                        breakers,
-                                        parametersExt.getPlausibleActivePowerLimit(),
-                                        forceA1Var,
-                                        parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
-                                        branchesWithCurrent,
-                                        parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
-                                        parameters.getCountriesToBalance(),
-                                        parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                                        parametersExt.isVoltagePerReactivePowerControl());
+        var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, breakers);
+
+        var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var, branchesWithCurrent);
+
+        VoltageInitializer voltageInitializer = getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory, reporter);
+
+        var newtonRaphsonParameters = new NewtonRaphsonParameters()
+                .setVoltageInitializer(voltageInitializer)
+                .setStoppingCriteria(new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq()))
+                .setMaxIteration(parametersExt.getMaxIteration());
+
+        return new AcLoadFlowParameters(networkParameters,
+                                        equationSystemCreationParameters,
+                                        newtonRaphsonParameters,
+                                        outerLoops, matrixFactory);
     }
 
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
-        AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt, false);
-        List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, acParameters, reporter);
+        AcLoadFlowParameters acParameters = createAcParameters(network, matrixFactory, parameters, parametersExt, false, reporter);
+        List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, new LfNetworkLoaderImpl(), acParameters, reporter);
 
         Networks.resetState(network);
 
@@ -249,7 +294,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
-    private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
+    static DcLoadFlowParameters createDcParameters(Network network, MatrixFactory matrixFactory,
+                                                   LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                   boolean forcePhaseControlOffAndAddAngle1Var) {
         SlackBusSelector slackBusSelector = getSlackBusSelector(network, parameters, parametersExt);
 
         LOGGER.info("Slack bus selector: {}", slackBusSelector.getClass().getSimpleName());
@@ -260,20 +307,42 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
 
-        DcLoadFlowParameters dcParameters = new DcLoadFlowParameters(slackBusSelector,
-                                                                     matrixFactory,
-                                                                     true,
-                                                                     parameters.isDcUseTransformerRatio(),
-                                                                     parameters.isDistributedSlack(),
-                                                                     parameters.getBalanceType(),
-                                                                     forcePhaseControlOffAndAddAngle1Var,
-                                                                     parametersExt.getPlausibleActivePowerLimit(),
-                                                                     parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
-                                                                     true,
-                                                                     parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
-                                                                     parameters.getCountriesToBalance());
+        var networkParameters = new LfNetworkParameters(slackBusSelector,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        parametersExt.getPlausibleActivePowerLimit(),
+                                                        false,
+                                                        parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
+                                                        parameters.getCountriesToBalance(),
+                                                        parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        true,
+                                                        false,
+                                                        false);
 
-        List<DcLoadFlowResult> results = new DcLoadFlowEngine(network, dcParameters, reporter)
+        var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
+                                                                                      false,
+                                                                                      forcePhaseControlOffAndAddAngle1Var,
+                                                                                      parameters.isDcUseTransformerRatio());
+
+        return new DcLoadFlowParameters(networkParameters,
+                                        equationSystemCreationParameters,
+                                        matrixFactory,
+                                        parameters.isDistributedSlack(),
+                                        parameters.getBalanceType(),
+                                        true);
+    }
+
+    private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
+
+        var dcParameters = createDcParameters(network, matrixFactory, parameters, parametersExt, forcePhaseControlOffAndAddAngle1Var);
+
+        List<DcLoadFlowResult> results = new DcLoadFlowEngine(network, new LfNetworkLoaderImpl(), dcParameters, reporter)
                 .run(reporter);
 
         Networks.resetState(network);

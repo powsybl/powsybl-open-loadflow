@@ -20,7 +20,7 @@ public class LfDanglingLineBus extends AbstractLfBus {
 
     private final double nominalV;
 
-    public LfDanglingLineBus(LfNetwork network, DanglingLine danglingLine, LfNetworkLoadingReport report) {
+    public LfDanglingLineBus(LfNetwork network, DanglingLine danglingLine, boolean reactiveLimits, LfNetworkLoadingReport report) {
         super(network, Networks.getPropertyV(danglingLine), Networks.getPropertyAngle(danglingLine));
         this.danglingLine = Objects.requireNonNull(danglingLine);
         nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
@@ -28,7 +28,7 @@ public class LfDanglingLineBus extends AbstractLfBus {
         loadTargetQ += danglingLine.getQ0();
         DanglingLine.Generation generation = danglingLine.getGeneration();
         if (generation != null) {
-            add(new LfDanglingLineGenerator(danglingLine, getId(), report));
+            add(new LfDanglingLineGenerator(danglingLine, getId(), reactiveLimits, report));
         }
     }
 
@@ -58,7 +58,7 @@ public class LfDanglingLineBus extends AbstractLfBus {
 
     @Override
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
-        Networks.setPropertyV(danglingLine, v.eval() * getNominalV());
+        Networks.setPropertyV(danglingLine, v);
         Networks.setPropertyAngle(danglingLine, angle);
 
         super.updateState(reactiveLimits, writeSlackBus, false, false);

@@ -15,9 +15,8 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
-import com.powsybl.openloadflow.util.LfContingency;
-import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import com.powsybl.security.monitor.StateMonitor;
@@ -162,14 +161,14 @@ public abstract class AbstractSecurityAnalysis {
         }
     }
 
-    protected static LimitViolation createLimitViolation1(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit1,
+    protected static LimitViolation createLimitViolation1(LfBranch branch, LfBranch.LfLimit temporaryLimit1,
                                                           LimitViolationType type, double scale, double value) {
         return new LimitViolation(branch.getId(), type, null,
                 temporaryLimit1.getAcceptableDuration(), temporaryLimit1.getValue() * scale,
                 (float) 1., value * scale, Branch.Side.ONE);
     }
 
-    protected static LimitViolation createLimitViolation2(LfBranch branch, AbstractLfBranch.LfLimit temporaryLimit2,
+    protected static LimitViolation createLimitViolation2(LfBranch branch, LfBranch.LfLimit temporaryLimit2,
                                                           LimitViolationType type, double scale, double value) {
         return new LimitViolation(branch.getId(), type, null,
                 temporaryLimit2.getAcceptableDuration(), temporaryLimit2.getValue() * scale,
@@ -188,7 +187,7 @@ public abstract class AbstractSecurityAnalysis {
     protected void detectBusViolations(LfBus bus, Map<Pair<String, Branch.Side>, LimitViolation> violations) {
         // detect violation limits on a bus
         double scale = bus.getNominalV();
-        double busV = bus.getV().eval();
+        double busV = bus.getV();
         if (!Double.isNaN(bus.getHighVoltageLimit()) && busV > bus.getHighVoltageLimit()) {
             LimitViolation limitViolation1 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit() * scale,
                     (float) 1., busV * scale);
@@ -228,15 +227,23 @@ public abstract class AbstractSecurityAnalysis {
         return false;
     }
 
-    List<LfContingency> createContingencies(List<PropagatedContingency> propagatedContingencies, LfNetwork network) {
-        return LfContingency.createContingencies(propagatedContingencies, network, network.createDecrementalConnectivity(connectivityProvider), true);
-    }
-
     protected void addMonitorInfo(LfNetwork network, StateMonitor monitor, Collection<BranchResult> branchResultConsumer,
-                                Collection<BusResults> busResultsConsumer, Collection<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer) {
+                                  Collection<BusResults> busResultsConsumer, Collection<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer,
+                                  Map<String, BranchResult> preContingencyBranchResults, String contingencyId) {
         network.getBranches().stream().filter(lfBranch -> monitor.getBranchIds().contains(lfBranch.getId()))
                 .filter(lfBranch -> !lfBranch.isDisabled())
-                .forEach(lfBranch -> branchResultConsumer.add(lfBranch.createBranchResult()));
+                .forEach(lfBranch -> {
+                    BranchResult branchResult;
+                    if (contingencyId == null) {
+                        branchResult = lfBranch.createBranchResult(Double.NaN, Double.NaN);
+                        preContingencyBranchResults.put(lfBranch.getId(), branchResult);
+                    } else {
+                        double preContingencyP1 = preContingencyBranchResults.get(lfBranch.getId()) != null ? preContingencyBranchResults.get(lfBranch.getId()).getP1() : Double.NaN;
+                        double branchInContingencyP1 = preContingencyBranchResults.get(contingencyId) != null ? preContingencyBranchResults.get(contingencyId).getP1() : Double.NaN;
+                        branchResult = lfBranch.createBranchResult(preContingencyP1, branchInContingencyP1);
+                    }
+                    branchResultConsumer.add(branchResult);
+                });
         network.getBuses().stream().filter(lfBus -> monitor.getVoltageLevelIds().contains(lfBus.getVoltageLevelId()))
                 .filter(lfBus -> !lfBus.isDisabled())
                 .forEach(lfBus -> busResultsConsumer.add(lfBus.createBusResult()));
@@ -245,9 +252,9 @@ public abstract class AbstractSecurityAnalysis {
     }
 
     private ThreeWindingsTransformerResult createThreeWindingsTransformerResult(String threeWindingsTransformerId, LfNetwork network) {
-        LfBranch leg1 = network.getBranchById(threeWindingsTransformerId + "_leg_1");
-        LfBranch leg2 = network.getBranchById(threeWindingsTransformerId + "_leg_2");
-        LfBranch leg3 = network.getBranchById(threeWindingsTransformerId + "_leg_3");
+        LfBranch leg1 = network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 1));
+        LfBranch leg2 = network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 2));
+        LfBranch leg3 = network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 3));
         double i1Base = PerUnit.ib(leg1.getBus1().getNominalV());
         double i2Base = PerUnit.ib(leg2.getBus1().getNominalV());
         double i3Base = PerUnit.ib(leg3.getBus1().getNominalV());

@@ -31,9 +31,17 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     private double targetV = Double.NaN;
 
-    protected boolean hasVoltageControl = false;
+    protected GeneratorControlType generatorControlType = GeneratorControlType.OFF;
 
     protected String controlledBusId;
+
+    protected String controlledBranchId;
+
+    protected ReactivePowerControl.ControlledSide controlledBranchSide;
+
+    protected double remoteTargetQ = Double.NaN;
+
+    private Object userObject;
 
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
@@ -71,7 +79,12 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     @Override
     public boolean hasVoltageControl() {
-        return hasVoltageControl;
+        return generatorControlType == GeneratorControlType.VOLTAGE;
+    }
+
+    @Override
+    public boolean hasReactivePowerControl() {
+        return generatorControlType == GeneratorControlType.REACTIVE_POWER;
     }
 
     @Override
@@ -141,8 +154,9 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         return lfNetwork.getBusById(controlledBusId);
     }
 
-    protected void setVoltageControl(double targetV, Terminal regulatingTerminal, boolean breakers, LfNetworkLoadingReport report) {
-        if (!checkVoltageControlConsistency(report)) {
+    protected void setVoltageControl(double targetV, Terminal terminal, Terminal regulatingTerminal, boolean breakers,
+                                     boolean reactiveLimits, LfNetworkLoadingReport report) {
+        if (!checkVoltageControlConsistency(reactiveLimits, report)) {
             return;
         }
         Bus controlledBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
@@ -150,18 +164,26 @@ public abstract class AbstractLfGenerator implements LfGenerator {
             LOGGER.warn("Regulating terminal of LfGenerator {} is out of voltage: voltage control discarded", getId());
             return;
         }
+        boolean inSameSynchronousComponent = breakers ? regulatingTerminal.getBusBreakerView().getBus().getSynchronousComponent().equals(terminal.getBusBreakerView().getBus().getSynchronousComponent())
+                : regulatingTerminal.getBusView().getBus().getSynchronousComponent().equals(terminal.getBusView().getBus().getSynchronousComponent());
+        if (!inSameSynchronousComponent) {
+            LOGGER.warn("Regulating terminal of LfGenerator {} is not in the same synchronous component: voltage control discarded", getId());
+            return;
+        }
         this.controlledBusId = controlledBus.getId();
         setTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV());
-        this.hasVoltageControl = true;
+        this.generatorControlType = GeneratorControlType.VOLTAGE;
     }
 
-    protected boolean checkVoltageControlConsistency(LfNetworkLoadingReport report) {
+    protected boolean checkVoltageControlConsistency(boolean reactiveLimits, LfNetworkLoadingReport report) {
         boolean consistency = true;
-        double maxRangeQ = getMaxRangeQ();
-        if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
-            LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small", getId(), maxRangeQ);
-            report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
-            consistency = false;
+        if (reactiveLimits) {
+            double maxRangeQ = getMaxRangeQ();
+            if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
+                LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small", getId(), maxRangeQ);
+                report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
+                consistency = false;
+            }
         }
         if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());
@@ -186,4 +208,53 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         this.targetV = newTargetV;
     }
 
+    protected void setReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
+        Connectable<?> connectable = regulatingTerminal.getConnectable();
+        if (connectable instanceof Line) {
+            Line l = (Line) connectable;
+            this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
+                    ReactivePowerControl.ControlledSide.ONE : ReactivePowerControl.ControlledSide.TWO;
+            this.controlledBranchId = l.getId();
+        } else if (connectable instanceof TwoWindingsTransformer) {
+            TwoWindingsTransformer l = (TwoWindingsTransformer) connectable;
+            this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
+                    ReactivePowerControl.ControlledSide.ONE : ReactivePowerControl.ControlledSide.TWO;
+            this.controlledBranchId = l.getId();
+        } else {
+            LOGGER.error("Generator '{}' is controlled by an instance of {}: not supported",
+                    getId(), connectable.getClass());
+            return;
+        }
+        this.generatorControlType = GeneratorControlType.REACTIVE_POWER;
+        this.remoteTargetQ = targetQ / PerUnit.SB;
+    }
+
+    @Override
+    public LfBranch getControlledBranch(LfNetwork lfNetwork) {
+        return lfNetwork.getBranchById(controlledBranchId);
+    }
+
+    @Override
+    public ReactivePowerControl.ControlledSide getControlledBranchSide() {
+        return controlledBranchSide;
+    }
+
+    @Override
+    public double getRemoteTargetQ() {
+        return remoteTargetQ;
+    }
+
+    protected enum GeneratorControlType {
+        OFF, REACTIVE_POWER, VOLTAGE
+    }
+
+    @Override
+    public Object getUserObject() {
+        return userObject;
+    }
+
+    @Override
+    public void setUserObject(Object userObject) {
+        this.userObject = userObject;
+    }
 }

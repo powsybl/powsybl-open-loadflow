@@ -6,8 +6,8 @@
  */
 package com.powsybl.openloadflow.ac.nr;
 
-import com.powsybl.openloadflow.equations.UniformValueVoltageInitializer;
-import com.powsybl.openloadflow.equations.VoltageInitializer;
+import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
 import java.util.Objects;
 
@@ -16,7 +16,7 @@ import java.util.Objects;
  */
 public class NewtonRaphsonParameters {
 
-    private static final int DEFAULT_MAX_ITERATION = 30;
+    public static final int DEFAULT_MAX_ITERATION = 30;
 
     private int maxIteration = DEFAULT_MAX_ITERATION;
 
@@ -26,11 +26,17 @@ public class NewtonRaphsonParameters {
         return maxIteration;
     }
 
-    public NewtonRaphsonParameters setMaxIteration(int maxIteration) {
+    private NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
+
+    public static int checkMaxIteration(int maxIteration) {
         if (maxIteration < 1) {
             throw new IllegalArgumentException("Invalid max iteration value: " + maxIteration);
         }
-        this.maxIteration = maxIteration;
+        return maxIteration;
+    }
+
+    public NewtonRaphsonParameters setMaxIteration(int maxIteration) {
+        this.maxIteration =  checkMaxIteration(maxIteration);
         return this;
     }
 
@@ -41,5 +47,23 @@ public class NewtonRaphsonParameters {
     public NewtonRaphsonParameters setVoltageInitializer(VoltageInitializer voltageInitializer) {
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
         return this;
+    }
+
+    public NewtonRaphsonStoppingCriteria getStoppingCriteria() {
+        return stoppingCriteria;
+    }
+
+    public NewtonRaphsonParameters setStoppingCriteria(NewtonRaphsonStoppingCriteria stoppingCriteria) {
+        this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        return "NewtonRaphsonParameters(" +
+                "maxIteration=" + maxIteration +
+                ", voltageInitializer=" + voltageInitializer.getClass().getSimpleName() +
+                ", stoppingCriteria=" + stoppingCriteria.getClass().getSimpleName() +
+                ')';
     }
 }

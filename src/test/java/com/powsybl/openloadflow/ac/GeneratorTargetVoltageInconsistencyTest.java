@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.ParameterConstants;
+import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -91,7 +91,7 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setB2(0)
                 .add();
 
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
         LfNetwork lfNetwork = lfNetworks.get(0);
@@ -201,13 +201,13 @@ class GeneratorTargetVoltageInconsistencyTest {
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false,
-                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true, Collections.emptySet(), false, false, false, false);
+                LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
+                true, Collections.emptySet(), false, false, false, false, false, false, false, true);
 
         Generator g = network.getGenerator("g2");
         assertEquals(0.5625, g.getTargetV() / g.getTerminal().getVoltageLevel().getNominalV());
 
-        List<LfNetwork> networkList = LfNetwork.load(network, parameters);
+        List<LfNetwork> networkList = Networks.load(network, parameters);
         LfNetwork mainNetwork = networkList.get(0);
         LfGenerator generator = mainNetwork.getBusById("vl2_0").getGenerators().get(0);
         assertEquals("g2", generator.getId());
@@ -312,13 +312,13 @@ class GeneratorTargetVoltageInconsistencyTest {
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false,
-                ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true, Collections.emptySet(), false, false, false, false);
+                LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
+                true, Collections.emptySet(), false, false, false, false, false, false, false, true);
 
         assertEquals(412, network.getGenerator("g1").getTargetV());
         assertEquals(413, g2.getTargetV());
 
-        List<LfNetwork> networkList = LfNetwork.load(network, parameters);
+        List<LfNetwork> networkList = Networks.load(network, parameters);
         LfNetwork mainNetwork = networkList.get(0);
         Optional<VoltageControl> sharedVoltageControl = mainNetwork.getBusById("vl2_0").getVoltageControl();
         assertTrue(sharedVoltageControl.isPresent());

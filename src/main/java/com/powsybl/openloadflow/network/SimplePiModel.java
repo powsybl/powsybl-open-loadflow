@@ -129,4 +129,20 @@ public class SimplePiModel implements PiModel {
     public boolean updateTapPosition(Direction direction) {
         throw new IllegalStateException("No tap position change in simple Pi model implementation");
     }
+
+    private void rescaleZ(double z) {
+        double ksi = getKsi();
+        r = z * FastMath.cos(ksi);
+        x = z * FastMath.sin(ksi);
+    }
+
+    @Override
+    public boolean setMinZ(double minZ) {
+        double z = getZ();
+        if (z < minZ) {
+            rescaleZ(minZ);
+            return true;
+        }
+        return false;
+    }
 }

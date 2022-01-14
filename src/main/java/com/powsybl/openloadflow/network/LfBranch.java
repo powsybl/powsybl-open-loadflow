@@ -21,6 +21,38 @@ import java.util.Optional;
  */
 public interface LfBranch extends LfElement {
 
+    class LfLimit {
+
+        private int acceptableDuration;
+
+        private final double value;
+
+        public LfLimit(int acceptableDuration, double value) {
+            this.acceptableDuration = acceptableDuration;
+            this.value = value;
+        }
+
+        public static LfLimit createTemporaryLimit(int acceptableDuration, double valuePerUnit) {
+            return new LfLimit(acceptableDuration, valuePerUnit);
+        }
+
+        public static LfLimit createPermanentLimit(double valuePerUnit) {
+            return new LfLimit(Integer.MAX_VALUE, valuePerUnit);
+        }
+
+        public int getAcceptableDuration() {
+            return acceptableDuration;
+        }
+
+        public double getValue() {
+            return value;
+        }
+
+        public void setAcceptableDuration(int acceptableDuration) {
+            this.acceptableDuration = acceptableDuration;
+        }
+    }
+
     LfBus getBus1();
 
     LfBus getBus2();
@@ -51,9 +83,9 @@ public interface LfBranch extends LfElement {
 
     Evaluable getI2();
 
-    List<AbstractLfBranch.LfLimit> getLimits1(LimitType type);
+    List<LfLimit> getLimits1(LimitType type);
 
-    default List<AbstractLfBranch.LfLimit> getLimits2(LimitType type) {
+    default List<LfLimit> getLimits2(LimitType type) {
         return Collections.emptyList();
     }
 
@@ -71,19 +103,17 @@ public interface LfBranch extends LfElement {
 
     void setDiscretePhaseControl(DiscretePhaseControl discretePhaseControl);
 
-    Optional<DiscreteVoltageControl> getDiscreteVoltageControl();
+    Optional<TransformerVoltageControl> getVoltageControl();
+
+    boolean isVoltageControlEnabled();
+
+    void setVoltageControlEnabled(boolean voltageControlEnabled);
 
     boolean isVoltageController();
 
-    void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
+    void setVoltageControl(TransformerVoltageControl transformerVoltageControl);
 
-    default BranchResult createBranchResult() {
-        throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
-    }
-
-    boolean isDisabled();
-
-    void setDisabled(boolean disabled);
+    BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1);
 
     double computeApparentPower1();
 
@@ -115,4 +145,10 @@ public interface LfBranch extends LfElement {
         }
         return phaseControl.get().getTargetValue();
     }
+
+    Optional<ReactivePowerControl> getReactivePowerControl();
+
+    void setReactivePowerControl(ReactivePowerControl reactivePowerControl);
+
+    boolean isConnectedAtBothSides();
 }

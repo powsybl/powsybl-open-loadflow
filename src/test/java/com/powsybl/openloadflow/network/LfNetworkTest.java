@@ -20,7 +20,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.util.ParameterConstants;
+import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,7 +65,7 @@ class LfNetworkTest extends AbstractConverterTest {
                     .add()
                 .add();
 
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(1, lfNetworks.size());
         Path file = fileSystem.getPath("/work/n.json");
@@ -88,10 +88,10 @@ class LfNetworkTest extends AbstractConverterTest {
                 .setRegulationValue(83);
 
         LfNetworkParameters parameters = new LfNetworkParameters(new MostMeshedSlackBusSelector(), false,
-                false, false, false, ParameterConstants.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
+                false, false, false, LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
                 false, true, Collections.emptySet(), false,
-                true, false, false);
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, parameters);
+                true, false, false, false, false, false, true);
+        List<LfNetwork> lfNetworks = Networks.load(network, parameters);
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(1, lfNetworks.size());
         Path file = fileSystem.getPath("/work/n2.json");
@@ -104,7 +104,7 @@ class LfNetworkTest extends AbstractConverterTest {
     @Test
     void getBranchByIdtest() {
         Network network = EurostagTutorialExample1Factory.create();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertNull(lfNetwork.getBranchById("AAA"));
@@ -114,7 +114,7 @@ class LfNetworkTest extends AbstractConverterTest {
     @Test
     void testDanglingLine() {
         Network network = DanglingLineNetworkFactory.create();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertFalse(lfNetwork.getBusById("DL_BUS").isDisabled());

@@ -35,6 +35,8 @@ public class PropagatedContingency {
 
     private final Set<String> generatorIdsToLose;
 
+    private final Set<String> loadIdsToLose;
+
     public Contingency getContingency() {
         return contingency;
     }
@@ -55,14 +57,20 @@ public class PropagatedContingency {
         return generatorIdsToLose;
     }
 
+    public Set<String> getLoadIdsToLose() {
+        return loadIdsToLose;
+    }
+
     public PropagatedContingency(Contingency contingency, int index, Set<String> branchIdsToOpen, Set<String> hvdcIdsToOpen,
-                                 Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect, Set<String> generatorIdsToLose) {
+                                 Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect, Set<String> generatorIdsToLose,
+                                 Set<String> loadIdsToLose) {
         this.contingency = Objects.requireNonNull(contingency);
         this.index = index;
         this.branchIdsToOpen = Objects.requireNonNull(branchIdsToOpen);
         this.hvdcIdsToOpen = Objects.requireNonNull(hvdcIdsToOpen);
         this.switchesToOpen = Objects.requireNonNull(switchesToOpen);
         this.generatorIdsToLose = Objects.requireNonNull(generatorIdsToLose);
+        this.loadIdsToLose = Objects.requireNonNull(loadIdsToLose);
 
         for (Switch sw : switchesToOpen) {
             branchIdsToOpen.add(sw.getId());
@@ -74,6 +82,9 @@ public class PropagatedContingency {
             }
             if (terminal.getConnectable() instanceof Generator) {
                 generatorIdsToLose.add(terminal.getConnectable().getId());
+            }
+            if (terminal.getConnectable() instanceof Load) {
+                loadIdsToLose.add(terminal.getConnectable().getId());
             }
         }
     }
@@ -112,6 +123,7 @@ public class PropagatedContingency {
         Set<String> branchIdsToOpen = new HashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
         Set<String> generatorIdsToLose = new HashSet<>();
+        Set<String> loadIdsToLose = new HashSet<>();
         for (ContingencyElement element : contingency.getElements()) {
             switch (element.getType()) {
                 case BRANCH:
@@ -142,13 +154,20 @@ public class PropagatedContingency {
                     }
                     generatorIdsToLose.add(element.getId());
                     break;
+                case LOAD:
+                    Load load = network.getLoad(element.getId());
+                    if (load == null) {
+                        throw new PowsyblException("Load '" + element.getId() + "' not found in the network");
+                    }
+                    loadIdsToLose.add(element.getId());
+                    break;
                 default:
                     //TODO: support all kinds of contingencies
                     throw new UnsupportedOperationException("TODO");
             }
         }
 
-        return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen, terminalsToDisconnect, generatorIdsToLose);
+        return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen, terminalsToDisconnect, generatorIdsToLose, loadIdsToLose);
     }
 
     private static boolean isCoupler(Switch s) {
@@ -160,6 +179,6 @@ public class PropagatedContingency {
         }
         Connectable<?> c1 = terminal1.getConnectable();
         Connectable<?> c2 = terminal2.getConnectable();
-        return c1 != c2 && c1.getType() == ConnectableType.BUSBAR_SECTION && c2.getType() == ConnectableType.BUSBAR_SECTION;
+        return c1 != c2 && c1.getType() == IdentifiableType.BUSBAR_SECTION && c2.getType() == IdentifiableType.BUSBAR_SECTION;
     }
 }
