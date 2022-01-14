@@ -162,7 +162,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         double distance = Math.abs(p - discretePhaseControl.getTargetValue()); // in per unit system
         if (distance > discretePhaseControl.getTargetDeadband() / 2) {
             LOGGER.warn("The active power on side {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
-                    discretePhaseControl.getControlledSide(), getId(), p,
+                    discretePhaseControl.getControlledSide(), getId(), Math.abs(p) * PerUnit.SB,
                     discretePhaseControl.getTargetValue() * PerUnit.SB, discretePhaseControl.getTargetDeadband() / 2 * PerUnit.SB);
         }
     }
