@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
@@ -857,12 +858,12 @@ class OpenSecurityAnalysisTest {
                 .setVoltageLevel2("VL2")
                 .setConnectableBus2("B2")
                 .setBus2("B2")
-                .setR(4.0D)
-                .setX(200.0D)
-                .setG1(0.0D)
-                .setB1(0.0D)
-                .setG2(0.0D)
-                .setB2(0.0D)
+                .setR(4.0)
+                .setX(200.0)
+                .setG1(0.0)
+                .setB1(0.0)
+                .setG2(0.0)
+                .setB2(0.0)
                 .add();
 
         network.newLine().setId("L4")
@@ -872,20 +873,21 @@ class OpenSecurityAnalysisTest {
                 .setVoltageLevel2("VL2")
                 .setConnectableBus2("B2")
                 .setBus2("B2")
-                .setR(4.0D)
-                .setX(200.0D)
-                .setG1(0.0D)
-                .setB1(0.0D)
-                .setG2(0.0D)
-                .setB2(0.0D)
+                .setR(4.0)
+                .setX(200.0)
+                .setG1(0.0)
+                .setB1(0.0)
+                .setG2(0.0)
+                .setB2(0.0)
                 .add();
 
-        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("PS1");
-        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+        ps1.getPhaseTapChanger()
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setTargetDeadband(1)
                 .setRegulating(true)
                 .setTapPosition(1)
-                .setRegulationTerminal(t2wt.getTerminal1())
+                .setRegulationTerminal(ps1.getTerminal1())
                 .setRegulationValue(83);
 
         LoadFlowParameters lfParameters = new LoadFlowParameters()
@@ -896,5 +898,20 @@ class OpenSecurityAnalysisTest {
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, lfParameters);
+
+        // pre-contingency tests
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(5.682, preContingencyResult.getPreContingencyBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(59.019, preContingencyResult.getPreContingencyBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(5.682, preContingencyResult.getPreContingencyBranchResult("L3").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(29.509, preContingencyResult.getPreContingencyBranchResult("L4").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(88.634, preContingencyResult.getPreContingencyBranchResult("PS1").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // post-contingency tests
+        PostContingencyResult ps1ContingencyResult = getPostContingencyResult(result, "PS1");
+        assertEquals(50, ps1ContingencyResult.getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, ps1ContingencyResult.getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER); // because no load on B3
+        assertEquals(50, ps1ContingencyResult.getBranchResult("L3").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, ps1ContingencyResult.getBranchResult("L4").getP1(), LoadFlowAssert.DELTA_POWER); // because no load on B3
     }
 }
