@@ -849,6 +849,37 @@ class OpenSecurityAnalysisTest {
     @Test
     void testWithPhaseControl() {
         Network network = PhaseControlFactory.createNetworkWithT2wt();
+
+        network.newLine().setId("L3")
+                .setVoltageLevel1("VL1")
+                .setConnectableBus1("B1")
+                .setBus1("B1")
+                .setVoltageLevel2("VL2")
+                .setConnectableBus2("B2")
+                .setBus2("B2")
+                .setR(4.0D)
+                .setX(200.0D)
+                .setG1(0.0D)
+                .setB1(0.0D)
+                .setG2(0.0D)
+                .setB2(0.0D)
+                .add();
+
+        network.newLine().setId("L4")
+                .setVoltageLevel1("VL3")
+                .setConnectableBus1("B3")
+                .setBus1("B3")
+                .setVoltageLevel2("VL2")
+                .setConnectableBus2("B2")
+                .setBus2("B2")
+                .setR(4.0D)
+                .setX(200.0D)
+                .setG1(0.0D)
+                .setB1(0.0D)
+                .setG2(0.0D)
+                .setB2(0.0D)
+                .add();
+
         TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("PS1");
         t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setTargetDeadband(1)
@@ -860,7 +891,7 @@ class OpenSecurityAnalysisTest {
         LoadFlowParameters lfParameters = new LoadFlowParameters()
                 .setPhaseShifterRegulationOn(true);
 
-        List<Contingency> contingencies = allBranches(network);
+        List<Contingency> contingencies = List.of(new Contingency("PS1", List.of(new BranchContingency("PS1")))); // allBranches(network);
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 

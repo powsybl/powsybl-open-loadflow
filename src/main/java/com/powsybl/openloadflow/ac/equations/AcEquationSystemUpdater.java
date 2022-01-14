@@ -95,6 +95,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             case BRANCH:
                 LfBranch branch = (LfBranch) element;
                 branch.getVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
+                branch.getDiscretePhaseControl().ifPresent(phaseControl -> onTransformerPhaseControlChange(branch, branch.isPhaseControlEnabled()));
                 break;
             case SHUNT_COMPENSATOR:
                 LfShunt shunt = (LfShunt) element;

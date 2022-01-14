@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.openloadflow.network.impl.AbstractLfBranch;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
