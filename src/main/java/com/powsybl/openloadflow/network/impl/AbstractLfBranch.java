@@ -129,11 +129,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public boolean isPhaseControlled(DiscretePhaseControl.ControlledSide controlledSide) {
-        return isPhaseControlled() && discretePhaseControl.getControlledSide() == controlledSide;
-    }
-
-    @Override
     public boolean isPhaseControlEnabled() {
         return phaseControlEnabled;
     }

@@ -97,8 +97,6 @@ public interface LfBranch extends LfElement {
 
     boolean isPhaseController();
 
-    boolean isPhaseControlled(DiscretePhaseControl.ControlledSide controlledSide);
-
     boolean isPhaseControlled();
 
     void setDiscretePhaseControl(DiscretePhaseControl discretePhaseControl);

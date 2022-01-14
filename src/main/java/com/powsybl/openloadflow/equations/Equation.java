@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -84,6 +85,10 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     public Equation<V, E> addTerm(EquationTerm<V, E> term) {
         Objects.requireNonNull(term);
+        if (term.getEquation() != null) {
+            throw new PowsyblException("Equation term already added to another equation: "
+                    + term.getEquation());
+        }
         terms.add(term);
         term.setEquation(this);
         equationSystem.addEquationTerm(term);
