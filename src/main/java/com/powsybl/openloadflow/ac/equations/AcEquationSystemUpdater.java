@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.network.*;
 
@@ -88,6 +89,9 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         switch (element.getType()) {
             case BUS:
                 LfBus bus = (LfBus) element;
+                if (disabled && bus.isSlack()) {
+                    throw new PowsyblException("Slack bus '" + bus.getId() + "' disabling is not supported");
+                }
                 bus.getVoltageControl().ifPresent(this::updateVoltageControl);
                 bus.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
                 bus.getShuntVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateShuntVoltageControlEquations(voltageControl, equationSystem));
