@@ -849,7 +849,6 @@ class OpenSecurityAnalysisTest {
     void testSaWithShuntContingency() {
         Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
         network.getShuntCompensatorStream().forEach(shuntCompensator -> {
-            shuntCompensator.setVoltageRegulatorOn(false);
             shuntCompensator.setSectionCount(10);
         });
 
