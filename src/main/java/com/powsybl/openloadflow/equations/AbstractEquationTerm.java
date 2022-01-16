@@ -19,6 +19,13 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
 
     private boolean active = true;
 
+    protected StateVector stateVector;
+
+    @Override
+    public void setStateVector(StateVector stateVector) {
+        this.stateVector = Objects.requireNonNull(stateVector);
+    }
+
     @Override
     public Equation<V, E> getEquation() {
         return equation;
@@ -46,5 +53,15 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     @Override
     public double calculateSensi(DenseMatrix x, int column) {
         throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @Override
+    public boolean hasRhs() {
+        return false;
+    }
+
+    @Override
+    public double rhs() {
+        return 0;
     }
 }

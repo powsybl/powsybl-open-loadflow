@@ -16,7 +16,7 @@ import java.util.Objects;
  */
 public class NewtonRaphsonParameters {
 
-    private static final int DEFAULT_MAX_ITERATION = 30;
+    public static final int DEFAULT_MAX_ITERATION = 30;
 
     private int maxIteration = DEFAULT_MAX_ITERATION;
 
@@ -26,13 +26,17 @@ public class NewtonRaphsonParameters {
         return maxIteration;
     }
 
-    private final NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
+    private NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
 
-    public NewtonRaphsonParameters setMaxIteration(int maxIteration) {
+    public static int checkMaxIteration(int maxIteration) {
         if (maxIteration < 1) {
             throw new IllegalArgumentException("Invalid max iteration value: " + maxIteration);
         }
-        this.maxIteration = maxIteration;
+        return maxIteration;
+    }
+
+    public NewtonRaphsonParameters setMaxIteration(int maxIteration) {
+        this.maxIteration =  checkMaxIteration(maxIteration);
         return this;
     }
 
@@ -47,6 +51,11 @@ public class NewtonRaphsonParameters {
 
     public NewtonRaphsonStoppingCriteria getStoppingCriteria() {
         return stoppingCriteria;
+    }
+
+    public NewtonRaphsonParameters setStoppingCriteria(NewtonRaphsonStoppingCriteria stoppingCriteria) {
+        this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
+        return this;
     }
 
     @Override

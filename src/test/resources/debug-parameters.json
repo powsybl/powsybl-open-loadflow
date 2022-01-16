@@ -8,7 +8,7 @@
     "noGeneratorReactiveLimits" : false,
     "twtSplitShuntAdmittance" : false,
     "simulShunt" : false,
-    "readSlackBus" : false,
+    "readSlackBus" : true,
     "writeSlackBus" : false,
     "dc" : true,
     "distributedSlack" : false,
@@ -26,7 +26,10 @@
         "plausibleActivePowerLimit" : 5000.0,
         "addRatioToLinesWithDifferentNominalVoltageAtBothEnds" : false,
         "slackBusPMaxMismatch" : 1.0,
-        "voltagePerReactivePowerControl" : false
+        "voltagePerReactivePowerControl" : false,
+        "maxIteration" : 30,
+        "newtonRaphsonConvEpsPerEq" : 1.0E-4,
+        "voltageInitModeOverride" : "NONE"
       }
     }
   },

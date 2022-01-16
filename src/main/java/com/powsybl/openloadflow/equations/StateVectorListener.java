@@ -9,8 +9,7 @@ package com.powsybl.openloadflow.equations;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public enum EquationUpdateType {
-    DEFAULT,
-    AFTER_NR,
-    NEVER
+public interface StateVectorListener {
+
+    void onStateUpdate();
 }

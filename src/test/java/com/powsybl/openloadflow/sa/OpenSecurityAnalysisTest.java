@@ -13,6 +13,7 @@ import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.iidm.network.Branch;
+import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
@@ -680,10 +681,10 @@ class OpenSecurityAnalysisTest {
     /**
      * Runs a security analysis with default parameters + most meshed slack bus selection
      */
-    private static SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors) {
+    private static SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
+                                                              LoadFlowParameters lfParameters) {
 
         SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
-        LoadFlowParameters lfParameters = new LoadFlowParameters();
         OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
             .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
         lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
@@ -703,31 +704,24 @@ class OpenSecurityAnalysisTest {
         return futureResult.join().getResult();
     }
 
+    private static SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors) {
+        return runSecurityAnalysis(network, contingencies, monitors, new LoadFlowParameters());
+    }
+
+    private static List<StateMonitor> createAllBranchesMonitors(Network network) {
+        Set<String> allBranchIds = network.getBranchStream().map(Identifiable::getId).collect(Collectors.toSet());
+        return List.of(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
+    }
+
     @Test
-    void testSAmodeACAllBranchMonitoredFlowTransfer() {
+    void testSaModeAcAllBranchMonitoredFlowTransfer() {
         Network network = FourBusNetworkFactory.create();
-        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
-        LoadFlowParameters lfParameters = new LoadFlowParameters();
-        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
-        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
-        saParameters.setLoadFlowParameters(lfParameters);
 
-        // Testing all contingencies at once
-        ContingenciesProvider contingenciesProvider = n -> n.getBranchStream()
-                .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
-                .collect(Collectors.toList());
+        List<Contingency> contingencies = allBranches(network);
 
-        Set<String> allBranchIds = network.getBranchStream().map(b -> b.getId()).collect(Collectors.toSet());
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
-        List<StateMonitor> monitors = new ArrayList<>();
-        monitors.add(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
-
-        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
-        CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network, network.getVariantManager().getWorkingVariantId(),
-                new DefaultLimitViolationDetector(), new LimitViolationFilter(), null, saParameters,
-                contingenciesProvider, Collections.emptyList(), monitors);
-        SecurityAnalysisResult result = futureResult.join().getResult();
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors);
 
         assertEquals(5, result.getPostContingencyResults().size());
 
@@ -754,5 +748,103 @@ class OpenSecurityAnalysisTest {
         BranchResult brl14l13 = postContl14.getBranchResult("l13");
         assertEquals(1.66, brl14l13.getP1(), 1e-2);
         assertEquals(0.66, brl14l13.getFlowTransfer(), 1e-2);
+    }
+
+    private static PostContingencyResult getPostContingencyResult(SecurityAnalysisResult result, String contingencyId) {
+        return result.getPostContingencyResults().stream()
+                .filter(r -> r.getContingency().getId().equals(contingencyId))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    @Test
+    void testSaWithRemoteSharedControl() {
+        Network network = VoltageControlNetworkFactory.createWithIdenticalTransformers();
+
+        List<Contingency> contingencies = allBranches(network);
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors);
+
+        // pre-contingency tests
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(-66.667, preContingencyResult.getPreContingencyBranchResult("tr1").getQ2(), 1e-2);
+        assertEquals(-66.667, preContingencyResult.getPreContingencyBranchResult("tr2").getQ2(), 1e-2);
+        assertEquals(-66.667, preContingencyResult.getPreContingencyBranchResult("tr3").getQ2(), 1e-2);
+
+        // post-contingency tests
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "tr1");
+        assertEquals(-99.999, postContingencyResult.getBranchResult("tr2").getQ2(), 1e-2);
+        assertEquals(-99.999, postContingencyResult.getBranchResult("tr3").getQ2(), 1e-2);
+    }
+
+    @Test
+    void testSaWithTransformerRemoteSharedControl() {
+        Network network = VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setTransformerVoltageControlOn(true);
+
+        List<Contingency> contingencies = allBranches(network);
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, lfParameters);
+        // pre-contingency tests
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(-0.659, preContingencyResult.getPreContingencyBranchResult("T2wT2").getQ1(), 1e-2);
+        assertEquals(-0.659, preContingencyResult.getPreContingencyBranchResult("T2wT").getQ1(), 1e-2);
+
+        // post-contingency tests
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "T2wT2");
+        assertEquals(-0.572, postContingencyResult.getBranchResult("T2wT").getQ1(), 1e-2); // this assertion is not so relevant. It is more relevant to look at the logs.
+    }
+
+    @Test
+    void testSaWithTransformerRemoteSharedControl2() {
+        Network network = VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setTransformerVoltageControlOn(true);
+
+        List<Contingency> contingencies = List.of(new Contingency("N-2", List.of(new BranchContingency("T2wT"), new BranchContingency("T2wT2"))));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, lfParameters);
+
+        // pre-contingency tests
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(-6.181, preContingencyResult.getPreContingencyBranchResult("LINE_12").getQ2(), 1e-2);
+
+        // post-contingency tests
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "N-2");
+        assertEquals(-7.499, postContingencyResult.getBranchResult("LINE_12").getQ2(), 1e-2);
+    }
+
+    @Test
+    void testSaWithShuntRemoteSharedControl() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setSimulShunt(true);
+
+        List<Contingency> contingencies = allBranches(network);
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, lfParameters);
+
+        // pre-contingency tests
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(-108.596, preContingencyResult.getPreContingencyBranchResult("tr1").getQ2(), 1e-2);
+        assertEquals(54.298, preContingencyResult.getPreContingencyBranchResult("tr2").getQ2(), 1e-2);
+        assertEquals(54.298, preContingencyResult.getPreContingencyBranchResult("tr3").getQ2(), 1e-2);
+
+        // post-contingency tests
+        PostContingencyResult tr2ContingencyResult = getPostContingencyResult(result, "tr2");
+        assertEquals(-107.543, tr2ContingencyResult.getBranchResult("tr1").getQ2(), 1e-2);
+        assertEquals(107.543, tr2ContingencyResult.getBranchResult("tr3").getQ2(), 1e-2);
     }
 }

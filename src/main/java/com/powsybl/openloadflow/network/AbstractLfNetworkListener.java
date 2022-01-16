@@ -22,7 +22,12 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onDiscreteVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode) {
+    public void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled) {
+        // empty
+    }
+
+    @Override
+    public void onShuntVoltageControlChange(LfShunt controllerShunt, boolean newVoltageControllerEnabled) {
         // empty
     }
 
@@ -48,6 +53,11 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
 
     @Override
     public void onDiscretePhaseControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition) {
+        // empty
+    }
+
+    @Override
+    public void onDisableChange(LfElement element, boolean disabled) {
         // empty
     }
 }

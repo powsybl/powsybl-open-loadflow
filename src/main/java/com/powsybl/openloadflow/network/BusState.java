@@ -12,19 +12,22 @@ package com.powsybl.openloadflow.network;
 public class BusState extends BusDcState {
 
     private final double angle;
+    private final double voltage;
     private final double loadTargetQ;
     private final double generationTargetQ;
-    private final boolean isVoltageControllerEnabled;
-    private final DiscreteVoltageControl.Mode discreteVoltageControlMode;
+    private final boolean voltageControlEnabled;
+    private final Boolean shuntVoltageControlEnabled;
     private final boolean disabled;
 
     public BusState(LfBus bus) {
         super(bus);
         this.angle = bus.getAngle();
+        this.voltage = bus.getV();
         this.loadTargetQ = bus.getLoadTargetQ();
         this.generationTargetQ = bus.getGenerationTargetQ();
-        this.isVoltageControllerEnabled = bus.isVoltageControllerEnabled();
-        discreteVoltageControlMode = bus.getDiscreteVoltageControl().map(DiscreteVoltageControl::getMode).orElse(null);
+        this.voltageControlEnabled = bus.isVoltageControlEnabled();
+        LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
+        shuntVoltageControlEnabled = controllerShunt != null ? controllerShunt.isVoltageControlEnabled() : null;
         this.disabled = bus.isDisabled();
     }
 
@@ -32,12 +35,13 @@ public class BusState extends BusDcState {
     public void restore() {
         super.restore();
         element.setAngle(angle);
+        element.setV(voltage);
         element.setLoadTargetQ(loadTargetQ);
         element.setGenerationTargetQ(generationTargetQ);
-        element.setVoltageControllerEnabled(isVoltageControllerEnabled);
+        element.setVoltageControlEnabled(voltageControlEnabled);
         element.setVoltageControlSwitchOffCount(0);
-        if (discreteVoltageControlMode != null) {
-            element.getDiscreteVoltageControl().ifPresent(control -> control.setMode(discreteVoltageControlMode));
+        if (shuntVoltageControlEnabled != null) {
+            element.getControllerShunt().orElseThrow().setVoltageControlEnabled(shuntVoltageControlEnabled);
         }
         element.setDisabled(disabled);
     }

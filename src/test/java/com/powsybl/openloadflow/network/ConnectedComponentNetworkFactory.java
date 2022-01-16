@@ -70,8 +70,8 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         createLine(network, b1, b2, "l12", 0.1f);
         createLine(network, b1, b3, "l13", 0.1f);
         createLine(network, b2, b3, "l23", 0.1f);
-        createLine(network, b3, b4, "l35", 0.1f);
-        createLine(network, b3, b4, "l24", 0.1f);
+        createLine(network, b3, b5, "l35", 0.1f);
+        createLine(network, b2, b4, "l24", 0.1f);
         createLine(network, b4, b5, "l45", 0.1f);
         createLine(network, b4, b6, "l46", 0.1f);
         createLine(network, b5, b6, "l56", 0.1f);

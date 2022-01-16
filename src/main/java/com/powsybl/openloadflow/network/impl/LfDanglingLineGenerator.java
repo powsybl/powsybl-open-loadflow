@@ -21,12 +21,12 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     private final DanglingLine danglingLine;
 
-    public LfDanglingLineGenerator(DanglingLine danglingLine, String controlledLfBusId, LfNetworkLoadingReport report) {
+    public LfDanglingLineGenerator(DanglingLine danglingLine, String controlledLfBusId, boolean reactiveLimits, LfNetworkLoadingReport report) {
         super(danglingLine.getGeneration().getTargetP());
         this.danglingLine = danglingLine;
 
         // local control only
-        if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(report)) {
+        if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(reactiveLimits, report)) {
             // The controlled bus cannot be reached from the DanglingLine parameters (there is no terminal in DanglingLine.Generation)
             this.controlledBusId = Objects.requireNonNull(controlledLfBusId);
             setTargetV(danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV(), report);

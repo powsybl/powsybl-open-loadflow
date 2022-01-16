@@ -14,6 +14,7 @@ public class BranchState extends ElementState<LfBranch> {
     private final double a1;
     private final double r1;
     private final DiscretePhaseControl.Mode discretePhaseControlMode;
+    private final boolean voltageControlEnabled;
     private final boolean disabled;
 
     public BranchState(LfBranch branch) {
@@ -22,6 +23,7 @@ public class BranchState extends ElementState<LfBranch> {
         a1 = piModel.getA1();
         r1 = piModel.getR1();
         discretePhaseControlMode = branch.getDiscretePhaseControl().map(DiscretePhaseControl::getMode).orElse(null);
+        voltageControlEnabled = branch.isVoltageControlEnabled();
         disabled = branch.isDisabled();
     }
 
@@ -33,6 +35,7 @@ public class BranchState extends ElementState<LfBranch> {
         if (discretePhaseControlMode != null) {
             element.getDiscretePhaseControl().ifPresent(control -> control.setMode(discretePhaseControlMode));
         }
+        element.setVoltageControlEnabled(voltageControlEnabled);
         element.setDisabled(disabled);
     }
 

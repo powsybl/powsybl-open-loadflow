@@ -20,4 +20,7 @@ public interface OuterLoop {
     }
 
     OuterLoopStatus check(OuterLoopContext context, Reporter reporter);
+
+    default void cleanup(LfNetwork network) {
+    }
 }

@@ -43,14 +43,12 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     protected AcSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
-                                MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider, List<StateMonitor> stateMonitors) {
+                                 MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider, List<StateMonitor> stateMonitors) {
         super(network, detector, filter, matrixFactory, connectivityProvider, stateMonitors);
     }
 
@@ -98,7 +96,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
         try {
             network.getSwitchStream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
-                   .forEach(sw -> sw.setRetained(false));
+                    .forEach(sw -> sw.setRetained(false));
             allSwitchesToOpen.forEach(sw -> sw.setRetained(true));
             lfNetworks = Networks.load(network, networkParameters, Reporter.NO_OP);
         } finally {
@@ -134,21 +132,19 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 // save base state for later restoration after each contingency
                 List<BusState> busStates = ElementState.save(network.getBuses(), BusState::save);
                 List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
-                for (LfBus bus : network.getBuses()) {
-                    bus.setVoltageControlSwitchOffCount(0);
-                }
 
                 // start a simulation for each of the contingency
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
+                GraphDecrementalConnectivity<LfBus> connectivity = network.createDecrementalConnectivity(connectivityProvider);
                 while (contingencyIt.hasNext()) {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
-                    LfContingency.create(propagatedContingency, network, network.createDecrementalConnectivity(connectivityProvider), true)
+                    LfContingency.create(propagatedContingency, network, connectivity, true)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
-                                for (LfBus bus : lfContingency.getBuses()) {
-                                    bus.setDisabled(true);
-                                }
                                 for (LfBranch branch : lfContingency.getBranches()) {
                                     branch.setDisabled(true);
+                                }
+                                for (LfBus bus : lfContingency.getBuses()) {
+                                    bus.setDisabled(true);
                                 }
 
                                 distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
@@ -219,10 +215,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         LOGGER.info("Post contingency '{}' simulation done in {} ms", lfContingency.getId(),
                 stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-        return new PostContingencyResult(contingency, postContingencyComputationOk, new ArrayList<>(postContingencyLimitViolations.values()),
-                branchResults.stream().collect(Collectors.toMap(BranchResult::getBranchId, Function.identity())),
-                busResults.stream().collect(Collectors.toMap(BusResults::getVoltageLevelId, Function.identity())),
-                threeWindingsTransformerResults.stream().collect(Collectors.toMap(ThreeWindingsTransformerResult::getThreeWindingsTransformerId,
-                        Function.identity())));
+        return new PostContingencyResult(contingency, new LimitViolationsResult(postContingencyComputationOk,
+                new ArrayList<>(postContingencyLimitViolations.values())), branchResults, busResults, threeWindingsTransformerResults);
     }
 }

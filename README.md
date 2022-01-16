@@ -62,17 +62,17 @@ capabilities:
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-iidm-impl</artifactId>
-    <version>4.1.0</version>
+    <version>4.5.1</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-ieee-cdf-converter</artifactId>
-    <version>4.1.0</version>
+    <version>4.5.1</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-config-classic</artifactId>
-    <version>4.1.0</version>
+    <version>4.5.1</version>
 </dependency>
 <dependency>
     <groupId>org.slf4j</groupId>
@@ -91,7 +91,7 @@ After adding a last Maven dependency on Open Load Flow implementation:
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>0.10.1</version>
+    <version>0.14.0</version>
 </dependency>
 ```
 

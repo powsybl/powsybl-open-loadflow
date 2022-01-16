@@ -88,11 +88,6 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         // nothing to do
     }
 
-    @Override
-    public void onStateUpdate(double[] x) {
-        // nothing to do
-    }
-
     public double[] toArray() {
         switch (status) {
             case VECTOR_INVALID:
