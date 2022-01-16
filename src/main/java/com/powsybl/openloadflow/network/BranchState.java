@@ -6,47 +6,40 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 /**
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
-public class BranchState {
+public class BranchState extends ElementState<LfBranch> {
+
     private final double a1;
     private final double r1;
+    private final DiscretePhaseControl.Mode discretePhaseControlMode;
+    private final boolean voltageControlEnabled;
     private final boolean disabled;
 
-    public BranchState(LfBranch b) {
-        PiModel piModel = b.getPiModel();
+    public BranchState(LfBranch branch) {
+        super(branch);
+        PiModel piModel = branch.getPiModel();
         a1 = piModel.getA1();
         r1 = piModel.getR1();
-        disabled = b.isDisabled();
+        discretePhaseControlMode = branch.getDiscretePhaseControl().map(DiscretePhaseControl::getMode).orElse(null);
+        voltageControlEnabled = branch.isVoltageControlEnabled();
+        disabled = branch.isDisabled();
     }
 
-    public void restoreBranchState(LfBranch branch) {
-        PiModel piModel = branch.getPiModel();
+    @Override
+    public void restore() {
+        PiModel piModel = element.getPiModel();
         piModel.setA1(a1);
         piModel.setR1(r1);
-        branch.setDisabled(disabled);
+        if (discretePhaseControlMode != null) {
+            element.getDiscretePhaseControl().ifPresent(control -> control.setMode(discretePhaseControlMode));
+        }
+        element.setVoltageControlEnabled(voltageControlEnabled);
+        element.setDisabled(disabled);
     }
 
-    /**
-     * Get the map of the states of given branches, indexed by the branch itself
-     * @param branches the bus for which the state is returned
-     * @return the map of the states of given branches, indexed by the branch itself
-     */
-    public static Map<LfBranch, BranchState> createBranchStates(Collection<LfBranch> branches) {
-        return branches.stream().collect(Collectors.toMap(Function.identity(), BranchState::new));
-    }
-
-    /**
-     * Set the branch states based on the given map of states
-     * @param branchStates the map containing the branches states, indexed by branches
-     */
-    public static void restoreBranchStates(Map<LfBranch, BranchState> branchStates) {
-        branchStates.forEach((b, state) -> state.restoreBranchState(b));
+    public static BranchState save(LfBranch branch) {
+        return new BranchState(branch);
     }
 }

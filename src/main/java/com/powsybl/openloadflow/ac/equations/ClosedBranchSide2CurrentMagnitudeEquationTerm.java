@@ -22,18 +22,6 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
  */
 public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
-    private double i2;
-
-    private double di2dv1;
-
-    private double di2dv2;
-
-    private double di2dph1;
-
-    private double di2dph2;
-
-    private double di2da1;
-
     public ClosedBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                          boolean deriveA1, boolean deriveR1) {
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
@@ -41,77 +29,103 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
 
     @Override
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
-        return di2dph1 * dph1 + di2dph2 * dph2 + di2dv1 * dv1 + di2dv2 * dv2;
+        return di2dph1() * dph1 + di2dph2() * dph2 + di2dv1() * dv1 + di2dv2() * dv2;
     }
 
-    @Override
-    public void update(double[] x) {
-        Objects.requireNonNull(x);
-        double v2 = x[v2Var.getRow()];
-        double v1 = x[v1Var.getRow()];
-        double ph2 = x[ph2Var.getRow()];
-        double ph1 = x[ph1Var.getRow()];
-        double r1 = r1Var != null ? x[r1Var.getRow()] : branch.getPiModel().getR1();
-        double a1 = a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1();
-        updateCurrent(v1, v2, ph1, ph2, r1, a1);
+    private double theta() {
+        return ksi + a1() - A2 + ph1();
     }
 
-    private void updateCurrent(double v1, double v2, double ph1, double ph2, double r1, double a1) {
-        double w2 = R2 * v2;
-        double w1 = y * r1 * v1;
-        double cosPh2 = FastMath.cos(ph2);
-        double sinPh2 = FastMath.sin(ph2);
-        double cosPh2Ksi = FastMath.cos(ph2 + ksi);
-        double sinPh2Ksi = FastMath.sin(ph2 + ksi);
-        double theta = ksi + a1 - A2 + ph1;
-        double sinTheta = FastMath.sin(theta);
-        double cosTheta = FastMath.cos(theta);
+    private double interReI2() {
+        return g2 * FastMath.cos(ph2()) - b2 * FastMath.sin(ph2()) + y * FastMath.sin(ph2() + ksi);
+    }
 
-        double interReI2 = g2 * cosPh2 - b2 * sinPh2 + y * sinPh2Ksi;
-        double interImI2 = g2 * sinPh2 + b2 * cosPh2 - y * cosPh2Ksi;
+    private double interImI2() {
+        return g2 * FastMath.sin(ph2()) + b2 * FastMath.cos(ph2()) - y * FastMath.cos(ph2() + ksi);
+    }
 
-        double reI2 = R2 * (w2 * interReI2 - w1 * sinTheta);
-        double imI2 = R2 * (w2 * interImI2 + w1 * cosTheta);
-        i2 = FastMath.hypot(reI2, imI2);
+    private double reI2() {
+        return R2 * (R2 * v2() * interReI2() - y * r1() * v1() * FastMath.sin(theta()));
+    }
 
-        double dreI2dv2 = R2 * R2 * interReI2;
-        double dreI2dv1 = R2 * (-y * r1 * sinTheta);
-        double dreI2dph2 = R2 * w2 * (-g2 * sinPh2 - b2 * cosPh2 + y * cosPh2Ksi);
-        double dreI2dph1 = R2 * (-w1 * cosTheta);
+    private double imI2() {
+        return R2 * (R2 * v2() * interImI2() + y * r1() * v1() * FastMath.cos(theta()));
+    }
 
-        double dimI2dv2 = R2 * R2 * interImI2;
-        double dimI2dv1 = R2 * (y * r1 * cosTheta);
-        double dimI2dph2 = R2 * w2 * interReI2;
-        double dimI2dph1 = R2 * (-w1 * sinTheta);
+    private double i2() {
+        return FastMath.hypot(reI2(), imI2());
+    }
 
-        di2dv2 = (reI2 * dreI2dv2 + imI2 * dimI2dv2) / i2;
-        di2dv1 = (reI2 * dreI2dv1 + imI2 * dimI2dv1) / i2;
-        di2dph2 = (reI2 * dreI2dph2 + imI2 * dimI2dph2) / i2;
-        di2dph1 = (reI2 * dreI2dph1 + imI2 * dimI2dph1) / i2;
+    private double dreI2dv2() {
+        return R2 * R2 * interReI2();
+    }
 
-        if (a1Var != null) {
-            di2da1 = -di2dph1;
-        }
+    private double dreI2dv1() {
+        return R2 * (-y * r1() * FastMath.sin(theta()));
+    }
+
+    private double dreI2dph2() {
+        return R2 * R2 * v2() * (-g2 * FastMath.sin(ph2()) - b2 * FastMath.cos(ph2()) + y * FastMath.cos(ph2() + ksi));
+    }
+
+    private double dreI2dph1() {
+        return R2 * (-y * r1() * v1() * FastMath.cos(theta()));
+    }
+
+    private double dimI2dv2() {
+        return R2 * R2 * interImI2();
+    }
+
+    private double dimI2dv1() {
+        return R2 * (y * r1() * FastMath.cos(theta()));
+    }
+
+    private double dimI2dph2() {
+        return R2 * R2 * v2() * interReI2();
+    }
+
+    private double dimI2dph1() {
+        return R2 * (-y * r1() * v1() * FastMath.sin(theta()));
+    }
+
+    private double di2dv2() {
+        return (reI2() * dreI2dv2() + imI2() * dimI2dv2()) / i2();
+    }
+
+    private double di2dv1() {
+        return (reI2() * dreI2dv1() + imI2() * dimI2dv1()) / i2();
+    }
+
+    private double di2dph2() {
+        return (reI2() * dreI2dph2() + imI2() * dimI2dph2()) / i2();
+    }
+
+    private double di2dph1() {
+        return (reI2() * dreI2dph1() + imI2() * dimI2dph1()) / i2();
+    }
+
+    private double di2da1() {
+        return -di2dph1();
     }
 
     @Override
     public double eval() {
-        return i2;
+        return i2();
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return di2dv1;
+            return di2dv1();
         } else if (variable.equals(v2Var)) {
-            return di2dv2;
+            return di2dv2();
         } else if (variable.equals(ph1Var)) {
-            return di2dph1;
+            return di2dph1();
         } else if (variable.equals(ph2Var)) {
-            return di2dph2;
+            return di2dph2();
         } else if (variable.equals(a1Var)) {
-            return di2da1;
+            return di2da1();
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

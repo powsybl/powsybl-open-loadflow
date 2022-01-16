@@ -11,11 +11,13 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractElement {
+public abstract class AbstractElement implements LfElement {
 
     protected final LfNetwork network;
 
     protected int num = -1;
+
+    protected boolean disabled = false;
 
     protected Object userObject;
 
@@ -29,6 +31,19 @@ public abstract class AbstractElement {
 
     public void setNum(int num) {
         this.num = num;
+    }
+
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    public void setDisabled(boolean disabled) {
+        if (disabled != this.disabled) {
+            this.disabled = disabled;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onDisableChange(this, disabled);
+            }
+        }
     }
 
     public LfNetwork getNetwork() {

@@ -78,7 +78,7 @@ public class DiscretePhaseControl {
             Mode oldMode = this.mode;
             this.mode = mode;
             for (LfNetworkListener listener : controller.getNetwork().getListeners()) {
-                listener.onPhaseControlModeChange(this, oldMode, mode);
+                listener.onDiscretePhaseControlModeChange(this, oldMode, mode);
             }
         }
     }

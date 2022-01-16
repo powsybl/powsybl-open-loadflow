@@ -6,77 +6,47 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class BusState {
+public class BusState extends BusDcState {
+
     private final double angle;
-    private final double loadTargetP;
+    private final double voltage;
     private final double loadTargetQ;
-    private final Map<String, Double> generatorsTargetP;
-    private final boolean disabled;
-    private final boolean isVoltageControllerEnabled;
     private final double generationTargetQ;
+    private final boolean voltageControlEnabled;
+    private final Boolean shuntVoltageControlEnabled;
+    private final boolean disabled;
 
-    public BusState(LfBus b) {
-        this.angle = b.getAngle();
-        this.loadTargetP = b.getLoadTargetP();
-        this.loadTargetQ = b.getLoadTargetQ();
-        this.generatorsTargetP = b.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
-        this.disabled = b.isDisabled();
-        this.isVoltageControllerEnabled = b.isVoltageControllerEnabled();
-        this.generationTargetQ = b.getGenerationTargetQ();
+    public BusState(LfBus bus) {
+        super(bus);
+        this.angle = bus.getAngle();
+        this.voltage = bus.getV();
+        this.loadTargetQ = bus.getLoadTargetQ();
+        this.generationTargetQ = bus.getGenerationTargetQ();
+        this.voltageControlEnabled = bus.isVoltageControlEnabled();
+        LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
+        shuntVoltageControlEnabled = controllerShunt != null ? controllerShunt.isVoltageControlEnabled() : null;
+        this.disabled = bus.isDisabled();
     }
 
-    public void restoreBusState(LfBus bus) {
-        restoreBusActiveState(bus);
-        bus.setLoadTargetQ(loadTargetQ);
-        bus.setGenerationTargetQ(generationTargetQ);
-        bus.setDisabled(disabled);
-        bus.setVoltageControllerEnabled(isVoltageControllerEnabled);
-        bus.setVoltageControlSwitchOffCount(0);
+    @Override
+    public void restore() {
+        super.restore();
+        element.setAngle(angle);
+        element.setV(voltage);
+        element.setLoadTargetQ(loadTargetQ);
+        element.setGenerationTargetQ(generationTargetQ);
+        element.setVoltageControlEnabled(voltageControlEnabled);
+        element.setVoltageControlSwitchOffCount(0);
+        if (shuntVoltageControlEnabled != null) {
+            element.getControllerShunt().orElseThrow().setVoltageControlEnabled(shuntVoltageControlEnabled);
+        }
+        element.setDisabled(disabled);
     }
 
-    public void restoreBusActiveState(LfBus bus) {
-        bus.setAngle(angle);
-        bus.setLoadTargetP(loadTargetP);
-        bus.getGenerators().forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
-    }
-
-    /**
-     * Get the map of the states of given buses, indexed by the bus itself
-     * @param buses the bus for which the state is returned
-     * @return the map of the states of given buses, indexed by the bus itself
-     */
-    public static Map<LfBus, BusState> createBusStates(Collection<LfBus> buses) {
-        Map<LfBus, BusState> busStates = new HashMap<>();
-        addBusStates(buses, busStates);
-        return busStates;
-    }
-
-    public static void addBusStates(Collection<LfBus> busesToSave, Map<LfBus, BusState> busStates) {
-        busesToSave.forEach(lfBus -> busStates.put(lfBus, new BusState(lfBus)));
-    }
-
-    /**
-     * Set the bus states based on the given map of states
-     * @param busStates the map containing the bus states, indexed by buses
-     */
-    public static void restoreBusStates(Map<LfBus, BusState> busStates) {
-        busStates.forEach((b, state) -> state.restoreBusState(b));
-    }
-
-    /**
-     * Set the bus states based on the given map of states
-     * @param busStates the map containing the bus states, indexed by buses
-     */
-    public static void restoreBusActiveStates(Map<LfBus, BusState> busStates) {
-        busStates.forEach((b, state) -> state.restoreBusActiveState(b));
+    public static BusState save(LfBus bus) {
+        return new BusState(bus);
     }
 }
-

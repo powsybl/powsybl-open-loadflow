@@ -32,6 +32,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
@@ -465,7 +467,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testHvdcSensi() {
-        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", false);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, List.of("b1_vl_0", "b4_vl_0"), false);
 
         // test injection increase on loads
         Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
@@ -559,7 +561,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testHvdcSensiVsc() {
-        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, List.of("b1_vl_0", "b4_vl_0"), true);
 
         // test injection increase on loads
         Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();

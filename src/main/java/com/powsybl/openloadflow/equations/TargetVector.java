@@ -74,7 +74,7 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
     }
 
     @Override
-    public void onPhaseControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition) {
+    public void onDiscretePhaseControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition) {
         invalidateValues();
     }
 
@@ -85,11 +85,6 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
 
     @Override
     public void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
-        // nothing to do
-    }
-
-    @Override
-    public void onStateUpdate(double[] x) {
         // nothing to do
     }
 

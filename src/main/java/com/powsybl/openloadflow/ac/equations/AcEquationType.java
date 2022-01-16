@@ -13,21 +13,21 @@ import com.powsybl.openloadflow.network.ElementType;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public enum AcEquationType implements Quantity {
-    BUS_P("p", ElementType.BUS),
-    BUS_I("b_i", ElementType.BUS),
-    BUS_Q("q", ElementType.BUS),
-    BUS_V("v", ElementType.BUS),
-    BUS_V_SLOPE("v_slope", ElementType.BUS),
-    BUS_PHI("\u03C6", ElementType.BUS),
-    BRANCH_P("t", ElementType.BRANCH),
-    BRANCH_I("i", ElementType.BRANCH),
-    BRANCH_Q("q", ElementType.BRANCH),
-    BRANCH_ALPHA1("\u03B1" + "1", ElementType.BRANCH),
-    BRANCH_RHO1("\u03C1" + "1", ElementType.BRANCH),
-    ZERO_Q("z_q", ElementType.BUS),
-    ZERO_V("z_v", ElementType.BRANCH),
-    ZERO_PHI("z_\u03C6", ElementType.BRANCH),
-    ZERO_RHO1("z_\u03C1", ElementType.BRANCH);
+    BUS_TARGET_P("bus_target_p", ElementType.BUS), // bus active power target
+    BUS_TARGET_Q("bus_target_q", ElementType.BUS), // bus reactive power target
+    BUS_TARGET_V("bus_target_v", ElementType.BUS), // bus voltage magnitude control
+    BUS_TARGET_V_WITH_SLOPE("bus_target_v_slope", ElementType.BUS), // V - slop * Q like bus voltage magnitude control
+    BUS_TARGET_PHI("bus_target_\u03C6", ElementType.BUS), // slack bus voltage angle target
+    SHUNT_TARGET_B("shunt_target_b", ElementType.SHUNT_COMPENSATOR), // shunt susceptance
+    BRANCH_TARGET_P("branch_target_p", ElementType.BRANCH), // phase shifter active flow control
+    BRANCH_TARGET_Q("branch_target_q", ElementType.BRANCH), // generator reactive power control
+    BRANCH_TARGET_ALPHA1("branch_target_\u03B1", ElementType.BRANCH), // phase shifter constant shift
+    BRANCH_TARGET_RHO1("branch_target_\u03C1", ElementType.BRANCH), // transformer constant voltage control
+    DISTR_Q("distr_q", ElementType.BUS), // remote voltage control reactive power distribution
+    ZERO_V("zero_v", ElementType.BRANCH), // zero impedance branch, voltage magnitude equality
+    ZERO_PHI("zero_\u03C6", ElementType.BRANCH), // zero impedance branch, voltage angle equality
+    DISTR_RHO("distr_\u03C1", ElementType.BRANCH), // remote transformer voltage control ratio distribution
+    DISTR_SHUNT_B("distr_b", ElementType.SHUNT_COMPENSATOR); // shunt remote voltage control susceptance distribution
 
     private final String symbol;
 

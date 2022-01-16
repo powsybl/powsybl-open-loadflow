@@ -28,6 +28,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -61,6 +62,8 @@ public class LfNetwork {
 
     private int shuntCount = 0;
 
+    private List<LfShunt> shuntsByIndex = new ArrayList<>();
+
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
     private boolean valid = true;
@@ -87,7 +90,9 @@ public class LfNetwork {
 
     public void updateSlack() {
         if (slackBus == null) {
-            slackBus = slackBusSelector.select(busesByIndex);
+            SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex);
+            slackBus = selectedSlackBus.getBus();
+            LOGGER.info("Network {}, slack bus is '{}' (method='{}')", this, slackBus.getId(), selectedSlackBus.getSelectionMethod());
             slackBus.setSlack(true);
         }
     }
@@ -126,9 +131,14 @@ public class LfNetwork {
         busesByIndex.add(bus);
         busesById.put(bus.getId(), bus);
         invalidateSlack();
-        for (LfShunt shunt : bus.getShunts()) {
+        bus.getShunt().ifPresent(shunt -> {
             shunt.setNum(shuntCount++);
-        }
+            shuntsByIndex.add(shunt);
+        });
+        bus.getControllerShunt().ifPresent(shunt -> {
+            shunt.setNum(shuntCount++);
+            shuntsByIndex.add(shunt);
+        });
     }
 
     public List<LfBus> getBuses() {
@@ -149,6 +159,10 @@ public class LfNetwork {
         return slackBus;
     }
 
+    public LfShunt getShunt(int num) {
+        return shuntsByIndex.get(num);
+    }
+
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
                             boolean transformerVoltageControlOn, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -158,9 +172,8 @@ public class LfNetwork {
             for (LfGenerator generator : bus.getGenerators()) {
                 generator.updateState();
             }
-            for (LfShunt shunt : bus.getShunts()) {
-                shunt.updateState();
-            }
+            bus.getShunt().ifPresent(LfShunt::updateState);
+            bus.getControllerShunt().ifPresent(LfShunt::updateState);
         }
         for (LfBranch branch : branches) {
             branch.updateState(phaseShifterRegulationOn, transformerVoltageControlOn);
@@ -191,7 +204,7 @@ public class LfNetwork {
             jsonGenerator.writeNumberField("loadTargetQ", bus.getLoadTargetQ());
         }
         bus.getVoltageControl().ifPresent(vc -> {
-            if (bus.isVoltageControllerEnabled()) {
+            if (bus.isVoltageControlEnabled()) {
                 try {
                     if (vc.getControlledBus() != bus) {
                         jsonGenerator.writeNumberField("remoteControlTargetBus", vc.getControlledBus().getNum());
@@ -202,9 +215,8 @@ public class LfNetwork {
                 }
             }
         });
-        Double v = bus.getV().eval();
-        if (!Double.isNaN(v)) {
-            jsonGenerator.writeNumberField("v", v);
+        if (!Double.isNaN(bus.getV())) {
+            jsonGenerator.writeNumberField("v", bus.getV());
         }
         if (!Double.isNaN(bus.getAngle())) {
             jsonGenerator.writeNumberField("angle", bus.getAngle());
@@ -293,19 +305,18 @@ public class LfNetwork {
 
                 writeJson(bus, jsonGenerator);
 
-                List<LfShunt> sortedShunts = bus.getShunts().stream().sorted(Comparator.comparing(LfShunt::getId)).collect(Collectors.toList());
-                if (!sortedShunts.isEmpty()) {
-                    jsonGenerator.writeFieldName("shunts");
-                    jsonGenerator.writeStartArray();
-                    for (LfShunt shunt : sortedShunts) {
+                bus.getShunt().ifPresent(shunt -> {
+                    try {
+                        jsonGenerator.writeFieldName("shunt");
                         jsonGenerator.writeStartObject();
 
                         writeJson(shunt, jsonGenerator);
 
                         jsonGenerator.writeEndObject();
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
                     }
-                    jsonGenerator.writeEndArray();
-                }
+                });
 
                 List<LfGenerator> sortedGenerators = bus.getGenerators().stream().sorted(Comparator.comparing(LfGenerator::getId)).collect(Collectors.toList());
                 if (!sortedGenerators.isEmpty()) {
@@ -344,30 +355,16 @@ public class LfNetwork {
     }
 
     private void reportSize(Reporter reporter) {
-        int remoteControlledBusCount = 0;
-        int remoteControllerBusCount = 0;
-        for (LfBus b : busesById.values()) {
-            // To avoid counting the local voltage controls we check that the voltage controller is not also voltage controlled
-            if (b.isVoltageControllerEnabled() && !b.isVoltageControlled()) {
-                remoteControllerBusCount++;
-            }
-            // Similarly, to avoid counting the local voltage controls we check that the voltage controlled is not also voltage controller
-            if (b.isVoltageControlled() && !b.isVoltageControllerEnabled()) {
-                remoteControlledBusCount++;
-            }
-        }
         reporter.report(Report.builder()
             .withKey("networkSize")
-            .withDefaultMessage("Network CC${numNetworkCc} SC${numNetworkSc} has ${nbBuses} buses (voltage remote control: ${nbRemoteControllerBuses} controllers, ${nbRemoteControlledBuses} controlled) and ${nbBranches} branches")
+            .withDefaultMessage("Network CC${numNetworkCc} SC${numNetworkSc} has ${busCount} buses and ${branchCount} branches")
             .withValue("numNetworkCc", numCC)
             .withValue("numNetworkSc", numSC)
-            .withValue("nbBuses", busesById.values().size())
-            .withValue("nbRemoteControllerBuses", remoteControllerBusCount)
-            .withValue("nbRemoteControlledBuses", remoteControlledBusCount)
-            .withValue("nbBranches", branches.size())
+            .withValue("busCount", busesById.values().size())
+            .withValue("branchCount", branches.size())
             .build());
-        LOGGER.info("Network {} has {} buses (voltage remote control: {} controllers, {} controlled) and {} branches",
-            this, busesById.values().size(), remoteControllerBusCount, remoteControlledBusCount, branches.size());
+        LOGGER.info("Network {} has {} buses and {} branches",
+            this, busesById.values().size(), branches.size());
     }
 
     public void reportBalance(Reporter reporter) {
@@ -396,9 +393,9 @@ public class LfNetwork {
             this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
-    private static void fix(LfNetwork network, boolean minImpedance) {
+    public void fix(boolean minImpedance) {
         if (minImpedance) {
-            for (LfBranch branch : network.getBranches()) {
+            for (LfBranch branch : branches) {
                 PiModel piModel = branch.getPiModel();
                 if (piModel.setMinZ(LOW_IMPEDANCE_THRESHOLD)) {
                     LOGGER.trace("Branch {} has a low impedance, set to min {}", branch.getId(), LOW_IMPEDANCE_THRESHOLD);
@@ -407,11 +404,31 @@ public class LfNetwork {
         }
     }
 
-    private static void validate(LfNetwork network, boolean minImpedance) {
+    private void validateBuses(Reporter reporter) {
+        boolean hasAtLeastOneBusVoltageControlled = false;
+        for (LfBus bus : busesByIndex) {
+            if (bus.isVoltageControlled()) {
+                hasAtLeastOneBusVoltageControlled = true;
+                break;
+            }
+        }
+        if (!hasAtLeastOneBusVoltageControlled) {
+            LOGGER.error("Network {} must have at least one bus voltage controlled", this);
+            reporter.report(Report.builder()
+                    .withKey("networkMustHaveAtLEastOneBusVoltageControlled")
+                    .withDefaultMessage("Network CC${numNetworkCc} SC${numNetworkSc} must have at least one bus voltage controlled")
+                    .withValue("numNetworkCc", numCC)
+                    .withValue("numNetworkSc", numSC)
+                    .build());
+            valid = false;
+        }
+    }
+
+    private void validateBranches(boolean minImpedance) {
         if (minImpedance) {
             return;
         }
-        for (LfBranch branch : network.getBranches()) {
+        for (LfBranch branch : branches) {
             PiModel piModel = branch.getPiModel();
             if (Math.abs(piModel.getZ()) < LOW_IMPEDANCE_THRESHOLD) { // will be transformed to non impedant branch
                 LfBus bus1 = branch.getBus1();
@@ -420,15 +437,21 @@ public class LfNetwork {
                 if (bus1 != null && bus2 != null) {
                     Optional<VoltageControl> vc1 = bus1.getVoltageControl();
                     Optional<VoltageControl> vc2 = bus2.getVoltageControl();
-                    if (vc1.isPresent() && vc2.isPresent() && bus1.isVoltageControllerEnabled() && bus2.isVoltageControllerEnabled()
+                    if (vc1.isPresent() && vc2.isPresent() && bus1.isVoltageControlEnabled() && bus2.isVoltageControlEnabled()
                         && FastMath.abs((vc1.get().getTargetValue() / vc2.get().getTargetValue()) - piModel.getR1() / PiModel.R2) > TARGET_VOLTAGE_EPSILON) {
                         throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
-                            + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
-                            + vc1.get().getTargetValue() + " and " + vc2.get().getTargetValue());
+                                + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
+                                + vc1.get().getTargetValue() + " and " + vc2.get().getTargetValue());
                     }
                 }
             }
         }
+    }
+
+    public void validate(boolean minImpedance, Reporter reporter) {
+        valid = true;
+        validateBuses(reporter);
+        validateBranches(minImpedance);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector) {
@@ -452,10 +475,12 @@ public class LfNetwork {
             Reporter reporterNetwork = reporter.createSubReporter("postLoading", "Post loading process on network CC${numNetworkCc} SC${numNetworkSc}",
                 Map.of("numNetworkCc", new TypedValue(lfNetwork.getNumCC(), TypedValue.UNTYPED),
                     "numNetworkSc", new TypedValue(lfNetwork.getNumSC(), TypedValue.UNTYPED)));
-            fix(lfNetwork, parameters.isMinImpedance());
-            validate(lfNetwork, parameters.isMinImpedance());
-            lfNetwork.reportSize(reporterNetwork);
-            lfNetwork.reportBalance(reporterNetwork);
+            lfNetwork.fix(parameters.isMinImpedance());
+            lfNetwork.validate(parameters.isMinImpedance(), reporterNetwork);
+            if (lfNetwork.isValid()) {
+                lfNetwork.reportSize(reporterNetwork);
+                lfNetwork.reportBalance(reporterNetwork);
+            }
         }
         return lfNetworks;
     }
@@ -466,10 +491,16 @@ public class LfNetwork {
      * @return the zero-impedance subgraph
      */
     public Graph<LfBus, LfBranch> createZeroImpedanceSubGraph() {
+        return createSubGraph(branch -> LfNetwork.isZeroImpedanceBranch(branch)
+                && branch.getBus1() != null && branch.getBus2() != null);
+    }
+
+    public Graph<LfBus, LfBranch> createSubGraph(Predicate<LfBranch> branchFilter) {
+        Objects.requireNonNull(branchFilter);
+
         List<LfBranch> zeroImpedanceBranches = getBranches().stream()
-            .filter(LfNetwork::isZeroImpedanceBranch)
-            .filter(b -> b.getBus1() != null && b.getBus2() != null)
-            .collect(Collectors.toList());
+                .filter(branchFilter)
+                .collect(Collectors.toList());
 
         Graph<LfBus, LfBranch> subGraph = new Pseudograph<>(LfBranch.class);
         for (LfBranch branch : zeroImpedanceBranches) {
@@ -478,7 +509,7 @@ public class LfNetwork {
             subGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
         }
 
-        return  subGraph;
+        return subGraph;
     }
 
     public static boolean isZeroImpedanceBranch(LfBranch branch) {
@@ -507,10 +538,6 @@ public class LfNetwork {
 
     public boolean isValid() {
         return valid;
-    }
-
-    public void setValid(boolean valid) {
-        this.valid = valid;
     }
 
     public Object getUserObject() {

@@ -50,13 +50,17 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
     protected final SensitivityAnalysis.Runner sensiRunner = new SensitivityAnalysis.Runner(sensiProvider);
 
     protected static SensitivityAnalysisParameters createParameters(boolean dc, String slackBusId, boolean distributedSlack) {
+        return createParameters(dc, List.of(slackBusId), distributedSlack);
+    }
+
+    protected static SensitivityAnalysisParameters createParameters(boolean dc, List<String> slackBusesIds, boolean distributedSlack) {
         SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
         LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
         lfParameters.setDc(dc);
         lfParameters.setDistributedSlack(distributedSlack);
         OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
-                .setSlackBusId(slackBusId);
+                .setSlackBusesIds(slackBusesIds);
         lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
         return sensiParameters;
     }
