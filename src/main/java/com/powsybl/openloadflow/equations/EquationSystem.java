@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.util.*;
@@ -344,11 +345,17 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         listeners.forEach(listener -> listener.onEquationTermChange(term, eventType));
     }
 
-    public void write(Writer writer) {
+    public void write(Writer writer, boolean writeInactiveEquations) {
         try {
-            for (Equation<V, E> equation : getSortedEquationsToSolve().navigableKeySet()) {
-                if (equation.isActive()) {
-                    equation.write(writer);
+            for (Equation<V, E> equation : equations.values().stream().sorted().collect(Collectors.toList())) {
+                if (writeInactiveEquations || equation.isActive()) {
+                    if (!equation.isActive()) {
+                        writer.write("[ ");
+                    }
+                    equation.write(writer, writeInactiveEquations);
+                    if (!equation.isActive()) {
+                        writer.write(" ]");
+                    }
                     writer.write(System.lineSeparator());
                 }
             }
@@ -356,6 +363,20 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    public String writeToString(boolean writeInactiveEquations) {
+        try (StringWriter writer = new StringWriter()) {
+            write(writer, writeInactiveEquations);
+            writer.flush();
+            return writer.toString();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    public String writeToString() {
+        return writeToString(false);
     }
 
     public List<Pair<Equation<V, E>, Double>> findLargestMismatches(double[] mismatch, int count) {
