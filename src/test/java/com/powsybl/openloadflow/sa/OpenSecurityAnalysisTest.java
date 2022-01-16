@@ -875,4 +875,23 @@ class OpenSecurityAnalysisTest {
         PostContingencyResult tr3ContingencyResult = getPostContingencyResult(result, "tr3");
         assertEquals(42.914, tr3ContingencyResult.getBranchResult("tr2").getQ2(), 1e-2);
     }
+
+    @Test
+    void testSaWithShuntContingency2() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+        network.getShuntCompensatorStream().forEach(shuntCompensator -> {
+            shuntCompensator.setSectionCount(10);
+        });
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        lfParameters.setSimulShunt(true);
+
+        List<Contingency> contingencies = List.of(new Contingency("SHUNT2", new ShuntCompensatorContingency("SHUNT2")),
+                new Contingency("tr3", new BranchContingency("tr3")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, lfParameters));
+        assertEquals("Shunt compensator 'SHUNT2' with voltage control on: not supported yet", exception.getCause().getMessage());
+    }
 }
