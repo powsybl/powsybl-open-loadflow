@@ -28,7 +28,6 @@ import com.powsybl.security.results.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -86,22 +85,22 @@ class OpenSecurityAnalysisTest {
      */
     private static SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
                                                               LoadFlowParameters lfParameters) {
-
         SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
         saParameters.setLoadFlowParameters(lfParameters);
 
         ContingenciesProvider provider = n -> contingencies;
-        OpenSecurityAnalysisProvider osaProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
-        CompletableFuture<SecurityAnalysisReport> futureResult = osaProvider.run(network,
-                network.getVariantManager().getWorkingVariantId(),
-                new DefaultLimitViolationDetector(),
-                new LimitViolationFilter(),
-                null,
-                saParameters,
-                provider,
-                Collections.emptyList(),
-                monitors);
-        return futureResult.join().getResult();
+        var saProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
+        SecurityAnalysisReport report = saProvider.run(network,
+                                                       network.getVariantManager().getWorkingVariantId(),
+                                                       new DefaultLimitViolationDetector(),
+                                                       new LimitViolationFilter(),
+                                                       null,
+                                                       saParameters,
+                                                       provider,
+                                                       Collections.emptyList(),
+                                                       monitors)
+                .join();
+        return report.getResult();
     }
 
     private static SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors) {
