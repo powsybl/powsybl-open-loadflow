@@ -150,14 +150,20 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return c;
     }
 
-    public void write(Writer writer) throws IOException {
+    public void write(Writer writer, boolean writeInactiveTerms) throws IOException {
         writer.append(type.getSymbol())
                 .append(Integer.toString(elementNum))
                 .append(" = ");
-        List<EquationTerm<V, E>> activeTerms = terms.stream().filter(EquationTerm::isActive).collect(Collectors.toList());
+        List<EquationTerm<V, E>> activeTerms = writeInactiveTerms ? terms : terms.stream().filter(EquationTerm::isActive).collect(Collectors.toList());
         for (Iterator<EquationTerm<V, E>> it = activeTerms.iterator(); it.hasNext();) {
             EquationTerm<V, E> term = it.next();
+            if (!term.isActive()) {
+                writer.write("[ ");
+            }
             term.write(writer);
+            if (!term.isActive()) {
+                writer.write(" ]");
+            }
             if (it.hasNext()) {
                 writer.append(" + ");
             }
