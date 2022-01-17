@@ -98,10 +98,14 @@ public class PropagatedContingency {
             }
             if (terminal.getConnectable() instanceof ShuntCompensator) {
                 ShuntCompensator shuntCompensator = (ShuntCompensator) terminal.getConnectable();
-                Double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
-                shuntIdsToLose.add(Pair.of(shuntCompensator.getId(), shuntCompensator.getB() * nominalV * nominalV / PerUnit.SB));
+                shuntIdsToLose.add(getShuntCompensatorPair(shuntCompensator));
             }
         }
+    }
+
+    private static Pair<String, Double> getShuntCompensatorPair(ShuntCompensator shuntCompensator) {
+        Double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
+        return Pair.of(shuntCompensator.getId(), shuntCompensator.getB() * nominalV * nominalV / PerUnit.SB);
     }
 
     public static List<PropagatedContingency> createListForSensitivityAnalysis(Network network, List<Contingency> contingencies) {
@@ -186,8 +190,7 @@ public class PropagatedContingency {
                     if (lfParameters.isSimulShunt() && shuntCompensator.isVoltageRegulatorOn()) {
                         throw new UnsupportedOperationException("Shunt compensator '" + element.getId() + "' with voltage control on: not supported yet");
                     }
-                    Double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
-                    shuntIdsToLose.add(Pair.of(shuntCompensator.getId(), shuntCompensator.getB() * nominalV * nominalV / PerUnit.SB));
+                    shuntIdsToLose.add(getShuntCompensatorPair(shuntCompensator));
                     break;
                 default:
                     //TODO: support all kinds of contingencies
