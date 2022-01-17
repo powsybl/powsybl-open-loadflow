@@ -7,9 +7,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.contingency.*;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Identifiable;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -717,6 +715,74 @@ class OpenSecurityAnalysisTest {
         PostContingencyResult tr2ContingencyResult = getPostContingencyResult(result, "tr2");
         assertEquals(-107.543, tr2ContingencyResult.getBranchResult("tr1").getQ2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(107.543, tr2ContingencyResult.getBranchResult("tr3").getQ2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testWithPhaseControl() {
+        Network network = PhaseControlFactory.createNetworkWithT2wt();
+
+        network.newLine().setId("L3")
+                .setVoltageLevel1("VL1")
+                .setConnectableBus1("B1")
+                .setBus1("B1")
+                .setVoltageLevel2("VL2")
+                .setConnectableBus2("B2")
+                .setBus2("B2")
+                .setR(4.0)
+                .setX(200.0)
+                .setG1(0.0)
+                .setB1(0.0)
+                .setG2(0.0)
+                .setB2(0.0)
+                .add();
+
+        network.newLine().setId("L4")
+                .setVoltageLevel1("VL3")
+                .setConnectableBus1("B3")
+                .setBus1("B3")
+                .setVoltageLevel2("VL2")
+                .setConnectableBus2("B2")
+                .setBus2("B2")
+                .setR(4.0)
+                .setX(200.0)
+                .setG1(0.0)
+                .setB1(0.0)
+                .setG2(0.0)
+                .setB2(0.0)
+                .add();
+
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+        ps1.getPhaseTapChanger()
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(ps1.getTerminal1())
+                .setRegulationValue(83);
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setPhaseShifterRegulationOn(true);
+
+        List<Contingency> contingencies = List.of(new Contingency("PS1", List.of(new BranchContingency("PS1")))); // allBranches(network);
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, lfParameters);
+
+        // pre-contingency tests
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(5.682, preContingencyResult.getPreContingencyBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(59.019, preContingencyResult.getPreContingencyBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(5.682, preContingencyResult.getPreContingencyBranchResult("L3").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(29.509, preContingencyResult.getPreContingencyBranchResult("L4").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(88.634, preContingencyResult.getPreContingencyBranchResult("PS1").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // post-contingency tests
+        PostContingencyResult ps1ContingencyResult = getPostContingencyResult(result, "PS1");
+        assertEquals(50, ps1ContingencyResult.getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, ps1ContingencyResult.getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER); // because no load on B3
+        assertEquals(50, ps1ContingencyResult.getBranchResult("L3").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, ps1ContingencyResult.getBranchResult("L4").getP1(), LoadFlowAssert.DELTA_POWER); // because no load on B3
     }
 
     @Test
