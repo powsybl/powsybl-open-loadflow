@@ -520,20 +520,20 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             LfBranch controlledBranch = lfNetwork.getBranchById(controlledBranchId);
             if (controlledBranch == null) {
-                LOGGER.warn("Phase controlled branch {} is out of voltage or in a different synchronous component: phase control discarded", controlledBranchId);
+                LOGGER.warn("Phase controlled branch '{}' is out of voltage or in a different synchronous component: phase control discarded", controlledBranchId);
                 return;
             }
             if (controlledBranch.getBus1() == null || controlledBranch.getBus2() == null) {
-                LOGGER.warn("Phase controlled branch {} is open: phase control discarded", controlledBranch.getId());
+                LOGGER.warn("Phase controlled branch '{}' is open: phase control discarded", controlledBranch.getId());
                 return;
             }
             LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId + legId);
             if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
-                LOGGER.warn("Phase controller branch {} is open: phase control discarded", controllerBranch.getId());
+                LOGGER.warn("Phase controller branch '{}' is open: phase control discarded", controllerBranch.getId());
                 return;
             }
             if (ptc.getRegulationTerminal().getBusView().getBus() == null) {
-                LOGGER.warn("Regulating terminal of phase controller branch {} is out of voltage: phase control discarded", controllerBranch.getId());
+                LOGGER.warn("Regulating terminal of phase controller branch '{}' is out of voltage: phase control discarded", controllerBranch.getId());
                 return;
             }
             LfBus controlledBus = getLfBus(ptc.getRegulationTerminal(), lfNetwork, breakers);
@@ -572,16 +572,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
         LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId);
         if (controllerBranch.getBus1() == null || controllerBranch.getBus2() == null) {
-            LOGGER.warn("Voltage controller branch {} is open: voltage control discarded", controllerBranch.getId());
+            LOGGER.warn("Voltage controller branch '{}' is open: voltage control discarded", controllerBranch.getId());
             return;
         }
         LfBus controlledBus = getLfBus(rtc.getRegulationTerminal(), lfNetwork, breakers);
         if (controlledBus == null) {
-            LOGGER.warn("Regulating terminal of voltage controller branch {} is out of voltage or in a different synchronous component: voltage control discarded", controllerBranch.getId());
+            LOGGER.warn("Regulating terminal of voltage controller branch '{}' is out of voltage or in a different synchronous component: voltage control discarded", controllerBranch.getId());
             return;
         }
         if (controlledBus.isVoltageControlled()) {
-            LOGGER.warn("Controlled bus {} has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
+            LOGGER.warn("Controlled bus '{}' has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
             return;
         }
 
@@ -591,9 +591,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         controllerBranch.setVoltageControlEnabled(true);
 
         controlledBus.getTransformerVoltageControl().ifPresentOrElse(vc -> {
-            LOGGER.trace("Controlled bus {} already has a transformer voltage control: a shared control is created", controlledBus.getId());
+            LOGGER.trace("Controlled bus '{}' already has a transformer voltage control: a shared control is created", controlledBus.getId());
             if (FastMath.abs(vc.getTargetValue() - targetValue) > TARGET_V_EPSILON) {
-                LOGGER.warn("Controlled bus {} already has a transformer voltage control with a different target voltage: {} and {}",
+                LOGGER.warn("Controlled bus '{}' already has a transformer voltage control with a different target voltage: {} and {}",
                         controlledBus.getId(), vc.getTargetValue(), targetValue);
             }
             vc.addController(controllerBranch);
@@ -755,6 +755,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
         if (report.nonImpedantBranches > 0) {
             LOGGER.warn("Network {}: {} branches are non impedant", lfNetwork, report.nonImpedantBranches);
+        }
+
+        if (report.generatorsWithInconsistentTargetVoltage > 0) {
+            LOGGER.warn("Network {}: {} generators have an inconsistent target voltage and have been limited to a min/max value",
+                    lfNetwork, report.generatorsWithInconsistentTargetVoltage);
         }
 
         return lfNetwork;
