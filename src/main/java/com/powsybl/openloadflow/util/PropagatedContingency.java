@@ -10,7 +10,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.PerUnit;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -108,7 +107,7 @@ public class PropagatedContingency {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
-            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, null);
+            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false);
             Optional<Switch> coupler = propagatedContingency.switchesToOpen.stream().filter(PropagatedContingency::isCoupler).findFirst();
             if (coupler.isEmpty()) {
                 propagatedContingencies.add(propagatedContingency);
@@ -122,18 +121,18 @@ public class PropagatedContingency {
     }
 
     public static List<PropagatedContingency> createListForSecurityAnalysis(Network network, List<Contingency> contingencies,
-                                                                            Set<Switch> allSwitchesToOpen, LoadFlowParameters lfParameters) {
+                                                                            Set<Switch> allSwitchesToOpen, boolean shuntCompensatorVoltageControlOn) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
-            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, lfParameters);
+            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn);
             propagatedContingencies.add(propagatedContingency);
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
         }
         return propagatedContingencies;
     }
 
-    private static PropagatedContingency create(Network network, Contingency contingency, int index, LoadFlowParameters lfParameters) {
+    private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean shuntCompensatorVoltageControlOn) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
         Set<String> branchIdsToOpen = new HashSet<>();
@@ -183,7 +182,7 @@ public class PropagatedContingency {
                     if (shuntCompensator == null) {
                         throw new PowsyblException("Shunt compensator '" + element.getId() + "' not found in the network");
                     }
-                    if (lfParameters.isSimulShunt() && shuntCompensator.isVoltageRegulatorOn()) {
+                    if (shuntCompensatorVoltageControlOn && shuntCompensator.isVoltageRegulatorOn()) {
                         throw new UnsupportedOperationException("Shunt compensator '" + element.getId() + "' with voltage control on: not supported yet");
                     }
                     Double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
