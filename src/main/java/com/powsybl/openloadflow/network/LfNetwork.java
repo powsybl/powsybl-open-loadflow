@@ -64,6 +64,8 @@ public class LfNetwork {
 
     private List<LfShunt> shuntsByIndex = new ArrayList<>();
 
+    private Map<String, LfShunt> shuntsById = new HashMap<>();
+
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
     private boolean valid = true;
@@ -134,10 +136,12 @@ public class LfNetwork {
         bus.getShunt().ifPresent(shunt -> {
             shunt.setNum(shuntCount++);
             shuntsByIndex.add(shunt);
+            shunt.getIds().stream().forEach(id -> shuntsById.put(id, shunt));
         });
         bus.getControllerShunt().ifPresent(shunt -> {
             shunt.setNum(shuntCount++);
             shuntsByIndex.add(shunt);
+            shunt.getIds().stream().forEach(id -> shuntsById.put(id, shunt));
         });
     }
 
@@ -161,6 +165,11 @@ public class LfNetwork {
 
     public LfShunt getShunt(int num) {
         return shuntsByIndex.get(num);
+    }
+
+    public LfShunt getShuntById(String id) {
+        Objects.requireNonNull(id);
+        return shuntsById.get(id);
     }
 
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,

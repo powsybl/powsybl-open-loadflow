@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.util.PropagatedContingency;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -33,13 +34,16 @@ public class LfContingency {
 
     private final Set<LfBranch> branches;
 
+    private final Set<Pair<LfShunt, Double>> shunts;
+
     private double activePowerLoss;
 
-    public LfContingency(String id, int index, Set<LfBus> buses, Set<LfBranch> branches) {
+    public LfContingency(String id, int index, Set<LfBus> buses, Set<LfBranch> branches, Set<Pair<LfShunt, Double>> shunts) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
         this.buses = Objects.requireNonNull(buses);
         this.branches = Objects.requireNonNull(branches);
+        this.shunts = Objects.requireNonNull(shunts);
         double lose = 0;
         for (LfBus bus : buses) {
             lose += bus.getGenerationTargetP() - bus.getLoadTargetP();
@@ -63,6 +67,10 @@ public class LfContingency {
         return branches;
     }
 
+    public Set<Pair<LfShunt, Double>> getShunts() {
+        return shunts;
+    }
+
     public double getActivePowerLoss() {
         return activePowerLoss;
     }
@@ -79,7 +87,7 @@ public class LfContingency {
         }
 
         // check if contingency split this network into multiple components
-        if (branches.isEmpty()) {
+        if (branches.isEmpty() && propagatedContingency.getShuntIdsToLose().isEmpty()) {
             return Optional.empty();
         }
 
@@ -99,10 +107,18 @@ public class LfContingency {
         }
         buses.forEach(b -> branches.addAll(b.getBranches()));
 
+        Set<Pair<LfShunt, Double>> shunts = new HashSet<>(1);
+        for (Pair<String, Double> shuntAndB : propagatedContingency.getShuntIdsToLose()) {
+            LfShunt shunt = network.getShuntById(shuntAndB.getKey());
+            if (shunt != null) {
+                shunts.add(Pair.of(shunt, shuntAndB.getValue()));
+            }
+        }
+
         // reset connectivity to discard triggered branches
         connectivity.reset();
 
-        return Optional.of(new LfContingency(propagatedContingency.getContingency().getId(), propagatedContingency.getIndex(), buses, branches));
+        return Optional.of(new LfContingency(propagatedContingency.getContingency().getId(), propagatedContingency.getIndex(), buses, branches, shunts));
     }
 
     public void writeJson(Writer writer) {

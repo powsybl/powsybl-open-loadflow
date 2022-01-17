@@ -10,6 +10,8 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.network.PerUnit;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +39,8 @@ public class PropagatedContingency {
 
     private final Set<String> loadIdsToLose;
 
+    private final Set<Pair<String, Double>> shuntIdsToLose;
+
     public Contingency getContingency() {
         return contingency;
     }
@@ -61,9 +65,13 @@ public class PropagatedContingency {
         return loadIdsToLose;
     }
 
+    public Set<Pair<String, Double>> getShuntIdsToLose() {
+        return shuntIdsToLose;
+    }
+
     public PropagatedContingency(Contingency contingency, int index, Set<String> branchIdsToOpen, Set<String> hvdcIdsToOpen,
                                  Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect, Set<String> generatorIdsToLose,
-                                 Set<String> loadIdsToLose) {
+                                 Set<String> loadIdsToLose, Set<Pair<String, Double>> shuntIdsToLose) {
         this.contingency = Objects.requireNonNull(contingency);
         this.index = index;
         this.branchIdsToOpen = Objects.requireNonNull(branchIdsToOpen);
@@ -71,6 +79,7 @@ public class PropagatedContingency {
         this.switchesToOpen = Objects.requireNonNull(switchesToOpen);
         this.generatorIdsToLose = Objects.requireNonNull(generatorIdsToLose);
         this.loadIdsToLose = Objects.requireNonNull(loadIdsToLose);
+        this.shuntIdsToLose = Objects.requireNonNull(shuntIdsToLose);
 
         for (Switch sw : switchesToOpen) {
             branchIdsToOpen.add(sw.getId());
@@ -86,14 +95,23 @@ public class PropagatedContingency {
             if (terminal.getConnectable() instanceof Load) {
                 loadIdsToLose.add(terminal.getConnectable().getId());
             }
+            if (terminal.getConnectable() instanceof ShuntCompensator) {
+                ShuntCompensator shuntCompensator = (ShuntCompensator) terminal.getConnectable();
+                shuntIdsToLose.add(getShuntCompensatorPair(shuntCompensator));
+            }
         }
+    }
+
+    private static Pair<String, Double> getShuntCompensatorPair(ShuntCompensator shuntCompensator) {
+        double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
+        return Pair.of(shuntCompensator.getId(), shuntCompensator.getB() * nominalV * nominalV / PerUnit.SB);
     }
 
     public static List<PropagatedContingency> createListForSensitivityAnalysis(Network network, List<Contingency> contingencies) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
-            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index);
+            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false);
             Optional<Switch> coupler = propagatedContingency.switchesToOpen.stream().filter(PropagatedContingency::isCoupler).findFirst();
             if (coupler.isEmpty()) {
                 propagatedContingencies.add(propagatedContingency);
@@ -106,24 +124,26 @@ public class PropagatedContingency {
         return propagatedContingencies;
     }
 
-    public static List<PropagatedContingency> createListForSecurityAnalysis(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen) {
+    public static List<PropagatedContingency> createListForSecurityAnalysis(Network network, List<Contingency> contingencies,
+                                                                            Set<Switch> allSwitchesToOpen, boolean shuntCompensatorVoltageControlOn) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
-            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index);
+            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn);
             propagatedContingencies.add(propagatedContingency);
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
         }
         return propagatedContingencies;
     }
 
-    private static PropagatedContingency create(Network network, Contingency contingency, int index) {
+    private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean shuntCompensatorVoltageControlOn) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
         Set<String> branchIdsToOpen = new HashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
         Set<String> generatorIdsToLose = new HashSet<>();
         Set<String> loadIdsToLose = new HashSet<>();
+        Set<Pair<String, Double>> shuntIdsToLose = new HashSet<>();
         for (ContingencyElement element : contingency.getElements()) {
             switch (element.getType()) {
                 case BRANCH:
@@ -161,13 +181,23 @@ public class PropagatedContingency {
                     }
                     loadIdsToLose.add(element.getId());
                     break;
+                case SHUNT_COMPENSATOR:
+                    ShuntCompensator shuntCompensator = network.getShuntCompensator(element.getId());
+                    if (shuntCompensator == null) {
+                        throw new PowsyblException("Shunt compensator '" + element.getId() + "' not found in the network");
+                    }
+                    if (shuntCompensatorVoltageControlOn && shuntCompensator.isVoltageRegulatorOn()) {
+                        throw new UnsupportedOperationException("Shunt compensator '" + element.getId() + "' with voltage control on: not supported yet");
+                    }
+                    shuntIdsToLose.add(getShuntCompensatorPair(shuntCompensator));
+                    break;
                 default:
                     //TODO: support all kinds of contingencies
                     throw new UnsupportedOperationException("TODO");
             }
         }
 
-        return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen, terminalsToDisconnect, generatorIdsToLose, loadIdsToLose);
+        return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen, terminalsToDisconnect, generatorIdsToLose, loadIdsToLose, shuntIdsToLose);
     }
 
     private static boolean isCoupler(Switch s) {

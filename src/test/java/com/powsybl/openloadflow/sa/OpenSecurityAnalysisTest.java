@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.contingency.BranchContingency;
-import com.powsybl.contingency.ContingenciesProvider;
-import com.powsybl.contingency.Contingency;
-import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
@@ -786,5 +783,53 @@ class OpenSecurityAnalysisTest {
         assertEquals(0, ps1ContingencyResult.getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER); // because no load on B3
         assertEquals(50, ps1ContingencyResult.getBranchResult("L3").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0, ps1ContingencyResult.getBranchResult("L4").getP1(), LoadFlowAssert.DELTA_POWER); // because no load on B3
+    }
+
+    @Test
+    void testSaWithShuntContingency() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+        network.getShuntCompensatorStream().forEach(shuntCompensator -> {
+            shuntCompensator.setSectionCount(10);
+        });
+
+        List<Contingency> contingencies = List.of(new Contingency("SHUNT2", new ShuntCompensatorContingency("SHUNT2")),
+                                                  new Contingency("tr3", new BranchContingency("tr3")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors);
+
+        // pre-contingency tests
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(42.342, preContingencyResult.getPreContingencyBranchResult("tr2").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(42.342, preContingencyResult.getPreContingencyBranchResult("tr3").getQ2(), LoadFlowAssert.DELTA_POWER);
+
+        // post-contingency tests
+        PostContingencyResult contingencyResult = getPostContingencyResult(result, "SHUNT2");
+        assertEquals(0.0, contingencyResult.getBranchResult("tr2").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(42.914, contingencyResult.getBranchResult("tr3").getQ2(), LoadFlowAssert.DELTA_POWER);
+
+        // post-contingency tests
+        PostContingencyResult tr3ContingencyResult = getPostContingencyResult(result, "tr3");
+        assertEquals(42.914, tr3ContingencyResult.getBranchResult("tr2").getQ2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testSaWithShuntContingency2() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+        network.getShuntCompensatorStream().forEach(shuntCompensator -> {
+            shuntCompensator.setSectionCount(10);
+        });
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setSimulShunt(true);
+
+        List<Contingency> contingencies = List.of(new Contingency("SHUNT2", new ShuntCompensatorContingency("SHUNT2")),
+                                                  new Contingency("tr3", new BranchContingency("tr3")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, lfParameters));
+        assertEquals("Shunt compensator 'SHUNT2' with voltage control on: not supported yet", exception.getCause().getMessage());
     }
 }

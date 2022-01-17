@@ -67,7 +67,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen, lfParameters.isSimulShunt());
 
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters, lfParametersExt, true, Reporter.NO_OP);
 
@@ -145,6 +145,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                 }
                                 for (LfBus bus : lfContingency.getBuses()) {
                                     bus.setDisabled(true);
+                                }
+                                for (Pair<LfShunt, Double> shuntAndB : lfContingency.getShunts()) {
+                                    LfShunt shunt = shuntAndB.getKey();
+                                    shunt.setB(shunt.getB() - shuntAndB.getValue());
                                 }
 
                                 distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
