@@ -171,7 +171,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
             return;
         }
         this.controlledBusId = controlledBus.getId();
-        setTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV());
+        setTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV(), report);
         this.generatorControlType = GeneratorControlType.VOLTAGE;
     }
 
@@ -193,17 +193,19 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         return consistency;
     }
 
-    protected void setTargetV(double targetV) {
+    protected void setTargetV(double targetV, LfNetworkLoadingReport report) {
         double newTargetV = targetV;
         // check that targetV has a plausible value (wrong nominal voltage issue)
         if (targetV < PlausibleValues.MIN_TARGET_VOLTAGE_PU) {
             newTargetV = PlausibleValues.MIN_TARGET_VOLTAGE_PU;
-            LOGGER.warn("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is rescaled to {}",
+            LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is limited to {}",
                 getId(), targetV, PlausibleValues.MIN_TARGET_VOLTAGE_PU);
+            report.generatorsWithInconsistentTargetVoltage++;
         } else if (targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
             newTargetV = PlausibleValues.MAX_TARGET_VOLTAGE_PU;
-            LOGGER.warn("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is rescaled to {}",
+            LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is limited to {}",
                 getId(), targetV, PlausibleValues.MAX_TARGET_VOLTAGE_PU);
+            report.generatorsWithInconsistentTargetVoltage++;
         }
         this.targetV = newTargetV;
     }
