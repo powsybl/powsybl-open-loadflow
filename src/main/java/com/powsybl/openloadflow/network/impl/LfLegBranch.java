@@ -133,7 +133,7 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
         leg.getTerminal().setP(p.eval() * PerUnit.SB);
         leg.getTerminal().setQ(q.eval() * PerUnit.SB);
 
-        if (phaseShifterRegulationOn && isPhaseController() && discretePhaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
+        if (phaseShifterRegulationOn && isPhaseController()) {
             // it means there is a regulating phase tap changer located on that leg
             updateTapPosition(leg.getPhaseTapChanger());
         }

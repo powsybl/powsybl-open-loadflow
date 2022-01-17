@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.network.*;
 
@@ -31,10 +32,8 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         if (firstControllerBus.hasGeneratorsWithSlope()) {
             // we only support one controlling static var compensator without any other controlling generators
             // we don't support controller bus that wants to control back voltage with slope.
-            if (!firstControllerBus.isVoltageControlEnabled()) {
-                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
-                        .orElseThrow().setActive(false);
-            }
+            equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
+                    .orElseThrow().setActive(firstControllerBus.isVoltageControlEnabled());
         } else {
             if (voltageControl.isVoltageControlLocal()) {
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
@@ -60,23 +59,19 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         updateVoltageControl(controllerBus, newVoltageControllerEnabled);
     }
 
-    private void updateDiscretePhaseControl(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode newMode) {
-        boolean on = newMode != DiscretePhaseControl.Mode.OFF;
+    @Override
+    public void onTransformerPhaseControlChange(LfBranch branch, boolean phaseControlEnabled) {
+        DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl().orElseThrow();
 
         // activate/de-activate phase control equation
         equationSystem.getEquation(phaseControl.getControlled().getNum(), AcEquationType.BRANCH_TARGET_P)
                 .orElseThrow()
-                .setActive(on);
+                .setActive(!branch.isDisabled() && branch.isPhaseControlEnabled());
 
         // de-activate/activate constant A1 equation
         equationSystem.getEquation(phaseControl.getController().getNum(), AcEquationType.BRANCH_TARGET_ALPHA1)
                 .orElseThrow()
-                .setActive(!on);
-    }
-
-    @Override
-    public void onDiscretePhaseControlModeChange(DiscretePhaseControl phaseControl, DiscretePhaseControl.Mode oldMode, DiscretePhaseControl.Mode newMode) {
-        updateDiscretePhaseControl(phaseControl, newMode);
+                .setActive(!branch.isDisabled() && !branch.isPhaseControlEnabled());
     }
 
     @Override
@@ -94,6 +89,9 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         switch (element.getType()) {
             case BUS:
                 LfBus bus = (LfBus) element;
+                if (disabled && bus.isSlack()) {
+                    throw new PowsyblException("Slack bus '" + bus.getId() + "' disabling is not supported");
+                }
                 bus.getVoltageControl().ifPresent(this::updateVoltageControl);
                 bus.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
                 bus.getShuntVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateShuntVoltageControlEquations(voltageControl, equationSystem));
@@ -101,6 +99,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             case BRANCH:
                 LfBranch branch = (LfBranch) element;
                 branch.getVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
+                branch.getDiscretePhaseControl().ifPresent(phaseControl -> onTransformerPhaseControlChange(branch, branch.isPhaseControlEnabled()));
                 break;
             case SHUNT_COMPENSATOR:
                 LfShunt shunt = (LfShunt) element;
