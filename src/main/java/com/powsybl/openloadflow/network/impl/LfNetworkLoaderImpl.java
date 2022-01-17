@@ -560,6 +560,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 phaseControl = new DiscretePhaseControl(controllerBranch, controlledBranch, controlledSide,
                         DiscretePhaseControl.Mode.CONTROLLER, targetValue, targetDeadband, DiscretePhaseControl.Unit.MW);
             }
+            controllerBranch.setPhaseControlEnabled(true);
             controllerBranch.setDiscretePhaseControl(phaseControl);
             controlledBranch.setDiscretePhaseControl(phaseControl);
         }

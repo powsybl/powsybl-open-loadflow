@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -84,6 +85,10 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     public Equation<V, E> addTerm(EquationTerm<V, E> term) {
         Objects.requireNonNull(term);
+        if (term.getEquation() != null) {
+            throw new PowsyblException("Equation term already added to another equation: "
+                    + term.getEquation());
+        }
         terms.add(term);
         term.setEquation(this);
         equationSystem.addEquationTerm(term);
@@ -145,14 +150,20 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return c;
     }
 
-    public void write(Writer writer) throws IOException {
+    public void write(Writer writer, boolean writeInactiveTerms) throws IOException {
         writer.append(type.getSymbol())
                 .append(Integer.toString(elementNum))
                 .append(" = ");
-        List<EquationTerm<V, E>> activeTerms = terms.stream().filter(EquationTerm::isActive).collect(Collectors.toList());
+        List<EquationTerm<V, E>> activeTerms = writeInactiveTerms ? terms : terms.stream().filter(EquationTerm::isActive).collect(Collectors.toList());
         for (Iterator<EquationTerm<V, E>> it = activeTerms.iterator(); it.hasNext();) {
             EquationTerm<V, E> term = it.next();
+            if (!term.isActive()) {
+                writer.write("[ ");
+            }
             term.write(writer);
+            if (!term.isActive()) {
+                writer.write(" ]");
+            }
             if (it.hasNext()) {
                 writer.append(" + ");
             }
