@@ -24,6 +24,8 @@ public class PiModelArray implements PiModel {
 
     private double r1 = Double.NaN;
 
+    private double continuousR1 = Double.NaN;
+
     private LfBranch branch;
 
     public PiModelArray(List<PiModel> models, int lowTapPosition, int tapPosition) {
@@ -92,6 +94,11 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
+    public double getContinuousR1() {
+        return continuousR1;
+    }
+
+    @Override
     public double getA1() {
         return Double.isNaN(a1) ? getModel().getA1() : a1;
     }
@@ -141,6 +148,7 @@ public class PiModelArray implements PiModel {
                 smallestDistance = distance;
             }
         }
+        continuousR1 = r1;
         r1 = Double.NaN;
     }
 

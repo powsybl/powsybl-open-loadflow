@@ -31,7 +31,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private final Map<LimitType, List<LfLimit>> limits2 = new EnumMap<>(LimitType.class);
 
-    private final PiModel piModel;
+    protected final PiModel piModel;
 
     protected DiscretePhaseControl discretePhaseControl;
 

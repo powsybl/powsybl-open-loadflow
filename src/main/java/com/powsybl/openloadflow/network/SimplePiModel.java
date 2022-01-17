@@ -99,6 +99,11 @@ public class SimplePiModel implements PiModel {
         return r1;
     }
 
+    @Override
+    public double getContinuousR1() {
+        return r1;
+    }
+
     public SimplePiModel setR1(double r1) {
         this.r1 = r1;
         return this;

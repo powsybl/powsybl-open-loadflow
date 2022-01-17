@@ -42,6 +42,8 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     private Evaluable i2 = NAN;
 
+    private boolean debug = false;
+
     protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
         super(network, bus1, bus2, piModel);
         this.branch = branch;
@@ -113,7 +115,11 @@ public class LfBranchImpl extends AbstractLfBranch {
             piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance);
         }
 
-        return new LfBranchImpl(network, bus1, bus2, piModel, twt);
+        LfBranchImpl branch = new LfBranchImpl(network, bus1, bus2, piModel, twt);
+        if (twt.hasProperty("olf-debug")) {
+            branch.setDebug(true);
+        }
+        return branch;
     }
 
     public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance,
@@ -207,6 +213,10 @@ public class LfBranchImpl extends AbstractLfBranch {
         return i2;
     }
 
+    public void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+
     @Override
     public BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1) {
         double flowTransfer = Double.NaN;
@@ -215,8 +225,14 @@ public class LfBranchImpl extends AbstractLfBranch {
         }
         double currentScale1 = PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
         double currentScale2 = PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
-        return new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
-                                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval(), flowTransfer);
+        if (debug) {
+            return new OlfBranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
+                                       p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval(), flowTransfer,
+                                       piModel.getR1(), piModel.getContinuousR1());
+        } else {
+            return new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
+                                    p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval(), flowTransfer);
+        }
     }
 
     @Override
