@@ -34,6 +34,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected DiscretePhaseControl discretePhaseControl;
 
+    protected boolean phaseControlEnabled = false;
+
     protected TransformerVoltageControl voltageControl;
 
     protected boolean voltageControlEnabled = false;
@@ -127,8 +129,18 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public boolean isPhaseControlled(DiscretePhaseControl.ControlledSide controlledSide) {
-        return isPhaseControlled() && discretePhaseControl.getControlledSide() == controlledSide;
+    public boolean isPhaseControlEnabled() {
+        return phaseControlEnabled;
+    }
+
+    @Override
+    public void setPhaseControlEnabled(boolean phaseControlEnabled) {
+        if (this.phaseControlEnabled != phaseControlEnabled) {
+            this.phaseControlEnabled = phaseControlEnabled;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onTransformerPhaseControlChange(this, phaseControlEnabled);
+            }
+        }
     }
 
     protected void updateTapPosition(PhaseTapChanger ptc) {
@@ -145,7 +157,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         double distance = Math.abs(p - discretePhaseControl.getTargetValue()); // in per unit system
         if (distance > discretePhaseControl.getTargetDeadband() / 2) {
             LOGGER.warn("The active power on side {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
-                    discretePhaseControl.getControlledSide(), getId(), p,
+                    discretePhaseControl.getControlledSide(), getId(), Math.abs(p) * PerUnit.SB,
                     discretePhaseControl.getTargetValue() * PerUnit.SB, discretePhaseControl.getTargetDeadband() / 2 * PerUnit.SB);
         }
     }
