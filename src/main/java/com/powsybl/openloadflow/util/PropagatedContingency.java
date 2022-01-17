@@ -103,7 +103,7 @@ public class PropagatedContingency {
     }
 
     private static Pair<String, Double> getShuntCompensatorPair(ShuntCompensator shuntCompensator) {
-        Double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
+        double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
         return Pair.of(shuntCompensator.getId(), shuntCompensator.getB() * nominalV * nominalV / PerUnit.SB);
     }
 
