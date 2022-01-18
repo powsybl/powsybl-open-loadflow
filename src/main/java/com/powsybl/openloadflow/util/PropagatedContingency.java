@@ -35,9 +35,9 @@ public class PropagatedContingency {
 
     private final Set<String> hvdcIdsToOpen;
 
-    private final Set<String> generatorIdsToLose;
+    private final Set<Pair<String, Double>> generatorIdsToLose;
 
-    private final Set<String> loadIdsToLose;
+    private final Set<Pair<String, Double>> loadIdsToLose;
 
     private final Set<Pair<String, Double>> shuntIdsToLose;
 
@@ -57,11 +57,11 @@ public class PropagatedContingency {
         return hvdcIdsToOpen;
     }
 
-    public Set<String> getGeneratorIdsToLose() {
+    public Set<Pair<String, Double>> getGeneratorIdsToLose() {
         return generatorIdsToLose;
     }
 
-    public Set<String> getLoadIdsToLose() {
+    public Set<Pair<String, Double>> getLoadIdsToLose() {
         return loadIdsToLose;
     }
 
@@ -70,8 +70,8 @@ public class PropagatedContingency {
     }
 
     public PropagatedContingency(Contingency contingency, int index, Set<String> branchIdsToOpen, Set<String> hvdcIdsToOpen,
-                                 Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect, Set<String> generatorIdsToLose,
-                                 Set<String> loadIdsToLose, Set<Pair<String, Double>> shuntIdsToLose) {
+                                 Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect, Set<Pair<String, Double>> generatorIdsToLose,
+                                 Set<Pair<String, Double>> loadIdsToLose, Set<Pair<String, Double>> shuntIdsToLose) {
         this.contingency = Objects.requireNonNull(contingency);
         this.index = index;
         this.branchIdsToOpen = Objects.requireNonNull(branchIdsToOpen);
@@ -90,21 +90,32 @@ public class PropagatedContingency {
                 branchIdsToOpen.add(terminal.getConnectable().getId());
             }
             if (terminal.getConnectable() instanceof Generator) {
-                generatorIdsToLose.add(terminal.getConnectable().getId());
+                Generator generator = (Generator) terminal.getConnectable();
+                generatorIdsToLose.add(getGeneratorInfo(generator));
             }
             if (terminal.getConnectable() instanceof Load) {
-                loadIdsToLose.add(terminal.getConnectable().getId());
+                Load load = (Load) terminal.getConnectable();
+                loadIdsToLose.add(getLoadInfo(load));
             }
             if (terminal.getConnectable() instanceof ShuntCompensator) {
                 ShuntCompensator shuntCompensator = (ShuntCompensator) terminal.getConnectable();
-                shuntIdsToLose.add(getShuntCompensatorPair(shuntCompensator));
+                shuntIdsToLose.add(getShuntCompensatorInfo(shuntCompensator));
             }
         }
     }
 
-    private static Pair<String, Double> getShuntCompensatorPair(ShuntCompensator shuntCompensator) {
+    private static Pair<String, Double> getShuntCompensatorInfo(ShuntCompensator shuntCompensator) {
         double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
         return Pair.of(shuntCompensator.getId(), shuntCompensator.getB() * nominalV * nominalV / PerUnit.SB);
+    }
+
+    private static Pair<String, Double> getGeneratorInfo(Generator generator) {
+        return Pair.of(generator.getId(), generator.getTargetP());
+    }
+
+    private static Pair<String, Double> getLoadInfo(Load load) {
+        Bus bus = load.getTerminal().getBusView().getBus();
+        return bus != null ? Pair.of(bus.getId(), load.getP0() / PerUnit.SB) : null;
     }
 
     public static List<PropagatedContingency> createListForSensitivityAnalysis(Network network, List<Contingency> contingencies) {
@@ -141,8 +152,8 @@ public class PropagatedContingency {
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
         Set<String> branchIdsToOpen = new HashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
-        Set<String> generatorIdsToLose = new HashSet<>();
-        Set<String> loadIdsToLose = new HashSet<>();
+        Set<Pair<String, Double>> generatorIdsToLose = new HashSet<>();
+        Set<Pair<String, Double>> loadIdsToLose = new HashSet<>();
         Set<Pair<String, Double>> shuntIdsToLose = new HashSet<>();
         for (ContingencyElement element : contingency.getElements()) {
             switch (element.getType()) {
@@ -172,14 +183,14 @@ public class PropagatedContingency {
                     if (generator == null) {
                         throw new PowsyblException("Generator '" + element.getId() + "' not found in the network");
                     }
-                    generatorIdsToLose.add(element.getId());
+                    generatorIdsToLose.add(getGeneratorInfo(generator));
                     break;
                 case LOAD:
                     Load load = network.getLoad(element.getId());
                     if (load == null) {
                         throw new PowsyblException("Load '" + element.getId() + "' not found in the network");
                     }
-                    loadIdsToLose.add(element.getId());
+                    loadIdsToLose.add(getLoadInfo(load));
                     break;
                 case SHUNT_COMPENSATOR:
                     ShuntCompensator shuntCompensator = network.getShuntCompensator(element.getId());
@@ -189,7 +200,7 @@ public class PropagatedContingency {
                     if (shuntCompensatorVoltageControlOn && shuntCompensator.isVoltageRegulatorOn()) {
                         throw new UnsupportedOperationException("Shunt compensator '" + element.getId() + "' with voltage control on: not supported yet");
                     }
-                    shuntIdsToLose.add(getShuntCompensatorPair(shuntCompensator));
+                    shuntIdsToLose.add(getShuntCompensatorInfo(shuntCompensator));
                     break;
                 default:
                     //TODO: support all kinds of contingencies
