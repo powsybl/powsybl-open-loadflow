@@ -176,7 +176,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     private static void createReactivePowerControls(LfNetwork lfNetwork, List<LfBus> lfBuses) {
         for (LfBus controllerBus : lfBuses) {
             List<LfGenerator> generators = controllerBus.getGenerators().stream()
-                    .filter(LfGenerator::hasReactivePowerControl).collect(Collectors.toList());
+                    .filter(LfGenerator::hasRemoteReactivePowerControl).collect(Collectors.toList());
             if (!generators.isEmpty()) {
                 Optional<VoltageControl> voltageControl = controllerBus.getVoltageControl();
                 if (voltageControl.isPresent()) {
