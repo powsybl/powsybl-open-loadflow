@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
+import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
@@ -47,8 +48,10 @@ class NonImpedantBranchWithBreakerIssueTest {
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(networkParameters, equationSystemCreationParameters,
                                                                              newtonRaphsonParameters, Collections.emptyList(),
                                                                              new DenseMatrixFactory());
-        new AcloadFlowEngine(lfNetwork, acLoadFlowParameters)
-                .run();
+        try (var context = new AcLoadFlowContext(lfNetwork, acLoadFlowParameters)) {
+            new AcloadFlowEngine(context)
+                    .run();
+        }
         lfNetwork.updateState(false, false, false, false, false, false);
         for (Bus bus : network.getBusView().getBuses()) {
             assertEquals(400, bus.getV(), 0);
@@ -73,8 +76,10 @@ class NonImpedantBranchWithBreakerIssueTest {
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(networkParameters, equationSystemCreationParameters,
                                                                              newtonRaphsonParameters, Collections.emptyList(),
                                                                              new DenseMatrixFactory());
-        new AcloadFlowEngine(lfNetwork, acLoadFlowParameters)
-                .run();
+        try (var context = new AcLoadFlowContext(lfNetwork, acLoadFlowParameters)) {
+            new AcloadFlowEngine(context)
+                    .run();
+        }
         lfNetwork.updateState(false, false, false, false, false, false);
         assertEquals(-100, network.getGenerator("G1").getTerminal().getQ(), 0);
         assertEquals(-100, network.getGenerator("G2").getTerminal().getQ(), 0);
