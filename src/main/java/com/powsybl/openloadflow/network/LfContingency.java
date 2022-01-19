@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -36,17 +37,30 @@ public class LfContingency {
 
     private final Set<Pair<LfShunt, Double>> shunts;
 
+    private final Set<Triple<LfBus, Double, Double>> loadBuses;
+
+    private final Set<LfGenerator> generators;
+
     private double activePowerLoss;
 
-    public LfContingency(String id, int index, Set<LfBus> buses, Set<LfBranch> branches, Set<Pair<LfShunt, Double>> shunts) {
+    public LfContingency(String id, int index, Set<LfBus> buses, Set<LfBranch> branches, Set<Pair<LfShunt, Double>> shunts,
+                         Set<Triple<LfBus, Double, Double>> loadBuses, Set<LfGenerator> generators) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
         this.buses = Objects.requireNonNull(buses);
         this.branches = Objects.requireNonNull(branches);
         this.shunts = Objects.requireNonNull(shunts);
+        this.loadBuses = Objects.requireNonNull(loadBuses);
+        this.generators = Objects.requireNonNull(generators);
         double lose = 0;
         for (LfBus bus : buses) {
             lose += bus.getGenerationTargetP() - bus.getLoadTargetP();
+        }
+        for (Triple<LfBus, Double, Double> loadBus : loadBuses) {
+            lose -= loadBus.getMiddle();
+        }
+        for (LfGenerator generator : generators) {
+            lose += generator.getTargetP();
         }
         this.activePowerLoss = lose;
     }
@@ -71,6 +85,14 @@ public class LfContingency {
         return shunts;
     }
 
+    public Set<Triple<LfBus, Double, Double>> getLoadBuses() {
+        return loadBuses;
+    }
+
+    public Set<LfGenerator> getGenerators() {
+        return generators;
+    }
+
     public double getActivePowerLoss() {
         return activePowerLoss;
     }
@@ -87,7 +109,8 @@ public class LfContingency {
         }
 
         // check if contingency split this network into multiple components
-        if (branches.isEmpty() && propagatedContingency.getShuntIdsToLose().isEmpty()) {
+        if (branches.isEmpty() && propagatedContingency.getShuntIdsToLose().isEmpty()
+                && propagatedContingency.getLoadIdsToLose().isEmpty() && propagatedContingency.getGeneratorIdsToLose().isEmpty()) {
             return Optional.empty();
         }
 
@@ -115,10 +138,53 @@ public class LfContingency {
             }
         }
 
+        Set<LfGenerator> generators = new HashSet<>(1);
+        for (Pair<String, Double> generatorInfo : propagatedContingency.getGeneratorIdsToLose()) {
+            LfGenerator generator = network.getGeneratorById(generatorInfo.getKey());
+            generators.add(generator);
+        }
+
+        Set<Triple<LfBus, Double, Double>> loadBuses = new HashSet<>(1);
+        for (Triple<String, Double, Double> loadInfo : propagatedContingency.getLoadIdsToLose()) {
+            LfBus bus = network.getBusById(loadInfo.getLeft());
+            if (bus != null) {
+                loadBuses.add(Triple.of(bus, loadInfo.getMiddle(), loadInfo.getRight()));
+            }
+        }
+
         // reset connectivity to discard triggered branches
         connectivity.reset();
 
-        return Optional.of(new LfContingency(propagatedContingency.getContingency().getId(), propagatedContingency.getIndex(), buses, branches, shunts));
+        return Optional.of(new LfContingency(propagatedContingency.getContingency().getId(), propagatedContingency.getIndex(), buses, branches, shunts, loadBuses, generators));
+    }
+
+    public void apply() {
+        for (LfBranch branch : branches) {
+            branch.setDisabled(true);
+        }
+        for (LfBus bus : buses) {
+            bus.setDisabled(true);
+        }
+        for (Pair<LfShunt, Double> shuntInfo : shunts) {
+            LfShunt shunt = shuntInfo.getKey();
+            shunt.setB(shunt.getB() - shuntInfo.getValue());
+        }
+        for (Triple<LfBus, Double, Double> loadInfo : loadBuses) {
+            LfBus bus = loadInfo.getLeft();
+            bus.setLoadTargetP(bus.getLoadTargetP() - loadInfo.getMiddle());
+            bus.setLoadTargetQ(bus.getLoadTargetQ() - loadInfo.getRight());
+            bus.getLfLoads().setAbsVariableLoadTargetP(bus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(loadInfo.getMiddle()) * PerUnit.SB); //FIXME
+        }
+        for (LfGenerator generator : generators) {
+            generator.setTargetP(0);
+            LfBus bus = generator.getBus();
+            generator.setParticipating(false);
+            if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
+                generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+            } else {
+                bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
+            }
+        }
     }
 
     public void writeJson(Writer writer) {

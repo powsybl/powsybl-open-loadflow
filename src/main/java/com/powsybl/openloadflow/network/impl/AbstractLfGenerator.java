@@ -83,6 +83,16 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     }
 
     @Override
+    public GeneratorControlType getGeneratorControlType() {
+        return generatorControlType;
+    }
+
+    @Override
+    public void setGeneratorControlType(GeneratorControlType generatorControlType) {
+        this.generatorControlType = generatorControlType;
+    }
+
+    @Override
     public boolean hasReactivePowerControl() {
         return generatorControlType == GeneratorControlType.REACTIVE_POWER;
     }
@@ -244,10 +254,6 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public double getRemoteTargetQ() {
         return remoteTargetQ;
-    }
-
-    protected enum GeneratorControlType {
-        OFF, REACTIVE_POWER, VOLTAGE
     }
 
     @Override

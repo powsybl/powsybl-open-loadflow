@@ -12,6 +12,7 @@ import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.PerUnit;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +38,7 @@ public class PropagatedContingency {
 
     private final Set<Pair<String, Double>> generatorIdsToLose;
 
-    private final Set<Pair<String, Double>> loadIdsToLose;
+    private final Set<Triple<String, Double, Double>> loadIdsToLose;
 
     private final Set<Pair<String, Double>> shuntIdsToLose;
 
@@ -61,7 +62,7 @@ public class PropagatedContingency {
         return generatorIdsToLose;
     }
 
-    public Set<Pair<String, Double>> getLoadIdsToLose() {
+    public Set<Triple<String, Double, Double>> getLoadIdsToLose() {
         return loadIdsToLose;
     }
 
@@ -71,7 +72,7 @@ public class PropagatedContingency {
 
     public PropagatedContingency(Contingency contingency, int index, Set<String> branchIdsToOpen, Set<String> hvdcIdsToOpen,
                                  Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect, Set<Pair<String, Double>> generatorIdsToLose,
-                                 Set<Pair<String, Double>> loadIdsToLose, Set<Pair<String, Double>> shuntIdsToLose) {
+                                 Set<Triple<String, Double, Double>> loadIdsToLose, Set<Pair<String, Double>> shuntIdsToLose) {
         this.contingency = Objects.requireNonNull(contingency);
         this.index = index;
         this.branchIdsToOpen = Objects.requireNonNull(branchIdsToOpen);
@@ -113,9 +114,9 @@ public class PropagatedContingency {
         return Pair.of(generator.getId(), generator.getTargetP());
     }
 
-    private static Pair<String, Double> getLoadInfo(Load load) {
+    private static Triple<String, Double, Double> getLoadInfo(Load load) {
         Bus bus = load.getTerminal().getBusView().getBus();
-        return bus != null ? Pair.of(bus.getId(), load.getP0() / PerUnit.SB) : null;
+        return bus != null ? Triple.of(bus.getId(), load.getP0() / PerUnit.SB, load.getQ0() / PerUnit.SB) : null;
     }
 
     public static List<PropagatedContingency> createListForSensitivityAnalysis(Network network, List<Contingency> contingencies) {
@@ -153,7 +154,7 @@ public class PropagatedContingency {
         Set<String> branchIdsToOpen = new HashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
         Set<Pair<String, Double>> generatorIdsToLose = new HashSet<>();
-        Set<Pair<String, Double>> loadIdsToLose = new HashSet<>();
+        Set<Triple<String, Double, Double>> loadIdsToLose = new HashSet<>();
         Set<Pair<String, Double>> shuntIdsToLose = new HashSet<>();
         for (ContingencyElement element : contingency.getElements()) {
             switch (element.getType()) {

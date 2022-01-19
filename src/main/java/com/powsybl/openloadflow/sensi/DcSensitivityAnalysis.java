@@ -34,6 +34,7 @@ import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -590,13 +591,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         // generators.
         Collection<LfGeneratorImpl> generators = new HashSet<>();
-        for (Pair<String, Double> generatorAndTargetP : contingency.getGeneratorIdsToLose()) {
-            generators.add((LfGeneratorImpl) lfNetwork.getGeneratorById(generatorAndTargetP.getKey()));
+        for (Pair<String, Double> generatorInfo : contingency.getGeneratorIdsToLose()) {
+            generators.add((LfGeneratorImpl) lfNetwork.getGeneratorById(generatorInfo.getKey()));
         }
 
-        for (Pair<String, Double> loadAndP0 : contingency.getLoadIdsToLose()) {
-            if (loadAndP0.getKey() != null) {
-                LfBus lfBus = lfNetwork.getBusById(loadAndP0.getKey());
+        for (Triple<String, Double, Double> loadInfo : contingency.getLoadIdsToLose()) {
+            if (loadInfo.getLeft() != null) {
+                LfBus lfBus = lfNetwork.getBusById(loadInfo.getLeft());
                 busStates.add(BusState.save(lfBus));
             }
         }
@@ -624,12 +625,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
         }
 
-        for (Pair<String, Double> loadAndP0 : contingency.getLoadIdsToLose()) {
-            if (loadAndP0.getKey() != null) {
-                LfBus lfBus = lfNetwork.getBusById(loadAndP0.getKey());
-                double p0 = loadAndP0.getValue();
+        for (Triple<String, Double, Double> loadInfo : contingency.getLoadIdsToLose()) {
+            if (loadInfo.getLeft() != null) {
+                LfBus lfBus = lfNetwork.getBusById(loadInfo.getLeft());
+                double p0 = loadInfo.getMiddle();
                 lfBus.setLoadTargetP(lfBus.getLoadTargetP() - p0);
-                lfBus.getLfLoads().setAbsVariableLoadTargetP(lfBus.getLfLoads().getAbsVariableLoadTargetP() - p0 * PerUnit.SB);
+                lfBus.getLfLoads().setAbsVariableLoadTargetP(lfBus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(p0) * PerUnit.SB); //FIXME
             }
         }
     }
