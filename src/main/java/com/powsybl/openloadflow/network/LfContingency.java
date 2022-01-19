@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import org.apache.commons.lang3.tuple.Pair;
@@ -158,7 +159,7 @@ public class LfContingency {
         return Optional.of(new LfContingency(propagatedContingency.getContingency().getId(), propagatedContingency.getIndex(), buses, branches, shunts, loadBuses, generators));
     }
 
-    public void apply() {
+    public void apply(LoadFlowParameters parameters) {
         for (LfBranch branch : branches) {
             branch.setDisabled(true);
         }
@@ -171,9 +172,14 @@ public class LfContingency {
         }
         for (Triple<LfBus, Double, Double> loadInfo : loadBuses) {
             LfBus bus = loadInfo.getLeft();
-            bus.setLoadTargetP(bus.getLoadTargetP() - loadInfo.getMiddle());
+            double factor = 0.0;
+            if (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
+                factor = Math.abs(loadInfo.getMiddle()) / (bus.getLfLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+            }
+            double p = loadInfo.getMiddle() + (bus.getLoadTargetP() - bus.getInitialLoadTargetP()) * factor;
+            bus.setLoadTargetP(bus.getLoadTargetP() - p);
             bus.setLoadTargetQ(bus.getLoadTargetQ() - loadInfo.getRight());
-            bus.getLfLoads().setAbsVariableLoadTargetP(bus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(loadInfo.getMiddle()) * PerUnit.SB); //FIXME
+            bus.getLfLoads().setAbsVariableLoadTargetP(bus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(loadInfo.getMiddle()) * PerUnit.SB);
         }
         for (LfGenerator generator : generators) {
             generator.setTargetP(0);

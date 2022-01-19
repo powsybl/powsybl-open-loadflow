@@ -72,7 +72,7 @@ public class PropagatedContingency {
 
     public PropagatedContingency(Contingency contingency, int index, Set<String> branchIdsToOpen, Set<String> hvdcIdsToOpen,
                                  Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect, Set<Pair<String, Double>> generatorIdsToLose,
-                                 Set<Triple<String, Double, Double>> loadIdsToLose, Set<Pair<String, Double>> shuntIdsToLose) {
+                                 Set<Triple<String, Double, Double>> loadIdsToLose, Set<Pair<String, Double>> shuntIdsToLose, boolean withBreakers) {
         this.contingency = Objects.requireNonNull(contingency);
         this.index = index;
         this.branchIdsToOpen = Objects.requireNonNull(branchIdsToOpen);
@@ -96,7 +96,7 @@ public class PropagatedContingency {
             }
             if (terminal.getConnectable() instanceof Load) {
                 Load load = (Load) terminal.getConnectable();
-                loadIdsToLose.add(getLoadInfo(load));
+                loadIdsToLose.add(getLoadInfo(load, withBreakers));
             }
             if (terminal.getConnectable() instanceof ShuntCompensator) {
                 ShuntCompensator shuntCompensator = (ShuntCompensator) terminal.getConnectable();
@@ -114,8 +114,8 @@ public class PropagatedContingency {
         return Pair.of(generator.getId(), generator.getTargetP());
     }
 
-    private static Triple<String, Double, Double> getLoadInfo(Load load) {
-        Bus bus = load.getTerminal().getBusView().getBus();
+    private static Triple<String, Double, Double> getLoadInfo(Load load, boolean withBreakers) {
+        Bus bus = withBreakers ? load.getTerminal().getBusBreakerView().getBus() : load.getTerminal().getBusView().getBus();
         return bus != null ? Triple.of(bus.getId(), load.getP0() / PerUnit.SB, load.getQ0() / PerUnit.SB) : null;
     }
 
@@ -123,7 +123,7 @@ public class PropagatedContingency {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
-            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false);
+            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false, false);
             Optional<Switch> coupler = propagatedContingency.switchesToOpen.stream().filter(PropagatedContingency::isCoupler).findFirst();
             if (coupler.isEmpty()) {
                 propagatedContingencies.add(propagatedContingency);
@@ -141,14 +141,14 @@ public class PropagatedContingency {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
-            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn);
+            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn, true);
             propagatedContingencies.add(propagatedContingency);
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
         }
         return propagatedContingencies;
     }
 
-    private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean shuntCompensatorVoltageControlOn) {
+    private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean shuntCompensatorVoltageControlOn, boolean withBreakers) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
         Set<String> branchIdsToOpen = new HashSet<>();
@@ -191,7 +191,7 @@ public class PropagatedContingency {
                     if (load == null) {
                         throw new PowsyblException("Load '" + element.getId() + "' not found in the network");
                     }
-                    loadIdsToLose.add(getLoadInfo(load));
+                    loadIdsToLose.add(getLoadInfo(load, withBreakers));
                     break;
                 case SHUNT_COMPENSATOR:
                     ShuntCompensator shuntCompensator = network.getShuntCompensator(element.getId());
@@ -209,7 +209,7 @@ public class PropagatedContingency {
             }
         }
 
-        return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen, terminalsToDisconnect, generatorIdsToLose, loadIdsToLose, shuntIdsToLose);
+        return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen, terminalsToDisconnect, generatorIdsToLose, loadIdsToLose, shuntIdsToLose, withBreakers);
     }
 
     private static boolean isCoupler(Switch s) {

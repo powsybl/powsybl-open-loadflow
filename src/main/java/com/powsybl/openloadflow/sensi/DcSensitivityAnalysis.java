@@ -630,7 +630,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 LfBus lfBus = lfNetwork.getBusById(loadInfo.getLeft());
                 double p0 = loadInfo.getMiddle();
                 lfBus.setLoadTargetP(lfBus.getLoadTargetP() - p0);
-                lfBus.getLfLoads().setAbsVariableLoadTargetP(lfBus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(p0) * PerUnit.SB); //FIXME
+                lfBus.getLfLoads().setAbsVariableLoadTargetP(lfBus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(p0) * PerUnit.SB);
             }
         }
     }
