@@ -172,12 +172,7 @@ public class LfContingency {
         }
         for (Triple<LfBus, Double, Double> loadInfo : loadBuses) {
             LfBus bus = loadInfo.getLeft();
-            double factor = 0.0;
-            if (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
-                factor = Math.abs(loadInfo.getMiddle()) / (bus.getLfLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
-            }
-            double p = loadInfo.getMiddle() + (bus.getLoadTargetP() - bus.getInitialLoadTargetP()) * factor;
-            bus.setLoadTargetP(bus.getLoadTargetP() - p);
+            bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, parameters, loadInfo.getMiddle()));
             bus.setLoadTargetQ(bus.getLoadTargetQ() - loadInfo.getRight());
             bus.getLfLoads().setAbsVariableLoadTargetP(bus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(loadInfo.getMiddle()) * PerUnit.SB);
         }
@@ -191,6 +186,18 @@ public class LfContingency {
                 bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
             }
         }
+    }
+
+    public static double getUpdatedLoadP0(LfBus bus, LoadFlowParameters parameters, double initialP0) {
+        double factor = 0.0;
+        if (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
+                parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
+            factor = Math.abs(initialP0) / (bus.getLfLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+            // TODO
+            // we don't look at LoadDetail extension for the moment.
+            // we also don't check if we have to ensure power factor constant.
+        }
+        return initialP0 + (bus.getLoadTargetP() - bus.getInitialLoadTargetP()) * factor;
     }
 
     public void writeJson(Writer writer) {
