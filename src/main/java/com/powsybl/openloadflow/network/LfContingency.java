@@ -82,18 +82,6 @@ public class LfContingency {
         return branches;
     }
 
-    public Set<Pair<LfShunt, Double>> getShunts() {
-        return shunts;
-    }
-
-    public Set<Triple<LfBus, Double, Double>> getLoadBuses() {
-        return loadBuses;
-    }
-
-    public Set<LfGenerator> getGenerators() {
-        return generators;
-    }
-
     public double getActivePowerLoss() {
         return activePowerLoss;
     }
