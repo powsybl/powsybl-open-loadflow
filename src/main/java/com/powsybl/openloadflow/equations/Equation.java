@@ -29,8 +29,6 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     private int column = -1;
 
-    private Object data;
-
     /**
      * true if this equation term active, false otherwise
      */
@@ -73,14 +71,6 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
             this.active = active;
             equationSystem.notifyEquationChange(this, active ? EquationEventType.EQUATION_ACTIVATED : EquationEventType.EQUATION_DEACTIVATED);
         }
-    }
-
-    public void setData(Object data) {
-        this.data = data;
-    }
-
-    public <T> T getData() {
-        return (T) data;
     }
 
     public Equation<V, E> addTerm(EquationTerm<V, E> term) {
