@@ -40,14 +40,16 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private final Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsByElement = new HashMap<>();
 
-    private interface EquationCache<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends EquationSystemListener<V, E> {
+    public interface Index<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
+            extends EquationSystemListener<V, E> {
 
         NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> getSortedEquationsToSolve();
 
         NavigableSet<Variable<V>> getSortedVariablesToFind();
     }
 
-    private class IncrementalEquationCache implements EquationCache<V, E> {
+    private static class IncrementalIndex<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
+            implements Index<V, E> {
 
         private final NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = new TreeMap<>();
 
@@ -201,7 +203,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
-    private class FullEquationCache implements EquationCache<V, E> {
+    private class FullIndex implements Index<V, E> {
 
         private final TreeMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = new TreeMap<>();
 
@@ -265,7 +267,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
-    private final EquationCache<V, E> equationCache = new IncrementalEquationCache();
+    private final Index<V, E> index = new IncrementalIndex<>();
 
     private final List<EquationSystemListener<V, E>> listeners = new ArrayList<>();
 
@@ -284,7 +286,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     public EquationSystem(VariableSet<V> variableSet, boolean indexTerms) {
         this.variableSet = Objects.requireNonNull(variableSet);
         this.indexTerms = indexTerms;
-        addListener(equationCache);
+        addListener(index);
     }
 
     public VariableSet<V> getVariableSet() {
@@ -297,6 +299,10 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     public StateVector getStateVector() {
         return stateVector;
+    }
+
+    public Index<V, E> getIndex() {
+        return index;
     }
 
     void addEquationTerm(EquationTerm<V, E> equationTerm) {
@@ -378,41 +384,33 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         term.setStateVector(stateVector);
     }
 
-    public SortedSet<Variable<V>> getSortedVariablesToFind() {
-        return equationCache.getSortedVariablesToFind();
-    }
-
-    public NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> getSortedEquationsToSolve() {
-        return equationCache.getSortedEquationsToSolve();
-    }
-
     public List<String> getRowNames(LfNetwork network) {
-        return getSortedVariablesToFind().stream()
+        return index.getSortedVariablesToFind().stream()
                 .map(eq -> network.getBus(eq.getElementNum()).getId() + "/" + eq.getType())
                 .collect(Collectors.toList());
     }
 
     public List<String> getColumnNames(LfNetwork network) {
-        return getSortedEquationsToSolve().navigableKeySet().stream()
+        return index.getSortedEquationsToSolve().navigableKeySet().stream()
                 .map(v -> network.getBus(v.getElementNum()).getId() + "/" + v.getType())
                 .collect(Collectors.toList());
     }
 
     public double[] createEquationVector() {
-        double[] fx = new double[equationCache.getSortedEquationsToSolve().size()];
+        double[] fx = new double[index.getSortedEquationsToSolve().size()];
         updateEquationVector(fx);
         return fx;
     }
 
     public void updateEquationVector(double[] fx) {
-        if (fx.length != equationCache.getSortedEquationsToSolve().size()) {
+        if (fx.length != index.getSortedEquationsToSolve().size()) {
             throw new IllegalArgumentException("Bad equation vector length: " + fx.length);
         }
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         Arrays.fill(fx, 0);
-        for (Equation<V, E> equation : equationCache.getSortedEquationsToSolve().keySet()) {
+        for (Equation<V, E> equation : index.getSortedEquationsToSolve().keySet()) {
             fx[equation.getColumn()] = equation.eval();
         }
 
@@ -475,7 +473,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     public List<Pair<Equation<V, E>, Double>> findLargestMismatches(double[] mismatch, int count) {
-        return getSortedEquationsToSolve().keySet().stream()
+        return index.getSortedEquationsToSolve().keySet().stream()
                 .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
                 .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))
                 .sorted(Comparator.comparingDouble((Map.Entry<Equation<V, E>, Double> e) -> Math.abs(e.getValue())).reversed())

@@ -204,7 +204,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
             j.solveTransposed(targets);
 
-            for (Variable<InitVmVariableType> variable : equationSystem.getSortedVariablesToFind()) {
+            for (Variable<InitVmVariableType> variable : equationSystem.getIndex().getSortedVariablesToFind()) {
                 LfBus bus = network.getBus(variable.getElementNum());
                 bus.setV(targets[variable.getRow()]);
             }
