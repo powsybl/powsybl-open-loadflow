@@ -108,7 +108,7 @@ class AcLoadFlowTransformerControlTest {
                 .add();
         VoltageLevel vl4 = substation.newVoltageLevel()
                 .setId("VL_4")
-                .setNominalV(32.0)
+                .setNominalV(33.0)
                 .setLowVoltageLimit(0)
                 .setHighVoltageLimit(100)
                 .setTopologyKind(TopologyKind.BUS_BREAKER)
@@ -408,7 +408,7 @@ class AcLoadFlowTransformerControlTest {
                 .add();
         VoltageLevel vl5 = substation.newVoltageLevel()
                 .setId("VL_5")
-                .setNominalV(30.0)
+                .setNominalV(33.0)
                 .setLowVoltageLimit(0)
                 .setHighVoltageLimit(100.0)
                 .setTopologyKind(TopologyKind.BUS_BREAKER)
