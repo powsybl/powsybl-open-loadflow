@@ -13,7 +13,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.DanglingLineFactory;
+import com.powsybl.openloadflow.network.BoundaryFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-class AcLoadFlowDanglingLineTest {
+class AcLoadFlowBoundaryTest {
 
     private Network network;
     private Bus bus1;
@@ -40,7 +40,7 @@ class AcLoadFlowDanglingLineTest {
 
     @BeforeEach
     void setUp() {
-        network = DanglingLineFactory.create();
+        network = BoundaryFactory.create();
         bus1 = network.getBusBreakerView().getBus("b1");
         bus2 = network.getBusBreakerView().getBus("b2");
         dl1 = network.getDanglingLine("dl1");
@@ -98,5 +98,49 @@ class AcLoadFlowDanglingLineTest {
         assertAngleEquals(0, bus2);
         assertActivePowerEquals(101.2, dl1.getTerminal());
         assertReactivePowerEquals(-0.202, dl1.getTerminal());
+    }
+
+    @Test
+    void testWithXnode() {
+        Network network = BoundaryFactory.createWithXnode();
+        parameters.setNoGeneratorReactiveLimits(false);
+        parameters.setDistributedSlack(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b1"));
+        assertVoltageEquals(399.999, network.getBusBreakerView().getBus("xnode"));
+        assertVoltageEquals(399.999, network.getBusBreakerView().getBus("b3"));
+        assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b4"));
+
+        parametersExt.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(false);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+
+        assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b1"));
+        assertVoltageEquals(398.139, network.getBusBreakerView().getBus("xnode"));
+        assertVoltageEquals(417.679, network.getBusBreakerView().getBus("b3"));
+        assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b4"));
+    }
+
+    @Test
+    void testWithTieLine() {
+        Network network = BoundaryFactory.createWithTieLine();
+        parameters.setNoGeneratorReactiveLimits(false);
+        parameters.setDistributedSlack(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b1"));
+        assertVoltageEquals(399.999, network.getBusBreakerView().getBus("b3"));
+        assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b4"));
+
+        parametersExt.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(false);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+
+        assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b1"));
+        assertVoltageEquals(417.841, network.getBusBreakerView().getBus("b3"));
+        assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b4"));
     }
 }
