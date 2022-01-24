@@ -40,8 +40,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private final Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsByElement = new HashMap<>();
 
-    public interface Index<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
-            extends EquationSystemListener<V, E> {
+    public interface Index<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
         NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> getSortedEquationsToSolve();
 
@@ -49,7 +48,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     private static class IncrementalIndex<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
-            implements Index<V, E> {
+            implements Index<V, E>, EquationSystemListener<V, E> {
 
         private final NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = new TreeMap<>();
 
@@ -203,7 +202,10 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
-    private class FullIndex implements Index<V, E> {
+    /**
+     * Used just for debugging as a reference
+     */
+    private class FullIndex implements Index<V, E>, EquationSystemListener<V, E> {
 
         private final TreeMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = new TreeMap<>();
 
@@ -267,7 +269,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
-    private final Index<V, E> index = new IncrementalIndex<>();
+    private final IncrementalIndex<V, E> index = new IncrementalIndex<>();
 
     private final List<EquationSystemListener<V, E>> listeners = new ArrayList<>();
 
