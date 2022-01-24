@@ -605,9 +605,4 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     public void setRemoteVoltageControlReactivePercent(double remoteVoltageControlReactivePercent) {
         this.remoteVoltageControlReactivePercent = remoteVoltageControlReactivePercent;
     }
-
-    @Override
-    public String toString() {
-        return getId();
-    }
 }

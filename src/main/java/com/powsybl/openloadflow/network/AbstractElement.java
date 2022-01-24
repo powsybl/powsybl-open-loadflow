@@ -57,4 +57,9 @@ public abstract class AbstractElement implements LfElement {
     public void setUserObject(Object userObject) {
         this.userObject = userObject;
     }
+
+    @Override
+    public String toString() {
+        return getId();
+    }
 }
