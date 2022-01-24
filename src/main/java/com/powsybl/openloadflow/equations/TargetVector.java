@@ -109,7 +109,7 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         Objects.requireNonNull(network);
         Objects.requireNonNull(equationSystem);
         Objects.requireNonNull(initializer);
-        NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
+        NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
         double[] array = new double[sortedEquationsToSolve.size()];
         for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
             initializer.initialize(equation, network, array);
@@ -123,7 +123,7 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
     }
 
     private void updateArray() {
-        NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
+        NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
         for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
             initializer.initialize(equation, network, array);
         }

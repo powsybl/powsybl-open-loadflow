@@ -134,8 +134,8 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     private void initMatrix() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        int rowCount = equationSystem.getSortedEquationsToSolve().size();
-        int columnCount = equationSystem.getSortedVariablesToFind().size();
+        int rowCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
+        int columnCount = equationSystem.getIndex().getSortedVariablesToFind().size();
         if (rowCount != columnCount) {
             throw new PowsyblException("Expected to have same number of equations (" + rowCount
                     + ") and variables (" + columnCount + ")");
@@ -145,7 +145,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
         partialDerivatives = new ArrayList<>(estimatedNonZeroValueCount);
 
-        for (Map.Entry<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> e : equationSystem.getSortedEquationsToSolve().entrySet()) {
+        for (Map.Entry<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> e : equationSystem.getIndex().getSortedEquationsToSolve().entrySet()) {
             Equation<V, E> eq = e.getKey();
             int column = eq.getColumn();
             for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e2 : e.getValue().entrySet()) {
