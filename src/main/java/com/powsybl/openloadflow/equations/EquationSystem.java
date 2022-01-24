@@ -118,10 +118,10 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                         }
                     }
                 }
-                MutableInt count = sortedVariablesRefCount.get(variable);
-                if (count != null) {
-                    count.decrement();
-                    if (count.intValue() == 0) {
+                MutableInt variableRefCount = sortedVariablesRefCount.get(variable);
+                if (variableRefCount != null) {
+                    variableRefCount.decrement();
+                    if (variableRefCount.intValue() == 0) {
                         sortedVariablesRefCount.remove(variable);
                         variableIndexValid = false;
                     }
