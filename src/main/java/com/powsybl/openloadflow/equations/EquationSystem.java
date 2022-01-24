@@ -66,7 +66,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                     equation.setColumn(columnCount++);
                 }
                 equationIndexValid = true;
-                LOGGER.debug("Equations indexed [0, {}]", columnCount - 1);
+                LOGGER.debug("Equations index updated ({} columns)", columnCount);
             }
 
             if (!variableIndexValid) {
@@ -75,7 +75,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                     variable.setRow(rowCount++);
                 }
                 variableIndexValid = true;
-                LOGGER.debug("Variable indexed [0, {}]", rowCount - 1);
+                LOGGER.debug("Variables index updated ({} rows)", rowCount);
             }
         }
 
@@ -236,13 +236,13 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
                     equation.setColumn(columnCount++);
                 }
-                LOGGER.debug("Equations indexed [0, {}]", columnCount - 1);
+                LOGGER.debug("Equations index updated ({} columns)", columnCount);
 
                 int rowCount = 0;
                 for (Variable<V> variable : sortedVariables) {
                     variable.setRow(rowCount++);
                 }
-                LOGGER.debug("Variable indexed [0, {}]", rowCount - 1);
+                LOGGER.debug("Variables index updated ({} rows)", rowCount);
 
                 valid = true;
             }
