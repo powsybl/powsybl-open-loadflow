@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.BoundaryFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -142,5 +143,37 @@ class AcLoadFlowBoundaryTest {
         assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b1"));
         assertVoltageEquals(417.841, network.getBusBreakerView().getBus("b3"));
         assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b4"));
+    }
+
+    @Test
+    void testEquivalentBranch() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        network.newLine()
+                .setId("LINE_23")
+                .setVoltageLevel1("VL_2")
+                .setVoltageLevel2("VL_3")
+                .setBus1("BUS_2")
+                .setBus2("BUS_3")
+                .setR(1.05)
+                .setX(0.01)
+                .setG1(0.)
+                .setG2(0.)
+                .setB1(0.)
+                .setB2(0.)
+                .add();
+
+        parametersExt.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(135.0, network.getBusBreakerView().getBus("BUS_1"));
+        assertVoltageEquals(134.25, network.getBusBreakerView().getBus("BUS_2"));
+        assertVoltageEquals(33.26, network.getBusBreakerView().getBus("BUS_3"));
+
+        parametersExt.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(true);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertVoltageEquals(135.0, network.getBusBreakerView().getBus("BUS_1"));
+        assertVoltageEquals(121.62, network.getBusBreakerView().getBus("BUS_2"));
+        assertVoltageEquals(0.04, network.getBusBreakerView().getBus("BUS_3"));
     }
 }
