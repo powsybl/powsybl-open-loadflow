@@ -29,11 +29,7 @@ public class StateVector {
     }
 
     public double get(int variableNum) {
-        try {
-            return array[variableNum];
-        } catch (Exception e) {
-            throw e;
-        }
+        return array[variableNum];
     }
 
     public void set(int variableNum, double value) {
