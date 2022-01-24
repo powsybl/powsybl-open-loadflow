@@ -285,7 +285,6 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         this.variableSet = Objects.requireNonNull(variableSet);
         this.indexTerms = indexTerms;
         addListener(equationCache);
-//        addListener(equationCache2);
     }
 
     public VariableSet<V> getVariableSet() {
