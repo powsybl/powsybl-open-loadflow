@@ -10,7 +10,6 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfNetwork;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +20,7 @@ import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -40,255 +40,26 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private final Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsByElement = new HashMap<>();
 
-    public interface Index<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
-
-        NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> getSortedEquationsToSolve();
-
-        NavigableSet<Variable<V>> getSortedVariablesToFind();
-    }
-
-    private static class IncrementalIndex<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
-            implements Index<V, E>, EquationSystemListener<V, E> {
-
-        private final NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = new TreeMap<>();
-
-        // variable reference counting in equation terms
-        private final NavigableMap<Variable<V>, MutableInt> sortedVariablesRefCount = new TreeMap<>();
-
-        private boolean equationIndexValid = false;
-
-        private boolean variableIndexValid = false;
-
-        private void update() {
-            if (!equationIndexValid) {
-                int columnCount = 0;
-                for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
-                    equation.setColumn(columnCount++);
-                }
-                equationIndexValid = true;
-                LOGGER.debug("Equations index updated ({} columns)", columnCount);
-            }
-
-            if (!variableIndexValid) {
-                int rowCount = 0;
-                for (Variable<V> variable : sortedVariablesRefCount.keySet()) {
-                    variable.setRow(rowCount++);
-                }
-                variableIndexValid = true;
-                LOGGER.debug("Variables index updated ({} rows)", rowCount);
-            }
-        }
-
-        private void addTerm(EquationTerm<V, E> term) {
-            for (Variable<V> variable : term.getVariables()) {
-                sortedEquationsToSolve.computeIfAbsent(term.getEquation(), k -> new TreeMap<>())
-                        .computeIfAbsent(variable, k -> new ArrayList<>())
-                        .add(term);
-                MutableInt refCount = sortedVariablesRefCount.get(variable);
-                if (refCount == null) {
-                    refCount = new MutableInt();
-                    variableIndexValid = false;
-                    sortedVariablesRefCount.put(variable, refCount);
-                }
-                refCount.increment();
-            }
-        }
-
-        private void addEquation(Equation<V, E> equation) {
-            for (EquationTerm<V, E> term : equation.getTerms()) {
-                if (term.isActive()) {
-                    addTerm(term);
-                }
-            }
-            equationIndexValid = false;
-        }
-
-        private void removeTerm(EquationTerm<V, E> term) {
-            NavigableMap<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = sortedEquationsToSolve.get(term.getEquation());
-            for (Variable<V> variable : term.getVariables()) {
-                if (termsByVariable != null) {
-                    List<EquationTerm<V, E>> terms = termsByVariable.get(variable);
-                    if (terms != null) {
-                        terms.remove(term);
-                        if (terms.isEmpty()) {
-                            termsByVariable.remove(variable);
-                            if (termsByVariable.isEmpty()) {
-                                sortedEquationsToSolve.remove(term.getEquation());
-                            }
-                        }
-                    }
-                }
-                MutableInt variableRefCount = sortedVariablesRefCount.get(variable);
-                if (variableRefCount != null) {
-                    variableRefCount.decrement();
-                    if (variableRefCount.intValue() == 0) {
-                        sortedVariablesRefCount.remove(variable);
-                        variableIndexValid = false;
-                    }
-                }
-            }
-        }
-
-        private void removeEquation(Equation<V, E> equation) {
-            sortedEquationsToSolve.remove(equation);
-            for (EquationTerm<V, E> term : equation.getTerms()) {
-                if (term.isActive()) {
-                    removeTerm(term);
-                }
-            }
-            equationIndexValid = false;
-        }
-
-        @Override
-        public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
-            switch (eventType) {
-                case EQUATION_REMOVED:
-                    if (equation.isActive()) {
-                        removeEquation(equation);
-                    }
-                    break;
-
-                case EQUATION_DEACTIVATED:
-                    removeEquation(equation);
-                    break;
-
-                case EQUATION_CREATED:
-                    if (equation.isActive()) {
-                        addEquation(equation);
-                    }
-                    break;
-
-                case EQUATION_ACTIVATED:
-                    addEquation(equation);
-                    break;
-
-                default:
-                    throw new IllegalStateException("Event type not supported: " + eventType);
-            }
-        }
-
-        @Override
-        public void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
-            if (term.getEquation().isActive()) {
-                switch (eventType) {
-                    case EQUATION_TERM_ADDED:
-                        if (term.isActive()) {
-                            addTerm(term);
-                        }
-                        break;
-
-                    case EQUATION_TERM_ACTIVATED:
-                        addTerm(term);
-                        break;
-
-                    case EQUATION_TERM_DEACTIVATED:
-                        removeTerm(term);
-                        break;
-
-                    default:
-                        throw new IllegalStateException("Event type not supported: " + eventType);
-                }
-            }
-        }
-
-        public NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> getSortedEquationsToSolve() {
-            update();
-            return sortedEquationsToSolve;
-        }
-
-        public NavigableSet<Variable<V>> getSortedVariablesToFind() {
-            update();
-            return sortedVariablesRefCount.navigableKeySet();
-        }
-    }
-
-    /**
-     * Used just for debugging as a reference
-     */
-    private class FullIndex implements Index<V, E>, EquationSystemListener<V, E> {
-
-        private final TreeMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = new TreeMap<>();
-
-        private final TreeSet<Variable<V>> sortedVariables = new TreeSet<>();
-
-        private boolean valid = false;
-
-        private void update() {
-            if (!valid) {
-                sortedEquationsToSolve.clear();
-                sortedVariables.clear();
-                for (var equation : equations.values()) {
-                    if (equation.isActive()) {
-                        for (var term : equation.getTerms()) {
-                            if (term.isActive()) {
-                                for (var v : term.getVariables()) {
-                                    sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>())
-                                            .computeIfAbsent(v, k -> new ArrayList<>())
-                                            .add(term);
-                                    sortedVariables.add(v);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                int columnCount = 0;
-                for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
-                    equation.setColumn(columnCount++);
-                }
-                LOGGER.debug("Equations index updated ({} columns)", columnCount);
-
-                int rowCount = 0;
-                for (Variable<V> variable : sortedVariables) {
-                    variable.setRow(rowCount++);
-                }
-                LOGGER.debug("Variables index updated ({} rows)", rowCount);
-
-                valid = true;
-            }
-        }
-
-        @Override
-        public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
-            valid = false;
-        }
-
-        @Override
-        public void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
-            valid = false;
-        }
-
-        public NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> getSortedEquationsToSolve() {
-            update();
-            return sortedEquationsToSolve;
-        }
-
-        public NavigableSet<Variable<V>> getSortedVariablesToFind() {
-            update();
-            return sortedVariables;
-        }
-    }
-
-    private final IncrementalIndex<V, E> index = new IncrementalIndex<>();
-
     private final List<EquationSystemListener<V, E>> listeners = new ArrayList<>();
 
     private final VariableSet<V> variableSet;
 
     private final StateVector stateVector = new StateVector();
 
+    private final EquationSystemIndex<V, E> index;
+
     public EquationSystem() {
         this(false);
     }
 
     public EquationSystem(boolean indexTerms) {
-        this(new VariableSet<>(), indexTerms);
+        this(new VariableSet<>(), indexTerms, IncrementalEquationSystemIndex::new);
     }
 
-    public EquationSystem(VariableSet<V> variableSet, boolean indexTerms) {
+    public EquationSystem(VariableSet<V> variableSet, boolean indexTerms, Function<EquationSystem<V, E>, EquationSystemIndex<V, E>> indexFactory) {
         this.variableSet = Objects.requireNonNull(variableSet);
         this.indexTerms = indexTerms;
-        addListener(index);
+        index = Objects.requireNonNull(indexFactory).apply(this);
     }
 
     public VariableSet<V> getVariableSet() {
@@ -303,8 +74,12 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return stateVector;
     }
 
-    public Index<V, E> getIndex() {
+    public EquationSystemIndex<V, E> getIndex() {
         return index;
+    }
+
+    public Collection<Equation<V, E>> getEquations() {
+        return equations.values();
     }
 
     void addEquationTerm(EquationTerm<V, E> equationTerm) {
