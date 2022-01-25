@@ -16,13 +16,12 @@ import java.util.*;
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-class FullEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationSystemIndex<V, E>, EquationSystemListener<V, E> {
+class FullEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
+        extends AbstractEquationSystemIndex<V, E> implements EquationSystemListener<V, E> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FullEquationSystemIndex.class);
 
     private final EquationSystem<V, E> equationSystem;
-
-    private final TreeMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = new TreeMap<>();
 
     private final TreeSet<Variable<V>> sortedVariables = new TreeSet<>();
 
@@ -70,6 +69,9 @@ class FullEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E> & 
         LOGGER.debug("Variables index updated ({} rows)", rowCount);
 
         valid = true;
+
+        notifyEquationsIndexUpdate();
+        notifyVariablesIndexUpdate();
     }
 
     @Override
