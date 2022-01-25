@@ -18,4 +18,6 @@ public interface EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
     NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> getSortedEquationsToSolve();
 
     NavigableSet<Variable<V>> getSortedVariablesToFind();
+
+    void addListener(EquationSystemIndexListener listener);
 }

@@ -16,40 +16,40 @@ import java.util.*;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
-        implements EquationSystemIndex<V, E>, EquationSystemListener<V, E> {
+        extends AbstractEquationSystemIndex<V, E> implements EquationSystemListener<V, E> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalEquationSystemIndex.class);
-
-    private final NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = new TreeMap<>();
 
     // variable reference counting in equation terms
     private final NavigableMap<Variable<V>, MutableInt> sortedVariablesRefCount = new TreeMap<>();
 
-    private boolean equationIndexValid = false;
+    private boolean equationsIndexValid = false;
 
-    private boolean variableIndexValid = false;
+    private boolean variablesIndexValid = false;
 
     public IncrementalEquationSystemIndex(EquationSystem<V, E> equationSystem) {
         Objects.requireNonNull(equationSystem).addListener(this);
     }
 
     private void update() {
-        if (!equationIndexValid) {
+        if (!equationsIndexValid) {
             int columnCount = 0;
             for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
                 equation.setColumn(columnCount++);
             }
-            equationIndexValid = true;
+            equationsIndexValid = true;
             LOGGER.debug("Equations index updated ({} columns)", columnCount);
+            notifyEquationsIndexUpdate();
         }
 
-        if (!variableIndexValid) {
+        if (!variablesIndexValid) {
             int rowCount = 0;
             for (Variable<V> variable : sortedVariablesRefCount.keySet()) {
                 variable.setRow(rowCount++);
             }
-            variableIndexValid = true;
+            variablesIndexValid = true;
             LOGGER.debug("Variables index updated ({} rows)", rowCount);
+            notifyVariablesIndexUpdate();
         }
     }
 
@@ -59,7 +59,7 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
                     .computeIfAbsent(variable, k -> new ArrayList<>())
                     .add(term);
             sortedVariablesRefCount.computeIfAbsent(variable, k -> {
-                variableIndexValid = false;
+                variablesIndexValid = false;
                 return new MutableInt();
             }).increment();
         }
@@ -71,7 +71,7 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
                 addTerm(term);
             }
         }
-        equationIndexValid = false;
+        equationsIndexValid = false;
     }
 
     private void removeVariable(EquationTerm<V, E> term, NavigableMap<Variable<V>, List<EquationTerm<V, E>>> termsByVariable,
@@ -99,7 +99,7 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
                 variableRefCount.decrement();
                 if (variableRefCount.intValue() == 0) {
                     sortedVariablesRefCount.remove(variable);
-                    variableIndexValid = false;
+                    variablesIndexValid = false;
                 }
             }
         }
@@ -112,7 +112,7 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
                 removeTerm(term);
             }
         }
-        equationIndexValid = false;
+        equationsIndexValid = false;
     }
 
     @Override
