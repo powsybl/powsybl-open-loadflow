@@ -29,8 +29,6 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         private final DoubleSupplier scalarSupplier;
 
-        private boolean active = true;
-
         MultiplyByScalarEquationTerm(EquationTerm<V, E> term, double scalar) {
             this(term, () -> scalar);
         }
@@ -53,16 +51,17 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         @Override
         public void setActive(boolean active) {
-            if (this.active != active) {
-                this.active = active;
-                term.getEquation().getEquationSystem().notifyEquationTermChange(this, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED
-                        : EquationTermEventType.EQUATION_TERM_DEACTIVATED);
-            }
+            term.setActive(active);
         }
 
         @Override
         public boolean isActive() {
-            return active;
+            return term.isActive();
+        }
+
+        @Override
+        public void setSelf(EquationTerm<V, E> self) {
+            term.setSelf(self);
         }
 
         @Override
