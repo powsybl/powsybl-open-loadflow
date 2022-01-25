@@ -24,7 +24,7 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
-        implements EquationSystemListener<V, E>, StateVectorListener, AutoCloseable {
+        implements EquationSystemListener<V, E>, EquationSystemIndexListener, StateVectorListener, AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JacobianMatrix.class);
 
@@ -77,43 +77,28 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         equationSystem.addListener(this);
+        equationSystem.getIndex().addListener(this);
         equationSystem.getStateVector().addListener(this);
     }
 
     @Override
-    public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
-        switch (eventType) {
-            case EQUATION_CREATED:
-            case EQUATION_REMOVED:
-            case EQUATION_ACTIVATED:
-            case EQUATION_DEACTIVATED:
-                status = Status.MATRIX_INVALID;
-                break;
+    public void onEquationsIndexUpdate() {
+        status = Status.MATRIX_INVALID;
+    }
 
-            default:
-                throw new IllegalStateException("Event type not supported: " + eventType);
-        }
+    @Override
+    public void onVariablesIndexUpdate() {
+        status = Status.MATRIX_INVALID;
+    }
+
+    @Override
+    public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
     }
 
     @Override
     public void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
-        switch (eventType) {
-            case EQUATION_TERM_ADDED:
-            case EQUATION_TERM_ACTIVATED:
-            case EQUATION_TERM_DEACTIVATED:
-                // FIXME
-                // Note for later, it might be possible in the future in case of a term change to not fully rebuild
-                // the matrix as the structure has not changed (same equations and variables). But... we have for that
-                // to handle the case where the invalidation of an equation term break the graph connectivity. This
-                // is typically the case when the equation term is the active power flow of a branch which is also a
-                // bridge (so necessary for the connectivity). Normally in that case a bus equation should also have been
-                // deactivated and so it should work but for an unknown reason it fails with a KLU singular error (which
-                // means most of the time we have created the matrix with a non fully connected network)
-                status = Status.MATRIX_INVALID;
-                break;
-
-            default:
-                throw new IllegalStateException("Event type not supported: " + eventType);
+        if (status == Status.VALID) {
+            status = Status.VALUES_INVALID;
         }
     }
 
@@ -180,10 +165,12 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         matrix.reset();
         for (PartialDerivative<V, E> partialDerivative : partialDerivatives) {
             EquationTerm<V, E> equationTerm = partialDerivative.getEquationTerm();
-            int elementIndex = partialDerivative.getElementIndex();
-            Variable<V> var = partialDerivative.getVariable();
-            double value = equationTerm.der(var);
-            matrix.addAtIndex(elementIndex, value);
+            if (equationTerm.isActive()) {
+                int elementIndex = partialDerivative.getElementIndex();
+                Variable<V> var = partialDerivative.getVariable();
+                double value = equationTerm.der(var);
+                matrix.addAtIndex(elementIndex, value);
+            }
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
@@ -241,6 +228,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     @Override
     public void close() {
         equationSystem.removeListener(this);
+        equationSystem.getIndex().removeListener(this);
         equationSystem.getStateVector().removeListener(this);
         matrix = null;
         partialDerivatives = null;
