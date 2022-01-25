@@ -902,4 +902,26 @@ class OpenSecurityAnalysisTest {
         assertEquals(-210.000, g2ContingencyResult.getBranchResult("l14").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(50.0, g2ContingencyResult.getBranchResult("l34").getP2(), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testSaWithTransformerContingency() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        List<Contingency> contingencies = List.of(new Contingency("T2wT", new BranchContingency("T2wT")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
+
+        // pre-contingency tests
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(22.111, preContingencyResult.getPreContingencyBranchResult("LINE_12").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // post-contingency tests
+        PostContingencyResult contingencyResult = getPostContingencyResult(result, "T2wT");
+        assertEquals(11.228, contingencyResult.getBranchResult("LINE_12").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
 }
