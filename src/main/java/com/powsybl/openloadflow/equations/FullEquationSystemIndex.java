@@ -34,38 +34,42 @@ class FullEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E> & 
     }
 
     private void update() {
-        if (!valid) {
-            sortedEquationsToSolve.clear();
-            sortedVariables.clear();
-            for (var equation : equationSystem.getEquations()) {
-                if (equation.isActive()) {
-                    for (var term : equation.getTerms()) {
-                        if (term.isActive()) {
-                            for (var v : term.getVariables()) {
-                                sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>())
-                                        .computeIfAbsent(v, k -> new ArrayList<>())
-                                        .add(term);
-                                sortedVariables.add(v);
-                            }
-                        }
-                    }
+        if (valid) {
+            return;
+        }
+
+        sortedEquationsToSolve.clear();
+        sortedVariables.clear();
+        for (var equation : equationSystem.getEquations()) {
+            if (!equation.isActive()) {
+                break;
+            }
+            for (var term : equation.getTerms()) {
+                if (!term.isActive()) {
+                    break;
+                }
+                for (var v : term.getVariables()) {
+                    sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>())
+                            .computeIfAbsent(v, k -> new ArrayList<>())
+                            .add(term);
+                    sortedVariables.add(v);
                 }
             }
-
-            int columnCount = 0;
-            for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
-                equation.setColumn(columnCount++);
-            }
-            LOGGER.debug("Equations index updated ({} columns)", columnCount);
-
-            int rowCount = 0;
-            for (Variable<V> variable : sortedVariables) {
-                variable.setRow(rowCount++);
-            }
-            LOGGER.debug("Variables index updated ({} rows)", rowCount);
-
-            valid = true;
         }
+
+        int columnCount = 0;
+        for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
+            equation.setColumn(columnCount++);
+        }
+        LOGGER.debug("Equations index updated ({} columns)", columnCount);
+
+        int rowCount = 0;
+        for (Variable<V> variable : sortedVariables) {
+            variable.setRow(rowCount++);
+        }
+        LOGGER.debug("Variables index updated ({} rows)", rowCount);
+
+        valid = true;
     }
 
     @Override

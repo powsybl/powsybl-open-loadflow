@@ -58,13 +58,10 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
             sortedEquationsToSolve.computeIfAbsent(term.getEquation(), k -> new TreeMap<>())
                     .computeIfAbsent(variable, k -> new ArrayList<>())
                     .add(term);
-            MutableInt refCount = sortedVariablesRefCount.get(variable);
-            if (refCount == null) {
-                refCount = new MutableInt();
+            sortedVariablesRefCount.computeIfAbsent(variable, k -> {
                 variableIndexValid = false;
-                sortedVariablesRefCount.put(variable, refCount);
-            }
-            refCount.increment();
+                return new MutableInt();
+            }).increment();
         }
     }
 
@@ -77,21 +74,26 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
         equationIndexValid = false;
     }
 
-    private void removeTerm(EquationTerm<V, E> term) {
-        NavigableMap<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = sortedEquationsToSolve.get(term.getEquation());
-        for (Variable<V> variable : term.getVariables()) {
-            if (termsByVariable != null) {
-                List<EquationTerm<V, E>> terms = termsByVariable.get(variable);
-                if (terms != null) {
-                    terms.remove(term);
-                    if (terms.isEmpty()) {
-                        termsByVariable.remove(variable);
-                        if (termsByVariable.isEmpty()) {
-                            sortedEquationsToSolve.remove(term.getEquation());
-                        }
+    private void removeVariable(EquationTerm<V, E> term, NavigableMap<Variable<V>, List<EquationTerm<V, E>>> termsByVariable,
+                                Variable<V> variable) {
+        if (termsByVariable != null) {
+            List<EquationTerm<V, E>> terms = termsByVariable.get(variable);
+            if (terms != null) {
+                terms.remove(term);
+                if (terms.isEmpty()) {
+                    termsByVariable.remove(variable);
+                    if (termsByVariable.isEmpty()) {
+                        sortedEquationsToSolve.remove(term.getEquation());
                     }
                 }
             }
+        }
+    }
+
+    private void removeTerm(EquationTerm<V, E> term) {
+        NavigableMap<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = sortedEquationsToSolve.get(term.getEquation());
+        for (Variable<V> variable : term.getVariables()) {
+            removeVariable(term, termsByVariable, variable);
             MutableInt variableRefCount = sortedVariablesRefCount.get(variable);
             if (variableRefCount != null) {
                 variableRefCount.decrement();
