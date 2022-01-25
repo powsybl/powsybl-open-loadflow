@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -44,13 +45,12 @@ class EquationSystemTest {
         equationTermEventTypes.clear();
     }
 
-    @Test
-    void test() {
+    private void test(Function<EquationSystem<AcVariableType, AcEquationType>, EquationSystemIndex<AcVariableType, AcEquationType>> indexFactory) {
         List<LfNetwork> lfNetworks = Networks.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
         LfNetwork network = lfNetworks.get(0);
 
         LfBus bus = network.getBus(0);
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(true);
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(new VariableSet<>(), true, indexFactory);
         equationSystem.addListener(new EquationSystemListener<>() {
             @Override
             public void onEquationChange(Equation<AcVariableType, AcEquationType> equation, EquationEventType eventType) {
@@ -118,6 +118,16 @@ class EquationSystemTest {
         assertEquals(0, equationEventTypes.size());
         assertEquals(1, equationTermEventTypes.size());
         assertEquals(EquationTermEventType.EQUATION_TERM_DEACTIVATED, equationTermEventTypes.get(0));
+    }
+
+    @Test
+    void testFullIndex() {
+        test(FullEquationSystemIndex::new);
+    }
+
+    @Test
+    void testIncrementalIndex() {
+        test(IncrementalEquationSystemIndex::new);
     }
 
     @Test
