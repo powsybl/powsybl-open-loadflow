@@ -105,9 +105,9 @@ class LfContingencyTest extends AbstractConverterTest {
 
         String generatorId = "GEN";
         Contingency contingency = new Contingency(generatorId, new GeneratorContingency(generatorId));
-        PowsyblException exception = assertThrows(PowsyblException.class, () ->
-                PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false));
-        assertEquals("Generator 'GEN' not found in the network", exception.getMessage());
+        assertThrows(PowsyblException.class, () ->
+                        PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false),
+                "Generator 'GEN' not found in the network");
     }
 
     @Test
@@ -123,8 +123,8 @@ class LfContingencyTest extends AbstractConverterTest {
 
         String loadId = "LOAD";
         Contingency contingency = new Contingency(loadId, new LoadContingency(loadId));
-        PowsyblException exception = assertThrows(PowsyblException.class, () ->
-                PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false));
-        assertEquals("Load 'LOAD' not found in the network", exception.getMessage());
+        assertThrows(PowsyblException.class, () ->
+                        PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false),
+                "Load 'LOAD' not found in the network");
     }
 }
