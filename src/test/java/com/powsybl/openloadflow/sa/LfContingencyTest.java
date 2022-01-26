@@ -7,8 +7,10 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.AbstractConverterTest;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.GeneratorContingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -39,6 +41,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
@@ -88,4 +91,21 @@ class LfContingencyTest extends AbstractConverterTest {
         }
     }
 
+    @Test
+    void testGeneratorNotFound() {
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        assertEquals(2, lfNetworks.size());
+
+        Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider = EvenShiloachGraphDecrementalConnectivity::new;
+        new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(), new DenseMatrixFactory(), connectivityProvider, Collections.emptyList());
+
+        String generatorId = "GEN";
+        Contingency contingency = new Contingency(generatorId, new GeneratorContingency(generatorId));
+        PowsyblException exception = assertThrows(PowsyblException.class, () ->
+                PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false));
+        assertEquals("Generator 'GEN' not found in the network", exception.getMessage());
+    }
 }
