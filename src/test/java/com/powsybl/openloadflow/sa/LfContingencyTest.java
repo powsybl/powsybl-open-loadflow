@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.GeneratorContingency;
+import com.powsybl.contingency.LoadContingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -107,5 +108,23 @@ class LfContingencyTest extends AbstractConverterTest {
         PowsyblException exception = assertThrows(PowsyblException.class, () ->
                 PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false));
         assertEquals("Generator 'GEN' not found in the network", exception.getMessage());
+    }
+
+    @Test
+    void testLoadNotFound() {
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        assertEquals(2, lfNetworks.size());
+
+        Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider = EvenShiloachGraphDecrementalConnectivity::new;
+        new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(), new DenseMatrixFactory(), connectivityProvider, Collections.emptyList());
+
+        String loadId = "LOAD";
+        Contingency contingency = new Contingency(loadId, new LoadContingency(loadId));
+        PowsyblException exception = assertThrows(PowsyblException.class, () ->
+                PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false));
+        assertEquals("Load 'LOAD' not found in the network", exception.getMessage());
     }
 }
