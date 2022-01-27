@@ -21,7 +21,7 @@ public interface LfGenerator {
 
     boolean hasVoltageControl();
 
-    boolean hasReactivePowerControl();
+    boolean hasRemoteReactivePowerControl();
 
     double getTargetV();
 
