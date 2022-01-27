@@ -15,7 +15,8 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfNetworkListener implements EquationSystemListener<V, E> {
+public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfNetworkListener
+        implements EquationSystemIndexListener {
 
     @FunctionalInterface
     public interface Initializer<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
@@ -44,7 +45,7 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.initializer = Objects.requireNonNull(initializer);
         network.addListener(this);
-        equationSystem.addListener(this);
+        equationSystem.getIndex().addListener(this);
     }
 
     private void invalidateValues() {
@@ -79,12 +80,12 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
     }
 
     @Override
-    public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
+    public void onEquationsIndexUpdate() {
         status = Status.VECTOR_INVALID;
     }
 
     @Override
-    public void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
+    public void onVariablesIndexUpdate() {
         // nothing to do
     }
 
