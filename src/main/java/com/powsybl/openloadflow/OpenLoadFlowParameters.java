@@ -34,7 +34,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE = false;
 
-    public static final boolean ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE = false;
+    public static final boolean ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE = true;
 
     /**
      * Slack bus maximum active power mismatch in MW: 1 Mw => 10^-2 in p.u

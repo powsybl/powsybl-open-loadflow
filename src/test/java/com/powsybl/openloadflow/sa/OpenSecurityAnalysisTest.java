@@ -505,7 +505,7 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testSaWithStateMonitorDanglingLine() {
-        Network network = DanglingLineFactory.create();
+        Network network = BoundaryFactory.create();
 
         List<StateMonitor> monitors = new ArrayList<>();
         monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("dl1"), Collections.singleton("vl1"), emptySet()));
