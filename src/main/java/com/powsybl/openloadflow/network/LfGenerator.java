@@ -14,7 +14,7 @@ import java.util.OptionalDouble;
 public interface LfGenerator {
 
     enum GeneratorControlType {
-        OFF, REACTIVE_POWER, VOLTAGE
+        OFF, REMOTE_REACTIVE_POWER, VOLTAGE
     }
 
     String getId();
@@ -25,11 +25,11 @@ public interface LfGenerator {
 
     boolean hasVoltageControl();
 
+    boolean hasRemoteReactivePowerControl();
+
     GeneratorControlType getGeneratorControlType();
 
     void setGeneratorControlType(GeneratorControlType generatorControlType);
-
-    boolean hasReactivePowerControl();
 
     double getTargetV();
 

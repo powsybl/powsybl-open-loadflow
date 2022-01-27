@@ -93,8 +93,8 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     }
 
     @Override
-    public boolean hasReactivePowerControl() {
-        return generatorControlType == GeneratorControlType.REACTIVE_POWER;
+    public boolean hasRemoteReactivePowerControl() {
+        return generatorControlType == GeneratorControlType.REMOTE_REACTIVE_POWER;
     }
 
     @Override
@@ -237,7 +237,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
                     getId(), connectable.getClass());
             return;
         }
-        this.generatorControlType = GeneratorControlType.REACTIVE_POWER;
+        this.generatorControlType = GeneratorControlType.REMOTE_REACTIVE_POWER;
         this.remoteTargetQ = targetQ / PerUnit.SB;
     }
 
