@@ -37,6 +37,13 @@ class FullEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E> & 
             return;
         }
 
+        for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
+            equation.setColumn(-1);
+        }
+        for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
+            equation.setColumn(-1);
+        }
+
         sortedEquationsToSolve.clear();
         sortedVariables.clear();
         for (var equation : equationSystem.getEquations()) {

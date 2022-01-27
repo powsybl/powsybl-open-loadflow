@@ -98,6 +98,7 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
             if (variableRefCount != null) {
                 variableRefCount.decrement();
                 if (variableRefCount.intValue() == 0) {
+                    variable.setRow(-1);
                     sortedVariablesRefCount.remove(variable);
                     variablesIndexValid = false;
                 }
@@ -106,6 +107,7 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
     }
 
     private void removeEquation(Equation<V, E> equation) {
+        equation.setColumn(-1);
         sortedEquationsToSolve.remove(equation);
         for (EquationTerm<V, E> term : equation.getTerms()) {
             if (term.isActive()) {
