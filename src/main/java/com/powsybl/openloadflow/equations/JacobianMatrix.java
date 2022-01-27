@@ -93,6 +93,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     @Override
     public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
+        // nothing to do because alreadu invalidated by equations index update event
     }
 
     @Override
