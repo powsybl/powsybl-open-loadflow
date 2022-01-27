@@ -10,6 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.PerUnit;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
@@ -38,7 +39,7 @@ public class PropagatedContingency {
 
     private final Set<Pair<String, Double>> generatorIdsToLose;
 
-    private final Set<Triple<String, Double, Double>> loadIdsToLose;
+    private final Set<Triple<String, Pair<Double, Double>, Double>> loadIdsToLose;
 
     private final Set<Pair<String, Double>> shuntIdsToLose;
 
@@ -62,7 +63,7 @@ public class PropagatedContingency {
         return generatorIdsToLose;
     }
 
-    public Set<Triple<String, Double, Double>> getLoadIdsToLose() {
+    public Set<Triple<String, Pair<Double, Double>, Double>> getLoadIdsToLose() {
         return loadIdsToLose;
     }
 
@@ -72,7 +73,8 @@ public class PropagatedContingency {
 
     public PropagatedContingency(Contingency contingency, int index, Set<String> branchIdsToOpen, Set<String> hvdcIdsToOpen,
                                  Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect, Set<Pair<String, Double>> generatorIdsToLose,
-                                 Set<Triple<String, Double, Double>> loadIdsToLose, Set<Pair<String, Double>> shuntIdsToLose, boolean withBreakers) {
+                                 Set<Triple<String, Pair<Double, Double>, Double>> loadIdsToLose, Set<Pair<String, Double>> shuntIdsToLose, boolean withBreakers,
+                                 boolean slackDistributionOnConformLoad) {
         this.contingency = Objects.requireNonNull(contingency);
         this.index = index;
         this.branchIdsToOpen = Objects.requireNonNull(branchIdsToOpen);
@@ -96,7 +98,7 @@ public class PropagatedContingency {
             }
             if (terminal.getConnectable() instanceof Load) {
                 Load load = (Load) terminal.getConnectable();
-                loadIdsToLose.add(getLoadInfo(load, withBreakers));
+                loadIdsToLose.add(getLoadInfo(load, withBreakers, slackDistributionOnConformLoad));
             }
             if (terminal.getConnectable() instanceof ShuntCompensator) {
                 ShuntCompensator shuntCompensator = (ShuntCompensator) terminal.getConnectable();
@@ -114,16 +116,21 @@ public class PropagatedContingency {
         return Pair.of(generator.getId(), generator.getTargetP());
     }
 
-    private static Triple<String, Double, Double> getLoadInfo(Load load, boolean withBreakers) {
+    private static Triple<String, Pair<Double, Double>, Double> getLoadInfo(Load load, boolean withBreakers, boolean slackDistributionOnConformLoad) {
+        double variableActivePower = Math.abs(load.getP0());
+        if (slackDistributionOnConformLoad) {
+            variableActivePower = load.getExtension(LoadDetail.class) == null ? 0.0 : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower());
+        }
         Bus bus = withBreakers ? load.getTerminal().getBusBreakerView().getBus() : load.getTerminal().getBusView().getBus();
-        return bus != null ? Triple.of(bus.getId(), load.getP0() / PerUnit.SB, load.getQ0() / PerUnit.SB) : null;
+        return bus != null ? Triple.of(bus.getId(), Pair.of(load.getP0() / PerUnit.SB, variableActivePower / PerUnit.SB), load.getQ0() / PerUnit.SB) : null;
     }
 
-    public static List<PropagatedContingency> createListForSensitivityAnalysis(Network network, List<Contingency> contingencies) {
+    public static List<PropagatedContingency> createListForSensitivityAnalysis(Network network, List<Contingency> contingencies,
+                                                                               boolean slackDistributionOnConformLoad) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
-            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false, false);
+            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false, false, slackDistributionOnConformLoad);
             Optional<Switch> coupler = propagatedContingency.switchesToOpen.stream().filter(PropagatedContingency::isCoupler).findFirst();
             if (coupler.isEmpty()) {
                 propagatedContingencies.add(propagatedContingency);
@@ -137,24 +144,27 @@ public class PropagatedContingency {
     }
 
     public static List<PropagatedContingency> createListForSecurityAnalysis(Network network, List<Contingency> contingencies,
-                                                                            Set<Switch> allSwitchesToOpen, boolean shuntCompensatorVoltageControlOn) {
+                                                                            Set<Switch> allSwitchesToOpen, boolean shuntCompensatorVoltageControlOn,
+                                                                            boolean slackDistributionOnConformLoad) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
-            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn, true);
+            PropagatedContingency propagatedContingency =
+                    PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn, true, slackDistributionOnConformLoad);
             propagatedContingencies.add(propagatedContingency);
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
         }
         return propagatedContingencies;
     }
 
-    private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean shuntCompensatorVoltageControlOn, boolean withBreakers) {
+    private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean shuntCompensatorVoltageControlOn,
+                                                boolean withBreakers, boolean slackDistributionOnConformLoad) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
         Set<String> branchIdsToOpen = new HashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
         Set<Pair<String, Double>> generatorIdsToLose = new HashSet<>();
-        Set<Triple<String, Double, Double>> loadIdsToLose = new HashSet<>();
+        Set<Triple<String, Pair<Double, Double>, Double>> loadIdsToLose = new HashSet<>();
         Set<Pair<String, Double>> shuntIdsToLose = new HashSet<>();
         for (ContingencyElement element : contingency.getElements()) {
             switch (element.getType()) {
@@ -191,7 +201,7 @@ public class PropagatedContingency {
                     if (load == null) {
                         throw new PowsyblException("Load '" + element.getId() + "' not found in the network");
                     }
-                    loadIdsToLose.add(getLoadInfo(load, withBreakers));
+                    loadIdsToLose.add(getLoadInfo(load, withBreakers, slackDistributionOnConformLoad));
                     break;
                 case SHUNT_COMPENSATOR:
                     ShuntCompensator shuntCompensator = network.getShuntCompensator(element.getId());
@@ -209,7 +219,8 @@ public class PropagatedContingency {
             }
         }
 
-        return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen, terminalsToDisconnect, generatorIdsToLose, loadIdsToLose, shuntIdsToLose, withBreakers);
+        return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen, terminalsToDisconnect,
+                generatorIdsToLose, loadIdsToLose, shuntIdsToLose, withBreakers, slackDistributionOnConformLoad);
     }
 
     private static boolean isCoupler(Switch s) {

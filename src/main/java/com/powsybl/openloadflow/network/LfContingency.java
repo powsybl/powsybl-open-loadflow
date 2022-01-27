@@ -38,14 +38,14 @@ public class LfContingency {
 
     private final Set<Pair<LfShunt, Double>> shunts;
 
-    private final Set<Triple<LfBus, Double, Double>> loadBuses;
+    private final Set<Triple<LfBus, Pair<Double, Double>, Double>> loadBuses;
 
     private final Set<LfGenerator> generators;
 
     private double activePowerLoss;
 
     public LfContingency(String id, int index, Set<LfBus> buses, Set<LfBranch> branches, Set<Pair<LfShunt, Double>> shunts,
-                         Set<Triple<LfBus, Double, Double>> loadBuses, Set<LfGenerator> generators) {
+                         Set<Triple<LfBus, Pair<Double, Double>, Double>> loadBuses, Set<LfGenerator> generators) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
         this.buses = Objects.requireNonNull(buses);
@@ -57,8 +57,8 @@ public class LfContingency {
         for (LfBus bus : buses) {
             lose += bus.getGenerationTargetP() - bus.getLoadTargetP();
         }
-        for (Triple<LfBus, Double, Double> loadBus : loadBuses) {
-            lose -= loadBus.getMiddle();
+        for (Triple<LfBus, Pair<Double, Double>, Double> loadBus : loadBuses) {
+            lose -= loadBus.getMiddle().getKey();
         }
         for (LfGenerator generator : generators) {
             lose += generator.getTargetP();
@@ -133,8 +133,8 @@ public class LfContingency {
             generators.add(generator);
         }
 
-        Set<Triple<LfBus, Double, Double>> loadBuses = new HashSet<>(1);
-        for (Triple<String, Double, Double> loadInfo : propagatedContingency.getLoadIdsToLose()) {
+        Set<Triple<LfBus, Pair<Double, Double>, Double>> loadBuses = new HashSet<>(1);
+        for (Triple<String, Pair<Double, Double>, Double> loadInfo : propagatedContingency.getLoadIdsToLose()) {
             LfBus bus = network.getBusById(loadInfo.getLeft());
             if (bus != null) {
                 loadBuses.add(Triple.of(bus, loadInfo.getMiddle(), loadInfo.getRight()));
@@ -158,11 +158,11 @@ public class LfContingency {
             LfShunt shunt = shuntInfo.getKey();
             shunt.setB(shunt.getB() - shuntInfo.getValue());
         }
-        for (Triple<LfBus, Double, Double> loadInfo : loadBuses) {
+        for (Triple<LfBus, Pair<Double, Double>, Double> loadInfo : loadBuses) {
             LfBus bus = loadInfo.getLeft();
-            bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, parameters, loadInfo.getMiddle()));
+            bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, parameters, loadInfo.getMiddle().getKey(), loadInfo.getMiddle().getValue()));
             bus.setLoadTargetQ(bus.getLoadTargetQ() - loadInfo.getRight());
-            bus.getLfLoads().setAbsVariableLoadTargetP(bus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(loadInfo.getMiddle()) * PerUnit.SB);
+            bus.getLfLoads().setAbsVariableLoadTargetP(bus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(loadInfo.getMiddle().getValue()) * PerUnit.SB);
         }
         for (LfGenerator generator : generators) {
             generator.setTargetP(0);
@@ -176,14 +176,12 @@ public class LfContingency {
         }
     }
 
-    public static double getUpdatedLoadP0(LfBus bus, LoadFlowParameters parameters, double initialP0) {
+    public static double getUpdatedLoadP0(LfBus bus, LoadFlowParameters parameters, double initialP0, double initialVariableActivePower) {
         double factor = 0.0;
-        if (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
-                parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
+        if (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
             factor = Math.abs(initialP0) / (bus.getLfLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
-            // TODO
-            // we don't look at LoadDetail extension for the moment.
-            // we also don't check if we have to ensure power factor constant.
+        } else if (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
+            factor = initialVariableActivePower / (bus.getLfLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
         }
         return initialP0 + (bus.getLoadTargetP() - bus.getInitialLoadTargetP()) * factor;
     }

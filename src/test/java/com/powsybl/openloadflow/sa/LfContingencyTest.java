@@ -75,7 +75,7 @@ class LfContingencyTest extends AbstractConverterTest {
         String branchId = "LINE_S3S4";
         Contingency contingency = new Contingency(branchId, new BranchContingency(branchId));
         List<PropagatedContingency> propagatedContingencies =
-            PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false);
+            PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false, false);
 
         List<LfContingency> lfContingencies = propagatedContingencies.stream()
                 .flatMap(propagatedContingency -> LfContingency.create(propagatedContingency, mainNetwork, mainNetwork.createDecrementalConnectivity(connectivityProvider), true).stream())
@@ -106,7 +106,7 @@ class LfContingencyTest extends AbstractConverterTest {
         String generatorId = "GEN";
         Contingency contingency = new Contingency(generatorId, new GeneratorContingency(generatorId));
         assertThrows(PowsyblException.class, () ->
-                        PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false),
+                        PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false, false),
                 "Generator 'GEN' not found in the network");
     }
 
@@ -124,7 +124,7 @@ class LfContingencyTest extends AbstractConverterTest {
         String loadId = "LOAD";
         Contingency contingency = new Contingency(loadId, new LoadContingency(loadId));
         assertThrows(PowsyblException.class, () ->
-                        PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false),
+                        PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false, false),
                 "Load 'LOAD' not found in the network");
     }
 }

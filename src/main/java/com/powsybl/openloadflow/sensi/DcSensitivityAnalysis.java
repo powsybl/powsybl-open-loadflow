@@ -595,7 +595,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             generators.add((LfGeneratorImpl) lfNetwork.getGeneratorById(generatorInfo.getKey()));
         }
 
-        for (Triple<String, Double, Double> loadInfo : contingency.getLoadIdsToLose()) {
+        for (Triple<String, Pair<Double, Double>, Double> loadInfo : contingency.getLoadIdsToLose()) {
             if (loadInfo.getLeft() != null) {
                 LfBus lfBus = lfNetwork.getBusById(loadInfo.getLeft());
                 busStates.add(BusState.save(lfBus));
@@ -625,12 +625,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
         }
 
-        for (Triple<String, Double, Double> loadInfo : contingency.getLoadIdsToLose()) {
+        for (Triple<String, Pair<Double, Double>, Double> loadInfo : contingency.getLoadIdsToLose()) {
             if (loadInfo.getLeft() != null) {
                 LfBus lfBus = lfNetwork.getBusById(loadInfo.getLeft());
-                double p0 = loadInfo.getMiddle();
-                lfBus.setLoadTargetP(lfBus.getLoadTargetP() - LfContingency.getUpdatedLoadP0(lfBus, lfParameters, p0));
-                lfBus.getLfLoads().setAbsVariableLoadTargetP(lfBus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(p0) * PerUnit.SB);
+                double p0 = loadInfo.getMiddle().getKey();
+                double variableActivePower = loadInfo.getMiddle().getValue();
+                lfBus.setLoadTargetP(lfBus.getLoadTargetP() - LfContingency.getUpdatedLoadP0(lfBus, lfParameters, p0, variableActivePower));
+                lfBus.getLfLoads().setAbsVariableLoadTargetP(lfBus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(loadInfo.getMiddle().getValue()) * PerUnit.SB);
             }
         }
     }
