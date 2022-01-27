@@ -108,7 +108,7 @@ class AcLoadFlowTransformerControlTest {
                 .add();
         VoltageLevel vl4 = substation.newVoltageLevel()
                 .setId("VL_4")
-                .setNominalV(32.0)
+                .setNominalV(33.0)
                 .setLowVoltageLimit(0)
                 .setHighVoltageLimit(100)
                 .setTopologyKind(TopologyKind.BUS_BREAKER)
@@ -145,7 +145,7 @@ class AcLoadFlowTransformerControlTest {
                 .setTargetV(33.0);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertVoltageEquals(31.861, bus4);
+        assertVoltageEquals(32.872, bus4);
         assertTrue(result.isOk());
         assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
 
@@ -158,7 +158,7 @@ class AcLoadFlowTransformerControlTest {
                 .setTargetV(33.0);
 
         result = loadFlowRunner.run(network, parameters);
-        assertVoltageEquals(31.862, bus4); //FIXME: should be 31.861
+        assertVoltageEquals(32.874, bus4); //FIXME: should be 32.872
         assertTrue(result.isOk());
         assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
     }
@@ -408,7 +408,7 @@ class AcLoadFlowTransformerControlTest {
                 .add();
         VoltageLevel vl5 = substation.newVoltageLevel()
                 .setId("VL_5")
-                .setNominalV(30.0)
+                .setNominalV(33.0)
                 .setLowVoltageLimit(0)
                 .setHighVoltageLimit(100.0)
                 .setTopologyKind(TopologyKind.BUS_BREAKER)
@@ -446,7 +446,7 @@ class AcLoadFlowTransformerControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(31.200, bus5);
+        assertVoltageEquals(34.329, bus5);
 
         parameters.setTransformerVoltageControlOn(true);
         t3wt.getLeg2().getRatioTapChanger()
@@ -458,7 +458,7 @@ class AcLoadFlowTransformerControlTest {
 
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(31.200, bus5);
+        assertVoltageEquals(34.329, bus5);
     }
 
     /**
