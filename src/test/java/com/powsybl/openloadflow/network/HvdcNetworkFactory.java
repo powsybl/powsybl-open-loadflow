@@ -277,9 +277,9 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         Network network = createLcc();
         Bus b1 = network.getBusBreakerView().getBus("b1");
         Bus b3 = network.getBusBreakerView().getBus("b3");
-        Bus b4 = createBus(network, "test_s", "b4");
-        Bus b5 = createBus(network, "test_s", "b5");
-        Bus b6 = createBus(network, "b6");
+        Bus b4 = createBus(network, "test_s", "b4", 400);
+        Bus b5 = createBus(network, "test_s", "b5", 400);
+        Bus b6 = createBus(network, "test_s", "b6", 400);
         createLine(network, b3, b4, "l34", 0.1f);
         createLine(network, b5, b6, "l56", 0.1f);
         TwoWindingsTransformer twt = createTransformer(network, "test_s", b4, b5, "l45", 0.1f, 1d);
@@ -297,7 +297,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createGenerator(b6, "g6", 1);
 
         for (int i = 0; i < 10; i++) {
-            Bus b = createBus(network, "additionnalbus_" + i);
+            Bus b = createBus(network, "test_s", "additionnalbus_" + i, 400);
             createLine(network, b1, b, "additionnalline_" + i, 0.1f);
         }
 
@@ -314,7 +314,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     public static Network createLccWithBiggerComponentsAndAdditionalLine2() {
         Network network = createLccWithBiggerComponents();
 
-        createBus(network, "additionnalbus_10");
+        createBus(network, "test_s", "additionnalbus_10", 400);
         createLine(network, network.getBusBreakerView().getBus("additionnalbus_0"), network.getBusBreakerView().getBus("additionnalbus_10"), "additionnalline_10", 0.1f);
         return network;
     }

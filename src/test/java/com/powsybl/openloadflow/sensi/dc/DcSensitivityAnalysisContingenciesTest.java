@@ -1783,7 +1783,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
     @Test
     void testDanglingLineContingencyDistributedSlackOnLoads() {
-        Network network = DanglingLineFactory.createWithLoad();
+        Network network = BoundaryFactory.createWithLoad();
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl3_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         SensitivityFactorsProvider factorsProvider = n -> List.of(new BranchFlowPerInjectionIncrease(new BranchFlow("l1", "l1", "l1"),
@@ -1812,7 +1812,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
     @Test
     void testDanglingLineContingencyDistributedSlackOnGenerators() {
-        Network network = DanglingLineFactory.createWithLoad();
+        Network network = BoundaryFactory.createWithLoad();
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl3_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         SensitivityFactorsProvider factorsProvider2 = n -> List.of(new BranchFlowPerInjectionIncrease(new BranchFlow("l1", "l1", "l1"),
