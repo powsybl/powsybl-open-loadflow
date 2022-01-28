@@ -1,9 +1,6 @@
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.contingency.ContingenciesProvider;
-import com.powsybl.contingency.Contingency;
-import com.powsybl.contingency.ContingencyContext;
-import com.powsybl.contingency.ContingencyContextType;
+import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -72,7 +69,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             Map<String, BranchResult> postContingencyBranchResults = new HashMap<>();
             List<SensitivityValue2> values = res.getValues(contingency.getId());
             List<LimitViolation> violations = new ArrayList<>();
-            double branchInContingencyP1 = preContingencyBranchResults.get(contingency.getElements().get(0).getId()).getP1();
+            double branchInContingencyP1 = Double.NaN;
+            if (contingency.getElements().size() == 1 && contingency.getElements().get(0).getType() == ContingencyElementType.BRANCH) {
+                branchInContingencyP1 = preContingencyBranchResults.get(contingency.getElements().get(0).getId()).getP1();
+            }
 
             for (SensitivityValue2 v : values) {
                 SensitivityFactor2 factor = (SensitivityFactor2) v.getFactorContext();
@@ -81,7 +81,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
                 if (monitor.getBranchIds().contains(branchId)) {
                     BranchResult preContingencyBranchResult = preContingencyBranchResults.get(branchId);
-                    double flowTransfer = (v.getFunctionReference() - preContingencyBranchResult.getP1()) / branchInContingencyP1;
+                    double flowTransfer = Double.isNaN(branchInContingencyP1) ? Double.NaN : (v.getFunctionReference() - preContingencyBranchResult.getP1()) / branchInContingencyP1;
                     postContingencyBranchResults.put(branchId, new BranchResult(branchId, v.getFunctionReference(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, flowTransfer));
                 }
 
