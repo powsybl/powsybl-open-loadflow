@@ -36,7 +36,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         List<SensitivityVariableSet> variableSets = Collections.emptyList();
         SensitivityAnalysisParameters sensitivityAnalysisParameters = new SensitivityAnalysisParameters();
-        sensitivityAnalysisParameters.getLoadFlowParameters().setDc(true);
+        sensitivityAnalysisParameters.setLoadFlowParameters(securityAnalysisParameters.getLoadFlowParameters());
 
         ContingencyContext contingencyContext = new ContingencyContext(null, ContingencyContextType.ALL);
         String variableId = network.getLoads().iterator().next().getId();
