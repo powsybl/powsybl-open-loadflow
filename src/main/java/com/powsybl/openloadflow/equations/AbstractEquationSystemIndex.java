@@ -14,8 +14,6 @@ import java.util.*;
 public abstract class AbstractEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
         implements EquationSystemIndex<V, E> {
 
-    protected final TreeMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = new TreeMap<>();
-
     protected final List<EquationSystemIndexListener> listeners = new ArrayList<>();
 
     @Override

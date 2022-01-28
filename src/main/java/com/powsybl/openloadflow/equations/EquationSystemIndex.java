@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import java.util.List;
-import java.util.NavigableMap;
 import java.util.NavigableSet;
 
 /**
@@ -15,7 +13,7 @@ import java.util.NavigableSet;
  */
 public interface EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
-    NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> getSortedEquationsToSolve();
+    NavigableSet<Equation<V, E>> getSortedEquationsToSolve();
 
     NavigableSet<Variable<V>> getSortedVariablesToFind();
 

@@ -23,7 +23,9 @@ class FullEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
     private final EquationSystem<V, E> equationSystem;
 
-    private final TreeSet<Variable<V>> sortedVariables = new TreeSet<>();
+    private final TreeSet<Equation<V, E>> sortedEquationsToSolve = new TreeSet<>();
+
+    private final TreeSet<Variable<V>> sortedVariablesToFind = new TreeSet<>();
 
     private boolean valid = false;
 
@@ -37,40 +39,38 @@ class FullEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E> & 
             return;
         }
 
-        for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
+        for (Equation<V, E> equation : sortedEquationsToSolve) {
             equation.setColumn(-1);
         }
-        for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
-            equation.setColumn(-1);
+        for (Variable<V> equation : sortedVariablesToFind) {
+            equation.setRow(-1);
         }
 
         sortedEquationsToSolve.clear();
-        sortedVariables.clear();
+        sortedVariablesToFind.clear();
         for (var equation : equationSystem.getEquations()) {
             if (!equation.isActive()) {
                 break;
             }
+            sortedEquationsToSolve.add(equation);
             for (var term : equation.getTerms()) {
                 if (!term.isActive()) {
                     break;
                 }
                 for (var v : term.getVariables()) {
-                    sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>())
-                            .computeIfAbsent(v, k -> new ArrayList<>())
-                            .add(term);
-                    sortedVariables.add(v);
+                    sortedVariablesToFind.add(v);
                 }
             }
         }
 
         int columnCount = 0;
-        for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
+        for (Equation<V, E> equation : sortedEquationsToSolve) {
             equation.setColumn(columnCount++);
         }
         LOGGER.debug("Equations index updated ({} columns)", columnCount);
 
         int rowCount = 0;
-        for (Variable<V> variable : sortedVariables) {
+        for (Variable<V> variable : sortedVariablesToFind) {
             variable.setRow(rowCount++);
         }
         LOGGER.debug("Variables index updated ({} rows)", rowCount);
@@ -91,13 +91,13 @@ class FullEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E> & 
         valid = false;
     }
 
-    public NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> getSortedEquationsToSolve() {
+    public NavigableSet<Equation<V, E>> getSortedEquationsToSolve() {
         update();
         return sortedEquationsToSolve;
     }
 
     public NavigableSet<Variable<V>> getSortedVariablesToFind() {
         update();
-        return sortedVariables;
+        return sortedVariablesToFind;
     }
 }
