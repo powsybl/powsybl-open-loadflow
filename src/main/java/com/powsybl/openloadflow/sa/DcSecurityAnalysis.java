@@ -72,7 +72,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             Map<String, BranchResult> postContingencyBranchResults = new HashMap<>();
             List<SensitivityValue2> values = res.getValues(contingency.getId());
             List<LimitViolation> violations = new ArrayList<>();
-            double branchInContingencyP1 = preContingencyBranchResults.get(contingency.getId()).getP1();
+            double branchInContingencyP1 = preContingencyBranchResults.get(contingency.getElements().get(0).getId()).getP1();
 
             for (SensitivityValue2 v : values) {
                 SensitivityFactor2 factor = (SensitivityFactor2) v.getFactorContext();
