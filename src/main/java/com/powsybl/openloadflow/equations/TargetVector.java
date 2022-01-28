@@ -8,8 +8,7 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.openloadflow.network.*;
 
-import java.util.List;
-import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Objects;
 
 /**
@@ -110,9 +109,9 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         Objects.requireNonNull(network);
         Objects.requireNonNull(equationSystem);
         Objects.requireNonNull(initializer);
-        NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
+        NavigableSet<Equation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
         double[] array = new double[sortedEquationsToSolve.size()];
-        for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
+        for (Equation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
         }
         return array;
@@ -124,8 +123,8 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
     }
 
     private void updateArray() {
-        NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
-        for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
+        NavigableSet<Equation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
+        for (Equation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
         }
         status = Status.VALID;

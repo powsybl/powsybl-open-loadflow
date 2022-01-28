@@ -131,16 +131,26 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
         partialDerivatives = new ArrayList<>(estimatedNonZeroValueCount);
 
-        for (Map.Entry<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> e : equationSystem.getIndex().getSortedEquationsToSolve().entrySet()) {
-            Equation<V, E> eq = e.getKey();
+        for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
             int column = eq.getColumn();
-            for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e2 : e.getValue().entrySet()) {
-                Variable<V> var = e2.getKey();
-                int row = var.getRow();
-                for (EquationTerm<V, E> equationTerm : e2.getValue()) {
-                    double value = equationTerm.der(var);
-                    int elementIndex = matrix.addAndGetIndex(row, column, value);
-                    partialDerivatives.add(new JacobianMatrix.PartialDerivative<>(equationTerm, elementIndex, var));
+            Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = new TreeMap<>();
+            for (EquationTerm<V, E> term : eq.getTerms()) {
+                for (Variable<V> v : term.getVariables()) {
+                    termsByVariable.computeIfAbsent(v, k -> new ArrayList<>())
+                            .add(term);
+                }
+            }
+            for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e : termsByVariable.entrySet()) {
+                Variable<V> v = e.getKey();
+                int row = v.getRow();
+                if (row != -1) {
+                    for (EquationTerm<V, E> term : e.getValue()) {
+                        // create a derivative for all terms including de-activated ones because could be reactivated
+                        // at jacobian update stage without any equation or variable index change
+                        double value = term.isActive() ? term.der(v) : 0;
+                        int elementIndex = matrix.addAndGetIndex(row, column, value);
+                        partialDerivatives.add(new JacobianMatrix.PartialDerivative<>(term, elementIndex, v));
+                    }
                 }
             }
         }
@@ -165,11 +175,11 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
         matrix.reset();
         for (PartialDerivative<V, E> partialDerivative : partialDerivatives) {
-            EquationTerm<V, E> equationTerm = partialDerivative.getEquationTerm();
-            if (equationTerm.isActive()) {
+            EquationTerm<V, E> term = partialDerivative.getEquationTerm();
+            if (term.isActive()) {
                 int elementIndex = partialDerivative.getElementIndex();
-                Variable<V> var = partialDerivative.getVariable();
-                double value = equationTerm.der(var);
+                Variable<V> v = partialDerivative.getVariable();
+                double value = term.der(v);
                 matrix.addAtIndex(elementIndex, value);
             }
         }
