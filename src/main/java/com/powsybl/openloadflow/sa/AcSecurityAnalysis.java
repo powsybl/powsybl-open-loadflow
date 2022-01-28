@@ -45,6 +45,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
@@ -83,7 +84,16 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         if (!largestNetwork.isValid()) {
             throw new PowsyblException("Largest network is invalid");
         }
-        SecurityAnalysisResult result = runSimulations(largestNetwork, propagatedContingencies, acParameters, lfParameters, lfParametersExt);
+
+        GraphDecrementalConnectivity<LfBus> connectivity = largestNetwork.createDecrementalConnectivity(connectivityProvider);
+        List<LfContingency> lfContingencies = propagatedContingencies.stream()
+                .flatMap(propagatedContingency -> LfContingency.create(propagatedContingency, largestNetwork, connectivity, true).stream())
+                // move contingencies that break connectivity at the end to minimize to number of Jacobian matrix
+                // initialization
+                .sorted(Comparator.comparingInt(c -> c.getBuses().size()))
+                .collect(Collectors.toList());
+
+        SecurityAnalysisResult result = runSimulations(largestNetwork, contingencies, lfContingencies, acParameters, lfParameters, lfParametersExt);
 
         stopwatch.stop();
         LOGGER.info("Security analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
@@ -106,8 +116,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         return lfNetworks;
     }
 
-    private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
-                                                  LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
+    private SecurityAnalysisResult runSimulations(LfNetwork network, List<Contingency> contingencies, List<LfContingency> lfContingencies,
+                                                  AcLoadFlowParameters acParameters, LoadFlowParameters loadFlowParameters,
+                                                  OpenLoadFlowParameters openLoadFlowParameters) {
         List<BranchResult> preContingencyBranchResults = new ArrayList<>();
         List<BusResults> preContingencyBusResults = new ArrayList<>();
         List<ThreeWindingsTransformerResult> preContingencyThreeWindingsTransformerResults = new ArrayList<>();
@@ -136,36 +147,29 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
 
                 // start a simulation for each of the contingency
-                Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
-                GraphDecrementalConnectivity<LfBus> connectivity = network.createDecrementalConnectivity(connectivityProvider);
-                while (contingencyIt.hasNext()) {
-                    PropagatedContingency propagatedContingency = contingencyIt.next();
-                    LfContingency.create(propagatedContingency, network, connectivity, true)
-                            .ifPresent(lfContingency -> { // only process contingencies that impact the network
-                                for (LfBranch branch : lfContingency.getBranches()) {
-                                    branch.setDisabled(true);
-                                }
-                                for (LfBus bus : lfContingency.getBuses()) {
-                                    bus.setDisabled(true);
-                                }
-                                for (Pair<LfShunt, Double> shuntAndB : lfContingency.getShunts()) {
-                                    LfShunt shunt = shuntAndB.getKey();
-                                    shunt.setB(shunt.getB() - shuntAndB.getValue());
-                                }
+                for (LfContingency lfContingency : lfContingencies) {
+                    for (LfBranch branch : lfContingency.getBranches()) {
+                        branch.setDisabled(true);
+                    }
+                    for (LfBus bus : lfContingency.getBuses()) {
+                        bus.setDisabled(true);
+                    }
+                    for (Pair<LfShunt, Double> shuntAndB : lfContingency.getShunts()) {
+                        LfShunt shunt = shuntAndB.getKey();
+                        shunt.setB(shunt.getB() - shuntAndB.getValue());
+                    }
 
-                                distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
+                    distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
-                                PostContingencyResult postContingencyResult = runPostContingencySimulation(network, context, propagatedContingency.getContingency(), lfContingency, preContingencyLimitViolations, results);
-                                postContingencyResults.add(postContingencyResult);
+                    Contingency contingency = contingencies.get(lfContingency.getIndex());
+                    PostContingencyResult postContingencyResult = runPostContingencySimulation(network, context, contingency, lfContingency, preContingencyLimitViolations, results);
+                    postContingencyResults.add(postContingencyResult);
 
-                                if (contingencyIt.hasNext()) {
-                                    LOGGER.info("Restore pre-contingency state");
+                    LOGGER.info("Restore pre-contingency state");
 
-                                    // restore base state
-                                    ElementState.restore(busStates);
-                                    ElementState.restore(branchStates);
-                                }
-                            });
+                    // restore base state
+                    ElementState.restore(busStates);
+                    ElementState.restore(branchStates);
                 }
             }
 
