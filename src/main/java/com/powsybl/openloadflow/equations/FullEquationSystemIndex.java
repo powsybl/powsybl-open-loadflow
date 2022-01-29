@@ -50,12 +50,12 @@ class FullEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E> & 
         sortedVariablesToFind.clear();
         for (var equation : equationSystem.getEquations()) {
             if (!equation.isActive()) {
-                break;
+                continue;
             }
             sortedEquationsToSolve.add(equation);
             for (var term : equation.getTerms()) {
                 if (!term.isActive()) {
-                    break;
+                    continue;
                 }
                 for (var v : term.getVariables()) {
                     sortedVariablesToFind.add(v);
