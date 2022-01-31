@@ -260,4 +260,9 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     public void setUserObject(Object userObject) {
         this.userObject = userObject;
     }
+
+    @Override
+    public void setParticipating(boolean participating) {
+        // nothing to do
+    }
 }
