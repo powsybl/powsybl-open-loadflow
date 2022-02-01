@@ -2,22 +2,19 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
-import com.powsybl.contingency.ContingenciesProvider;
-import com.powsybl.contingency.Contingency;
-import com.powsybl.contingency.ContingencyContext;
-import com.powsybl.contingency.ContingencyContextType;
+import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.sensi.*;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisProvider;
 import com.powsybl.security.*;
+import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.detectors.LoadingLimitType;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.PostContingencyResult;
-import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.sensitivity.*;
 
 import java.util.*;
