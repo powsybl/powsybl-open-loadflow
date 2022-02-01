@@ -32,11 +32,12 @@ import com.powsybl.openloadflow.network.SlackBusSelector;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
-import org.apache.commons.compress.utils.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -422,20 +423,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         }
     }
 
-    private static OuterLoopConfig findOuterLoopConfig() {
-        OuterLoopConfig outerLoopConfig;
-        List<OuterLoopConfig> outerLoopConfigs = Lists.newArrayList(ServiceLoader.load(OuterLoopConfig.class, OuterLoopConfig.class.getClassLoader()).iterator());
-        if (outerLoopConfigs.isEmpty()) {
-            outerLoopConfig = new DefaultOuterLoopConfig();
-        } else {
-            if (outerLoopConfigs.size() > 1) {
-                throw new PowsyblException("Only one outer loop config is expected on class path");
-            }
-            outerLoopConfig = outerLoopConfigs.get(0);
-        }
-        return outerLoopConfig;
-    }
-
     static LfNetworkParameters getNetworkParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                     SlackBusSelector slackBusSelector, boolean breakers) {
         return new LfNetworkParameters(slackBusSelector,
@@ -486,7 +473,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setStoppingCriteria(new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq()))
                 .setMaxIteration(parametersExt.getMaxIteration());
 
-        OuterLoopConfig outerLoopConfig = findOuterLoopConfig();
+        OuterLoopConfig outerLoopConfig = OuterLoopConfig.findOuterLoopConfig(new DefaultOuterLoopConfig());
         List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
 
         return new AcLoadFlowParameters(networkParameters,
