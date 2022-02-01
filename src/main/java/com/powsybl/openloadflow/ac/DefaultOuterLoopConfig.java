@@ -36,7 +36,7 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
         if (parameters.isTransformerVoltageControlOn()) {
             outerLoops.add(new TransformerVoltageControlOuterLoop());
         }
-        if (parameters.isSimulShunt()) {
+        if (parameters.isShuntCompensatorVoltageControlOn()) {
             outerLoops.add(new ShuntVoltageControlOuterLoop());
         }
         return outerLoops;

@@ -179,7 +179,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                        parametersExt.isVoltagePerReactivePowerControl(),
                                        parametersExt.hasReactivePowerRemoteControl(),
                                        parameters.isDc(),
-                                       parameters.isSimulShunt(),
+                                       parameters.isShuntCompensatorVoltageControlOn(),
                                        !parameters.isNoGeneratorReactiveLimits());
     }
 
@@ -207,7 +207,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
         LOGGER.info("Voltage per reactive power control: {}", parametersExt.isVoltagePerReactivePowerControl());
         LOGGER.info("Reactive Power Remote control: {}", parametersExt.hasReactivePowerRemoteControl());
-        LOGGER.info("Shunt voltage control: {}", parameters.isSimulShunt());
+        LOGGER.info("Shunt voltage control: {}", parameters.isShuntCompensatorVoltageControlOn());
 
         OuterLoopConfig outerLoopConfig = findOuterLoopConfig();
         List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
