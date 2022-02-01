@@ -55,9 +55,7 @@ public interface LfGenerator {
         return false;
     }
 
-    default void setParticipating(boolean participating) {
-        // nothing to do
-    }
+    void setParticipating(boolean participating);
 
     default double getDroop() {
         return 0;
